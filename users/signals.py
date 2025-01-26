@@ -3,7 +3,10 @@ from django.dispatch import receiver
 from .models import User
 
 @receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
-    if created:
-        # Perform any post-creation actions
-        print(f"User {instance.username} created successfully!")
+def assign_default_role(sender, instance, created, **kwargs):
+    """
+    Assign a default role to newly created users.
+    """
+    if created and not instance.role:
+        instance.role = 'client'
+        instance.save()
