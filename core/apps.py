@@ -10,3 +10,4 @@ class CoreConfig(AppConfig):
         You can use it to import signals or perform initialization tasks.
         """
         import core.signals  # Import signals (if any) when the app is ready
+        import users.signals
