@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.env
+db.sqlite3
+.DS_Store
+.pytest_cache/
+postgres_data/
+*.log
+docker-compose.override.yml
+*.pid
