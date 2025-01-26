@@ -25,7 +25,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True' 
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
 
 # Application definition
@@ -77,14 +77,19 @@ WSGI_APPLICATION = 'writing_system.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB'),
-        'USER': os.getenv('POSTGRES_USER'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-        'HOST': 'db',
-        'PORT': 5432,
+        'ENGINE': 'django.db.backends.postgresql',  
+        'NAME': os.getenv('POSTGRES_DB'), #Database Name
+        'USER': os.getenv('POSTGRES_USER'), #Database username
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'), #Database password
+        "HOST": os.getenv("DB_HOST"),  # Hostname
+        "PORT": os.getenv("DB_PORT"),  # Port
     }
 }
+
+
+print("Database:", os.getenv("POSTGRES_DB"))
+print("User:", os.getenv("POSTGRES_USER"))
+print("Password:", os.getenv("POSTGRES_PASSWORD"))
 
 
 # Password validation
@@ -130,5 +135,18 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # CORS configuration (for handling CORS)
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False') == 'True'
-CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",  # Local development
+    "http://127.0.0.1:8000",  # Local development
+    "https://your-production-domain.com",  # Replace with your production domain
+]
+
+
+
+# Redis (if used for caching)
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "LOCATION": f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', '6379')}/1",
+    }
+}
