@@ -41,10 +41,14 @@ INSTALLED_APPS = [
      # Third-party apps
     'rest_framework',
     'corsheaders',
+    'drf_spectacular',
 
     # Project apps
     'core',
     'users',
+    'websites',
+    'orders',
+    'discounts',
 ]
 
 MIDDLEWARE = [
@@ -156,4 +160,10 @@ CACHES = {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', '6379')}/1",
     }
+}
+
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }

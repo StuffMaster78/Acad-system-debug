@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractUser
+from .managers import ActiveManager
 from core.models.base import WebsiteSpecificBaseModel
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -7,6 +8,7 @@ class User(WebsiteSpecificBaseModel, AbstractUser):
     """
     Custom user model with roles for admin, editors, support, writers, and clients.
     """
+    objects = ActiveManager()
     ROLE_CHOICES = (
         ('admin', 'Admin'),
         ('editor', 'Editor'),

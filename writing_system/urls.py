@@ -14,10 +14,30 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+"""
+URL configuration for the writing_system project.
+
+This `urlpatterns` list routes URLs to views for different parts of the project.
+Includes API documentation, schema generation, and app-specific endpoints.
+"""
+
 from django.contrib import admin
 from django.urls import path, include
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('api/', include('users.urls')),
+    # Admin panel
+    path('admin/', admin.site.urls, name='admin'),
+
+    # API schema and documentation
+    path('api/v1/schema/', SpectacularAPIView.as_view(), name='api-schema'),
+    path('api/v1/docs/swagger/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='swagger-ui'),
+    path('api/v1/docs/redoc/', SpectacularRedocView.as_view(url_name='api-schema'), name='redoc-ui'),
+
+    # App-specific endpoints
+    path('api/v1/orders/', include('orders.urls')),          # Orders app
+    path('api/v1/discounts/', include('discounts.urls')),    # Discounts app
+    path('api/v1/websites/', include('websites.urls')),      # Websites app
+    path('api/v1/users/', include('users.urls')),            # Users app
 ]
+
