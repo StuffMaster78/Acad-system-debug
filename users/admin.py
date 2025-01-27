@@ -1,7 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import User, WriterLevel
-
+from .models import User
 
 class CustomUserAdmin(UserAdmin):
     """
@@ -70,17 +69,6 @@ class CustomUserAdmin(UserAdmin):
     )
 
 
-class WriterLevelAdmin(admin.ModelAdmin):
-    """
-    Admin configuration for the WriterLevel model.
-    """
-    model = WriterLevel
-    list_display = ('name', 'base_pay_per_page', 'tip_percentage', 'max_orders', 'min_orders', 'min_rating')
-    search_fields = ('name',)
-    ordering = ('name',)
-    list_filter = ('max_orders', 'min_orders', 'min_rating')
-
 
 # Register models with custom admin configurations
 admin.site.register(User, CustomUserAdmin)
-admin.site.register(WriterLevel, WriterLevelAdmin)

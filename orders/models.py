@@ -1,72 +1,161 @@
 from django.db import models
+from django.conf import settings
+from django.utils.timezone import now
+from datetime import timedelta
+from decimal import Decimal
+from pricing_configs.models import PricingConfiguration
+from order_configs.models import WriterDeadlineConfig
+from discounts.models import DiscountCode
+from users.models import CustomUser
 from core.models.base import WebsiteSpecificBaseModel
-from discounts.models import Discount
-from users.models import User
+
+STATUS_CHOICES = [
+    ('unpaid', 'Unpaid'),
+    ('pending', 'Pending'),
+    ('on_hold', 'On Hold'),
+    ('available', 'Available'),
+    ('critical', 'Critical'),
+    ('assigned', 'Assigned'),
+    ('late', 'Late'),
+    ('revision', 'Revision'),
+    ('disputed', 'Disputed'),
+    ('completed', 'Completed'),
+    ('approved', 'Approved'),
+    ('cancelled', 'Cancelled'),
+    ('archived', 'Archived'),
+]
+
+SPACING_CHOICES = [
+    ('single', 'Single'),
+    ('double', 'Double'),
+]
+
+FLAG_CHOICES = [
+    ('UO', 'Urgent Order'),
+    ('FCO', 'First Client Order'),
+    ('HVO', 'High-Value Order'),
+    ('PO', 'Preferred Order'),
+    ('RCO', 'Returning Client Order'),
+]
 
 
 class Order(WebsiteSpecificBaseModel):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('available', 'Available'),
-        ('unpaid', 'Unpaid'),
-        ('critical', 'Critical'),
-        ('late', 'Late'),
-        ('in_progress', 'In Progress'),
-        ('revision', 'Revision'),
-        ('disputed', 'Disputed'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
-        ('archived', 'Archived'),
-        ('paid', 'Paid'),
-    ]
-
-    TYPE_OF_WORK_CHOICES = [
-        ('writing', 'Writing'),
-        ('editing', 'Editing'),
-        ('rewriting', 'Rewriting'),
-    ]
-
-    topic = models.CharField(max_length=255, help_text="Topic of the work")
-    instructions = models.TextField(help_text="Detailed instructions provided by the client")
-    academic_level = models.CharField(max_length=50, help_text="Academic level required")
-    subject = models.CharField(max_length=100)
-    type_of_work = models.CharField(max_length=20, choices=TYPE_OF_WORK_CHOICES, help_text="Type of work required")
-    number_of_pages = models.PositiveIntegerField(default=1, help_text="Number of pages required")
-    number_of_slides = models.PositiveIntegerField(default=0, help_text="Number of slides required (if applicable)")
-    client_deadline = models.DateTimeField(help_text="Deadline specified by the client")
-    writer_deadline = models.DateTimeField(null=True, blank=True, help_text="Deadline for the writer (buffered)")
+    """
+    Represents an order placed by a client.
+    Inherits from WebsiteSpecificBaseModel for multi-website compatibility.
+    """
     client = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="client_orders", help_text="Client placing the order"
-    )
-    assigned_writer = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        related_name="writer_orders",
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="orders_as_client",
         null=True,
         blank=True,
-        help_text="Writer assigned to the order",
+        limit_choices_to={'role': 'client'},
+        help_text="The client who placed this order. Leave blank for admin-created orders."
     )
-    total_price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Total price for the order")
-    additional_services = models.JSONField(default=dict, blank=True, help_text="Additional services selected by the client")
+    writer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders_as_writer",
+        limit_choices_to={'role': 'writer'},
+        help_text="The writer assigned to this order."
+    )
+    preferred_writer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        limit_choices_to={'role': 'writer'},
+        help_text="Preferred writer for this order."
+    )
     discount_code = models.ForeignKey(
-        Discount, on_delete=models.SET_NULL, null=True, blank=True, help_text="Discount code applied to the order"
+        DiscountCode,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Discount code applied to this order."
     )
-    tips = models.DecimalField(max_digits=8, decimal_places=2, default=0, help_text="Tips provided by the client")
-    payment_status = models.CharField(
-        max_length=20,
-        choices=[('paid', 'Paid'), ('unpaid', 'Unpaid'), ('partial', 'Partial')],
-        default='unpaid',
-        help_text="Payment status of the order",
+    writer_quality = models.ForeignKey(
+        'pricing.WriterQuality',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Selected writer quality level."
     )
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', help_text="Current status of the order")
-    revision_requested = models.BooleanField(default=False, help_text="Indicates if a revision has been requested")
-    date_posted = models.DateTimeField(auto_now_add=True, help_text="Date when the order was posted")
-    completed_at = models.DateTimeField(null=True, blank=True, help_text="Date when the order was completed")
-    is_high_value = models.BooleanField(default=False, help_text="Flag for high-value orders")
-    is_urgent = models.BooleanField(default=False, help_text="Flag for urgent orders")
+    paper_type = models.ForeignKey(
+        'order_config.PaperType',
+        on_delete=models.PROTECT,
+        help_text="The type of paper requested."
+    )
+    topic = models.CharField(max_length=255, help_text="The topic or title of the order.")
+    instructions = models.TextField(help_text="Detailed instructions for the order.")
+    academic_level = models.ForeignKey(
+        'pricing.AcademicLevelPricing',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="The academic level required."
+    )
+    formatting_style = models.ForeignKey(
+        'order_config.FormattingStyle',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="The formatting style required."
+    )
+    subject = models.ForeignKey(
+        'order_config.Subject',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="The subject of the order."
+    )
+    type_of_work = models.ForeignKey(
+        'order_config.TypeOfWork',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="The type of work requested."
+    )
+    english_type = models.ForeignKey(
+        'order_config.EnglishType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Preferred English style for the paper."
+    )
+    pages = models.PositiveIntegerField(help_text="Number of pages required.")
+    slides = models.PositiveIntegerField(default=0, help_text="Number of slides.")
+    resources = models.PositiveIntegerField(default=0, help_text="Number of references or sources.")
+    spacing = models.CharField(
+        max_length=10, choices=SPACING_CHOICES, default='double', help_text="Spacing for the order."
+    )
+    extra_services = models.ManyToManyField(
+        'pricing.AdditionalService',
+        blank=True,
+        related_name='orders',
+        help_text="Additional services requested by the client or admin."
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='unpaid', help_text="Current status of the order.")
+    flag = models.CharField(
+        max_length=3, choices=FLAG_CHOICES, null=True, blank=True, help_text="System-assigned or admin-set order flag."
+    )
+    deadline = models.DateTimeField(help_text="The deadline for the order.")
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Total cost of the order.")
+    writer_compensation = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Compensation for the writer.")
+    writer_deadline = models.DateTimeField(null=True, blank=True, help_text="Writer's deadline.")
+    is_paid = models.BooleanField(default=False, help_text="Indicates if the order is paid.")
+    created_by_admin = models.BooleanField(default=False, help_text="Indicates if the order was created by an admin.")
+    is_special_order = models.BooleanField(default=False, help_text="Indicates if this is a special order.")
+    created_at = models.DateTimeField(auto_now_add=True, help_text="Date and time when the order was created.")
+    updated_at = models.DateTimeField(auto_now=True, help_text="Date and time when the order was last updated.")
 
-    class Meta:
-        ordering = ['-date_posted']
+    # Include existing methods: calculate_total_cost, calculate_writer_compensation, assign_flags, etc.
 
     def __str__(self):
-        return f"Order #{self.id} - {self.title} ({self.website.name})"
+        return f"Order #{self.id} - {self.topic} ({self.status})"
+
+    class Meta:
+        ordering = ['-created_at']

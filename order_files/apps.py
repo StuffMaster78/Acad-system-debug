@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class WritetManagementConfig(AppConfig):
+class OrderFilesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'writer_management'
+    name = 'order_files'

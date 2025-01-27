@@ -1,24 +1,38 @@
 from rest_framework import serializers
+from django.utils.timezone import now  # Importing now
 from .models import Order
 
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'id', 'title', 'topic', 'instructions', 'academic_level', 
-            'type_of_work', 'number_of_pages', 'number_of_slides', 
-            'client_deadline', 'writer_deadline', 'client', 'assigned_writer', 
-            'total_price', 'additional_services', 'subject', 'discount_code', 'tips', 
-            'payment_status', 'status', 'revision_requested', 
-            'date_posted', 'completed_at', 'is_high_value', 'is_urgent'
+            'id', 'topic', 'instructions', 'paper_type', 'academic_level', 
+            'formatting_style', 'type_of_work', 'english_type', 'pages', 
+            'slides', 'resources', 'spacing', 'deadline', 'writer_deadline', 
+            'client', 'writer', 'preferred_writer', 'total_cost', 
+            'writer_compensation', 'extra_services', 'subject', 'discount_code', 
+            'is_paid', 'status', 'flag', 'created_at', 'updated_at', 
+            'created_by_admin', 'is_special_order'
         ]
-        read_only_fields = ['id', 'date_posted', 'completed_at']
+        read_only_fields = [
+            'id', 'total_cost', 'writer_compensation', 'is_paid', 
+            'created_at', 'updated_at', 'flag', 'writer_deadline'
+        ]
 
 class OrderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'title', 'topic', 'instructions', 'academic_level', 
-            'type_of_work', 'number_of_pages', 'number_of_slides', 
-            'client_deadline', 'additional_services', 'discount_code'
+            'topic', 'instructions', 'paper_type', 'academic_level', 
+            'formatting_style', 'type_of_work', 'english_type', 'pages', 
+            'slides', 'resources', 'spacing', 'deadline', 'extra_services', 
+            'discount_code', 'client', 'preferred_writer'
         ]
+
+    def validate_deadline(self, value):
+        """
+        Ensure the deadline is in the future.
+        """
+        if value <= now():
+            raise serializers.ValidationError("The deadline must be in the future.")
+        return value

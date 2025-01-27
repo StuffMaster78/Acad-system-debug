@@ -9,6 +9,8 @@ billiard==4.2.1
 blinker==1.8.1
 celery==5.4.0
 certifi==2023.7.22
+channels==4.2.0
+channels_redis==4.2.1
 charset-normalizer==3.4.1
 click==8.1.7
 click-didyoumean==0.3.1
@@ -47,6 +49,7 @@ jsonschema-specifications==2024.10.1
 kombu==5.4.2
 MarkupSafe==2.1.5
 mccabe==0.7.0
+msgpack==1.1.0
 pillow==11.0.0
 prompt_toolkit==3.0.48
 psycopg==3.2.3

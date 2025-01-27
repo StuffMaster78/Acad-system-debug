@@ -4,6 +4,9 @@ from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.db import transaction
+from .models import LoyaltyPoint, LoyaltyPointConfig, LoyaltyPointHistory
+from wallet.models import Wallet, WalletTransaction
 
 from .models import ClientProfile, LoyaltyTransaction, LoyaltyPoint, LoyaltyPointHistory, LoyaltyPointConfig
 from .serializers import (
@@ -122,7 +125,7 @@ class LoyaltyPointHistoryView(APIView):
         return Response(serializer.data)
 
 
-class RedeemPointsToWalletView(APIView):
+class RedeemLoyaltyPointsView(APIView):
     """
     API for clients to redeem loyalty points for wallet credits.
     """
@@ -132,51 +135,76 @@ class RedeemPointsToWalletView(APIView):
         client = request.user
         points_to_redeem = request.data.get("points", 0)
 
+        # Validate points input
+        try:
+            points_to_redeem = int(points_to_redeem)
+            if points_to_redeem <= 0:
+                raise ValueError
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid points value. Must be a positive integer."}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             # Get loyalty points and config
             loyalty_point = LoyaltyPoint.objects.get(client=client)
             config = LoyaltyPointConfig.objects.first()
             if not config:
-                return Response({"error": "Loyalty point configuration is not set."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return Response(
+                    {"error": "Loyalty point configuration is missing. Please contact support."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
 
             # Validate points redemption
             if points_to_redeem > loyalty_point.points:
-                return Response({"error": "Insufficient points."}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({"error": "Insufficient points.", "code": "INSUFFICIENT_POINTS"}, status=status.HTTP_400_BAD_REQUEST)
             if points_to_redeem < config.minimum_points_redeem:
                 return Response(
-                    {"error": f"Minimum {config.minimum_points_redeem} points required to redeem."},
+                    {
+                        "error": f"Minimum {config.minimum_points_redeem} points required to redeem.",
+                        "code": "MINIMUM_POINTS_REQUIRED",
+                    },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # Calculate cash equivalent
             cash_value = Decimal(points_to_redeem) / Decimal(config.points_per_dollar)
 
-            # Update wallet
-            wallet, _ = Wallet.objects.get_or_create(user=client)
-            wallet.balance += cash_value
-            wallet.save()
+            # Atomic transaction for wallet and points update
+            with transaction.atomic():
+                # Update wallet
+                wallet, _ = Wallet.objects.get_or_create(user=client)
+                wallet.balance += cash_value
+                wallet.save()
 
-            # Deduct points and log history
-            loyalty_point.points -= points_to_redeem
-            loyalty_point.save()
-            LoyaltyPointHistory.objects.create(
-                client=client,
-                points_change=-points_to_redeem,
-                reason=f"Redeemed {points_to_redeem} points for ${cash_value:.2f}",
-            )
+                # Deduct points
+                loyalty_point.points -= points_to_redeem
+                loyalty_point.save()
 
-            # Log wallet transaction
-            WalletTransaction.objects.create(
-                wallet=wallet,
-                transaction_type="credit",
-                amount=cash_value,
-                description=f"Redeemed {points_to_redeem} loyalty points",
-            )
+                # Log history
+                LoyaltyPointHistory.objects.create(
+                    client=client,
+                    points_change=-points_to_redeem,
+                    reason=f"Redeemed {points_to_redeem} points for ${cash_value:.2f}",
+                )
+
+                # Log wallet transaction
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    transaction_type="credit",
+                    amount=cash_value,
+                    description=f"Redeemed {points_to_redeem} loyalty points",
+                )
 
             return Response(
-                {"message": f"Successfully redeemed {points_to_redeem} points for ${cash_value:.2f}. Wallet balance updated."},
+                {
+                    "message": f"Successfully redeemed {points_to_redeem} points for ${cash_value:.2f}. Wallet balance updated.",
+                    "wallet_balance": wallet.balance,
+                    "remaining_points": loyalty_point.points,
+                },
                 status=status.HTTP_200_OK,
             )
 
         except LoyaltyPoint.DoesNotExist:
-            return Response({"error": "No loyalty points found for this client."}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {"error": "No loyalty points found for this client.", "code": "NO_LOYALTY_POINTS"},
+                status=status.HTTP_404_NOT_FOUND,
+            )

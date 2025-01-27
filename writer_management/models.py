@@ -3,19 +3,9 @@ from django.utils.translation import gettext_lazy as _
 from users.models import User
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
-from writer_management.serializers import (
-    WriterPerformanceSerializer,
-    WriterReviewSerializer,
-    WriterOrderAssignmentSerializer,
-    PaymentHistorySerializer,
-    WriterProgressSerializer,
-    WriterAvailabilitySerializer,
-)
+
 
 class WriterLevel(models.Model):
-    """
-    Represents different levels for writers with constraints and pay details.
-    """
     name = models.CharField(max_length=50, unique=True, help_text=_("Name of the writer level."))
     base_pay_per_page = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     tip_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.0)
@@ -28,9 +18,6 @@ class WriterLevel(models.Model):
 
 
 class PaymentHistory(models.Model):
-    """
-    Tracks payment records for writers with detailed breakdowns.
-    """
     writer = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="payment_history", limit_choices_to={'role': 'writer'}
     )
@@ -45,11 +32,7 @@ class PaymentHistory(models.Model):
         return f"Payment of ${self.amount} to {self.writer.username} on {self.payment_date}"
 
 
-
 class WriterProgress(models.Model):
-    """
-    Tracks progress made by writers on their assigned orders.
-    """
     writer = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="progress_logs", limit_choices_to={'role': 'writer'}
     )
@@ -61,12 +44,9 @@ class WriterProgress(models.Model):
 
     def __str__(self):
         return f"Progress {self.progress}% for Order {self.order.id} by {self.writer.username}"
-    
+
 
 class WriterAvailability(models.Model):
-    """
-    Stores the availability schedule for writers.
-    """
     writer = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="availability", limit_choices_to={'role': 'writer'}
     )
@@ -79,9 +59,6 @@ class WriterAvailability(models.Model):
 
 
 class WriterPerformance(models.Model):
-    """
-    Tracks performance metrics for writers.
-    """
     writer = models.OneToOneField(
         User, on_delete=models.CASCADE, related_name="performance", limit_choices_to={'role': 'writer'}
     )
@@ -93,22 +70,7 @@ class WriterPerformance(models.Model):
     def __str__(self):
         return f"Performance for {self.writer.username}"
 
-
-class WriterPerformanceDetailView(generics.RetrieveAPIView):
-    """
-    API to retrieve performance details for a writer.
-    """
-    permission_classes = [IsAuthenticated]
-    serializer_class = WriterPerformanceSerializer
-
-    def get_queryset(self):
-        return WriterPerformance.objects.filter(writer=self.request.user)
-
-
 class WriterOrderAssignment(models.Model):
-    """
-    Tracks orders assigned to writers.
-    """
     writer = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="assigned_orders", limit_choices_to={'role': 'writer'}
     )
@@ -130,11 +92,7 @@ class WriterOrderAssignment(models.Model):
         return f"Order {self.order.id} assigned to {self.writer.username} ({self.status})"
 
 
-
 class WriterReview(models.Model):
-    """
-    Stores reviews left by clients for writers.
-    """
     writer = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="reviews", limit_choices_to={'role': 'writer'}
     )
@@ -147,13 +105,3 @@ class WriterReview(models.Model):
     def __str__(self):
         return f"Review for {self.writer.username} by {self.client.username} (Rating: {self.rating})"
 
-
-class WriterReviewListView(generics.ListAPIView):
-    """
-    API to list reviews for a writer.
-    """
-    permission_classes = [IsAuthenticated]
-    serializer_class = WriterReviewSerializer
-
-    def get_queryset(self):
-        return WriterReview.objects.filter(writer=self.request.user)

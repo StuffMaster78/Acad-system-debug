@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from core.models import WebsiteSpecificBaseModel
+from core.models.base import WebsiteSpecificBaseModel
 
 
 class PredefinedSpecialOrderConfig(WebsiteSpecificBaseModel):

@@ -58,6 +58,8 @@ INSTALLED_APPS = [
     'special_orders',
     'client_management',
     'writer_management',
+    'order_configs',
+    'pricing_configs',
 ]
 
 MIDDLEWARE = [

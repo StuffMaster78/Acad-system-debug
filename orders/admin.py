@@ -3,28 +3,34 @@ from .models import Order
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'topic', 'client', 'status', 'total_price', 'subject', 'client_deadline', 'date_posted')
-    list_filter = ('status', 'is_high_value', 'is_urgent', 'website')
-    search_fields = ('title', 'topic', 'instructions', 'client__email', 'assigned_writer__email')
-    ordering = ('-date_posted',)
-    readonly_fields = ('date_posted', 'completed_at', 'total_price', 'payment_status')
+    list_display = (
+        'id', 'topic', 'client', 'writer', 'status', 
+        'total_cost', 'subject', 'deadline', 'created_at'
+    )
+    list_filter = ('status', 'flag', 'website', 'is_paid', 'created_by_admin')
+    search_fields = ('topic', 'instructions', 'client__email', 'writer__email')
+    ordering = ('-created_at',)
+    readonly_fields = ('created_at', 'updated_at', 'total_cost', 'writer_compensation', 'is_paid')
+    
     fieldsets = (
         ('Order Details', {
-            'fields': ('title', 'topic', 'instructions', 'academic_level', 'type_of_work', 'number_of_pages', 'number_of_slides')
+            'fields': ('topic', 'instructions', 'paper_type', 'academic_level', 'formatting_style', 
+                       'type_of_work', 'english_type', 'pages', 'slides', 'resources', 'spacing')
         }),
         ('Deadlines', {
-            'fields': ('client_deadline', 'writer_deadline')
+            'fields': ('deadline', 'writer_deadline')
         }),
         ('Pricing and Payments', {
-            'fields': ('total_price', 'additional_services', 'discount_code', 'tips', 'payment_status')
+            'fields': ('total_cost', 'writer_compensation', 'extra_services', 
+                       'discount_code', 'is_paid')
         }),
         ('Status and Flags', {
-            'fields': ('status', 'revision_requested', 'is_high_value', 'is_urgent')
+            'fields': ('status', 'flag', 'created_by_admin', 'is_special_order')
         }),
         ('Relationships', {
-            'fields': ('client', 'assigned_writer')
+            'fields': ('client', 'writer', 'preferred_writer')
         }),
-        ('Timestamps', {
-            'fields': ('date_posted', 'completed_at')
+        ('Website and Timestamps', {
+            'fields': ('website', 'created_at', 'updated_at')
         }),
     )

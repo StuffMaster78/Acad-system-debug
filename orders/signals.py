@@ -4,7 +4,12 @@ from .models import Order
 
 @receiver(post_save, sender=Order)
 def handle_order_save(sender, instance, created, **kwargs):
+    """
+    Signal to handle actions after an order is created or updated.
+    """
     if created:
-        print(f"New order created: {instance.title} by {instance.client}")
+        # Handle logic for a newly created order
+        print(f"New order created: {instance.topic} by {instance.client}")
     else:
-        print(f"Order updated: {instance.title}")
+        # Handle logic for an updated order
+        print(f"Order updated: {instance.topic} (Status: {instance.status})")

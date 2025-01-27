@@ -46,6 +46,8 @@ urlpatterns = [
 
 
     path('api/v1/referrals/', include('referrals.urls')), # Referrals Management App
+    path('api/v1/order-configs/', include('order_configs.urls')), 
+    path('api/v1/pricing-configs/', include('pricing_configs.urls')),
 ]
 
 # Serve media and static files during development

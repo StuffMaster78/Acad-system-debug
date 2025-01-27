@@ -105,3 +105,25 @@ class LoyaltyPointHistory(models.Model):
 
     def __str__(self):
         return f"{self.client.username} - {self.points_change} Points ({self.reason})"
+    
+
+class LoyaltyPointRedemption(models.Model):
+    """
+    Tracks redemption transactions for loyalty points.
+    """
+    client = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="redemption_transactions",
+        limit_choices_to={"role": "client"},
+    )
+    points_redeemed = models.PositiveIntegerField(help_text="Number of points redeemed.")
+    redeemed_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Equivalent dollar amount redeemed.",
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, help_text="Date and time of redemption.")
+
+    def __str__(self):
+        return f"{self.client.username} - {self.points_redeemed} points redeemed"
