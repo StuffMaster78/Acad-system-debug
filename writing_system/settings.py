@@ -54,6 +54,10 @@ INSTALLED_APPS = [
     'discounts',
     'wallet',
     'referrals',
+    'notifications_system',
+    'special_orders',
+    'client_management',
+    'writer_management',
 ]
 
 MIDDLEWARE = [
