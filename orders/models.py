@@ -26,7 +26,6 @@ class Order(WebsiteSpecificBaseModel):
         ('rewriting', 'Rewriting'),
     ]
 
-    title = models.CharField(max_length=255, help_text="Title of the order")
     topic = models.CharField(max_length=255, help_text="Topic of the work")
     instructions = models.TextField(help_text="Detailed instructions provided by the client")
     academic_level = models.CharField(max_length=50, help_text="Academic level required")
