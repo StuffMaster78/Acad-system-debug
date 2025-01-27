@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from .models import PricingConfiguration, AdditionalService
-from .serializers import PricingConfigurationSerializer, AdditionalServiceSerializer
+from .models import PricingConfiguration, AdditionalService, WriterQuality
+from .serializers import PricingConfigurationSerializer, AdditionalServiceSerializer, WriterQualitySerializer
 from .permissions import IsAdminUserOrReadOnly, IsAdminOfWebsite
 
 class PricingConfigurationViewSet(viewsets.ModelViewSet):
@@ -27,4 +27,16 @@ class AdditionalServiceViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # Automatically associate the website of the logged-in admin user
+        serializer.save(website=self.request.user.website)
+
+
+class WriterQualityViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing WriterQuality.
+    """
+    queryset = WriterQuality.objects.all()
+    serializer_class = WriterQualitySerializer
+    permission_classes = [IsAdminUserOrReadOnly, IsAdminOfWebsite]
+
+    def perform_create(self, serializer):
         serializer.save(website=self.request.user.website)

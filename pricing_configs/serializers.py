@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import PricingConfiguration, AdditionalService
+from .models import PricingConfiguration, AdditionalService, WriterQuality
 
 
 class PricingConfigurationSerializer(serializers.ModelSerializer):
@@ -22,3 +22,14 @@ class AdditionalServiceSerializer(serializers.ModelSerializer):
         model = AdditionalService
         fields = '__all__'  # Include all fields
         read_only_fields = ['website']  # Website should be set automatically
+
+
+class WriterQualitySerializer(serializers.ModelSerializer):
+    """
+    Serializer for the WriterQuality model.
+    """
+
+    class Meta:
+        model = WriterQuality
+        fields = '__all__'
+        read_only_fields = ['website']
