@@ -1,13 +1,19 @@
-from rest_framework import generics
+from decimal import Decimal
+from django.utils.timezone import now
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
-from .models import ClientProfile, LoyaltyTransaction
-from .serializers import ClientProfileSerializer, LoyaltyTransactionSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from orders.models import Order
-from client_management.models import LoyaltyPoint, LoyaltyPointHistory
-from client_management.serializers import LoyaltyPointSerializer, LoyaltyPointHistorySerializer
+
+from .models import ClientProfile, LoyaltyTransaction, LoyaltyPoint, LoyaltyPointHistory, LoyaltyPointConfig
+from .serializers import (
+    ClientProfileSerializer,
+    LoyaltyTransactionSerializer,
+    LoyaltyPointSerializer,
+    LoyaltyPointHistorySerializer,
+)
 from wallet.models import Wallet, WalletTransaction
+
 
 class ClientProfileDetailView(generics.RetrieveAPIView):
     """
@@ -29,7 +35,6 @@ class LoyaltyTransactionListView(generics.ListAPIView):
 
     def get_queryset(self):
         return LoyaltyTransaction.objects.filter(client__client=self.request.user)
-    
 
 
 class RequestAccountDeletionView(APIView):
@@ -116,6 +121,7 @@ class LoyaltyPointHistoryView(APIView):
         serializer = LoyaltyPointHistorySerializer(history, many=True)
         return Response(serializer.data)
 
+
 class RedeemPointsToWalletView(APIView):
     """
     API for clients to redeem loyalty points for wallet credits.
@@ -131,22 +137,22 @@ class RedeemPointsToWalletView(APIView):
             loyalty_point = LoyaltyPoint.objects.get(client=client)
             config = LoyaltyPointConfig.objects.first()
             if not config:
-                return Response({"error": "Loyalty point configuration is not set."}, status=500)
+                return Response({"error": "Loyalty point configuration is not set."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
             # Validate points redemption
             if points_to_redeem > loyalty_point.points:
-                return Response({"error": "Insufficient points."}, status=400)
+                return Response({"error": "Insufficient points."}, status=status.HTTP_400_BAD_REQUEST)
             if points_to_redeem < config.minimum_points_redeem:
                 return Response(
                     {"error": f"Minimum {config.minimum_points_redeem} points required to redeem."},
-                    status=400,
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # Calculate cash equivalent
-            cash_value = points_to_redeem / config.points_per_dollar
+            cash_value = Decimal(points_to_redeem) / Decimal(config.points_per_dollar)
 
             # Update wallet
-            wallet, _ = Wallet.objects.get_or_create(client=client)
+            wallet, _ = Wallet.objects.get_or_create(user=client)
             wallet.balance += cash_value
             wallet.save()
 
@@ -161,16 +167,16 @@ class RedeemPointsToWalletView(APIView):
 
             # Log wallet transaction
             WalletTransaction.objects.create(
-                client=client,
-                amount=cash_value,
+                wallet=wallet,
                 transaction_type="credit",
-                reason=f"Redeemed {points_to_redeem} loyalty points",
+                amount=cash_value,
+                description=f"Redeemed {points_to_redeem} loyalty points",
             )
 
             return Response(
                 {"message": f"Successfully redeemed {points_to_redeem} points for ${cash_value:.2f}. Wallet balance updated."},
-                status=200,
+                status=status.HTTP_200_OK,
             )
 
         except LoyaltyPoint.DoesNotExist:
-            return Response({"error": "No loyalty points found for this client."}, status=404)
+            return Response({"error": "No loyalty points found for this client."}, status=status.HTTP_404_NOT_FOUND)

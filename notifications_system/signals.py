@@ -2,7 +2,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from wallet.models import WalletTransaction
 from .models import Notification
-from .utils import send_notification
+from core.utils import send_notification
 
 @receiver(post_save, sender=WalletTransaction)
 def notify_wallet_transaction(sender, instance, created, **kwargs):

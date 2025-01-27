@@ -1,4 +1,4 @@
-from celery import shared_task
+from core.celery import shared_task
 from django.utils.timezone import now
 from users.models import User
 from .models import BlacklistedEmail

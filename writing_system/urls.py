@@ -43,6 +43,9 @@ urlpatterns = [
     path('api/v1/users/', include('users.urls')),            # Users app
     path('api/v1/clients/', include('client_management.urls')),  # Client Management app
     path('api/v1/writers/', include('writer_management.urls')),  # Writer Management app
+
+
+    path('api/v1/referrals/', include('referrals.urls')), # Referrals Management App
 ]
 
 # Serve media and static files during development

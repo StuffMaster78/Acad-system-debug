@@ -43,6 +43,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_spectacular',
     'django_filters',
+    'celery',
+    'channels',
 
     # Project apps
     'core',
@@ -50,6 +52,8 @@ INSTALLED_APPS = [
     'websites',
     'orders',
     'discounts',
+    'wallet',
+    'referrals',
 ]
 
 MIDDLEWARE = [
@@ -173,7 +177,11 @@ REST_FRAMEWORK = {
 }
 
 
-
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Your Project API',
+    'DESCRIPTION': 'Your API documentation description',
+    'VERSION': '1.0.0',
+}
 
 # Channels Settings
 ASGI_APPLICATION = "writing_system.asgi.application"
