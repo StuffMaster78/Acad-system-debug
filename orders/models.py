@@ -78,49 +78,49 @@ class Order(WebsiteSpecificBaseModel):
         help_text="Discount code applied to this order."
     )
     writer_quality = models.ForeignKey(
-        'pricing.WriterQuality',
+        'pricing_configs.WriterQuality',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         help_text="Selected writer quality level."
     )
     paper_type = models.ForeignKey(
-        'order_config.PaperType',
+        'order_configs.PaperType',
         on_delete=models.PROTECT,
         help_text="The type of paper requested."
     )
     topic = models.CharField(max_length=255, help_text="The topic or title of the order.")
     instructions = models.TextField(help_text="Detailed instructions for the order.")
     academic_level = models.ForeignKey(
-        'pricing.AcademicLevelPricing',
+        'pricing_configs.AcademicLevelPricing',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         help_text="The academic level required."
     )
     formatting_style = models.ForeignKey(
-        'order_config.FormattingStyle',
+        'order_configs.FormattingStyle',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         help_text="The formatting style required."
     )
     subject = models.ForeignKey(
-        'order_config.Subject',
+        'order_configs.Subject',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         help_text="The subject of the order."
     )
     type_of_work = models.ForeignKey(
-        'order_config.TypeOfWork',
+        'order_configs.TypeOfWork',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         help_text="The type of work requested."
     )
     english_type = models.ForeignKey(
-        'order_config.EnglishType',
+        'order_configs.EnglishType',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -133,7 +133,7 @@ class Order(WebsiteSpecificBaseModel):
         max_length=10, choices=SPACING_CHOICES, default='double', help_text="Spacing for the order."
     )
     extra_services = models.ManyToManyField(
-        'pricing.AdditionalService',
+        'pricing_configs.AdditionalService',
         blank=True,
         related_name='orders',
         help_text="Additional services requested by the client or admin."
