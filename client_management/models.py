@@ -24,6 +24,22 @@ class ClientProfile(models.Model):
         return f"Client Profile: {self.client.username}"
 
 
+class LoyaltyPointConfig(models.Model):
+    """
+    Stores configuration for loyalty points redemption.
+    """
+    points_per_dollar = models.PositiveIntegerField(
+        default=10,
+        help_text="Number of points required to redeem $1."
+    )
+    minimum_points_redeem = models.PositiveIntegerField(
+        default=100,
+        help_text="Minimum points required to initiate a redemption."
+    )
+
+    def __str__(self):
+        return f"{self.points_per_dollar} points = $1, Min: {self.minimum_points_redeem} points"
+
 class LoyaltyTransaction(models.Model):
     """
     Tracks loyalty points earned or deducted.
@@ -40,3 +56,52 @@ class LoyaltyTransaction(models.Model):
 
     def __str__(self):
         return f"Loyalty Transaction: {self.points} points ({self.transaction_type}) for {self.client.client.username}"
+    
+
+class LoyaltyPoint(models.Model):
+    """
+    Tracks loyalty points for clients.
+    """
+    client = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="loyalty_points",
+        limit_choices_to={'role': 'client'},
+        help_text=_("The client associated with these loyalty points."),
+    )
+    points = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0.0,
+        help_text=_("Total loyalty points available for the client."),
+    )
+    last_updated = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.client.username} - {self.points} Points"
+
+
+class LoyaltyPointHistory(models.Model):
+    """
+    Logs changes to loyalty points for audit purposes.
+    """
+    client = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="loyalty_point_history",
+        limit_choices_to={'role': 'client'},
+        help_text=_("The client associated with this points change."),
+    )
+    points_change = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text=_("The amount of points added or deducted."),
+    )
+    reason = models.CharField(
+        max_length=255,
+        help_text=_("Reason for the points change."),
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.client.username} - {self.points_change} Points ({self.reason})"

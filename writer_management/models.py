@@ -12,7 +12,6 @@ from writer_management.serializers import (
     WriterAvailabilitySerializer,
 )
 
-
 class WriterLevel(models.Model):
     """
     Represents different levels for writers with constraints and pay details.

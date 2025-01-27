@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from .managers import ActiveManager
 from core.models.base import WebsiteSpecificBaseModel
-
+from django.utils.timezone import now, timedelta
 
 class User(WebsiteSpecificBaseModel, AbstractUser):
     """
@@ -88,6 +88,14 @@ class User(WebsiteSpecificBaseModel, AbstractUser):
         related_name='impersonated_users',
         help_text=_("Admin currently impersonating this user.")
     )
+
+
+    # Fields to manage account deletion
+    is_frozen = models.BooleanField(default=False, help_text="Is the account frozen due to a deletion request?")
+    deletion_date = models.DateTimeField(null=True, blank=True, help_text="Scheduled date for account deletion.")
+    is_blacklisted = models.BooleanField(default=False, help_text="Is the user's email blacklisted for the website?")
+    is_deletion_requested = models.BooleanField(default=False, help_text="Has the user requested account deletion?")
+    deletion_requested_at = models.DateTimeField(null=True, blank=True, help_text="When the account deletion was requested.")
 
     # Suspension and Probation Details
     suspension_reason = models.TextField(
@@ -252,6 +260,39 @@ class User(WebsiteSpecificBaseModel, AbstractUser):
                 "resolved_orders": self.resolved_orders,
             })
         return profile
+    
+
+    def freeze_account(self):
+        """
+        Freeze the account, mark deletion as requested, and schedule deletion 3 months from now.
+        """
+        self.is_active = False  # Prevent login
+        self.is_frozen = True
+        self.is_deletion_requested = True
+        self.deletion_requested_at = now()
+        self.deletion_date = now() + timedelta(days=90)  # 3 months from now
+        self.save()
+
+    def reinstate_account(self):
+        """
+        Reinstate the account before deletion.
+        """
+        self.is_active = True
+        self.is_frozen = False
+        self.is_deletion_requested = False
+        self.deletion_requested_at = None
+        self.deletion_date = None
+        self.save()
+
+    def blacklist_account(self):
+        """
+        Blacklist the account email for the current website.
+        """
+        from client_management.models import BlacklistedEmail
+
+        BlacklistedEmail.objects.create(email=self.email, website=self.website)
+        self.is_blacklisted = True
+        self.save()
 
     def clean(self):
         """
@@ -276,49 +317,6 @@ class User(WebsiteSpecificBaseModel, AbstractUser):
             self.avatar = 'avatars/male1.png'  # Default fallback
 
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.username} ({self.role})"
-
-class WriterLevel(models.Model):
-    """
-    Represents writer levels with constraints and pay details.
-    """
-    name = models.CharField(
-        max_length=50,
-        unique=True,
-        help_text=_("Name of the writer level.")
-    )
-    base_pay_per_page = models.DecimalField(
-        max_digits=10,
-        decimal_places=2,
-        default=0.0,
-        help_text=_("Base pay per page (USD).")
-    )
-    tip_percentage = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        default=0.0,
-        help_text=_("Tip percentage for writers.")
-    )
-    max_orders = models.PositiveIntegerField(
-        default=10,
-        help_text=_("Maximum active orders allowed for writers at this level.")
-    )
-    min_orders = models.PositiveIntegerField(
-        default=0,
-        help_text=_("Minimum orders required to qualify for this level.")
-    )
-    min_rating = models.DecimalField(
-        max_digits=3,
-        decimal_places=2,
-        default=0.0,
-        help_text=_("Minimum average rating to qualify for this level.")
-    )
-
-    def __str__(self):
-        return f"{self.name} (Base Pay: ${self.base_pay_per_page}, Max Orders: {self.max_orders})"
-
 
     def __str__(self):
         return f"{self.username} ({self.role})"

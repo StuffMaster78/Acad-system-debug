@@ -14,20 +14,40 @@ class CustomUserAdmin(UserAdmin):
         'email',
         'role',
         'is_active',
-        'is_staff',
+        'is_frozen',
+        'is_deletion_requested',
         'date_joined',
+        'last_login',
     )
-    list_filter = ('role', 'is_active', 'is_staff', 'is_superuser')
+    list_filter = ('role', 'is_active', 'is_frozen', 'is_deletion_requested', 'is_staff', 'is_superuser')
     search_fields = ('username', 'email', 'phone_number')
     ordering = ('-date_joined',)
-    readonly_fields = ('date_joined', 'last_login')
+    readonly_fields = ('date_joined', 'last_login', 'deletion_requested_at', 'deletion_date')
 
     fieldsets = (
         (None, {
-            'fields': ('email', 'username', 'password', 'role', 'profile_picture', 'avatar', 'bio', 'phone_number')
+            'fields': (
+                'email', 
+                'username', 
+                'password', 
+                'role', 
+                'profile_picture', 
+                'avatar', 
+                'bio', 
+                'phone_number'
+            )
+        }),
+        ('Account Status', {
+            'fields': (
+                'is_active', 
+                'is_frozen', 
+                'is_deletion_requested', 
+                'deletion_requested_at', 
+                'deletion_date'
+            )
         }),
         ('Permissions', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
+            'fields': ('is_staff', 'is_superuser', 'groups', 'user_permissions')
         }),
         ('Important Dates', {
             'fields': ('last_login', 'date_joined')
@@ -58,6 +78,7 @@ class WriterLevelAdmin(admin.ModelAdmin):
     list_display = ('name', 'base_pay_per_page', 'tip_percentage', 'max_orders', 'min_orders', 'min_rating')
     search_fields = ('name',)
     ordering = ('name',)
+    list_filter = ('max_orders', 'min_orders', 'min_rating')
 
 
 # Register models with custom admin configurations
