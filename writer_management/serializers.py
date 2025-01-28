@@ -1,109 +1,85 @@
 from rest_framework import serializers
 from .models import (
+    WriterProfile,
     WriterLevel,
+    WriterLeave,
+    WriterActionLog,
+    WriterEducation,
     PaymentHistory,
-    WriterProgress,
-    WriterAvailability,
-    WriterOrderAssignment,
-    WriterPerformance,
-    WriterReview,
+    WriterReward,
+    WriterRating,
 )
 
 
-class WriterLevelSerializer(serializers.ModelSerializer):
-    """
-    Serializer for WriterLevel model.
-    """
+class WriterProfileSerializer(serializers.ModelSerializer):
+    average_rating = serializers.DecimalField(
+        max_digits=3, decimal_places=2, read_only=True
+    )
+    wallet_balance = serializers.DecimalField(
+        max_digits=12, decimal_places=2, read_only=True
+    )
+
     class Meta:
-        model = WriterLevel
+        model = WriterProfile
+        fields = [
+            'user',
+            'registration_id',
+            'email',
+            'phone_number',
+            'country',
+            'timezone',
+            'ip_address',
+            'location_verified',
+            'website',
+            'joined',
+            'last_logged_in',
+            'writer_level',
+            'completed_orders',
+            'number_of_takes',
+            'total_earnings',
+            'verification_status',
+            'verification_documents',
+            'skills',
+            'subject_preferences',
+            'education',
+            'rating',
+            'average_rating',
+            'wallet_balance',
+        ]
+        read_only_fields = ['user', 'total_earnings', 'completed_orders', 'rating']
+
+
+class WriterLeaveSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WriterLeave
         fields = '__all__'
 
-class WriterReviewSerializer(serializers.ModelSerializer):
-    """
-    Serializer for WriterReview model.
-    """
-    client_name = serializers.ReadOnlyField(source='client.username')
-    order_title = serializers.ReadOnlyField(source='order.title')
 
+class WriterActionLogSerializer(serializers.ModelSerializer):
     class Meta:
-        model = WriterReview
-        fields = [
-            'id',
-            'writer',
-            'client',
-            'client_name',
-            'order',
-            'order_title',
-            'rating',
-            'feedback',
-            'timestamp',
-        ]
+        model = WriterActionLog
+        fields = '__all__'
+
+
+class WriterEducationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WriterEducation
+        fields = '__all__'
+
 
 class PaymentHistorySerializer(serializers.ModelSerializer):
-    """
-    Serializer for PaymentHistory model.
-    """
     class Meta:
         model = PaymentHistory
         fields = '__all__'
 
 
-class WriterProgressSerializer(serializers.ModelSerializer):
-    """
-    Serializer for WriterProgress model.
-    """
-    order_id = serializers.ReadOnlyField(source='order.id')
-    order_title = serializers.ReadOnlyField(source='order.title')
-
+class WriterRewardSerializer(serializers.ModelSerializer):
     class Meta:
-        model = WriterProgress
-        fields = ['id', 'writer', 'order_id', 'order_title', 'progress', 'timestamp']
+        model = WriterReward
+        fields = '__all__'
 
 
-class WriterAvailabilitySerializer(serializers.ModelSerializer):
-    """
-    Serializer for WriterAvailability model.
-    """
-    writer_name = serializers.ReadOnlyField(source='writer.username')
-
+class WriterRatingSerializer(serializers.ModelSerializer):
     class Meta:
-        model = WriterAvailability
-        fields = ['id', 'writer', 'writer_name', 'start_time', 'end_time', 'is_recurring']
-
-
-class WriterOrderAssignmentSerializer(serializers.ModelSerializer):
-    """
-    Serializer for WriterOrderAssignment model.
-    """
-    order_title = serializers.ReadOnlyField(source='order.title')
-
-    class Meta:
-        model = WriterOrderAssignment
-        fields = [
-            'id',
-            'writer',
-            'order',
-            'order_title',
-            'status',
-            'assigned_date',
-            'completed_date',
-        ]
-
-
-class WriterPerformanceSerializer(serializers.ModelSerializer):
-    """
-    Serializer for WriterPerformance model.
-    """
-    writer_name = serializers.ReadOnlyField(source='writer.username')
-
-    class Meta:
-        model = WriterPerformance
-        fields = [
-            'id',
-            'writer',
-            'writer_name',
-            'average_rating',
-            'on_time_delivery_rate',
-            'late_submissions',
-            'total_orders',
-        ]
+        model = WriterRating
+        fields = '__all__'

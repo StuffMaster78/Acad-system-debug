@@ -9,7 +9,7 @@ from .serializers import (
     ClientActionSerializer,
     ProfileUpdateRequestSerializer,
 )
-from .utils import get_geolocation_from_ip
+from core.utils.location import get_geolocation_from_ip
 from rest_framework import generics
 from .models import ProfileUpdateRequest
 from .permissions import IsAdminOrSuperAdmin, IsSelfOrAdmin

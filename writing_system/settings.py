@@ -213,3 +213,10 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = "your-email@gmail.com"
 EMAIL_HOST_PASSWORD = "your-email-password"
 DEFAULT_FROM_EMAIL = "Your Project Name <your-email@gmail.com>"
+
+
+
+
+
+
+GEOLOCATION_API_KEY = os.getenv("GEOLOCATION_API_KEY")

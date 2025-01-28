@@ -139,7 +139,7 @@ class ClientProfile(models.Model):
         """
         Update geolocation data for the client using their IP address.
         """
-        from .utils import get_geolocation_from_ip
+        from core.utils.location import get_geolocation_from_ip
 
         geo_data = get_geolocation_from_ip(ip_address)
         if "error" not in geo_data:

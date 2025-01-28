@@ -3,7 +3,7 @@ from django.dispatch import receiver
 from django.contrib.auth.signals import user_logged_in
 from django.contrib.auth import get_user_model
 from .models import ClientProfile
-from .utils import get_geolocation_from_ip
+from core.utils.location import get_geolocation_from_ip, get_client_ip
 
 User = get_user_model()
 
@@ -39,6 +39,8 @@ def update_client_geolocation(sender, request, user, **kwargs):
                         f"Country mismatch detected for {user.username}: "
                         f"{previous_country} (previous) vs {detected_country} (current)"
                     )
+                    # Optional: Add logic to send location alert
+                    send_location_alert(user, previous_country, detected_country, ip_address)
 
                 # Update the client profile with new geolocation data
                 client_profile.country = detected_country
@@ -48,16 +50,6 @@ def update_client_geolocation(sender, request, user, **kwargs):
                 client_profile.save()
         except ClientProfile.DoesNotExist:
             print(f"No ClientProfile found for user {user.username}")
-
-
-def get_client_ip(request):
-    """
-    Get the client's IP address from the request headers.
-    """
-    x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
-    if x_forwarded_for:
-        return x_forwarded_for.split(",")[0]
-    return request.META.get("REMOTE_ADDR")
 
 
 def send_location_alert(user, previous_country, current_country, ip_address):

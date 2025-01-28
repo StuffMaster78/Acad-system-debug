@@ -153,9 +153,34 @@ class Order(WebsiteSpecificBaseModel):
     updated_at = models.DateTimeField(auto_now=True, help_text="Date and time when the order was last updated.")
 
     # Include existing methods: calculate_total_cost, calculate_writer_compensation, assign_flags, etc.
-
+    # *** To add the writer progress field ****
     def __str__(self):
         return f"Order #{self.id} - {self.topic} ({self.status})"
+    
 
     class Meta:
         ordering = ['-created_at']
+
+
+class WriterProgress(models.Model):
+    """
+    Tracks progress logs for writers working on orders.
+    """
+    writer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="progress_logs",
+        limit_choices_to={"role": "writer"},
+        help_text="The writer associated with this progress log."
+    )
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="progress_logs",
+        help_text="The order associated with this progress log."
+    )
+    progress = models.PositiveIntegerField(help_text="Progress percentage (0-100).")
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Progress {self.progress}% for Order {self.order.id} by {self.writer.username}"
