@@ -43,7 +43,8 @@ urlpatterns = [
     path('api/v1/users/', include('users.urls')),            # Users app
     path('api/v1/client-management/', include('client_management.urls')),  # Client Management app
     path('api/v1/writer-management/', include('writer_management.urls')),  # Writer Management app
-
+    path("api/v1/support-management/", include("support_management.urls")), # Support Management app
+    path("api/v1/editor-management/", include("editor_management.urls")), # Editor Management app
 
     path('api/v1/referrals/', include('referrals.urls')), # Referrals Management App
     path('api/v1/order-configs/', include('order_configs.urls')), 
