@@ -5,6 +5,7 @@ from .models import (
     LoyaltyTransaction,
     LoyaltyPoint,
     LoyaltyPointHistory,
+    ProfileUpdateRequest,
 )
 
 
@@ -18,13 +19,30 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClientProfile
         fields = [
-            'client',
-            'client_username',
-            'loyalty_points',
-            'total_spent',
-            'preferred_writers',
+            "id",
+            "user",
+            "bio",
+            "profile_picture",
+            "timezone",
+            "preferred_writers",
         ]
+        read_only_fields = ["user"]
+class ProfileUpdateRequestSerializer(serializers.ModelSerializer):
+    client_username = serializers.CharField(source="client.user.username", read_only=True)
 
+    class Meta:
+        model = ProfileUpdateRequest
+        fields = [
+            "id",
+            "client",
+            "client_username",
+            "requested_changes",
+            "status",
+            "admin_response",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = ["status", "admin_response"]
 
 class LoyaltyPointConfigSerializer(serializers.ModelSerializer):
     """

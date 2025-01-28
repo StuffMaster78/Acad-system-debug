@@ -1,10 +1,60 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
-from users.models import User
+from django.contrib.auth import get_user_model
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
+User = get_user_model()
 
+class WriterProfile(models.Model):
+    """
+    Represents the Profile of a writer
+    """
+    user = models.OneToOneField(
+        User, on_delete=models.CASCADE, related_name="writer_profile", limit_choices_to={'role': 'writer'}
+    )
+    writer_level = models.ForeignKey(
+        'WriterLevel',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text=_("Level assigned to the writer.")
+    )
+    rating = models.FloatField(
+        default=0.0,
+        help_text=_("Average rating for writers.")
+    )
+    completed_orders = models.PositiveIntegerField(
+        default=0,
+        help_text=_("Total completed orders by the writer.")
+    )
+    number_of_takes = models.PositiveIntegerField(
+        default=0,
+        help_text=_("Total number of orders taken by the writer.")
+    )
+    total_earnings = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0.00,
+        help_text=_("Total earnings by the writer (USD).")
+    )
+    last_payment_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text=_("Date of the last payment to the writer.")
+    )
+    verification_status = models.BooleanField(
+        default=False,
+        help_text=_("Indicates whether the writer has been verified.")
+    )
+    active_orders = models.PositiveIntegerField(
+        default=0,
+        help_text=_("Number of ongoing orders currently assigned to the writer.")
+    )
+
+    def __str__(self):
+        return f"Writer Profile: {self.user.username}"
+    
 class WriterLevel(models.Model):
     name = models.CharField(max_length=50, unique=True, help_text=_("Name of the writer level."))
     base_pay_per_page = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
@@ -104,4 +154,3 @@ class WriterReview(models.Model):
 
     def __str__(self):
         return f"Review for {self.writer.username} by {self.client.username} (Rating: {self.rating})"
-

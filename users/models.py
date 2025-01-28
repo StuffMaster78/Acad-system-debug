@@ -111,64 +111,17 @@ class User(WebsiteSpecificBaseModel, AbstractUser):
     suspension_start_date = models.DateTimeField(null=True, blank=True)
     suspension_end_date = models.DateTimeField(null=True, blank=True)
 
-    # Writers-Specific Fields
-    writer_level = models.ForeignKey(
-        'WriterLevel',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text=_("Level assigned to the writer.")
-    )
-    rating = models.FloatField(
-        default=0.0,
-        help_text=_("Average rating for writers.")
-    )
-    completed_orders = models.PositiveIntegerField(
-        default=0,
-        help_text=_("Total completed orders by the writer.")
-    )
-    number_of_takes = models.PositiveIntegerField(
-        default=0,
-        help_text=_("Total number of orders taken by the writer.")
-    )
-    total_earnings = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0.00,
-        help_text=_("Total earnings by the writer (USD).")
-    )
-    last_payment_date = models.DateField(
-        null=True,
-        blank=True,
-        help_text=_("Date of the last payment to the writer.")
-    )
-    verification_status = models.BooleanField(
-        default=False,
-        help_text=_("Indicates whether the writer has been verified.")
-    )
-    active_orders = models.PositiveIntegerField(
-        default=0,
-        help_text=_("Number of ongoing orders currently assigned to the writer.")
-    )
-
     # Role-Specific Methods
+    def is_global_role(self):
+        return self.role in ['superadmin', 'admin', 'support']
+    
     def is_client(self):
         return self.role == 'client'
 
     def is_writer(self):
         return self.role == 'writer'
 
-    def is_admin(self):
-        return self.role == 'admin'
-
-    def is_superadmin(self):
-        return self.role == 'superadmin'
-
-    def is_editor(self):
-        return self.role == 'editor'
-
-    def is_support(self):
-        return self.role == 'support'
+    
 
     def suspend(self, reason, start_date=None, end_date=None):
         """

@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.timezone import now
+from django.apps import apps
 
 class ActiveManager(models.Manager):
     """Custom manager to exclude soft-deleted records by default."""
@@ -14,7 +15,7 @@ class BaseModel(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True, help_text="Soft delete timestamp")
     created_by = models.ForeignKey(
-        'users.User',
+        apps.get_model('users.User'),
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -22,7 +23,7 @@ class BaseModel(models.Model):
         help_text="User who created the record"
     )
     updated_by = models.ForeignKey(
-        'users.User',
+        apps.get_model('users.User'),
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -56,7 +57,7 @@ class WebsiteSpecificBaseModel(BaseModel):
     Abstract base model for models tied to specific websites.
     """
     website = models.ForeignKey(
-        'websites.Website',  # Reference to the Website model
+        apps.get_model('websites.Website'),  # Reference to the Website model
         on_delete=models.CASCADE,
         null=True,
         blank=True,

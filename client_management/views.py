@@ -1,210 +1,142 @@
-from decimal import Decimal
-from django.utils.timezone import now
-from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
+from rest_framework import generics, status, views
 from rest_framework.response import Response
-from django.db import transaction
-from .models import LoyaltyPoint, LoyaltyPointConfig, LoyaltyPointHistory
-from wallet.models import Wallet, WalletTransaction
-
-from .models import ClientProfile, LoyaltyTransaction, LoyaltyPoint, LoyaltyPointHistory, LoyaltyPointConfig
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from .models import ClientProfile, LoyaltyTier, LoyaltyTransaction
 from .serializers import (
     ClientProfileSerializer,
+    LoyaltyTierSerializer,
     LoyaltyTransactionSerializer,
-    LoyaltyPointSerializer,
-    LoyaltyPointHistorySerializer,
+    ClientActionSerializer,
+    ProfileUpdateRequestSerializer,
 )
-from wallet.models import Wallet, WalletTransaction
+from .utils import get_geolocation_from_ip
+from rest_framework import generics
+from .models import ProfileUpdateRequest
+from .permissions import IsAdminOrSuperAdmin, IsSelfOrAdmin
+from .pagination import StandardResultsSetPagination
+from wallet.models import Wallet
+from wallet.serializers import WalletTransactionSerializer
 
-
-class ClientProfileDetailView(generics.RetrieveAPIView):
-    """
-    API endpoint to retrieve a client's profile details.
-    """
-    permission_classes = [IsAuthenticated]
+# List and create client profiles (Admin/Superadmin only)
+class ClientProfileListView(generics.ListAPIView):
+    queryset = ClientProfile.objects.all()
     serializer_class = ClientProfileSerializer
+    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsAdminOrSuperAdmin]
 
-    def get_queryset(self):
-        return ClientProfile.objects.filter(client=self.request.user)
+# Retrieve, update, or delete a specific client profile (Admins and self-access for clients)
+class ClientProfileDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ClientProfile.objects.all()
+    serializer_class = ClientProfileSerializer
+    permission_classes = [IsSelfOrAdmin]
 
 
+class ClientProfileUpdateView(generics.UpdateAPIView):
+    queryset = ClientProfile.objects.all()
+    serializer_class = ClientProfileSerializer
+    permission_classes = [IsSelfOrAdmin]
+
+    def perform_update(self, serializer):
+        client_profile = serializer.save()
+
+        # Fetch geolocation from IP
+        ip_address = self.request.META.get("REMOTE_ADDR")
+        geo_data = get_geolocation_from_ip(ip_address)
+
+        if "error" not in geo_data:
+            client_profile.country = geo_data.get("country")
+            client_profile.timezone = geo_data.get("timezone")
+            client_profile.ip_address = ip_address
+            client_profile.location_verified = True
+            client_profile.save()
+        else:
+            print(f"Geolocation error: {geo_data['error']}")
+
+# View wallet balance and transactions for a specific client
+class ClientWalletView(views.APIView):
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def get(self, request, client_id, *args, **kwargs):
+        try:
+            client = ClientProfile.objects.get(pk=client_id)
+            wallet = Wallet.objects.get(user=client.user)
+            transactions = wallet.transactions.all()
+            wallet_data = {
+                "balance": wallet.balance,
+                "transactions": WalletTransactionSerializer(transactions, many=True).data,
+            }
+            return Response(wallet_data, status=status.HTTP_200_OK)
+        except ClientProfile.DoesNotExist:
+            return Response({"error": "Client not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Wallet.DoesNotExist:
+            return Response({"error": "Wallet not found."}, status=status.HTTP_404_NOT_FOUND)
+
+# List and create loyalty tiers (Admin/Superadmin only)
+class LoyaltyTierListView(generics.ListCreateAPIView):
+    queryset = LoyaltyTier.objects.all()
+    serializer_class = LoyaltyTierSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+
+# Retrieve, update, or delete a specific loyalty tier
+class LoyaltyTierDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = LoyaltyTier.objects.all()
+    serializer_class = LoyaltyTierSerializer
+    permission_classes = [IsAdminOrSuperAdmin]
+
+# List loyalty transactions for a specific client
 class LoyaltyTransactionListView(generics.ListAPIView):
-    """
-    API endpoint to list loyalty transactions for a client.
-    """
-    permission_classes = [IsAuthenticated]
     serializer_class = LoyaltyTransactionSerializer
+    pagination_class = StandardResultsSetPagination
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
-        return LoyaltyTransaction.objects.filter(client__client=self.request.user)
+        client_id = self.kwargs['client_id']
+        return LoyaltyTransaction.objects.filter(client_id=client_id).order_by('-timestamp')
 
+# Admin actions (suspend, activate, deactivate client accounts)
+class ClientActionView(views.APIView):
+    permission_classes = [IsAdminOrSuperAdmin]
+    serializer_class = ClientActionSerializer
 
-class RequestAccountDeletionView(APIView):
-    """
-    API endpoint for clients to request account deletion.
-    """
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user = request.user
-
-        # Ensure only clients can request account deletion
-        if user.role != "client":
-            return Response({"error": "Only clients can request account deletion."}, status=status.HTTP_403_FORBIDDEN)
-
-        if user.is_deletion_requested:
-            return Response(
-                {"error": "Account deletion has already been requested."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Freeze account and log deletion request
-        user.freeze_account()
-        return Response(
-            {
-                "message": "Account deletion request submitted. Your account has been frozen.",
-                "deletion_date": user.deletion_date,
-            },
-            status=status.HTTP_200_OK,
-        )
-
-
-class ReinstateAccountView(APIView):
-    """
-    API endpoint for clients to reinstate their frozen accounts.
-    """
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user = request.user
-
-        if not user.is_deletion_requested:
-            return Response(
-                {"error": "Your account deletion has not been requested."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if user.deletion_date and user.deletion_date < now():
-            return Response(
-                {"error": "Your account is already scheduled for deletion."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Reinstate account
-        user.reinstate_account()
-        return Response(
-            {"message": "Your account has been reinstated successfully."},
-            status=status.HTTP_200_OK,
-        )
-
-
-class LoyaltyPointView(APIView):
-    """
-    API to get the current loyalty points for the client.
-    """
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        loyalty_point = LoyaltyPoint.objects.filter(client=request.user).first()
-        if loyalty_point:
-            serializer = LoyaltyPointSerializer(loyalty_point)
-            return Response(serializer.data)
-        return Response({"points": 0})
-
-
-class LoyaltyPointHistoryView(APIView):
-    """
-    API to get loyalty point history for the client.
-    """
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        history = LoyaltyPointHistory.objects.filter(client=request.user).order_by('-timestamp')
-        serializer = LoyaltyPointHistorySerializer(history, many=True)
-        return Response(serializer.data)
-
-
-class RedeemLoyaltyPointsView(APIView):
-    """
-    API for clients to redeem loyalty points for wallet credits.
-    """
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        client = request.user
-        points_to_redeem = request.data.get("points", 0)
-
-        # Validate points input
+    def post(self, request, client_id, *args, **kwargs):
         try:
-            points_to_redeem = int(points_to_redeem)
-            if points_to_redeem <= 0:
-                raise ValueError
-        except (ValueError, TypeError):
-            return Response({"error": "Invalid points value. Must be a positive integer."}, status=status.HTTP_400_BAD_REQUEST)
+            client = ClientProfile.objects.get(pk=client_id)
+            serializer = self.serializer_class(data=request.data)
+            serializer.is_valid(raise_exception=True)
 
-        try:
-            # Get loyalty points and config
-            loyalty_point = LoyaltyPoint.objects.get(client=client)
-            config = LoyaltyPointConfig.objects.first()
-            if not config:
-                return Response(
-                    {"error": "Loyalty point configuration is missing. Please contact support."},
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+            action = serializer.validated_data.get("action")
+            if action == "suspend":
+                client.suspend_account(admin=request.user)
+                return Response({"message": "Client account suspended."}, status=status.HTTP_200_OK)
+            elif action == "activate":
+                client.activate_account(admin=request.user)
+                return Response({"message": "Client account activated."}, status=status.HTTP_200_OK)
+            elif action == "deactivate":
+                client.deactivate_account(admin=request.user)
+                return Response({"message": "Client account deactivated."}, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
+        except ClientProfile.DoesNotExist:
+            return Response({"error": "Client not found."}, status=status.HTTP_404_NOT_FOUND)
+        
 
-            # Validate points redemption
-            if points_to_redeem > loyalty_point.points:
-                return Response({"error": "Insufficient points.", "code": "INSUFFICIENT_POINTS"}, status=status.HTTP_400_BAD_REQUEST)
-            if points_to_redeem < config.minimum_points_redeem:
-                return Response(
-                    {
-                        "error": f"Minimum {config.minimum_points_redeem} points required to redeem.",
-                        "code": "MINIMUM_POINTS_REQUIRED",
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+class ProfileUpdateRequestCreateView(generics.CreateAPIView):
+    """
+    Allow clients to request changes to critical fields.
+    """
+    queryset = ProfileUpdateRequest.objects.all()
+    serializer_class = ProfileUpdateRequestSerializer
+    permission_classes = [IsAuthenticated]
 
-            # Calculate cash equivalent
-            cash_value = Decimal(points_to_redeem) / Decimal(config.points_per_dollar)
+    def perform_create(self, serializer):
+        client_profile = ClientProfile.objects.get(user=self.request.user)
+        serializer.save(client=client_profile)
 
-            # Atomic transaction for wallet and points update
-            with transaction.atomic():
-                # Update wallet
-                wallet, _ = Wallet.objects.get_or_create(user=client)
-                wallet.balance += cash_value
-                wallet.save()
-
-                # Deduct points
-                loyalty_point.points -= points_to_redeem
-                loyalty_point.save()
-
-                # Log history
-                LoyaltyPointHistory.objects.create(
-                    client=client,
-                    points_change=-points_to_redeem,
-                    reason=f"Redeemed {points_to_redeem} points for ${cash_value:.2f}",
-                )
-
-                # Log wallet transaction
-                WalletTransaction.objects.create(
-                    wallet=wallet,
-                    transaction_type="credit",
-                    amount=cash_value,
-                    description=f"Redeemed {points_to_redeem} loyalty points",
-                )
-
-            return Response(
-                {
-                    "message": f"Successfully redeemed {points_to_redeem} points for ${cash_value:.2f}. Wallet balance updated.",
-                    "wallet_balance": wallet.balance,
-                    "remaining_points": loyalty_point.points,
-                },
-                status=status.HTTP_200_OK,
-            )
-
-        except LoyaltyPoint.DoesNotExist:
-            return Response(
-                {"error": "No loyalty points found for this client.", "code": "NO_LOYALTY_POINTS"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+# Admin: Manage profile update requests
+class ProfileUpdateRequestListView(generics.ListAPIView):
+    """
+    Allow admins to view all profile update requests.
+    """
+    queryset = ProfileUpdateRequest.objects.all()
+    serializer_class = ProfileUpdateRequestSerializer
+    permission_classes = [IsAdminUser]

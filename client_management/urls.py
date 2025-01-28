@@ -1,15 +1,14 @@
 from django.urls import path
-from .views import ClientProfileDetailView, LoyaltyTransactionListView, LoyaltyPointView, LoyaltyPointHistoryView, RedeemLoyaltyPointsView
+from . import views
 
 urlpatterns = [
-    # Endpoint to fetch the client's profile
-    path('profile/', ClientProfileDetailView.as_view(), name='client-profile'),
-    
-    # Endpoint to fetch loyalty transactions for a client
-    path('loyalty-transactions/', LoyaltyTransactionListView.as_view(), name='loyalty-transactions'),
-
-
-    path('loyalty-points/', LoyaltyPointView.as_view(), name='loyalty-points'),
-    path('loyalty-point-history/', LoyaltyPointHistoryView.as_view(), name='loyalty-point-history'),
-    path('redeem-loyalty-points/', RedeemLoyaltyPointsView.as_view(), name='redeem-loyalty-points'),
+    path("clients/", views.ClientProfileListCreateView.as_view(), name="client-list"),
+    path("clients/<int:pk>/", views.ClientProfileDetailView.as_view(), name="client-detail"),
+    path("clients/<int:client_id>/wallet/", views.ClientWalletView.as_view(), name="client-wallet"),
+    path("clients/<int:client_id>/actions/", views.ClientActionView.as_view(), name="client-actions"),
+    # Non-Critical Fields
+    path("self/edit/", views.ClientProfileEditView.as_view(), name="client-profile-edit"),
+    # Critical Fields (Request-Based)
+    path("profile-update-requests/", views.ProfileUpdateRequestCreateView.as_view(), name="create-profile-update-request"),
+    path("profile-update-requests/admin/", views.ProfileUpdateRequestListView.as_view(), name="list-profile-update-requests"),
 ]

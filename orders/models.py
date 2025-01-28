@@ -5,8 +5,8 @@ from datetime import timedelta
 from decimal import Decimal
 from pricing_configs.models import PricingConfiguration
 from order_configs.models import WriterDeadlineConfig
-from discounts.models import DiscountCode
-from users.models import CustomUser
+from discounts.models import Discount
+from users.models import User
 from core.models.base import WebsiteSpecificBaseModel
 
 STATUS_CHOICES = [
@@ -71,7 +71,7 @@ class Order(WebsiteSpecificBaseModel):
         help_text="Preferred writer for this order."
     )
     discount_code = models.ForeignKey(
-        DiscountCode,
+        Discount,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
