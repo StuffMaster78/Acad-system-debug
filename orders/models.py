@@ -184,3 +184,81 @@ class WriterProgress(models.Model):
 
     def __str__(self):
         return f"Progress {self.progress}% for Order {self.order.id} by {self.writer.username}"
+
+
+from django.db import models
+from django.utils.timezone import now
+from users.models import User
+from core.models.base import WebsiteSpecificBaseModel
+
+DISPUTE_STATUS_CHOICES = [
+    ('open', 'Open'),
+    ('in_review', 'In Review'),
+    ('resolved', 'Resolved'),
+    ('escalated', 'Escalated'),
+    ('closed', 'Closed'),
+]
+
+
+class Dispute(WebsiteSpecificBaseModel):
+    """
+    Model to track disputes raised for an order.
+    """
+    order = models.ForeignKey(
+        'orders.Order',
+        on_delete=models.CASCADE,
+        related_name='disputes',
+        help_text="The order associated with this dispute."
+    )
+    raised_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='disputes_raised',
+        help_text="The user who raised the dispute (client, writer, or admin)."
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=DISPUTE_STATUS_CHOICES,
+        default='open',
+        help_text="The current status of the dispute."
+    )
+    reason = models.TextField(help_text="Reason for raising the dispute.")
+    resolution_notes = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Notes or comments regarding the resolution of the dispute."
+    )
+    created_at = models.DateTimeField(auto_now_add=True, help_text="When the dispute was created.")
+    updated_at = models.DateTimeField(auto_now=True, help_text="When the dispute was last updated.")
+
+    def resolve(self, resolution_notes=None):
+        """
+        Resolve the dispute.
+        """
+        self.status = 'resolved'
+        self.resolution_notes = resolution_notes
+        self.save()
+
+    def escalate(self, resolution_notes=None):
+        """
+        Escalate the dispute.
+        """
+        self.status = 'escalated'
+        self.resolution_notes = resolution_notes
+        self.save()
+
+    def close(self, resolution_notes=None):
+        """
+        Close the dispute.
+        """
+        self.status = 'closed'
+        self.resolution_notes = resolution_notes
+        self.save()
+
+    def __str__(self):
+        return f"Dispute #{self.id} for Order #{self.order.id} - {self.status}"
+
+    class Meta:
+        ordering = ['-created_at']

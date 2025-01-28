@@ -1,33 +1,165 @@
 from rest_framework import serializers
-from .models import (
-    ClientProfile,
-    LoyaltyPointConfig,
-    LoyaltyTransaction,
-    LoyaltyPoint,
-    LoyaltyPointHistory,
-    ProfileUpdateRequest,
-)
+from .models import ClientProfile, SuspiciousLogin, ClientBadge, ClientActivityLog, TemporaryPassword, ProfileUpdateRequest
+from loyalty_management.models import LoyaltyTransaction, Milestone
+from wallet.models import Wallet
+
+
+class MilestoneSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Milestone model.
+    """
+    class Meta:
+        model = Milestone
+        fields = [
+            "id",
+            "name",
+            "description",
+            "reward_points",
+            "target_value",
+            "target_type",
+        ]
+
+
+class LoyaltyTransactionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the LoyaltyTransaction model.
+    """
+    client_username = serializers.CharField(source="client.user.username", read_only=True)
+
+    class Meta:
+        model = LoyaltyTransaction
+        fields = [
+            "id",
+            "client",
+            "client_username",
+            "points",
+            "transaction_type",
+            "timestamp",
+            "reason",
+        ]
+        read_only_fields = ["timestamp"]
 
 
 class ClientProfileSerializer(serializers.ModelSerializer):
     """
-    Serializer for ClientProfile model.
+    Serializer for the ClientProfile model.
     """
-    client_username = serializers.CharField(source='client.username', read_only=True)
+    client_username = serializers.CharField(source="user.username", read_only=True)
     preferred_writers = serializers.StringRelatedField(many=True)
+    loyalty_points = serializers.IntegerField(source="loyalty_points", read_only=True)
+    loyalty_tier = serializers.CharField(source="loyalty_tier.name", read_only=True)
+    wallet_balance = serializers.DecimalField(
+        max_digits=10, decimal_places=2, source="wallet_balance", read_only=True
+    )
+    milestones = MilestoneSerializer(source="get_milestones", many=True, read_only=True)
+    loyalty_transactions = serializers.SerializerMethodField()
 
     class Meta:
         model = ClientProfile
         fields = [
             "id",
             "user",
-            "bio",
-            "profile_picture",
+            "client_username",
             "timezone",
+            "country",
             "preferred_writers",
+            "loyalty_points",
+            "loyalty_tier",
+            "wallet_balance",
+            "milestones",
+            "loyalty_transactions",
+            "total_spent",
+            "is_active",
+            "is_suspended",
         ]
-        read_only_fields = ["user"]
+        read_only_fields = ["user", "loyalty_points", "loyalty_tier", "wallet_balance"]
+
+    def get_loyalty_transactions(self, obj):
+        """
+        Retrieve loyalty transactions for the client.
+        """
+        transactions = LoyaltyTransaction.objects.filter(client=obj)
+        return LoyaltyTransactionSerializer(transactions, many=True).data
+
+
+class SuspiciousLoginSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the SuspiciousLogin model.
+    """
+    client_username = serializers.CharField(source="client.user.username", read_only=True)
+
+    class Meta:
+        model = SuspiciousLogin
+        fields = [
+            "id",
+            "client",
+            "client_username",
+            "ip_address",
+            "detected_country",
+            "timestamp",
+        ]
+        read_only_fields = ["timestamp"]
+
+
+class ClientBadgeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the ClientBadge model.
+    """
+    client_username = serializers.CharField(source="client.user.username", read_only=True)
+
+    class Meta:
+        model = ClientBadge
+        fields = [
+            "id",
+            "client",
+            "client_username",
+            "badge_name",
+            "description",
+            "awarded_at",
+        ]
+        read_only_fields = ["awarded_at"]
+
+
+class ClientActivityLogSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the ClientActivityLog model.
+    """
+    client_username = serializers.CharField(source="client.user.username", read_only=True)
+
+    class Meta:
+        model = ClientActivityLog
+        fields = [
+            "id",
+            "client",
+            "client_username",
+            "action",
+            "timestamp",
+        ]
+        read_only_fields = ["timestamp"]
+
+
+class TemporaryPasswordSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the TemporaryPassword model.
+    """
+    client_username = serializers.CharField(source="client.user.username", read_only=True)
+
+    class Meta:
+        model = TemporaryPassword
+        fields = [
+            "id",
+            "client",
+            "client_username",
+            "code",
+            "expires_at",
+        ]
+        read_only_fields = ["expires_at"]
+
+
 class ProfileUpdateRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the ProfileUpdateRequest model.
+    """
     client_username = serializers.CharField(source="client.user.username", read_only=True)
 
     class Meta:
@@ -44,68 +176,13 @@ class ProfileUpdateRequestSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["status", "admin_response"]
 
-class LoyaltyPointConfigSerializer(serializers.ModelSerializer):
+
+class ClientActionSerializer(serializers.Serializer):
     """
-    Serializer for LoyaltyPointConfig model.
+    Serializer for handling client account actions such as suspend, activate, and deactivate.
     """
-
-    class Meta:
-        model = LoyaltyPointConfig
-        fields = [
-            'points_per_dollar',
-            'minimum_points_redeem',
-        ]
-
-
-class LoyaltyTransactionSerializer(serializers.ModelSerializer):
-    """
-    Serializer for LoyaltyTransaction model.
-    """
-    client_username = serializers.CharField(source='client.client.username', read_only=True)
-
-    class Meta:
-        model = LoyaltyTransaction
-        fields = [
-            'id',
-            'client',
-            'client_username',
-            'points',
-            'transaction_type',
-            'timestamp',
-            'reason',
-        ]
-
-
-class LoyaltyPointSerializer(serializers.ModelSerializer):
-    """
-    Serializer for LoyaltyPoint model.
-    """
-    client_username = serializers.CharField(source='client.username', read_only=True)
-
-    class Meta:
-        model = LoyaltyPoint
-        fields = [
-            'id',
-            'client',
-            'client_username',
-            'points',
-            'last_updated',
-        ]
-
-
-class LoyaltyPointHistorySerializer(serializers.ModelSerializer):
-    """
-    Serializer for LoyaltyPointHistory model.
-    """
-    client_username = serializers.CharField(source='client.username', read_only=True)
-
-    class Meta:
-        model = LoyaltyPointHistory
-        fields = [
-            'id',
-            'client',
-            'client_username',
-            'points_change',
-            'reason',
-            'timestamp',
-        ]
+    action = serializers.ChoiceField(
+        choices=["suspend", "activate", "deactivate"],
+        required=True,
+        help_text="The action to perform on the client account."
+    )

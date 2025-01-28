@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils.timezone import now  # Importing now
-from .models import Order
+from .models import Order, Dispute
 
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
@@ -35,4 +35,43 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         """
         if value <= now():
             raise serializers.ValidationError("The deadline must be in the future.")
+        return value
+    
+
+class DisputeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the Dispute model.
+    """
+    order_id = serializers.PrimaryKeyRelatedField(
+        source='order',  # Refers to the `order` ForeignKey in the model
+        queryset=Order.objects.all(),  # Set a valid queryset
+        help_text='The ID of the order associated with this dispute.'
+    )
+    raised_by_username = serializers.CharField(
+        source='raised_by.username',  # Access `username` from the related `User` object
+        read_only=True,
+        help_text='The username of the user who raised this dispute.'
+    )
+
+    class Meta:
+        model = Dispute
+        fields = [
+            'id',
+            'order_id',
+            'raised_by_username',
+            'status',
+            'reason',
+            'resolution_notes',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'raised_by_username', 'created_at', 'updated_at']
+
+    def validate_order_id(self, value):
+        """
+        Custom validation for the order_id field.
+        """
+        # Add any additional order validation logic here
+        if not value:  # For example, ensure an order exists
+            raise serializers.ValidationError("The order ID is invalid.")
         return value

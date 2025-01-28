@@ -3,7 +3,7 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in
 from .models import WriterProfile, WriterActionLog
-from core.utils import get_geolocation_from_ip  # Assuming this is now in the `core` app
+from core.utils.location import get_geolocation_from_ip  # Assuming this is now in the `core` app
 
 User = get_user_model()
 

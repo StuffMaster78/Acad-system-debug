@@ -1,6 +1,5 @@
 from django.contrib import admin
-from .models import Order
-
+from .models import Order, Dispute
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
@@ -34,3 +33,9 @@ class OrderAdmin(admin.ModelAdmin):
             'fields': ('website', 'created_at', 'updated_at')
         }),
     )
+
+@admin.register(Dispute)
+class DisputeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'order', 'raised_by', 'status', 'created_at', 'updated_at')
+    list_filter = ('status', 'created_at')
+    search_fields = ('order__id', 'reason', 'resolution_notes')

@@ -2,12 +2,13 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.contrib.auth.signals import user_logged_in
 from django.contrib.auth import get_user_model
-from .models import ClientProfile
+from .models import ClientProfile, SuspiciousLogin
 from core.utils.location import get_geolocation_from_ip, get_client_ip
+from django.core.mail import send_mail
 
 User = get_user_model()
 
-# Signal to create a ClientProfile when a new client user is created
+
 @receiver(post_save, sender=User)
 def create_client_profile(sender, instance, created, **kwargs):
     """
@@ -15,13 +16,14 @@ def create_client_profile(sender, instance, created, **kwargs):
     """
     if created and instance.role == "client":
         ClientProfile.objects.create(user=instance)
+        print(f"ClientProfile created for user: {instance.username}")
 
 
-# Signal to fetch and update geolocation data on client login
 @receiver(user_logged_in)
 def update_client_geolocation(sender, request, user, **kwargs):
     """
     Fetch and update geolocation data for the client on login.
+    Detect suspicious logins if the location changes.
     """
     if user.role == "client":
         try:
@@ -31,23 +33,36 @@ def update_client_geolocation(sender, request, user, **kwargs):
 
             if "error" not in geo_data:
                 detected_country = geo_data.get("country")
+                detected_timezone = geo_data.get("timezone")
                 previous_country = client_profile.country
+                previous_ip = client_profile.ip_address
 
-                # Check for country mismatch and log it
+                # Check for location mismatch
                 if previous_country and detected_country != previous_country:
                     print(
-                        f"Country mismatch detected for {user.username}: "
-                        f"{previous_country} (previous) vs {detected_country} (current)"
+                        f"Location mismatch detected for user {user.username}: "
+                        f"{previous_country} (previous) vs {detected_country} (current)."
                     )
-                    # Optional: Add logic to send location alert
+                    # Log the suspicious login
+                    SuspiciousLogin.objects.create(
+                        client=client_profile,
+                        ip_address=ip_address,
+                        detected_country=detected_country,
+                    )
+                    # Send a location alert email to the client
                     send_location_alert(user, previous_country, detected_country, ip_address)
 
                 # Update the client profile with new geolocation data
                 client_profile.country = detected_country
-                client_profile.timezone = geo_data.get("timezone")
+                client_profile.timezone = detected_timezone
                 client_profile.ip_address = ip_address
                 client_profile.location_verified = True
                 client_profile.save()
+                print(f"Geolocation updated for user {user.username}: {detected_country}.")
+
+            else:
+                print(f"Geolocation error for user {user.username}: {geo_data['error']}")
+
         except ClientProfile.DoesNotExist:
             print(f"No ClientProfile found for user {user.username}")
 
@@ -56,8 +71,6 @@ def send_location_alert(user, previous_country, current_country, ip_address):
     """
     Send an email notification to the client about a login from a new location.
     """
-    from django.core.mail import send_mail
-
     subject = "Account Login from a New Location"
     message = (
         f"Hi {user.username},\n\n"
@@ -74,4 +87,5 @@ def send_location_alert(user, previous_country, current_country, ip_address):
         message,
         "support@yourdomain.com",  # Replace with your support email
         [user.email],
+        fail_silently=False,
     )

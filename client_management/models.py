@@ -5,6 +5,7 @@ from django.utils.timezone import now
 from websites.models import Website
 from orders.models import Order
 from wallet.models import Wallet
+from django.apps import apps
 
 User = get_user_model()
 
@@ -111,6 +112,7 @@ class ClientProfile(models.Model):
         """
         Retrieve the wallet balance from the wallet app.
         """
+        from wallet.models import Wallet 
         wallet = Wallet.objects.filter(user=self.user).first()
         return wallet.balance if wallet else 0.00
     
@@ -121,10 +123,12 @@ class ClientProfile(models.Model):
         wallet = Wallet.objects.filter(user=self.user).first()
         return wallet.transactions.all() if wallet else []
 
+
     def add_loyalty_points(self, points, reason=None):
         """
         Add loyalty points to the client's balance and update their tier.
         """
+        LoyaltyTransaction = apps.get_model('loyalty_management', 'LoyaltyTransaction')
         self.loyalty_points += points
         self._update_tier()
         self.save()
@@ -134,6 +138,7 @@ class ClientProfile(models.Model):
             transaction_type="add",
             reason=reason,
         )
+
 
     def update_geolocation(self, ip_address):
         """
@@ -151,20 +156,24 @@ class ClientProfile(models.Model):
         else:
             print(f"Geolocation error: {geo_data['error']}")
 
+
     def _update_tier(self):
         """
         Automatically update the client's tier based on loyalty points.
         """
+        LoyaltyTier = apps.get_model('loyalty_management', 'LoyaltyTier')
         applicable_tiers = LoyaltyTier.objects.filter(
             website=self.website, threshold__lte=self.loyalty_points
         ).order_by('-threshold')
         self.tier = applicable_tiers.first() if applicable_tiers.exists() else None
 
+
     def get_orders(self):
         """
-        Retrieve all orders associated with the client.
+        Retrieve all orders associated with the client with related writer data.
         """
-        return Order.objects.filter(client=self.user).order_by('-created_at')
+        return Order.objects.filter(client=self.user).select_related('writer').order_by('-created_at')
+    
 
     def get_activity_log(self):
         """
@@ -173,6 +182,7 @@ class ClientProfile(models.Model):
         from activity.models import ActivityLog  # Assuming you have an activity log app
         return ActivityLog.objects.filter(user=self.user).order_by('-timestamp')
 
+ 
     def suspend_account(self, admin):
         """
         Suspend the client account and log the action.
@@ -187,6 +197,7 @@ class ClientProfile(models.Model):
             action=f"Suspended client account: {self.user.username}"
         )
 
+
     def deactivate_account(self, admin):
         """
         Deactivate the client account and log the action.
@@ -199,6 +210,7 @@ class ClientProfile(models.Model):
             user=admin,
             action=f"Deactivated client account: {self.user.username}"
         )
+    
 
     def activate_account(self, admin):
         """
@@ -213,6 +225,7 @@ class ClientProfile(models.Model):
             user=admin,
             action=f"Reactivated client account: {self.user.username}"
         )
+
 
     def set_password_reset_code(self, code, admin):
         """
@@ -239,6 +252,43 @@ class ClientProfile(models.Model):
             user=admin,
             action=f"Set temporary password for client: {self.user.username}"
         )
+    
+    @property
+    def calculate_loyalty_tier(self):
+        """Retrieve the current loyalty tier from the loyalty_management app."""
+        LoyaltyTier = apps.get_model('loyalty_management', 'LoyaltyTier')
+        applicable_tiers = LoyaltyTier.objects.filter(
+            website=self.website, threshold__lte=self.loyalty_points
+        ).order_by('-threshold')
+        return applicable_tiers.first() if applicable_tiers.exists() else None
+
+
+    @property
+    def calculate_loyalty_points(self):
+        """Calculate the total loyalty points from the loyalty transactions."""
+        from loyalty_management.models import LoyaltyTransaction
+        transactions = LoyaltyTransaction.objects.filter(client=self)
+        return sum(transaction.points for transaction in transactions)
+
+    @property
+    def get_loyalty_transactions(self):
+        """Retrieve all loyalty transactions for the client."""
+        # from loyalty_management.models import LoyaltyTransaction
+        LoyaltyTransaction = apps.get_model('loyalty_management', 'LoyaltyTransaction')
+        return LoyaltyTransaction.objects.filter(client=self).order_by('-timestamp')
+
+
+    def get_milestones(self):
+        """
+        Retrieve all milestones achieved by the client from the loyalty_management app.
+        """
+        from loyalty_management.models import Milestone
+        achieved_milestones = Milestone.objects.filter(
+            target_value__lte=self.loyalty_points,
+            target_type='loyalty_points'  # Adjust for other milestone types if necessary
+        )
+        return achieved_milestones
+    
 
 class SuspiciousLogin(models.Model):
     client = models.ForeignKey(ClientProfile, on_delete=models.CASCADE, related_name="suspicious_logins")
@@ -247,31 +297,7 @@ class SuspiciousLogin(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Suspicious login for {self.client.user.username} from {self.detected_country}"
-
-
-class Milestone(models.Model):
-    """
-    Configurable milestones for clients, defined by admins.
-    """
-    name = models.CharField(max_length=100, help_text=_("Name of the milestone (e.g., 'First $100 Spent')."))
-    description = models.TextField(blank=True, null=True, help_text=_("Details about the milestone."))
-    target_type = models.CharField(
-        max_length=50,
-        choices=(
-            ('total_spent', 'Total Spent'),
-            ('loyalty_points', 'Loyalty Points'),
-            ('orders_placed', 'Orders Placed'),
-        ),
-        help_text=_("Type of milestone (e.g., total spent, loyalty points).")
-    )
-    target_value = models.PositiveIntegerField(help_text=_("The value the client must achieve to earn this milestone."))
-    reward_points = models.PositiveIntegerField(default=0, help_text=_("Loyalty points rewarded upon achieving this milestone."))
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Milestone: {self.name} (Target: {self.target_value})"
-    
+        return f"Suspicious login for {self.client.user.username} from {self.detected_country}"    
 class ClientBadge(models.Model):
     """
     Award badges to clients for special achievements.
@@ -324,46 +350,89 @@ class TemporaryPassword(models.Model):
 
     def __str__(self):
         return f"Temporary Password for {self.client.user.username} (Expires: {self.expires_at})"
+    
 
-class LoyaltyTier(models.Model):
-    """
-    Configurable loyalty tiers for clients, defined by admins.
-    """
-    name = models.CharField(max_length=50, help_text=_("Name of the loyalty tier (e.g., Bronze, Silver, Gold)."))
-    website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name="loyalty_tiers",
-        help_text=_("Website this tier is associated with."),
-    )
-    threshold = models.PositiveIntegerField(help_text=_("Minimum points required to qualify for this tier."))
-    discount_percentage = models.DecimalField(
-        max_digits=5, decimal_places=2, default=0.0, help_text=_("Discount percentage for clients in this tier.")
-    )
-    priority_support = models.BooleanField(default=False, help_text=_("Does this tier include priority support?"))
-    dedicated_manager = models.BooleanField(default=False, help_text=_("Does this tier include a dedicated manager?"))
-    perks = models.TextField(blank=True, null=True, help_text=_("Additional perks or benefits for this tier."))
 
-    def __str__(self):
-        return f"{self.name} (Threshold: {self.threshold})"
+class ProfileUpdateRequest(models.Model):
+    """
+    Model to handle requests for updating client profiles.
+    """
+    STATUS_CHOICES = [
+        ("pending", _("Pending")),
+        ("approved", _("Approved")),
+        ("rejected", _("Rejected")),
+    ]
 
-class LoyaltyTransaction(models.Model):
-    """
-    Tracks loyalty points transactions for clients.
-    """
     client = models.ForeignKey(
         ClientProfile,
         on_delete=models.CASCADE,
-        related_name="loyalty_transactions",
+        related_name="profile_update_requests",
+        help_text=_("The client requesting a profile update."),
     )
-    points = models.IntegerField(help_text=_("Points added or deducted."))
-    transaction_type = models.CharField(
+    requested_changes = models.TextField(
+        help_text=_("The changes requested by the client."),
+    )
+    status = models.CharField(
         max_length=20,
-        choices=(("add", "Add"), ("deduct", "Deduct")),
-        default="add",
+        choices=STATUS_CHOICES,
+        default="pending",
+        help_text=_("The status of the profile update request."),
     )
-    reason = models.TextField(blank=True, null=True, help_text=_("Reason for the loyalty transaction."))
-    timestamp = models.DateTimeField(auto_now_add=True)
+    admin_response = models.TextField(
+        blank=True,
+        null=True,
+        help_text=_("Response from the admin regarding the request."),
+    )
+    created_at = models.DateTimeField(
+        default=now,
+        help_text=_("Timestamp when the request was created."),
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text=_("Timestamp when the request was last updated."),
+    )
 
     def __str__(self):
-        return f"Transaction: {self.points} points ({self.transaction_type}) for {self.client.user.username}"
+        return f"Profile Update Request: {self.client.user.username} ({self.status})"
+    
+
+
+
+class ClientAction(models.Model):
+    """
+    Model to track actions performed on client accounts, such as suspending, activating, and deactivating.
+    """
+    ACTION_CHOICES = [
+        ('suspend', 'Suspend'),
+        ('activate', 'Activate'),
+        ('deactivate', 'Deactivate'),
+    ]
+    
+    client = models.ForeignKey(
+        'client_management.ClientProfile',
+        on_delete=models.CASCADE,
+        related_name="client_actions",
+        help_text="The client whose account is being modified."
+    )
+    action = models.CharField(
+        max_length=20,
+        choices=ACTION_CHOICES,
+        help_text="The action taken on the client account."
+    )
+    performed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="actions_performed",
+        help_text="The admin who performed the action."
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, help_text="Time when the action was performed.")
+    reason = models.TextField(blank=True, null=True, help_text="Optional reason for the action.")
+
+    def __str__(self):
+        return f"{self.get_action_display()} action on {self.client.user.username} by {self.performed_by.username}"
+    
+    class Meta:
+        verbose_name = "Client Action"
+        verbose_name_plural = "Client Actions"
+        ordering = ['-timestamp']

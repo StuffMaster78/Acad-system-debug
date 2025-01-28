@@ -4,10 +4,9 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from .managers import ActiveManager
-from core.models.base import WebsiteSpecificBaseModel
 from django.utils.timezone import now, timedelta
 
-class User(WebsiteSpecificBaseModel, AbstractUser):
+class User(AbstractUser):
     """
     Comprehensive User model for managing writers, clients, and other roles.
     Includes impersonation, suspension, probation, and audit tracking.
@@ -66,14 +65,8 @@ class User(WebsiteSpecificBaseModel, AbstractUser):
         default=True,
         help_text=_("Indicates whether the user is available for tasks.")
     )
-    is_suspended = models.BooleanField(
-        default=False,
-        help_text=_("Indicates whether the user is suspended.")
-    )
-    is_on_probation = models.BooleanField(
-        default=False,
-        help_text=_("Indicates whether the user is on probation.")
-    )
+    
+    
     is_impersonated = models.BooleanField(
         default=False,
         help_text=_("Indicates whether this user is currently being impersonated.")
@@ -98,6 +91,14 @@ class User(WebsiteSpecificBaseModel, AbstractUser):
     deletion_requested_at = models.DateTimeField(null=True, blank=True, help_text="When the account deletion was requested.")
 
     # Suspension and Probation Details
+    is_suspended = models.BooleanField(
+        default=False,
+        help_text=_("Indicates whether the user is suspended.")
+    )
+    is_on_probation = models.BooleanField(
+        default=False,
+        help_text=_("Indicates whether the user is on probation.")
+    )
     suspension_reason = models.TextField(
         blank=True,
         null=True,
@@ -113,14 +114,19 @@ class User(WebsiteSpecificBaseModel, AbstractUser):
 
     # Role-Specific Methods
     def is_global_role(self):
-        return self.role in ['superadmin', 'admin', 'support']
+        return self.role in ['superadmin', 'admin', 'support', 'editor']
     
     def is_client(self):
         return self.role == 'client'
 
     def is_writer(self):
         return self.role == 'writer'
-
+    
+    def is_support(self):
+        return self.role == "support"
+    
+    def is_editor(self):
+        return self.role == "editor"
     
 
     def suspend(self, reason, start_date=None, end_date=None):

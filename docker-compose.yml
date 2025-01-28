@@ -41,6 +41,17 @@ services:
       timeout: 5s
       retries: 3
 
+  celery:
+      build:
+        context: .
+        dockerfile: Dockerfile
+      command: celery -A core.celery worker --loglevel=info
+      volumes:
+        - .:/app
+      depends_on:
+        - db
+        - redis
+
 volumes:
   postgres_data:
 

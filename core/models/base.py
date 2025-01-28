@@ -1,7 +1,9 @@
 from django.db import models
 from django.utils.timezone import now
 from django.apps import apps
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 class ActiveManager(models.Manager):
     """Custom manager to exclude soft-deleted records by default."""
     def get_queryset(self):
@@ -15,7 +17,7 @@ class BaseModel(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     deleted_at = models.DateTimeField(null=True, blank=True, help_text="Soft delete timestamp")
     created_by = models.ForeignKey(
-        apps.get_model('users.User'),
+        User,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -23,7 +25,7 @@ class BaseModel(models.Model):
         help_text="User who created the record"
     )
     updated_by = models.ForeignKey(
-        apps.get_model('users.User'),
+        User,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -57,9 +59,9 @@ class WebsiteSpecificBaseModel(BaseModel):
     Abstract base model for models tied to specific websites.
     """
     website = models.ForeignKey(
-        apps.get_model('websites.Website'),  # Reference to the Website model
+        'websites.Website',
         on_delete=models.CASCADE,
-        null=True,
+        null=True,  # Allow records to exist without being tied to a specific website
         blank=True,
         related_name="%(class)s_set",
         help_text="Website this record is associated with"

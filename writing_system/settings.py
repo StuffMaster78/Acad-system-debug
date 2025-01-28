@@ -32,13 +32,15 @@ ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 # Application definition
 
 INSTALLED_APPS = [
+    # Django Default Apps
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-     # Third-party apps
+
+    # Third-party Apps
     'rest_framework',
     'corsheaders',
     'drf_spectacular',
@@ -46,21 +48,36 @@ INSTALLED_APPS = [
     'celery',
     'channels',
 
-    # Project apps
+    # Core Project Apps
     'core',
-    'users',
     'websites',
+    'users',
+
+    # Order Management
     'orders',
-    'discounts',
-    'wallet',
-    'referrals',
-    'notifications_system',
-    'special_orders',
-    'client_management',
-    'writer_management',
+    'order_files',
+    'order_communications',
     'order_configs',
     'pricing_configs',
+    'special_orders',
+
+    # Financial Apps
+    'wallet',
+    'discounts',
+    'referrals',
+
+    # Notifications and Support
+    'notifications_system',
+    'tickets',
+
+    # Management Apps
+    'client_management',
+    'writer_management',
+    'editor_management',
+    'support_management',
+    'loyalty_management',
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -220,3 +237,9 @@ DEFAULT_FROM_EMAIL = "Your Project Name <your-email@gmail.com>"
 
 
 GEOLOCATION_API_KEY = os.getenv("GEOLOCATION_API_KEY")
+
+
+# Celery settings
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Example using Redis
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'

@@ -3,7 +3,7 @@ from django.db import models
 from django.utils.timezone import now
 from core.models.base import WebsiteSpecificBaseModel
 from users.models import User
-from client_management.models import LoyaltyPoint
+# from client_management.models import LoyaltyPoint
 
 
 class Wallet(WebsiteSpecificBaseModel):
@@ -32,6 +32,22 @@ class Wallet(WebsiteSpecificBaseModel):
 
     def __str__(self):
         return f"{self.user.username}'s Wallet ({self.user.role}) - ${self.balance}"
+    
+    def calculate_loyalty_points(self):
+        """
+        Calculates loyalty points for the client based on their wallet balance or transactions.
+        """
+        from client_management.models import LoyaltyPoint  # Local import to avoid circular import issues
+
+        # Example logic: 1 loyalty point for every $10 in wallet balance
+        points = int(self.balance // 10)
+
+        # Update or create the LoyaltyPoint entry for the client
+        loyalty_point, created = LoyaltyPoint.objects.update_or_create(
+            client=self.client,
+            defaults={'points': points}
+        )
+        return loyalty_point
 
 
 class WalletTransaction(WebsiteSpecificBaseModel):
