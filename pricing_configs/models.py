@@ -1,8 +1,7 @@
 from django.db import models
-from core.models.base import WebsiteSpecificBaseModel
+from websites.models import Website
 
-
-class PricingConfiguration(WebsiteSpecificBaseModel):
+class PricingConfiguration(models.Model):
     """
     Configuration for pricing rules specific to each website.
     """
@@ -28,23 +27,37 @@ class PricingConfiguration(WebsiteSpecificBaseModel):
     )
     urgent_order_threshold = models.PositiveIntegerField(
         default=8, 
-        help_text="Urgent order threshold in hours."
+        help_text="Urgent order threshold in hours.",
     )
     urgent_order_multiplier = models.DecimalField(
         max_digits=5, decimal_places=2, default=1.2,
-        help_text="Multiplier for urgent orders (e.g., 1.2x for urgent)."
+        help_text="Multiplier for urgent orders (e.g., 1.2x for urgent).",
     )
     hvo_threshold = models.DecimalField(
         max_digits=10, decimal_places=2, default=100,
-        help_text="High-value order threshold (total cost)."
+        help_text="High-value order threshold (total cost).",
     )
     hvo_additional_cost = models.DecimalField(
         max_digits=10, decimal_places=2, default=0,
-        help_text="Additional cost added to high-value orders."
+        help_text="Additional cost added to high-value orders.",
     )
     long_deadline_flat_fee = models.DecimalField(
         max_digits=10, decimal_places=2, default=0,
         help_text="Flat fee for orders with deadlines longer than 30 days."
+    )
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="pricing_configurations_for_websites",
+        help_text=("Website-specific pricing configuration."),
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text=("Timestamp when the pricing was created."),
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text=("Timestamp when the pricing was last updated."),
     )
 
     def __str__(self):
@@ -55,7 +68,7 @@ class PricingConfiguration(WebsiteSpecificBaseModel):
         verbose_name_plural = "Pricing Configurations"
 
 
-class AdditionalService(WebsiteSpecificBaseModel):
+class AdditionalService(models.Model):
     """
     Model to store additional services and their pricing.
     """
@@ -63,7 +76,19 @@ class AdditionalService(WebsiteSpecificBaseModel):
     description = models.TextField(blank=True, help_text="Description of the service.")
     cost = models.DecimalField(max_digits=10, decimal_places=2, help_text="Cost of the service (USD).")
     is_active = models.BooleanField(default=True, help_text="Whether this service is currently active.")
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="additional_service_pricing_configs"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text=("Timestamp when the pricing was created."),
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text=("Timestamp when the pricing was last updated."),
+    )
     def __str__(self):
         return f"{self.name} - ${self.cost} (Website: {self.website})"
 
@@ -71,7 +96,7 @@ class AdditionalService(WebsiteSpecificBaseModel):
         verbose_name = "Additional Service"
         verbose_name_plural = "Additional Services"
 
-class WriterQuality(WebsiteSpecificBaseModel):
+class WriterQuality(models.Model):
     """
     Writer quality levels and associated costs.
     """
@@ -95,6 +120,19 @@ class WriterQuality(WebsiteSpecificBaseModel):
         max_digits=10, decimal_places=2, default=0.0,
         help_text="Additional cost for urgent orders for this quality level."
     )
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_quality_pricing_configs"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text=("Timestamp when the pricing was created."),
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text=("Timestamp when the pricing was last updated."),
+    )
 
     def __str__(self):
         return f"{self.name} - Multiplier: {self.cost_multiplier}"
@@ -102,3 +140,47 @@ class WriterQuality(WebsiteSpecificBaseModel):
     class Meta:
         verbose_name = "Writer Quality"
         verbose_name_plural = "Writer Qualities"
+
+
+class AcademicLevelPricing(models.Model):
+    """
+    Represents the pricing configuration based on academic levels.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="academic_level_pricing",
+        help_text=("Website this pricing configuration applies to."),
+    )
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        help_text=("Name of the academic level (e.g., High School, Undergraduate, Master’s, PhD)."),
+    )
+    multiplier = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=1.00,
+        help_text=("Multiplier applied to base order pricing for this academic level."),
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text=("Optional description of this academic level."),
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text=("Timestamp when the pricing was created."),
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text=("Timestamp when the pricing was last updated."),
+    )
+
+    class Meta:
+        verbose_name =("Academic Level Pricing")
+        verbose_name_plural =("Academic Level Pricing")
+        ordering = ['name']
+
+    def __str__(self):
+        return f"{self.name} (Multiplier: {self.multiplier})"

@@ -62,8 +62,8 @@ class ClientProfile(models.Model):
         help_text=_("Total loyalty points accumulated by the client.")
     )
     tier = models.ForeignKey(
-        'LoyaltyTier',
-        on_delete=models.SET_NULL,
+        'loyalty_management.LoyaltyTier',
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name="clients_in_tier",
@@ -105,8 +105,28 @@ class ClientProfile(models.Model):
     )
 
     def __str__(self):
-        return f"Client Profile: {self.user.username} ({self.registration_id})"
-    
+        return f"Client Profile: {self.user.username} | ID: {self.registration_id} | Loyalty Points: {self.loyalty_points}"
+
+    def get_tier(self):
+        LoyaltyTier = apps.get_model('loyalty_management', 'LoyaltyTier')
+        return LoyaltyTier.objects.filter(
+            website=self.website, threshold__lte=self.loyalty_points
+        ).order_by('-threshold').first()
+
+    def add_loyalty_points(self, points, reason=None):
+        """
+        Add loyalty points to the client's balance and update their tier.
+        """
+        LoyaltyTransaction = apps.get_model('loyalty_management', 'LoyaltyTransaction')
+        self.loyalty_points += points
+        self.save()
+        LoyaltyTransaction.objects.create(
+            client=self,
+            points=points,
+            transaction_type="add",
+            reason=reason,
+        )
+
     @property
     def wallet_balance(self):
         """
@@ -174,6 +194,13 @@ class ClientProfile(models.Model):
         """
         return Order.objects.filter(client=self.user).select_related('writer').order_by('-created_at')
     
+
+    def get_client_badges(self):
+        """
+        Retrieve all the badges awarded to the client from loyalty-management.
+        """
+        ClientBadge = apps.get_model('loyalty_management', 'ClientBadge')
+        return ClientBadge.objects.filter(client=self)
 
     def get_activity_log(self):
         """
@@ -297,22 +324,7 @@ class SuspiciousLogin(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Suspicious login for {self.client.user.username} from {self.detected_country}"    
-class ClientBadge(models.Model):
-    """
-    Award badges to clients for special achievements.
-    """
-    client = models.ForeignKey(
-        ClientProfile,
-        on_delete=models.CASCADE,
-        related_name="badges",
-    )
-    badge_name = models.CharField(max_length=100, help_text=_("Name of the badge (e.g., 'Top Spender')."))
-    description = models.TextField(blank=True, null=True, help_text=_("Details about why this badge was awarded."))
-    awarded_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Badge: {self.badge_name} for {self.client.user.username}"
+        return f"Suspicious login for {self.client.user.username} from {self.detected_country}"
     
 class ClientActivityLog(models.Model):
     """

@@ -9,6 +9,7 @@ from .models import (
     WriterReward,
     WriterRating,
 )
+from decimal import Decimal
 
 
 class WriterProfileSerializer(serializers.ModelSerializer):
@@ -16,7 +17,7 @@ class WriterProfileSerializer(serializers.ModelSerializer):
         max_digits=3, decimal_places=2, read_only=True
     )
     wallet_balance = serializers.DecimalField(
-        max_digits=12, decimal_places=2, read_only=True
+        max_digits=12, decimal_places=2, read_only=True, min_value=Decimal("0.00")
     )
 
     class Meta:

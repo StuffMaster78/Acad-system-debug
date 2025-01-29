@@ -1,8 +1,9 @@
 from rest_framework import serializers
-from .models import ClientProfile, SuspiciousLogin, ClientBadge, ClientActivityLog, TemporaryPassword, ProfileUpdateRequest
+from .models import ClientProfile, SuspiciousLogin, ClientActivityLog, TemporaryPassword, ProfileUpdateRequest
 from loyalty_management.models import LoyaltyTransaction, Milestone
 from wallet.models import Wallet
-
+from django.apps import apps
+from decimal import Decimal
 
 class MilestoneSerializer(serializers.ModelSerializer):
     """
@@ -49,7 +50,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     loyalty_points = serializers.IntegerField(source="loyalty_points", read_only=True)
     loyalty_tier = serializers.CharField(source="loyalty_tier.name", read_only=True)
     wallet_balance = serializers.DecimalField(
-        max_digits=10, decimal_places=2, source="wallet_balance", read_only=True
+        max_digits=10, decimal_places=2, source="wallet_balance", read_only=True, min_value=Decimal("0.00")
     )
     milestones = MilestoneSerializer(source="get_milestones", many=True, read_only=True)
     loyalty_transactions = serializers.SerializerMethodField()
@@ -71,6 +72,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             "total_spent",
             "is_active",
             "is_suspended",
+            "badges",
         ]
         read_only_fields = ["user", "loyalty_points", "loyalty_tier", "wallet_balance"]
 
@@ -81,6 +83,16 @@ class ClientProfileSerializer(serializers.ModelSerializer):
         transactions = LoyaltyTransaction.objects.filter(client=obj)
         return LoyaltyTransactionSerializer(transactions, many=True).data
 
+    def get_badges(self, obj):
+        """
+        Retrieve all the basdges awarded to the client from loyalty_management.
+        """
+        ClientBadge = apps.get_model('loyalty_management', 'ClientBadge')
+        badges = ClientBadge.objects.filter(client=self)
+        return [
+            {"badge_name": badge.badge_name, "awarded_at": badge.awarded_at.strftime('%Y-%m-%d')}
+            for badge in badges
+        ]
 
 class SuspiciousLoginSerializer(serializers.ModelSerializer):
     """
@@ -99,26 +111,6 @@ class SuspiciousLoginSerializer(serializers.ModelSerializer):
             "timestamp",
         ]
         read_only_fields = ["timestamp"]
-
-
-class ClientBadgeSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the ClientBadge model.
-    """
-    client_username = serializers.CharField(source="client.user.username", read_only=True)
-
-    class Meta:
-        model = ClientBadge
-        fields = [
-            "id",
-            "client",
-            "client_username",
-            "badge_name",
-            "description",
-            "awarded_at",
-        ]
-        read_only_fields = ["awarded_at"]
-
 
 class ClientActivityLogSerializer(serializers.ModelSerializer):
     """

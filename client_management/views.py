@@ -8,15 +8,13 @@ from client_management.serializers import (
     ClientActionSerializer,
     ProfileUpdateRequestSerializer
 )
-
-
 from loyalty_management.serializers import  LoyaltyTierSerializer, LoyaltyTransactionSerializer
 from core.utils.location import get_geolocation_from_ip
 from .permissions import IsAdminOrSuperAdmin, IsSelfOrAdmin
 from .pagination import StandardResultsSetPagination
 from wallet.models import Wallet
 from wallet.serializers import WalletTransactionSerializer
-from .tasks import update_loyalty_points
+# from .tasks import update_loyalty_points
 
 
 # List and create client profiles (Admin/Superadmin only)

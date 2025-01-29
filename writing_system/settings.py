@@ -45,7 +45,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_spectacular',
     'django_filters',
-    'celery',
+    # 'django-rq',
+    # 'django_celery_beat',
+    # 'celery',
     'channels',
 
     # Core Project Apps
@@ -243,3 +245,19 @@ GEOLOCATION_API_KEY = os.getenv("GEOLOCATION_API_KEY")
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Example using Redis
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
+
+
+
+RQ_QUEUES = {
+    'default': {
+        'USE_REDIS_CACHE': 'default',  # Use Redis as the backend
+        'URL': 'redis://localhost:6379',  # Redis URL
+        'DB': 0,
+        'DEFAULT_TIMEOUT': 360,
+    }
+}
+
+
+
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")

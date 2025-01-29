@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from .models import PricingConfiguration, AdditionalService, WriterQuality
-from .serializers import PricingConfigurationSerializer, AdditionalServiceSerializer, WriterQualitySerializer
+from .models import PricingConfiguration, AdditionalService, WriterQuality, AcademicLevelPricing
+from .serializers import PricingConfigurationSerializer, AdditionalServiceSerializer, WriterQualitySerializer,  AcademicLevelPricingSerializer
 from .permissions import IsAdminUserOrReadOnly, IsAdminOfWebsite
 
 class PricingConfigurationViewSet(viewsets.ModelViewSet):
@@ -40,3 +40,10 @@ class WriterQualityViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(website=self.request.user.website)
+
+class AcademicLevelPricingViewSet(viewsets.ModelViewSet):
+    queryset = AcademicLevelPricing.objects.all()
+    serializer_class = AcademicLevelPricingSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(website=self.request.user.website)  # Assign website dynamically

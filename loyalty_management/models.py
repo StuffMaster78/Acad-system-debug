@@ -13,6 +13,7 @@ class LoyaltyTier(models.Model):
     """
     name = models.CharField(
         max_length=50,
+        unique=True,
         help_text=_("Name of the loyalty tier (e.g., Bronze, Silver, Gold).")
     )
     website = models.ForeignKey(
@@ -42,7 +43,7 @@ class LoyaltyTier(models.Model):
         ordering = ['threshold']
 
     def __str__(self):
-        return f"{self.name} (Threshold: {self.threshold})"
+        return f"{self.name} (Min Threshold: {self.threshold} points)"
 
 
 class LoyaltyTransaction(models.Model):

@@ -1,9 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import PricingConfigurationViewSet, AdditionalServiceViewSet, WriterQualityViewSet
+from .views import PricingConfigurationViewSet, AdditionalServiceViewSet, WriterQualityViewSet, AcademicLevelPricingViewSet
 
 # Create a router and register the viewsets
 router = DefaultRouter()
+router.register(r'academic-level-pricing', AcademicLevelPricingViewSet, basename='academic-level-pricing')
 router.register(r'pricing-configurations', PricingConfigurationViewSet, basename='pricing-configuration')
 router.register(r'additional-services', AdditionalServiceViewSet, basename='additional-service')
 router.register(r'writer-qualities', WriterQualityViewSet, basename='writer-quality')

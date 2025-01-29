@@ -15,9 +15,10 @@ class ClientProfileAdmin(admin.ModelAdmin):
         "tier", 
         "is_active", 
         "is_suspended", 
-        "location_verified"
+        "location_verified",
         "get_milestones_display",  # Display milestones for the client
         "get_loyalty_transactions_display",  # Display loyalty transactions for the client
+        "display_client_badges"
     )
     list_filter = (
         "location_verified", 
@@ -33,7 +34,6 @@ class ClientProfileAdmin(admin.ModelAdmin):
         "country", 
         "website__name"
     )
-
 
     # Custom method to display milestones in the admin
     def get_milestones_display(self, obj):
@@ -58,4 +58,9 @@ class ClientProfileAdmin(admin.ModelAdmin):
         return "\n".join([f"Transaction {transaction.id}: {transaction.points} points ({transaction.transaction_type})" for transaction in transactions])
     
     get_loyalty_transactions_display.short_description = "Loyalty Transactions"
+    
+    # A Custom method to fetch and display client badges in the admin
+    def display_client_badges(self, obj):
+        return ", ".join([badge.badge_name for badge in obj.get_client_badges()])
+    display_client_badges.short_description = "Badges"
 

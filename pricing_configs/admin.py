@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import PricingConfiguration, AdditionalService
+from .models import PricingConfiguration, AdditionalService, AcademicLevelPricing
 
 
 @admin.register(PricingConfiguration)
@@ -13,3 +13,11 @@ class AdditionalServiceAdmin(admin.ModelAdmin):
     list_display = ('name', 'cost', 'is_active', 'website')
     list_filter = ('is_active', 'website')
     search_fields = ('name', 'website__name')
+
+
+@admin.register(AcademicLevelPricing)
+class AcademicLevelPricingAdmin(admin.ModelAdmin):
+    list_display = ('name', 'website', 'multiplier', 'created_at', 'updated_at')
+    search_fields = ('name', 'website__name')
+    list_filter = ('website',)
+    ordering = ['name']

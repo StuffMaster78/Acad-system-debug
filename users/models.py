@@ -23,10 +23,11 @@ class User(AbstractUser):
     )
 
     AVATAR_CHOICES = (
-        ('avatars/male1.png', _('Male Avatar 1')),
-        ('avatars/male2.png', _('Male Avatar 2')),
-        ('avatars/female1.png', _('Female Avatar 1')),
-        ('avatars/female2.png', _('Female Avatar 2')),
+        ('avatars/universal.png', 'Universal Avatar'),
+        ('avatars/male1.png', 'Male Avatar 1'),
+        ('avatars/male2.png', 'Male Avatar 2'),
+        ('avatars/female1.png', 'Female Avatar 1'),
+        ('avatars/female2.png', 'Female Avatar 2'),
     )
 
     # General Fields
@@ -45,7 +46,7 @@ class User(AbstractUser):
     avatar = models.CharField(
         max_length=255,
         choices=AVATAR_CHOICES,
-        default='avatars/male1.png',
+        default='avatars/universal.png',
         help_text=_("Select a predefined avatar for privacy."),
         blank=True,
         null=True
@@ -64,15 +65,11 @@ class User(AbstractUser):
     is_available = models.BooleanField(
         default=True,
         help_text=_("Indicates whether the user is available for tasks.")
-    )
-    
-    
+    ) 
     is_impersonated = models.BooleanField(
         default=False,
         help_text=_("Indicates whether this user is currently being impersonated.")
     )
-    date_joined = models.DateTimeField(auto_now_add=True)
-    last_active = models.DateTimeField(null=True, blank=True, help_text=_("Last activity timestamp."))
     impersonated_by = models.ForeignKey(
         'self',
         null=True,
@@ -81,8 +78,9 @@ class User(AbstractUser):
         related_name='impersonated_users',
         help_text=_("Admin currently impersonating this user.")
     )
-
-
+    date_joined = models.DateTimeField(auto_now_add=True)
+    last_active = models.DateTimeField(null=True, blank=True, help_text=_("Last activity timestamp."))
+    
     # Fields to manage account deletion
     is_frozen = models.BooleanField(default=False, help_text="Is the account frozen due to a deletion request?")
     deletion_date = models.DateTimeField(null=True, blank=True, help_text="Scheduled date for account deletion.")
@@ -128,7 +126,15 @@ class User(AbstractUser):
     def is_editor(self):
         return self.role == "editor"
     
-
+    @property
+    def display_avatar(self):
+        """
+        Returns the user's profile picture if available, otherwise the selected avatar.
+        """
+        if self.profile_picture:
+            return self.profile_picture.url
+        return f"/media/{self.avatar}"
+    
     def suspend(self, reason, start_date=None, end_date=None):
         """
         Suspend a user with a reason and optional start and end dates.
@@ -197,27 +203,34 @@ class User(AbstractUser):
             "date_joined": self.date_joined,
         }
 
-        if self.is_writer():
+        if self.is_client():
             profile.update({
-                "bio": self.bio,
-                "writer_level": self.writer_level.name if self.writer_level else None,
-                "rating": self.rating,
-                "completed_orders": self.completed_orders,
-                "active_orders": self.active_orders,
-                "total_earnings": self.total_earnings,
-                "last_payment_date": self.last_payment_date,
-                "verification_status": self.verification_status,
+                "loyalty_points": getattr(self.client_profile, 'loyalty_points', 0),
+            })
+        elif self.is_writer():
+            writer_profile = getattr(self, 'writer_profile', None)
+            profile.update({
+                "bio": getattr(writer_profile, 'bio', ""),
+                "writer_level": getattr(writer_profile, 'writer_level', None),
+                "rating": getattr(writer_profile, 'rating', 0),
+                "completed_orders": getattr(writer_profile, 'completed_orders', 0),
+                "active_orders": getattr(writer_profile, 'active_orders', 0),
+                "total_earnings": getattr(writer_profile, 'total_earnings', 0),
+                "verification_status": getattr(writer_profile, 'verification_status', False),
             })
         elif self.is_editor():
+            editor_profile = getattr(self, 'editor_profile', None)
             profile.update({
-                "bio": self.bio,
-                "edited_orders": self.edited_orders,
+                "bio": getattr(editor_profile, 'bio', ""),
+                "edited_orders": getattr(editor_profile, 'edited_orders', 0),
             })
         elif self.is_support():
+            support_profile = getattr(self, 'support_profile', None)
             profile.update({
-                "handled_tickets": self.handled_tickets,
-                "resolved_orders": self.resolved_orders,
+                "handled_tickets": getattr(support_profile, 'handled_tickets', 0),
+                "resolved_orders": getattr(support_profile, 'resolved_orders', 0),
             })
+
         return profile
     
 
@@ -262,11 +275,21 @@ class User(AbstractUser):
 
         if self.is_suspended and self.is_available:
             raise ValidationError(_("Suspended users cannot be marked as available."))
+        
+        if not self.profile_picture and not self.avatar:
+            raise ValidationError(_("Either an avatar or profile picture must be selected."))
 
-        if self.is_writer() and self.active_orders > self.writer_level.max_orders:
-            raise ValidationError(_("Writer cannot exceed their maximum allowed active orders."))
+        # Ensure a writer does not exceed max orders
+        if self.is_writer():
+            writer_profile = getattr(self, 'writer_profile', None)
+            if writer_profile and writer_profile.active_orders > writer_profile.writer_level.max_orders:
+                raise ValidationError(_("Writer cannot exceed their maximum allowed active orders."))
+        # Automatically fallback to the universal avatar if no profile picture is provided
+        if not self.profile_picture and not self.avatar:
+            self.avatar = 'avatars/universal.png'  # Fallback avatar
 
         super().clean()
+
 
     def save(self, *args, **kwargs):
         """

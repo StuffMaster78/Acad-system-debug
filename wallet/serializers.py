@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Wallet, WalletTransaction, WithdrawalRequest
+from decimal import Decimal
 
 
 class WalletSerializer(serializers.ModelSerializer):
@@ -28,7 +29,7 @@ class WalletTopUpSerializer(serializers.Serializer):
     """
     Serializer for handling wallet top-ups (client-specific).
     """
-    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0.01)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     description = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 
@@ -36,7 +37,7 @@ class WalletWithdrawSerializer(serializers.Serializer):
     """
     Serializer for handling wallet withdrawals (writer-specific).
     """
-    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=0.01)
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2, min_value=Decimal("0.01"))
     description = serializers.CharField(max_length=255, required=False, allow_blank=True)
 
 

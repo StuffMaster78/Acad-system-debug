@@ -7,6 +7,10 @@ from .models import (
     SupportNotification,
     TicketAssignment,
     DisputeResolutionLog,
+    SupportActionLog,
+    SupportAvailability,
+    SupportPerformance,
+    EscalationLog
 )
 from .serializers import (
     SupportProfileSerializer,
@@ -14,9 +18,12 @@ from .serializers import (
     SupportNotificationSerializer,
     TicketAssignmentSerializer,
     DisputeResolutionLogSerializer,
+    SupportActionLogSerializer,
+    SupportAvailabilitySerializer,
+    SupportPerformanceSerializer,
+    EscalationLogSerializer
 )
 from .permissions import IsAdminOrSuperAdmin, IsSupportOrAdmin
-
 
 class SupportProfileViewSet(viewsets.ModelViewSet):
     """
@@ -92,3 +99,22 @@ class DisputeResolutionLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = DisputeResolutionLog.objects.all()
     serializer_class = DisputeResolutionLogSerializer
     permission_classes = [IsAuthenticated, IsAdminOrSuperAdmin]
+
+
+class SupportActionLogViewSet(viewsets.ModelViewSet):
+    queryset = SupportActionLog.objects.all()
+    serializer_class = SupportActionLogSerializer
+
+class SupportAvailabilityViewSet(viewsets.ModelViewSet):
+    queryset = SupportAvailability.objects.all()
+    serializer_class = SupportAvailabilitySerializer
+
+
+class SupportPerformanceViewSet(viewsets.ModelViewSet):
+    queryset = SupportPerformance.objects.all()
+    serializer_class = SupportPerformanceSerializer
+
+
+class EscalationLogViewSet(viewsets.ModelViewSet):
+    queryset = EscalationLog.objects.all()
+    serializer_class = EscalationLogSerializer

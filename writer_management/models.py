@@ -181,7 +181,7 @@ class WriterEducation(models.Model):
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
-        related_name="education",
+        related_name="education_details",
         help_text="The writer whose education details are being tracked."
     )
     institution_name = models.CharField(max_length=255, help_text="Name of the educational institution.")

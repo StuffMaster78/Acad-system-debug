@@ -10,7 +10,7 @@ class WalletAdmin(admin.ModelAdmin):
     list_display = ('user', 'balance', 'last_updated', 'website')
     search_fields = ('user__username', 'user__email', 'website__name')
     list_filter = ('website',)
-    ordering = ('-last_updated',)
+    ordering = ['-last_updated']
 
 
     def save_model(self, request, obj, form, change):
@@ -34,7 +34,7 @@ class WalletTransactionAdmin(admin.ModelAdmin):
     list_display = ('wallet', 'transaction_type', 'amount', 'description', 'created_at', 'website')
     search_fields = ('wallet__user__username', 'wallet__user__email', 'description')
     list_filter = ('transaction_type', 'website')
-    ordering = ('-created_at',)
+    ordering = ['-created_at']
 
 
 @admin.register(WithdrawalRequest)
@@ -42,4 +42,4 @@ class WithdrawalRequestAdmin(admin.ModelAdmin):
     list_display = ('wallet', 'amount', 'status', 'created_at', 'processed_at', 'website')
     search_fields = ('wallet__user__username', 'wallet__user__email', 'website__name')
     list_filter = ('status', 'website')
-    ordering = ('-created_at')
+    ordering = ['-created_at']
