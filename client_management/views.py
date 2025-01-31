@@ -16,6 +16,9 @@ from wallet.models import Wallet
 from wallet.serializers import WalletTransactionSerializer
 # from .tasks import update_loyalty_points
 
+from client_management.models import BlacklistedEmail
+from client_management.serializers import BlacklistedEmailSerializer
+
 
 # List and create client profiles (Admin/Superadmin only)
 class ClientProfileListView(generics.ListAPIView):
@@ -188,3 +191,36 @@ class ProfileUpdateRequestListView(generics.ListAPIView):
     queryset = ProfileUpdateRequest.objects.all()
     serializer_class = ProfileUpdateRequestSerializer
     permission_classes = [IsAdminUser]
+
+
+class BlacklistEmailListView(generics.ListAPIView):
+    """Get a list of all blacklisted emails"""
+    queryset = BlacklistedEmail.objects.all()
+    serializer_class = BlacklistedEmailSerializer
+    permission_classes = [IsAdminUser]  # Only admins can view
+
+class BlacklistEmailAddView(generics.CreateAPIView):
+    """Add an email to the blacklist"""
+    serializer_class = BlacklistedEmailSerializer
+    permission_classes = [IsAdminUser]  # Only admins can add
+
+    def create(self, request, *args, **kwargs):
+        email = request.data.get("email")
+        reason = request.data.get("reason", "")
+        if BlacklistedEmail.is_blacklisted(email):
+            return Response({"detail": "Email is already blacklisted."}, status=status.HTTP_400_BAD_REQUEST)
+
+        BlacklistedEmail.add_to_blacklist(email, reason)
+        return Response({"detail": f"{email} has been blacklisted."}, status=status.HTTP_201_CREATED)
+
+class BlacklistEmailRemoveView(generics.DestroyAPIView):
+    """Remove an email from the blacklist"""
+    permission_classes = [IsAdminUser]  # Only admins can remove
+
+    def delete(self, request, *args, **kwargs):
+        email = request.data.get("email")
+        if not BlacklistedEmail.is_blacklisted(email):
+            return Response({"detail": "Email not found in blacklist."}, status=status.HTTP_404_NOT_FOUND)
+
+        BlacklistedEmail.remove_from_blacklist(email)
+        return Response({"detail": f"{email} has been removed from the blacklist."}, status=status.HTTP_200_OK)

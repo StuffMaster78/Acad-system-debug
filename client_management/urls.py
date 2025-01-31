@@ -1,5 +1,10 @@
 from django.urls import path
 from . import views
+from client_management.views import (
+    BlacklistEmailListView,
+    BlacklistEmailAddView,
+    BlacklistEmailRemoveView
+)
 
 urlpatterns = [
     # Client Profiles
@@ -21,4 +26,9 @@ urlpatterns = [
     path("loyalty/tiers/", views.LoyaltyTierListView.as_view(), name="loyalty-tier-list"),
     path("loyalty/tiers/<int:pk>/", views.LoyaltyTierDetailView.as_view(), name="loyalty-tier-detail"),
     path("loyalty/transactions/<int:client_id>/", views.LoyaltyTransactionListView.as_view(), name="loyalty-transaction-list"),
+
+
+    path("blacklist/", BlacklistEmailListView.as_view(), name="blacklist-list"),
+    path("blacklist/add/", BlacklistEmailAddView.as_view(), name="blacklist-add"),
+    path("blacklist/remove/", BlacklistEmailRemoveView.as_view(), name="blacklist-remove"),
 ]

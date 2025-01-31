@@ -448,3 +448,28 @@ class ClientAction(models.Model):
         verbose_name = "Client Action"
         verbose_name_plural = "Client Actions"
         ordering = ['-timestamp']
+
+class BlacklistedEmail(models.Model):
+    email = models.EmailField(unique=True)
+    reason = models.TextField(blank=True, null=True)
+    date_added = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email
+
+    @classmethod
+    def is_blacklisted(cls, email):
+        """Check if an email is blacklisted."""
+        return cls.objects.filter(email=email).exists()
+
+    @classmethod
+    def add_to_blacklist(cls, email, reason=""):
+        """Add an email to the blacklist if not already present."""
+        if not cls.is_blacklisted(email):
+            return cls.objects.create(email=email, reason=reason)
+        return None
+
+    @classmethod
+    def remove_from_blacklist(cls, email):
+        """Remove an email from the blacklist."""
+        return cls.objects.filter(email=email).delete()

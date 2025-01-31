@@ -1,7 +1,9 @@
 from rest_framework import viewsets, permissions
-from .models import Order
-from .serializers import OrderSerializer, OrderCreateSerializer
-
+from .models import Order, PaymentTransaction
+from .serializers import OrderSerializer, OrderCreateSerializer, PaymentTransactionSerializer
+from rest_framework import generics, status
+from rest_framework.response import Response
+from rest_framework.permissions import IsAdminUser
 
 class OrderViewSet(viewsets.ModelViewSet):
     """
@@ -40,3 +42,44 @@ class OrderViewSet(viewsets.ModelViewSet):
         Additional logic during order updates (if required).
         """
         serializer.save()
+
+
+class PaymentTransactionListView(generics.ListAPIView):
+    """Get all payment transactions (Admin Only)"""
+    queryset = PaymentTransaction.objects.all()
+    serializer_class = PaymentTransactionSerializer
+    permission_classes = [IsAdminUser]
+
+class PaymentTransactionDetailView(generics.RetrieveAPIView):
+    """Retrieve a single transaction"""
+    queryset = PaymentTransaction.objects.all()
+    serializer_class = PaymentTransactionSerializer
+    permission_classes = [IsAdminUser]
+
+class PaymentTransactionCreateView(generics.CreateAPIView):
+    """Create a new transaction"""
+    serializer_class = PaymentTransactionSerializer
+    permission_classes = [IsAdminUser]
+
+    def create(self, request, *args, **kwargs):
+        order = request.data.get("order")
+        transaction_id = request.data.get("transaction_id")
+        amount = request.data.get("amount")
+        payment_method = request.data.get("payment_method", "")
+
+        if PaymentTransaction.objects.filter(transaction_id=transaction_id).exists():
+            return Response({"detail": "Transaction ID already exists."}, status=status.HTTP_400_BAD_REQUEST)
+
+        transaction = PaymentTransaction.create_transaction(order, transaction_id, amount, payment_method)
+        return Response(PaymentTransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
+
+class PaymentTransactionUpdateView(generics.UpdateAPIView):
+    """Update transaction status"""
+    queryset = PaymentTransaction.objects.all()
+    serializer_class = PaymentTransactionSerializer
+    permission_classes = [IsAdminUser]
+
+class PaymentTransactionDeleteView(generics.DestroyAPIView):
+    """Delete a transaction (Admin Only)"""
+    queryset = PaymentTransaction.objects.all()
+    permission_classes = [IsAdminUser]

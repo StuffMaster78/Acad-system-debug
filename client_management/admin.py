@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import ClientProfile
 from loyalty_management.models import LoyaltyTier, LoyaltyTransaction
+from client_management.models import BlacklistedEmail
 
 @admin.register(ClientProfile)
 class ClientProfileAdmin(admin.ModelAdmin):
@@ -64,3 +65,8 @@ class ClientProfileAdmin(admin.ModelAdmin):
         return ", ".join([badge.badge_name for badge in obj.get_client_badges()])
     display_client_badges.short_description = "Badges"
 
+@admin.register(BlacklistedEmail)
+class BlacklistedEmailAdmin(admin.ModelAdmin):
+    list_display = ("email", "reason", "date_added")
+    search_fields = ("email",)
+    list_filter = ("date_added",)

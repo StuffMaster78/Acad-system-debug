@@ -73,6 +73,8 @@ INSTALLED_APPS = [
     'tickets',
 
     # Management Apps
+    'superadmin_management',
+    'admin_management',
     'client_management',
     'writer_management',
     'editor_management',

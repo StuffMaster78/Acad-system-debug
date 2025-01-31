@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.utils.timezone import now  # Importing now
 from .models import Order, Dispute
-
+from orders.models import PaymentTransaction
 class OrderSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
@@ -75,3 +75,10 @@ class DisputeSerializer(serializers.ModelSerializer):
         if not value:  # For example, ensure an order exists
             raise serializers.ValidationError("The order ID is invalid.")
         return value
+    
+
+
+class PaymentTransactionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PaymentTransaction
+        fields = ["id", "order", "transaction_id", "amount", "status", "payment_method", "date_processed"]

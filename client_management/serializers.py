@@ -4,6 +4,7 @@ from loyalty_management.models import LoyaltyTransaction, Milestone
 from wallet.models import Wallet
 from django.apps import apps
 from decimal import Decimal
+from client_management.models import BlacklistedEmail
 
 class MilestoneSerializer(serializers.ModelSerializer):
     """
@@ -178,3 +179,9 @@ class ClientActionSerializer(serializers.Serializer):
         required=True,
         help_text="The action to perform on the client account."
     )
+
+
+class BlacklistedEmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlacklistedEmail
+        fields = ["id", "email", "reason", "date_added"]
