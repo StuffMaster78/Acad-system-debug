@@ -16,7 +16,7 @@ class SuperadminProfile(models.Model):
     Profile for Superadmins. Grants full system control.
     """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="superadmin_profile")
-
+    
     # Superadmin Permissions
     can_manage_users = models.BooleanField(default=True, help_text="Can add/edit/suspend/delete users.")
     can_manage_payments = models.BooleanField(default=True, help_text="Can oversee all payments.")

@@ -6,6 +6,7 @@ from client_management.models import ClientProfile
 from writer_management.models import WriterProfile
 from editor_management.models import EditorProfile
 from support_management.models import SupportProfile
+from admin_management.models import AdminProfile
 from core.utils.location import get_geolocation_from_ip
 from django.utils.timezone import now
 

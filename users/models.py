@@ -5,6 +5,8 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from .managers import ActiveManager
 from django.utils.timezone import now, timedelta
+from django_countries.fields import CountryField
+import requests
 
 class User(AbstractUser):
     """
@@ -51,6 +53,9 @@ class User(AbstractUser):
         blank=True,
         null=True
     )
+    # Country & State (Using django-countries for country selection)
+    country = CountryField(blank=True, null=True, help_text=_("User-selected country"))
+    state = models.CharField(max_length=100, null=True, blank=True, help_text=_("Manually entered state/province"))
     bio = models.TextField(
         null=True,
         blank=True,
@@ -110,6 +115,17 @@ class User(AbstractUser):
     suspension_start_date = models.DateTimeField(null=True, blank=True)
     suspension_end_date = models.DateTimeField(null=True, blank=True)
 
+
+
+    # # Role-Specific Profile Management
+    # client_profile = models.OneToOneField('client_management.ClientProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='client_profile')
+    # writer_profile = models.OneToOneField('writer_management.WriterProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='writer_profile')
+    # editor_profile = models.OneToOneField('editor_management.EditorProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='editor_profile')
+    # support_profile = models.OneToOneField('support_management.SupportProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='support_profile')
+    # admin_profile = models.OneToOneField('admin_management.AdminProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='admin_profile') 
+    # superadmin_profile = models.OneToOneField('superadmin_management.SuperadminProfile', on_delete=models.SET_NULL, null=True, blank=True, related_name='superadmin_profile') 
+
+
     # Role-Specific Methods
     def is_global_role(self):
         return self.role in ['superadmin', 'admin', 'support', 'editor']
@@ -126,6 +142,31 @@ class User(AbstractUser):
     def is_editor(self):
         return self.role == "editor"
     
+
+    # Auto-detect Country & Timezone using `ipinfo.io`
+    def auto_detect_country(self, ip_address):
+        """
+        Auto-detects the user's country and timezone using `ipinfo.io`.
+        """
+        try:
+            response = requests.get(f"https://ipinfo.io/{ip_address}/json")
+            data = response.json()
+            self.detected_country = data.get("country", "")
+            self.detected_timezone = data.get("timezone", "")
+            self.detected_ip = ip_address
+        except Exception:
+            self.detected_country = "Unknown"
+            self.detected_timezone = "Unknown"
+
+    def save(self, *args, **kwargs):
+        """ Auto-detect country & timezone if not set. """
+        if not self.detected_country or not self.detected_timezone:
+            ip_address = "8.8.8.8"  # Placeholder (replace with actual IP fetching logic)
+            self.auto_detect_country(ip_address)
+
+        super().save(*args, **kwargs)
+
+
     @property
     def display_avatar(self):
         """
@@ -264,6 +305,51 @@ class User(AbstractUser):
 
         BlacklistedEmail.objects.create(email=self.email, website=self.website)
         self.is_blacklisted = True
+        self.save()
+
+        # Whitelisting & Blacklisting Management
+    def request_whitelisting(self):
+        """ Sends an admin notification when a blacklisted user requests to be whitelisted. """
+        if not self.is_blacklisted:
+            return False  # User is not blacklisted
+        from notifications_system.models import Notification
+        Notification.objects.create(
+            user=None,  # Notify all admins
+            title="Whitelisting Request",
+            message=f"User {self.username} ({self.email}) has requested to be whitelisted.",
+            category="account"
+        )
+        return True
+
+    def whitelist(self):
+        """ Remove user from blacklist and notify them. """
+        if not self.is_blacklisted:
+            return False
+        self.is_blacklisted = False
+        self.is_whitelisted = True
+        self.save()
+        from notifications_system.models import Notification
+        Notification.objects.create(
+            user=self,
+            title="Account Whitelisted",
+            message="Your account has been successfully whitelisted. You can now access our services.",
+            category="account"
+        )
+        return True
+    def place_on_probation(self, reason, duration_in_days=30):
+        """Places the user on probation."""
+        self.is_on_probation = True
+        self.probation_reason = reason
+        self.probation_start_date = now()
+        self.probation_end_date = now() + timedelta(days=duration_in_days)
+        self.save()
+
+    def remove_from_probation(self):
+        """Removes probation from the user."""
+        self.is_on_probation = False
+        self.probation_reason = None
+        self.probation_start_date = None
+        self.probation_end_date = None
         self.save()
 
     def clean(self):

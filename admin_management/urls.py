@@ -1,14 +1,28 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
-    AdminDashboardView,
-    UserManagementView,
+    AdminDashboardView, 
+    UserManagementView, 
+    AdminLoginView, 
+    AdminLogoutView, 
+    BlacklistedUserView
 )
 
-urlpatterns = [
-    # Admin Dashboard API
-    path("dashboard/", AdminDashboardView.as_view({"get": "get_dashboard_data"}), name="admin_dashboard"),
+# DRF Router for ViewSets
+router = DefaultRouter()
+router.register(r'users', UserManagementView, basename="users")
+router.register(r'blacklisted-users', BlacklistedUserView, basename="blacklisted_users")
 
-    # User Management APIs
-    path("users/create/", UserManagementView.as_view({"post": "create_user"}), name="create_user"),
-    path("users/suspend/", UserManagementView.as_view({"post": "suspend_user"}), name="suspend_user"),
+urlpatterns = [
+    # Admin Dashboard
+    path("dashboard/", AdminDashboardView.as_view({"get": "get_dashboard_data"}), name="admin_dashboard"),
+    
+    # Authentication APIs (JWT-Based)
+    path("auth/login/", AdminLoginView.as_view(), name="admin_login"),
+    path("auth/logout/", AdminLogoutView.as_view(), name="admin_logout"),
+    path("auth/token/refresh/", TokenRefreshView.as_view(), name="refresh_token"),  # Uses DRF's built-in view
+
+    # Include all registered ViewSets from the router (Users, Blacklisted Users, etc.)
+    path("", include(router.urls)),
 ]

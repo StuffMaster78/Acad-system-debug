@@ -1,14 +1,20 @@
 import random
 import string
+from django.contrib.auth import get_user_model
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth.models import Group, Permission
 from django.core.mail import send_mail
-from django.utils.timezone import now
+from django.utils.timezone import now, timedelta
 from django.conf import settings
-from .models import AdminLog, User
+from admin_management.models import AdminLog, BlacklistedUser
 from notifications_system.models import send_notification  # Integration with Notifications App
+from admin_management.models import AdminLog
+    
+
+User = get_user_model()
 
 class AdminManager:
-    """Handles all Admin operations."""
+    """Handles all Admin operations, including user creation, suspensions, and permission assignments."""
 
     @staticmethod
     def generate_temp_password():
@@ -59,6 +65,9 @@ class AdminManager:
     @staticmethod
     def suspend_user(admin, user, reason="No reason provided"):
         """Suspends a user."""
+        if user.role == "superadmin":
+            return {"error": "Superadmins cannot be suspended."}
+
         user.is_suspended = True
         user.suspension_reason = reason
         user.suspension_start_date = now()
@@ -80,3 +89,108 @@ class AdminManager:
         )
 
         return {"message": f"User {user.username} has been suspended."}
+
+    @staticmethod
+    def assign_permissions(admin_profile):
+        """
+        Assigns default permissions to admins when they are created.
+        Ensures Superadmins are not assigned limited admin permissions.
+        """
+        if admin_profile.is_superadmin:
+            return  # Superadmins don't need limited permissions
+
+        admin_group, _ = Group.objects.get_or_create(name="Admin")
+
+        permissions = [
+            "add_user", "change_user", "delete_user",
+            "view_order", "change_order", "cancel_order",
+            "resolve_disputes", "manage_discounts", "approve_payouts", "view_payouts",
+            "process_payments", "handle_refunds", "manage_tickets"
+        ]
+
+        for perm in permissions:
+            permission = Permission.objects.filter(codename=perm).first()
+            if permission:
+                admin_group.permissions.add(permission)
+
+        admin_profile.user.groups.add(admin_group)
+
+
+
+    @staticmethod
+    def blacklist_user(admin, user, reason="No reason provided"):
+        """Blacklists a user and logs the event."""
+        if user.role == "admin":
+            return {"error": "You cannot blacklist an admin."}
+
+        BlacklistedUser.objects.create(email=user.email, blacklisted_by=admin, reason=reason)
+        user.is_blacklisted = True
+        user.save()
+
+        AdminLog.objects.create(
+            admin=admin,
+            action=f"Blacklisted {user.username}. Reason: {reason}"
+        )
+
+        return {"message": f"User {user.username} has been blacklisted."}
+    
+
+    @staticmethod
+    def place_user_on_probation(admin, user, reason, duration_in_days=30):
+        """Places a user on probation for a set duration."""
+        if user.role == "admin":
+            return {"error": "Admins cannot be placed on probation."}
+
+        user.is_on_probation = True
+        user.probation_reason = reason
+        user.probation_start_date = now()
+        user.probation_end_date = now() + timedelta(days=duration_in_days)
+        user.save()
+
+        # Log the action
+        AdminLog.objects.create(
+            admin=admin,
+            target_user=user,
+            action="Placed on Probation",
+            details=f"Placed {user.username} on probation for {duration_in_days} days. Reason: {reason}"
+        )
+
+        # Send notification
+        send_notification(
+            recipient=user,
+            title="Probation Notice",
+            message=f"You have been placed on probation for {duration_in_days} days. Reason: {reason}.",
+            category="account"
+        )
+
+        return {"message": f"User {user.username} is now on probation."}
+
+    @staticmethod
+    def remove_user_from_probation(admin, user):
+        """Removes a user from probation."""
+        if not user.is_on_probation:
+            return {"error": "User is not on probation."}
+
+        user.is_on_probation = False
+        user.probation_reason = None
+        user.probation_start_date = None
+        user.probation_end_date = None
+        user.save()
+
+        # Log the action
+        AdminLog.objects.create(
+            admin=admin,
+            target_user=user,
+            action="Removed from Probation",
+            details=f"Removed {user.username} from probation."
+        )
+
+        # Send notification
+        send_notification(
+            recipient=user,
+            title="Probation Removed",
+            message="Your probation has been removed. You are now in good standing.",
+            category="account"
+        )
+
+        return {"message": f"User {user.username} is no longer on probation."}

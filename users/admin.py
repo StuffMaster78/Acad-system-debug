@@ -13,6 +13,8 @@ class CustomUserAdmin(UserAdmin):
         'id',
         'username',
         'email',
+        'country',
+        'state',
         'role',
         'is_active',
         'is_suspended',

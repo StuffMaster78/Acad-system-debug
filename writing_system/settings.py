@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,6 +50,9 @@ INSTALLED_APPS = [
     # 'django_celery_beat',
     # 'celery',
     'channels',
+    'django_countries',
+    "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist", 
 
     # Core Project Apps
     'core',
@@ -72,7 +76,7 @@ INSTALLED_APPS = [
     'notifications_system',
     'tickets',
 
-    # Management Apps
+    # Users Management Apps
     'superadmin_management',
     'admin_management',
     'client_management',
@@ -263,3 +267,32 @@ RQ_QUEUES = {
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
+
+
+
+# DRF Settings with JWT Authentication
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+}
+
+# JWT Token Settings
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(hours=6),  # Admin session valid for 6 hours
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Refresh token valid for 7 days
+    "ROTATE_REFRESH_TOKENS": True,  # Generates new refresh token on every refresh
+    "BLACKLIST_AFTER_ROTATION": True,  # Prevents reuse of old refresh tokens
+    "AUTH_HEADER_TYPES": ("Bearer",),  # Allows "Bearer <token>" in headers
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+}
+
+AUTHENTICATION_BACKENDS = [
+    "admin_management.auth.BlacklistAuthenticationBackend",  # Custom authentication
+    "django.contrib.auth.backends.ModelBackend",  # Default Django authentication
+]
