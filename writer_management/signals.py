@@ -2,53 +2,32 @@ from django.db.models.signals import post_save, pre_delete
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in
+from django.utils.timezone import now
 from .models import WriterProfile, WriterActionLog
-from core.utils.location import get_geolocation_from_ip  # Assuming this is now in the `core` app
+from core.utils.location import get_geolocation_from_ip  # Ensure this exists in the core app
 
 User = get_user_model()
 
-# Signal to create a WriterProfile when a new writer user is created
+
+### ---------------- Writer Profile Signals ---------------- ###
+
 @receiver(post_save, sender=User)
 def create_writer_profile(sender, instance, created, **kwargs):
     """
-    Automatically create a WriterProfile for a user with the 'writer' role.
+    Automatically create a WriterProfile for new users with the 'writer' role.
     """
     if created and instance.role == "writer":
         WriterProfile.objects.create(user=instance)
-        print(f"WriterProfile created for user: {instance.username}")
+        print(f"✅ WriterProfile created for {instance.username}")
 
 
-# Signal to track writer login and update geolocation
-@receiver(user_logged_in)
-def update_writer_geolocation(sender, request, user, **kwargs):
-    """
-    Fetch and update geolocation data for the writer on login.
-    """
-    if user.role == "writer":
-        try:
-            writer_profile = user.writer_profile
-            ip_address = get_client_ip(request)  # Fetch client IP address
-            geo_data = get_geolocation_from_ip(ip_address)  # Fetch geolocation data
-
-            if "error" not in geo_data:
-                writer_profile.country = geo_data.get("country")
-                writer_profile.timezone = geo_data.get("timezone")
-                writer_profile.ip_address = ip_address
-                writer_profile.location_verified = True
-                writer_profile.save()
-                print(f"Updated geolocation for writer: {user.username}")
-        except WriterProfile.DoesNotExist:
-            print(f"No WriterProfile found for user: {user.username}")
-
-
-# Signal to log actions when a writer's profile is updated
 @receiver(post_save, sender=WriterProfile)
 def log_writer_action(sender, instance, created, **kwargs):
     """
-    Log any updates to the WriterProfile as actions.
+    Log writer profile updates as actions.
     """
     if not created:
-        action = f"Writer profile updated for {instance.user.username}."
+        action = f"✏️ Writer profile updated for {instance.user.username}."
         WriterActionLog.objects.create(
             writer=instance,
             action="profile_update",
@@ -57,7 +36,6 @@ def log_writer_action(sender, instance, created, **kwargs):
         print(action)
 
 
-# Signal to clean up data when a writer user is deleted
 @receiver(pre_delete, sender=User)
 def delete_writer_profile(sender, instance, **kwargs):
     """
@@ -67,15 +45,70 @@ def delete_writer_profile(sender, instance, **kwargs):
         try:
             writer_profile = instance.writer_profile
             writer_profile.delete()
-            print(f"WriterProfile deleted for user: {instance.username}")
+            print(f"❌ WriterProfile deleted for {instance.username}")
         except WriterProfile.DoesNotExist:
-            print(f"No WriterProfile found for user: {instance.username}")
+            print(f"⚠️ No WriterProfile found for {instance.username}")
 
 
-# Utility function to get the client's IP address
+### ---------------- Writer Login Tracking Signals ---------------- ###
+
+@receiver(user_logged_in)
+def update_writer_geolocation(sender, request, user, **kwargs):
+    """
+    Fetch and update geolocation data for the writer upon login.
+    """
+    if user.role == "writer":
+        try:
+            writer_profile = user.writer_profile
+            ip_address = get_client_ip(request)  # Fetch client IP address
+            geo_data = get_geolocation_from_ip(ip_address)  # Fetch geolocation data
+
+            if "error" not in geo_data:
+                writer_profile.country = geo_data.get("country", writer_profile.country)
+                writer_profile.timezone = geo_data.get("timezone", writer_profile.timezone)
+                writer_profile.ip_address = ip_address
+                writer_profile.location_verified = True
+                writer_profile.last_logged_in = now()
+                writer_profile.save()
+                print(f"🌍 Updated geolocation for writer: {user.username} (IP: {ip_address})")
+
+        except WriterProfile.DoesNotExist:
+            print(f"⚠️ No WriterProfile found for {user.username}")
+
+
+### ---------------- Order Assignment & Management Signals ---------------- ###
+
+@receiver(post_save, sender=User)
+def auto_update_writer_profile(sender, instance, **kwargs):
+    """
+    Automatically update WriterProfile when a writer's user instance is updated.
+    """
+    if instance.role == "writer":
+        try:
+            writer_profile = instance.writer_profile
+            writer_profile.last_logged_in = now()
+            writer_profile.save()
+            print(f"🔄 WriterProfile auto-updated for {instance.username}")
+        except WriterProfile.DoesNotExist:
+            print(f"⚠️ No WriterProfile found for {instance.username}")
+
+
+@receiver(post_save, sender=WriterProfile)
+def enforce_writer_take_limits(sender, instance, **kwargs):
+    """
+    Enforce max order takes and requests per writer.
+    """
+    if instance.number_of_takes > instance.writer_level.max_orders:
+        instance.number_of_takes = instance.writer_level.max_orders
+        instance.save()
+        print(f"⚠️ Order take limit enforced for {instance.user.username}")
+
+
+### ---------------- Utility Functions ---------------- ###
+
 def get_client_ip(request):
     """
-    Get the client's IP address from the request headers.
+    Retrieve the client's IP address from the request headers.
     """
     x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
     if x_forwarded_for:

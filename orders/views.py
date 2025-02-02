@@ -4,6 +4,14 @@ from .serializers import OrderSerializer, OrderCreateSerializer, PaymentTransact
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
+from .models import Order
+from superadmin_management.models import SuperadminLog
+from .serializers import OrderSerializer
+from notifications_system.utils import send_notification
+from .permissions import IsSuperadminOnly
 
 class OrderViewSet(viewsets.ModelViewSet):
     """
@@ -11,6 +19,78 @@ class OrderViewSet(viewsets.ModelViewSet):
     """
     queryset = Order.objects.all().select_related('client', 'writer', 'preferred_writer', 'discount_code', 'website')
     permission_classes = [permissions.IsAuthenticated]
+
+
+
+    @action(detail=True, methods=["post"], permission_classes=[IsSuperadminOnly])
+    def bring_back_in_progress(self, request, pk=None):
+        """Superadmin brings back a completed, canceled, or disputed order to 'In Progress'."""
+        order = self.get_object()
+        if order.bring_back_in_progress(request.user):
+            SuperadminLog.objects.create(
+                superadmin=request.user,
+                action_type="order_reopened",
+                action_details=f"Brought back order #{order.id} to 'In Progress'."
+            )
+            send_notification(order.client, "Order Reopened", f"Your order #{order.id} is now in progress.")
+            return Response({"message": "Order is now in progress."}, status=status.HTTP_200_OK)
+        return Response({"error": "Order cannot be reopened."}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsSuperadminOnly])
+    def reassign_writer(self, request, pk=None):
+        """Superadmin reassigns an order to a different writer."""
+        order = self.get_object()
+        new_writer = User.objects.filter(pk=request.data.get("writer_id")).first()
+        if not new_writer:
+            return Response({"error": "Writer not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        order.reassign_writer(request.user, new_writer)
+        SuperadminLog.objects.create(
+            superadmin=request.user,
+            action_type="order_reassigned",
+            action_details=f"Reassigned order #{order.id} to {new_writer.username}."
+        )
+        send_notification(order.client, "Order Reassigned", f"Your order #{order.id} has been reassigned to a new writer.")
+        send_notification(new_writer, "New Assignment", f"You have been assigned order #{order.id}.")
+        return Response({"message": "Order reassigned successfully."}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsSuperadminOnly])
+    def edit_order(self, request, pk=None):
+        """Superadmin edits order details."""
+        order = self.get_object()
+        order.edit_order_details(request.user, request.data)
+        SuperadminLog.objects.create(
+            superadmin=request.user,
+            action_type="order_edited",
+            action_details=f"Edited details of order #{order.id}."
+        )
+        return Response({"message": "Order details updated."}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsSuperadminOnly])
+    def update_deadline(self, request, pk=None):
+        """Superadmin updates the order deadline."""
+        order = self.get_object()
+        order.update_deadline(request.user, request.data.get("deadline"))
+        SuperadminLog.objects.create(
+            superadmin=request.user,
+            action_type="deadline_updated",
+            action_details=f"Updated deadline of order #{order.id}."
+        )
+        return Response({"message": "Deadline updated."}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsSuperadminOnly])
+    def cancel_order(self, request, pk=None):
+        """Superadmin cancels an order."""
+        order = self.get_object()
+        if order.cancel_order(request.user):
+            SuperadminLog.objects.create(
+                superadmin=request.user,
+                action_type="order_canceled",
+                action_details=f"Canceled order #{order.id}."
+            )
+            send_notification(order.client, "Order Canceled", f"Your order #{order.id} has been canceled.")
+            return Response({"message": "Order canceled."}, status=status.HTTP_200_OK)
+        return Response({"error": "Order cannot be canceled."}, status=status.HTTP_400_BAD_REQUEST)
 
     def get_serializer_class(self):
         """
