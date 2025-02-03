@@ -238,3 +238,55 @@ class WriterFileDownloadLogViewSet(viewsets.ModelViewSet):
     queryset = WriterFileDownloadLog.objects.all()
     serializer_class = WriterFileDownloadLogSerializer
     permission_classes = [permissions.IsAdminUser]
+
+
+class WriterLevelViewSet(viewsets.ModelViewSet):
+    queryset = WriterLevel.objects.all()
+    serializer_class = WriterLevelSerializer
+
+class PaymentHistoryViewSet(viewsets.ModelViewSet):
+    queryset = PaymentHistory.objects.all()
+    serializer_class = PaymentHistorySerializer
+
+
+class WriterEarningsHistoryViewSet(viewsets.ModelViewSet):
+    queryset = WriterEarningsHistory.objects.all()
+    serializer_class = WriterEarningsHistorySerializer
+
+class WriterEarningsReviewRequestViewSet(viewsets.ModelViewSet):
+    queryset = WriterEarningsReviewRequest.objects.all()
+    serializer_class = WriterEarningsReviewRequestSerializer
+
+class WriterRewardCriteriaViewSet(viewsets.ModelViewSet):
+    queryset = WriterRewardCriteria.objects.all()
+    serializer_class = WriterRewardCriteriaSerializer
+
+class WriterSuspensionViewSet(viewsets.ModelViewSet):
+    queryset = WriterSuspension.objects.all()
+    serializer_class = WriterSuspensionSerializer
+
+
+class WriterSuspensionViewSet(viewsets.ModelViewSet):
+    queryset = WriterSuspension.objects.all()
+    serializer_class = WriterSuspensionSerializer
+class WriterActionLogViewSet(viewsets.ModelViewSet):
+    queryset = WriterActionLog.objects.all()
+    serializer_class = WriterActionLogSerializer
+
+
+class WriterSupportTicketViewSet(viewsets.ModelViewSet):
+    queryset = WriterSupportTicket.objects.all()
+    serializer_class = WriterSupportTicketSerializer
+
+class WriterDeadlineExtensionRequestViewSet(viewsets.ModelViewSet):
+    queryset = WriterDeadlineExtensionRequest.objects.all()
+    serializer_class = WriterDeadlineExtensionRequestSerializer
+
+
+class WriterOrderHoldRequestViewSet(viewsets.ModelViewSet):
+    queryset = WriterOrderHoldRequest.objects.all()
+    serializer_class = WriterOrderHoldRequestSerializer
+
+class WriterOrderReopenRequestViewSet(viewsets.ModelViewSet):
+    queryset = WriterOrderReopenRequest.objects.all()
+    serializer_class = WriterOrderReopenRequestSerializer

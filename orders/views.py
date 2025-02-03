@@ -7,10 +7,11 @@ from rest_framework.permissions import IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from django.shortcuts import get_object_or_404
 from .models import Order
 from superadmin_management.models import SuperadminLog
 from .serializers import OrderSerializer
-from notifications_system.utils import send_notification
+from notifications_system.models import send_notification
 from .permissions import IsSuperadminOnly
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -91,6 +92,16 @@ class OrderViewSet(viewsets.ModelViewSet):
             send_notification(order.client, "Order Canceled", f"Your order #{order.id} has been canceled.")
             return Response({"message": "Order canceled."}, status=status.HTTP_200_OK)
         return Response({"error": "Order cannot be canceled."}, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=True, methods=["post"])
+    def mark_completed(self, request, pk=None):
+        """Allows Admins, Editors, and Support to mark an order as completed."""
+        order = get_object_or_404(Order, pk=pk)
+
+        if order.mark_as_completed(request.user):
+            return Response({"message": "Order marked as completed!"})
+        
+        return Response({"error": "You do not have permission to complete this order."}, status=403)
 
     def get_serializer_class(self):
         """

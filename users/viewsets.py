@@ -26,7 +26,7 @@ from users.serializers import (
     SupportProfileSerializer,
     SuperadminProfileSerializer,
     SuspensionSerializer,
-    UserSerializer
+    UserProfileSerializer
 )
 
 ### 🔹 CUSTOM PAGINATION CLASS ###
@@ -70,7 +70,7 @@ class UserViewSet(viewsets.ModelViewSet):
             "admin": AdminProfileSerializer,
             "superadmin": SuperadminProfileSerializer,
         }
-        return profile_map.get(self.request.user.role, UserSerializer)
+        return profile_map.get(self.request.user.role, UserProfileSerializer)
 
     def list(self, request, *args, **kwargs):
         """
@@ -102,7 +102,7 @@ class UserViewSet(viewsets.ModelViewSet):
         else:
             # If no role filter, return all users
             users = User.objects.all()
-            serializer = UserSerializer(users, many=True)
+            serializer = UserProfileSerializer(users, many=True)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
     
@@ -159,7 +159,7 @@ class UserViewSet(viewsets.ModelViewSet):
             "superadmin": SuperadminProfileSerializer,
         }
 
-        profile_serializer_class = profile_map.get(user.role, UserSerializer)
+        profile_serializer_class = profile_map.get(user.role, UserProfileSerializer)
         serializer = profile_serializer_class(user)
 
         return Response(serializer.data, status=status.HTTP_200_OK)

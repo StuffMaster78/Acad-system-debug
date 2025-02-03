@@ -10,7 +10,7 @@ from orders.models import Dispute, PaymentTransaction
 from client_management.models import BlacklistedEmail
 
 from orders.models import FailedPayment
-from users.models import AdminPromotionRequest
+from admin_management.models import AdminPromotionRequest
 
 User = get_user_model()
 

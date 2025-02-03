@@ -56,7 +56,6 @@ class Notification(WebsiteSpecificBaseModel):
         """
         Simulate sending the notification. Extend this for email/SMS integrations.
         """
-        # Logic for sending (in_app, email, SMS, push) notifications goes here.
         self.status = 'sent'
         self.sent_at = now()
         self.save()
@@ -82,3 +81,36 @@ class NotificationPreference(WebsiteSpecificBaseModel):
 
     def __str__(self):
         return f"Notification Preferences for {self.user.username}"
+
+
+# ✅ Lazy Import to Avoid Circular Import Issues
+def get_notification_model():
+    from notifications_system.models import Notification
+    return Notification
+
+
+def send_notification(recipient, title, message, category="in_app"):
+    """
+    Send a notification to a user.
+
+    :param recipient: User receiving the notification
+    :param title: Notification title
+    :param message: Notification content
+    :param category: Type of notification (in_app, email, SMS, push)
+    """
+    Notification = get_notification_model()
+
+    notification = Notification.objects.create(
+        user=recipient,
+        type=category,
+        title=title,
+        message=message,
+        status="pending",
+        sent_at=now(),
+    )
+
+    # Simulate sending
+    notification.status = "sent"
+    notification.save()
+    
+    return notification

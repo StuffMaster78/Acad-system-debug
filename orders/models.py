@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils.timezone import now
 from datetime import timedelta
+from django.utils import timezone
 from decimal import Decimal
 from pricing_configs.models import PricingConfiguration
 from order_configs.models import WriterDeadlineConfig
@@ -10,6 +11,8 @@ from users.models import User
 from core.models.base import WebsiteSpecificBaseModel
 from django.core.mail import send_mail
 from django.apps import apps 
+
+
 
 STATUS_CHOICES = [
     ('unpaid', 'Unpaid'),
@@ -165,6 +168,17 @@ class Order(WebsiteSpecificBaseModel):
 
     # Include existing methods: calculate_total_cost, calculate_writer_compensation, assign_flags, etc.
     # *** To add the writer progress field ****
+
+    def mark_as_completed(self, user):
+        """
+        Marks the order as completed if a Final Draft is uploaded by an authorized user.
+        """
+        if user.is_staff or user.groups.filter(name__in=["Writer", "Editor", "Support"]).exists():
+            self.status = "completed"
+            self.save()
+            return True
+        return False
+    
     def __str__(self):
         return f"Order #{self.id} - {self.topic} ({self.status})"
     
@@ -404,3 +418,56 @@ class PaymentTransaction(models.Model):
         """Mark the transaction as refunded"""
         self.status = "refunded"
         self.save()
+
+
+class FailedPayment(models.Model):
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='failed_payments')
+    client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='failed_payments')
+    payment_method = models.CharField(max_length=255)
+    failure_reason = models.TextField()
+    failed_at = models.DateTimeField(default=timezone.now)
+    retry_count = models.PositiveIntegerField(default=0)
+
+    def log_failed_payment(order_id, client_id, payment_method, failure_reason):
+        order = Order.objects.get(id=order_id)
+        client = User.objects.get(id=client_id)
+        
+        failed_payment = FailedPayment.objects.create(
+            order=order,
+            client=client,
+            payment_method=payment_method,
+            failure_reason=failure_reason,
+            retry_count=0  # Set to 0 initially
+        )
+        return failed_payment
+    
+    # # Schedule retry using Celery
+    # retry_failed_payment.apply_async(args=[failed_payment.id], countdown=60 * 60)  # Retry after 1 hour
+
+    def send_failure_notification(self):
+        """
+        Send an email to the client and/or admin when a payment fails.
+        """
+        subject = f"Payment Failure for Order {self.order.id}"
+        message = f"Dear {self.client.username},\n\nYour payment for order {self.order.id} has failed due to: {self.failure_reason}.\n\nPlease try again or contact support."
+        from_email = settings.DEFAULT_FROM_EMAIL
+        recipient_list = [self.client.email]
+
+        # Optionally, notify admin too
+        admin_email = "admin@example.com"
+        recipient_list.append(admin_email)
+
+        send_mail(subject, message, from_email, recipient_list)
+
+    class Meta:
+        verbose_name = 'Failed Payment'
+        verbose_name_plural = 'Failed Payments'
+        ordering = ['-failed_at']
+    
+    def __str__(self):
+        return f"Failed Payment for Order {self.order.id} by {self.client.username} on {self.failed_at}"
+    
+    class Meta:
+        verbose_name = 'Failed Payment'
+        verbose_name_plural = 'Failed Payments'
+        ordering = ['-failed_at']

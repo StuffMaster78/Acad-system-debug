@@ -38,12 +38,11 @@ class WriterLevelAdmin(admin.ModelAdmin):
 
 
 ### ---------------- Admin Configuration ---------------- ###
-
 @admin.register(WriterConfig)
 class WriterConfigAdmin(admin.ModelAdmin):
     list_display = ('takes_enabled', 'max_requests_per_writer')
-    list_editable = ('takes_enabled', 'max_requests_per_writer')
-
+    # list_editable = ('takes_enabled', 'max_requests_per_writer')
+    # list_display_links = ('takes_enabled',)  # Add a clickable field for the row
 
 ### ---------------- Order Request & Take ---------------- ###
 

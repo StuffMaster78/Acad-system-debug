@@ -561,7 +561,7 @@ class OrderDispute(models.Model):
     Admins must resolve the dispute.
     """
     writer = models.ForeignKey(WriterProfile, on_delete=models.CASCADE, related_name="disputes")
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="disputes")
+    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="writer_order_disputes")
     reason = models.TextField(help_text="Reason for disputing the order.")
     submitted_at = models.DateTimeField(auto_now_add=True)
     resolved = models.BooleanField(default=False)

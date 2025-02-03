@@ -1,5 +1,6 @@
 import json
 from django.db import models
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
@@ -29,6 +30,8 @@ class AdminProfile(models.Model):
     can_manage_tickets = models.BooleanField(default=True, help_text="Can handle support tickets and client inquiries.")
     can_view_reports = models.BooleanField(default=True, help_text="Can access reporting and analytics.")
     can_blacklist_users = models.BooleanField(default=False, help_text="Can blacklist users (Superadmins only).")
+    can_manage_writers = models.BooleanField(default=False)
+    can_manage_clients = models.BooleanField(default=False)
 
     is_active = models.BooleanField(default=True, help_text="Soft delete instead of removing admin.")
 
@@ -39,6 +42,9 @@ class AdminProfile(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def can_manage_writers(self, obj):
+        return obj.can_manage_writers 
 
     def update_last_action(self, action):
         """Updates last activity & action count for admin."""
@@ -65,7 +71,7 @@ class AdminLog(models.Model):
     Logs actions performed by Admins.
     """
     admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="admin_logs")
-    target_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="admin_actions", help_text="User affected by the action")
+    target_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="admin_actions_logs", help_text="User affected by the action")
     order = models.ForeignKey("orders.Order", on_delete=models.SET_NULL, null=True, blank=True, help_text="If action is related to an order.")
     action = models.CharField(max_length=255)
     details = models.TextField(blank=True, null=True, help_text="Additional context about the action.")
@@ -104,3 +110,12 @@ class BlacklistedUser(models.Model):
     class Meta:
         verbose_name = "Blacklisted User"
         verbose_name_plural = "Blacklisted Users"
+
+class AdminPromotionRequest(models.Model):
+    # define your fields here
+    request_date = models.DateTimeField(auto_now_add=True)
+    requested_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    # other fields as necessary
+
+    def __str__(self):
+        return f"Promotion Request by {self.requested_by.username}"

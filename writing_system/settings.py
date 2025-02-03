@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 from pathlib import Path
-import os
 from dotenv import load_dotenv
+import os
 from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'corsheaders',
     'drf_spectacular',
+    "drf_spectacular_sidecar",
     'django_filters',
     # 'django-rq',
     # 'django_celery_beat',
@@ -186,7 +187,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",  # Local development
     "http://127.0.0.1:8000",  # Local development
-    "https://your-production-domain.com",  # Replace with your production domain
+    # "https://your-production-domain.com",  # To replace with production domain
 ]
 
 

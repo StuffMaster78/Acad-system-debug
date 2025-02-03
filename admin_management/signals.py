@@ -12,7 +12,10 @@ from orders.models import Dispute
 User = get_user_model()
 
 # Ensure the function is imported before usage
-from  managers import assign_admin_permissions
+def setup_permissions():
+    from .managers import assign_admin_permissions
+    assign_admin_permissions()
+
 
 
 @receiver(post_save, sender=User)

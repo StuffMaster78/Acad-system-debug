@@ -6,12 +6,18 @@ from django.contrib.auth.models import Group, Permission
 from django.core.mail import send_mail
 from django.utils.timezone import now, timedelta
 from django.conf import settings
-from admin_management.models import AdminLog, BlacklistedUser
 from notifications_system.models import send_notification  # Integration with Notifications App
-from admin_management.models import AdminLog
-    
 
 User = get_user_model()
+
+# Lazy import to prevent circular imports
+def get_blacklisted_user_model():
+    from admin_management.models import BlacklistedUser
+    return BlacklistedUser
+
+def get_admin_log_model():
+    from admin_management.models import AdminLog
+    return AdminLog
 
 class AdminManager:
     """Handles all Admin operations, including user creation, suspensions, and permission assignments."""
@@ -25,42 +31,48 @@ class AdminManager:
     def create_user(admin, username, email, role, phone_number=""):
         """Admin creates a user (Writer, Support, Editor, Client)."""
         if role not in ["writer", "support", "editor", "client"]:
-            return {"error": "Invalid role"}
+            return {"status": "error", "message": "Invalid role"}
 
-        temp_password = AdminManager.generate_temp_password()
-        user = User.objects.create(
-            username=username,
-            email=email,
-            role=role,
-            phone_number=phone_number,
-            password=make_password(temp_password)
-        )
+        try:
+            temp_password = AdminManager.generate_temp_password()
+            user = User.objects.create(
+                username=username,
+                email=email,
+                role=role,
+                phone_number=phone_number,
+                password=make_password(temp_password)
+            )
 
-        # Log action
-        AdminLog.objects.create(
-            admin=admin,
-            action=f"Created user {username} with role {role}."
-        )
+            # Log action
+            AdminLog = get_admin_log_model()
+            AdminLog.objects.create(
+                admin=admin,
+                action=f"Created user {username} with role {role}."
+            )
 
-        # Send notification
-        send_notification(
-            recipient=admin,
-            title="New User Created",
-            message=f"User {username} ({role}) was created successfully.",
-            category="user",
-            timestamp=now()
-        )
+            # Send notification
+            send_notification(
+                recipient=admin,
+                title="New User Created",
+                message=f"User {username} ({role}) was created successfully.",
+                category="user",
+                timestamp=now()
+            )
 
-        # Email notification
-        send_mail(
-            subject="Your Account Details",
-            message=f"Hello {username},\nYour new account has been created.\nUsername: {username}\nTemporary Password: {temp_password}\nPlease log in and change your password.",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=True,
-        )
+            # Email notification
+            send_mail(
+                subject="Your Account Details",
+                message=f"Hello {username},\nYour new account has been created.\nUsername: {username}\nTemporary Password: {temp_password}\nPlease log in and change your password.",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=True,
+            )
 
-        return {"message": f"User {username} created successfully"}
+            return {"status": "success", "message": f"User {username} created successfully"}
+
+        except Exception as e:
+            return {"status": "error", "message": f"An error occurred: {str(e)}"}
+
 
     @staticmethod
     def suspend_user(admin, user, reason="No reason provided"):
@@ -74,6 +86,7 @@ class AdminManager:
         user.save()
 
         # Log action
+        AdminLog = get_admin_log_model()
         AdminLog.objects.create(
             admin=admin,
             action=f"Suspended {user.username} for: {reason}"
@@ -115,25 +128,25 @@ class AdminManager:
 
         admin_profile.user.groups.add(admin_group)
 
-
-
     @staticmethod
     def blacklist_user(admin, user, reason="No reason provided"):
         """Blacklists a user and logs the event."""
         if user.role == "admin":
             return {"error": "You cannot blacklist an admin."}
 
+        BlacklistedUser = get_blacklisted_user_model()
         BlacklistedUser.objects.create(email=user.email, blacklisted_by=admin, reason=reason)
+
         user.is_blacklisted = True
         user.save()
 
+        AdminLog = get_admin_log_model()
         AdminLog.objects.create(
             admin=admin,
             action=f"Blacklisted {user.username}. Reason: {reason}"
         )
 
         return {"message": f"User {user.username} has been blacklisted."}
-    
 
     @staticmethod
     def place_user_on_probation(admin, user, reason, duration_in_days=30):
@@ -148,11 +161,10 @@ class AdminManager:
         user.save()
 
         # Log the action
+        AdminLog = get_admin_log_model()
         AdminLog.objects.create(
             admin=admin,
-            target_user=user,
-            action="Placed on Probation",
-            details=f"Placed {user.username} on probation for {duration_in_days} days. Reason: {reason}"
+            action=f"Placed {user.username} on probation for {duration_in_days} days. Reason: {reason}"
         )
 
         # Send notification
@@ -178,11 +190,10 @@ class AdminManager:
         user.save()
 
         # Log the action
+        AdminLog = get_admin_log_model()
         AdminLog.objects.create(
             admin=admin,
-            target_user=user,
-            action="Removed from Probation",
-            details=f"Removed {user.username} from probation."
+            action=f"Removed {user.username} from probation."
         )
 
         # Send notification
@@ -194,3 +205,62 @@ class AdminManager:
         )
 
         return {"message": f"User {user.username} is no longer on probation."}
+
+
+
+    @staticmethod
+    def assign_permissions(admin_profile):
+        """
+        Assigns default permissions to admins when they are created.
+        Ensures Superadmins are not assigned limited admin permissions.
+        """
+        try:
+            if admin_profile.is_superadmin:
+                return {"status": "success", "message": "Superadmins don't need limited permissions"}
+
+            # Define role-based permissions mapping
+            role_permissions = {
+                "admin": [
+                    "add_user", "change_user", "delete_user",
+                    "view_order", "change_order", "cancel_order",
+                    "resolve_disputes", "manage_discounts", "approve_payouts", "view_payouts",
+                    "process_payments", "handle_refunds", "manage_tickets"
+                ],
+                "support": [
+                    "view_order", "resolve_disputes", "manage_tickets"
+                ],
+                "editor": [
+                    "view_order", "change_order", "resolve_disputes"
+                ]
+                # Add more roles as needed
+            }
+
+            # Get the appropriate permissions based on the role
+            permissions = role_permissions.get(admin_profile.role, [])
+
+            if not permissions:
+                return {"status": "error", "message": "No permissions found for this role"}
+
+            # Fetch or create the group and assign permissions
+            admin_group, _ = Group.objects.get_or_create(name="Admin")
+
+            for perm in permissions:
+                permission = Permission.objects.filter(codename=perm).first()
+                if permission:
+                    admin_group.permissions.add(permission)
+                else:
+                    return {"status": "error", "message": f"Permission '{perm}' not found."}
+
+            admin_profile.user.groups.add(admin_group)
+
+            # Log action
+            AdminLog = get_admin_log_model()
+            AdminLog.objects.create(
+                admin=admin_profile.user,
+                action=f"Assigned permissions for role {admin_profile.role}."
+            )
+
+            return {"status": "success", "message": f"Permissions assigned for {admin_profile.role} role"}
+
+        except Exception as e:
+            return {"status": "error", "message": f"An error occurred: {str(e)}"}

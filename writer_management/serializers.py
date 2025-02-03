@@ -307,3 +307,9 @@ class WriterFileDownloadLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterFileDownloadLog
         fields = '__all__'
+
+
+class OrderDisputeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderDispute
+        fields = '__all__'

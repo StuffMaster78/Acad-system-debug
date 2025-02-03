@@ -6,6 +6,7 @@ from client_management.models import ClientProfile
 from writer_management.models import WriterProfile
 from editor_management.models import EditorProfile
 from support_management.models import SupportProfile
+from superadmin_management.models import SuperadminProfile
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -106,7 +107,10 @@ class SupportProfileSerializer(serializers.ModelSerializer):
         fields = [
             'user', 'handled_tickets', 'resolved_orders'
         ]
-
+class SuperadminProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SuperadminProfile
+        fields = '__all__'
 
 class AvatarUpdateSerializer(serializers.ModelSerializer):
     """

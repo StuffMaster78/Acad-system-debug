@@ -1,11 +1,13 @@
 from django.contrib import admin
 from .models import AdminProfile, AdminLog
+from django.contrib.admin import SimpleListFilter
 
 @admin.register(AdminProfile)
 class AdminProfileAdmin(admin.ModelAdmin):
-    list_display = ("user", "is_superadmin", "can_manage_writers", "can_manage_clients", "can_handle_orders")
+    list_display = ("user", "is_superadmin", "can_manage_clients", "can_handle_orders")
     search_fields = ("user__username", "user__email")
-    list_filter = ("is_superadmin", "can_manage_writers", "can_manage_clients")
+    list_filter = ("is_superadmin", "can_manage_clients")
+
 
 @admin.register(AdminLog)
 class AdminLogAdmin(admin.ModelAdmin):

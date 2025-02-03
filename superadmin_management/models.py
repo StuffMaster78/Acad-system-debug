@@ -119,6 +119,7 @@ class SuperadminLog(models.Model):
 
     superadmin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="superadmin_logs")
     action_type = models.CharField(max_length=20, choices=ACTION_TYPES, default='override')
+    action = models.CharField(max_length=255)
     action_details = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
 
@@ -152,7 +153,7 @@ class Appeal(models.Model):
 
 class UserActionLog(models.Model):
     """Logs key actions taken on users by Superadmins."""
-    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="admin_actions")
+    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_action_logs")
     target_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="target_user")
     action = models.CharField(max_length=50)  # e.g., "Suspended", "Reactivated", "Role Changed"
     details = models.TextField(blank=True, null=True)  # Optional extra details
