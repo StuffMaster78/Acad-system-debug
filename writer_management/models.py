@@ -612,29 +612,29 @@ class WriterActivityLog(models.Model):
     def __str__(self):
         return f"Activity: {self.writer.user.username} - {self.action_type} ({self.timestamp})"
 
-class WriterActivityLog(models.Model):
-    """
-    Tracks every action performed by a writer.
-    """
-    ACTION_TYPES = [
-        ("Order Accepted", "Order Accepted"),
-        ("Order Submitted", "Order Submitted"),
-        ("File Uploaded", "File Uploaded"),
-        ("Message Sent", "Message Sent"),
-        ("Request Made", "Request Made"),
-        ("Reopened Order", "Reopened Order"),
-        ("Deadline Extension Requested", "Deadline Extension Requested"),
-        ("Reassignment Requested", "Reassignment Requested"),
-    ]
+# class WriterActivityLog(models.Model):
+#     """
+#     Tracks every action performed by a writer.
+#     """
+#     ACTION_TYPES = [
+#         ("Order Accepted", "Order Accepted"),
+#         ("Order Submitted", "Order Submitted"),
+#         ("File Uploaded", "File Uploaded"),
+#         ("Message Sent", "Message Sent"),
+#         ("Request Made", "Request Made"),
+#         ("Reopened Order", "Reopened Order"),
+#         ("Deadline Extension Requested", "Deadline Extension Requested"),
+#         ("Reassignment Requested", "Reassignment Requested"),
+#     ]
 
-    writer = models.ForeignKey(WriterProfile, on_delete=models.CASCADE, related_name="activity_logs")
-    order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name="activity_logs")
-    action_type = models.CharField(max_length=50, choices=ACTION_TYPES, help_text="Type of action performed.")
-    description = models.TextField(blank=True, null=True, help_text="Additional details about the action.")
-    timestamp = models.DateTimeField(auto_now_add=True, help_text="Time the action was recorded.")
+#     writer = models.ForeignKey(WriterProfile, on_delete=models.CASCADE, related_name="activity_logs")
+#     order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name="activity_logs")
+#     action_type = models.CharField(max_length=50, choices=ACTION_TYPES, help_text="Type of action performed.")
+#     description = models.TextField(blank=True, null=True, help_text="Additional details about the action.")
+#     timestamp = models.DateTimeField(auto_now_add=True, help_text="Time the action was recorded.")
 
-    def __str__(self):
-        return f"Activity: {self.writer.user.username} - {self.action_type} ({self.timestamp})"
+#     def __str__(self):
+#         return f"Activity: {self.writer.user.username} - {self.action_type} ({self.timestamp})"
 
 
 class WriterMessageThread(models.Model):

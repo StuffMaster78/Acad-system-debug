@@ -1,7 +1,7 @@
 from celery import shared_task
-from core.utils import send_notification
+from core.utils.notifications import send_notification
 from django.utils import timezone
-from datetime import timedelta
+# from datetime import timedelta
 from orders.models import FailedPayment, Order
 from django.core.mail import send_mail
 

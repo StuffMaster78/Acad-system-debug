@@ -1,4 +1,4 @@
-from core.celery import shared_task
+from celery import shared_task
 from .models import Notification
 
 @shared_task

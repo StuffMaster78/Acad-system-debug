@@ -48,8 +48,8 @@ INSTALLED_APPS = [
     "drf_spectacular_sidecar",
     'django_filters',
     # 'django-rq',
-    # 'django_celery_beat',
-    # 'celery',
+    'django_celery_beat',
+    'celery',
     'channels',
     'django_countries',
     "rest_framework_simplejwt",
@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     'websites',
     'users',
 
+
     # Order Management
     'orders',
     'order_files',
@@ -67,6 +68,7 @@ INSTALLED_APPS = [
     'order_configs',
     'pricing_configs',
     'special_orders',
+
 
     # Financial Apps
     'wallet',
@@ -85,6 +87,7 @@ INSTALLED_APPS = [
     'editor_management',
     'support_management',
     'loyalty_management',
+    'activity',
 ]
 
 
@@ -212,7 +215,7 @@ REST_FRAMEWORK = {
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Your Project API',
-    'DESCRIPTION': 'Your API documentation description',
+    'DESCRIPTION': 'Order Management System API documentation',
     'VERSION': '1.0.0',
 }
 
@@ -254,6 +257,7 @@ CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Example using Redis
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 
 RQ_QUEUES = {
