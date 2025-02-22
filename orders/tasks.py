@@ -1,64 +1,51 @@
 from celery import shared_task
 from core.utils.notifications import send_notification
-from django.utils import timezone
-# from datetime import timedelta
-from orders.models import FailedPayment, Order
+from django.utils.timezone import now
+from orders.models import Order
 from django.core.mail import send_mail
+import logging
 
+logger = logging.getLogger(__name__)
 
 @shared_task
 def notify_writer(order_id):
     """
     Task to notify the assigned writer about an order.
+    Sends an in-app notification and an email.
     """
     try:
-        order = Order.objects.select_related('writer').get(id=order_id)
-        if order.writer:
-            # Replace with actual notification logic (e.g., email, SMS, or real-time notification)
-            send_notification(
-                user=order.writer,
-                title="New Order Assigned",
-                message=f"You have been assigned to Order #{order.id}: {order.topic}. Please check your dashboard."
+        order = Order.objects.select_related('writer', 'client').get(id=order_id)
+
+        if not order.writer:
+            logger.warning(f"No writer assigned for Order #{order.id}")
+            return f"No writer assigned for Order #{order.id}"
+
+        # In-app notification
+        send_notification(
+            user=order.writer,
+            title="New Order Assigned",
+            message=f"You have been assigned to Order #{order.id}: {order.topic}. Please check your dashboard."
+        )
+
+        # Email notification
+        if order.writer.email:
+            send_mail(
+                subject="New Order Assignment",
+                message=f"Dear {order.writer.username},\n\nYou have been assigned a new order.\n\n"
+                        f"Order ID: {order.id}\nTopic: {order.topic}\n\n"
+                        f"Please log in to your dashboard to view the details.",
+                from_email="no-reply@example.com",
+                recipient_list=[order.writer.email],
+                fail_silently=True
             )
-            return f"Notification sent to writer {order.writer.email} for Order #{order.id}"
-        return f"No writer assigned for Order #{order.id}"
+
+        logger.info(f"Notification sent to writer {order.writer.email} for Order #{order.id}")
+        return f"Notification sent to writer {order.writer.email} for Order #{order.id}"
+
     except Order.DoesNotExist:
+        logger.error(f"Order with ID {order_id} does not exist.")
         return f"Order with ID {order_id} does not exist."
-    
 
-
-
-@shared_task
-def retry_failed_payment(failed_payment_id):
-    failed_payment = FailedPayment.objects.get(id=failed_payment_id)
-
-    # Ensure the retry count doesn't exceed 3 attempts
-    if failed_payment.retry_count < 3:
-        # Simulate retry logic (you could integrate with a payment gateway here)
-        success = process_payment(failed_payment.order)
-
-        if success:
-            # Mark the payment as successful
-            failed_payment.retry_count = 3  # Mark as resolved
-            failed_payment.save()
-            return "Payment successfully retried"
-        
-        else:
-            # Increment the retry count and set the last retry time
-            failed_payment.retry_count += 1
-            failed_payment.last_retry_at = timezone.now()
-            failed_payment.save()
-            return f"Retry attempt {failed_payment.retry_count} failed"
-
-    else:
-        # Send notification if max retries reached
-        failed_payment.send_failure_notification()
-        return "Max retry attempts reached, notified client"
-        
-def process_payment(order):
-    """
-    Simulate payment processing. Integrate with a real payment gateway here.
-    Return True if payment is successful, False otherwise.
-    """
-    # Replace with actual payment gateway code
-    return False  # Simulating a failed payment
+    except Exception as e:
+        logger.error(f"Error in notify_writer task: {e}")
+        return f"Error in notify_writer task: {e}"

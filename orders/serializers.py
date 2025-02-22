@@ -1,22 +1,27 @@
 from rest_framework import serializers
-from django.utils.timezone import now  # Importing now
+from django.utils.timezone import now  
 from .models import Order, Dispute
-from orders.models import PaymentTransaction
+
 class OrderSerializer(serializers.ModelSerializer):
+    client_username = serializers.CharField(source='client.username', read_only=True)
+    writer_username = serializers.CharField(source='writer.username', read_only=True)
+
     class Meta:
         model = Order
         fields = [
             'id', 'topic', 'instructions', 'paper_type', 'academic_level', 
             'formatting_style', 'type_of_work', 'english_type', 'pages', 
             'slides', 'resources', 'spacing', 'deadline', 'writer_deadline', 
-            'client', 'writer', 'preferred_writer', 'total_cost', 
-            'writer_compensation', 'extra_services', 'subject', 'discount_code', 
-            'is_paid', 'status', 'flag', 'created_at', 'updated_at', 
+            'client', 'client_username', 'writer', 'writer_username', 
+            'preferred_writer', 'total_cost', 'writer_compensation', 
+            'extra_services', 'subject', 'discount_code', 'is_paid', 
+            'status', 'flag', 'created_at', 'updated_at', 
             'created_by_admin', 'is_special_order'
         ]
         read_only_fields = [
-            'id', 'total_cost', 'writer_compensation', 'is_paid', 
-            'created_at', 'updated_at', 'flag', 'writer_deadline'
+            'id', 'client_username', 'writer_username', 'total_cost', 
+            'writer_compensation', 'is_paid', 'created_at', 'updated_at', 
+            'flag', 'writer_deadline'
         ]
 
 class OrderCreateSerializer(serializers.ModelSerializer):
@@ -30,25 +35,33 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         ]
 
     def validate_deadline(self, value):
-        """
-        Ensure the deadline is in the future.
-        """
+        """Ensure the deadline is in the future."""
         if value <= now():
             raise serializers.ValidationError("The deadline must be in the future.")
         return value
-    
+
+    def validate_preferred_writer(self, value):
+        """Ensure the preferred writer is available."""
+        if value and not value.is_active:
+            raise serializers.ValidationError("The preferred writer is not available.")
+        return value
 
 class DisputeSerializer(serializers.ModelSerializer):
     """
     Serializer for the Dispute model.
     """
     order_id = serializers.PrimaryKeyRelatedField(
-        source='order',  # Refers to the `order` ForeignKey in the model
-        queryset=Order.objects.all(),  # Set a valid queryset
+        source='order', 
+        queryset=Order.objects.all(),  
         help_text='The ID of the order associated with this dispute.'
     )
+    order_topic = serializers.CharField(
+        source='order.topic',
+        read_only=True,
+        help_text='The topic of the disputed order.'
+    )
     raised_by_username = serializers.CharField(
-        source='raised_by.username',  # Access `username` from the related `User` object
+        source='raised_by.username',  
         read_only=True,
         help_text='The username of the user who raised this dispute.'
     )
@@ -58,6 +71,7 @@ class DisputeSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'order_id',
+            'order_topic',
             'raised_by_username',
             'status',
             'reason',
@@ -65,20 +79,10 @@ class DisputeSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at',
         ]
-        read_only_fields = ['id', 'raised_by_username', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'order_topic', 'raised_by_username', 'created_at', 'updated_at']
 
     def validate_order_id(self, value):
-        """
-        Custom validation for the order_id field.
-        """
-        # Add any additional order validation logic here
-        if not value:  # For example, ensure an order exists
-            raise serializers.ValidationError("The order ID is invalid.")
+        """Ensure the order is not already disputed."""
+        if Dispute.objects.filter(order=value).exists():
+            raise serializers.ValidationError("A dispute already exists for this order.")
         return value
-    
-
-
-class PaymentTransactionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PaymentTransaction
-        fields = ["id", "order", "transaction_id", "amount", "status", "payment_method", "date_processed"]

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import AdminProfile, AdminLog, BlacklistedUser
+from .models import AdminProfile, AdminActivityLog, BlacklistedUser
 
 User = get_user_model()
 
@@ -21,7 +21,7 @@ class AdminLogSerializer(serializers.ModelSerializer):
     order = serializers.StringRelatedField()  # Display order ID (if applicable)
 
     class Meta:
-        model = AdminLog
+        model = AdminActivityLog
         fields = ["id", "admin", "target_user", "order", "action", "details", "timestamp"]
 
 class UserSerializer(serializers.ModelSerializer):

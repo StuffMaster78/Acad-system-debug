@@ -361,8 +361,7 @@ class TemporaryPassword(models.Model):
         return now() < self.expires_at
 
     def __str__(self):
-        return f"Temporary Password for {self.client.user.username} (Expires: {self.expires_at})"
-    
+        return f"Temporary Password for {self.client.user.username} (Expires: {self.expires_at})"    
 
 
 class ProfileUpdateRequest(models.Model):
@@ -407,8 +406,6 @@ class ProfileUpdateRequest(models.Model):
     def __str__(self):
         return f"Profile Update Request: {self.client.user.username} ({self.status})"
     
-
-
 
 class ClientAction(models.Model):
     """

@@ -1,18 +1,15 @@
-from rest_framework import viewsets, permissions
-from .models import Order, PaymentTransaction
-from .serializers import OrderSerializer, OrderCreateSerializer, PaymentTransactionSerializer
-from rest_framework import generics, status
+from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAdminUser
 from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import status
 from django.shortcuts import get_object_or_404
-from .models import Order
-from superadmin_management.models import SuperadminLog
-from .serializers import OrderSerializer
+from .models import Order, Dispute
+from .serializers import OrderSerializer, OrderCreateSerializer, DisputeSerializer
 from notifications_system.models import send_notification
+from superadmin_management.models import SuperadminLog
 from .permissions import IsSuperadminOnly
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class OrderViewSet(viewsets.ModelViewSet):
     """
@@ -21,7 +18,34 @@ class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all().select_related('client', 'writer', 'preferred_writer', 'discount_code', 'website')
     permission_classes = [permissions.IsAuthenticated]
 
+    def get_serializer_class(self):
+        """Return the appropriate serializer based on the action."""
+        if self.action in ['create', 'update', 'partial_update']:
+            return OrderCreateSerializer
+        return OrderSerializer
 
+    def get_queryset(self):
+        """
+        Return the queryset based on the user's role:
+        - Admins and support see all orders.
+        - Writers see all orders they can express interest in.
+        - Assigned writers only see their orders.
+        - Clients see only their orders.
+        """
+        user = self.request.user
+        if user.is_staff:  # Admin or support
+            return Order.objects.all()
+        elif hasattr(user, 'is_writer') and user.is_writer:
+            return Order.objects.filter(writer__isnull=True) | Order.objects.filter(writer=user)
+        return Order.objects.filter(client=user)
+
+    def perform_create(self, serializer):
+        """Automatically assign the authenticated user as the client when creating an order."""
+        serializer.save(client=self.request.user)
+
+    def perform_update(self, serializer):
+        """Additional logic during order updates (if required)."""
+        serializer.save()
 
     @action(detail=True, methods=["post"], permission_classes=[IsSuperadminOnly])
     def bring_back_in_progress(self, request, pk=None):
@@ -44,7 +68,7 @@ class OrderViewSet(viewsets.ModelViewSet):
         new_writer = User.objects.filter(pk=request.data.get("writer_id")).first()
         if not new_writer:
             return Response({"error": "Writer not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         order.reassign_writer(request.user, new_writer)
         SuperadminLog.objects.create(
             superadmin=request.user,
@@ -97,80 +121,101 @@ class OrderViewSet(viewsets.ModelViewSet):
     def mark_completed(self, request, pk=None):
         """Allows Admins, Editors, and Support to mark an order as completed."""
         order = get_object_or_404(Order, pk=pk)
-
         if order.mark_as_completed(request.user):
             return Response({"message": "Order marked as completed!"})
-        
         return Response({"error": "You do not have permission to complete this order."}, status=403)
 
-    def get_serializer_class(self):
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated])
+    def express_interest(self, request, pk=None):
         """
-        Return the appropriate serializer based on the action.
+        Allows a writer to express interest in an order.
         """
-        if self.action in ['create', 'update', 'partial_update']:
-            return OrderCreateSerializer
-        return OrderSerializer
+        order = self.get_object()
+        user = request.user
+
+        if not hasattr(user, 'is_writer') or not user.is_writer:
+            return Response({"error": "Only writers can express interest in orders."}, status=status.HTTP_403_FORBIDDEN)
+
+        if order.writer:
+            return Response({"error": "Order already has an assigned writer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.expressed_interest.add(user)
+        send_notification(order.client, "Writer Interest", f"A writer has expressed interest in your order #{order.id}.")
+        return Response({"message": "Interest expressed successfully."}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], permission_classes=[permissions.IsAdminUser])
+    def assign_writer(self, request, pk=None):
+        """
+        Allows an admin to assign a writer to an order.
+        """
+        order = self.get_object()
+        writer_id = request.data.get("writer_id")
+        writer = User.objects.filter(pk=writer_id, is_writer=True).first()
+
+        if not writer:
+            return Response({"error": "Writer not found or not eligible."}, status=status.HTTP_404_NOT_FOUND)
+
+        if order.writer:
+            return Response({"error": "Order already assigned to a writer."}, status=status.HTTP_400_BAD_REQUEST)
+
+        order.writer = writer
+        order.save()
+
+        send_notification(writer, "New Order Assigned", f"You have been assigned to Order #{order.id}.")
+        send_notification(order.client, "Writer Assigned", f"A writer has been assigned to your order #{order.id}.")
+        return Response({"message": "Writer assigned successfully."}, status=status.HTTP_200_OK)
+    
+
+class DisputeViewSet(viewsets.ModelViewSet):
+    """
+    A ViewSet for managing Disputes.
+    """
+    queryset = Dispute.objects.all().select_related('order', 'raised_by')
+    serializer_class = DisputeSerializer
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         """
-        Return the queryset based on the user's role.
-        - Admins and support can see all orders.
-        - Clients can see only their orders.
+        Filter disputes based on user role:
+        - Superadmins/Admins see all disputes.
+        - Users only see disputes they raised.
         """
         user = self.request.user
-        if user.is_staff:  # Admin or support
-            return Order.objects.all()
-        return Order.objects.filter(client=user)
+        if user.is_staff:
+            return Dispute.objects.all()
+        return Dispute.objects.filter(raised_by=user)
 
     def perform_create(self, serializer):
         """
-        Automatically assign the authenticated user as the client when creating an order.
+        Automatically set the logged-in user as the dispute raiser.
         """
-        serializer.save(client=self.request.user)
+        serializer.save(raised_by=self.request.user)
 
-    def perform_update(self, serializer):
+    @action(detail=True, methods=["post"], permission_classes=[IsSuperadminOnly])
+    def resolve(self, request, pk=None):
         """
-        Additional logic during order updates (if required).
+        Superadmins resolve a dispute by adding resolution notes and updating the status.
         """
-        serializer.save()
+        dispute = get_object_or_404(Dispute, pk=pk)
+        resolution_notes = request.data.get("resolution_notes", "")
 
+        if not resolution_notes:
+            return Response({"error": "Resolution notes are required."}, status=status.HTTP_400_BAD_REQUEST)
 
-class PaymentTransactionListView(generics.ListAPIView):
-    """Get all payment transactions (Admin Only)"""
-    queryset = PaymentTransaction.objects.all()
-    serializer_class = PaymentTransactionSerializer
-    permission_classes = [IsAdminUser]
+        dispute.status = "resolved"
+        dispute.resolution_notes = resolution_notes
+        dispute.save()
 
-class PaymentTransactionDetailView(generics.RetrieveAPIView):
-    """Retrieve a single transaction"""
-    queryset = PaymentTransaction.objects.all()
-    serializer_class = PaymentTransactionSerializer
-    permission_classes = [IsAdminUser]
+        SuperadminLog.objects.create(
+            superadmin=request.user,
+            action_type="dispute_resolved",
+            action_details=f"Resolved dispute #{dispute.id} on order #{dispute.order.id}."
+        )
 
-class PaymentTransactionCreateView(generics.CreateAPIView):
-    """Create a new transaction"""
-    serializer_class = PaymentTransactionSerializer
-    permission_classes = [IsAdminUser]
+        send_notification(
+            dispute.raised_by, 
+            "Dispute Resolved", 
+            f"Your dispute on order #{dispute.order.id} has been resolved."
+        )
 
-    def create(self, request, *args, **kwargs):
-        order = request.data.get("order")
-        transaction_id = request.data.get("transaction_id")
-        amount = request.data.get("amount")
-        payment_method = request.data.get("payment_method", "")
-
-        if PaymentTransaction.objects.filter(transaction_id=transaction_id).exists():
-            return Response({"detail": "Transaction ID already exists."}, status=status.HTTP_400_BAD_REQUEST)
-
-        transaction = PaymentTransaction.create_transaction(order, transaction_id, amount, payment_method)
-        return Response(PaymentTransactionSerializer(transaction).data, status=status.HTTP_201_CREATED)
-
-class PaymentTransactionUpdateView(generics.UpdateAPIView):
-    """Update transaction status"""
-    queryset = PaymentTransaction.objects.all()
-    serializer_class = PaymentTransactionSerializer
-    permission_classes = [IsAdminUser]
-
-class PaymentTransactionDeleteView(generics.DestroyAPIView):
-    """Delete a transaction (Admin Only)"""
-    queryset = PaymentTransaction.objects.all()
-    permission_classes = [IsAdminUser]
+        return Response({"message": "Dispute resolved successfully."}, status=status.HTTP_200_OK)

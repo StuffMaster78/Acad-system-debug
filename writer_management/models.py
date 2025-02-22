@@ -235,48 +235,6 @@ class WriterEducation(models.Model):
     def __str__(self):
         return f"{self.degree} from {self.institution_name} ({self.writer.user.username})"
 
-
-class PaymentHistory(models.Model):
-    """
-    Tracks payment history for writers, including bonuses, fines, and tips.
-    """
-    writer = models.ForeignKey(
-        WriterProfile,
-        on_delete=models.CASCADE,
-        related_name="payment_history",
-        help_text="The writer receiving the payment."
-    )
-    amount = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        help_text="Total payment amount made to the writer."
-    )
-    bonuses = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0.00,
-        help_text="Bonuses received by the writer."
-    )
-    fines = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0.00,
-        help_text="Fines deducted from the writer."
-    )
-    tips = models.DecimalField(
-        max_digits=12,
-        decimal_places=2,
-        default=0.00,
-        help_text="Tips received by the writer."
-    )
-    payment_date = models.DateTimeField(auto_now_add=True, help_text="Date of the payment.")
-    description = models.TextField(blank=True, null=True, help_text="Optional description for the payment.")
-
-    def __str__(self):
-        return f"Payment of ${self.amount} to {self.writer.user.username} on {self.payment_date}"
-
-
-
 class WriterRewardCriteria(models.Model):
     """
     Admin-defined criteria for writer rewards (automated or manual).
@@ -387,8 +345,6 @@ class WriterRating(models.Model):
     def __str__(self):
         return f"Rating {self.rating} for {self.writer.user.username} by {self.client.username} (Order {self.order.id})"
     
-
-
 class Probation(models.Model):
     """Tracks writers placed on probation."""
     writer = models.ForeignKey(WriterProfile, on_delete=models.CASCADE, related_name="probation_records")
@@ -406,7 +362,6 @@ class Probation(models.Model):
 
     def __str__(self):
         return f"Probation: {self.writer.user.username} (Active: {self.is_active})"
-
 
 
 class WriterPenalty(models.Model):
@@ -464,6 +419,7 @@ class WriterPayoutPreference(models.Model):
         ("Bank Transfer", "Bank Transfer"),
         ("PayPal", "PayPal"),
         ("Crypto", "Crypto"),
+        ("Mpesa", "Mpesa"),
         ("Other", "Other"),
     ]
 
@@ -519,8 +475,6 @@ class WriterEarningsReviewRequest(models.Model):
 
     def __str__(self):
         return f"Earnings Review Request: {self.writer.user.username} for Order {self.order.id} (Resolved: {self.resolved})"
-
-
 
 
 class WriterReassignmentRequest(models.Model):
@@ -611,30 +565,6 @@ class WriterActivityLog(models.Model):
 
     def __str__(self):
         return f"Activity: {self.writer.user.username} - {self.action_type} ({self.timestamp})"
-
-# class WriterActivityLog(models.Model):
-#     """
-#     Tracks every action performed by a writer.
-#     """
-#     ACTION_TYPES = [
-#         ("Order Accepted", "Order Accepted"),
-#         ("Order Submitted", "Order Submitted"),
-#         ("File Uploaded", "File Uploaded"),
-#         ("Message Sent", "Message Sent"),
-#         ("Request Made", "Request Made"),
-#         ("Reopened Order", "Reopened Order"),
-#         ("Deadline Extension Requested", "Deadline Extension Requested"),
-#         ("Reassignment Requested", "Reassignment Requested"),
-#     ]
-
-#     writer = models.ForeignKey(WriterProfile, on_delete=models.CASCADE, related_name="activity_logs")
-#     order = models.ForeignKey(Order, on_delete=models.SET_NULL, null=True, blank=True, related_name="activity_logs")
-#     action_type = models.CharField(max_length=50, choices=ACTION_TYPES, help_text="Type of action performed.")
-#     description = models.TextField(blank=True, null=True, help_text="Additional details about the action.")
-#     timestamp = models.DateTimeField(auto_now_add=True, help_text="Time the action was recorded.")
-
-#     def __str__(self):
-#         return f"Activity: {self.writer.user.username} - {self.action_type} ({self.timestamp})"
 
 
 class WriterMessageThread(models.Model):

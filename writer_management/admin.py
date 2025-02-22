@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from .models import (
     WriterProfile, WriterLevel, WriterConfig, WriterOrderRequest, WriterOrderTake,
-    WriterPayoutPreference, WriterPayment, PaymentHistory, WriterEarningsHistory,
+    WriterPayoutPreference, WriterPayment, WriterEarningsHistory,
     WriterEarningsReviewRequest, WriterReward, WriterRewardCriteria, Probation,
     WriterPenalty, WriterSuspension, WriterActionLog, WriterSupportTicket,
     WriterDeadlineExtensionRequest, WriterOrderHoldRequest, WriterOrderReopenRequest,
@@ -80,11 +80,11 @@ class WriterPaymentAdmin(admin.ModelAdmin):
     search_fields = ('writer__user__username',)
 
 
-@admin.register(PaymentHistory)
-class PaymentHistoryAdmin(admin.ModelAdmin):
-    list_display = ('writer', 'amount', 'payment_date', 'bonuses', 'fines', 'tips')
-    list_filter = ('payment_date',)
-    search_fields = ('writer__user__username',)
+# @admin.register(PaymentHistory)
+# class PaymentHistoryAdmin(admin.ModelAdmin):
+#     list_display = ('writer', 'amount', 'payment_date', 'bonuses', 'fines', 'tips')
+#     list_filter = ('payment_date',)
+#     search_fields = ('writer__user__username',)
 
 
 @admin.register(WriterEarningsHistory)

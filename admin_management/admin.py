@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import AdminProfile, AdminLog
+from .models import AdminProfile, AdminActivityLog
 from django.contrib.admin import SimpleListFilter
 
 @admin.register(AdminProfile)
@@ -9,7 +9,7 @@ class AdminProfileAdmin(admin.ModelAdmin):
     list_filter = ("is_superadmin", "can_manage_clients")
 
 
-@admin.register(AdminLog)
+@admin.register(AdminActivityLog)
 class AdminLogAdmin(admin.ModelAdmin):
     list_display = ("admin", "action", "target_user", "order", "timestamp")
     search_fields = ("admin__username", "action", "target_user__username")

@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
 from .models import (
     WriterProfile, WriterLevel, WriterLeave, WriterActionLog, WriterEducation,
-    PaymentHistory, WriterReward, WriterRewardCriteria, WriterDemotionRequest,
+    WriterReward, WriterRewardCriteria, WriterDemotionRequest,
     WriterPerformanceReport, WriterRating, Probation, WriterPenalty, WriterSuspension,
     WriterPayoutPreference, WriterPayment, WriterEarningsHistory, WriterEarningsReviewRequest,
     WriterReassignmentRequest, WriterOrderHoldRequest, OrderDispute, WriterOrderReopenRequest,
@@ -127,15 +127,6 @@ class WriterPaymentSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = WriterPayment
-        fields = '__all__'
-
-
-class PaymentHistorySerializer(serializers.ModelSerializer):
-    """
-    Serializer for Writer Payment History
-    """
-    class Meta:
-        model = PaymentHistory
         fields = '__all__'
 
 

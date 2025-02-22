@@ -1,22 +1,41 @@
 from django.db import models
 from django.conf import settings
-from core.models.base import WebsiteSpecificBaseModel
+from websites.models import Website
 
-
-class PredefinedSpecialOrderConfig(WebsiteSpecificBaseModel):
+class PredefinedSpecialOrderConfig(models.Model):
     """
     Configuration for predefined-cost special orders.
     """
-    name = models.CharField(max_length=255, unique=True, help_text="Name of the predefined order type.")
+    name = models.CharField(max_length=255, unique=True, help_text="Name of the predefined order type (e.g., Shadow Health).")
     description = models.TextField(blank=True, help_text="Description of the predefined order type.")
-    cost = models.DecimalField(max_digits=10, decimal_places=2, help_text="Fixed cost for this order type.")
     is_active = models.BooleanField(default=True, help_text="Indicates whether this predefined order type is active.")
+    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="predefined_special_order_configs", help_text="Website for which this configuration is valid.")
+    
+    def __str__(self):
+        return f"{self.name} - Active: {self.is_active}"
+
+
+class PredefinedSpecialOrderDuration(models.Model):
+    """
+    Represents the pricing for different durations of a predefined special order.
+    """
+    predefined_order = models.ForeignKey(
+        PredefinedSpecialOrderConfig,
+        on_delete=models.CASCADE,
+        related_name="durations",
+        help_text="The predefined order this pricing is associated with."
+    )
+    duration_days = models.PositiveIntegerField(help_text="Number of days for the special order (e.g., 3, 5, 10).")
+    price = models.DecimalField(max_digits=10, decimal_places=2, help_text="Price for the special order based on the duration.")
+
+    class Meta:
+        unique_together = ('predefined_order', 'duration_days')
 
     def __str__(self):
-        return f"{self.name} - ${self.cost}"
+        return f"{self.predefined_order.name} - {self.duration_days} days - ${self.price}"
 
 
-class SpecialOrder(WebsiteSpecificBaseModel):
+class SpecialOrder(models.Model):
     """
     Model for handling special orders with predefined or estimated costs.
     """
@@ -53,55 +72,67 @@ class SpecialOrder(WebsiteSpecificBaseModel):
     deposit_required = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     is_approved = models.BooleanField(default=False)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='inquiry')
+    duration_days = models.PositiveIntegerField(help_text="Number of days for the special order (e.g., 2, 3, 10).")
+    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="special_orders", help_text="Website associated with this special order.")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Admin Override Controls
+    admin_marked_paid = models.BooleanField(default=False, help_text="Has the admin manually marked this order as paid?")
+    admin_unlocked_files = models.BooleanField(default=False, help_text="Has the admin manually unlocked file downloads?")
+    writer_completed_no_files = models.BooleanField(default=False, help_text="Did the writer complete the order without uploading files?")
+    
     def save(self, *args, **kwargs):
         if self.order_type == 'predefined' and self.predefined_type:
-            self.total_cost = self.predefined_type.cost
+            # Get the price for the selected duration
+            duration_price = self.predefined_type.durations.filter(duration_days=self.duration_days).first()
+            if duration_price:
+                self.total_cost = duration_price.price
         super().save(*args, **kwargs)
+
 
     def __str__(self):
         return f"Special Order #{self.id}"
+    
 
-
-class Milestone(WebsiteSpecificBaseModel):
+class InstallmentPayment(models.Model):
     """
-    Milestones for special orders.
+    Tracks installment payments for special orders.
     """
-    special_order = models.ForeignKey(SpecialOrder, on_delete=models.CASCADE, related_name="milestones")
-    name = models.CharField(max_length=255)
-    description = models.TextField(blank=True)
-    due_date = models.DateField()
-    is_completed = models.BooleanField(default=False)
-    completed_at = models.DateTimeField(null=True, blank=True)
+    special_order = models.ForeignKey(SpecialOrder, on_delete=models.CASCADE, related_name="installments")
+    due_date = models.DateField(help_text="Date when the installment is due.")
+    amount_due = models.DecimalField(max_digits=10, decimal_places=2, help_text="Amount for this installment.")
+    is_paid = models.BooleanField(default=False, help_text="Indicates whether this installment is paid.")
 
     def __str__(self):
-        return f"Milestone '{self.name}' for Special Order #{self.special_order.id}"
+        return f"Installment {self.id} for Order #{self.special_order.id} - Due: {self.due_date} - Paid: {self.is_paid}"
 
 
-class ProgressLog(WebsiteSpecificBaseModel):
+class OrderCompletionLog(models.Model):
     """
-    Progress logs recorded by writers for special orders.
+    Logs admin and writer actions when completing orders manually.
     """
-    special_order = models.ForeignKey(SpecialOrder, on_delete=models.CASCADE, related_name="progress_logs")
-    writer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        limit_choices_to={'role': 'writer'}
+    special_order = models.ForeignKey(SpecialOrder, on_delete=models.CASCADE, related_name="completion_logs")
+    completed_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="order_completions")
+    completion_method = models.CharField(
+        max_length=50,
+        choices=[
+            ('admin_marked_paid', 'Admin Marked as Paid'),
+            ('admin_unlocked_files', 'Admin Unlocked File Access'),
+            ('writer_completed_no_files', 'Writer Marked Complete (No Files)'),
+        ],
+        help_text="Completion method used."
     )
-    description = models.TextField()
-    milestone = models.ForeignKey(Milestone, on_delete=models.SET_NULL, null=True, blank=True, related_name="progress_logs")
-    attachments = models.FileField(upload_to="progress_logs/", null=True, blank=True)
-    progress_date = models.DateField(auto_now_add=True)
+    justification = models.TextField(blank=True, help_text="Reason for order completion.")
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Progress for Order #{self.special_order.id}"
+        return f"{self.completed_by.username} - {self.completion_method} on Order #{self.special_order.id}"
 
 
-class WriterBonus(WebsiteSpecificBaseModel):
+class WriterBonus(models.Model):
     """
-    Bonuses for writers tied to special orders or milestones.
+    Bonuses for writers tied to special orders.
     """
     writer = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -113,15 +144,15 @@ class WriterBonus(WebsiteSpecificBaseModel):
     category = models.CharField(
         max_length=50,
         choices=[
-            ('milestone', 'Milestone Completion'),
             ('performance', 'Outstanding Performance'),
+            ('client_tip', 'Client Tip'),
             ('other', 'Other'),
         ],
-        default='milestone'
+        default='client_tip'
     )
     reason = models.TextField(blank=True)
     is_paid = models.BooleanField(default=False)
     granted_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Bonus of ${self.amount} to {self.writer}"
+        return f"Bonus of ${self.amount} to {self.writer} (Category: {self.category})"

@@ -45,10 +45,20 @@ urlpatterns = [
     path('api/v1/writer-management/', include('writer_management.urls')),  # Writer Management app
     path("api/v1/support-management/", include("support_management.urls")), # Support Management app
     path("api/v1/editor-management/", include("editor_management.urls")), # Editor Management app
+    path("api/v1/admin-management/", include("admin_management.urls")), # Admin Management app
+    path("api/v1/superadmin-management/", include("superadmin_management.urls")), # Superadmin Management app
 
     path('api/v1/referrals/', include('referrals.urls')), # Referrals Management App
     path('api/v1/order-configs/', include('order_configs.urls')), 
     path('api/v1/pricing-configs/', include('pricing_configs.urls')),
+    path('api/v1/loyalty-management/', include('loyalty_management.urls')),
+    path('api/v1/notifications/', include('notifications_system.urls')),
+    path('api/v1/order-communications/', include('order_communications.urls')),
+    path('api/v1/order-files/', include('order_files.urls')),
+    path('api/v1/referrals/', include('referrals.urls')),
+    path('api/v1/special-orders/', include('special_orders.urls')),
+    path('api/v1/tickets/', include('tickets.urls')),
+    path('api/v1/wallet/', include('wallet.urls')),
 ]
 
 # Serve media and static files during development

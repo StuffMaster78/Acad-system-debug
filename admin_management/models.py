@@ -66,7 +66,7 @@ class AdminProfile(models.Model):
     def __str__(self):
         return f"Admin Profile - {self.user.username}"
 
-class AdminLog(models.Model):
+class AdminActivityLog(models.Model):
     """
     Logs actions performed by Admins.
     """

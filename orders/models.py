@@ -169,15 +169,49 @@ class Order(WebsiteSpecificBaseModel):
     # Include existing methods: calculate_total_cost, calculate_writer_compensation, assign_flags, etc.
     # *** To add the writer progress field ****
 
+    def update_status_based_on_payment(self):
+        """
+        Updates the order status when payment status changes in orders_payments_management.
+        """
+        Payment = apps.get_model('orders_payments_management', 'OrderPayment')
+        payment = Payment.objects.filter(order=self).first()
+
+        if payment:
+            if payment.status == 'paid' and self.status == 'unpaid':
+                self.status = 'pending'
+                self.is_paid = True
+            elif payment.status in ['failed', 'refunded']:
+                self.status = 'cancelled'
+                self.is_paid = False
+
+            self.save()
+
     def mark_as_completed(self, user):
         """
         Marks the order as completed if a Final Draft is uploaded by an authorized user.
+        Ensures only authorized users (staff, writers, editors, support) can complete an order.
         """
-        if user.is_staff or user.groups.filter(name__in=["Writer", "Editor", "Support"]).exists():
+        allowed_roles = ["Writer", "Editor", "Support", "Admin", "Superadmin"]
+        
+        if user.is_staff or user.groups.filter(name__in=allowed_roles).exists():
             self.status = "completed"
             self.save()
+
+            # Notify the client about completion
+            if self.client:
+                send_mail(
+                    subject="Your Order is Completed!",
+                    message=f"Dear {self.client.username},\n\nYour order #{self.id} has been marked as completed.",
+                    from_email="no-reply@yourdomain.com",
+                    recipient_list=[self.client.email],
+                    fail_silently=True,
+                )
+
             return True
+
         return False
+
+    
     
     def __str__(self):
         return f"Order #{self.id} - {self.topic} ({self.status})"
@@ -205,7 +239,12 @@ class WriterProgress(models.Model):
         help_text="The order associated with this progress log."
     )
     progress = models.PositiveIntegerField(help_text="Progress percentage (0-100).")
+    text_description = models.TextField(null=True, blank=True, help_text="Optional update details.")
     timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+            unique_together = ('writer', 'order', 'timestamp')
+            ordering = ['-timestamp']
 
     def __str__(self):
         return f"Progress {self.progress}% for Order {self.order.id} by {self.writer.username}"
@@ -372,102 +411,3 @@ class DisputeWriterResponse(models.Model):
     class Meta:
         unique_together = ('dispute', 'responded_by')
         ordering = ['-timestamp']
-
-
-
-class PaymentTransaction(models.Model):
-    STATUS_CHOICES = [
-        ("pending", "Pending"),
-        ("completed", "Completed"),
-        ("failed", "Failed"),
-        ("refunded", "Refunded"),
-    ]
-
-    order = models.ForeignKey("orders.Order", on_delete=models.CASCADE, related_name="transactions")
-    transaction_id = models.CharField(max_length=255, unique=True)
-    amount = models.DecimalField(max_digits=10, decimal_places=2)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
-    payment_method = models.CharField(max_length=50, blank=True, null=True)
-    date_processed = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.transaction_id} - {self.status} - ${self.amount}"
-
-    @classmethod
-    def create_transaction(cls, order, transaction_id, amount, payment_method=""):
-        """Create a new payment transaction"""
-        return cls.objects.create(
-            order=order,
-            transaction_id=transaction_id,
-            amount=amount,
-            payment_method=payment_method,
-            status="pending"
-        )
-
-    def mark_completed(self):
-        """Mark the transaction as completed"""
-        self.status = "completed"
-        self.save()
-
-    def mark_failed(self):
-        """Mark the transaction as failed"""
-        self.status = "failed"
-        self.save()
-
-    def refund(self):
-        """Mark the transaction as refunded"""
-        self.status = "refunded"
-        self.save()
-
-
-class FailedPayment(models.Model):
-    order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='failed_payments')
-    client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='failed_payments')
-    payment_method = models.CharField(max_length=255)
-    failure_reason = models.TextField()
-    failed_at = models.DateTimeField(default=timezone.now)
-    retry_count = models.PositiveIntegerField(default=0)
-
-    def log_failed_payment(order_id, client_id, payment_method, failure_reason):
-        order = Order.objects.get(id=order_id)
-        client = User.objects.get(id=client_id)
-        
-        failed_payment = FailedPayment.objects.create(
-            order=order,
-            client=client,
-            payment_method=payment_method,
-            failure_reason=failure_reason,
-            retry_count=0  # Set to 0 initially
-        )
-        return failed_payment
-    
-    # # Schedule retry using Celery
-    # retry_failed_payment.apply_async(args=[failed_payment.id], countdown=60 * 60)  # Retry after 1 hour
-
-    def send_failure_notification(self):
-        """
-        Send an email to the client and/or admin when a payment fails.
-        """
-        subject = f"Payment Failure for Order {self.order.id}"
-        message = f"Dear {self.client.username},\n\nYour payment for order {self.order.id} has failed due to: {self.failure_reason}.\n\nPlease try again or contact support."
-        from_email = settings.DEFAULT_FROM_EMAIL
-        recipient_list = [self.client.email]
-
-        # Optionally, notify admin too
-        admin_email = "admin@example.com"
-        recipient_list.append(admin_email)
-
-        send_mail(subject, message, from_email, recipient_list)
-
-    class Meta:
-        verbose_name = 'Failed Payment'
-        verbose_name_plural = 'Failed Payments'
-        ordering = ['-failed_at']
-    
-    def __str__(self):
-        return f"Failed Payment for Order {self.order.id} by {self.client.username} on {self.failed_at}"
-    
-    class Meta:
-        verbose_name = 'Failed Payment'
-        verbose_name_plural = 'Failed Payments'
-        ordering = ['-failed_at']

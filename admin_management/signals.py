@@ -1,11 +1,10 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
-from .models import AdminLog
 from notifications_system.models import send_notification  # Import from Notifications App
 from django.contrib.auth.models import Group, Permission
 from django.apps import apps
-from .models import AdminLog, AdminProfile, BlacklistedUser
+from .models import AdminActivityLog, AdminProfile, BlacklistedUser
 from admin_management.managers import AdminManager
 from orders.models import Dispute
 
@@ -52,7 +51,7 @@ def notify_superadmins_on_new_admin(sender, instance, created, **kwargs):
 def log_admin_suspensions(sender, instance, **kwargs):
     """Logs when an Admin suspends a user."""
     if instance.is_suspended:
-        AdminLog.objects.create(
+        AdminActivityLog.objects.create(
             admin=instance,
             action=f"Suspended {instance.username}."
         )

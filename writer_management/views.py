@@ -7,7 +7,7 @@ from django.core.exceptions import ValidationError
 
 from .models import (
     WriterProfile, WriterLevel, WriterConfig, WriterOrderRequest, WriterOrderTake,
-    WriterPayoutPreference, WriterPayment, PaymentHistory, WriterEarningsHistory,
+    WriterPayoutPreference, WriterPayment, WriterEarningsHistory,
     WriterEarningsReviewRequest, WriterReward, WriterRewardCriteria, Probation,
     WriterPenalty, WriterSuspension, WriterActionLog, WriterSupportTicket,
     WriterDeadlineExtensionRequest, WriterOrderHoldRequest, WriterOrderReopenRequest,
@@ -17,7 +17,7 @@ from orders.models import Order
 from .serializers import (
     WriterProfileSerializer, WriterLevelSerializer, WriterConfigSerializer,
     WriterOrderRequestSerializer, WriterOrderTakeSerializer, WriterPayoutPreferenceSerializer,
-    WriterPaymentSerializer, PaymentHistorySerializer, WriterEarningsHistorySerializer,
+    WriterPaymentSerializer, WriterEarningsHistorySerializer,
     WriterEarningsReviewRequestSerializer, WriterRewardSerializer, WriterRewardCriteriaSerializer,
     ProbationSerializer, WriterPenaltySerializer, WriterSuspensionSerializer, WriterActionLogSerializer,
     WriterSupportTicketSerializer, WriterDeadlineExtensionRequestSerializer,
@@ -243,11 +243,6 @@ class WriterFileDownloadLogViewSet(viewsets.ModelViewSet):
 class WriterLevelViewSet(viewsets.ModelViewSet):
     queryset = WriterLevel.objects.all()
     serializer_class = WriterLevelSerializer
-
-class PaymentHistoryViewSet(viewsets.ModelViewSet):
-    queryset = PaymentHistory.objects.all()
-    serializer_class = PaymentHistorySerializer
-
 
 class WriterEarningsHistoryViewSet(viewsets.ModelViewSet):
     queryset = WriterEarningsHistory.objects.all()

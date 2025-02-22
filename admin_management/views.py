@@ -1,7 +1,6 @@
 from rest_framework import viewsets, status, views
 from rest_framework.response import Response
 from django.shortcuts import render
-from .models import AdminProfile, AdminLog
 from .serializers import (
     AdminProfileSerializer, 
     AdminLogSerializer, 
@@ -15,8 +14,8 @@ from .managers import AdminManager
 from .permissions import IsAdmin, IsSuperAdmin
 from django.contrib.auth import get_user_model
 from django.db.models import Count, Sum
-from .models import AdminProfile, AdminLog, BlacklistedUser
-from orders.models import Order, PaymentTransaction, Refund, Dispute
+from .models import AdminProfile, BlacklistedUser
+from orders.models import Order, Dispute
 from .serializers import DashboardSerializer
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -44,9 +43,9 @@ class AdminDashboardView(viewsets.ViewSet):
             "total_support": User.objects.filter(role="support").count(),
             "total_clients": User.objects.filter(role="client").count(),
             "suspended_users": User.objects.filter(is_suspended=True).count(),
-            "total_revenue": PaymentTransaction.objects.aggregate(Sum("amount"))["amount__sum"] or 0,
-            "total_refunds": Refund.objects.aggregate(Sum("amount"))["amount__sum"] or 0,
-            "pending_payouts": PaymentTransaction.objects.filter(status="pending").aggregate(Sum("amount"))["amount__sum"] or 0,
+            # "total_revenue": PaymentTransaction.objects.aggregate(Sum("amount"))["amount__sum"] or 0,
+            # "total_refunds": Refund.objects.aggregate(Sum("amount"))["amount__sum"] or 0,
+            # "pending_payouts": PaymentTransaction.objects.filter(status="pending").aggregate(Sum("amount"))["amount__sum"] or 0,
             "total_orders": Order.objects.count(),
             "orders_in_progress": Order.objects.filter(status="in_progress").count(),
             "completed_orders": Order.objects.filter(status="completed").count(),
@@ -54,7 +53,7 @@ class AdminDashboardView(viewsets.ViewSet):
             "canceled_orders": Order.objects.filter(status="canceled").count(),
             "total_disputes": Dispute.objects.count(),
             "resolved_disputes": Dispute.objects.filter(status="resolved").count(),
-            "recent_logs": [log.action for log in AdminLog.objects.order_by("-timestamp")[:10]],
+            "recent_logs": [log.action for log in AdminActivityLog.objects.order_by("-timestamp")[:10]],
         }
 
         serializer = DashboardSerializer(data)

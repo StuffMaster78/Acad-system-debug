@@ -6,10 +6,10 @@ from django.contrib.auth import get_user_model
 
 from .models import SuperadminLog
 from .utils import SuperadminNotifier
-from orders.models import Dispute, PaymentTransaction
+from orders.models import Dispute
 from client_management.models import BlacklistedEmail
 
-from orders.models import FailedPayment
+# from orders.models import FailedPayment
 from admin_management.models import AdminPromotionRequest
 
 User = get_user_model()
@@ -87,16 +87,16 @@ def notify_superadmins_on_blacklisted_email(sender, instance, **kwargs):
     )
 
 
-### 🔹 4️⃣ Notify Superadmins for High-Value Payments
-@receiver(post_save, sender=PaymentTransaction)
-def notify_superadmins_on_large_payment(sender, instance, created, **kwargs):
-    """Notifies Superadmins when a high-value payment is made."""
-    if created and instance.amount > 1000:  # Adjust threshold as needed
-        SuperadminNotifier.notify_superadmins(
-            title="High-Value Payment",
-            message=f"A payment of ${instance.amount} has been processed by {instance.user.username}.",
-            category="financial"
-        )
+# ### 🔹 4️⃣ Notify Superadmins for High-Value Payments
+# @receiver(post_save, sender=PaymentTransaction)
+# def notify_superadmins_on_large_payment(sender, instance, created, **kwargs):
+#     """Notifies Superadmins when a high-value payment is made."""
+#     if created and instance.amount > 1000:  # Adjust threshold as needed
+#         SuperadminNotifier.notify_superadmins(
+#             title="High-Value Payment",
+#             message=f"A payment of ${instance.amount} has been processed by {instance.user.username}.",
+#             category="financial"
+#         )
 
 
 ### 🔹 5️⃣ Notify Superadmins When a Dispute is Created
@@ -112,16 +112,16 @@ def notify_superadmins_on_dispute(sender, instance, created, **kwargs):
 
 
 
-### 🔹 Notify Superadmins on Failed Payments
-@receiver(post_save, sender=FailedPayment)
-def notify_superadmins_on_failed_payment(sender, instance, created, **kwargs):
-    """Notifies Superadmins when a payment fails."""
-    if created:
-        SuperadminNotifier.notify_superadmins(
-            title="Failed Payment",
-            message=f"A payment of ${instance.amount} from {instance.user.username} has failed.",
-            category="financial"
-        )
+# ### 🔹 Notify Superadmins on Failed Payments
+# @receiver(post_save, sender=FailedPayment)
+# def notify_superadmins_on_failed_payment(sender, instance, created, **kwargs):
+#     """Notifies Superadmins when a payment fails."""
+#     if created:
+#         SuperadminNotifier.notify_superadmins(
+#             title="Failed Payment",
+#             message=f"A payment of ${instance.amount} from {instance.user.username} has failed.",
+#             category="financial"
+#         )
 
 ### 🔹 Notify Superadmins on Admin Promotions
 @receiver(post_save, sender=AdminPromotionRequest)

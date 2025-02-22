@@ -24,7 +24,27 @@ class OrderMessageThread(models.Model):
     Represents a conversation thread related to an order.
     Messaging is disabled once an order is approved and archived unless overridden by admin.
     """
+    ORDER_TYPE_CHOICES = [
+        ('standard', 'Standard Order'),
+        ('special', 'Special Order'),
+    ]
+    order_type = models.CharField(max_length=20, choices=ORDER_TYPE_CHOICES, default='standard', help_text="Type of order this thread is associated with.")
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="message_thread")
+    special_order = models.ForeignKey('special_orders.SpecialOrder', on_delete=models.CASCADE, null=True, blank=True, related_name="message_threads")
+
+    sender_role = models.CharField(max_length=50, choices=[
+        ('writer', 'Writer'), 
+        ('client', 'Client'), 
+        ('admin', 'Admin'), 
+        ('support', 'Support')
+    ])
+    recipient_role = models.CharField(max_length=50, choices=[
+        ('writer', 'Writer'), 
+        ('client', 'Client'), 
+        ('admin', 'Admin'), 
+        ('support', 'Support')
+    ])
+    participants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="message_threads", help_text="Users involved in this thread.")
     is_active = models.BooleanField(default=True)  # Messaging is active unless order is archived
     admin_override = models.BooleanField(default=False)  # Admin can enable messaging for archived orders
     created_at = models.DateTimeField(auto_now_add=True)
@@ -42,7 +62,9 @@ class OrderMessageThread(models.Model):
         self.save()
 
     def __str__(self):
-        return f"Thread for Order {self.order.id}"
+        if self.order_type == "special":
+            return f"Special Order #{self.special_order.id} Thread"
+        return f"Standard Order #{self.order.id} Thread"
 
 
 class OrderMessage(models.Model):

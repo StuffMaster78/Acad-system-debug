@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     WriterProfileViewSet, WriterLevelViewSet, WriterConfigViewSet, WriterOrderRequestViewSet, WriterOrderTakeViewSet,
-    WriterPayoutPreferenceViewSet, WriterPaymentViewSet, PaymentHistoryViewSet, WriterEarningsHistoryViewSet,
+    WriterPayoutPreferenceViewSet, WriterPaymentViewSet, WriterEarningsHistoryViewSet,
     WriterEarningsReviewRequestViewSet, WriterRewardViewSet, WriterRewardCriteriaViewSet, ProbationViewSet,
     WriterPenaltyViewSet, WriterSuspensionViewSet, WriterActionLogViewSet, WriterSupportTicketViewSet,
     WriterDeadlineExtensionRequestViewSet, WriterOrderHoldRequestViewSet, WriterOrderReopenRequestViewSet,
@@ -24,7 +24,7 @@ router.register(r'order-takes', WriterOrderTakeViewSet, basename='writer-order-t
 ### ---------------- Payment & Earnings Routes ---------------- ###
 router.register(r'payout-preferences', WriterPayoutPreferenceViewSet, basename='writer-payout-preference')
 router.register(r'payments', WriterPaymentViewSet, basename='writer-payment')
-router.register(r'payment-history', PaymentHistoryViewSet, basename='writer-payment-history')
+# router.register(r'payment-history', PaymentHistoryViewSet, basename='writer-payment-history')
 router.register(r'earnings-history', WriterEarningsHistoryViewSet, basename='writer-earnings-history')
 router.register(r'earnings-reviews', WriterEarningsReviewRequestViewSet, basename='writer-earnings-review')
 
