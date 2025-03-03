@@ -6,7 +6,7 @@ from decimal import Decimal
 from wallet.models import Wallet
 from django.core.exceptions import ValidationError
 from discounts.models import Discount 
-
+from django.utils.timezone import now
 
 class OrderPayment(models.Model):
     """
@@ -15,6 +15,8 @@ class OrderPayment(models.Model):
     """
     STATUS_CHOICES = [
         ("pending", "Pending"),
+        ("unpaid", "Unpaid"),
+        ("paid", "Paid"),
         ("completed", "Completed"),
         ("failed", "Failed"),
         ("refunded", "Refunded"),
@@ -59,40 +61,73 @@ class OrderPayment(models.Model):
     payment_method = models.CharField(max_length=50, blank=True, null=True)
     date_processed = models.DateTimeField(auto_now_add=True)
 
+    refund_reason = models.TextField(blank=True, null=True)
+    refunded_at = models.DateTimeField(blank=True, null=True)
+
     def __str__(self):
         return f"Payment {self.transaction_id} - {self.status} - ${self.discounted_amount}"
 
-    def apply_discount(self, discount_code):
-        """
-        Fetches and applies a discount from the Discounts App before payment.
-        Validates the discount and updates the final amount.
-        Prevents duplicate discount applications.
-        """
-        if self.discount:
-            raise ValidationError("A discount has already been applied to this payment.")
+    # def apply_discount(self, discount_code):
+    #     """
+    #     Fetches and applies a discount from the Discounts App before payment.
+    #     Validates the discount and updates the final amount.
+    #     Prevents duplicate discount applications.
+    #     """
+    #     if self.discount:
+    #         raise ValidationError("A discount has already been applied to this payment.")
 
+    #     try:
+    #         discount = Discount.objects.get(code=discount_code)
+    #         if not discount.is_valid():
+    #             raise ValidationError("This discount code is expired or inactive.")
+    #         if discount.min_order_value and self.original_amount < discount.min_order_value:
+    #             raise ValidationError(
+    #                 f"Minimum order value for this discount is ${discount.min_order_value}."
+    #             )
+
+    #         # Calculate discount value
+    #         discount_value = discount.value if discount.discount_type == "fixed" else (
+    #             discount.value / 100) * self.original_amount
+
+    #         self.discounted_amount = max(self.original_amount - discount_value, 0)
+
+    #         # Assign discount and increment usage count
+    #         self.discount = discount
+    #         discount.increment_usage()
+    #         self.save()
+
+    #     except Discount.DoesNotExist:
+    #         raise ValidationError("Invalid discount code.")
+
+    def apply_discount(self, discount_code):
+        """Apply discount to the payment."""
+        if self.discount:
+            raise ValidationError("A discount has already been applied.")
+
+        discount = self.get_valid_discount(discount_code)
+        discount_value = self.calculate_discount_value(discount)
+        
+        self.discounted_amount = max(self.original_amount - discount_value, 0)
+        self.discount = discount
+        discount.increment_usage()
+        self.save()
+
+    def get_valid_discount(self, discount_code):
+        """Fetch and validate discount."""
         try:
             discount = Discount.objects.get(code=discount_code)
             if not discount.is_valid():
                 raise ValidationError("This discount code is expired or inactive.")
             if discount.min_order_value and self.original_amount < discount.min_order_value:
-                raise ValidationError(
-                    f"Minimum order value for this discount is ${discount.min_order_value}."
-                )
-
-            # Calculate discount value
-            discount_value = discount.value if discount.discount_type == "fixed" else (
-                discount.value / 100) * self.original_amount
-
-            self.discounted_amount = max(self.original_amount - discount_value, 0)
-
-            # Assign discount and increment usage count
-            self.discount = discount
-            discount.increment_usage()
-            self.save()
-
+                raise ValidationError(f"Minimum order value for this discount is ${discount.min_order_value}.")
+            return discount
         except Discount.DoesNotExist:
             raise ValidationError("Invalid discount code.")
+
+    def calculate_discount_value(self, discount):
+        """Calculate discount value based on type."""
+        return discount.value if discount.discount_type == "fixed" else (discount.value / 100) * self.original_amount
+
 
     def verify_payment(self):
         """
@@ -137,10 +172,30 @@ class OrderPayment(models.Model):
         self.status = "failed"
         self.save()
 
-    def refund(self):
+    def mark_as_paid(self):
+        """Mark the order as paid if a completed payment exists."""
+        self.status = "paid"
+        self.save(update_fields=["status"])
+
+    def mark_as_unpaid(self):
+        """Mark the order as unpaid if all payments are refunded."""
+        self.status = "unpaid"
+        self.save(update_fields=["status"])
+
+    def refund(self, reason=None):
         """Marks the transaction as refunded."""
+        if self.status not in ["completed"]:
+            raise ValueError("Only completed payments can be refunded.")
+
         self.status = "refunded"
+        self.refund_reason = reason if reason else "No reason provided"
+        self.refunded_at = now()
         self.save()
+
+        # Check if all payments for this order are refunded
+        if not OrderPayment.objects.filter(order=self.order, status="completed").exists():
+            self.order.mark_as_unpaid()
+
 
     def update_order_status(self):
         """Updates the status of the associated order after payment completion."""
@@ -173,15 +228,43 @@ class OrderPayment(models.Model):
             )
 
     def process_wallet_payment(self):
-        """Deducts the amount from the client's wallet instead of external payment."""
-        wallet = Wallet.objects.get(user=self.client)
-        if wallet.balance >= self.discounted_amount:
-            wallet.balance -= self.discounted_amount
-            wallet.save()
-            self.mark_completed()
-        else:
-            raise ValueError("Insufficient wallet balance")
+        """Deducts the amount from the client's wallet."""
+        wallet = Wallet.objects.select_for_update().get(user=self.client)
+        if wallet.balance < self.discounted_amount:
+            raise ValueError("Insufficient wallet balance.")
 
+        wallet.balance -= self.discounted_amount
+        wallet.save()
+        self.mark_completed()
+
+    def clean(self):
+        """Enforce business rules for payment status transitions."""
+
+        if self.status == "completed":
+            # Prevent multiple completed payments for the same order
+            if OrderPayment.objects.filter(order=self.order, status="completed").exclude(id=self.id).exists():
+                raise ValidationError("This order has already been paid for.")
+
+            # Prevent marking a refunded payment as completed
+            if self.pk and OrderPayment.objects.filter(id=self.pk, status="refunded").exists():
+                raise ValidationError("A refunded payment cannot be marked as completed again.")
+
+        if self.status == "refunded":
+            # Prevent refunding a payment that isn't completed
+            if not OrderPayment.objects.filter(id=self.pk, status="completed").exists():
+                raise ValidationError("Only completed payments can be refunded.")
+
+    def save(self, *args, **kwargs):
+        self.clean()  # Ensure validation before saving
+        super().save(*args, **kwargs)
+
+        # Automatically mark order as paid if a completed payment exists
+        if self.status == "completed":
+            self.order.mark_as_paid()
+
+        # Automatically mark order as unpaid if all payments are refunded
+        elif self.status == "refunded" and not OrderPayment.objects.filter(order=self.order, status="completed").exists():
+            self.order.mark_as_unpaid()
 
 class DiscountUsage(models.Model):
     discount = models.ForeignKey(Discount, on_delete=models.CASCADE, related_name="usage_logs")
@@ -200,7 +283,8 @@ class FailedPayment(models.Model):
     failure_reason = models.TextField()
     failed_at = models.DateTimeField(default=timezone.now)
     retry_count = models.PositiveIntegerField(default=0)
-
+    updated_at = models.DateTimeField(auto_now=True)
+    
     def retry_payment(self):
         """Retry failed payment (Triggered via Celery Task)."""
         if self.retry_count < 3:  # Limit retries to avoid abuse
@@ -379,6 +463,14 @@ class Refund(models.Model):
 
         if self.amount > self.payment.discounted_amount:
             raise ValidationError("Refund amount cannot exceed the paid amount.")
+        
+        # Prevent multiple refunds on the same payment
+        total_refunded = Refund.objects.filter(payment=self.payment, status="processed").aggregate(
+            total=models.Sum("amount")
+        )["total"] or 0
+
+        if total_refunded + self.amount > self.payment.discounted_amount:
+            raise ValidationError("Refund exceeds total paid amount.")
 
         if self.refund_method == "wallet":
             # Process refund to the wallet
@@ -392,8 +484,9 @@ class Refund(models.Model):
             self.save()
 
             # Mark payment as refunded
-            self.payment.status = "refunded"
-            self.payment.save()
+            if total_refunded + self.amount >= self.payment.discounted_amount:
+                self.payment.status = "refunded"
+                self.payment.save()
 
         elif self.refund_method == "external":
             # Admin manually refunds externally (e.g., PayPal/Stripe)
@@ -413,6 +506,13 @@ class Refund(models.Model):
             )
 
         # Log refund action for writer payments app to reference
+        # Log the refund action
+        PaymentLog.log_event(
+            self.payment,
+            "Refund Processed",
+            f"Refund of ${self.amount} ({self.refund_method}) processed by {admin_user.username}."
+        )
+
         self.log_refund_for_writer_app(admin_user)
 
     def log_refund_for_writer_app(self, admin_user):
@@ -449,21 +549,17 @@ class SplitPayment(models.Model):
 
     @classmethod
     def process_split_payment(cls, payment, split_data):
-        """
-        Processes a split payment by breaking it into multiple transactions.
-        Ensures the total split amount matches the original payment amount.
-        """
+        """Processes split payments using bulk create."""
         total_paid = sum(data['amount'] for data in split_data)
-        if total_paid != payment.amount:
+        if total_paid != payment.discounted_amount:
             raise ValueError("Total split payments do not match order amount.")
 
-        for data in split_data:
-            cls.objects.create(
-                payment=payment, method=data['method'], amount=data['amount']
-            )
+        split_payments = [cls(payment=payment, method=data['method'], amount=data['amount']) for data in split_data]
+        cls.objects.bulk_create(split_payments)
 
         if total_paid == payment.discounted_amount:
             payment.mark_completed()
+
 
 
 class AdminLog(models.Model):

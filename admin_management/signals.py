@@ -113,7 +113,7 @@ def log_admin_suspensions(sender, instance, **kwargs):
     if instance.pk:
         old_instance = User.objects.get(pk=instance.pk)
         if not old_instance.is_suspended and instance.is_suspended:  # Log only when suspension is new
-            AdminLog.objects.create(
+            AdminActivityLog.objects.create(
                 admin=instance,
                 action=f"Suspended {instance.username}."
             )

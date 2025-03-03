@@ -1,7 +1,8 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.utils.timezone import now
-from django.conf import settings  # ✅ Import settings
+from datetime import timedelta
+from django.conf import settings 
 from .models import (
     OrderPayment, Refund, PaymentNotification, PaymentDispute, 
     PaymentLog, FailedPayment, AdminLog
@@ -9,6 +10,7 @@ from .models import (
 from notifications_system.models import Notification
 import logging
 from django.db import models
+from django.core.exceptions import ValidationError
 
 logger = logging.getLogger(__name__)
 
@@ -19,40 +21,69 @@ def update_order_status(sender, instance, created, **kwargs):
     Sends a notification to the client and logs payment events.
     """
     if instance.status == "completed":
-        if instance.order:
-            instance.order.mark_paid()
-        elif instance.special_order:
-            instance.special_order.update_payment_status()
-
-        # Notify client
-        Notification.create_notification(
-            user=instance.client,
-            message=f"Your payment of ${instance.discounted_amount} was successful!"
-        )
-
-        # Log successful payment
-        PaymentLog.log_event(
-            payment=instance,
-            event="Payment Completed",
-            details=f"Payment {instance.transaction_id} completed for ${instance.discounted_amount}."
-        )
+        process_successful_payment(instance)
 
     elif instance.status == "failed":
-        # Log and track failed payments
-        failed_payment, created = FailedPayment.objects.get_or_create(
-            payment=instance,
-            client=instance.client,
-            defaults={"failure_reason": "Payment failed"}
-        )
-        if not created:
-            failed_payment.retry_count += 1
-            failed_payment.save()
+        handle_failed_payment(instance)
 
-        # If too many failures, notify admin
-        if failed_payment.retry_count >= 3:
+
+def process_successful_payment(instance):
+    """Handles order status update, logging, and notification for successful payments."""
+    if instance.order:
+        instance.order.mark_paid()
+    elif instance.special_order:
+        instance.special_order.update_payment_status()
+    else:
+        logger.error(f"Payment {instance.transaction_id} completed, but no order reference found.")
+
+    # Notify client
+    Notification.create_notification(
+        user=instance.client,
+        message=f"Your payment of ${instance.discounted_amount} was successful!"
+    )
+
+    # Log successful payment
+    PaymentLog.log_event(
+        payment=instance,
+        event="Payment Completed",
+        details=f"Payment {instance.transaction_id} completed for ${instance.discounted_amount}."
+    )
+
+
+def handle_failed_payment(instance):
+    """Handles logging, retry tracking, and notifications for failed payments."""
+    failed_payment, created = FailedPayment.objects.get_or_create(
+        payment=instance,
+        client=instance.client,
+        defaults={"failure_reason": "Payment failed"}
+    )
+    if not created:
+        failed_payment.retry_count += 1
+        failed_payment.save()
+
+     # A Safeguard: Ensure client exists before notifying
+    if instance.client:
+        # Notify client only on first failure
+        if created or failed_payment.retry_count == 1:
             Notification.create_notification(
                 user=instance.client,
-                message="Your payment attempt failed multiple times. Contact support."
+                message="Your payment attempt failed. Please try again."
+            )
+
+    # Notify client only on first failure
+    if created or failed_payment.retry_count == 1:
+        Notification.create_notification(
+            user=instance.client,
+            message="Your payment attempt failed. Please try again."
+        )
+
+    # If too many failures in 24 hours, alert admin
+    if failed_payment.retry_count >= 3:
+        last_failure = failed_payment.updated_at
+        if last_failure and now() - last_failure < timedelta(hours=24):
+            Notification.create_notification(
+                user=instance.client,
+                message="Multiple failed payments detected. Contact support."
             )
             AdminLog.log_action(
                 admin=None,
@@ -61,18 +92,12 @@ def update_order_status(sender, instance, created, **kwargs):
                         f"{failed_payment.retry_count} times."
             )
 
-        # Notify client
-        Notification.create_notification(
-            user=instance.client,
-            message="Your payment attempt failed. Please try again."
-        )
-
-        # Log failure
-        PaymentLog.log_event(
-            payment=instance,
-            event="Payment Failed",
-            details=f"Payment {instance.transaction_id} failed."
-        )
+    # Log failure
+    PaymentLog.log_event(
+        payment=instance,
+        event="Payment Failed",
+        details=f"Payment {instance.transaction_id} failed."
+    )
 
 
 @receiver(post_save, sender=Refund)
@@ -81,24 +106,24 @@ def process_refund_action(sender, instance, created, **kwargs):
     Updates the OrderPayment status when a refund is processed.
     Ensures the transaction data is consistent.
     """
-    if created and instance.status == "processed":
-        # Mark the original payment as refunded
-        instance.payment.status = "refunded"
-        instance.payment.save()
+    if instance.status == "processed" and getattr(instance, "processed_at", None):
+        if instance.payment:
+            instance.payment.status = "refunded"
+            instance.payment.save()
 
-        # Log refund event
-        PaymentLog.log_event(
-            payment=instance.payment,
-            event="Refund Processed",
-            details=f"Refund of ${instance.amount} issued to {instance.client.username}."
-        )
+            # Log refund event
+            PaymentLog.log_event(
+                payment=instance.payment,
+                event="Refund Processed",
+                details=f"Refund of ${instance.amount} issued to {instance.client.username}."
+            )
 
-        # Log refund action for admin tracking
-        AdminLog.log_action(
-            admin=instance.processed_by,
-            action="Refund Issued",
-            details=f"Refund of ${instance.amount} processed for client {instance.client.username}."
-        )
+            # Log refund action for admin tracking
+            AdminLog.log_action(
+                admin=instance.processed_by,
+                action="Refund Issued",
+                details=f"Refund of ${instance.amount} processed for client {instance.client.username}."
+            )
 
 
 @receiver(post_save, sender=PaymentDispute)
@@ -144,14 +169,14 @@ def log_dispute_action(sender, instance, created, **kwargs):
 
 @receiver(pre_save, sender=OrderPayment)
 def validate_duplicate_payment(sender, instance, **kwargs):
-    """
-    Prevents duplicate payments for the same order or special order.
-    """
     if instance.status == "completed":
-        existing_payment = OrderPayment.objects.filter(
-            (models.Q(order=instance.order) | models.Q(special_order=instance.special_order)),
-            status="completed"
-        ).exclude(id=instance.id).exists()
+        query = models.Q()
+        if instance.order:
+            query |= models.Q(order=instance.order)
+        if instance.special_order:
+            query |= models.Q(special_order=instance.special_order)
+
+        existing_payment = OrderPayment.objects.filter(query, status="completed").exclude(id=instance.id).exists()
 
         if existing_payment:
-            raise ValueError("This order has already been paid for.")
+            raise ValidationError("This order has already been paid for.")

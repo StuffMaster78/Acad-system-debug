@@ -16,8 +16,8 @@ def get_blacklisted_user_model():
     return BlacklistedUser
 
 def get_admin_log_model():
-    from admin_management.models import AdminLog
-    return AdminLog
+    from admin_management.models import AdminActivityLog
+    return AdminActivityLog
 
 class AdminManager:
     """Handles all Admin operations, including user creation, suspensions, and permission assignments."""
@@ -44,8 +44,8 @@ class AdminManager:
             )
 
             # Log action
-            AdminLog = get_admin_log_model()
-            AdminLog.objects.create(
+            AdminActivityLog = get_admin_log_model()
+            AdminActivityLog.objects.create(
                 admin=admin,
                 action=f"Created user {username} with role {role}."
             )

@@ -49,3 +49,12 @@ def notify_writer(order_id):
     except Exception as e:
         logger.error(f"Error in notify_writer task: {e}")
         return f"Error in notify_writer task: {e}"
+    
+
+
+# Email notification to the client
+@shared_task
+def send_order_completion_email(client_email, client_username, order_id):
+    subject = "Your Order is Completed!"
+    message = f"Dear {client_username},\n\nYour order #{order_id} has been marked as completed."
+    send_mail(subject, message, "no-reply@yourdomain.com", [client_email], fail_silently=True)

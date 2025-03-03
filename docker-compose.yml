@@ -18,7 +18,7 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}  # Load database name
+      POSTGRES_DB: ${POSTGRES_DB_NAME}  # Load database name
       POSTGRES_USER: ${POSTGRES_USER}  # Load database user
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Load database password
     volumes:
@@ -32,11 +32,12 @@ services:
       retries: 5
 
   redis:
-    image: redis:7
+    image: redis:latest
+    restart: always
     ports:
       - "6379:6379"  # Expose Redis (can remove for production)
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-h", "localhost", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3

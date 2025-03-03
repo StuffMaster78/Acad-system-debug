@@ -5,6 +5,15 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import Q
 from django.utils import timezone
 from django.db.models.functions import Coalesce
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError
+from rest_framework.pagination import PageNumberPagination
+import logging
+from rest_framework.decorators import action
+from django.db import transaction
+from django.db.models import Sum 
+
+
 from .models import (
     OrderPayment, Refund, PaymentNotification, PaymentLog,
     PaymentDispute, DiscountUsage, SplitPayment, AdminLog,
@@ -13,9 +22,76 @@ from .models import (
 from .serializers import (
     TransactionSerializer, PaymentNotificationSerializer,
     PaymentLogSerializer, PaymentDisputeSerializer, DiscountUsageSerializer,
-    AdminLogSerializer, PaymentReminderSettingsSerializer
+    AdminLogSerializer, PaymentReminderSettingsSerializer, RefundSerializer
 )
-from rest_framework.pagination import PageNumberPagination
+from .permissions import IsSuperadminOrAdmin
+
+logger = logging.getLogger(__name__)
+
+class OrderPaymentViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for handling order payments, including refunds.
+    """
+    queryset = OrderPayment.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+    http_method_names = ["get", "post", "patch", "delete"]  # Limit methods if needed
+
+    def refund_payment(self, request, pk=None):
+        """
+        Admin/Superadmin can refund a completed payment.
+        """
+        payment = get_object_or_404(OrderPayment, pk=pk)
+
+        if payment.status != "completed":
+            return Response(
+                {"error": "Only completed payments can be refunded."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        reason = request.data.get("reason", "No reason provided")
+
+        try:
+            payment.refund(reason)
+            return Response(
+                {"message": "Payment refunded successfully."},
+                status=status.HTTP_200_OK
+            )
+        except ValueError as e:
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    # @action(detail=True, methods=["post"])
+    # def retry_payment(self, request, pk=None):
+    #     """
+    #     Allows retrying a failed payment.
+    #     """
+    #     payment = get_object_or_404(OrderPayment, pk=pk)
+
+    #     if payment.status != "failed":
+    #         return Response({"error": "Only failed payments can be retried."}, 
+    #                         status=status.HTTP_400_BAD_REQUEST)
+
+    #     try:
+    #         payment.retry()  # Assuming your model has a retry method
+    #         return Response({"message": "Payment retry initiated."}, status=status.HTTP_200_OK)
+    #     except Exception as e:
+    #         return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(detail=True, methods=["post"])
+    def cancel_payment(self, request, pk=None):
+        """
+        Allows an admin to cancel a pending payment.
+        """
+        payment = get_object_or_404(OrderPayment, pk=pk)
+
+        if payment.status not in ["pending", "failed"]:
+            return Response({"error": "Only pending or failed payments can be canceled."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        payment.status = "canceled"
+        payment.save()
+
+        return Response({"message": "Payment canceled successfully."}, status=status.HTTP_200_OK)
 
 
 class TransactionPagination(PageNumberPagination):
@@ -48,29 +124,30 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
         user = self.request.user
         transaction_type = self.request.query_params.get("transaction_type", None)
 
-        # Base query logic
+        # Optimize QuerySet filtering
         if user.is_staff:
-            transactions = list(OrderPayment.objects.all()) + \
-                           list(Refund.objects.all()) + \
-                           list(SplitPayment.objects.all())
+            queryset = OrderPayment.objects.all().union(
+                Refund.objects.all(),
+                SplitPayment.objects.all()
+            )
         else:
-            transactions = list(OrderPayment.objects.filter(client=user)) + \
-                           list(Refund.objects.filter(client=user)) + \
-                           list(SplitPayment.objects.filter(payment__client=user))
+            queryset = OrderPayment.objects.filter(client=user).union(
+                Refund.objects.filter(client=user),
+                SplitPayment.objects.filter(payment__client=user)
+            )
 
         # Filter by transaction type
         if transaction_type:
-            if transaction_type == "payment":
-                transactions = [t for t in transactions if isinstance(t, OrderPayment)]
-            elif transaction_type == "refund":
-                transactions = [t for t in transactions if isinstance(t, Refund)]
-            elif transaction_type == "split_payment":
-                transactions = [t for t in transactions if isinstance(t, SplitPayment)]
+            model_mapping = {
+                "payment": OrderPayment,
+                "refund": Refund,
+                "split_payment": SplitPayment
+            }
+            model = model_mapping.get(transaction_type)
+            if model:
+                queryset = queryset.filter(id__in=model.objects.values_list("id", flat=True))
 
-        # Sort transactions by date (latest first)
-        transactions.sort(key=lambda x: getattr(x, "date_processed", timezone.now()), reverse=True)
-
-        return transactions
+        return queryset.order_by("-date_processed")
 
 
 class PaymentNotificationViewSet(viewsets.ReadOnlyModelViewSet, mixins.UpdateModelMixin):
@@ -116,6 +193,22 @@ class PaymentDisputeViewSet(viewsets.ModelViewSet):
         """Ensures the dispute is linked to the requesting user."""
         serializer.save(client=self.request.user)
 
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminUser])
+    def escalate(self, request, pk=None):
+        """
+        Escalates a dispute for further review.
+        """
+        dispute = get_object_or_404(PaymentDispute, pk=pk)
+
+        if dispute.status not in ["pending", "under_review"]:
+            return Response({"error": "Only pending or under review disputes can be escalated."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        dispute.status = "escalated"
+        dispute.save()
+
+        return Response({"message": "Dispute escalated successfully."}, status=status.HTTP_200_OK)
+
 
 class DiscountUsageViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -152,3 +245,86 @@ class PaymentReminderSettingsViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Ensures only one global settings entry is retrieved."""
         return PaymentReminderSettings.objects.all()[:1]
+    
+
+class RefundViewSet(viewsets.ModelViewSet):
+    """
+    RESTful API for handling refunds.
+    - Admins can issue full or partial refunds.
+    - Clients can view their own refunds.
+    """
+    queryset = Refund.objects.select_related("payment", "client", "processed_by").all()
+    serializer_class = RefundSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ["client", "status"]
+
+    def get_permissions(self):
+        """Ensure only admins can create or approve refunds."""
+        if self.action in ["create", "partial_update", "update", "destroy"]:
+            return [IsSuperadminOrAdmin()]
+        return super().get_permissions()
+
+    def get_queryset(self):
+        """Clients see only their refunds; Admins see all refunds."""
+        user = self.request.user
+        return self.queryset if user.is_staff else self.queryset.filter(client=user)
+
+    def perform_create(self, serializer):
+        """Handles refund logic with transaction safety and business rules."""
+        user = self.request.user
+        request = self.request  # Get request from self.request
+        
+        if not user.is_staff:
+            return Response({"error": "Only admins can issue refunds."}, status=status.HTTP_403_FORBIDDEN)
+
+        payment_id = request.data.get("payment_id")
+        refund_amount = float(request.data.get("amount", 0))
+
+        with transaction.atomic():
+            payment = get_object_or_404(OrderPayment.objects.select_for_update(), transaction_id=payment_id)
+
+            # Validate refund conditions
+            total_refunded = Refund.objects.filter(payment=payment).aggregate(total=Sum("amount"))["total"] or 0
+            remaining_refundable = payment.amount_paid - total_refunded
+
+            if remaining_refundable <= 0:
+                return Response({"error": "This payment has already been fully refunded."}, status=status.HTTP_400_BAD_REQUEST)
+
+            if payment.status != "completed":
+                return Response({"error": "Only completed payments can be refunded."}, status=status.HTTP_400_BAD_REQUEST)
+
+            if payment.is_disputed:
+                return Response({"error": "Refund cannot be issued while payment is under dispute."}, status=status.HTTP_400_BAD_REQUEST)
+
+            if refund_amount > remaining_refundable:
+                return Response({"error": "Refund amount exceeds the remaining refundable amount."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Determine refund destination (original method or wallet)
+            refund_destination = "wallet" if payment.payment_method == "wallet" else "original"
+
+            # Create and process refund
+            refund = serializer.save(
+                payment=payment,
+                client=payment.client,
+                processed_by=user,
+                status="processed",
+                processed_at=timezone.now(),
+                amount=refund_amount
+            )
+
+            # Notify client
+            PaymentNotification.objects.create(
+                user=payment.client,
+                message=f"Your refund of {refund.amount} has been processed to your {refund_destination}."
+            )
+
+            return Response({"message": "Refund processed successfully."}, status=status.HTTP_200_OK)
+
+    def update(self, request, *args, **kwargs):
+        """Disallow updating refunds manually to maintain integrity."""
+        return Response({"error": "Refunds cannot be modified once processed."}, status=status.HTTP_403_FORBIDDEN)
+
+    def destroy(self, request, *args, **kwargs):
+        """Disallow refund deletion for audit tracking."""
+        return Response({"error": "Refunds cannot be deleted."}, status=status.HTTP_403_FORBIDDEN)

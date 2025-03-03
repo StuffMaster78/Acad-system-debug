@@ -1,13 +1,13 @@
-from django.urls import path
-from .views import ReferralViewSet, ReferralBonusConfigViewSet
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import ReferralViewSet, ReferralBonusConfigViewSet, ReferralAdminViewSet
+
+# Router setup
+router = DefaultRouter()
+router.register(r'referrals', ReferralViewSet, basename='referrals')
+router.register(r'referral-configs', ReferralBonusConfigViewSet, basename='referral-configs')
+router.register(r'admin/referrals', ReferralAdminViewSet, basename='admin-referrals')  # Register Admin ViewSet
 
 urlpatterns = [
-    # Referral management
-    path('referrals/', ReferralViewSet.as_view({'get': 'list', 'post': 'create'}), name='referrals-list'),
-    path('referrals/generate-code/', ReferralViewSet.as_view({'post': 'generate_code'}), name='generate-referral-code'),
-    path('referrals/credit-bonus/', ReferralViewSet.as_view({'post': 'credit_bonus'}), name='credit-referral-bonus'),
-
-    # Referral bonus configurations
-    path('referral-configs/', ReferralBonusConfigViewSet.as_view({'get': 'list', 'post': 'create'}), name='referral-config-list'),
-    path('referral-configs/<int:pk>/', ReferralBonusConfigViewSet.as_view({'get': 'retrieve', 'patch': 'partial_update', 'delete': 'destroy'}), name='referral-config-detail'),
+    path('', include(router.urls)),  # Includes all registered ViewSets
 ]

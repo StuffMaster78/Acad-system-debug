@@ -15,6 +15,12 @@ class Notification(WebsiteSpecificBaseModel):
         ('push', 'Push Notification'),
     )
 
+    CATEGORY_CHOICES = (
+        ('info', 'Info'),
+        ('warning', 'Warning'),
+        ('error', 'Error'),
+    )
+
     DELIVERY_STATUSES = (
         ('pending', 'Pending'),
         ('sent', 'Sent'),
@@ -42,6 +48,7 @@ class Notification(WebsiteSpecificBaseModel):
         default='pending',
         help_text="Delivery status of the notification."
     )
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
     sent_at = models.DateTimeField(null=True, blank=True, help_text="When the notification was sent.")
     created_at = models.DateTimeField(auto_now_add=True)
 

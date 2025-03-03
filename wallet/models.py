@@ -1,5 +1,6 @@
 from decimal import Decimal
 from django.db import models
+from datetime import timedelta
 from django.utils.timezone import now
 from core.models.base import WebsiteSpecificBaseModel
 from users.models import User
@@ -61,6 +62,7 @@ class WalletTransaction(WebsiteSpecificBaseModel):
         ('payment', 'Payment'),
         ('bonus', 'Bonus'),
         ('adjustment', 'Adjustment'),
+        ("referral_bonus", "Referral Bonus"),
     )
 
     wallet = models.ForeignKey(
@@ -85,6 +87,13 @@ class WalletTransaction(WebsiteSpecificBaseModel):
         help_text="Optional description for the transaction."
     )
     created_at = models.DateTimeField(auto_now_add=True)
+
+    expires_at = models.DateTimeField(null=True, blank=True)
+
+    def save(self, *args, **kwargs):
+        if self.transaction_type == "bonus" and not self.expires_at:
+            self.expires_at = now() + timedelta(days=30)  # Default to 30 days
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.transaction_type.capitalize()} of ${self.amount} for {self.wallet.user.username}"

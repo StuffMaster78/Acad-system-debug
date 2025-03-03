@@ -63,6 +63,7 @@ INSTALLED_APPS = [
 
     # Order Management
     'orders',
+    'order_payments_management',
     'order_files',
     'order_communications',
     'order_configs',
@@ -99,7 +100,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'myapp.middleware.BlacklistMiddleware',
+    'superadmin_management.middleware.BlacklistMiddleware',
 ]
 
 ROOT_URLCONF = 'writing_system.urls'
@@ -130,7 +131,7 @@ AUTH_USER_MODEL = 'users.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',  
-        'NAME': os.getenv('POSTGRES_DB'), #Database Name
+        'NAME': os.getenv('POSTGRES_DB_NAME'), #Database Name
         'USER': os.getenv('POSTGRES_USER'), #Database username
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'), #Database password
         "HOST": os.getenv("DB_HOST"),  # Hostname
@@ -139,10 +140,10 @@ DATABASES = {
 }
 
 
-print("Database:", os.getenv("POSTGRES_DB"))
+print("Database:", os.getenv("POSTGRES_DB_NAME"))
 print("User:", os.getenv("POSTGRES_USER"))
 print("Password:", os.getenv("POSTGRES_PASSWORD"))
-print("DATABASE NAME:", os.getenv('POSTGRES_DB'))
+print("DATABASE NAME:", os.getenv('POSTGRES_DB_NAME'))
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -236,13 +237,13 @@ CHANNEL_LAYERS = {
 
 
 # Email Settings
-EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
-EMAIL_HOST = "smtp.gmail.com"  # Or your email provider's SMTP host
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = "your-email@gmail.com"
-EMAIL_HOST_PASSWORD = "your-email-password"
-DEFAULT_FROM_EMAIL = "Your Project Name <your-email@gmail.com>"
+EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
+EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 
 
 

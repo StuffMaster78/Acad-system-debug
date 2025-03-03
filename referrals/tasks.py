@@ -23,3 +23,20 @@
 #         )
 #         referral.registration_bonus_credited = True
 #         referral.save()
+
+
+from celery import shared_task
+from django.utils.timezone import now
+from wallet.models import WalletTransaction
+
+@shared_task
+def expire_referral_bonuses():
+    expired_bonuses = WalletTransaction.objects.filter(
+        transaction_type="bonus", 
+        expires_at__lte=now(), 
+        is_expired=False
+    )
+    
+    for bonus in expired_bonuses:
+        bonus.is_expired = True
+        bonus.save()

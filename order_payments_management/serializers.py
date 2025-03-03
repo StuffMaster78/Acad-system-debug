@@ -8,7 +8,12 @@ from .models import (
 )
 from discounts.models import Discount
 
-
+class OrderPaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderPayment
+        fields = "__all__"
+        depth = 1
+        
 class TransactionSerializer(serializers.Serializer):
     """
     Unified serializer for handling all transactions:
@@ -28,9 +33,12 @@ class TransactionSerializer(serializers.Serializer):
 
     def get_order(self, instance):
         """Returns the order ID or Special Order ID associated with the transaction."""
-        if isinstance(instance, OrderPayment):
-            return instance.order.id if instance.order else instance.special_order.id
-        return instance.payment.order.id if instance.payment and instance.payment.order else None
+        if hasattr(instance, "order") and instance.order:
+            return instance.order.id
+        if hasattr(instance, "special_order") and instance.special_order:
+            return instance.special_order.id
+        return None
+
 
     def to_representation(self, instance):
         """
@@ -75,10 +83,11 @@ class PaymentNotificationSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "user", "payment", "created_at"]
 
     def update(self, instance, validated_data):
-        """Marks the notification as read."""
-        instance.is_read = validated_data.get("is_read", True)
+        """Marks the notification as read if requested."""
+        instance.is_read = validated_data.get("is_read", instance.is_read)
         instance.save()
         return instance
+
 
 
 class PaymentLogSerializer(serializers.ModelSerializer):
@@ -129,41 +138,43 @@ class DiscountUsageSerializer(serializers.ModelSerializer):
         fields = ["id", "discount", "user", "order", "special_order", "applied_at"]
         read_only_fields = ["id", "discount", "user", "order", "special_order", "applied_at"]
 
-# class SplitPaymentSerializer(serializers.ModelSerializer):
-#     """
-#     Serializer for handling split payments.
-#     Allows clients to pay using multiple methods (e.g., part wallet, part card).
-#     """
-#     payment = serializers.StringRelatedField(read_only=True)
+class SplitPaymentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for handling split payments.
+    Allows clients to pay using multiple methods (e.g., part wallet, part card).
+    """
+    payment = serializers.StringRelatedField(read_only=True)
 
-#     class Meta:
-#         model = SplitPayment
-#         fields = ["id", "payment", "method", "amount", "created_at"]
-#         read_only_fields = ["id", "payment", "created_at"]
+    class Meta:
+        model = SplitPayment
+        fields = ["id", "payment", "method", "amount", "created_at"]
+        read_only_fields = ["id", "payment", "created_at"]
 
-#     def validate(self, data):
-#         """Ensures the split payment does not exceed total amount due."""
-#         total_split = SplitPayment.objects.filter(payment=data["payment"]).aggregate(
-#             total=models.Sum("amount")
-#         )["total"] or 0
+    def validate(self, data):
+        """Ensures the split payment does not exceed total amount due."""
+        total_split = SplitPayment.objects.filter(payment=data["payment"]).aggregate(
+            total=models.Sum("amount")
+        )["total"] or 0
 
-#         if total_split + data["amount"] > data["payment"].discounted_amount:
-#             raise serializers.ValidationError("Split payments exceed total order amount.")
-#         return data
+        if total_split + data["amount"] > data["payment"].discounted_amount:
+            raise serializers.ValidationError("Total split payments cannot exceed the discounted amount.")
 
-#     def create(self, validated_data):
-#         """Processes split payments and checks completion."""
-#         split_payment = SplitPayment.objects.create(**validated_data)
+        return data
 
-#         # Check if the total amount has been fully covered
-#         total_paid = SplitPayment.objects.filter(payment=split_payment.payment).aggregate(
-#             total=models.Sum("amount")
-#         )["total"]
 
-#         if total_paid >= split_payment.payment.discounted_amount:
-#             split_payment.payment.mark_completed()
+    def create(self, validated_data):
+        """Processes split payments and checks completion."""
+        split_payment = SplitPayment.objects.create(**validated_data)
 
-#         return split_payment
+        # Check if the total amount has been fully covered
+        total_paid = SplitPayment.objects.filter(payment=split_payment.payment).aggregate(
+            total=models.Sum("amount")
+        )["total"]
+
+        if total_paid >= split_payment.payment.discounted_amount:
+            split_payment.payment.mark_completed()
+
+        return split_payment
 
 
 class AdminLogSerializer(serializers.ModelSerializer):
@@ -202,3 +213,23 @@ class PaymentReminderSettingsSerializer(serializers.ModelSerializer):
         admin_user = request.user if request and request.user.is_staff else None
         instance.admin = admin_user
         return super().update(instance, validated_data)
+    
+class RefundSerializer(serializers.ModelSerializer):
+    payment_id = serializers.CharField(source="payment.transaction_id", read_only=True)
+    client_username = serializers.CharField(source="client.username", read_only=True)
+    processed_by_username = serializers.CharField(source="processed_by.username", read_only=True)
+
+    class Meta:
+        model = Refund
+        fields = [
+            "id",
+            "payment_id",
+            "client_username",
+            "amount",
+            "reason",
+            "status",
+            "processed_by_username",
+            "processed_at",
+            "created_at",
+        ]
+        read_only_fields = ["id", "processed_at", "created_at", "processed_by_username", "payment_id", "client_username"]

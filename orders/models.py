@@ -11,8 +11,8 @@ from users.models import User
 from core.models.base import WebsiteSpecificBaseModel
 from django.core.mail import send_mail
 from django.apps import apps 
-
-
+from django.core.validators import MinValueValidator, MaxValueValidator
+from orders.tasks import send_order_completion_email
 
 STATUS_CHOICES = [
     ('unpaid', 'Unpaid'),
@@ -84,12 +84,11 @@ class Order(WebsiteSpecificBaseModel):
         limit_choices_to={'role': 'writer'},
         help_text="Preferred writer for this order."
     )
-    discount_code = models.ForeignKey(
+    discount = models.ForeignKey(
         Discount,
-        on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="Discount code applied to this order."
+        on_delete=models.SET_NULL
     )
     writer_quality = models.ForeignKey(
         'pricing_configs.WriterQuality',
@@ -157,8 +156,8 @@ class Order(WebsiteSpecificBaseModel):
         max_length=3, choices=FLAG_CHOICES, null=True, blank=True, help_text="System-assigned or admin-set order flag."
     )
     deadline = models.DateTimeField(help_text="The deadline for the order.")
-    total_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Total cost of the order.")
-    writer_compensation = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Compensation for the writer.")
+    total_cost = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=Decimal('0.00'), help_text="Total cost of the order.")
+    writer_compensation = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, default=Decimal('0.00'), help_text="Compensation for the writer.")
     writer_deadline = models.DateTimeField(null=True, blank=True, help_text="Writer's deadline.")
     is_paid = models.BooleanField(default=False, help_text="Indicates if the order is paid.")
     created_by_admin = models.BooleanField(default=False, help_text="Indicates if the order was created by an admin.")
@@ -174,7 +173,7 @@ class Order(WebsiteSpecificBaseModel):
         Updates the order status when payment status changes in orders_payments_management.
         """
         Payment = apps.get_model('orders_payments_management', 'OrderPayment')
-        payment = Payment.objects.filter(order=self).first()
+        payment = Payment.objects.filter(order=self).order_by('-created_at').first()  # Ensure latest payment
 
         if payment:
             if payment.status == 'paid' and self.status == 'unpaid':
@@ -197,15 +196,9 @@ class Order(WebsiteSpecificBaseModel):
             self.status = "completed"
             self.save()
 
-            # Notify the client about completion
+            # Send email notification asynchronously
             if self.client:
-                send_mail(
-                    subject="Your Order is Completed!",
-                    message=f"Dear {self.client.username},\n\nYour order #{self.id} has been marked as completed.",
-                    from_email="no-reply@yourdomain.com",
-                    recipient_list=[self.client.email],
-                    fail_silently=True,
-                )
+                send_order_completion_email.delay(self.client.email, self.client.username, self.id)
 
             return True
 
@@ -238,7 +231,7 @@ class WriterProgress(models.Model):
         related_name="progress_logs",
         help_text="The order associated with this progress log."
     )
-    progress = models.PositiveIntegerField(help_text="Progress percentage (0-100).")
+    progress = models.PositiveIntegerField(MinValueValidator(0), MaxValueValidator(100), help_text="Progress percentage (0-100).")
     text_description = models.TextField(null=True, blank=True, help_text="Optional update details.")
     timestamp = models.DateTimeField(auto_now_add=True)
 
@@ -313,6 +306,9 @@ class Dispute(WebsiteSpecificBaseModel):
 
         if self._state.adding:  # If this is a new dispute
             self.order.status = 'disputed'
+            # Reset writer_responded flag for new disputes
+            self.writer_responded = False  
+
             self.notify_users(
                 "New Dispute Raised",
                 f"A dispute has been raised for Order #{self.order.id}. Admin review is required."

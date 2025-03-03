@@ -15,7 +15,8 @@ from .serializers import SuperadminProfileSerializer, UserSerializer, Superadmin
 from .permissions import IsSuperadmin
 from .managers import SuperadminManager
 from .pagination import SuperadminPagination , SuperadminLogCursorPagination
-from orders.models import Order, Dispute, PaymentTransaction, Refund
+from orders.models import Order, Dispute
+from order_payments_management.models import OrderPayment
 from notifications_system.models import Notification
 from django_filters import rest_framework as filters
 from django.core.cache import cache
@@ -116,7 +117,7 @@ class SuperadminLogViewSet(viewsets.ModelViewSet):
 
 ### 🔹 5️⃣ Superadmin Dashboard (Web Interface)
 
-class SuperadminDashboardView(APIView):
+class SuperadminDashboardViewSet(viewsets.ViewSet):
     """API view for Superadmin Dashboard statistics."""
     permission_classes = [IsSuperadmin]
 
@@ -137,7 +138,7 @@ class SuperadminDashboardView(APIView):
         return {
             "total_users": User.objects.count(),
             "total_orders": Order.objects.count(),
-            "total_revenue": PaymentTransaction.objects.aggregate(Sum("amount"))["amount__sum"] or 0,
+            "total_revenue": OrderPayment.objects.aggregate(Sum("amount"))["amount__sum"] or 0,
         }
 
 
@@ -155,12 +156,13 @@ class SuperadminDashboardView(APIView):
             suspended_users=Count("id", filter=Q(is_suspended=True)),
         )
 
-        financial_stats = PaymentTransaction.objects.aggregate(
+        financial_stats = OrderPayment.objects.aggregate(
             total_revenue=Sum("amount", default=0),
             pending_payouts=Sum("amount", filter=Q(status="pending"), default=0)
         )
         
-        total_refunds = Refund.objects.aggregate(Sum("amount"))["amount__sum"] or 0
+        total_refunds = OrderPayment.objects.filter(status="refunded").aggregate(Sum("amount"))["amount__sum"] or 0
+
 
         order_stats = Order.objects.aggregate(
             total_orders=Count("id"),

@@ -1,13 +1,22 @@
-from django.urls import path
-from .views import SuperadminProfileViewSet, UserManagementViewSet, SuperadminLogViewSet
-from .views import superadmin_dashboard
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    SuperadminProfileViewSet,
+    UserManagementViewSet,
+    SuperadminLogViewSet,
+    SuperadminDashboardViewSet,
+)
 
+# Create router instance
+router = DefaultRouter()
+
+# Register ViewSets
+router.register(r"superadmin-profile", SuperadminProfileViewSet, basename="superadmin-profile")
+router.register(r"users", UserManagementViewSet, basename="users")
+router.register(r"logs", SuperadminLogViewSet, basename="logs")
+router.register(r"dashboard", SuperadminDashboardViewSet, basename="superadmin-dashboard")
+
+# Define urlpatterns
 urlpatterns = [
-    path('superadmin-profile/', SuperadminProfileViewSet.as_view({'get': 'list'})),
-    path('users/', UserManagementViewSet.as_view({'get': 'list_users', 'post': 'create_user'})),
-    path('suspend-user/', UserManagementViewSet.as_view({'post': 'suspend_user'})),
-    path('reactivate-user/', UserManagementViewSet.as_view({'post': 'reactivate_user'})),
-    path('change-role/', UserManagementViewSet.as_view({'post': 'change_user_role'})),
-    path('logs/', SuperadminLogViewSet.as_view({'get': 'list'})),
-    path("dashboard/", superadmin_dashboard, name="superadmin_dashboard"),
+    path("", include(router.urls)),  # Include all router-generated routes
 ]
