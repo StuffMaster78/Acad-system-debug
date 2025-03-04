@@ -12,7 +12,7 @@ from core.models.base import WebsiteSpecificBaseModel
 from django.core.mail import send_mail
 from django.apps import apps 
 from django.core.validators import MinValueValidator, MaxValueValidator
-from orders.tasks import send_order_completion_email
+import celery
 
 STATUS_CHOICES = [
     ('unpaid', 'Unpaid'),
@@ -197,8 +197,12 @@ class Order(WebsiteSpecificBaseModel):
             self.save()
 
             # Send email notification asynchronously
+            from orders.tasks import send_order_completion_email  
             if self.client:
-                send_order_completion_email.delay(self.client.email, self.client.username, self.id)
+               celery.current_app.send_task(
+                "orders.tasks.send_order_completion_email",
+                args=[self.client.email, self.client.username, self.id]
+            )
 
             return True
 
@@ -231,7 +235,7 @@ class WriterProgress(models.Model):
         related_name="progress_logs",
         help_text="The order associated with this progress log."
     )
-    progress = models.PositiveIntegerField(MinValueValidator(0), MaxValueValidator(100), help_text="Progress percentage (0-100).")
+    progress_percentage = models.PositiveIntegerField(validators=[MaxValueValidator(100)])
     text_description = models.TextField(null=True, blank=True, help_text="Optional update details.")
     timestamp = models.DateTimeField(auto_now_add=True)
 

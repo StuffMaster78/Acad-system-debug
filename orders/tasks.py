@@ -1,8 +1,9 @@
-from celery import shared_task
+from core.celery import shared_task
 from core.utils.notifications import send_notification
 from django.utils.timezone import now
 from orders.models import Order
 from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404
 import logging
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,7 @@ def notify_writer(order_id):
     Sends an in-app notification and an email.
     """
     try:
-        order = Order.objects.select_related('writer', 'client').get(id=order_id)
+        order = get_object_or_404(Order.objects.select_related('writer', 'client'), id=order_id)
 
         if not order.writer:
             logger.warning(f"No writer assigned for Order #{order.id}")
@@ -31,8 +32,10 @@ def notify_writer(order_id):
         if order.writer.email:
             send_mail(
                 subject="New Order Assignment",
-                message=f"Dear {order.writer.username},\n\nYou have been assigned a new order.\n\n"
-                        f"Order ID: {order.id}\nTopic: {order.topic}\n\n"
+                message=f"Dear {order.writer.username},\n\n"
+                        f"You have been assigned a new order.\n\n"
+                        f"Order ID: {order.id}\n"
+                        f"Topic: {order.topic}\n\n"
                         f"Please log in to your dashboard to view the details.",
                 from_email="no-reply@example.com",
                 recipient_list=[order.writer.email],
@@ -47,7 +50,7 @@ def notify_writer(order_id):
         return f"Order with ID {order_id} does not exist."
 
     except Exception as e:
-        logger.error(f"Error in notify_writer task: {e}")
+        logger.error(f"Error in notify_writer task: {e}", exc_info=True)
         return f"Error in notify_writer task: {e}"
     
 
@@ -55,6 +58,18 @@ def notify_writer(order_id):
 # Email notification to the client
 @shared_task
 def send_order_completion_email(client_email, client_username, order_id):
-    subject = "Your Order is Completed!"
-    message = f"Dear {client_username},\n\nYour order #{order_id} has been marked as completed."
-    send_mail(subject, message, "no-reply@yourdomain.com", [client_email], fail_silently=True)
+    """
+    Sends an email to the client when their order is marked as completed.
+    """
+    try:
+        subject = "Your Order is Completed!"
+        message = f"Dear {client_username},\n\nYour order #{order_id} has been marked as completed."
+        send_mail(
+            subject, message, "no-reply@yourdomain.com", [client_email], fail_silently=True
+        )
+        logger.info(f"Order completion email sent to {client_email} for Order #{order_id}")
+        return f"Order completion email sent to {client_email} for Order #{order_id}"
+
+    except Exception as e:
+        logger.error(f"Error sending order completion email: {e}", exc_info=True)
+        return f"Error sending order completion email: {e}"

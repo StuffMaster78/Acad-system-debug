@@ -7,6 +7,7 @@ from wallet.models import Wallet
 from django.core.exceptions import ValidationError
 from discounts.models import Discount 
 from django.utils.timezone import now
+from referrals.models import Referral, ReferralBonusConfig
 
 class OrderPayment(models.Model):
     """
@@ -64,53 +65,47 @@ class OrderPayment(models.Model):
     refund_reason = models.TextField(blank=True, null=True)
     refunded_at = models.DateTimeField(blank=True, null=True)
 
-    def __str__(self):
-        return f"Payment {self.transaction_id} - {self.status} - ${self.discounted_amount}"
 
-    # def apply_discount(self, discount_code):
-    #     """
-    #     Fetches and applies a discount from the Discounts App before payment.
-    #     Validates the discount and updates the final amount.
-    #     Prevents duplicate discount applications.
-    #     """
-    #     if self.discount:
-    #         raise ValidationError("A discount has already been applied to this payment.")
-
-    #     try:
-    #         discount = Discount.objects.get(code=discount_code)
-    #         if not discount.is_valid():
-    #             raise ValidationError("This discount code is expired or inactive.")
-    #         if discount.min_order_value and self.original_amount < discount.min_order_value:
-    #             raise ValidationError(
-    #                 f"Minimum order value for this discount is ${discount.min_order_value}."
-    #             )
-
-    #         # Calculate discount value
-    #         discount_value = discount.value if discount.discount_type == "fixed" else (
-    #             discount.value / 100) * self.original_amount
-
-    #         self.discounted_amount = max(self.original_amount - discount_value, 0)
-
-    #         # Assign discount and increment usage count
-    #         self.discount = discount
-    #         discount.increment_usage()
-    #         self.save()
-
-    #     except Discount.DoesNotExist:
-    #         raise ValidationError("Invalid discount code.")
-
-    def apply_discount(self, discount_code):
-        """Apply discount to the payment."""
+    def apply_discount(self, discount_code=None, referral_code=None):
+        """Apply discount to the payment, including potential referral discount."""
         if self.discount:
             raise ValidationError("A discount has already been applied.")
 
-        discount = self.get_valid_discount(discount_code)
-        discount_value = self.calculate_discount_value(discount)
-        
-        self.discounted_amount = max(self.original_amount - discount_value, 0)
-        self.discount = discount
-        discount.increment_usage()
+        # Apply discount from discount code if provided
+        if discount_code:
+            discount = self.get_valid_discount(discount_code)
+            discount_value = self.calculate_discount_value(discount)
+            self.discounted_amount = max(self.original_amount - discount_value, 0)
+            self.discount = discount
+            discount.increment_usage()
+
+        # Apply referral discount if referral code is provided
+        if referral_code:
+            referral = Referral.objects.filter(referral_code=referral_code).first()
+            if referral and referral.referred_user == self.client:
+                # Apply only if it's the referred user's first order
+                if self.order and self.order.user.orders.count() == 1:  # Check for first order
+                    referral_discount = self.apply_referral_discount(referral)
+                    self.discounted_amount = max(self.discounted_amount - referral_discount, 0)
+                    referral.first_order_referral_bonus_credited = True
+                    referral.save()
+
         self.save()
+
+    def apply_referral_discount(self, referral):
+        """Calculate and apply referral discount."""
+        # Assuming referral discount is stored in the Referral model, you can customize this logic
+        bonus_config = ReferralBonusConfig.objects.filter(website=referral.website).first()
+        if bonus_config:
+            if bonus_config.first_order_discount_type == 'percentage':
+                discount_value = (bonus_config.first_order_discount_amount / 100) * self.original_amount
+            elif bonus_config.first_order_discount_type == 'fixed':
+                discount_value = bonus_config.first_order_discount_amount
+            else:
+                discount_value = 0
+
+            return discount_value
+        return 0
 
     def get_valid_discount(self, discount_code):
         """Fetch and validate discount."""
@@ -265,6 +260,9 @@ class OrderPayment(models.Model):
         # Automatically mark order as unpaid if all payments are refunded
         elif self.status == "refunded" and not OrderPayment.objects.filter(order=self.order, status="completed").exists():
             self.order.mark_as_unpaid()
+
+    def __str__(self):
+        return f"Payment {self.transaction_id} - {self.status} - ${self.discounted_amount}"
 
 class DiscountUsage(models.Model):
     discount = models.ForeignKey(Discount, on_delete=models.CASCADE, related_name="usage_logs")

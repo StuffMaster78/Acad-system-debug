@@ -3,8 +3,8 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from websites.models import Website
 from django.apps import apps
-
-
+from decimal import Decimal
+from core.models.base import WebsiteSpecificBaseModel
 
 class LoyaltyTier(models.Model):
     """
@@ -166,3 +166,35 @@ class ClientBadge(models.Model):
 
     def __str__(self):
         return f"Badge: {self.badge_name} for {self.client.user.username}"
+    
+
+class LoyaltyPointsConversionConfig(WebsiteSpecificBaseModel):
+    """
+    Configurations for converting loyalty points into wallet balance.
+    """
+    website = models.OneToOneField(
+        'core.Website', on_delete=models.CASCADE, related_name="loyalty_points_conversion_config"
+    )
+    conversion_rate = models.DecimalField(
+        max_digits=5,
+        decimal_places=4,
+        default=Decimal('0.10'),
+        help_text="Rate at which loyalty points are converted to wallet balance."
+    )
+    min_conversion_points = models.PositiveIntegerField(
+        default=100,
+        help_text="Minimum number of points required for conversion."
+    )
+    max_conversion_limit = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('500.00'),
+        help_text="Maximum limit for conversion in wallet balance."
+    )
+    active = models.BooleanField(
+        default=True,
+        help_text="Indicates whether loyalty points conversion is currently enabled."
+    )
+
+    def __str__(self):
+        return f"Loyalty Points Conversion Config for {self.website.name}"

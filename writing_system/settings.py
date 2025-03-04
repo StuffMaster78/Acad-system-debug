@@ -13,6 +13,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 from datetime import timedelta
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -53,7 +54,8 @@ INSTALLED_APPS = [
     'channels',
     'django_countries',
     "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist", 
+    "rest_framework_simplejwt.token_blacklist",
+    "import_export", 
 
     # Core Project Apps
     'core',
@@ -73,6 +75,7 @@ INSTALLED_APPS = [
 
     # Financial Apps
     'wallet',
+    'client_wallet',
     'discounts',
     'referrals',
 
@@ -207,6 +210,8 @@ CACHES = {
 
 
 REST_FRAMEWORK = {
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
+    'DEFAULT_VERSION': '1.0',
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
@@ -303,3 +308,33 @@ AUTHENTICATION_BACKENDS = [
     "admin_management.auth.BlacklistAuthenticationBackend",  # Custom authentication
     "django.contrib.auth.backends.ModelBackend",  # Default Django authentication
 ]
+
+
+
+
+CELERY_BEAT_SCHEDULE = {
+    'expire-referral-bonuses': {
+        'task': 'your_app.tasks.expire_referral_bonuses',
+        'schedule': crontab(hour=0, minute=0),  # Run daily at midnight
+    },
+    'notify-referral-bonus-expiration': {
+        'task': 'your_app.tasks.notify_referral_bonus_expiration',
+        'schedule': crontab(hour=9, minute=0),  # Run daily at 9 AM
+    },
+    'decay-referral-bonuses': {
+        'task': 'your_app.tasks.decay_referral_bonuses',
+        'schedule': crontab(hour=0, minute=0),  # Run daily at midnight
+    },
+    'expire-referral-bonus-every-night': {
+        'task': 'client_wallet.tasks.expire_referral_bonus',
+        'schedule': timedelta(days=1),  # Run once every day
+    },
+    'adjust-wallet-balance-for-referrals': {
+        'task': 'client_wallet.tasks.adjust_wallet_balance_for_referrals',
+        'schedule': timedelta(days=1),  # Run once every day
+    },
+    'check-and-update-loyalty-points': {
+        'task': 'client_wallet.tasks.check_and_update_loyalty_points',
+        'schedule': timedelta(days=7),  # Run once every week
+    },
+}

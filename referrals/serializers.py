@@ -1,63 +1,99 @@
 from rest_framework import serializers
-from .models import Referral, ReferralBonusConfig, ReferralCode
+from .models import (
+    Referral, ReferralBonusConfig, ReferralCode, ReferralStats, ReferralBonusDecay
+)
+from users.models import User
+from websites.models import Website
+from wallet.models import WalletTransaction
+
+class UserSerializer(serializers.ModelSerializer):
+    """Serializer for the User model."""
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email']
+
+
+class WebsiteSerializer(serializers.ModelSerializer):
+    """Serializer for the Website model."""
+    class Meta:
+        model = Website
+        fields = ['id', 'name', 'domain']
 
 
 class ReferralSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the Referral model.
-    Displays usernames instead of just IDs.
-    """
-    referrer = serializers.StringRelatedField()
-    referee = serializers.StringRelatedField()
-    referral_code = serializers.StringRelatedField(read_only=True)
+    """Serializer for the Referral model."""
+    referrer = UserSerializer(read_only=True)
+    referee = UserSerializer(read_only=True)
+    website = WebsiteSerializer(read_only=True)
 
     class Meta:
         model = Referral
         fields = [
-            'id', 'referrer', 'referee', 'referral_code', 'created_at',
-            'registration_bonus_credited', 'first_order_bonus_credited'
+            'id', 'referrer', 'website', 'referee',
+            'referral_code', 'created_at', 'bonus_awarded'
         ]
-        read_only_fields = ['created_at', 'registration_bonus_credited', 'first_order_bonus_credited']
+        read_only_fields = ['created_at', 'bonus_awarded']
 
 
 class ReferralBonusConfigSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the ReferralBonusConfig model.
-    """
+    """Serializer for the ReferralBonusConfig model."""
+    website = WebsiteSerializer(read_only=True)
+
     class Meta:
         model = ReferralBonusConfig
         fields = [
-            'id', 'website', 'registration_bonus', 'first_order_bonus', 'referee_discount'
+            'id', 'website', 'first_order_bonus',
+            'max_referrals_per_month', 'max_referral_bonus_per_month'
         ]
 
 
 class ReferralCodeSerializer(serializers.ModelSerializer):
-    """
-    Serializer for the ReferralCode model with validation.
-    """
-    code = serializers.CharField(read_only=True)  # Auto-generated, so not user-editable
+    """Serializer for the ReferralCode model."""
+    user = UserSerializer(read_only=True)
+    website = WebsiteSerializer(read_only=True)
 
     class Meta:
         model = ReferralCode
-        fields = ['user', 'code', 'created_at']
+        fields = ['id', 'website', 'user', 'code', 'created_at']
         read_only_fields = ['created_at']
 
-    def validate_user(self, value):
-        """Ensure a user cannot have multiple referral codes"""
-        if ReferralCode.objects.filter(user=value).exists():
-            raise serializers.ValidationError("User already has a referral code.")
-        return value
+    def get_referral_link(self, obj):
+        """Include the referral link in the serialized output."""
+        return obj.get_referral_link()
 
 
-class ReferralBonusSerializer(serializers.ModelSerializer):
-    time_remaining = serializers.SerializerMethodField()
+class ReferralStatsSerializer(serializers.ModelSerializer):
+    """Serializer for the ReferralStats model."""
+    user = UserSerializer(read_only=True)
 
     class Meta:
-        model = WalletTransaction
-        fields = ["id", "amount", "expires_at", "time_remaining"]
+        model = ReferralStats
+        fields = [
+            'id', 'user', 'total_referrals', 'successful_referrals',
+            'referral_bonus_earned', 'last_referral_at'
+        ]
+        read_only_fields = ['last_referral_at']
 
-    def get_time_remaining(self, obj):
-        if obj.expires_at:
-            delta = obj.expires_at - now()
-            return {"days": delta.days, "hours": delta.seconds // 3600}
-        return None
+
+class WalletTransactionSerializer(serializers.ModelSerializer):
+    """Serializer for the WalletTransaction model."""
+    class Meta:
+        model = WalletTransaction
+        fields = ['id', 'wallet', 'transaction_type',
+                  'amount', 'description', 'website'
+        ]
+
+
+class ReferralBonusDecaySerializer(serializers.ModelSerializer):
+    """Serializer for the ReferralBonusDecay model."""
+    wallet_transaction = WalletTransactionSerializer(read_only=True)
+
+    class Meta:
+        model = ReferralBonusDecay
+        fields = ['id', 'wallet_transaction',
+                  'decay_rate', 'decay_start_at'
+        ]
+
+    def apply_decay(self, obj):
+        """Include the decay calculation in the serialized output."""
+        return obj.apply_decay()

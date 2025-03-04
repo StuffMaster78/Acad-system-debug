@@ -69,3 +69,6 @@ class WebsiteSpecificBaseModel(BaseModel):
 
     class Meta:
         abstract = True
+
+    def get_queryset_for_website(self):
+        return self.objects.filter(website=self.website)

@@ -1,7 +1,14 @@
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.permissions import IsAuthenticated
-from .models import LoyaltyTier, LoyaltyTransaction, Milestone, ClientBadge
-from .serializers import LoyaltyTierSerializer, LoyaltyTransactionSerializer, MilestoneSerializer, ClientBadgeSerializer
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from .models import (LoyaltyTier, LoyaltyTransaction,
+                     Milestone, ClientBadge,
+                     LoyaltyPointsConversionConfig
+)
+from .serializers import (LoyaltyTierSerializer, LoyaltyTransactionSerializer,
+                          MilestoneSerializer, ClientBadgeSerializer,
+                          LoyaltyPointsConversionConfigSerializer
+)
 from .permissions import IsAdminOrReadOnly, IsClient, IsOwnerOrAdmin
 
 
@@ -59,3 +66,18 @@ class ClientBadgeViewSet(ModelViewSet):
         if self.request.user.is_staff:
             return ClientBadge.objects.all()
         return ClientBadge.objects.filter(client__user=self.request.user)
+    
+class LoyaltyPointsConversionConfigViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for managing the LoyaltyPointsConversionConfig model.
+    Allows admins to view and update loyalty points conversion settings.
+    """
+    queryset = LoyaltyPointsConversionConfig.objects.all()
+    serializer_class = LoyaltyPointsConversionConfigSerializer
+    permission_classes = [IsAdminUser]
+
+    def get_queryset(self):
+        """
+        Filter by website if needed (you can extend this logic).
+        """
+        return LoyaltyPointsConversionConfig.objects.filter(website=self.request.website)
