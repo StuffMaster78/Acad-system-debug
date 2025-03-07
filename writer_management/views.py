@@ -25,6 +25,7 @@ from .serializers import (
     WriterActivityLogSerializer, WriterRatingCooldownSerializer, WriterFileDownloadLogSerializer, WriterIPLogSerializer,
     OrderDisputeSerializer
 )
+from notifications_system.utils import send_notification 
 
 
 ### ---------------- Writer Profile Views ---------------- ###
@@ -124,11 +125,43 @@ class WriterOrderTakeViewSet(viewsets.ModelViewSet):
 
 class WriterPayoutPreferenceViewSet(viewsets.ModelViewSet):
     """
-    Manage Writer Payout Preferences.
+    API View for Admins to manage writer payout preferences.
     """
     queryset = WriterPayoutPreference.objects.all()
     serializer_class = WriterPayoutPreferenceSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [permissions.IsAdminUser]  # Only admins can manage this
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Admin can approve a writer's payout method"""
+        payout_method = get_object_or_404(WriterPayoutPreference, pk=pk)
+        payout_method.verified = True
+        payout_method.save()
+
+        # Send notification to writer
+        send_notification(
+            user=payout_method.writer.user,
+            title="Payout Method Approved",
+            message=f"Your {payout_method.preferred_method} payout method has been approved!"
+        )
+
+        return Response({"message": "Payout method approved successfully!"}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Admin can reject a writer's payout method"""
+        payout_method = get_object_or_404(WriterPayoutPreference, pk=pk)
+        payout_method.verified = False
+        payout_method.save()
+
+        # Send notification to writer
+        send_notification(
+            user=payout_method.writer.user,
+            title="Payout Method Rejected",
+            message=f"Your {payout_method.preferred_method} payout method was rejected. Please update it."
+        )
+
+        return Response({"message": "Payout method rejected!"}, status=status.HTTP_200_OK)
 
 
 class WriterPaymentViewSet(viewsets.ModelViewSet):

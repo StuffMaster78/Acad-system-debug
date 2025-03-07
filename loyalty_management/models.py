@@ -26,7 +26,7 @@ class LoyaltyTier(models.Model):
         help_text=_("Minimum points required to qualify for this tier.")
     )
     discount_percentage = models.DecimalField(
-        max_digits=5,
+        max_digits=4,
         decimal_places=2,
         default=0.0,
         help_text=_("Discount percentage for clients in this tier.")
@@ -54,6 +54,9 @@ class LoyaltyTransaction(models.Model):
         ('add', _('Add')),
         ('redeem', _('Redeem')),
         ('deduct', _('Deduct')),
+    )
+    website = models.OneToOneField(
+        'core.Website', on_delete=models.CASCADE, related_name="loyalty_transactions"
     )
 
     client = models.ForeignKey(
@@ -100,6 +103,9 @@ class Milestone(models.Model):
         ('loyalty_points', _('Loyalty Points')),
         ('orders_placed', _('Orders Placed')),
     )
+    website = models.OneToOneField(
+        'core.Website', on_delete=models.CASCADE, related_name="milestone_achieveable"
+    )
 
     name = models.CharField(
         max_length=100,
@@ -140,6 +146,9 @@ class ClientBadge(models.Model):
     """
     Represents badges awarded to clients for specific achievements.
     """
+    website = models.OneToOneField(
+        'core.Website', on_delete=models.CASCADE, related_name="client_badge"
+    )
     client = models.ForeignKey(
         'client_management.ClientProfile',
         on_delete=models.CASCADE,
@@ -168,7 +177,7 @@ class ClientBadge(models.Model):
         return f"Badge: {self.badge_name} for {self.client.user.username}"
     
 
-class LoyaltyPointsConversionConfig(WebsiteSpecificBaseModel):
+class LoyaltyPointsConversionConfig(models.Model):
     """
     Configurations for converting loyalty points into wallet balance.
     """

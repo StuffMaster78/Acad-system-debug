@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "import_export", 
+    "django_ratelimit",
 
     # Core Project Apps
     'core',
@@ -291,11 +292,27 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.UserRateThrottle',
+        'rest_framework.throttling.AnonRateThrottle',
+        'users.throttling.LoginThrottle',
+        'users.throttling.MagicLinkThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'user': '1000/day',  # Normal authenticated users
+        'anon': '100/hour',  # Unauthenticated users
+        'login': '5/minute',  # Limit login attempts to 5 per minute
+        'magic_link': '3/minute',  # Limit magic link requests to 3 per minute
+    },
 }
+
+
+
+
 
 # JWT Token Settings
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(hours=6),  # Admin session valid for 6 hours
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),  # Admin session valid for 6 hours
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),  # Refresh token valid for 7 days
     "ROTATE_REFRESH_TOKENS": True,  # Generates new refresh token on every refresh
     "BLACKLIST_AFTER_ROTATION": True,  # Prevents reuse of old refresh tokens
@@ -338,3 +355,13 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': timedelta(days=7),  # Run once every week
     },
 }
+
+
+
+RATELIMIT_VIEW = "users.views.custom_rate_limit_handler"
+
+
+
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_DURATION_MINUTES = 30
+SESSION_EXPIRATION_DAYS = 7

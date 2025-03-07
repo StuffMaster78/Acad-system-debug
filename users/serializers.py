@@ -1,4 +1,4 @@
-import os
+from django.templatetags.static import static
 from django.conf import settings
 from rest_framework import serializers
 from .models import User
@@ -7,6 +7,57 @@ from writer_management.models import WriterProfile
 from editor_management.models import EditorProfile
 from support_management.models import SupportProfile
 from superadmin_management.models import SuperadminProfile
+from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from websites.models import Website
+from users.models import AccountDeletionRequest
+
+User = get_user_model()
+
+class SignupSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
+    password2 = serializers.CharField(write_only=True, required=True)  # Confirm password
+
+    class Meta:
+        model = User
+        fields = ('email', 'username', 'password', 'password2', 'role', 'website')
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password2']:
+            raise serializers.ValidationError({"password": "Passwords do not match."})
+
+        request = self.context.get("request")
+        request_host = request.get_host().replace("www.", "")
+
+        # Validate if the website exists and is active
+        website = Website.objects.filter(domain__icontains=request_host, is_active=True).first()
+        if not website:
+            raise serializers.ValidationError({"website": "This website is not registered or is inactive."})
+
+        # Validate if registration is allowed on this website
+        if not website.allow_registration:
+            raise serializers.ValidationError({"website": "Registration is disabled for this website."})
+
+        return attrs
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        request_host = request.get_host().replace("www.", "")
+
+        # Assign the detected website
+        website = Website.objects.filter(domain__icontains=request_host, is_active=True).first()
+        validated_data["website"] = website.domain
+        validated_data.pop("password2")  # Remove password2 before saving
+        user = User.objects.create_user(**validated_data)
+        return user
+
+class LoginSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['role'] = user.role  # Include role in JWT
+        return token
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
@@ -24,18 +75,22 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'is_available', 'date_joined', 'last_active'
         ]
 
+    # def get_display_avatar(self, obj):
+    #     """
+    #     Returns the profile picture if available, otherwise the selected avatar.
+    #     Ensures fallback to the default avatar if the image is missing.
+    #     """
+    #     if obj.profile_picture:
+    #         return obj.profile_picture.url
+    #     avatar_path = os.path.join(settings.MEDIA_ROOT, obj.avatar)
+    #     if not os.path.exists(avatar_path):
+    #         return "/media/avatars/universal.png"  # Fallback image
+    #     return f"/media/{obj.avatar}"
     def get_display_avatar(self, obj):
-        """
-        Returns the profile picture if available, otherwise the selected avatar.
-        Ensures fallback to the default avatar if the image is missing.
-        """
-        if obj.profile_picture:
-            return obj.profile_picture.url
-        avatar_path = os.path.join(settings.MEDIA_ROOT, obj.avatar)
-        if not os.path.exists(avatar_path):
-            return "/media/avatars/universal.png"  # Fallback image
-        return f"/media/{obj.avatar}"
-
+            """Returns profile picture URL or fallback avatar."""
+            if obj.profile_picture:
+                return obj.profile_picture.url
+            return f"{settings.MEDIA_URL}avatars/universal.png"  # Fallback image
 
 class ClientProfileSerializer(serializers.ModelSerializer):
     """
@@ -52,13 +107,7 @@ class ClientProfileSerializer(serializers.ModelSerializer):
 
 
 class WriterProfileSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Writer profiles.
-    Retrieves additional writer-specific fields from `WriterProfile`.
-    """
     user = serializers.PrimaryKeyRelatedField(read_only=True)
-    average_rating = serializers.ReadOnlyField(source='average_rating')
-    total_ratings = serializers.ReadOnlyField(source='total_ratings')
 
     class Meta:
         model = WriterProfile
@@ -67,7 +116,6 @@ class WriterProfileSerializer(serializers.ModelSerializer):
             'total_ratings', 'completed_orders', 'active_orders', 
             'verification_documents', 'total_earnings', 'last_payment_date'
         ]
-
 
 class AdminProfileSerializer(serializers.ModelSerializer):
     """
@@ -110,7 +158,7 @@ class SupportProfileSerializer(serializers.ModelSerializer):
 class SuperadminProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = SuperadminProfile
-        fields = '__all__'
+        fields = ['id', 'created_at', 'permissions', 'status']
 
 class AvatarUpdateSerializer(serializers.ModelSerializer):
     """
@@ -128,12 +176,13 @@ class ProfilePictureUpdateSerializer(serializers.ModelSerializer):
     remove_picture = serializers.BooleanField(write_only=True, required=False)
     class Meta:
         model = User
-        fields = ['profile_picture']
+        fields = ['profile_picture', 'remove_picture']
 
     def update(self, instance, validated_data):
         if validated_data.get('remove_picture'):
-            instance.profile_picture.delete(save=False)
+            instance.profile_picture.delete(save=True)
             instance.profile_picture = None  # Reset the field
+            instance.save()  # Ensure changes are saved
         return super().update(instance, validated_data)
 
 
@@ -198,3 +247,8 @@ class UserActivitySerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'role', 'is_available', 
             'last_active'
         ]
+
+class AccountDeletionRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AccountDeletionRequest
+        fields = ["id", "reason", "status", "requested_at", "admin_response"]

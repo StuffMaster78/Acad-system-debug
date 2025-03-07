@@ -113,12 +113,12 @@ class WriterConfigSerializer(serializers.ModelSerializer):
 ### ---------------- Writer Payment & Earnings Serializers ---------------- ###
 
 class WriterPayoutPreferenceSerializer(serializers.ModelSerializer):
-    """
-    Serializer for Writer Payout Preferences
-    """
     class Meta:
         model = WriterPayoutPreference
-        fields = '__all__'
+        fields = ["id", "writer", "preferred_method", "payout_threshold",
+                  "account_details", "verified", "allowed_currencies"
+        ]
+        read_only_fields = ["id", "writer", "verified"] 
 
 
 class WriterPaymentSerializer(serializers.ModelSerializer):

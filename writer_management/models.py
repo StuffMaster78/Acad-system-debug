@@ -423,13 +423,22 @@ class WriterPayoutPreference(models.Model):
         ("Other", "Other"),
     ]
 
-    writer = models.ForeignKey(WriterProfile, on_delete=models.CASCADE, related_name="payout_preferences")
-    preferred_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default="PayPal")
+    writer = models.ForeignKey("writer_management.WriterProfile", on_delete=models.CASCADE, related_name="payout_preferences")
+    preferred_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default="Mpesa")
     payout_threshold = models.DecimalField(max_digits=12, decimal_places=2, default=50.00, help_text="Minimum payout threshold.")
     account_details = models.JSONField(default=dict, blank=True, help_text="Payment account details (e.g., PayPal email, bank details).")
+    verified = models.BooleanField(default=False, help_text="Has the payout method been verified by an admin?")
+    allowed_currencies = models.JSONField(default=list, blank=True, help_text="Currencies allowed for this payout method.")
+
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Payout Preference: {self.writer.user.username} - {self.preferred_method}"
+        return f"{self.writer.user.username} - {self.preferred_method}"
+
+    def needs_verification(self):
+        """Check if payout details require admin verification."""
+        return not self.verified
 
 
 class WriterPayment(models.Model):
@@ -462,6 +471,7 @@ class WriterEarningsHistory(models.Model):
         return f"Earnings for {self.writer.user.username}: {self.period_start} - {self.period_end}"
 
 
+# To remove since it risks being abused
 class WriterEarningsReviewRequest(models.Model):
     """
     Writers can request an admin to review earnings for a specific order.
@@ -477,6 +487,7 @@ class WriterEarningsReviewRequest(models.Model):
         return f"Earnings Review Request: {self.writer.user.username} for Order {self.order.id} (Resolved: {self.resolved})"
 
 
+# to be relocated to orders app
 class WriterReassignmentRequest(models.Model):
     """
     Writers can request reassignment from an order.
@@ -496,6 +507,7 @@ class WriterReassignmentRequest(models.Model):
 class WriterOrderHoldRequest(models.Model):
     """
     Writers can request an order to be put on hold.
+    This freezes the deadline count of the order until when put off hold.
     Admin approval is required.
     """
     writer = models.ForeignKey(WriterProfile, on_delete=models.CASCADE, related_name="hold_requests")
