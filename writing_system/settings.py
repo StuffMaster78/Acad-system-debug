@@ -26,7 +26,7 @@ load_dotenv(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = os.getenv('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DEBUG', 'True') == 'True' 
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
@@ -41,22 +41,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'drf_spectacular',
+    'drf_spectacular_sidecar',
+    "django_ratelimit",
+    'django_filters',
+    'django_celery_beat',
 
     # Third-party Apps
     'rest_framework',
     'corsheaders',
-    'drf_spectacular',
-    "drf_spectacular_sidecar",
-    'django_filters',
     # 'django-rq',
-    'django_celery_beat',
     'celery',
     'channels',
     'django_countries',
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "import_export", 
-    "django_ratelimit",
+    
 
     # Core Project Apps
     'core',
@@ -77,6 +78,7 @@ INSTALLED_APPS = [
     # Financial Apps
     'wallet',
     'client_wallet',
+    'writer_wallet',
     'discounts',
     'referrals',
 
@@ -134,10 +136,10 @@ AUTH_USER_MODEL = 'users.User'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',  
-        'NAME': os.getenv('POSTGRES_DB_NAME'), #Database Name
-        'USER': os.getenv('POSTGRES_USER'), #Database username
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'), #Database password
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('POSTGRES_DB_NAME'),  #Database Name
+        'USER': os.getenv('POSTGRES_USER'),  #Database username
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),  #Database password
         "HOST": os.getenv("DB_HOST"),  # Hostname
         "PORT": os.getenv("DB_PORT"),  # Port
     }
@@ -167,18 +169,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -190,15 +187,12 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 # CORS configuration (for handling CORS)
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:8000",  # Local development
     "http://127.0.0.1:8000",  # Local development
     # "https://your-production-domain.com",  # To replace with production domain
 ]
-
-
 
 # Redis (if used for caching)
 CACHES = {
@@ -207,8 +201,6 @@ CACHES = {
         "LOCATION": f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', '6379')}/1",
     }
 }
-
-
 
 REST_FRAMEWORK = {
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
@@ -224,6 +216,9 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'Your Project API',
     'DESCRIPTION': 'Order Management System API documentation',
     'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,  # Prevents duplicate schema listing
+    'SCHEMA_PATH_PREFIX': r'/api/',  # Ensures only `/api/` endpoints are documented
+    # 'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAdminUser'], 
 }
 
 # Channels Settings
@@ -251,11 +246,7 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
 
-
-
-
-
-
+# Geolocation API Key
 GEOLOCATION_API_KEY = os.getenv("GEOLOCATION_API_KEY")
 
 
@@ -263,10 +254,7 @@ GEOLOCATION_API_KEY = os.getenv("GEOLOCATION_API_KEY")
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Example using Redis
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
-
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
-
-
 RQ_QUEUES = {
     'default': {
         'USE_REDIS_CACHE': 'default',  # Use Redis as the backend
@@ -275,14 +263,9 @@ RQ_QUEUES = {
         'DEFAULT_TIMEOUT': 360,
     }
 }
-
-
-
+#  Media
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
-
-
-
 
 # DRF Settings with JWT Authentication
 REST_FRAMEWORK = {
@@ -306,10 +289,6 @@ REST_FRAMEWORK = {
     },
 }
 
-
-
-
-
 # JWT Token Settings
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=1),  # Admin session valid for 6 hours
@@ -325,9 +304,6 @@ AUTHENTICATION_BACKENDS = [
     "admin_management.auth.BlacklistAuthenticationBackend",  # Custom authentication
     "django.contrib.auth.backends.ModelBackend",  # Default Django authentication
 ]
-
-
-
 
 CELERY_BEAT_SCHEDULE = {
     'expire-referral-bonuses': {
@@ -355,13 +331,7 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': timedelta(days=7),  # Run once every week
     },
 }
-
-
-
-RATELIMIT_VIEW = "users.views.custom_rate_limit_handler"
-
-
-
-MAX_FAILED_ATTEMPTS = 5
-LOCKOUT_DURATION_MINUTES = 30
-SESSION_EXPIRATION_DAYS = 7
+RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW")
+MAX_FAILED_ATTEMPTS = os.getenv("MAX_FAILED_ATTEMPTS")
+LOCKOUT_DURATION_MINUTES = os.getenv("LOCKOUT_DURATION_MINUTES")
+SESSION_EXPIRATION_DAYS = os.getenv("SESSION_EXPIRATION_DAYS")

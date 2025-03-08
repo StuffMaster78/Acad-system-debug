@@ -2,6 +2,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from rest_framework.routers import DefaultRouter
+from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 
 # Import ViewSets
 from users.views import (
@@ -37,6 +38,12 @@ router.register(r'account-deletion', AccountDeletionRequestViewSet, basename="ac
 urlpatterns = [
     path("", include(router.urls)),  # Include all router-based URLs
     path("auth/token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
+
+
+    # OpenAPI Schema Endpoints
+    path("api/schema/", SpectacularAPIView.as_view(), name="schema"),  # Generates OpenAPI schema
+    path("api/docs/swagger/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),  # Swagger UI
+    path("api/docs/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),  # ReDoc UI
 ]
 
 # Serve media files in development mode
