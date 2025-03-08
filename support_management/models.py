@@ -11,10 +11,7 @@ from orders.models import Dispute
 from orders.models import Order
 from order_communications.models import OrderMessage, DisputeMessage
 
-
-
 User = get_user_model()
-
 
 class SupportProfile(models.Model):
     """
@@ -144,7 +141,6 @@ class SupportMessage(models.Model):
     def __str__(self):
         return f"Support Message: {self.sender.username} → {self.recipient.username} ({self.timestamp})"
 
-
 class SupportMessageAccess(models.Model):
     """
     Grants support agents access to view and moderate all messages
@@ -190,7 +186,6 @@ class SupportMessageAccess(models.Model):
     def __str__(self):
         return f"Message Access - {self.support_staff.username}"
 
-
 class SupportGlobalAccess(models.Model):
     """
     Provides unrestricted access for support agents to view and manage
@@ -206,7 +201,6 @@ class SupportGlobalAccess(models.Model):
 
     def __str__(self):
         return f"Global Access - {self.support_staff.username}"
-
 
 class SupportPermission(models.Model):
     """Defines permissions for different support roles."""
@@ -252,7 +246,6 @@ class SupportNotification(models.Model):
     def __str__(self):
         return f"Notification for {self.support_staff.name}: {self.message[:50]}"
 
-
 class DisputeResolutionLog(models.Model):
     """Tracks details of dispute resolutions handled by support agents."""
     dispute = models.OneToOneField(
@@ -268,7 +261,6 @@ class DisputeResolutionLog(models.Model):
     def __str__(self):
         return f"Dispute {self.dispute.id} resolved by {self.resolved_by.name}"
 
-
 class SupportActionLog(models.Model):
     """Logs actions performed by support staff."""
     support_staff = models.ForeignKey(
@@ -279,8 +271,6 @@ class SupportActionLog(models.Model):
 
     def __str__(self):
         return f"{self.support_staff.name} - {self.action} at {self.timestamp}"
-
-
 
 class EscalationLog(models.Model):
     """
@@ -372,9 +362,6 @@ class SupportAvailability(models.Model):
     def __str__(self):
         return f"{self.support_staff.username} - {self.status} ({'Online' if self.is_online else 'Offline'})"
 
-
-
-
 class SupportActivityLog(models.Model):
     """
     Tracks all actions performed by support agents, ensuring transparency
@@ -465,8 +452,6 @@ class PaymentIssueLog(models.Model):
     def __str__(self):
         return f"Payment Issue {self.issue_type} - Order {self.order.id} ({self.status})"
 
-
-
 class SupportOrderFileManagement(models.Model):
     """
     Allows support agents to manage order files by uploading, deleting,
@@ -530,7 +515,7 @@ class SupportOrderManagement(models.Model):
 
     def restore_order_progress(self):
         """Restores an order back to 'In Progress'."""
-        if self.order.status in ["canceled", "hold", "paused"]:
+        if self.order.status in ["canceled", "hold", "paused", "completed"]:
             self.order.status = "in_progress"
             self.order.save()
 
@@ -554,7 +539,6 @@ class SupportOrderManagement(models.Model):
 
     def __str__(self):
         return f"Support Action: {self.support_staff.username} - {self.action} ({self.timestamp})"
-
 
 class WriterPerformanceLog(models.Model):
     """
@@ -603,7 +587,6 @@ class WriterPerformanceLog(models.Model):
 
     def __str__(self):
         return f"{self.writer.username} - {self.issue_type} ({self.created_at})"
-
 
 class SupportWorkloadTracker(models.Model):
     """
@@ -711,9 +694,6 @@ class OrderDisputeSLA(models.Model):
     def __str__(self):
         return f"SLA for {self.sla_type} - {'Breached' if self.sla_breached else 'Within SLA'}"
 
-
-
-
 class FAQCategory(models.Model):
     """
     Stores FAQ categories for better organization.
@@ -730,8 +710,7 @@ class FAQCategory(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.get_category_type_display()})"
-
-
+    
 class FAQManagement(models.Model):
     """
     Allows support to manage FAQs for Writers and Clients.
@@ -769,9 +748,6 @@ class FAQManagement(models.Model):
 
     def __str__(self):
         return f"FAQ: {self.question} ({self.category.get_category_type_display()})"
-
-
-
 
 class SupportDashboard(models.Model):
     """

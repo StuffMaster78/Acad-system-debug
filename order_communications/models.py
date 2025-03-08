@@ -35,13 +35,15 @@ class OrderMessageThread(models.Model):
     sender_role = models.CharField(max_length=50, choices=[
         ('writer', 'Writer'), 
         ('client', 'Client'), 
-        ('admin', 'Admin'), 
+        ('admin', 'Admin'),
+        ('editor', 'Editor'), 
         ('support', 'Support')
     ])
     recipient_role = models.CharField(max_length=50, choices=[
         ('writer', 'Writer'), 
         ('client', 'Client'), 
-        ('admin', 'Admin'), 
+        ('admin', 'Admin'),
+        ('editor', 'Editor'),  
         ('support', 'Support')
     ])
     participants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="message_threads", help_text="Users involved in this thread.")
@@ -175,7 +177,7 @@ class FlaggedMessage(models.Model):
         """Admin manually unblocks a flagged message with a comment."""
         self.is_unblocked = True
         self.reviewed_by = admin_user
-        self.reviewed_at = timezone.now()  # ✅ Fixed issue
+        self.reviewed_at = timezone.now()
         self.admin_comment = comment
         self.save()
 
@@ -186,7 +188,7 @@ class FlaggedMessage(models.Model):
 
         if admin_emails:
             send_mail(
-                subject="🚨 Flagged Message Alert",
+                subject="Flagged Message Alert",
                 message=f"A message in Order {self.order_message.thread.order.id} has been flagged.\n\n"
                         f"Message: {self.order_message.message}\n"
                         f"Sender: {self.order_message.sender.username}\n\n"

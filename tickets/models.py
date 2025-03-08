@@ -25,6 +25,7 @@ class Ticket(models.Model):
         ('technical', 'Technical Support'),
         ('feedback', 'Feedback'),
         ('order', 'Order Issues'),
+        ('other', 'Other reasons'),
     ]
 
     title = models.CharField(max_length=255, help_text="Title of the ticket.")
@@ -78,8 +79,6 @@ class Ticket(models.Model):
     class Meta:
         ordering = ['-created_at']
 
-
-
 class TicketMessage(models.Model):
     ticket = models.ForeignKey(
         Ticket,
@@ -132,6 +131,9 @@ class TicketLog(models.Model):
 
 
 class TicketStatistics(models.Model):
+    """
+    Tracks all the tickets for the respective websites
+    """
     website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="ticket_stats")
     total_tickets = models.IntegerField(default=0, help_text="Total number of tickets.")
     resolved_tickets = models.IntegerField(default=0, help_text="Total number of resolved tickets.")
@@ -140,5 +142,3 @@ class TicketStatistics(models.Model):
 
     def __str__(self):
         return f"Stats for {self.website} - {self.created_at}"
-
-

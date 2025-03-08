@@ -136,6 +136,7 @@ class Appeal(models.Model):
     APPEAL_TYPE_CHOICES = [
         ('probation', 'Probation'),
         ('blacklist', 'Blacklist'),
+        ('suspension', 'Suspension'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="appeals")
@@ -148,8 +149,6 @@ class Appeal(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.appeal_type} - {self.status}"
     
-
-
 
 class UserActionLog(models.Model):
     """Logs key actions taken on users by Superadmins."""

@@ -273,6 +273,9 @@ class ReferralBonusDecay(models.Model):
     
 
 class ReferralBonusUsage(models.Model):
+    """
+    Tracks the usage of a referral bonus.
+    """
     referral = models.ForeignKey(Referral, on_delete=models.CASCADE)
     order = models.ForeignKey("orders.Order", on_delete=models.CASCADE)
     payment = models.ForeignKey(OrderPayment, on_delete=models.CASCADE)

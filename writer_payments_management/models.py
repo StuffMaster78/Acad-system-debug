@@ -260,8 +260,6 @@ class WriterPayoutRequest(models.Model):
             category="payout"
         )
 
-
-
 class SpecialOrderBonus(models.Model):
     """
     Tracks bonuses awarded to writers for completing special orders.
@@ -310,8 +308,6 @@ class SpecialOrderBonus(models.Model):
         )
 
 
-
-
 class WriterPaymentAdjustment(models.Model):
     """
     Logs manual payment adjustments made by admins.
@@ -358,4 +354,3 @@ class WriterPaymentAdjustment(models.Model):
             amount=self.adjustment_amount,
             description=f"Admin adjustment: {self.reason}."
         )
-

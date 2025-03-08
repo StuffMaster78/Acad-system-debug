@@ -12,7 +12,7 @@ from core.models.base import WebsiteSpecificBaseModel
 from django.core.mail import send_mail
 from django.apps import apps 
 from django.core.validators import MinValueValidator, MaxValueValidator
-import celery
+from core.celery import celery
 
 STATUS_CHOICES = [
     ('unpaid', 'Unpaid'),
@@ -303,7 +303,7 @@ class Dispute(WebsiteSpecificBaseModel):
         """
         Automatically update order status when dispute is raised, reviewed, escalated, or resolved.
         """
-        Order = apps.get_model('orders', 'Order')  # ✅ Lazy load Order model to avoid circular import
+        Order = apps.get_model('orders', 'Order')  # Lazy load Order model to avoid circular import
 
         if self._state.adding and self.order.status == 'cancelled':
             raise ValueError("Cannot raise a dispute for a cancelled order.")

@@ -145,6 +145,7 @@ class WriterBonus(models.Model):
         max_length=50,
         choices=[
             ('performance', 'Outstanding Performance'),
+            ('order_completion', 'Order Completion'),
             ('client_tip', 'Client Tip'),
             ('other', 'Other'),
         ],

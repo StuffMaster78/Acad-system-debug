@@ -27,7 +27,7 @@ class PricingConfiguration(models.Model):
     )
     urgent_order_threshold = models.PositiveIntegerField(
         default=8, 
-        help_text="Urgent order threshold in hours.",
+        help_text="Urgent order threshold in hours. The deadline that's considered urgent",
     )
     urgent_order_multiplier = models.DecimalField(
         max_digits=5, decimal_places=2, default=1.2,
@@ -116,6 +116,7 @@ class WriterQuality(models.Model):
     max_orders_limit = models.PositiveIntegerField(
         default=0, help_text="Maximum number of orders a writer at this level can take simultaneously."
     )
+    # ****To Check if fee is relevant****
     urgent_order_fee = models.DecimalField(
         max_digits=10, decimal_places=2, default=0.0,
         help_text="Additional cost for urgent orders for this quality level."
