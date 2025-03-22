@@ -23,6 +23,7 @@ from PIL import Image, ImageEnhance
 import spacy
 import numpy as np
 from django.contrib.postgres.fields import ArrayField
+from django.core.cache import cache
 
 # Load NLP Model
 nlp = spacy.load("en_core_web_md")
@@ -160,7 +161,7 @@ class BlogPost(models.Model):
     is_published = models.BooleanField(default=False, db_index=True)
     scheduled_publish_date = models.DateTimeField(null=True, blank=True)
     publish_date = models.DateTimeField(null=True, blank=True, db_index=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
     last_engagement = models.DateTimeField(null=True, blank=True)
     last_edited_by = models.ForeignKey(
@@ -174,6 +175,7 @@ class BlogPost(models.Model):
 
     freshness_score = models.IntegerField(default=100, help_text="Content freshness score (0-100)")
     embedding = ArrayField(models.FloatField(), size=300, null=True, blank=True)  # 300-d vector
+    canonical_url = models.URLField(blank=True, null=True, help_text="Original source URL if republished")
 
      # Engagement Tracking
     click_count = models.PositiveIntegerField(default=0, db_index=True)  # All-time clicks
@@ -212,6 +214,11 @@ class BlogPost(models.Model):
         self.toc = toc_data
         self.content = str(soup)  # Save updated content with ID attributes
 
+    def check_duplicate_content(self):
+        """Detects duplicate blog content across different websites."""
+        similar_blogs = BlogPost.objects.exclude(id=self.id).filter(content=self.content)
+        return similar_blogs.exists()
+
     def clean_slug(self, slug):
         """Ensures the slug is lowercase and only contains letters, numbers, and hyphens."""
         cleaned_slug = slug.lower().strip()
@@ -229,6 +236,11 @@ class BlogPost(models.Model):
             raise ValueError(
                 f"The slug '{base_slug}' is reserved. Choose another."
             )
+        
+        if self.pk:  # Only track slug changes for existing blogs
+            old_slug = BlogPost.objects.get(pk=self.pk).slug
+            if old_slug != self.slug:
+                BlogSlugHistory.objects.create(blog=self, old_slug=old_slug)
 
         # Ensure slug uniqueness within the same website
         if BlogPost.objects.filter(website=self.website, slug=base_slug).exists():
@@ -321,19 +333,37 @@ class BlogPost(models.Model):
         self.save(update_fields=["last_engagement"])
         self.update_freshness_score()  # Recalculate freshness after new engagement
 
+    def get_blog_engagement(blog):
+        """Fetch engagement stats from cache (if available)."""
+        cache_key = f"blog_engagement_{blog.id}"
+        engagement = cache.get(cache_key)
+
+        if not engagement:
+            engagement = {
+                "clicks": blog.click_count,
+                "conversions": blog.conversion_count
+            }
+            cache.set(cache_key, engagement, timeout=600)  # Cache for 10 min
+
+        return engagement
+
     def increment_clicks(self, user, ip_address):
-        """Tracks unique clicks per user/IP with atomic updates."""
-        if not BlogClick.objects.filter(blog=self, user=user, ip_address=ip_address).exists():
-            with transaction.atomic():  # Ensures safe concurrent writes
-                BlogClick.objects.create(blog=self, user=user, ip_address=ip_address)
-                BlogPost.objects.filter(id=self.id).update(
-                    click_count=models.F("click_count") + 1,
-                    daily_clicks=models.F("daily_clicks") + 1,
-                    weekly_clicks=models.F("weekly_clicks") + 1,
-                    monthly_clicks=models.F("monthly_clicks") + 1,
-                    semi_annual_clicks=F('semi_annual_clicks') + 1,
-                    annual_clicks=F('annual_clicks') + 1
-                )
+        """Efficiently tracks unique clicks with Redis caching."""
+        cache_key = f"click_{self.id}_{user.id if user else ip_address}"
+
+        if cache.get(cache_key):
+            return  # Prevent multiple rapid clicks
+        
+        if not cache.get(cache_key):
+            BlogClick.objects.create(blog=self, user=user, ip_address=ip_address)
+            
+            # Update in Redis
+            cache.incr(f"blog_clicks_{self.id}", 1)  
+            cache.set(cache_key, "clicked", timeout=86400)  # Prevent duplicate clicks for 1 day
+
+            # Bulk update to database periodically
+            self.click_count = cache.get(f"blog_clicks_{self.id}", 0)
+            self.save(update_fields=["click_count"])
 
     def increment_conversions(self, user, action):
         """Tracks order-related conversions."""
@@ -367,6 +397,12 @@ class BlogPost(models.Model):
             for blog in all_blogs
         ]
         return [b[0] for b in sorted(similarities, key=lambda x: x[1], reverse=True)[:5]]
+
+    def get_personalized_recommendations(self, user):
+        """Suggests blogs based on user engagement history."""
+        favorite_tags = user.blogclick_set.values_list("blog__tags", flat=True)
+        return BlogPost.objects.filter(tags__in=favorite_tags).order_by("-click_count")[:5]
+
 
     def __str__(self):
         return f"{self.title} - {self.slug} ({self.status})"
@@ -816,3 +852,8 @@ class BlogShare(models.Model):
 
     def __str__(self):
         return f"{self.blog.title} shared on {self.platform.name} ({self.share_count} times)"
+    
+class BlogSlugHistory(models.Model):
+    blog = models.ForeignKey(BlogPost, on_delete=models.CASCADE, related_name="slug_history")
+    old_slug = models.SlugField()
+    changed_at = models.DateTimeField(auto_now_add=True)

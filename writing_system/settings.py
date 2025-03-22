@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 import os
 from datetime import timedelta
 from celery.schedules import crontab
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -46,6 +48,10 @@ INSTALLED_APPS = [
     "django_ratelimit",
     'django_filters',
     'django_celery_beat',
+    'django_otp',
+    'django_otp.plugins.otp_totp',
+    'drf_yasg',
+    
 
     # Third-party Apps
     'rest_framework',
@@ -57,6 +63,8 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "import_export", 
+    'ckeditor',
+    'ckeditor_uploader',
     
 
     # Core Project Apps
@@ -95,6 +103,10 @@ INSTALLED_APPS = [
     'support_management',
     'loyalty_management',
     'activity',
+
+    # Content Management Apps
+    'blog_pages_management',
+    'service_pages_management',
 ]
 
 
@@ -107,6 +119,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'superadmin_management.middleware.BlacklistMiddleware',
+    'django.middleware.gzip.GZipMiddleware',  # Compress API responses'
 ]
 
 ROOT_URLCONF = 'writing_system.urls'
@@ -194,11 +207,17 @@ CORS_ALLOWED_ORIGINS = [
     # "https://your-production-domain.com",  # To replace with production domain
 ]
 
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")  # Default to localhost if not set
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))  # Default Redis port
+
 # Redis (if used for caching)
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
         "LOCATION": f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', '6379')}/1",
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
     }
 }
 
@@ -235,6 +254,7 @@ CHANNEL_LAYERS = {
 }
 
 
+CKEDITOR_UPLOAD_PATH = "uploads/"
 
 
 # Email Settings
@@ -300,6 +320,11 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
 }
 
+SECURE_SSL_REDIRECT = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+
 AUTHENTICATION_BACKENDS = [
     "admin_management.auth.BlacklistAuthenticationBackend",  # Custom authentication
     "django.contrib.auth.backends.ModelBackend",  # Default Django authentication
@@ -335,3 +360,25 @@ RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW")
 MAX_FAILED_ATTEMPTS = os.getenv("MAX_FAILED_ATTEMPTS")
 LOCKOUT_DURATION_MINUTES = os.getenv("LOCKOUT_DURATION_MINUTES")
 SESSION_EXPIRATION_DAYS = os.getenv("SESSION_EXPIRATION_DAYS")
+
+
+
+
+CKEDITOR_UPLOAD_PATH = "uploads/"
+CKEDITOR_CONFIGS = {
+    "default": {
+        "toolbar": "full",
+        "height": 300,
+        "width": "100%",
+        "extraPlugins": ",".join(["autogrow", "embed", "codesnippet"]),
+    },
+}
+
+
+# Sentry settings
+sentry_sdk.init(
+    dsn="YOUR_SENTRY_DSN",  # Replace with your actual DSN
+    integrations=[DjangoIntegration()],
+    traces_sample_rate=1.0,  # Adjust sampling rate if needed
+    send_default_pii=True  # Sends user data (useful for debugging authentication issues)
+)

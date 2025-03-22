@@ -9,6 +9,9 @@ from .models import (
 )
 from django.utils.text import slugify
 import re
+from datetime import timedelta
+from django.utils.timezone import now
+
 
 
 # ------------------ BLOG CATEGORY SERIALIZER ------------------
@@ -89,12 +92,16 @@ class BlogMediaFileSerializer(serializers.ModelSerializer):
         }
 
         extension = value.name.split(".")[-1].lower()
-        file_type = self.initial_data.get("file_type")
+        detected_type = None
 
-        if file_type not in ALLOWED_EXTENSIONS:
-            raise serializers.ValidationError(f"Invalid file type: {file_type}")
-        if extension not in ALLOWED_EXTENSIONS[file_type]:
-            raise serializers.ValidationError(f"Invalid extension: {extension}")
+        # Determine file type based on extension
+        for media_type, extensions in ALLOWED_EXTENSIONS.items():
+            if extension in extensions:
+                detected_type = media_type
+                break
+
+        if not detected_type:
+            raise serializers.ValidationError(f"Invalid file type: {extension}")
 
         return value
 
@@ -135,6 +142,14 @@ class BlogPostSerializer(serializers.ModelSerializer):
             )
         return value
 
+    def validate_content(self, value):
+        request = self.context.get("request")
+        blog_id = self.instance.id if self.instance else None  # Handle update cases
+        
+        if BlogPost.objects.exclude(id=blog_id).filter(content=value).exists():
+            raise serializers.ValidationError("This content is too similar to an existing blog.")
+        return value
+
     def validate_slug(self, value):
         """Ensures valid slug formatting."""
         RESERVED_SLUGS = {
@@ -148,7 +163,7 @@ class BlogPostSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "Slug can only contain letters, numbers, and hyphens."
             )
-        if value in RESERVED_SLUGS:
+        if value.lower() in RESERVED_SLUGS:
             raise serializers.ValidationError(
                 f"The slug '{value}' is reserved. Choose another."
             )
@@ -165,6 +180,17 @@ class BlogClickSerializer(serializers.ModelSerializer):
         fields = ["id", "blog", "user", "ip_address", "clicked_at"]
         read_only_fields = ["clicked_at"]
 
+    def validate(self, data):
+        """Prevents duplicate clicks within 24 hours."""
+        user = data.get("user")
+        blog = data.get("blog")
+        time_threshold = now() - timedelta(hours=24)
+
+        if BlogClick.objects.filter(user=user, blog=blog, clicked_at__gte=time_threshold).exists():
+            raise serializers.ValidationError("You have already clicked on this blog in the last 24 hours.")
+
+        return data
+
 
 # ------------------ BLOG CONVERSION SERIALIZER ------------------
 
@@ -178,6 +204,16 @@ class BlogConversionSerializer(serializers.ModelSerializer):
             "converted_at"
         ]
         read_only_fields = ["converted_at"]
+
+    def validate(self, data):
+        """Prevents duplicate conversions per blog post per user."""
+        user = data.get("user")
+        blog = data.get("blog")
+
+        if BlogConversion.objects.filter(user=user, blog=blog, order_placed=True).exists():
+            raise serializers.ValidationError("You have already converted from this blog.")
+
+        return data
 
 
 # ------------------ NEWSLETTER CATEGORY SERIALIZER ------------------
@@ -356,7 +392,8 @@ class BlogShareURLSerializer(serializers.Serializer):
         blog = BlogPost.objects.get(id=self.validated_data["blog_id"])
         platform = SocialPlatform.objects.get(id=self.validated_data["platform_id"])
 
-        return platform.share_url_format.replace("{url}", f"https://example.com/blogs/{blog.slug}")
+        domain = blog.website.domain  # Assuming Website model has a `domain` field
+        return platform.share_url_format.replace("{url}", f"https://{domain}/blogs/{blog.slug}")
     
 
 class AdminNotificationSerializer(serializers.ModelSerializer):
@@ -371,9 +408,11 @@ class AdminNotificationSerializer(serializers.ModelSerializer):
         fields = ["id", "user", "message", "is_read", "created_at"]
 
     def update(self, instance, validated_data):
-        """
-        Allows marking notifications as read.
-        """
+        """Ensures admins can only mark their own notifications as read."""
+        request = self.context["request"]
+        if instance.user != request.user:
+            raise serializers.ValidationError("You cannot update another admin's notifications.")
+
         instance.is_read = validated_data.get("is_read", instance.is_read)
         instance.save()
         return instance

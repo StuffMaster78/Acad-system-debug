@@ -4,8 +4,11 @@ from django.utils.html import format_html
 from .models import (
     Referral, ReferralBonusConfig, ReferralCode, ReferralStats, ReferralBonusDecay
 )
-from client_wallet.models import WalletTransaction
 from loyalty_management.models import LoyaltyTransaction
+
+from django.apps import apps
+
+ClientWalletTransaction = apps.get_model('client_wallet', 'ClientWalletTransaction')
 
 
 # Bulk Actions
@@ -62,7 +65,7 @@ class ReferralAdmin(admin.ModelAdmin):
             first_paid_order = referral.referee.orders.filter(status='completed', payment_status='paid').first()
             if first_paid_order:
                 # Add bonus to wallet
-                WalletTransaction.objects.create(
+                ClientWalletTransaction.objects.create(
                     wallet=client_wallet,
                     amount=bonus_amount,
                     transaction_type="credit",

@@ -1,6 +1,5 @@
 from django.conf import settings
 from django.utils.timezone import now
-from users.models import AccountDeletionRequest, AuditLog
 import pyotp
 import random
 import string
@@ -32,6 +31,8 @@ def send_deletion_confirmation_email(user):
     """
     Sends a confirmation email to the user requesting account deletion.
     """
+    from users.models import AccountDeletionRequest, AuditLog
+
     subject = "Confirm Your Account Deletion Request"
     confirmation_link = f"https://{user.website.domain}/confirm-deletion/{user.id}"
     

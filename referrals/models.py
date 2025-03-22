@@ -8,8 +8,10 @@ from users.models import User
 from wallet.models import Wallet, WalletTransaction
 from websites.models import Website
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier
-from  order_payments_management.models import OrderPayment
+from django.apps import apps
 
+def get_order_payment_model():
+    return apps.get_model('order_payments_management', 'OrderPayment')
 class SoftDeleteModel(models.Model):
     """Abstract model for soft deletion instead of permanent deletion."""
     is_deleted = models.BooleanField(default=False)
@@ -278,7 +280,7 @@ class ReferralBonusUsage(models.Model):
     """
     referral = models.ForeignKey(Referral, on_delete=models.CASCADE)
     order = models.ForeignKey("orders.Order", on_delete=models.CASCADE)
-    payment = models.ForeignKey(OrderPayment, on_delete=models.CASCADE)
+    payment = models.ForeignKey('order_payments_management.OrderPayment', on_delete=models.CASCADE)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2)
     applied_at = models.DateTimeField(auto_now_add=True)
 

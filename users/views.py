@@ -21,10 +21,14 @@ from django.core.mail import send_mail
 from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import (
     User, AccountDeletionRequest, ProfileUpdateRequest,
-    SecureToken, EncryptedRefreshToken, notify_mfa_enabled,
-    notify_mfa_disabled, notify_mfa_reset, send_mfa_recovery_email,
-    UserSession, log_audit_action, verify_email_otp, BlockedIP,
+    SecureToken, EncryptedRefreshToken, 
+    UserSession, BlockedIP, verify_email_otp,   
     MagicLinkToken
+)
+
+from users.utils import (
+    notify_mfa_enabled, notify_mfa_disabled, notify_mfa_reset,
+    send_mfa_recovery_email,log_audit_action
 )
 
 from users.serializers import (
@@ -835,8 +839,9 @@ class UserViewSet(viewsets.ModelViewSet):
         reason = request.data.get("reason")
         AccountDeletionRequest.objects.create(user=user, reason=reason)
 
-        return Response({"message": "Account deletion request submitted successfully."}, status=status.HTTP_201_CREATEif request.user != user:
-        raise PermissionDenied("You can only request deletion for your own account.")
+        return Response({"message": "Account deletion request submitted successfully."}, status=status.HTTP_201_CREATE)
+        if request.user != user:
+            raise PermissionDenied("You can only request deletion for your own account.")
 
         reason = request.data.get("reason")
         AccountDeletionRequest.objects.create(user=user, reason=reason)
@@ -1517,7 +1522,7 @@ class AccountUnlockViewSet(viewsets.ViewSet):
         # Log admin action
         log_audit_action(request.user, "ADMIN_UNLOCKED_ACCOUNT", request)
 
-        return Response({"message": "User account has been unlocked."}, status=status.HTTP_200_OK
+        return Response({"message": "User account has been unlocked."}, status=status.HTTP_200_OK)
 
 
     @action(detail=False, methods=["post"], url_path="mfa-login")

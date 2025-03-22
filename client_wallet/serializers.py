@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from .models import ClientWallet, ClientWalletTransaction, LoyaltyTransaction, ReferralBonusConfig, LoyaltyPointsConversionConfig
+from .models import (
+    ClientWallet, ClientWalletTransaction, LoyaltyTransaction,
+    ReferralBonusConfig, LoyaltyPointsConversionConfig,
+    AdminNotification
+)
 from django.utils import timezone
 
 # Serializer for Client Wallet
@@ -91,3 +95,18 @@ class ReferralStatsSerializer(serializers.ModelSerializer):
     def get_total_earned_bonus(self, obj):
         # Custom logic to calculate total earned bonus
         return obj.referral_balance
+    
+class AdminNotificationSerializer(serializers.ModelSerializer):
+    """Serializer for admin notifications."""
+    
+    class Meta:
+        model = AdminNotification
+        fields = ["id", "message", "created_at", "is_read"]
+
+    def update(self, instance, validated_data):
+        """
+        Allows marking a notification as read.
+        """
+        instance.is_read = validated_data.get("is_read", instance.is_read)
+        instance.save()
+        return instance

@@ -10,31 +10,21 @@ from django.db.models import F
 @receiver(post_save, sender=BlogClick)
 def update_blog_clicks(sender, instance, created, **kwargs):
     """
-    Updates the blog click count when a new click is recorded.
-    Uses F() expressions to avoid race conditions.
+    Stores click counts in Redis instead of writing directly to DB.
+    Celery task will sync Redis data to DB periodically.
     """
     if created:
-        BlogPost.objects.filter(id=instance.blog.id).update(
-            click_count=F("click_count") + 1,
-            daily_clicks=F("daily_clicks") + 1,
-            weekly_clicks=F("weekly_clicks") + 1,
-            monthly_clicks=F("monthly_clicks") + 1,
-            semi_annual_clicks=F("semi_annual_clicks") + 1,
-            annual_clicks=F("annual_clicks") + 1,
-            last_engagement=now(),
-        )
-
+        cache_key = f"blog_clicks_{instance.blog.id}"
+        cache.incr(cache_key)  # Increment click count in Redis
 
 @receiver(post_save, sender=BlogConversion)
 def update_blog_conversions(sender, instance, created, **kwargs):
     """
-    Updates the blog conversion count when an order is placed.
-    Uses F() expressions to avoid race conditions.
+    Stores conversion counts in Redis. Celery will sync them to the DB periodically.
     """
-    if created and instance.order_placed:
-        BlogPost.objects.filter(id=instance.blog.id).update(
-            conversion_count=F("conversion_count") + 1
-        )
+    if created:
+        cache_key = f"blog_conversions_{instance.blog.id}"
+        cache.incr(cache_key)  # Increment conversion count in Redis
 
 
 # ------------------ BLOG AUTO-PUBLISH & SEO OPTIMIZATION ------------------
@@ -45,13 +35,13 @@ def auto_publish_blog(sender, instance, created, **kwargs):
     Automatically publishes scheduled blog posts when the time arrives.
     Clears the cache to refresh blog content.
     """
-    if instance.scheduled_publish_date and instance.scheduled_publish_date <= now():
-        instance.is_published = True
-        instance.save(update_fields=["is_published", "publish_date"])
+    if instance.scheduled_publish_date and instance.scheduled_publish_date <= now() and not instance.is_published:
+        BlogPost.objects.filter(id=instance.id).update(
+            is_published=True, publish_date=now()
+        )
     
     # Invalidate sitemap cache when a new blog is published
-    cache_key = f"sitemap_{instance.website.id}"
-    cache.delete(cache_key)
+    cache.delete(f"sitemap_{instance.website.id}")
 
 
 # ------------------ BLOG SOFT DELETE HANDLING ------------------
@@ -62,7 +52,7 @@ def log_blog_deletion(sender, instance, **kwargs):
     Logs admin actions for soft-deleted blogs.
     Triggers an admin notification before permanent deletion.
     """
-    if instance.is_deleted:
+    if instance.is_deleted and instance.deleted_at:
         AdminNotification.objects.create(
             user=instance.last_edited_by,
             message=f"Blog '{instance.title}' is scheduled for permanent deletion."
@@ -74,8 +64,12 @@ def clear_deleted_blog_cache(sender, instance, **kwargs):
     """
     Clears blog cache when a blog is permanently deleted.
     """
-    cache_key = f"blog_{instance.id}"
-    cache.delete(cache_key)
+    cache.delete_many([
+        f"blog_{instance.id}",
+        f"blog_clicks_{instance.id}",
+        f"blog_conversions_{instance.id}",
+        f"sitemap_{instance.website.id}"
+    ])
 
 
 # ------------------ FRESHNESS SCORE & AI-BASED RECOMMENDATIONS ------------------
@@ -86,7 +80,7 @@ def update_freshness_score(sender, instance, **kwargs):
     Updates the freshness score based on engagement and last update.
     Suggests blog updates if the score is below 40.
     """
-    days_since_update = (now() - instance.updated_at).days
+    days_since_update = (now() - instance.updated_at).days if instance.updated_at else 365
     engagement_decay = max(0, 10 - instance.click_count)  # Blogs with low clicks decay faster
 
     new_freshness_score = max(0, 100 - (days_since_update * 2) - engagement_decay)

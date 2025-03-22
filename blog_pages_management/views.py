@@ -31,7 +31,24 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.views.decorators.cache import cache_page
 from django.utils.decorators import method_decorator
+from django.core.cache import cache
+from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
+from rest_framework.pagination import PageNumberPagination
+from django.shortcuts import redirect, get_object_or_404
+from .models import BlogSlugHistory
+from time import sleep
+from django.core.cache import cache
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+class BlogPagination(PageNumberPagination):
+    page_size = 10  # Return 10 blogs per request
+    page_size_query_param = "page_size"
+    max_page_size = 50
+class ClickThrottle(UserRateThrottle):
+    rate = "10/min"  # Limit to 10 clicks per minute
 
+class ConversionThrottle(UserRateThrottle):
+    rate = "5/min"  # Limit to 5 conversions per minute
 
 class AdminNotificationsView(generics.ListCreateAPIView):
     """
@@ -169,6 +186,7 @@ class AuthorProfileViewSet(viewsets.ModelViewSet):
 
 class BlogPostViewSet(viewsets.ModelViewSet):
     """ViewSet for managing blog posts."""
+    pagination_class = BlogPagination
     queryset = BlogPost.objects.filter(
         is_deleted=False
     ).select_related(
@@ -178,8 +196,12 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     ).only(
         "id", "website", "title", "slug", "click_count", "conversion_count",
         "is_published", "created_at", "updated_at"
-    ).defer("content")  # Large fields are loaded only when needed
-    
+    ).defer(
+        "content" # Content is a large field, it's loaded only when needed
+    ).order_by(
+        "-created_at"  # Optimized sorting for latest blogs first
+    )
+
     serializer_class = BlogPostSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
@@ -197,8 +219,12 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         blog = self.get_object()
 
         related_blogs = BlogPost.objects.filter(
-            website=blog.website, is_published=True
-        ).exclude(id=blog.id).annotate(
+        website=blog.website, is_published=True
+        ).exclude(id=blog.id).select_related(
+            "category"
+        ).prefetch_related(
+            "tags"
+        ).annotate(
             tag_match_count=Count("tags", filter=models.Q(tags__in=blog.tags.all())),
             category_match=models.Case(
                 models.When(category=blog.category, then=1),
@@ -216,11 +242,15 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         soup = BeautifulSoup(blog.content, "html.parser")
         links = [a["href"] for a in soup.find_all("a", href=True) if a["href"].startswith("/")]
 
-        # Query all slugs in a single query
+        # Extract slugs
         slugs = {link.strip("/").split("/")[-1] for link in links}
+
+        # Fetch all existing slugs in one query
         existing_slugs = set(BlogPost.objects.filter(website=blog.website, slug__in=slugs).values_list("slug", flat=True))
 
+        # Identify broken links
         broken_links = [link for link in links if link.strip("/").split("/")[-1] not in existing_slugs]
+
         return Response({"broken_links": broken_links})
 
 
@@ -230,26 +260,116 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         blog = self.get_object()
         soup = BeautifulSoup(blog.content, "html.parser")
 
+        # Fetch all existing slugs in one query
+        existing_slugs = set(BlogPost.objects.filter(website=blog.website).values_list("slug", flat=True))
+
+        # Remove broken links
         for a in soup.find_all("a", href=True):
             slug = a["href"].strip("/").split("/")[-1]
-            if not BlogPost.objects.filter(website=blog.website, slug=slug).exists():
-                a.unwrap()  # Remove the broken <a> tag but keep the text
+            if slug not in existing_slugs:
+                a.unwrap()  # Remove <a> but keep text
 
-        blog.content = str(soup)
-        blog.save()
+        # Update content only if modified
+        new_content = str(soup)
+        if new_content != blog.content:
+            blog.content = new_content
+            blog.save(update_fields=["content"])
 
         return Response({"message": "Broken links removed successfully!"}, status=status.HTTP_200_OK)
+
+    def retrieve(self, request, *args, **kwargs):
+        """Retrieve a single blog post with Redis caching."""
+        blog_id = kwargs.get("pk")
+        cache_key = f"blog_post_{blog_id}"
+        cached_blog = cache.get(cache_key)
+
+        if cached_blog:
+            return Response(cached_blog)
+
+        if not blog:
+            blog = self.get_object()
+            cache.set(cache_key, blog, timeout=3600)  # Cache for 1 hour
+
+        serializer = self.get_serializer(blog)
+        return Response(serializer.data)
+        
+    def blog_redirect(request, old_slug):
+        """
+        Redirects an old blog slug to the new one if it exists.
+        """
+        try:
+            slug_entry = BlogSlugHistory.objects.get(old_slug=old_slug)
+            return redirect(f"/blogs/{slug_entry.blog.slug}/")  # Permanent 301 redirect
+        except BlogSlugHistory.DoesNotExist:
+            return redirect("/")
+
+    @action(detail=True, methods=["get"])
+    def related_posts(self, request, pk=None):
+        """Finds related blogs using AI/NLP content filtering."""
+        blog = self.get_object()
+        similar_blogs = cache.get(f"similar_blogs_{blog.id}", [])
+        return Response({"related_blogs": similar_blogs})
+
+    @action(detail=True, methods=["get"])
+    def detect_broken_links(self, request, pk=None):
+        """Scans a blog for broken links and returns them."""
+        blog = self.get_object()
+        broken_links = check_for_broken_links(blog)
+        return Response({"broken_links": broken_links})
+
+    @action(detail=True, methods=["post"])
+    def fix_broken_links(self, request, pk=None):
+        """Fixes broken links in the blog content."""
+        blog = self.get_object()
+        fixed_content = auto_fix_broken_links(blog.content)
+        blog.content = fixed_content
+        blog.save(update_fields=["content"])
+        return Response({"message": "Broken links fixed successfully."})
+        
+   @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    def personalized_recommendations(self, request, pk=None):
+        """Returns AI-based personalized blog recommendations for the user."""
+        user_id = request.user.id
+        recommended_blogs = cache.get(f"user_recommendations_{user_id}", [])
+        return Response({"recommended_blogs": recommended_blogs})
+
 
 
 # ------------------ BLOG ENGAGEMENT & ANALYTICS (APIView) ------------------
 
 class BlogEngagementStatsView(APIView):
-    """API for real-time engagement analytics."""
+    """API for real-time engagement analytics using long polling."""
     permission_classes = [IsAdminUser]
+    timeout_seconds = 30  # Maximum wait time before retrying
 
-    @method_decorator(cache_page(60 * 5))  # Cache for 5 minutes
     def get(self, request):
-        """Returns trending blogs, most engaged, and click trends."""
+        """Handles long polling for trending and engaging blogs."""
+        last_known_version = request.headers.get("If-None-Match")  # Client's last known version
+        cache_key = "engagement_stats"
+        version_key = "engagement_version"
+
+        start_time = now()
+
+        while (now() - start_time).seconds < self.timeout_seconds:
+            # Get cached engagement stats & version
+            engagement_stats = cache.get(cache_key)
+            current_version = cache.get(version_key)
+
+            if not engagement_stats or not current_version:
+                return Response({"error": "No data available"}, status=503)  # Service Unavailable
+
+            # If the data has changed, return immediately
+            if str(current_version) != last_known_version:
+                response = Response(engagement_stats, status=200)
+                response["ETag"] = str(current_version)  # Send the new version to the client
+                return response
+
+            # If data is unchanged, wait and retry
+            sleep(2)  # Prevent CPU overuse (wait before retrying)
+
+        # If nothing changed after timeout, return 304 Not Modified
+        return Response(status=304)  # No changes, client should retry
+
         last_week = now() - timedelta(days=7)
 
         trending_blogs = BlogPost.objects.filter(
@@ -275,6 +395,7 @@ class BlogEngagementStatsView(APIView):
 class BlogClickView(APIView):
     """API for tracking blog post clicks."""
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ClickThrottle, AnonRateThrottle]
 
     def post(self, request, blog_id):
         """Increments click count for a blog post."""
@@ -289,6 +410,7 @@ class BlogClickView(APIView):
 class BlogConversionView(APIView):
     """API for tracking blog post conversions."""
     permission_classes = [IsAuthenticated]
+    throttle_classes = [ClickThrottle, AnonRateThrottle]
 
     def post(self, request, blog_id):
         """Increments conversion count for a blog post."""
@@ -534,4 +656,25 @@ class BlogShareViewSet(viewsets.ModelViewSet):
 
         share, created = BlogShare.objects.get_or_create(blog=blog, platform=platform)
         share.increment_share()
-        return Response({"message": "Share count updated"}, status=status.HTTP_200_OK) 
+        return Response({"message": "Share count updated"}, status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+def get_trending_blogs(request):
+    """Returns cached trending blogs."""
+    trending_data = cache.get("engagement_stats")
+    return Response(trending_data if trending_data else {"message": "No data found."})
+
+@api_view(["GET"])
+def get_similar_blogs(request, blog_id):
+    """Returns cached similar blogs."""
+    similar_data = cache.get(f"similar_blogs_{blog_id}")
+    return Response(similar_data if similar_data else {"message": "No data found."})
+
+@api_view(["GET"])
+def get_user_recommendations(request):
+    """Returns AI-powered recommendations for the logged-in user."""
+    if not request.user.is_authenticated:
+        return Response({"message": "Login required."}, status=401)
+
+    user_recommendations = cache.get(f"user_recommendations_{request.user.id}")
+    return Response(user_recommendations if user_recommendations else {"message": "No recommendations available."})

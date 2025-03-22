@@ -1,6 +1,7 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .models import ClientWallet, ClientWalletTransaction, LoyaltyTransaction, ReferralBonus
+from .models import ClientWallet, ClientWalletTransaction, LoyaltyTransaction 
+from referrals.models import Referral
 from django.db import transaction
 
 # Signal to update loyalty points after a payment is made
@@ -15,7 +16,7 @@ def update_loyalty_points_on_payment(sender, instance, created, **kwargs):
         instance.wallet.loyalty_points.add_points_from_payment(instance.amount)
 
 # Signal to update the referral stats after a new referral bonus is granted
-@receiver(post_save, sender=ReferralBonus)
+@receiver(post_save, sender=Referral)
 def update_referral_stats(sender, instance, created, **kwargs):
     """
     Updates referral stats when a new referral bonus is added.
@@ -46,7 +47,7 @@ def log_wallet_transaction(sender, instance, created, **kwargs):
         pass  # Implement additional logging if necessary
 
 # Signal to handle actions when a referral bonus is deleted
-@receiver(post_delete, sender=ReferralBonus)
+@receiver(post_delete, sender=Referral)
 def handle_referral_bonus_deletion(sender, instance, **kwargs):
     """
     Handles actions when a referral bonus is deleted, e.g., decrement referral stats.
