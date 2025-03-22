@@ -59,6 +59,8 @@ urlpatterns = [
     path('api/v1/special-orders/', include('special_orders.urls')),
     path('api/v1/tickets/', include('tickets.urls')),
     path('api/v1/wallet/', include('wallet.urls')),
+    path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
+    path('api/v1/service_pages_management/', include('service_pages_management.urls')),
 ]
 
 # Serve media and static files during development
