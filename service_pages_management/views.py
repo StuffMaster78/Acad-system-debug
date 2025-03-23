@@ -1,70 +1,54 @@
-from rest_framework import viewsets, permissions, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.utils.timezone import now, timedelta
 from drf_spectacular.utils import (
-    extend_schema, OpenApiParameter, OpenApiExample
+    extend_schema,
+    OpenApiParameter,
+    OpenApiExample
 )
 from .models import (
-    ServicePage, ServicePageCategory,
-    ServicePageClick, ServicePageConversion
+    ServicePage,
+    ServicePageClick,
+    ServicePageConversion
 )
 from .serializers import (
-    ServicePageSerializer, ServicePageCategorySerializer
+    ServicePageSerializer,
+    ServicePageAnalyticsSerializer
 )
 from .permissions import IsAdminOrSuperAdmin
-
-
-@extend_schema(tags=["Service Page Categories"])
-class ServicePageCategoryViewSet(viewsets.ModelViewSet):
-    """
-    ViewSet for managing service page categories.
-    """
-    queryset = ServicePageCategory.objects.all()
-    serializer_class = ServicePageCategorySerializer
-    permission_classes = [IsAdminOrSuperAdmin]
 
 
 @extend_schema(tags=["Service Pages"])
 class ServicePageViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing service pages and related analytics.
+    Handles CRUD operations, tracking,
+    and analytics for service pages.
     """
     serializer_class = ServicePageSerializer
     permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
         """
-        Returns all non-deleted service pages.
+        Return all non-deleted service pages.
         """
         return ServicePage.objects.filter(
             is_deleted=False
-        ).select_related('website', 'category')
+        ).select_related('website')
 
     def perform_create(self, serializer):
-        """
-        Adds creator and updater on create.
-        """
         serializer.save(
             created_by=self.request.user,
             updated_by=self.request.user
         )
 
     def perform_update(self, serializer):
-        """
-        Updates `updated_by` on update.
-        """
         serializer.save(updated_by=self.request.user)
 
     def perform_destroy(self, instance):
-        """
-        Soft delete the service page instead of hard delete.
-        """
         instance.delete()
 
     @extend_schema(
-        summary="Track a click (view)",
-        description="Records a view (click) event for analytics tracking.",
+        summary="Track a view/click",
         methods=["POST"]
     )
     @action(
@@ -73,9 +57,6 @@ class ServicePageViewSet(viewsets.ModelViewSet):
         permission_classes=[permissions.AllowAny]
     )
     def track_click(self, request, pk=None):
-        """
-        Tracks a click on the service page.
-        """
         try:
             page = self.get_queryset().get(pk=pk)
         except ServicePage.DoesNotExist:
@@ -94,13 +75,15 @@ class ServicePageViewSet(viewsets.ModelViewSet):
         return Response({"status": "click recorded"})
 
     @extend_schema(
-        summary="Track a conversion (e.g. order)",
-        description="Records a conversion tied to the service page.",
+        summary="Track a conversion event",
         methods=["POST"],
         examples=[
             OpenApiExample(
-                'Conversion Example',
-                value={"type": "order", "referral_url": "https://example.com"},
+                name="Example",
+                value={
+                    "type": "order",
+                    "referral_url": "https://client.com/order-page"
+                },
                 request_only=True
             )
         ]
@@ -111,9 +94,6 @@ class ServicePageViewSet(viewsets.ModelViewSet):
         permission_classes=[permissions.AllowAny]
     )
     def track_conversion(self, request, pk=None):
-        """
-        Tracks a conversion for the service page.
-        """
         try:
             page = self.get_queryset().get(pk=pk)
         except ServicePage.DoesNotExist:
@@ -122,24 +102,20 @@ class ServicePageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        conversion_type = request.data.get('type', 'order')
-        referral_url = request.data.get('referral_url', '')
-
         ServicePageConversion.objects.create(
             service_page=page,
             website=page.website,
-            conversion_type=conversion_type,
-            referral_url=referral_url
+            conversion_type=request.data.get("type", "order"),
+            referral_url=request.data.get("referral_url", "")
         )
         return Response({"status": "conversion recorded"})
 
     @extend_schema(
-        summary="Get service page analytics",
-        description="Returns click and conversion counts over N days.",
+        summary="View analytics for this service page",
         parameters=[
             OpenApiParameter(
                 name='days',
-                description='Number of days for historical data (default: 30)',
+                description='How many days back to look (default: 30)',
                 required=False,
                 type=int
             )
@@ -152,9 +128,6 @@ class ServicePageViewSet(viewsets.ModelViewSet):
         permission_classes=[IsAdminOrSuperAdmin]
     )
     def analytics(self, request, pk=None):
-        """
-        Returns analytics data for the service page.
-        """
         try:
             page = self.get_queryset().get(pk=pk)
         except ServicePage.DoesNotExist:
@@ -163,22 +136,9 @@ class ServicePageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        days = int(request.query_params.get('days', 30))
-        since = now() - timedelta(days=days)
-
-        click_count = ServicePageClick.objects.filter(
-            service_page=page,
-            timestamp__gte=since
-        ).count()
-
-        conversion_count = ServicePageConversion.objects.filter(
-            service_page=page,
-            timestamp__gte=since
-        ).count()
-
-        return Response({
-            "service_page_id": pk,
-            "clicks": click_count,
-            "conversions": conversion_count,
-            "since": since
-        })
+        days = request.query_params.get("days", 30)
+        serializer = ServicePageAnalyticsSerializer(
+            page,
+            context={'days': days}
+        )
+        return Response(serializer.data)

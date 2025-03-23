@@ -4,23 +4,6 @@ from websites.models import Website
 
 User = get_user_model()
 
-
-class ServicePageCategory(models.Model):
-    """
-    Represents a category to group service pages 
-    (e.g., Academic Writing, Editing).
-    """
-    name = models.CharField(max_length=100)
-    slug = models.SlugField(unique=True)
-
-    class Meta:
-        verbose_name = "Service Page Category"
-        verbose_name_plural = "Service Page Categories"
-
-    def __str__(self):
-        return self.name
-
-
 class ServicePage(models.Model):
     """
     Represents a unique service page associated with a client website.
@@ -29,12 +12,6 @@ class ServicePage(models.Model):
         Website,
         on_delete=models.CASCADE,
         related_name='service_pages'
-    )
-    category = models.ForeignKey(
-        ServicePageCategory,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
     )
     title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255)
@@ -92,7 +69,8 @@ class ServicePage(models.Model):
     
     def delete(self, *args, **kwargs):
         """
-        Soft delete: mark the page as deleted.
+        Soft delete: mark the page as deleted instead
+        of removing it.
         """
         self.is_deleted = True
         self.save()

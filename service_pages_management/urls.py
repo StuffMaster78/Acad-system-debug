@@ -1,37 +1,30 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from drf_spectacular.views import (
-    SpectacularAPIView,
-    SpectacularSwaggerView,
-    SpectacularRedocView
-)
-from .views import (
-    ServicePageViewSet,
-    ServicePageCategoryViewSet,
-)
+from drf_spectacular.views import SpectacularAPIView
+from .views import ServicePageViewSet
+from .swagger import SecureSwaggerView, SecureRedocView
 
 router = DefaultRouter()
-router.register(r'service-pages', ServicePageViewSet)
-router.register(r'service-categories', ServicePageCategoryViewSet)
+router.register(r'service-pages', ServicePageViewSet, basename='service-pages')
 
 urlpatterns = [
     # Core API
     path('', include(router.urls)),
 
-    # OpenAPI schema
+    # Schema endpoint
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
 
-    # Swagger UI
+    # Secure Swagger UI
     path(
         'docs/swagger/',
-        SpectacularSwaggerView.as_view(url_name='schema'),
+        SecureSwaggerView.as_view(url_name='schema'),
         name='swagger-ui'
     ),
 
-    # Redoc
+    # Secure Redoc UI
     path(
         'docs/redoc/',
-        SpectacularRedocView.as_view(url_name='schema'),
+        SecureRedocView.as_view(url_name='schema'),
         name='redoc'
     ),
 ]
