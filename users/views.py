@@ -22,10 +22,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from users.models import (
     User, AccountDeletionRequest, ProfileUpdateRequest,
     SecureToken, EncryptedRefreshToken, 
-    UserSession, BlockedIP, verify_email_otp,   
+    UserSession, BlockedIP,   
     MagicLinkToken
 )
-
 from users.utils import (
     notify_mfa_enabled, notify_mfa_disabled, notify_mfa_reset,
     send_mfa_recovery_email,log_audit_action

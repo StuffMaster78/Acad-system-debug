@@ -1,18 +1,17 @@
 # from core.models.base import BaseModel
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.db import models
 from django.contrib.auth import get_user_model
-from .models import Website
 from ckeditor.fields import RichTextField
 from django.utils import timezone 
-User = get_user_model()
 from django.core.mail import send_mail
 from django.utils.text import slugify
 import re  # Fix missing import
 from django.utils.timezone import now  # Fix missing import
 from django.contrib.postgres.fields import JSONField  # PostgreSQL JSON support
 from django.conf import settings
+
+User = get_user_model()
 
 def validate_hex_color(value):
     """Ensures valid HEX color format."""
@@ -67,6 +66,33 @@ class Website(models.Model):
     bing_webmaster_id = models.CharField(
         max_length=255, blank=True, null=True,
         help_text="Bing Webmaster Tools verification meta tag"
+    )
+    # Email Campaign Management
+    default_sender_name = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Default sender name for emails from this website (e.g., 'ABC Support')"
+    )
+
+    default_sender_email = models.EmailField(
+        null=True,
+        blank=True,
+        help_text="Default email address used to send emails from this website"
+    )
+    marketing_sender_email = models.EmailField(
+        null=True, blank=True,
+        help_text="Used for newsletters, promo emails (e.g., offers@site.com)"
+    )
+
+    notification_sender_email = models.EmailField(
+        null=True, blank=True,
+        help_text="Used for do-not-reply emails (e.g., do-not-reply@site.com)"
+    )
+
+    support_sender_email = models.EmailField(
+        null=True, blank=True,
+        help_text="Used for support replies (e.g., support@site.com)"
     )
 
     def validate_registration_allowed(self):

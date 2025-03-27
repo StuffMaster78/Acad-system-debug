@@ -88,3 +88,27 @@ class WebsiteStaticPageSerializer(serializers.ModelSerializer):
             validated_data["slug"] = base_slug
 
         return super().create(validated_data)
+
+
+class WebsiteSEOUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Website
+        fields = [
+            'meta_title',
+            'meta_description',
+            'meta_keywords',
+            'og_title',
+            'og_description',
+            'og_image',
+        ]
+
+
+class WebsiteSoftDeleteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Website
+        fields = ['is_active']  # or use ['is_deleted'] if your model uses that
+
+    def update(self, instance, validated_data):
+        instance.is_active = validated_data.get('is_active', False)
+        instance.save()
+        return instance

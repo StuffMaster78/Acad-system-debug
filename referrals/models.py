@@ -59,6 +59,8 @@ class Referral(SoftDeleteModel):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     bonus_awarded = models.BooleanField(default=False)
+    registration_bonus_credited = models.BooleanField(default=False)
+    first_order_bonus_credited = models.BooleanField(default=False)
 
     def award_bonus(self):
         """Credits the referral bonus when the referee places their first paid and completed order."""

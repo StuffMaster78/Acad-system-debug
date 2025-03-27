@@ -76,7 +76,7 @@ class BlogResource(models.Model):
 class BlogFAQ(models.Model):
     """Stores FAQ entries related to a blog post."""
     website = models.ForeignKey(
-        Website, on_delete=models.CASCADE, related_name="blog-faqs"
+        Website, on_delete=models.CASCADE, related_name="blog_faqs"
     )
     blog = models.ForeignKey(
         'BlogPost', on_delete=models.CASCADE, related_name="faqs"
@@ -492,7 +492,7 @@ class BlogMediaFile(models.Model):
 class BlogClick(models.Model):
     """Tracks unique clicks per user/IP."""
     website = models.ForeignKey(
-        Website, on_delete=models.CASCADE, related_name="blogs-clicks"
+        Website, on_delete=models.CASCADE, related_name="blogs_clicks"
     )
     blog = models.ForeignKey(
         BlogPost, on_delete=models.CASCADE, related_name="clicks"
@@ -510,7 +510,7 @@ class BlogClick(models.Model):
 class BlogConversion(models.Model):
     """Tracks conversions linked to order page interactions."""
     website = models.ForeignKey(
-        Website, on_delete=models.CASCADE, related_name="blog-conversions"
+        Website, on_delete=models.CASCADE, related_name="blog_conversions"
     )
     blog = models.ForeignKey(
         BlogPost, on_delete=models.CASCADE, related_name="conversions"
@@ -621,7 +621,7 @@ class NewsletterAnalytics(models.Model):
     - Conversion tracking for A/B testing
     """
     website = models.ForeignKey(
-        Website, on_delete=models.CASCADE, related_name="newsletter-analytics"
+        Website, on_delete=models.CASCADE, related_name="newsletter_analytics"
     )
     newsletter = models.ForeignKey(Newsletter, on_delete=models.CASCADE, related_name="analytics")
     version = models.CharField(max_length=1, choices=[("A", "Version A"), ("B", "Version B")])
@@ -789,7 +789,7 @@ class BlogABTest(models.Model):
     click_count_b = models.PositiveIntegerField(default=0)
     conversion_count_a = models.PositiveIntegerField(default=0)
     conversion_count_b = models.PositiveIntegerField(default=0)
-    winning_version = models.CharField(max_length=1, choices=[("A", "Version A"), ("B", "Version B"), ("Pending", "Pending")], default="Pending")
+    winning_version = models.CharField(max_length=7, choices=[("A", "Version A"), ("B", "Version B"), ("Pending", "Pending")], default="Pending")
 
     def determine_winner(self):
         """Determines the winning version based on engagement."""

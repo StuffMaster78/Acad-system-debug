@@ -7,11 +7,11 @@ from django.utils.timezone import now
 from django.utils.dateparse import parse_date
 from django.db.models import Count, Sum, Q
 from datetime import timedelta
-
+from rest_framework.views import APIView
 from .models import Referral, ReferralBonusConfig, ReferralCode, ReferralStats
 from .serializers import ReferralSerializer, ReferralBonusConfigSerializer, ReferralCodeSerializer
 from wallet.models import Wallet, WalletTransaction
-from users.permissions import IsAdminUser  # Only admins can access
+from users.permissions import IsAdminOrSuperAdmin 
 
 
 # Constants for transaction types
@@ -30,6 +30,7 @@ class ReferralViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing referrals.
     """
+    queryset = Referral.objects.all()
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ReferralSerializer
 
@@ -139,7 +140,7 @@ class ReferralBonusConfigViewSet(viewsets.ModelViewSet):
 
 class ReferralAdminViewSet(viewsets.ViewSet):
     """RESTful API for Referral Management (Admin Only)"""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     pagination_class = LargeResultsSetPagination
 
     def filter_by_date_and_website(self, request, queryset):
@@ -238,7 +239,7 @@ from datetime import timedelta
 from .models import Referral, ReferralBonusConfig, ReferralCode
 from .serializers import ReferralSerializer, ReferralBonusConfigSerializer, ReferralCodeSerializer
 from wallet.models import Wallet, WalletTransaction
-from users.permissions import IsAdminUser  # Only admins can access
+from users.permissions import IsAdminOrSuperAdmin  # Only admins can access
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
     """Pagination for large admin reports"""
@@ -368,7 +369,7 @@ class ReferralBonusConfigViewSet(viewsets.ModelViewSet):
 
 class ReferralAdminViewSet(viewsets.ViewSet):
     """RESTful API for Referral Management (Admin Only)"""
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
     pagination_class = LargeResultsSetPagination
 
     def filter_by_date_and_website(self, request, queryset):
@@ -451,3 +452,72 @@ class ReferralAdminViewSet(viewsets.ViewSet):
         referral.save()
 
         return Response({"message": "Bonus credited successfully"}, status=status.HTTP_200_OK)
+    
+class ReferralCodeViewSet(viewsets.ModelViewSet):
+    queryset = ReferralCode.objects.all()
+    serializer_class = ReferralCodeSerializer
+
+
+class ReferralStatsViewSet(viewsets.ViewSet):
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def list(self, request):
+        # Dummy data – replace with real stats
+        return Response({
+            "total_referrals": 10,
+            "successful_referrals": 6,
+            "pending_referrals": 4,
+        })
+    
+class ReferralBonusDecayViewSet(viewsets.ViewSet):
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def list(self, request):
+        return Response({
+            "status": "Referral bonus decay placeholder working."
+        })
+    
+
+class ReferralReportsAPI(APIView):
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def get(self, request):
+        return Response({
+            "status": "Referral reports coming soon.",
+        })
+    
+class AwardReferralBonusAPI(APIView):
+    permission_classes = [IsAdminOrSuperAdmin]
+
+    def post(self, request):
+        """
+        Manually award a referral bonus to a referee.
+        Admin must pass 'referral_id' in the request data.
+        """
+        referral_id = request.data.get("referral_id")
+        if not referral_id:
+            return Response(
+                {"detail": "Missing 'referral_id' in request."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            referral = Referral.objects.get(id=referral_id, is_deleted=False)
+        except Referral.DoesNotExist:
+            return Response(
+                {"detail": "Referral not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if referral.bonus_awarded:
+            return Response(
+                {"detail": "Bonus already awarded for this referral."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        referral.award_bonus()
+
+        return Response(
+            {"detail": "Referral bonus awarded successfully."},
+            status=status.HTTP_200_OK
+        )

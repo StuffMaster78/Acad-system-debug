@@ -40,6 +40,16 @@ from time import sleep
 from django.core.cache import cache
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+
+def blog_redirect(request, old_slug):
+        """
+        Redirects an old blog slug to the new one if it exists.
+        """
+        try:
+            slug_entry = BlogSlugHistory.objects.get(old_slug=old_slug)
+            return redirect(f"/blogs/{slug_entry.blog.slug}/")  # Permanent 301 redirect
+        except BlogSlugHistory.DoesNotExist:
+            return redirect("/")
 class BlogPagination(PageNumberPagination):
     page_size = 10  # Return 10 blogs per request
     page_size_query_param = "page_size"
@@ -293,15 +303,6 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(blog)
         return Response(serializer.data)
         
-    def blog_redirect(request, old_slug):
-        """
-        Redirects an old blog slug to the new one if it exists.
-        """
-        try:
-            slug_entry = BlogSlugHistory.objects.get(old_slug=old_slug)
-            return redirect(f"/blogs/{slug_entry.blog.slug}/")  # Permanent 301 redirect
-        except BlogSlugHistory.DoesNotExist:
-            return redirect("/")
 
     @action(detail=True, methods=["get"])
     def related_posts(self, request, pk=None):
@@ -326,7 +327,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         blog.save(update_fields=["content"])
         return Response({"message": "Broken links fixed successfully."})
         
-   @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=["get"], permission_classes=[IsAuthenticated])
     def personalized_recommendations(self, request, pk=None):
         """Returns AI-based personalized blog recommendations for the user."""
         user_id = request.user.id
@@ -615,7 +616,6 @@ class SocialPlatformViewSet(viewsets.ModelViewSet):
         return Response(
             {"message": f"{platform.name} has been {status} for {platform.website.name}."}, status=200
         )
-
 
 class BlogShareViewSet(viewsets.ModelViewSet):
     """Tracks shares for blog posts."""

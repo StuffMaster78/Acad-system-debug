@@ -25,8 +25,8 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(WriterProgress)
 class WriterProgressAdmin(admin.ModelAdmin):
-    list_display = ('order', 'writer', 'progress', 'timestamp')
-    list_filter = ('progress', 'timestamp')
+    list_display = ['order', 'writer', 'progress', 'timestamp']
+    list_filter = ['timestamp']
     search_fields = ('order__id', 'writer__username')
     ordering = ('-timestamp',)
 

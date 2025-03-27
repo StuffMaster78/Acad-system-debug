@@ -12,6 +12,8 @@ import qrcode
 from io import BytesIO
 from django.conf import settings
 from rest_framework.exceptions import PermissionDenied
+from user_agents import parse
+
 
 def get_client_ip(request):
     """
@@ -208,6 +210,7 @@ def log_audit_action(user, action, request):
     """
     Logs an MFA-related action in the audit log.
     """
+    from .models import AuditLog
     AuditLog.objects.create(
         user=user,
         action=action,
@@ -239,3 +242,18 @@ def send_security_alert(user, request):
         "no-reply@yourdomain.com",
         [user.email]
     )
+
+def get_device_info(request):
+    ua_string = request.META.get('HTTP_USER_AGENT', '')
+    user_agent = parse(ua_string)
+    
+    return {
+        "browser": user_agent.browser.family,
+        "os": user_agent.os.family,
+        "device": user_agent.device.family,
+        "is_mobile": user_agent.is_mobile,
+        "is_tablet": user_agent.is_tablet,
+        "is_pc": user_agent.is_pc,
+    }
+
+

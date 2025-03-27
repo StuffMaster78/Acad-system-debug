@@ -117,6 +117,7 @@ class WriterQuality(models.Model):
         default=0, help_text="Maximum number of orders a writer at this level can take simultaneously."
     )
     # ****To Check if fee is relevant****
+    # **** To check whether we need multiplier or fixed cost***
     urgent_order_fee = models.DecimalField(
         max_digits=10, decimal_places=2, default=0.0,
         help_text="Additional cost for urgent orders for this quality level."

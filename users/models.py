@@ -6,7 +6,6 @@ from django.utils.timezone import now, timedelta
 from .managers import ActiveManager
 from django_countries.fields import CountryField
 import requests
-from websites.models import Website 
 from users.utils import get_client_ip
 from rest_framework.exceptions import PermissionDenied
 import uuid
@@ -207,7 +206,7 @@ class User(AbstractUser):
         help_text=_("Upload a profile picture.")
     )
     website = models.ForeignKey(
-        Website, on_delete=models.SET_NULL, null=True, blank=True, related_name="users",
+        'websites.Website', on_delete=models.SET_NULL, null=True, blank=True, related_name="users",
         help_text=_("The website this user is associated with.")
     )
     avatar = models.CharField(
@@ -594,6 +593,7 @@ class User(AbstractUser):
             if not self.website:
                 request = kwargs.pop('request', None)
                 if request:
+                    from websites.models import Website
                     host = request.get_host().replace("www.", "")
                     self.website = Website.objects.filter(domain=host, is_active=True).first() or \
                                 Website.objects.filter(domain__icontains=host, is_active=True).first() or \

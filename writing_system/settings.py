@@ -14,8 +14,8 @@ from dotenv import load_dotenv
 import os
 from datetime import timedelta
 from celery.schedules import crontab
-import sentry_sdk
-from sentry_sdk.integrations.django import DjangoIntegration
+# import sentry_sdk
+# from sentry_sdk.integrations.django import DjangoIntegration
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'drf_spectacular',
     'drf_spectacular_sidecar',
-    "django_ratelimit",
+    'django_ratelimit',
     'django_filters',
     'django_celery_beat',
     'django_otp',
@@ -63,7 +63,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "import_export", 
-    'ckeditor',
+    'django-ckeditor5',
     'ckeditor_uploader',
     
 
@@ -93,6 +93,7 @@ INSTALLED_APPS = [
     # Notifications and Support
     'notifications_system',
     'tickets',
+    'mass_emails',
 
     # Users Management Apps
     'superadmin_management',
@@ -150,7 +151,7 @@ AUTH_USER_MODEL = 'users.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB_NAME'),  #Database Name
+        'NAME': os.getenv('POSTGRES_DB'),  #Database Name
         'USER': os.getenv('POSTGRES_USER'),  #Database username
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),  #Database password
         "HOST": os.getenv("DB_HOST"),  # Hostname
@@ -159,10 +160,10 @@ DATABASES = {
 }
 
 
-print("Database:", os.getenv("POSTGRES_DB_NAME"))
+print("Database:", os.getenv("POSTGRES_DB"))
 print("User:", os.getenv("POSTGRES_USER"))
 print("Password:", os.getenv("POSTGRES_PASSWORD"))
-print("DATABASE NAME:", os.getenv('POSTGRES_DB_NAME'))
+print("DATABASE NAME:", os.getenv('POSTGRES_DB'))
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -358,14 +359,14 @@ CELERY_BEAT_SCHEDULE = {
 }
 RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW")
 MAX_FAILED_ATTEMPTS = os.getenv("MAX_FAILED_ATTEMPTS")
-LOCKOUT_DURATION_MINUTES = os.getenv("LOCKOUT_DURATION_MINUTES")
+LOCKOUT_DURATION_MINUTES = int(os.getenv("LOCKOUT_DURATION_MINUTES"))
 SESSION_EXPIRATION_DAYS = os.getenv("SESSION_EXPIRATION_DAYS")
 
-
+LOCKOUT_DURATION = timedelta(minutes=LOCKOUT_DURATION_MINUTES)
 
 
 CKEDITOR_UPLOAD_PATH = "uploads/"
-CKEDITOR_CONFIGS = {
+CKEDITOR_5_CONFIGS = {
     "default": {
         "toolbar": "full",
         "height": 300,
@@ -375,10 +376,21 @@ CKEDITOR_CONFIGS = {
 }
 
 
-# Sentry settings
-sentry_sdk.init(
-    dsn="YOUR_SENTRY_DSN",  # Replace with your actual DSN
-    integrations=[DjangoIntegration()],
-    traces_sample_rate=1.0,  # Adjust sampling rate if needed
-    send_default_pii=True  # Sends user data (useful for debugging authentication issues)
-)
+# # Sentry settings
+# sentry_sdk.init(
+#     dsn="YOUR_SENTRY_DSN",  # Replace with your actual DSN
+#     integrations=[DjangoIntegration()],
+#     traces_sample_rate=1.0,  # Adjust sampling rate if needed
+#     send_default_pii=True  # Sends user data (useful for debugging authentication issues)
+# )
+
+
+# SENTRY_DSN = os.getenv("SENTRY_DSN")  # or use settings if you're using django-environ
+
+# if SENTRY_DSN:
+#     sentry_sdk.init(
+#         dsn=SENTRY_DSN,
+#         integrations=[DjangoIntegration()],
+#         traces_sample_rate=1.0,
+#         send_default_pii=True,
+#     )

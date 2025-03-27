@@ -27,9 +27,13 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, Sp
 from django.conf import settings
 from django.conf.urls.static import static
 
+def trigger_error(request):
+    division_by_zero = 1 / 0
+
 urlpatterns = [
     # Admin panel
     path('admin/', admin.site.urls, name='admin'),
+    path('sentry-debug/', trigger_error),
 
     # API schema and documentation
     path('api/v1/schema/', SpectacularAPIView.as_view(), name='api-schema'),

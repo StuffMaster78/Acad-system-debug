@@ -25,7 +25,7 @@ from .serializers import (
     WriterActivityLogSerializer, WriterRatingCooldownSerializer, WriterFileDownloadLogSerializer, WriterIPLogSerializer,
     OrderDisputeSerializer
 )
-from notifications_system.utils import send_notification 
+from core.utils.notifications import send_notification 
 
 
 ### ---------------- Writer Profile Views ---------------- ###

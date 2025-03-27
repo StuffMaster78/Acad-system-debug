@@ -8,7 +8,7 @@ class BlogConfig(AppConfig):
     - Enables verbose app name in Django Admin.
     """
     default_auto_field = "django.db.models.BigAutoField"
-    name = "blog"
+    name = "blog_pages_management"
     verbose_name = _("Blog Management")
 
     def ready(self):

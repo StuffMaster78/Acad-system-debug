@@ -11,9 +11,9 @@ from .models import (
 from django_celery_beat.models import PeriodicTask, IntervalSchedule, CrontabSchedule
 from django.contrib import admin
 
-admin.site.register(PeriodicTask)
-admin.site.register(IntervalSchedule)
-admin.site.register(CrontabSchedule)
+# admin.site.register(PeriodicTask)
+# admin.site.register(IntervalSchedule)
+# admin.site.register(CrontabSchedule)
 
 
 

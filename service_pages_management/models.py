@@ -4,6 +4,7 @@ from websites.models import Website
 
 User = get_user_model()
 
+
 class ServicePage(models.Model):
     """
     Represents a unique service page associated with a client website.
@@ -66,7 +67,7 @@ class ServicePage(models.Model):
 
     def __str__(self):
         return f"{self.website} | {self.title}"
-    
+
     def delete(self, *args, **kwargs):
         """
         Soft delete: mark the page as deleted instead
@@ -74,7 +75,6 @@ class ServicePage(models.Model):
         """
         self.is_deleted = True
         self.save()
-
 
 
 class ServicePageClick(models.Model):

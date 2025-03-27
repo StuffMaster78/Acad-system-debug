@@ -4,7 +4,7 @@ from django.utils.timezone import now
 from websites.models import Website
 from django.apps import apps
 from decimal import Decimal
-from core.models.base import WebsiteSpecificBaseModel
+# from core.models.base import WebsiteSpecificBaseModel
 
 class LoyaltyTier(models.Model):
     """
@@ -56,7 +56,7 @@ class LoyaltyTransaction(models.Model):
         ('deduct', _('Deduct')),
     )
     website = models.OneToOneField(
-        'core.Website', on_delete=models.CASCADE, related_name="loyalty_transactions"
+        'websites.Website', on_delete=models.CASCADE, related_name="loyalty_transactions"
     )
 
     client = models.ForeignKey(
@@ -104,7 +104,7 @@ class Milestone(models.Model):
         ('orders_placed', _('Orders Placed')),
     )
     website = models.OneToOneField(
-        'core.Website', on_delete=models.CASCADE, related_name="milestone_achieveable"
+        'websites.Website', on_delete=models.CASCADE, related_name="milestone_achieveable"
     )
 
     name = models.CharField(
@@ -147,7 +147,7 @@ class ClientBadge(models.Model):
     Represents badges awarded to clients for specific achievements.
     """
     website = models.OneToOneField(
-        'core.Website', on_delete=models.CASCADE, related_name="client_badge"
+        'websites.Website', on_delete=models.CASCADE, related_name="client_badge"
     )
     client = models.ForeignKey(
         'client_management.ClientProfile',
@@ -182,7 +182,7 @@ class LoyaltyPointsConversionConfig(models.Model):
     Configurations for converting loyalty points into wallet balance.
     """
     website = models.OneToOneField(
-        'core.Website', on_delete=models.CASCADE, related_name="loyalty_points_conversion_config"
+        'websites.Website', on_delete=models.CASCADE, related_name="loyalty_points_conversion_config"
     )
     conversion_rate = models.DecimalField(
         max_digits=5,

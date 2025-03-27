@@ -30,7 +30,7 @@ class Notification(WebsiteSpecificBaseModel):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="notifications",
+        related_name="user_notifications",
         help_text="The user receiving the notification."
     )
     type = models.CharField(

@@ -111,11 +111,11 @@ class ReferralStatsAdmin(admin.ModelAdmin):
                     'referral_bonus_earned', 'last_referral_at'
     )
     search_fields = ('user__username',)
-    list_filter = ('last_referral_at',)
+    list_filter = ['last_referral_at',]
 
 
 @admin.register(ReferralBonusDecay)
 class ReferralBonusDecayAdmin(admin.ModelAdmin):
     list_display = ("wallet_transaction", "decay_rate", "decay_start_at")
     search_fields = ("wallet_transaction__id",)
-    list_filter = ("decay_start_at")
+    list_filter = ["decay_start_at"]
