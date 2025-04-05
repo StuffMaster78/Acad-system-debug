@@ -7,7 +7,6 @@ recipient tracking, file attachments, and email templates.
 from django.conf import settings
 from django.db import models
 from django.contrib.auth import get_user_model
-from ckeditor_uploader.fields import RichTextUploadingField
 
 User = get_user_model()
 
@@ -40,8 +39,7 @@ class EmailCampaign(models.Model):
     )
     title = models.CharField(max_length=255)
     subject = models.CharField(max_length=255)
-    body = RichTextUploadingField()
-
+    body = models.TextField()
     email_type = models.CharField(
         max_length=20,
         choices=EMAIL_TYPE_CHOICES,

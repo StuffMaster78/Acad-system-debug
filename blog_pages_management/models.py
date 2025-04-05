@@ -1,6 +1,5 @@
 from django.db import transaction, models
 from django.contrib.auth import get_user_model
-from ckeditor_uploader.fields import RichTextUploadingField
 from django.utils.text import slugify
 from django.utils.timezone import now
 import requests
@@ -145,7 +144,7 @@ class BlogPost(models.Model):
         unique=True, blank=True, db_index=True,
         help_text="Custom blog URL (use hyphens)"
     )
-    content = RichTextUploadingField()
+    content = models.Field()
     toc = models.JSONField(default=dict, blank=True) 
     authors = models.ManyToManyField("AuthorProfile", related_name="blog_posts")
     is_editorial = models.BooleanField(default=False)

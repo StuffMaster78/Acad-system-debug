@@ -2,7 +2,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from ckeditor.fields import RichTextField
 from django.utils import timezone 
 from django.core.mail import send_mail
 from django.utils.text import slugify
@@ -170,7 +169,7 @@ class WebsiteStaticPage(models.Model):
         max_length=10, choices=[("en", "English"), ("fr", "French"), ("es", "Spanish")], default="en"
     )
     slug = models.SlugField(unique=True)
-    content = RichTextField()
+    content = models.TextField()
     meta_title = models.CharField(max_length=255, blank=True)
     meta_description = models.TextField(blank=True)
     last_updated = models.DateTimeField(auto_now=True)

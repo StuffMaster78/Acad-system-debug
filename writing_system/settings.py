@@ -63,9 +63,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "import_export", 
-    'django-ckeditor5',
-    'ckeditor_uploader',
-    
+
 
     # Core Project Apps
     'core',
@@ -108,8 +106,10 @@ INSTALLED_APPS = [
     # Content Management Apps
     'blog_pages_management',
     'service_pages_management',
-]
 
+     # Shared Utilities App
+     "common",
+]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -255,9 +255,6 @@ CHANNEL_LAYERS = {
 }
 
 
-CKEDITOR_UPLOAD_PATH = "uploads/"
-
-
 # Email Settings
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
 EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
@@ -365,17 +362,6 @@ SESSION_EXPIRATION_DAYS = os.getenv("SESSION_EXPIRATION_DAYS")
 LOCKOUT_DURATION = timedelta(minutes=LOCKOUT_DURATION_MINUTES)
 
 
-CKEDITOR_UPLOAD_PATH = "uploads/"
-CKEDITOR_5_CONFIGS = {
-    "default": {
-        "toolbar": "full",
-        "height": 300,
-        "width": "100%",
-        "extraPlugins": ",".join(["autogrow", "embed", "codesnippet"]),
-    },
-}
-
-
 # # Sentry settings
 # sentry_sdk.init(
 #     dsn="YOUR_SENTRY_DSN",  # Replace with your actual DSN
@@ -394,3 +380,7 @@ CKEDITOR_5_CONFIGS = {
 #         traces_sample_rate=1.0,
 #         send_default_pii=True,
 #     )
+
+
+
+TEMPLATES[0]["DIRS"] += [BASE_DIR / "common" / "templates"]

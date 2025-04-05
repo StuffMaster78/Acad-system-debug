@@ -16,7 +16,10 @@ from .serializers import (
     ServicePageAnalyticsSerializer
 )
 from .permissions import IsAdminOrSuperAdmin
-
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from django.core.files.storage import default_storage
+from django.core.files.base import ContentFile
 
 @extend_schema(tags=["Service Pages"])
 class ServicePageViewSet(viewsets.ModelViewSet):

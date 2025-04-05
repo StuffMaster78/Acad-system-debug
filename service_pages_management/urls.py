@@ -1,7 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from drf_spectacular.views import SpectacularAPIView
-from .views import ServicePageViewSet
 from .swagger import SecureSwaggerView, SecureRedocView
 
 router = DefaultRouter()
@@ -10,6 +9,7 @@ router.register(r'service-pages', ServicePageViewSet, basename='service-pages')
 urlpatterns = [
     # Core API
     path('', include(router.urls)),
+
 
     # Schema endpoint
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
