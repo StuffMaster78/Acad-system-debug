@@ -211,3 +211,24 @@ class WebsiteStaticPage(models.Model):
 
     def __str__(self):
         return f"{self.website.name} - {self.title}"
+
+# website/models.py
+class WebsiteSettings(models.Model):
+    """
+    A model to store general website settings like domain URL and sender details.
+    """
+    domain_url = models.URLField(
+        max_length=200,
+        help_text="The main domain of the website"
+    )
+    sender_name = models.CharField(
+        max_length=100,
+        help_text="Name of the sender (e.g., Company name)"
+    )
+    sender_email = models.EmailField(
+        max_length=200,
+        help_text="Sender's email address"
+    )
+    
+    def __str__(self):
+        return self.sender_name

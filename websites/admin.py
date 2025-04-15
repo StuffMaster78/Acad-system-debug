@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Website, WebsiteStaticPage
+from .models import Website, WebsiteStaticPage, WebsiteSettings
 
 @admin.register(Website)
 class WebsiteAdmin(admin.ModelAdmin):
@@ -64,5 +64,19 @@ class WebsiteStaticPageAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return request.user.is_superuser
+    
 
-admin.site.register(WebsiteStaticPage, WebsiteStaticPageAdmin)
+# website/admin.py
+class WebsiteSettingsInline(admin.TabularInline):
+    model = WebsiteSettings
+    extra = 1  # Only show one inline form for the website settings
+
+class WebsiteAdmin(admin.ModelAdmin):
+    inlines = [WebsiteSettingsInline]
+
+
+
+admin.site.register(
+    Website, WebsiteAdmin, WebsiteSettings,
+    WebsiteStaticPage, WebsiteStaticPageAdmin
+)

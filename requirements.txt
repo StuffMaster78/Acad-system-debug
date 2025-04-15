@@ -48,12 +48,14 @@ diff-match-patch==20241021
 dj-database-url==2.3.0
 Django==5.1.5
 django-celery-beat==2.7.0
+django-ckeditor-5==0.2.17
 django-cors-headers==4.6.0
 django-countries==7.6.1
 django-environ==0.12.0
 django-extensions==3.2.3
 django-filter==24.3
 django-import-export==4.3.7
+django-ipware==7.0.1
 django-js-asset==3.1.2
 django-otp==1.5.4
 django-picklefield==3.2
@@ -62,7 +64,9 @@ django-redis==5.4.0
 django-rq==3.0.0
 django-taggit==6.1.0
 django-timezone-field==7.1
+django-tinymce==4.1.0
 djangorestframework==3.15.2
+djangorestframework-queryfields==1.1.0
 djangorestframework_simplejwt==5.4.0
 dnspython==2.7.0
 docopt==0.6.2
@@ -79,6 +83,7 @@ Flask==3.1.0
 Flask-SQLAlchemy==3.1.1
 frozenlist==1.5.0
 geoip2==4.8.1
+greenlet==3.1.1
 gunicorn==23.0.0
 hyperlink==21.0.0
 idna==3.10
@@ -142,6 +147,7 @@ pyflakes==3.2.0
 Pygments==2.19.1
 PyJWT==2.10.1
 pymongo==4.10.1
+pynvim==0.5.2
 pyOpenSSL==25.0.0
 pyotp==2.9.0
 pytest==8.3.5
@@ -150,6 +156,7 @@ python-crontab==3.2.0
 python-dateutil==2.9.0.post0
 python-decouple==3.8
 python-dotenv==1.0.1
+python-ipware==3.0.0
 pytz==2025.1
 PyYAML==6.0.2
 pyzmq==26.3.0

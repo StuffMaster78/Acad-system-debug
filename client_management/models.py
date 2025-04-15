@@ -350,8 +350,13 @@ class TemporaryPassword(models.Model):
         on_delete=models.CASCADE,
         related_name="temporary_password",
     )
-    code = models.CharField(max_length=50, help_text=_("Temporary password or reset code."))
-    expires_at = models.DateTimeField(help_text=_("Expiration date and time for the temporary password."))
+    code = models.CharField(
+        max_length=50,
+        help_text=_("Temporary password or reset code.")
+    )
+    expires_at = models.DateTimeField(
+        help_text=_("Expiration date and time for the temporary password.")
+    )
 
     def is_valid(self):
         """
@@ -409,7 +414,8 @@ class ProfileUpdateRequest(models.Model):
 
 class ClientAction(models.Model):
     """
-    Model to track actions performed on client accounts, such as suspending, activating, and deactivating.
+    Model to track actions performed on client accounts,
+    such as suspending, activating, and deactivating.
     """
     ACTION_CHOICES = [
         ('suspend', 'Suspend'),
@@ -435,8 +441,15 @@ class ClientAction(models.Model):
         related_name="actions_performed",
         help_text="The admin who performed the action."
     )
-    timestamp = models.DateTimeField(auto_now_add=True, help_text="Time when the action was performed.")
-    reason = models.TextField(blank=True, null=True, help_text="Optional reason for the action.")
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Time when the action was performed."
+    )
+    reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optional reason for the action."
+    )
 
     def __str__(self):
         return f"{self.get_action_display()} action on {self.client.user.username} by {self.performed_by.username}"

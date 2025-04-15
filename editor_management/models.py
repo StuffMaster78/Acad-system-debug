@@ -27,12 +27,15 @@ class EditorProfile(models.Model):
         unique=True,
         help_text="Unique editor registration ID (e.g., Editor #12345)."
     )
-    email = models.EmailField(unique=True, help_text="Editor’s email address.")
+    email = models.EmailField(
+        unique=True,
+        help_text="Editor's email address."
+    )
     phone_number = models.CharField(
         max_length=15,
         blank=True,
         null=True,
-        help_text="Editor’s phone number."
+        help_text="Editor's phone number."
     )
     website = models.ForeignKey(
         Website,

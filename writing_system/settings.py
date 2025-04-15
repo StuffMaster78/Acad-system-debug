@@ -10,12 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 from pathlib import Path
-from dotenv import load_dotenv
+from dotenv import load_dotenv # type: ignore
 import os
 from datetime import timedelta
-from celery.schedules import crontab
+from celery.schedules import crontab # type: ignore
 # import sentry_sdk
 # from sentry_sdk.integrations.django import DjangoIntegration
+
+from cryptography.fernet import Fernet # type: ignore
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -56,6 +58,7 @@ INSTALLED_APPS = [
     # Third-party Apps
     'rest_framework',
     'corsheaders',
+    # 'drf-queryfields',
     # 'django-rq',
     'celery',
     'channels',
@@ -353,6 +356,10 @@ CELERY_BEAT_SCHEDULE = {
         'task': 'client_wallet.tasks.check_and_update_loyalty_points',
         'schedule': timedelta(days=7),  # Run once every week
     },
+    'daily_soft_delete_cleanup': {
+        "task": "users.tasks.deletion.cleanup_soft_deleted_models",
+        "schedule": crontab(hour=3, minute=0),  # every day at 3AM
+    }
 }
 RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW")
 MAX_FAILED_ATTEMPTS = os.getenv("MAX_FAILED_ATTEMPTS")
@@ -381,6 +388,6 @@ LOCKOUT_DURATION = timedelta(minutes=LOCKOUT_DURATION_MINUTES)
 #         send_default_pii=True,
 #     )
 
-
+# FERNET_KEY = Fernet.generate_key().decode() 
 
 TEMPLATES[0]["DIRS"] += [BASE_DIR / "common" / "templates"]

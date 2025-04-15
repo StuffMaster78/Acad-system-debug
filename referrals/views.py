@@ -11,7 +11,7 @@ from rest_framework.views import APIView
 from .models import Referral, ReferralBonusConfig, ReferralCode, ReferralStats
 from .serializers import ReferralSerializer, ReferralBonusConfigSerializer, ReferralCodeSerializer
 from wallet.models import Wallet, WalletTransaction
-from users.permissions import IsAdminOrSuperAdmin 
+from authentication.permissions import IsAdminOrSuperAdmin 
 
 
 # Constants for transaction types
@@ -239,7 +239,7 @@ from datetime import timedelta
 from .models import Referral, ReferralBonusConfig, ReferralCode
 from .serializers import ReferralSerializer, ReferralBonusConfigSerializer, ReferralCodeSerializer
 from wallet.models import Wallet, WalletTransaction
-from users.permissions import IsAdminOrSuperAdmin  # Only admins can access
+from authentication.permissions import IsAdminOrSuperAdmin  # Only admins can access
 
 class LargeResultsSetPagination(pagination.PageNumberPagination):
     """Pagination for large admin reports"""

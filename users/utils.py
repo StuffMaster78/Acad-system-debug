@@ -8,11 +8,33 @@ from twilio.rest import Client
 import redis
 from datetime import timedelta
 #  Fancy 
-import qrcode
+import qrcode, request
 from io import BytesIO
 from django.conf import settings
 from rest_framework.exceptions import PermissionDenied
 from user_agents import parse
+from django.contrib.sessions.models import Session
+
+
+
+
+
+def logout_all_sessions(user):
+    """
+    Logs out the user from all active sessions.
+    """
+     # Get all sessions where the user is authenticated
+    sessions = Session.objects.filter(
+        session_data__contains=f"user_id:{user.id}"
+    )
+    # Delete all sessions for this user
+    sessions.delete()
+    # Invalidate the user's current session (this happens automatically after logout)
+    if hasattr(user, "auth_token"):
+        user.auth_token.delete()
+# If you want to clear cookies or token for the client-side, you might want to set the session cookie to expire
+    # within the response in your views
+    return True
 
 
 def get_client_ip(request):
@@ -60,7 +82,11 @@ def send_deletion_confirmation_email(user):
     )
 
     # Log request timestamp
-    AccountDeletionRequest.objects.create(user=user, reason="Pending Confirmation", requested_at=now())
+    AccountDeletionRequest.objects.create(
+        user=user,
+        reason="Pending Confirmation",
+        requested_at=now()
+    )
 
 
 
@@ -97,10 +123,6 @@ def verify_totp(user, otp):
     totp = pyotp.TOTP(user.mfa_secret)
     return totp.verify(otp)
 
-
-
-
-
 def generate_totp_qr_code(user):
     """
     Generate a QR Code for TOTP-based authentication.
@@ -118,12 +140,9 @@ def generate_totp_qr_code(user):
     qr.save(buffer, format="PNG")
     return buffer.getvalue()
 
-
-
-
 def send_unlock_email(user):
     """Send unlock instructions to the user's email."""
-    unlock_link = f"https://yourapp.com/unlock/{user.id}"
+    unlock_link = f"https://{user.website.domain}/unlock/{user.id}"
     
     send_mail(
         subject="Unlock Your Account",
@@ -152,10 +171,6 @@ def revoke_token(user_id, token):
 def is_token_revoked(user_id, token):
     """Check if a token is revoked."""
     return redis_client.get(f"active_token:{user_id}:{token}") is None
-
-
-
-
 
 def send_mfa_email(user, subject, message):
     """
@@ -193,13 +208,11 @@ def notify_mfa_reset(user):
     message = f"Hello {user.username},\n\nYour MFA has been reset by an administrator. You need to set up MFA again."
     send_mfa_email(user, subject, message)
 
-
-
 def send_mfa_recovery_email(user):
     """
     Sends an MFA recovery email with a secure link.
     """
-    recovery_link = f"https://yourwebsite.com/mfa-recover/{user.mfa_recovery_token}"
+    recovery_link = f"https://{user.website.domain}/mfa-recover/{user.mfa_recovery_token}"
     subject = "Multi-Factor Authentication Recovery"
     message = f"Hello {user.username},\n\nClick the link below to reset your MFA setup:\n\n{recovery_link}\n\nThis link expires in 15 minutes."
     

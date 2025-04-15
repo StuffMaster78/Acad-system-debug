@@ -66,6 +66,8 @@ urlpatterns = [
     path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
     path('api/v1/', include('service_pages_management.urls')),
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
+
+    path('/api/v1/auth/', include('authentication.urls')),
 ]
 
 # Serve media and static files during development

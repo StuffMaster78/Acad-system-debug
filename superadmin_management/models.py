@@ -46,11 +46,20 @@ class Probation(models.Model):
     Tracks users placed on probation by a superadmin.
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="probation_records")
-    placed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="probation_placed")
+    placed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="probation_placed"
+    )
     reason = models.TextField(help_text="Reason for probation.")
     start_date = models.DateTimeField(default=now)
     end_date = models.DateTimeField()
-    is_active = models.BooleanField(default=True, help_text="Indicates if the probation is still active.")
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Indicates if the probation is still active."
+    )
 
     def check_expiry(self):
         """ Automatically deactivate probation if end_date has passed. """
@@ -76,14 +85,43 @@ class Blacklist(models.Model):
         ('ip', 'IP Address'),
     ]
 
-    blacklist_type = models.CharField(max_length=10, choices=BLACKLIST_TYPE_CHOICES, default='user')
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="blacklist_record")
-    email = models.EmailField(blank=True, null=True, help_text="Blacklisted email (if applicable).")
-    ip_address = models.GenericIPAddressField(blank=True, null=True, help_text="Blacklisted IP (if applicable).")
-    reason = models.TextField(help_text="Reason for blacklisting.")
-    blacklisted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="blacklist_placed")
+    blacklist_type = models.CharField(
+        max_length=10,
+        choices=BLACKLIST_TYPE_CHOICES,
+        default='user'
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="blacklist_record"
+    )
+    email = models.EmailField(
+        blank=True,
+        null=True,
+        help_text="Blacklisted email (if applicable)."
+    )
+    ip_address = models.GenericIPAddressField(
+        blank=True,
+        null=True,
+        help_text="Blacklisted IP (if applicable)."
+    )
+    reason = models.TextField(
+        help_text="Reason for blacklisting."
+    )
+    blacklisted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="blacklist_placed"
+    )
     date_blacklisted = models.DateTimeField(auto_now_add=True)
-    is_active = models.BooleanField(default=True, help_text="Indicates if the blacklist is still active.")
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Indicates if the blacklist is still active."
+    )
 
     def __str__(self):
         if self.user:
@@ -117,8 +155,16 @@ class SuperadminLog(models.Model):
         ('override', 'System Override'),
     ]
 
-    superadmin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="superadmin_logs")
-    action_type = models.CharField(max_length=20, choices=ACTION_TYPES, default='override')
+    superadmin = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="superadmin_logs"
+    )
+    action_type = models.CharField(
+        max_length=20,
+        choices=ACTION_TYPES,
+        default='override'
+    )
     action = models.CharField(max_length=255)
     action_details = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -139,12 +185,31 @@ class Appeal(models.Model):
         ('suspension', 'Suspension'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="appeals")
-    appeal_type = models.CharField(max_length=10, choices=APPEAL_TYPE_CHOICES)
-    reason = models.TextField(help_text="Why should this decision be reconsidered?")
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="appeals"
+    )
+    appeal_type = models.CharField(
+        max_length=10,
+        choices=APPEAL_TYPE_CHOICES
+    )
+    reason = models.TextField(
+        help_text="Why should this decision be reconsidered?"
+    )
     submitted_at = models.DateTimeField(auto_now_add=True)
-    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="appeal_reviews")
-    status = models.CharField(max_length=10, choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')], default='pending')
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="appeal_reviews"
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=[('pending', 'Pending'), ('approved', 'Approved'), ('rejected', 'Rejected')],
+        default='pending'
+    )
 
     def __str__(self):
         return f"{self.user.username} - {self.appeal_type} - {self.status}"
@@ -152,8 +217,15 @@ class Appeal(models.Model):
 
 class UserActionLog(models.Model):
     """Logs key actions taken on users by Superadmins."""
-    admin = models.ForeignKey(User, on_delete=models.CASCADE, related_name="user_action_logs")
-    target_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="target_user")
+    admin = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name="user_action_logs"
+    )
+    target_user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="target_user"
+    )
     action = models.CharField(max_length=50)  # e.g., "Suspended", "Reactivated", "Role Changed"
     details = models.TextField(blank=True, null=True)  # Optional extra details
     timestamp = models.DateTimeField(auto_now_add=True)

@@ -5,6 +5,7 @@ from websites.models import Website
 class PredefinedSpecialOrderConfig(models.Model):
     """
     Configuration for predefined-cost special orders.
+    These are the orders with predefined amount such as $250 etc.
     """
     name = models.CharField(max_length=255, unique=True, help_text="Name of the predefined order type (e.g., Shadow Health).")
     description = models.TextField(blank=True, help_text="Description of the predefined order type.")

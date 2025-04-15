@@ -4,7 +4,10 @@ from django.utils.timezone import now
 from datetime import timedelta
 from core.models.base import WebsiteSpecificBaseModel
 from users.models import User
-from loyalty_management.models import LoyaltyTier, LoyaltyTransaction, LoyaltyPointsConversionConfig
+from loyalty_management.models import (
+    LoyaltyTier, LoyaltyTransaction,
+    LoyaltyPointsConversionConfig
+)
 from django.core.exceptions import ValidationError
 import logging
 
@@ -32,7 +35,10 @@ class ClientWallet(WebsiteSpecificBaseModel):
         default="USD",
         help_text="Currency of the wallet balance."
     )
-    loyalty_points = models.PositiveIntegerField(default=0, help_text="Accumulated loyalty points.")
+    loyalty_points = models.PositiveIntegerField(
+        default=0,
+        help_text="Accumulated loyalty points."
+    )
     last_updated = models.DateTimeField(auto_now=True)
 
     def debit_wallet(self, amount, reason=""):

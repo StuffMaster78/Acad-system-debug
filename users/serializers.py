@@ -8,96 +8,68 @@ from editor_management.models import EditorProfile
 from support_management.models import SupportProfile
 from superadmin_management.models import SuperadminProfile
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from websites.models import Website
 from users.models import AccountDeletionRequest
+from rest_framework.exceptions import ValidationError
 
 User = get_user_model()
 
-class SignupSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    password2 = serializers.CharField(write_only=True, required=True)  # Confirm password
-
-    class Meta:
-        model = User
-        fields = ('email', 'username', 'password', 'password2', 'role', 'website')
-
-    def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({"password": "Passwords do not match."})
-
-        request = self.context.get("request")
-        request_host = request.get_host().replace("www.", "")
-
-        # Validate if the website exists and is active
-        website = Website.objects.filter(domain__icontains=request_host, is_active=True).first()
-        if not website:
-            raise serializers.ValidationError({"website": "This website is not registered or is inactive."})
-
-        # Validate if registration is allowed on this website
-        if not website.allow_registration:
-            raise serializers.ValidationError({"website": "Registration is disabled for this website."})
-
-        return attrs
-
-    def create(self, validated_data):
-        request = self.context.get("request")
-        request_host = request.get_host().replace("www.", "")
-
-        # Assign the detected website
-        website = Website.objects.filter(domain__icontains=request_host, is_active=True).first()
-        validated_data["website"] = website.domain
-        validated_data.pop("password2")  # Remove password2 before saving
-        user = User.objects.create_user(**validated_data)
-        return user
-
-class LoginSerializer(TokenObtainPairSerializer):
-    @classmethod
-    def get_token(cls, user):
-        token = super().get_token(user)
-        token['role'] = user.role  # Include role in JWT
-        return token
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
-    """
-    General User profile serializer for retrieving user details.
-    Includes profile picture and avatar display.
-    """
+class UserListSerializer(serializers.ModelSerializer):
+    website = serializers.SlugRelatedField(
+        slug_field='domain',
+        queryset=Website.objects.all(),
+        required=False,
+        allow_null=True
+    )
     display_avatar = serializers.SerializerMethodField()
+    profile_role = serializers.CharField(source='role', read_only=True)
 
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'username', 'avatar', 'profile_picture', 'display_avatar',
-            'phone_number', 'role', 'is_suspended', 'is_on_probation',
-            'is_available', 'date_joined', 'last_active'
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'website', 'role', 'profile_role', 'display_avatar',
+            'is_available', 'is_active', 'is_suspended', 'is_on_probation',
+            'is_blacklisted', 'date_joined'
         ]
+        read_only_fields = ['id', 'date_joined', 'is_active']
 
-    # def get_display_avatar(self, obj):
-    #     """
-    #     Returns the profile picture if available, otherwise the selected avatar.
-    #     Ensures fallback to the default avatar if the image is missing.
-    #     """
-    #     if obj.profile_picture:
-    #         return obj.profile_picture.url
-    #     avatar_path = os.path.join(settings.MEDIA_ROOT, obj.avatar)
-    #     if not os.path.exists(avatar_path):
-    #         return "/media/avatars/universal.png"  # Fallback image
-    #     return f"/media/{obj.avatar}"
     def get_display_avatar(self, obj):
-            """Returns profile picture URL or fallback avatar."""
-            if obj.profile_picture:
-                return obj.profile_picture.url
-            return f"{settings.MEDIA_URL}avatars/universal.png"  # Fallback image
+        return obj.display_avatar
+
+class UserDetailSerializer(serializers.ModelSerializer):
+    display_avatar = serializers.SerializerMethodField()
+    profile_data = serializers.SerializerMethodField()
+    website = serializers.SlugRelatedField(
+        slug_field='domain',
+        read_only=True
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name',
+            'phone_number', 'avatar', 'profile_picture',
+            'role', 'website', 'display_avatar', 'profile_data',
+            'is_available', 'is_impersonated', 'is_suspended',
+            'is_on_probation', 'is_blacklisted', 'date_joined'
+        ]
+        read_only_fields = ['id', 'role', 'email', 'date_joined']
+
+    def get_display_avatar(self, obj):
+        return obj.display_avatar
+
+    def get_profile_data(self, obj):
+        return obj.get_profile()
 
 class ClientProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for Client profiles.
     Retrieves additional client-specific information from `ClientProfile`.
     """
-    user = UserProfileSerializer(read_only=True)
+    user = UserDetailSerializer(read_only=True)
 
     class Meta:
         model = ClientProfile
@@ -105,6 +77,10 @@ class ClientProfileSerializer(serializers.ModelSerializer):
             'user', 'loyalty_points', 'membership_tier', 'notes', 'tasks'
         ]
 
+    def to_representation(self, instance):
+        """Override to optimize database query by using select_related."""
+        instance = instance.select_related('user__profile_picture')
+        return super().to_representation(instance)
 
 class WriterProfileSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -117,6 +93,11 @@ class WriterProfileSerializer(serializers.ModelSerializer):
             'verification_documents', 'total_earnings', 'last_payment_date'
         ]
 
+    def to_representation(self, instance):
+        """Override to optimize database query by using select_related."""
+        instance = instance.select_related('user__profile_picture')
+        return super().to_representation(instance)
+
 class AdminProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for Admin profiles (Uses base `User` model).
@@ -127,6 +108,11 @@ class AdminProfileSerializer(serializers.ModelSerializer):
             'id', 'email', 'username', 'phone_number', 'role', 
             'is_suspended', 'is_on_probation', 'date_joined'
         ]
+
+    def to_representation(self, instance):
+        """Override to optimize database query by using select_related."""
+        instance = instance.select_related('profile_picture', 'avatar')
+        return super().to_representation(instance)
 
 
 class EditorProfileSerializer(serializers.ModelSerializer):
@@ -141,7 +127,6 @@ class EditorProfileSerializer(serializers.ModelSerializer):
         fields = [
             'user', 'bio', 'edited_orders'
         ]
-
 
 class SupportProfileSerializer(serializers.ModelSerializer):
     """
@@ -171,70 +156,40 @@ class AvatarUpdateSerializer(serializers.ModelSerializer):
 
 class ProfilePictureUpdateSerializer(serializers.ModelSerializer):
     """
-    Serializer for uploading  or removing a profile picture.
+    Serializer for uploading or removing a profile picture.
     """
     remove_picture = serializers.BooleanField(write_only=True, required=False)
+
     class Meta:
         model = User
         fields = ['profile_picture', 'remove_picture']
 
     def update(self, instance, validated_data):
         if validated_data.get('remove_picture'):
-            instance.profile_picture.delete(save=True)
+            if instance.profile_picture:
+                instance.profile_picture.delete(save=False)
             instance.profile_picture = None  # Reset the field
-            instance.save()  # Ensure changes are saved
         return super().update(instance, validated_data)
 
 
-class UserStatusUpdateSerializer(serializers.ModelSerializer):
-    """
-    Serializer for admin updates on user status such as suspension and probation.
-    """
-    class Meta:
-        model = User
-        fields = [
-            'is_suspended', 'suspension_reason', 'suspension_start_date', 'suspension_end_date',
-            'is_on_probation', 'probation_reason', 'is_available'
-        ]
+class ImpersonateSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
 
+    def validate_user_id(self, value):
+        """
+        Validate the user_id is an actual existing user and that it's not the admin themselves.
+        """
+        try:
+            user = get_user_model().objects.get(id=value)
+        except get_user_model().DoesNotExist:
+            raise ValidationError("User with this ID does not exist.")
 
-class UserDeletionRequestSerializer(serializers.ModelSerializer):
-    """
-    Serializer for handling account deletion requests.
-    """
-    class Meta:
-        model = User
-        fields = [
-            'is_deletion_requested', 'deletion_requested_at', 'deletion_date', 'is_frozen'
-        ]
-
-
-class ImpersonationSerializer(serializers.ModelSerializer):
-    """
-    Serializer for impersonation control.
-    """
-    impersonated_by = serializers.ReadOnlyField(source='impersonated_by.username')
-
-    class Meta:
-        model = User
-        fields = [
-            'id', 'username', 'email', 'role', 'is_impersonated', 'impersonated_by'
-        ]
-
-
-class SuspensionSerializer(serializers.ModelSerializer):
-    """
-    Serializer to handle user suspension and probation updates.
-    """
-    class Meta:
-        model = User
-        fields = [
-            'id', 'username', 'email', 'role', 'is_suspended', 
-            'suspension_reason', 'suspension_start_date', 
-            'suspension_end_date', 'is_on_probation', 'probation_reason'
-        ]
-
-
+        # Ensure the admin is not impersonating themselves
+        admin_user = self.context.get('request').user
+        if user == admin_user:
+            raise ValidationError("You cannot impersonate yourself.")
+        
+        return user
 class UserActivitySerializer(serializers.ModelSerializer):
     """
     Serializer to track user activity and availability.
@@ -248,7 +203,28 @@ class UserActivitySerializer(serializers.ModelSerializer):
             'last_active'
         ]
 
+    def to_representation(self, instance):
+        """Override to optimize database query by using select_related."""
+        instance = instance.select_related('profile_picture', 'avatar')
+        return super().to_representation(instance)
+
+
 class AccountDeletionRequestSerializer(serializers.ModelSerializer):
+    user = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all()
+    )
+    status = serializers.ChoiceField(
+        choices=AccountDeletionRequest.STATUS_CHOICES,
+        default='pending'
+    )
+
     class Meta:
         model = AccountDeletionRequest
-        fields = ["id", "reason", "status", "requested_at", "admin_response"]
+        fields = [
+            'user',
+            'reason',
+            'status',
+            'admin_response',
+            'created_at'
+        ]
+        read_only_fields = ['created_at']
