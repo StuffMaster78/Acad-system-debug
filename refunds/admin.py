@@ -1,23 +1,30 @@
 from django.contrib import admin
-from orders.models import Order
-from refunds.services import mark_order_refunded
+from .models import Refund, RefundLog, RefundReceipt
 
-@admin.action(description="Mark selected orders as refunded")
-def mark_as_refunded(modeladmin, request, queryset):
-    """
-    Admin action to mark selected orders as refunded.
-    """
-    for order in queryset:
-        mark_order_refunded(
-            order,
-            amount=order.total_amount,
-            source='manual-admin'
-        )
 
-@admin.register(Order)
-class OrderAdmin(admin.ModelAdmin):
-    """
-    Extends admin interface to add refund capabilities.
-    """
-    list_display = ('id', 'status', 'cancelled', 'refunded_at')
-    actions = [mark_as_refunded]
+@admin.register(Refund)
+class RefundAdmin(admin.ModelAdmin):
+    list_display = (
+        'id', 'client', 'order_payment', 'status',
+        'wallet_amount', 'external_amount', 'refund_method',
+        'processed_by', 'processed_at'
+    )
+    list_filter = ('status', 'refund_method', 'type')
+    search_fields = ('client__username', 'order_payment__id')
+    readonly_fields = ('processed_at',)
+    ordering = ('-processed_at',)
+
+
+@admin.register(RefundLog)
+class RefundLogAdmin(admin.ModelAdmin):
+    list_display = ('id', 'order', 'amount', 'source', 'status', 'created_at')
+    list_filter = ('status', 'source')
+    search_fields = ('order__id',)
+    ordering = ('-created_at',)
+
+
+@admin.register(RefundReceipt)
+class RefundReceiptAdmin(admin.ModelAdmin):
+    list_display = ('id', 'refund', 'reference_code', 'generated_at')
+    search_fields = ('reference_code',)
+    ordering = ('-generated_at',)
