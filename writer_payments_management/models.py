@@ -77,7 +77,7 @@ class WriterPayment(models.Model):
 
     def process_payment(self):
         """
-        Calculates the final payment, applies bonuses, updates wallet, 
+        Calculates the final payment, applies bonuses, fines, updates wallet, 
         and logs the transaction.
         """
         if not self.writer.writer_level:
@@ -287,7 +287,9 @@ class SpecialOrderBonus(models.Model):
         Credits the writer's wallet when the bonus is granted.
         Logs the transaction and sends a notification.
         """
-        wallet, created = Wallet.objects.get_or_create(user=self.writer.user)
+        wallet, created = Wallet.objects.get_or_create(
+            user=self.writer.user
+        )
         wallet.balance += self.bonus_amount
         wallet.save()
 
@@ -343,7 +345,9 @@ class WriterPaymentAdjustment(models.Model):
         self.writer_payment.save()
 
         # Update Wallet
-        wallet = Wallet.objects.get(user=self.writer_payment.writer.user)
+        wallet = Wallet.objects.get(
+            user=self.writer_payment.writer.user
+        )
         wallet.balance += self.adjustment_amount
         wallet.save()
 

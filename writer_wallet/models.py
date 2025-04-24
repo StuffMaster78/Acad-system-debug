@@ -10,13 +10,36 @@ class WriterWallet(models.Model):
     """
     Stores writer's balance and transaction history.
     """
-    writer = models.OneToOneField(User, on_delete=models.CASCADE, related_name="writer_wallet")
+    writer = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="writer_wallet"
+    )
     is_locked = models.BooleanField(default=False)
-    balance = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    total_earnings = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    total_fines = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    total_adjustments = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
-    currency = models.CharField(max_length=3, default="USD")  # Default to USD
+    balance = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0.00
+    )
+    total_earnings = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0.00
+    )
+    total_fines = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0.00
+    )
+    total_adjustments = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        default=0.00
+    )
+    currency = models.CharField(
+        max_length=3,
+        default="USD"
+    )
     payment_date = models.DateTimeField(null=True, blank=True)
     last_updated = models.DateTimeField(auto_now=True)
 
@@ -43,11 +66,27 @@ class WalletTransaction(models.Model):
         ("Other", "Other"),
     ]
 
-    writer_wallet = models.ForeignKey(WriterWallet, on_delete=models.CASCADE, related_name="transactions")
-    transaction_type = models.CharField(max_length=20, choices=TRANSACTION_TYPES)
-    order = models.ForeignKey(Order, null=True, blank=True, on_delete=models.SET_NULL)
+    writer_wallet = models.ForeignKey(
+        WriterWallet,
+        on_delete=models.CASCADE,
+        related_name="transactions"
+    )
+    transaction_type = models.CharField(
+        max_length=20,
+        choices=TRANSACTION_TYPES
+    )
+    order = models.ForeignKey(
+        Order,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    reference_code = models.CharField(max_length=20, unique=True, blank=True)  # System-generated
+    reference_code = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True
+    )
     created_at = models.DateTimeField(default=now)
 
     def save(self, *args, **kwargs):
@@ -63,8 +102,17 @@ class WriterPaymentBatch(models.Model):
     """
     Stores bulk payment batches for tracking.
     """
-    reference_code = models.CharField(max_length=20, unique=True, blank=True)
-    processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="processed_payments")
+    reference_code = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True
+    )
+    processed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="processed_payments"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     completed = models.BooleanField(default=False)
 
@@ -85,7 +133,11 @@ class PaymentSchedule(models.Model):
         ("Monthly", "Monthly"),
     ]
 
-    reference_code = models.CharField(max_length=20, unique=True, blank=True)
+    reference_code = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True
+    )
     schedule_type = models.CharField(max_length=10, choices=SCHEDULE_TYPES)
     scheduled_date = models.DateField()  # When payments should be processed
     processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="processed_batches")
@@ -105,12 +157,31 @@ class ScheduledWriterPayment(models.Model):
     """
     Tracks individual writer payments within a payment batch.
     """
-    batch = models.ForeignKey(PaymentSchedule, on_delete=models.CASCADE, related_name="payments")
-    writer_wallet = models.ForeignKey(WriterWallet, on_delete=models.CASCADE, related_name="scheduled_payments")
+    batch = models.ForeignKey(
+        PaymentSchedule,
+        on_delete=models.CASCADE,
+        related_name="payments"
+    )
+    writer_wallet = models.ForeignKey(
+        WriterWallet,
+        on_delete=models.CASCADE,
+        related_name="scheduled_payments"
+    )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
-    status = models.CharField(max_length=10, choices=[("Pending", "Pending"), ("Paid", "Paid")], default="Pending")
-    reference_code = models.CharField(max_length=20, unique=True, blank=True)
-    payment_date = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(
+        max_length=10,
+        choices=[("Pending", "Pending"), ("Paid", "Paid")],
+        default="Pending"
+    )
+    reference_code = models.CharField(
+        max_length=20,
+        unique=True,
+        blank=True
+    )
+    payment_date = models.DateTimeField(
+        null=True,
+        blank=True
+    )
 
     def save(self, *args, **kwargs):
         if not self.reference_code:
@@ -125,9 +196,20 @@ class PaymentOrderRecord(models.Model):
     """
     Tracks orders included in each writer's payment.
     """
-    payment = models.ForeignKey(ScheduledWriterPayment, on_delete=models.CASCADE, related_name="orders")
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="payment_records")
-    amount_paid = models.DecimalField(max_digits=12, decimal_places=2)
+    payment = models.ForeignKey(
+        ScheduledWriterPayment,
+        on_delete=models.CASCADE,
+        related_name="orders"
+    )
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="payment_records"
+    )
+    amount_paid = models.DecimalField(
+        max_digits=12,
+        decimal_places=2
+    )
 
     def __str__(self):
         return f"Order {self.order.id} - ${self.amount_paid}"
@@ -136,10 +218,27 @@ class WriterPayment(models.Model):
     """
     Tracks individual payments made to writers.
     """
-    batch = models.ForeignKey(WriterPaymentBatch, on_delete=models.CASCADE, related_name="payments", null=True, blank=True)
-    writer_wallet = models.ForeignKey(WriterWallet, on_delete=models.CASCADE, related_name="payments")
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
-    status = models.CharField(max_length=10, choices=[("Pending", "Pending"), ("Paid", "Paid")], default="Pending")
+    batch = models.ForeignKey(
+        WriterPaymentBatch,
+        on_delete=models.CASCADE,
+        related_name="payments",
+        null=True,
+        blank=True
+    )
+    writer_wallet = models.ForeignKey(
+        WriterWallet,
+        on_delete=models.CASCADE,
+        related_name="payments"
+    )
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2
+    )
+    status = models.CharField(
+        max_length=10,
+        choices=[("Pending", "Pending"), ("Paid", "Paid")],
+        default="Pending"
+    )
     reference_code = models.CharField(max_length=20, unique=True, blank=True)
     payment_date = models.DateTimeField(null=True, blank=True)
 
@@ -163,11 +262,23 @@ class AdminPaymentAdjustment(models.Model):
         ("Other", "Other"),
     ]
 
-    writer_wallet = models.ForeignKey(WriterWallet, on_delete=models.CASCADE, related_name="adjustments")
-    adjustment_type = models.CharField(max_length=20, choices=ADJUSTMENT_TYPES)
+    writer_wallet = models.ForeignKey(
+        WriterWallet,
+        on_delete=models.CASCADE,
+        related_name="adjustments"
+    )
+    adjustment_type = models.CharField(
+        max_length=20,
+        choices=ADJUSTMENT_TYPES
+    )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     reason = models.TextField()
-    adjusted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="adjusted_payments")
+    adjusted_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="adjusted_payments"
+    )
     created_at = models.DateTimeField(default=now)
 
     def __str__(self):
@@ -177,8 +288,16 @@ class PaymentConfirmation(models.Model):
     """
     Writers confirm their payments before payout.
     """
-    writer_wallet = models.ForeignKey(WriterWallet, on_delete=models.CASCADE, related_name="confirmations")
-    payment = models.ForeignKey(WriterPayment, on_delete=models.CASCADE, related_name="confirmations")
+    writer_wallet = models.ForeignKey(
+        WriterWallet,
+        on_delete=models.CASCADE,
+        related_name="confirmations"
+    )
+    payment = models.ForeignKey(
+        WriterPayment,
+        on_delete=models.CASCADE,
+        related_name="confirmations"
+    )
     confirmed = models.BooleanField(default=False)
     requested_review = models.BooleanField(default=False)
     auto_approved_at = models.DateTimeField(null=True, blank=True) 

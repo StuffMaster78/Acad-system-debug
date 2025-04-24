@@ -335,7 +335,10 @@ class ClientActivityLog(models.Model):
         on_delete=models.CASCADE,
         related_name="activity_logs",
     )
-    action = models.CharField(max_length=255, help_text=_("Description of the activity."))
+    action = models.CharField(
+        max_length=255,
+        help_text=_("Description of the activity.")
+    )
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

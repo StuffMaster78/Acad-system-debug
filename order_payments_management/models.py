@@ -354,7 +354,11 @@ class PaymentNotification(models.Model):
         Sends a notification related to a payment event.
         Example: "Your payment of $50 has been received."
         """
-        return cls.objects.create(user=user, payment=payment, message=message)
+        return cls.objects.create(
+            user=user,
+            payment=payment,
+            message=message
+        )
 
 
 class PaymentLog(models.Model):
@@ -363,10 +367,13 @@ class PaymentLog(models.Model):
     Useful for tracking and auditing payment transactions.
     """
     payment = models.ForeignKey(
-        "OrderPayment", on_delete=models.CASCADE, related_name="logs"
+        "OrderPayment",
+        on_delete=models.CASCADE,
+        related_name="logs"
     )
     event = models.CharField(
-        max_length=255, help_text="Example: 'Payment Completed', 'Refund Issued'"
+        max_length=255,
+        help_text="Example: 'Payment Completed', 'Refund Issued'"
     )
     timestamp = models.DateTimeField(auto_now_add=True)
     details = models.TextField()

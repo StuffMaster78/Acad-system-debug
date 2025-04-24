@@ -1,12 +1,12 @@
 services:
   web:
-    platform: linux/amd64 
+    platform: linux/amd64
     build:
       context: .
       dockerfile: Dockerfile
     command: python manage.py runserver 0.0.0.0:8000
     volumes:
-      - .:/app  
+      - .:/app
     working_dir: /app
     ports:
       - "8000:8000"  # Expose Django app to localhost
@@ -52,7 +52,7 @@ services:
       volumes:
         - .:/app
       env_file:
-        - .env  
+        - .env
       depends_on:
         - db
         - redis

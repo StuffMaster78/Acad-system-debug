@@ -4,7 +4,15 @@ from django.utils.timezone import now
 import requests # type: ignore
 from utils import get_client_ip
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
+
+class UserReferenceMixin(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    class Meta:
+        abstract = True
 
 # 1. Role-Based Access Mixin
 class RoleMixin(models.Model):
@@ -68,16 +76,45 @@ class MFAMixin(models.Model):
     )
 
     is_mfa_enabled = models.BooleanField(default=False)
-    mfa_method = models.CharField(max_length=20, choices=MFA_METHODS, default='none')
-    mfa_secret = models.CharField(max_length=255, blank=True, null=True)
+    mfa_method = models.CharField(
+        max_length=20,
+        choices=MFA_METHODS,
+        default='none'
+    )
+    mfa_secret = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True
+    )
     # mfa_qr_code = models.ImageField(upload_to='mfa_qr_codes/', blank=True, null=True)
-    backup_phone = models.CharField(max_length=15, blank=True, null=True)
-    backup_email = models.EmailField(blank=True, null=True)
-    otp_code = models.CharField(max_length=6, blank=True, null=True)
-    otp_expires_at = models.DateTimeField(blank=True, null=True)
+    backup_phone = models.CharField(
+        max_length=15,
+        blank=True,
+        null=True
+    )
+    backup_email = models.EmailField(
+        blank=True,
+        null=True
+    )
+    otp_code = models.CharField(
+        max_length=6,
+        blank=True,
+        null=True
+    )
+    otp_expires_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
 
-    mfa_recovery_token = models.CharField(max_length=64, blank=True, null=True)
-    mfa_recovery_expires = models.DateTimeField(blank=True, null=True)
+    mfa_recovery_token = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True
+    )
+    mfa_recovery_expires = models.DateTimeField(
+        blank=True,
+        null=True
+    )
 
     class Meta:
         abstract = True
@@ -124,9 +161,6 @@ class LoginSecurityMixin(models.Model):
             self.save()
             return False
         return self.is_locked
-
-
-
 
 # 5. Impersonation Mixin
 class ImpersonationMixin(models.Model):
@@ -258,8 +292,6 @@ class DeletionMixin(models.Model):
         self.save()
 
 
-
-
 # 7. Discipline Mixin (Suspension + Probation)
 class DisciplineMixin(models.Model):
     is_suspended = models.BooleanField(default=False)
@@ -272,6 +304,7 @@ class DisciplineMixin(models.Model):
     probation_start_date = models.DateTimeField(null=True, blank=True)
     probation_end_date = models.DateTimeField(null=True, blank=True)
 
+    is_available = models.BooleanField(default=True)
     class Meta:
         abstract = True
 
@@ -345,3 +378,21 @@ class SessionTrackingMixin(models.Model):
 
 class TrustedDeviceMixin(models.Model):
     trusted_devices = models.JSONField(default=list, blank=True)
+
+
+class TimestampMixin(models.Model):
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+
+class ApprovalMixin(models.Model):
+    approved = models.BooleanField(default=False)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    rejected = models.BooleanField(default=False)
+    rejected_reason = models.TextField(null=True, blank=True)
+
+    class Meta:
+        abstract = True

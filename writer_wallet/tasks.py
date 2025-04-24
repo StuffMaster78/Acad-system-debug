@@ -4,16 +4,25 @@ from django.db import transaction
 from django.db.models import Sum
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import PaymentConfirmation, ScheduledWriterPayment, WriterWallet, WriterPayment, WriterPaymentBatch, WalletTransaction
+from .models import (
+    PaymentConfirmation, ScheduledWriterPayment,
+    WriterWallet, WriterPayment, WriterPaymentBatch,
+    WalletTransaction
+)
 
 
 @shared_task
 def auto_approve_pending_payments():
     """
-    Auto-approve pending payments if the writer does not confirm within 24 hours.
+    Auto-approve pending payments if the writer
+    does not confirm within 24 hours.
     """
     threshold = now() - timedelta(hours=24)
-    pending_confirmations = PaymentConfirmation.objects.filter(confirmed=False, requested_review=False, auto_approved_at__isnull=True, created_at__lte=threshold)
+    pending_confirmations = PaymentConfirmation.objects.filter(
+        confirmed=False, requested_review=False,
+        auto_approved_at__isnull=True,
+        created_at__lte=threshold
+    )
 
     for confirmation in pending_confirmations:
         confirmation.confirmed = True
@@ -26,7 +35,10 @@ def send_payment_reminders():
     """
     Sends reminders to writers to confirm their pending payments.
     """
-    pending_confirmations = PaymentConfirmation.objects.filter(confirmed=False, requested_review=False)
+    pending_confirmations = PaymentConfirmation.objects.filter(
+        confirmed=False,
+        requested_review=False
+    )
 
     for confirmation in pending_confirmations:
         writer = confirmation.writer_wallet.writer
@@ -45,7 +57,10 @@ def process_scheduled_payments():
     Processes payments based on scheduled payment cycles (bi-weekly/monthly).
     """
     today = now().date()
-    scheduled_payments = ScheduledWriterPayment.objects.filter(batch__scheduled_date=today, status="Pending")
+    scheduled_payments = ScheduledWriterPayment.objects.filter(
+        batch__scheduled_date=today,
+        status="Pending"
+    )
 
     for payment in scheduled_payments:
         with transaction.atomic():
@@ -60,7 +75,8 @@ def process_scheduled_payments():
 @shared_task
 def generate_payment_batches():
     """
-    Runs every 2 weeks and on the 1st of the month to generate pending payments.
+    Runs every 2 weeks and on the 1st of
+    the month to generate pending payments.
     """
     today = now().date()
     

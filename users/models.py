@@ -441,7 +441,7 @@ class UserProfile(models.Model):
         """Return the user's bio with a maximum character length."""
         return self.bio[:max_length] + ('...' if len(self.bio) > max_length else '')
     
-     def delete(self, using=None, soft_delete=False):
+    def delete(self, using=None, soft_delete=False):
         """
         Deletes the user profile. If `soft_delete` is True, marks the profile
         as deleted instead of fully deleting it.
@@ -496,7 +496,8 @@ class UserAuditLog(models.Model):
         ordering = ['-timestamp']
 
     def save(self, *args, **kwargs):
-        # Automatically populate IP and user agent if available (useful for security actions)
+        # Automatically populate IP and user agent
+        # if available (useful for security actions)
         if not self.ip_address:
             self.ip_address = 'Unknown IP'
         if not self.user_agent:

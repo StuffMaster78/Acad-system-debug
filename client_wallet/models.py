@@ -185,8 +185,12 @@ class ClientWallet(WebsiteSpecificBaseModel):
         if total_paid == 0:
             raise ValueError("No payment found for refund.")
 
-        wallet_refund = (original_wallet_amount / total_paid) * refund_amount
-        external_refund = (original_external_amount / total_paid) * refund_amount
+        # wallet_refund = (original_wallet_amount / total_paid) * refund_amount
+        # external_refund = (original_external_amount / total_paid) * refund_amount
+
+        wallet_refund = min(refund_amount, original_wallet_amount)
+        remaining_refund = refund_amount - wallet_refund
+        external_refund = min(remaining_refund, original_external_amount)
 
         with transaction.atomic():
             if wallet_refund > 0:
