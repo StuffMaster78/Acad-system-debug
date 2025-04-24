@@ -14,7 +14,10 @@ class MFASettings(models.Model):
     )
     mfa_method = models.CharField(
         max_length=50,
-        choices=[('email', 'Email'), ('sms', 'SMS'), ('totp', 'TOTP')],
+        choices=[
+            ('email', 'Email'), ('sms', 'SMS'),
+            ('totp', 'TOTP')
+        ],
         blank=True,
         null=True
     )
@@ -22,11 +25,10 @@ class MFASettings(models.Model):
         max_length=15,
         blank=True,
         null=True
-    )  # For SMS-based MFA
+    )
     mfa_email_verified = models.BooleanField(
         default=False
-    )  # To track email-based verification
-
+    )
     mfa_secret = models.CharField(
         max_length=255, 
         blank=True,
@@ -52,7 +54,6 @@ class MFASettings(models.Model):
     )
     
 
-    
     def __str__(self):
         return f"MFA settings for {self.user.username}"
 

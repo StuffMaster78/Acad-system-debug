@@ -5,7 +5,6 @@ from authentication.utils_backp import get_client_ip
 
 User = settings.AUTH_USER_MODEL
 
-
 class AuditLog(models.Model):
     """
     Logs critical user actions including MFA changes, QR code scanning, etc.
@@ -22,8 +21,8 @@ class AuditLog(models.Model):
         ("PASSWORD_RESET", "Password Reset"),
         ("ACCOUNT_UPDATED", "Account Updated"),
         ("ACCOUNT_LOCKED", "Account Locked"),
-        ("QR_CODE_GENERATED", "QR Code Generated"),  # NEW Action
-        ("QR_CODE_SCANNED", "QR Code Scanned"),      # NEW Action
+        ("QR_CODE_GENERATED", "QR Code Generated"),
+        ("QR_CODE_SCANNED", "QR Code Scanned"),
     )
 
     user = models.ForeignKey(

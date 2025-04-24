@@ -8,7 +8,8 @@ from django.conf import settings
 
 class DeviceFingerprint(models.Model):
     """
-    Stores a browser/device fingerprint for fraud prevention and session validation.
+    Stores a browser/device fingerprint for fraud
+    prevention and session validation.
     """
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,

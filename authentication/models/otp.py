@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
+
 class OTP(models.Model):
     user = models.ForeignKey(
         get_user_model(),

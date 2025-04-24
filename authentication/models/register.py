@@ -4,6 +4,9 @@ from django.utils.timezone import now
 import uuid
 
 class RegistrationToken(models.Model):
+    """
+    Handles registration of new users.
+    """
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE

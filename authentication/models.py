@@ -24,7 +24,7 @@ from django.contrib.sessions.models import Session
 
 from django.conf import settings
 from django.core.mail import send_mail
-
+from managers import CustomUserManager, ActiveManager
 # Generate a secret key for token encryption (Store this securely!)
 SECRET_KEY = settings.SECRET_KEY[:32]
 FERNET_KEY = base64.urlsafe_b64encode(SECRET_KEY.encode())

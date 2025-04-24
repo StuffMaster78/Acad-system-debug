@@ -33,6 +33,6 @@ class MagicLink(models.Model):
                 action="MAGIC_LINK_EXPIRED",
                 ip_address="System"
             )
-            self.delete()  # Delete expired token
+            self.delete()
             return False
         return True

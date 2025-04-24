@@ -100,8 +100,16 @@ class ImpersonationToken(models.Model):
 
 
 class ImpersonationLog(models.Model):
-    admin_user = models.ForeignKey(User, related_name='impersonation_logs', on_delete=models.CASCADE)
-    target_user = models.ForeignKey(User, related_name='impersonation_logs', on_delete=models.CASCADE)
+    admin_user = models.ForeignKey(
+        User,
+        related_name='impersonation_logs',
+        on_delete=models.CASCADE
+    )
+    target_user = models.ForeignKey(
+        User,
+        related_name='impersonation_logs',
+        on_delete=models.CASCADE
+    )
     token = models.ForeignKey(ImpersonationToken, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 

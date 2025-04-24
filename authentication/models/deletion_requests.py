@@ -2,6 +2,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 
+
 class AccountDeletionRequest(models.Model):
     PENDING = 'pending'
     CONFIRMED = 'confirmed'
@@ -44,8 +45,7 @@ class AccountDeletionRequest(models.Model):
         self.save()
     
     def __str__(self):
-        return f"Deletion request for {self.user.username} ({self.get_status_display()})"
-    
+        return f"Deletion request for {self.user.username} ({self.get_status_display()})"    
 
 
 class DeletionRequestManager(models.Manager):

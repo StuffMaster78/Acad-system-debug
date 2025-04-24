@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+
 class FailedLoginAttempt(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     timestamp = models.DateTimeField(default=timezone.now)
@@ -11,4 +12,5 @@ class FailedLoginAttempt(models.Model):
             user=self.user,
             timestamp__gt=timezone.now() - timezone.timedelta(minutes=15)
         )
-        return len(recent_attempts) >= 5  # Lock out if 5 or more failed attempts in 15 minutes
+        # Lock out if 5 or more failed attempts in 15 minutes
+        return len(recent_attempts) >= 5  

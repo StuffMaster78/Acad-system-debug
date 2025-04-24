@@ -3,6 +3,9 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 class PasswordResetRequest(models.Model):
+    """
+    Handles password change requests by users.
+    """
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE
