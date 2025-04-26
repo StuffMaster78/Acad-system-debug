@@ -17,11 +17,37 @@ from ipware import get_client_ip # type: ignore
 from authentication.models.logout import LogoutEvent
 from users.models import User
 import jwt # type: ignore
+from datetime import datetime, timedelta
 
 def get_client_ip(request):
     ip, is_routable = get_client_ip(request)
     return ip
 
+
+def encode_verification_token(user, expiry_minutes=30):
+    """
+    Generate a JWT token for email verification or similar use.
+    
+    Args:
+        user (User): The user instance to encode into the token.
+        expiry_minutes (int): Minutes until the token expires.
+
+    Returns:
+        str: Encoded JWT token.
+    """
+    expiration = datetime.utcnow() + timedelta(minutes=expiry_minutes)
+
+    payload = {
+        'user_id': user.id,
+        'exp': expiration,
+        'iat': datetime.utcnow(),
+        'type': 'verification'
+    }
+
+    token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+
+    # jwt.encode returns a bytestring in PyJWT < 2.0, string in >= 2.0
+    return token if isinstance(token, str) else token.decode('utf-8')
 
 def decode_verification_token(token):
     """
@@ -29,7 +55,11 @@ def decode_verification_token(token):
     """
     try:
         # Decode the token
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=['HS256']
+        )
 
         # Get user from decoded payload (e.g., user ID)
         user_id = payload['user_id']

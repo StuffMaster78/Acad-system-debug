@@ -12,11 +12,20 @@ from .models.deletion_requests import DeletionRequest
 from authentication.models.mfa_settings import MFASettings
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from authentication.utils import decode_verification_token
+from authentication.utilsy import decode_verification_token
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 from authentication.models.sessions import UserSession
+from django.contrib.auth import authenticate
+from django.contrib.auth.tokens import default_token_generator
 
+# Defining constants for MFA methods
+MFA_METHODS = (
+    ('qr_code', 'QR Code (TOTP)'),
+    ('passkey', 'Passkey (WebAuthn)'),
+    ('email', 'Email Verification'),
+    ('sms', 'SMS Verification'),
+)
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """
@@ -106,10 +115,10 @@ class SignupSerializer(serializers.ModelSerializer):
         # Assign the detected website
         website = Website.objects.filter(domain__icontains=request_host, is_active=True).first()
         validated_data["website"] = website.domain
+        password = validated_data.pop("password") # Remove Password before saving
         validated_data.pop("password2")  # Remove password2 before saving
-        user = User.objects.create_user(**validated_data)
+        user = User.objects.create_user(password=password, **validated_data)
         return user
-
 
 
 class MagicLinkTokenSerializer(serializers.ModelSerializer):
@@ -132,51 +141,20 @@ class AuditLogSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'timestamp')
 
 
-class RegisterUserSerializer(serializers.ModelSerializer):
-    """
-    Serializer for user registration. Includes password validation and custom user profile fields.
-    """
-    password = serializers.CharField(write_only=True)
-    password2 = serializers.CharField(write_only=True)
-    phone_number = PhoneNumberField(required=False, allow_null=True, write_only=True)
-
-    class Meta:
-        model = get_user_model()
-        fields = ('username', 'email', 'first_name', 'last_name', 'password', 'password2', 'phone_number')
-
-    def validate(self, attrs):
-        """
-        Custom validation to ensure password fields match.
-        """
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError(_("Passwords do not match."))
-        return attrs
-
-    def create(self, validated_data):
-        """
-        Create a new user with the provided data.
-        """
-        user = get_user_model().objects.create_user(
-            username=validated_data['username'],
-            email=validated_data['email'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            password=validated_data['password'],
-        )
-
-        if 'phone_number' in validated_data:
-            user.profile.phone_number = validated_data['phone_number']
-            user.profile.save()
-
-        return user
-
+c
 
 class LoginUserSerializer(serializers.Serializer):
     """
     Serializer for user login. It only needs to validate the provided credentials.
     """
-    username = serializers.CharField()
+    email = serializers.CharField()
     password = serializers.CharField(write_only=True)
+
+    def validate(self, data):
+            user = authenticate(**data)
+            if user and user.is_active:
+                return user
+            raise serializers.ValidationError("Incorrect Credentials!")  
 
     @classmethod
     def get_token(cls, user):
@@ -226,28 +204,100 @@ class UserStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'is_suspended', 'suspension_reason', 'suspension_start_date', 'suspension_end_date',
+            'is_suspended', 'suspension_reason',
+            'suspension_start_date', 'suspension_end_date',
             'is_on_probation', 'probation_reason', 'is_available'
         ]
 
 
 # MFASettings Serializer to handle MFA configurations and settings
 class MFASettingsSerializer(serializers.ModelSerializer):
+    """
+    Serializer to manage MFA settings and configurations, supporting multiple MFA methods.
+    """
+    mfa_method = serializers.ChoiceField(
+        choices=MFA_METHODS,
+        required=True
+    )
+    mfa_secret = serializers.CharField(
+        write_only=True, required=False,
+        allow_blank=True, max_length=256
+    )
+    mfa_phone_number = serializers.CharField(
+        write_only=True, required=False,
+        allow_blank=True
+    )
+    passkey_public_key = serializers.CharField(
+        write_only=True, required=False,
+        allow_blank=True, max_length=512
+    )
+    is_mfa_enabled = serializers.BooleanField(default=False)
+    backup_codes = serializers.ListField(
+        child=serializers.CharField(max_length=16),
+        required=False, write_only=True
+    )
+    mfa_email_verified = serializers.BooleanField(default=False)
+
     class Meta:
         model = MFASettings
-        fields = ['user', 'mfa_method', 'is_mfa_enabled', 'backup_codes',
-                  'mfa_secret', 'mfa_phone_number', 'mfa_email_verified'
+        fields = [
+            'user', 'mfa_method', 'mfa_secret', 'mfa_phone_number',
+            'passkey_public_key', 'is_mfa_enabled', 'backup_codes', 'mfa_email_verified'
         ]
 
     def create(self, validated_data):
-        # Ensure MFA settings are created for a new user
-        mfa_settings, created = MFASettings.objects.get_or_create(user=validated_data['user'])
+        """
+        Create MFA settings for a user, ensuring they can choose from multiple MFA methods.
+        """
+        mfa_settings, created = MFASettings.objects.get_or_create(
+            user=validated_data['user']
+        )
+        mfa_settings.mfa_method = validated_data.get(
+            'mfa_method', 'qr_code'
+        )  # Default to QR code
+        mfa_settings.mfa_secret = validated_data.get('mfa_secret', '')
+        mfa_settings.passkey_public_key = validated_data.get(
+            'passkey_public_key', ''
+        )
+        mfa_settings.mfa_phone_number = validated_data.get(
+            'mfa_phone_number', ''
+        )
+        mfa_settings.is_mfa_enabled = validated_data.get(
+            'is_mfa_enabled', False
+        )
+        mfa_settings.backup_codes = validated_data.get('backup_codes', [])
+        mfa_settings.mfa_email_verified = validated_data.get(
+            'mfa_email_verified', False
+        )
+        mfa_settings.save()
         return mfa_settings
 
     def update(self, instance, validated_data):
-        # Update the MFA settings if already present
-        instance.mfa_method = validated_data.get('mfa_method', instance.mfa_method)
-        instance.is_enabled = validated_data.get('is_enabled', instance.is_enabled)
+        """
+        Update existing MFA settings, including
+        changing MFA methods or secret.
+        """
+        instance.mfa_method = validated_data.get(
+            'mfa_method', instance.mfa_method
+        )
+        instance.mfa_secret = validated_data.get(
+            'mfa_secret', instance.mfa_secret
+        )
+        instance.passkey_public_key = validated_data.get(
+            'passkey_public_key', instance.passkey_public_key
+        )
+        instance.mfa_phone_number = validated_data.get(
+            'mfa_phone_number', instance.mfa_phone_number
+        )
+        instance.is_mfa_enabled = validated_data.get(
+            'is_mfa_enabled', instance.is_mfa_enabled
+        )
+        instance.backup_codes = validated_data.get(
+            'backup_codes', instance.backup_codes
+        )
+        instance.mfa_email_verified = validated_data.get(
+            'mfa_email_verified', instance.mfa_email_verified
+        )
         instance.save()
         return instance
 
@@ -273,12 +323,15 @@ class ImpersonationSerializer(serializers.ModelSerializer):
     """
     Serializer for impersonation control.
     """
-    impersonated_by = serializers.ReadOnlyField(source='impersonated_by.username')
+    impersonated_by = serializers.ReadOnlyField(
+        source='impersonated_by.username'
+    )
 
     class Meta:
         model = User
         fields = [
-            'id', 'username', 'email', 'role', 'is_impersonated', 'impersonated_by'
+            'id', 'username', 'email', 'role',
+            'is_impersonated', 'impersonated_by'
         ]
 
 
@@ -298,7 +351,9 @@ class SuspensionSerializer(serializers.ModelSerializer):
 class AccountDeletionRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = AccountDeletionRequest
-        fields = ['user', 'request_time', 'status', 'confirmation_time', 'rejection_time', 'reason']
+        fields = ['user', 'request_time', 'status',
+                  'confirmation_time', 'rejection_time', 'reason'
+        ]
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -337,7 +392,6 @@ class FinalizeAccountSerializer(serializers.Serializer):
         Validates the provided token and ensures it is correct.
         """
         try:
-            # Assuming decode_verification_token is a function that validates the token
             user = decode_verification_token(value)
             if not user:
                 raise serializers.ValidationError("Invalid or expired token.")

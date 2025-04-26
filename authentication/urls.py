@@ -11,4 +11,5 @@ urlpatterns = [
     path('mfa-views/', include('authentication.urls.mfa_views')),                  # views/mfa_views.py
     path('passkey/', include('authentication.urls.passkey_views')),                # views/passkey_views.py
     path('sessions/', include('authentication.urls.sessions_management')),         # views/sessions_management.py
+    path('passkeys/devices/', include('urls.devices')), #views/devices.py
 ]

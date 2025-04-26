@@ -3,6 +3,9 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 
 class EmailVerification(models.Model):
+    """
+    Handles email verification process.
+    """
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE

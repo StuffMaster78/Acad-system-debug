@@ -483,7 +483,7 @@ class AuthViewSet(viewsets.ViewSet):
             httponly=True,
             secure=True,
             samesite="Lax",
-            max_age=api_settings.ACCESS_TOKEN_LIFETIME.total_seconds()
+            max_age=settings.ACCESS_TOKEN_LIFETIME.total_seconds()
         )
 
         response.set_cookie(
@@ -492,7 +492,7 @@ class AuthViewSet(viewsets.ViewSet):
             httponly=True,
             secure=True,
             samesite="Lax",
-            max_age=api_settings.REFRESH_TOKEN_LIFETIME.total_seconds()
+            max_age=settings.REFRESH_TOKEN_LIFETIME.total_seconds()
         )
 
         return response

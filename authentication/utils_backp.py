@@ -39,7 +39,6 @@ from django.conf import settings
 import logging
 from django.core.cache import cache
 
-
 logger = logging.getLogger(__name__)
 User = get_user_model()
 

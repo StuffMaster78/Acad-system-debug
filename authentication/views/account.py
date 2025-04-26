@@ -5,7 +5,7 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.conf import settings
 from users.models import User
-from authentication.utils import decode_verification_token
+from authentication.utilsy import decode_verification_token
 from authentication.serializers import RegisterSerializer
 
 

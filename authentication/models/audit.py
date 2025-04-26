@@ -23,6 +23,7 @@ class AuditLog(models.Model):
         ("ACCOUNT_LOCKED", "Account Locked"),
         ("QR_CODE_GENERATED", "QR Code Generated"),
         ("QR_CODE_SCANNED", "QR Code Scanned"),
+        ("DEVICE_DELETED", "Device Deleted"),
     )
 
     user = models.ForeignKey(
@@ -43,6 +44,29 @@ class AuditLog(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.action} at {self.timestamp}"
 
+
+    @staticmethod    
+    def log_device_deletion(user, credential_id, request):
+        """
+        Logs the action of deleting a registered device (WebAuthn credential).
+        """
+        ip_address = get_client_ip(request) if request else None
+        user_agent = request.META.get('HTTP_USER_AGENT', 'Unknown') if request else "Unknown"
+        device = request.META.get('HTTP_X_DEVICE', 'Unknown Device')
+
+        metadata = {
+            "credential_id": credential_id,  # Store deleted credential ID for auditing
+        }
+
+        AuditLog.objects.create(
+            user=user,
+            action="DEVICE_DELETED",  # New action for device deletion
+            ip_address=ip_address,
+            user_agent=user_agent,
+            device=device,
+            metadata=metadata
+        )
+        
     @staticmethod    
     def log_mfa_action(user, action, request, metadata=None):
         """
