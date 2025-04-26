@@ -56,7 +56,9 @@ class LoyaltyTransaction(models.Model):
         ('deduct', _('Deduct')),
     )
     website = models.OneToOneField(
-        'websites.Website', on_delete=models.CASCADE, related_name="loyalty_transactions"
+        'websites.Website', 
+        on_delete=models.CASCADE,
+        related_name="loyalty_transactions"
     )
 
     client = models.ForeignKey(
@@ -104,7 +106,9 @@ class Milestone(models.Model):
         ('orders_placed', _('Orders Placed')),
     )
     website = models.OneToOneField(
-        'websites.Website', on_delete=models.CASCADE, related_name="milestone_achieveable"
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name="milestone_achieveable"
     )
 
     name = models.CharField(
@@ -147,7 +151,9 @@ class ClientBadge(models.Model):
     Represents badges awarded to clients for specific achievements.
     """
     website = models.OneToOneField(
-        'websites.Website', on_delete=models.CASCADE, related_name="client_badge"
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name="client_badge"
     )
     client = models.ForeignKey(
         'client_management.ClientProfile',
@@ -182,7 +188,9 @@ class LoyaltyPointsConversionConfig(models.Model):
     Configurations for converting loyalty points into wallet balance.
     """
     website = models.OneToOneField(
-        'websites.Website', on_delete=models.CASCADE, related_name="loyalty_points_conversion_config"
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name="loyalty_points_conversion_config"
     )
     conversion_rate = models.DecimalField(
         max_digits=5,

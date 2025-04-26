@@ -30,18 +30,25 @@ class OrderPayment(models.Model):
     ]
 
     client = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="payments"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="payments"
     )
     payment_type = models.CharField(
-        max_length=20, choices=PAYMENT_TYPE_CHOICES
+        max_length=20,
+        choices=PAYMENT_TYPE_CHOICES
     )
     order = models.ForeignKey(
-        "orders.Order", on_delete=models.CASCADE, related_name="payments",
+        "orders.Order",
+        on_delete=models.CASCADE,
+        related_name="payments",
         null=True, blank=True
     )
     special_order = models.ForeignKey(
-        "special_orders.SpecialOrder", on_delete=models.CASCADE,
-        related_name="payments", null=True, blank=True
+        "special_orders.SpecialOrder",
+        on_delete=models.CASCADE,
+        related_name="payments",
+        null=True, blank=True
     )
     transaction_id = models.CharField(max_length=255, unique=True)
     original_amount = models.DecimalField(
@@ -59,7 +66,11 @@ class OrderPayment(models.Model):
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="pending"
     )
-    payment_method = models.CharField(max_length=50, blank=True, null=True)
+    payment_method = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True
+    )
     date_processed = models.DateTimeField(auto_now_add=True)
 
     refund_reason = models.TextField(blank=True, null=True)

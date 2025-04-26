@@ -14,8 +14,6 @@ from rest_framework.exceptions import ValidationError
 
 User = get_user_model()
 
-
-
 class UserListSerializer(serializers.ModelSerializer):
     website = serializers.SlugRelatedField(
         slug_field='domain',
@@ -158,7 +156,10 @@ class ProfilePictureUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer for uploading or removing a profile picture.
     """
-    remove_picture = serializers.BooleanField(write_only=True, required=False)
+    remove_picture = serializers.BooleanField(
+        write_only=True,
+        required=False
+    )
 
     class Meta:
         model = User
@@ -180,8 +181,8 @@ class ImpersonateSerializer(serializers.Serializer):
         Validate the user_id is an actual existing user and that it's not the admin themselves.
         """
         try:
-            user = get_user_model().objects.get(id=value)
-        except get_user_model().DoesNotExist:
+            user = User.objects.get(id=value)
+        except User.DoesNotExist:
             raise ValidationError("User with this ID does not exist.")
 
         # Ensure the admin is not impersonating themselves

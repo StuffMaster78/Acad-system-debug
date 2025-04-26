@@ -362,14 +362,6 @@ class GeoDetectionMixin(models.Model):
             self.detected_timezone = "Unknown"
 
 
-class AuditableMixin(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        abstract = True
-
-
 class SessionTrackingMixin(models.Model):
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     last_login_time = models.DateTimeField(null=True, blank=True)

@@ -9,7 +9,10 @@ def archive_expired_accounts():
     """
     Archives all accounts that have been frozen for over 3 months.
     """
-    expired_users = User.objects.filter(is_frozen=True, deletion_date__lte=now())
+    expired_users = User.objects.filter(
+        is_frozen=True,
+        deletion_date__lte=now()
+    )
 
     for user in expired_users:
         user.archive_account()
@@ -21,7 +24,10 @@ def archive_expired_accounts():
 def soft_delete_expired_accounts():
     """Deletes accounts that have been frozen for over 3 months."""
     three_months_ago = now() - timedelta(days=90)
-    users_to_delete = User.objects.filter(is_frozen=True, deletion_date__lte=three_months_ago)
+    users_to_delete = User.objects.filter(
+        is_frozen=True,
+        deletion_date__lte=three_months_ago
+    )
 
     for user in users_to_delete:
         user.is_active = False
@@ -48,7 +54,10 @@ def expire_old_sessions():
 @shared_task
 def expire_old_tokens():
     """Terminate all expired tokens."""
-    expired_tokens = SecureToken.objects.filter(expires_at__lt=now(), is_active=True)
+    expired_tokens = SecureToken.objects.filter(
+        expires_at__lt=now(),
+        is_active=True
+    )
     for token in expired_tokens:
         token.revoke()
     return f"Expired {expired_tokens.count()} tokens."

@@ -225,6 +225,13 @@ CACHES = {
     }
 }
 
+PASSKEY_CHALLENGE_TTL = 300  # 5 minutes
+PASSKEY_REDIS_PREFIX = "passkey"
+
+SESSION_ENGINE = "django.contrib.sessions.backends.cache"
+SESSION_CACHE_ALIAS = "default"
+
+
 REST_FRAMEWORK = {
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
     'DEFAULT_VERSION': '1.0',

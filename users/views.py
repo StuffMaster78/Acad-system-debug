@@ -444,7 +444,11 @@ class AccountDeletionRequestViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def reject_deletion(self, request, pk=None):
         """Admin rejects account deletion request."""
-        deletion_request = get_object_or_404(AccountDeletionRequest, id=pk, status="pending")
+        deletion_request = get_object_or_404(
+            AccountDeletionRequest,
+            id=pk,
+            status="pending"
+        )
         reason = request.data.get("reason", "No reason provided")
         deletion_request.status = "rejected"
         deletion_request.admin_response = reason
@@ -475,7 +479,11 @@ class AdminProfileRequestViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['post'])
     def reject_update(self, request, pk=None):
         """Reject a profile update request."""
-        update_request = get_object_or_404(ProfileUpdateRequest, id=pk, status="pending")
+        update_request = get_object_or_404(
+            ProfileUpdateRequest,
+            id=pk,
+            status="pending"
+        )
         reason = request.data.get("reason")
         update_request.reject(reason)
         return Response({"message": "Profile update rejected."}, status=status.HTTP_200_OK)
@@ -483,7 +491,11 @@ class AdminProfileRequestViewSet(viewsets.ViewSet):
     @action(detail=True, methods=['post'])
     def approve_deletion(self, request, pk=None):
         """Approve an account deletion request."""
-        deletion_request = get_object_or_404(AccountDeletionRequest, id=pk, status="pending")
+        deletion_request = get_object_or_404(
+            AccountDeletionRequest,
+            id=pk,
+            status="pending"
+        )
         deletion_request.approve()
         return Response({"message": "Account deletion approved."}, status=status.HTTP_200_OK)
 
@@ -612,4 +624,3 @@ class AdminUserManagementViewSet(viewsets.ViewSet):
             "suspended_users": suspended_users,
             "pending_deletion_requests": pending_deletion
         }, status=status.HTTP_200_OK)
-

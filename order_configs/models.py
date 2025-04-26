@@ -6,7 +6,10 @@ class PaperType(WebsiteSpecificBaseModel):
     """
     Represents types of papers (e.g., Essay, Report).
     """
-    name = models.CharField(max_length=100, unique=True, help_text="Type of paper (e.g., Essay, Report).")
+    name = models.CharField(
+        max_length=100, unique=True,
+        help_text="Type of paper (e.g., Essay, Report)."
+    )
 
     def __str__(self):
         return self.name
@@ -21,7 +24,10 @@ class FormattingStyle(WebsiteSpecificBaseModel):
     """
     Represents formatting styles (e.g., APA, MLA).
     """
-    name = models.CharField(max_length=50, unique=True, help_text="Formatting style (e.g., APA, MLA).")
+    name = models.CharField(
+        max_length=50, unique=True,
+        help_text="Formatting style (e.g., APA, MLA)."
+    )
 
     def __str__(self):
         return self.name
@@ -36,8 +42,14 @@ class Subject(WebsiteSpecificBaseModel):
     """
     Represents the subject of the order (e.g., Nursing, Physics).
     """
-    name = models.CharField(max_length=100, unique=True, help_text="Subject (e.g., Nursing, Physics).")
-    is_technical = models.BooleanField(default=False, help_text="Is this subject technical?")
+    name = models.CharField(
+        max_length=100, unique=True,
+        help_text="Subject (e.g., Nursing, Physics)."
+    )
+    is_technical = models.BooleanField(
+        default=False, 
+        help_text="Is this subject technical?"
+    )
 
     def __str__(self):
         return self.name
@@ -52,7 +64,10 @@ class TypeOfWork(WebsiteSpecificBaseModel):
     """
     Represents types of work (e.g., Writing, Editing).
     """
-    name = models.CharField(max_length=50, unique=True, help_text="Type of work (e.g., Writing, Editing).")
+    name = models.CharField(
+        max_length=50, unique=True,
+        help_text="Type of work (e.g., Writing, Editing)."
+    )
 
     def __str__(self):
         return self.name
@@ -67,8 +82,14 @@ class EnglishType(WebsiteSpecificBaseModel):
     """
     Represents English types (e.g., US English, UK English).
     """
-    name = models.CharField(max_length=50, unique=True, help_text="English type (e.g., US English, UK English).")
-    code = models.CharField(max_length=10, unique=True, help_text="Short code (e.g., US, UK).")
+    name = models.CharField(
+        max_length=50, unique=True,
+        help_text="English type (e.g., US English, UK English)."
+    )
+    code = models.CharField(
+        max_length=10, unique=True,
+        help_text="Short code (e.g., US, UK)."
+    )
 
     def __str__(self):
         return self.name

@@ -19,7 +19,12 @@ from .mixins import (
     ImpersonationMixin,
     DeletionMixin,
     DisciplineMixin,
-    GeoDetectionMixin
+    GeoDetectionMixin,
+    TimestampMixin,
+    SessionTrackingMixin,
+    TrustedDeviceMixin,
+    UserReferenceMixin,
+    ApprovalMixin
 )
 from websites.models import Website
 from client_management.models import BlacklistedEmail
@@ -28,11 +33,13 @@ from users.utils import logout_all_sessions
 from users.models import User
 
 
-
 class User(AbstractUser, PermissionsMixin, 
            RoleMixin, MFAMixin, NotificationPreferenceMixin, 
-           LoginSecurityMixin, ImpersonationMixin, 
-           DeletionMixin, DisciplineMixin, GeoDetectionMixin):
+           LoginSecurityMixin, ImpersonationMixin,
+           UserReferenceMixin, 
+           DeletionMixin, DisciplineMixin, GeoDetectionMixin,
+           TimestampMixin, SessionTrackingMixin, 
+           TrustedDeviceMixin, ApprovalMixin):
     
     """
     Comprehensive/Central User model for managing writers, clients, and other roles.
