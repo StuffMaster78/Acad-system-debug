@@ -2,9 +2,9 @@ from django.db import models
 from django.utils.timezone import now
 from core.models.base import WebsiteSpecificBaseModel
 from users.models import User
+from websites.models import Website
 
-
-class Notification(WebsiteSpecificBaseModel):
+class Notification(models.Model):
     """
     Represents a notification sent to a user.
     """
@@ -12,6 +12,7 @@ class Notification(WebsiteSpecificBaseModel):
         ('in_app', 'In-App'),
         ('email', 'Email'),
         ('sms', 'SMS'),
+        ('ws', 'websocket'),
         ('push', 'Push Notification'),
     )
 
@@ -19,12 +20,20 @@ class Notification(WebsiteSpecificBaseModel):
         ('info', 'Info'),
         ('warning', 'Warning'),
         ('error', 'Error'),
+        ('announcement', 'Announcement'),
     )
 
     DELIVERY_STATUSES = (
         ('pending', 'Pending'),
         ('sent', 'Sent'),
         ('failed', 'Failed'),
+        ('delayed', 'Delayed'),
+        ('queued', 'Queued'),
+    )
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="system_notifications"
     )
 
     user = models.ForeignKey(
@@ -39,18 +48,41 @@ class Notification(WebsiteSpecificBaseModel):
         default='in_app',
         help_text="The type of notification."
     )
-    title = models.CharField(max_length=255, help_text="Notification title.")
-    message = models.TextField(help_text="Notification content.")
-    is_read = models.BooleanField(default=False, help_text="Has the user read this notification?")
+    title = models.CharField(
+        max_length=255,
+        help_text="Notification title."
+    )
+    message = models.TextField(
+        help_text="Notification content."
+    )
+    is_read = models.BooleanField(
+        default=False,
+        help_text="Has the user read this notification?"
+    )
     status = models.CharField(
         max_length=20,
         choices=DELIVERY_STATUSES,
         default='pending',
         help_text="Delivery status of the notification."
     )
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
-    sent_at = models.DateTimeField(null=True, blank=True, help_text="When the notification was sent.")
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        default='info',  # Set default category to 'info'
+        blank=True,
+        null=True,
+        help_text="Category of the notification."
+    )
+    sent_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the notification was sent."
+    )
     created_at = models.DateTimeField(auto_now_add=True)
+    delivery_attempts = models.IntegerField(
+        default=0,
+        help_text="Number of attempts made to deliver the notification."
+    )
 
     def mark_as_read(self):
         """
@@ -65,6 +97,7 @@ class Notification(WebsiteSpecificBaseModel):
         """
         self.status = 'sent'
         self.sent_at = now()
+        self.delivery_attempts += 1
         self.save()
 
     def __str__(self):
@@ -75,16 +108,39 @@ class NotificationPreference(WebsiteSpecificBaseModel):
     """
     User preferences for notifications.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="system_notifications_settings"
+    )
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
         related_name="notification_preferences",
         help_text="The user whose preferences are being managed."
     )
-    receive_email = models.BooleanField(default=True, help_text="Allow email notifications.")
-    receive_sms = models.BooleanField(default=False, help_text="Allow SMS notifications.")
-    receive_push = models.BooleanField(default=True, help_text="Allow push notifications.")
-    receive_in_app = models.BooleanField(default=True, help_text="Allow in-app notifications.")
+    receive_email = models.BooleanField(
+        default=True,
+        help_text="Allow email notifications."
+    )
+    receive_sms = models.BooleanField(
+        default=False,
+        help_text="Allow SMS notifications."
+    )
+    receive_push = models.BooleanField(
+        default=True,
+        help_text="Allow push notifications."
+    )
+    receive_in_app = models.BooleanField(
+        default=True,
+        help_text="Allow in-app notifications."
+    )
+    preferred_language = models.CharField(
+        max_length=10,
+        choices=[('en', 'English'), ('es', 'Spanish'), ('fr', 'French')],
+        default='en',
+        help_text="Preferred language for notifications."
+    )
 
     def __str__(self):
         return f"Notification Preferences for {self.user.username}"

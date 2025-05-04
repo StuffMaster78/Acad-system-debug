@@ -1,10 +1,11 @@
-from django.urls import path
+from rest_framework.routers import DefaultRouter
+from django.urls import path, include
 from .views import NotificationViewSet, NotificationPreferenceViewSet
 
+router = DefaultRouter()
+router.register(r'notifications', NotificationViewSet, basename='notification')
+router.register(r'notification-preferences', NotificationPreferenceViewSet, basename='notification-preference')
+
 urlpatterns = [
-    path('notifications/', NotificationViewSet.as_view({'get': 'list', 'post': 'create'}), name='notifications-list'),
-    path('notifications/<int:pk>/', NotificationViewSet.as_view({'get': 'retrieve'}), name='notification-detail'),
-    path('notifications/<int:pk>/mark-as-read/', NotificationViewSet.as_view({'post': 'mark_as_read'}), name='mark-as-read'),
-    path('notifications/mark-all-as-read/', NotificationViewSet.as_view({'post': 'mark_all_as_read'}), name='mark-all-as-read'),
-    path('preferences/', NotificationPreferenceViewSet.as_view({'get': 'list', 'post': 'create', 'patch': 'update'}), name='notification-preferences'),
+    path('', include(router.urls)),
 ]

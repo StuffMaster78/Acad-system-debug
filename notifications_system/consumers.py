@@ -1,6 +1,8 @@
 import json
+import logging
 from channels.generic.websocket import AsyncWebsocketConsumer
 
+logger = logging.getLogger(__name__)
 
 class NotificationConsumer(AsyncWebsocketConsumer):
     """
@@ -8,30 +10,64 @@ class NotificationConsumer(AsyncWebsocketConsumer):
     """
 
     async def connect(self):
-        # Assign the user-specific group name
-        self.user = self.scope["user"]
-        if not self.user.is_authenticated:
+        """
+        Handles a new WebSocket connection from the client.
+        """
+        self.user = self.scope.get("user")
+
+        if not self.user or not self.user.is_authenticated:
+            logger.info(f"User not authenticated: {self.user}")
             await self.close()
+            return
 
         self.group_name = f"notifications_{self.user.id}"
 
         # Add the user to their notification group
-        await self.channel_layer.group_add(
-            self.group_name,
-            self.channel_name
-        )
+        try:
+            await self.channel_layer.group_add(
+                self.group_name,
+                self.channel_name
+            )
+            logger.info(f"User {self.user} added to group {self.group_name}")
+        except Exception as e:
+            logger.error(
+                f"Error adding user {self.user} to group: {e}", exc_info=True
+            )
+            await self.close()
+
         await self.accept()
 
     async def disconnect(self, close_code):
-        # Remove the user from the notification group
-        await self.channel_layer.group_discard(
-            self.group_name,
-            self.channel_name
-        )
+        """
+        Handles WebSocket disconnections.
+        """
+        try:
+            # Remove the user from the notification group
+            await self.channel_layer.group_discard(
+                self.group_name,
+                self.channel_name
+            )
+            logger.info(f"User {self.user} removed from group {self.group_name}")
+        except Exception as e:
+            logger.error(
+                f"Error removing user {self.user} from group: {e}", exc_info=True
+            )
 
     async def send_notification(self, event):
         """
-        Handle sending notifications over WebSocket.
+        Handles sending notifications over WebSocket.
         """
+        message = event.get("message")
+
+        if not message:
+            logger.warning("Received event with no message.")
+            return
+
         # Send the notification to the WebSocket
-        await self.send(text_data=json.dumps(event["message"]))
+        try:
+            await self.send(text_data=json.dumps(message))
+            logger.info(f"Notification sent to {self.user}")
+        except Exception as e:
+            logger.error(
+                f"Error sending notification to {self.user}: {e}", exc_info=True
+            )
