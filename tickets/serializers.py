@@ -6,7 +6,7 @@ class TicketMessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TicketMessage
-        fields = ['id', 'ticket', 'sender', 'sender_name', 'message', 'is_internal', 'created_at']
+        fields = ['id', 'ticket', 'sender', 'sender_name','website', 'message', 'is_internal', 'created_at']
         read_only_fields = ['id', 'created_at']
 
 class TicketLogSerializer(serializers.ModelSerializer):
@@ -14,7 +14,7 @@ class TicketLogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TicketLog
-        fields = ['id', 'ticket', 'action', 'performed_by', 'performed_by_name', 'timestamp']
+        fields = ['id', 'ticket', 'website', 'action', 'performed_by', 'performed_by_name', 'timestamp']
         read_only_fields = ['id', 'timestamp']
 
 class TicketSerializer(serializers.ModelSerializer):
@@ -36,22 +36,22 @@ class TicketSerializer(serializers.ModelSerializer):
 class TicketCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
-        fields = ['title', 'description', 'created_by', 'website', 'priority', 'category']
+        fields = ['title', 'description', 'website', 'created_by', 'website', 'priority', 'category']
 
 
 class TicketUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ticket
-        fields = ['status', 'priority', 'assigned_to', 'is_escalated']
+        fields = ['status', 'priority', 'website', 'assigned_to', 'is_escalated']
 
 class TicketMessageCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketMessage
-        fields = ['ticket', 'sender', 'message', 'is_internal']
+        fields = ['ticket', 'sender', 'website', 'message', 'is_internal']
 class TicketLogCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketLog
-        fields = ['ticket', 'action', 'performed_by']
+        fields = ['ticket', 'action', 'website', 'performed_by']
 
 class TicketStatisticsSerializer(serializers.ModelSerializer):
     class Meta:

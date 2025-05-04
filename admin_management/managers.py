@@ -103,30 +103,6 @@ class AdminManager:
 
         return {"message": f"User {user.username} has been suspended."}
 
-    @staticmethod
-    def assign_permissions(admin_profile):
-        """
-        Assigns default permissions to admins when they are created.
-        Ensures Superadmins are not assigned limited admin permissions.
-        """
-        if admin_profile.is_superadmin:
-            return  # Superadmins don't need limited permissions
-
-        admin_group, _ = Group.objects.get_or_create(name="Admin")
-
-        permissions = [
-            "add_user", "change_user", "delete_user",
-            "view_order", "change_order", "cancel_order",
-            "resolve_disputes", "manage_discounts", "approve_payouts", "view_payouts",
-            "process_payments", "handle_refunds", "manage_tickets"
-        ]
-
-        for perm in permissions:
-            permission = Permission.objects.filter(codename=perm).first()
-            if permission:
-                admin_group.permissions.add(permission)
-
-        admin_profile.user.groups.add(admin_group)
 
     @staticmethod
     def blacklist_user(admin, user, reason="No reason provided"):

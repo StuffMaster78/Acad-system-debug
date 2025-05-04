@@ -11,7 +11,8 @@ User = get_user_model()
 
 class ClientProfile(models.Model):
     """
-    Stores client-specific details and integrates order, wallet, and activity data.
+    Stores client-specific details and integrates
+    order, wallet, and activity data.
     """
     user = models.OneToOneField(
         User,
@@ -148,7 +149,10 @@ class ClientProfile(models.Model):
         """
         Add loyalty points to the client's balance and update their tier.
         """
-        LoyaltyTransaction = apps.get_model('loyalty_management', 'LoyaltyTransaction')
+        LoyaltyTransaction = apps.get_model(
+            'loyalty_management',
+            'LoyaltyTransaction'
+        )
         self.loyalty_points += points
         self._update_tier()
         self.save()
@@ -181,7 +185,10 @@ class ClientProfile(models.Model):
         """
         Automatically update the client's tier based on loyalty points.
         """
-        LoyaltyTier = apps.get_model('loyalty_management', 'LoyaltyTier')
+        LoyaltyTier = apps.get_model(
+            'loyalty_management',
+            'LoyaltyTier'
+        )
         applicable_tiers = LoyaltyTier.objects.filter(
             website=self.website, threshold__lte=self.loyalty_points
         ).order_by('-threshold')
@@ -199,7 +206,10 @@ class ClientProfile(models.Model):
         """
         Retrieve all the badges awarded to the client from loyalty-management.
         """
-        ClientBadge = apps.get_model('loyalty_management', 'ClientBadge')
+        ClientBadge = apps.get_model(
+            'loyalty_management',
+            'ClientBadge'
+        )
         return ClientBadge.objects.filter(client=self)
 
     def get_activity_log(self):
@@ -318,7 +328,11 @@ class ClientProfile(models.Model):
     
 
 class SuspiciousLogin(models.Model):
-    client = models.ForeignKey(ClientProfile, on_delete=models.CASCADE, related_name="suspicious_logins")
+    client = models.ForeignKey(
+        ClientProfile,
+        on_delete=models.CASCADE,
+        related_name="suspicious_logins"
+    )
     ip_address = models.GenericIPAddressField()
     detected_country = models.CharField(max_length=100)
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -463,6 +477,9 @@ class ClientAction(models.Model):
         ordering = ['-timestamp']
 
 class BlacklistedEmail(models.Model):
+    """
+    Tracks the client emails that have been blacklisted.
+    """
     email = models.EmailField(unique=True)
     reason = models.TextField(blank=True, null=True)
     date_added = models.DateTimeField(auto_now_add=True)

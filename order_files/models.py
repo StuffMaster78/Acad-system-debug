@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth import get_user_model
 from orders.models import Order
+from websites.models import Website
 
 User = get_user_model()
 
@@ -9,6 +10,11 @@ class OrderFilesConfig(models.Model):
     """
     Admin-controlled configurations for managing file uploads, downloads, and extra service files.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_files'
+    )
     allowed_extensions = models.JSONField(default=list)  # Example: ["pdf", "docx", "xlsx"]
     enable_external_links = models.BooleanField(default=True)  # Can be disabled by admin
     max_upload_size = models.IntegerField(default=100)  # Max file size in MB
@@ -29,6 +35,11 @@ class OrderFileCategory(models.Model):
     """
     Admin-defined file categories such as "Final Draft", "Order Instructions", "Plagiarism Report".
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_file_category'
+    )
     name = models.CharField(max_length=100, unique=True)
     allowed_extensions = models.JSONField(default=list)  # ["pdf", "docx", "xlsx"]
     is_final_draft = models.BooleanField(default=False)  # True if category is Final Draft
@@ -42,9 +53,26 @@ class OrderFile(models.Model):
     """
     Stores uploaded order files with admin & support-controlled download restrictions.
     """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="files")
-    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    category = models.ForeignKey(OrderFileCategory, on_delete=models.SET_NULL, null=True)
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_file'
+    )
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="files"
+    )
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True
+    )
+    category = models.ForeignKey(
+        OrderFileCategory,
+        on_delete=models.SET_NULL,
+        null=True
+    )
     file = models.FileField(upload_to="order_files/")
     created_at = models.DateTimeField(auto_now_add=True)
     is_downloadable = models.BooleanField(default=True)  # Admin can disable downloads per file
@@ -73,7 +101,16 @@ class FileDownloadLog(models.Model):
     """
     Tracks file downloads for security and audit purposes.
     """
-    file = models.ForeignKey(OrderFile, on_delete=models.CASCADE, related_name="downloads")
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='file_download_log'
+    )
+    file = models.ForeignKey(
+        OrderFile,
+        on_delete=models.CASCADE,
+        related_name="downloads"
+    )
     downloaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
     downloaded_at = models.DateTimeField(auto_now_add=True)
 
@@ -85,6 +122,11 @@ class FileDeletionRequest(models.Model):
     """
     Handles file deletion requests from writers or clients, requiring admin approval.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='file_deletion_request'
+    )
     file = models.ForeignKey(OrderFile, on_delete=models.CASCADE)
     requested_by = models.ForeignKey(User, on_delete=models.CASCADE)
     status = models.CharField(
@@ -103,7 +145,16 @@ class ExternalFileLink(models.Model):
     """
     Stores links for externally uploaded files (Google Drive, Dropbox, etc.) that require admin approval.
     """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="external_links")
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_external_file_link'
+    )
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="external_links"
+    )
     uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
     link = models.URLField()
     description = models.CharField(max_length=255, blank=True, null=True)
@@ -123,8 +174,21 @@ class ExtraServiceFile(models.Model):
     """
     Handles extra service files such as Plagiarism Reports, Smart Papers, etc.
     """
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="extra_service_files")
-    uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='extra_service_file'
+    )
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="extra_service_files"
+    )
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True
+    )
     service_name = models.CharField(max_length=255)  # Example: "Plagiarism Report", "Smart Paper"
     file = models.FileField(upload_to="extra_service_files/")
     created_at = models.DateTimeField(auto_now_add=True)

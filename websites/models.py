@@ -22,40 +22,88 @@ class Website(models.Model):
     Model to store website-specific data with enhancements for branding, SEO, and control.
     """
     # Basic website details
-    name = models.CharField(max_length=255, unique=True, help_text="Website's name")
-    domain = models.URLField(unique=True, help_text="Website's domain (e.g., https://example.com)")
-    is_active = models.BooleanField(default=True, help_text="Whether the website is currently active")
-
-    # Branding details
-    logo = models.ImageField(upload_to='logos/', null=True, blank=True, help_text="Logo for the website")
-    theme_color = models.CharField(
-        max_length=7, null=True, blank=True, help_text="Primary theme color in HEX (e.g., #FFFFFF)"
+    name = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text="Website's name"
+    )
+    domain = models.URLField(
+        unique=True,
+        help_text="Website's domain (e.g., https://example.com)"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether the website is currently active"
     )
 
-    slug = models.SlugField(unique=True, blank=True) 
+    # Branding details
+    logo = models.ImageField(
+        upload_to='logos/',
+        null=True,
+        blank=True,
+        help_text="Logo for the website"
+    )
+    theme_color = models.CharField(
+        max_length=7,
+        null=True,
+        blank=True,
+        help_text="Primary theme color in HEX (e.g., #FFFFFF)"
+    )
+
+    slug = models.SlugField(
+        unique=True,
+        blank=True
+    ) 
     # Contact details
-    contact_email = models.EmailField(null=True, blank=True, help_text="Support contact email for the website")
+    contact_email = models.EmailField(
+        null=True,
+        blank=True,
+        help_text="Support contact email for the website"
+    )
     contact_phone = models.CharField(
-        max_length=15, null=True, blank=True, help_text="Support contact phone number for the website"
+        max_length=15,
+        null=True,
+        blank=True,
+        help_text="Support contact phone number for the website"
     )
 
     # SEO Metadata
-    meta_title = models.CharField(max_length=255, null=True, blank=True, help_text="Meta title for SEO")
-    meta_description = models.TextField(null=True, blank=True, help_text="Meta description for SEO")
+    meta_title = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Meta title for SEO"
+    )
+    meta_description = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Meta description for SEO"
+    )
 
     # Custom configurations
     allow_registration = models.BooleanField(
         default=True, help_text="Allow users to register directly on this website"
     )
     allow_guest_checkout = models.BooleanField(
-        default=False, help_text="Allow guest checkout without account registration"
+        default=False,
+        help_text="Allow guest checkout without account registration"
     )
 
-    is_deleted = models.BooleanField(default=False, db_index=True, help_text="Soft delete flag")
-    deleted_at = models.DateTimeField(null=True, blank=True, help_text="Timestamp for soft deletion")
+    is_deleted = models.BooleanField(
+        default=False,
+        db_index=True,
+        help_text="Soft delete flag"
+    )
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp for soft deletion"
+    )
 
     google_analytics_id = models.CharField(
-        max_length=50, blank=True, null=True,
+        max_length=50,
+        blank=True,
+        null=True,
         help_text="Google Analytics Tracking ID (e.g., UA-XXXXX-X or G-XXXXXXXXXX)"
     )
     google_search_console_id = models.CharField(
@@ -152,10 +200,25 @@ class WebsiteActionLog(models.Model):
         ("RESTORED", "Website Restored"),
     ]
 
-    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="action_logs")
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
-    details = models.TextField(blank=True, null=True, help_text="Extra details about the action")
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="action_logs"
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True
+    )
+    action = models.CharField(
+        max_length=20,
+        choices=ACTION_CHOICES
+    )
+    details = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Extra details about the action"
+    )
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -163,19 +226,36 @@ class WebsiteActionLog(models.Model):
 
 
 class WebsiteStaticPage(models.Model):
-    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="static_pages")
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="static_pages"
+    )
     title = models.CharField(max_length=255)
     language = models.CharField(
-        max_length=10, choices=[("en", "English"), ("fr", "French"), ("es", "Spanish")], default="en"
+        max_length=10,
+        choices=[("en", "English"), ("fr", "French"), ("es", "Spanish")],
+        default="en"
     )
     slug = models.SlugField(unique=True)
     content = models.TextField()
-    meta_title = models.CharField(max_length=255, blank=True)
+    meta_title = models.CharField(
+        max_length=255,
+        blank=True
+    )
     meta_description = models.TextField(blank=True)
     last_updated = models.DateTimeField(auto_now=True)
-    scheduled_publish_date = models.DateTimeField(blank=True, null=True, help_text="Schedule content update")
+    scheduled_publish_date = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Schedule content update"
+    )
     views = models.PositiveIntegerField(default=0)  # Count page views
-    previous_versions = models.JSONField(default=list, blank=True, help_text="Stores older versions")  # 🔥 Fix
+    previous_versions = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Stores older versions"
+    )
 
     class Meta:
         unique_together = ("website", "slug")
@@ -217,6 +297,13 @@ class WebsiteSettings(models.Model):
     """
     A model to store general website settings like domain URL and sender details.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='website_settings'
+    )
+    name = models.CharField(max_length=100)
+    no_reply_email = models.EmailField()
     domain_url = models.URLField(
         max_length=200,
         help_text="The main domain of the website"

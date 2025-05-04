@@ -139,10 +139,7 @@ class AuditLogSerializer(serializers.ModelSerializer):
         model = AuditLog
         fields = ('id', 'user', 'action', 'timestamp', 'ip_address', 'user_agent')
         read_only_fields = ('id', 'timestamp')
-
-
-c
-
+        
 class LoginUserSerializer(serializers.Serializer):
     """
     Serializer for user login. It only needs to validate the provided credentials.

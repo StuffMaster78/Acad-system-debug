@@ -1,5 +1,11 @@
+"""
+Module for storing the pricing configurations for each website
+"""
+
 from django.db import models
 from websites.models import Website
+from order_configs.models import AcademicLevel
+
 
 class PricingConfiguration(models.Model):
     """
@@ -41,10 +47,6 @@ class PricingConfiguration(models.Model):
         max_digits=10, decimal_places=2, default=0,
         help_text="Additional cost added to high-value orders.",
     )
-    long_deadline_flat_fee = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0,
-        help_text="Flat fee for orders with deadlines longer than 30 days."
-    )
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -72,10 +74,23 @@ class AdditionalService(models.Model):
     """
     Model to store additional services and their pricing.
     """
-    name = models.CharField(max_length=100, help_text="Name of the additional service (e.g., Plagiarism Report).")
-    description = models.TextField(blank=True, help_text="Description of the service.")
-    cost = models.DecimalField(max_digits=10, decimal_places=2, help_text="Cost of the service (USD).")
-    is_active = models.BooleanField(default=True, help_text="Whether this service is currently active.")
+    name = models.CharField(
+        max_length=100,
+        help_text="Name of the additional service (e.g., Plagiarism Report)."
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Description of the service."
+    )
+    cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Cost of the service (USD)."
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this service is currently active."
+    )
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -100,14 +115,23 @@ class WriterQuality(models.Model):
     """
     Writer quality levels and associated costs.
     """
-    name = models.CharField(max_length=100, help_text="Name of the writer quality level (e.g., Beginner, Expert).")
-    description = models.TextField(blank=True, help_text="Description of the writer quality level.")
+    name = models.CharField(
+        max_length=100,
+        help_text="Name of the writer quality level (e.g., Beginner, Expert)."
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Description of the writer quality level."
+    )
     cost_multiplier = models.DecimalField(
-        max_digits=5, decimal_places=2, 
+        max_digits=5,
+        decimal_places=2, 
         help_text="Multiplier applied to base price for this quality level (e.g., 1.5x for Expert)."
     )
     minimum_rating = models.DecimalField(
-        max_digits=3, decimal_places=1, default=0.0,
+        max_digits=3,
+        decimal_places=1,
+        default=0.0,
         help_text="Minimum average rating required for this quality level (e.g., 4.5)."
     )
     minimum_completed_orders = models.PositiveIntegerField(
@@ -142,8 +166,6 @@ class WriterQuality(models.Model):
     class Meta:
         verbose_name = "Writer Quality"
         verbose_name_plural = "Writer Qualities"
-
-
 class AcademicLevelPricing(models.Model):
     """
     Represents the pricing configuration based on academic levels.
@@ -154,11 +176,13 @@ class AcademicLevelPricing(models.Model):
         related_name="academic_level_pricing",
         help_text=("Website this pricing configuration applies to."),
     )
-    name = models.CharField(
-        max_length=100,
-        unique=True,
-        help_text=("Name of the academic level (e.g., High School, Undergraduate, Master’s, PhD)."),
+    academic_level = models.OneToOneField( 
+        AcademicLevel,
+        on_delete=models.CASCADE,
+        related_name="pricing",
+        help_text="Academic Level this pricing applies to."
     )
+
     multiplier = models.DecimalField(
         max_digits=5,
         decimal_places=2,

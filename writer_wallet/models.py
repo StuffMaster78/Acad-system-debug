@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.timezone import now
 from django.contrib.auth import get_user_model
+from websites.models import Website
 from orders.models import Order  # Linking orders since statuses are tracked there
 
 User = get_user_model()
@@ -10,6 +11,10 @@ class WriterWallet(models.Model):
     """
     Stores writer's balance and transaction history.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -65,7 +70,10 @@ class WalletTransaction(models.Model):
         ("Order Payment", "Order Payment"),
         ("Other", "Other"),
     ]
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer_wallet = models.ForeignKey(
         WriterWallet,
         on_delete=models.CASCADE,
@@ -102,6 +110,10 @@ class WriterPaymentBatch(models.Model):
     """
     Stores bulk payment batches for tracking.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     reference_code = models.CharField(
         max_length=20,
         unique=True,
@@ -138,6 +150,10 @@ class PaymentSchedule(models.Model):
         unique=True,
         blank=True
     )
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     schedule_type = models.CharField(max_length=10, choices=SCHEDULE_TYPES)
     scheduled_date = models.DateField()  # When payments should be processed
     processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="processed_batches")
@@ -157,6 +173,10 @@ class ScheduledWriterPayment(models.Model):
     """
     Tracks individual writer payments within a payment batch.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     batch = models.ForeignKey(
         PaymentSchedule,
         on_delete=models.CASCADE,
@@ -196,6 +216,10 @@ class PaymentOrderRecord(models.Model):
     """
     Tracks orders included in each writer's payment.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     payment = models.ForeignKey(
         ScheduledWriterPayment,
         on_delete=models.CASCADE,
@@ -218,6 +242,10 @@ class WriterPayment(models.Model):
     """
     Tracks individual payments made to writers.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     batch = models.ForeignKey(
         WriterPaymentBatch,
         on_delete=models.CASCADE,
@@ -262,6 +290,10 @@ class AdminPaymentAdjustment(models.Model):
         ("Other", "Other"),
     ]
 
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer_wallet = models.ForeignKey(
         WriterWallet,
         on_delete=models.CASCADE,
@@ -288,6 +320,10 @@ class PaymentConfirmation(models.Model):
     """
     Writers confirm their payments before payout.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer_wallet = models.ForeignKey(
         WriterWallet,
         on_delete=models.CASCADE,

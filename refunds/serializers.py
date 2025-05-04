@@ -11,6 +11,7 @@ class RefundSerializer(serializers.ModelSerializer):
             "id",
             "order_payment",
             "client",
+            "website",
             "type",
             "wallet_amount",
             "external_amount",
@@ -41,6 +42,7 @@ class RefundLogSerializer(serializers.ModelSerializer):
             "id",
             "order",
             "amount",
+            "website",
             "source",
             "status",
             "metadata",
@@ -54,6 +56,7 @@ class RefundReceiptSerializer(serializers.ModelSerializer):
         model = RefundReceipt
         fields = [
             "id",
+            "website",
             "refund",
             "generated_at",
             "reference_code",

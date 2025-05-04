@@ -80,6 +80,13 @@ class Ticket(models.Model):
         ordering = ['-created_at']
 
 class TicketMessage(models.Model):
+    """
+    A Model that stores and handles tickets within a message
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     ticket = models.ForeignKey(
         Ticket,
         on_delete=models.CASCADE,
@@ -107,6 +114,13 @@ class TicketMessage(models.Model):
 
 
 class TicketLog(models.Model):
+    """
+    Logs all the tickets raised for the respective websites.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     ticket = models.ForeignKey(
         Ticket,
         on_delete=models.CASCADE,
@@ -134,11 +148,27 @@ class TicketStatistics(models.Model):
     """
     Tracks all the tickets for the respective websites
     """
-    website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="ticket_stats")
-    total_tickets = models.IntegerField(default=0, help_text="Total number of tickets.")
-    resolved_tickets = models.IntegerField(default=0, help_text="Total number of resolved tickets.")
-    average_resolution_time = models.FloatField(default=0.0, help_text="Average resolution time in hours.")
-    created_at = models.DateField(auto_now_add=True, help_text="Date of the statistic.")
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="ticket_stats"
+    )
+    total_tickets = models.IntegerField(
+        default=0,
+        help_text="Total number of tickets."
+    )
+    resolved_tickets = models.IntegerField(
+        default=0,
+        help_text="Total number of resolved tickets."
+    )
+    average_resolution_time = models.FloatField(
+        default=0.0,
+        help_text="Average resolution time in hours."
+    )
+    created_at = models.DateField(
+        auto_now_add=True,
+        help_text="Date of the statistic."
+    )
 
     def __str__(self):
         return f"Stats for {self.website} - {self.created_at}"

@@ -1,7 +1,7 @@
 from rest_framework import viewsets, mixins, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
-from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import DjangoFilterBackend # type: ignore
 from django.db.models import Q
 from django.utils import timezone
 from django.db.models.functions import Coalesce
@@ -12,17 +12,22 @@ import logging
 from rest_framework.decorators import action
 from django.db import transaction
 from django.db.models import Sum 
-
+from orders.models import Order
+from discounts.models import Discount
 
 from .models import (
-    OrderPayment, Refund, PaymentNotification, PaymentLog,
-    PaymentDispute, DiscountUsage, SplitPayment, AdminLog,
-    PaymentReminderSettings
+    OrderPayment, Refund,
+    PaymentNotification, PaymentLog,
+    PaymentDispute, DiscountUsage,
+    SplitPayment, AdminLog,
+    PaymentReminderSettings, RequestPayment
 )
 from .serializers import (
     TransactionSerializer, PaymentNotificationSerializer,
-    PaymentLogSerializer, PaymentDisputeSerializer, DiscountUsageSerializer,
-    AdminLogSerializer, PaymentReminderSettingsSerializer, RefundSerializer
+    PaymentLogSerializer, PaymentDisputeSerializer,
+    DiscountUsageSerializer, AdminLogSerializer,
+    PaymentReminderSettingsSerializer, RefundSerializer,
+    RequestPaymentSerializer
 )
 from .permissions import IsSuperadminOrAdmin
 
@@ -328,3 +333,78 @@ class RefundViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """Disallow refund deletion for audit tracking."""
         return Response({"error": "Refunds cannot be deleted."}, status=status.HTTP_403_FORBIDDEN)
+    
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for handling payments related to writer requests, considering discounts.
+    """
+    queryset = RequestPayment.objects.all()
+    serializer_class = RequestPaymentSerializer
+
+    @action(detail=True, methods=['post'])
+    def process_payment(self, request, pk=None):
+        """
+        Process payment for an approved writer request, considering client discounts.
+
+        Args:
+            request (Request): The HTTP request object.
+            pk (str): The primary key of the order.
+
+        Returns:
+            Response: A response confirming the payment processing.
+        """
+        try:
+            order = Order.objects.get(id=pk)
+            payment_method = request.data.get('payment_method')
+            additional_cost = request.data.get('additional_cost')
+            discount_code = request.data.get('discount_code', None)
+
+            # Apply the discount if provided
+            discounted_total = order.total_cost
+
+            if discount_code:
+                discount = Discount.objects.filter(code=discount_code).first()
+
+                if not discount or not discount.is_valid():
+                    return Response({"error": "Invalid or expired discount code."}, status=400)
+
+                # Calculate the discount amount
+                if discount.discount_type == 'percentage':
+                    discounted_amount = (discount.value / 100) * discounted_total
+                else:  # fixed discount
+                    discounted_amount = discount.value
+
+                # Apply the discount to the order's total cost
+                discounted_total -= discounted_amount
+
+            # Add the additional costs for pages/slide increases
+            final_amount = discounted_total + additional_cost
+
+            # Process payment
+            payment = RequestPayment.objects.create(
+                order=order,
+                payment_method=payment_method,
+                additional_cost=additional_cost,
+                payment_for="page_increase",  # Could vary based on request type
+            )
+
+            # Update the order total
+            order.total_cost = final_amount
+            order.save()
+
+            # Mark the order as paid
+            order.is_paid = True
+            order.save()
+
+            # If a valid discount was applied, increment the usage count
+            if discount_code:
+                discount.increment_usage()
+
+            return Response({"message": f"Payment processed successfully. Total: {final_amount}"}, status=200)
+        
+        except Order.DoesNotExist:
+            return Response({"error": "Order not found."}, status=404)
+
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=400)

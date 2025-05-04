@@ -7,6 +7,7 @@ from writer_management.models import WriterProfile
 from wallet.models import Wallet, WalletTransaction
 from notifications_system import send_notification  # Import notification system
 from django.contrib.auth import get_user_model
+from websites.models import Website
 
 
 User = get_user_model()
@@ -23,7 +24,10 @@ class WriterPayment(models.Model):
         ("Delayed", "Delayed"),  # Payment held due to revision/dispute
         ("Voided", "Voided")  # Payment removed due to reassignment
     ]
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
@@ -200,7 +204,10 @@ class WriterPayoutRequest(models.Model):
         ("Approved", "Approved"),
         ("Rejected", "Rejected")
     ]
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
@@ -264,7 +271,10 @@ class SpecialOrderBonus(models.Model):
     """
     Tracks bonuses awarded to writers for completing special orders.
     """
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
@@ -314,7 +324,10 @@ class WriterPaymentAdjustment(models.Model):
     """
     Logs manual payment adjustments made by admins.
     """
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer_payment = models.ForeignKey(
         WriterPayment,
         on_delete=models.CASCADE,

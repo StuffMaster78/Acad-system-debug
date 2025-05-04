@@ -10,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
     """Serializer for the User model."""
     class Meta:
         model = User
-        fields = ['id', 'username', 'email']
+        fields = ['id', 'username', 'website', 'email']
 
 
 class WebsiteSerializer(serializers.ModelSerializer):
@@ -90,7 +90,7 @@ class ReferralBonusDecaySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ReferralBonusDecay
-        fields = ['id', 'wallet_transaction',
+        fields = ['id', 'wallet_transaction', 'website',
                   'decay_rate', 'decay_start_at'
         ]
 

@@ -4,6 +4,7 @@ from datetime import timedelta
 from django.utils.timezone import now
 from core.models.base import WebsiteSpecificBaseModel
 from users.models import User
+from websites.models import Website
 # from client_management.models import LoyaltyPoint
 
 
@@ -11,6 +12,11 @@ class Wallet(WebsiteSpecificBaseModel):
     """
     Wallet for managing balances of users (clients, writers, etc.), scoped to a specific website.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='user_wallet'
+    )
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -64,7 +70,11 @@ class WalletTransaction(WebsiteSpecificBaseModel):
         ('adjustment', 'Adjustment'),
         ("referral_bonus", "Referral Bonus"),
     )
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='wallet_transactions'
+    )
     wallet = models.ForeignKey(
         Wallet,
         on_delete=models.CASCADE,
@@ -87,7 +97,6 @@ class WalletTransaction(WebsiteSpecificBaseModel):
         help_text="Optional description for the transaction."
     )
     created_at = models.DateTimeField(auto_now_add=True)
-
     expires_at = models.DateTimeField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
@@ -108,7 +117,11 @@ class WithdrawalRequest(WebsiteSpecificBaseModel):
         ('approved', 'Approved'),
         ('rejected', 'Rejected'),
     )
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='withdrawal_request'
+    )
     wallet = models.ForeignKey(
         Wallet,
         on_delete=models.CASCADE,

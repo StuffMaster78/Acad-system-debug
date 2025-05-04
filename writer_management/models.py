@@ -13,6 +13,11 @@ class WriterProfile(models.Model):
     """
     Represents the profile of a writer.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_profile"
+    )
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -178,6 +183,11 @@ class WriterLevel(models.Model):
     Represents different levels or tiers of writers.
     Includes base pay rates, urgent order multipliers, and technical order adjustments.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_level"
+    )
     name = models.CharField(
         max_length=50,
         unique=True,
@@ -253,6 +263,11 @@ class WriterLeave(models.Model):
     """
     Tracks periods when a writer is unavailable for work.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_leave"
+    )
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
@@ -283,6 +298,11 @@ class WriterActionLog(models.Model):
     """
     Logs actions taken on writers (e.g., warnings, probation, suspension).
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_action_log"
+    )
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
@@ -316,6 +336,11 @@ class WriterEducation(models.Model):
     """
     Tracks education history and uploaded certificates for verification.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_education_level"
+    )
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
@@ -351,6 +376,11 @@ class WriterRewardCriteria(models.Model):
     """
     Admin-defined criteria for writer rewards (automated or manual).
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="reward_criteria"
+    )
     name = models.CharField(
         max_length=200,
         help_text="Name of the reward criteria (e.g., 'Top Performer')."
@@ -378,6 +408,11 @@ class WriterReward(models.Model):
     """
     Tracks rewards given to writers, including criteria, performance metrics, and prizes.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_reward"
+    )
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
@@ -419,6 +454,11 @@ class WriterDemotionRequest(models.Model):
     """
     Editors or support staff can request an admin to demote a writer.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_demotion-request"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="demotion_requests"
@@ -445,6 +485,11 @@ class WriterPerformanceReport(models.Model):
     """
     Stores performance analytics for writers.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_performance_report"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="performance_reports"
@@ -473,6 +518,11 @@ class WriterRating(models.Model):
     """
     Tracks client ratings and feedback for writers.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_rating"
+    )
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
@@ -508,6 +558,12 @@ class WriterRating(models.Model):
     
 class Probation(models.Model):
     """Tracks writers placed on probation."""
+    
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_probation"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="probation_records"
@@ -548,7 +604,11 @@ class WriterPenalty(models.Model):
         ("Client Complaint", "Client Complaint"),
         ("Other", "Other"),
     ]
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_penalty"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="penalties"
@@ -583,6 +643,11 @@ class WriterSuspension(models.Model):
     """
     Tracks suspended writers.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_suspension"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="suspensions"
@@ -625,7 +690,11 @@ class WriterPayoutPreference(models.Model):
         ("Mpesa", "Mpesa"),
         ("Other", "Other"),
     ]
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_payout_preference"
+    )
     writer = models.ForeignKey(
         "writer_management.WriterProfile", on_delete=models.CASCADE,
         related_name="payout_preferences"
@@ -666,6 +735,11 @@ class WriterPayment(models.Model):
     """
     Tracks payment history for writers.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_compensation"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="payments"
@@ -702,6 +776,11 @@ class WriterEarningsHistory(models.Model):
     """
     Tracks the writer's total earnings over different time periods.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_earning_history"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="earnings_history"
@@ -730,6 +809,11 @@ class WriterEarningsReviewRequest(models.Model):
     """
     Writers can request an admin to review earnings for a specific order.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_earnings_review"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="earnings_review_requests"
@@ -760,6 +844,11 @@ class WriterReassignmentRequest(models.Model):
     Writers can request reassignment from an order.
     Admin approval is required.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_reassignment_request"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="reassignment_requests"
@@ -789,6 +878,10 @@ class WriterOrderHoldRequest(models.Model):
     This freezes the deadline count of the order until when put off hold.
     Admin approval is required.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="hold_requests"
@@ -816,6 +909,10 @@ class OrderDispute(models.Model):
     Writers can dispute an order.
     Admins must resolve the dispute.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="disputes"
@@ -847,6 +944,10 @@ class WriterOrderReopenRequest(models.Model):
     Writers can request a completed order to be reopened.
     Admin must approve.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="reopen_requests"
@@ -881,7 +982,10 @@ class WriterActivityLog(models.Model):
         ("Deadline Extension Requested", "Deadline Extension Requested"),
         ("Reassignment Requested", "Reassignment Requested"),
     ]
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="activity_logs"
@@ -912,6 +1016,10 @@ class WriterMessageThread(models.Model):
     A thread for writer messages.
     Each order has a writer-client and/or writer-admin thread.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     order = models.ForeignKey(
         Order, on_delete=models.CASCADE,
         related_name="message_threads"
@@ -935,6 +1043,10 @@ class WriterMessage(models.Model):
     """
     Messages exchanged between a writer and a client/admin in an order thread.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     thread = models.ForeignKey(
         WriterMessageThread, on_delete=models.CASCADE,
         related_name="messages"
@@ -963,6 +1075,10 @@ class WriterMessageModeration(models.Model):
     """
     Stores flagged messages for admin review.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     message = models.ForeignKey(
         WriterMessage, on_delete=models.CASCADE,
         related_name="moderation"
@@ -1007,7 +1123,10 @@ class WriterSupportTicket(models.Model):
         ("Resolved", "Resolved"),
         ("Closed", "Closed"),
     ]
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="support_tickets"
@@ -1042,6 +1161,10 @@ class WriterDeadlineExtensionRequest(models.Model):
     Writers can request a deadline extension for an order.
     Admin/Client approval required.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="deadline_extension_requests"
@@ -1075,6 +1198,10 @@ class WriterAutoRanking(models.Model):
     Auto-Promotion & Auto-Demotion based on writer performance.
     Admins can override.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="auto_ranking"
@@ -1105,6 +1232,10 @@ class WriterActivityTracking(models.Model):
     Tracks when a writer was last active.
     Helps admins monitor writer activity.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.OneToOneField(
         WriterProfile, on_delete=models.CASCADE,
         related_name="activity_tracking"
@@ -1131,6 +1262,10 @@ class WriterIPLog(models.Model):
     Logs multiple IP addresses used by a writer.
     Helps detect account sharing or fraud.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="ip_logs"
@@ -1149,6 +1284,10 @@ class WriterRatingCooldown(models.Model):
     Prevents clients from rating a writer until the order is fully completed.
     Cooldown period prevents rating abuse.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     order = models.OneToOneField(
         Order, on_delete=models.CASCADE,
         related_name="rating_cooldown"
@@ -1174,6 +1313,10 @@ class WriterFileDownloadLog(models.Model):
     Logs when a writer downloads order files.
     Helps with tracking and accountability.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="file_download_logs"
@@ -1195,6 +1338,10 @@ class WriterConfig(models.Model):
     Admin-controlled settings for writers.
     This allows admins to enable/disable order takes.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     takes_enabled = models.BooleanField(
         default=True,
         help_text="If True, writers can take orders . If False, writers must request orders."
@@ -1213,6 +1360,10 @@ class WriterOrderRequest(models.Model):
     Writers can request an order, expressing their interest.
     Admins must review and approve.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="order_requests"
@@ -1257,6 +1408,10 @@ class WriterOrderTake(models.Model):
     Writers can take orders directly if admin allows.
     Writers can only take orders up to their max allowed limit.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="taken_orders"

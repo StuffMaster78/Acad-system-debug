@@ -7,6 +7,7 @@ from .models import (
     OrderPayment, Refund, PaymentNotification, PaymentDispute, 
     PaymentLog, FailedPayment, AdminLog
 )
+from orders.models import WriterRequest
 from notifications_system.models import Notification
 import logging
 from django.db import models
@@ -180,3 +181,11 @@ def validate_duplicate_payment(sender, instance, **kwargs):
 
         if existing_payment:
             raise ValidationError("This order has already been paid for.")
+        
+
+
+# Signal to automatically calculate the total cost when a request is approved.
+@receiver(post_save, sender=WriterRequest)
+def on_writer_request_approval(sender, instance, created, **kwargs):
+    if instance.client_approval and instance.admin_approval:
+        instance.order.calculate_total_cost()

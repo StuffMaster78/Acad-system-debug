@@ -33,7 +33,7 @@ class InstallmentPaymentSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = InstallmentPayment
-        fields = ['id', 'special_order_id', 'due_date', 'amount_due', 'is_paid']
+        fields = ['id', 'special_order_id', 'website', 'due_date', 'amount_due', 'is_paid']
 
 
 class SpecialOrderSerializer(serializers.ModelSerializer):
@@ -65,5 +65,5 @@ class WriterBonusSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WriterBonus
-        fields = ['id', 'writer', 'writer_username', 'special_order_id', 'amount', 'category', 'is_paid', 'granted_at']
+        fields = ['id', 'writer', 'writer_username', 'special_order_id', 'website', 'amount', 'category', 'is_paid', 'granted_at']
         read_only_fields = ['granted_at']

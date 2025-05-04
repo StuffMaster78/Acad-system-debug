@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 import uuid
 from orders.models import Order
+from websites.models import Website
 from order_payments_management.models import OrderPayment 
 
 class Refund(models.Model):
@@ -33,9 +34,15 @@ class Refund(models.Model):
         (PROCESSED, 'Processed'),
         (REJECTED, 'rejected'),
     ]
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='refunds_for_client'
+    )
     order_payment = models.ForeignKey(
-        OrderPayment, on_delete=models.CASCADE, related_name="refunds"
+        OrderPayment,
+        on_delete=models.CASCADE,
+        related_name="refunds"
     )
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -61,7 +68,7 @@ class Refund(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="processed_refunds",
+        related_name="processed_refunds"
     )
     processed_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
@@ -86,7 +93,11 @@ class RefundLog(models.Model):
     """
     Logs the details of a refund action. Used to track and audit refund activities.
     """
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='refund_logs'
+    )
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
@@ -128,7 +139,11 @@ class RefundReceipt(models.Model):
     """
     Receipt for the refunded amount.
     """
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='refund_receipt'
+    )
     refund = models.OneToOneField(
         Refund, on_delete=models.CASCADE,
         related_name="receipt"

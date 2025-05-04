@@ -11,7 +11,7 @@ class WalletSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Wallet
-        fields = ['user', 'balance', 'last_updated']
+        fields = ['user', 'balance', 'website', 'last_updated']
 
 
 class WalletTransactionSerializer(serializers.ModelSerializer):
@@ -22,7 +22,7 @@ class WalletTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = WalletTransaction
-        fields = ['wallet', 'transaction_type', 'amount', 'description', 'created_at']
+        fields = ['wallet', 'transaction_type', 'website', 'amount', 'description', 'created_at']
 
 
 class WalletTopUpSerializer(serializers.Serializer):
@@ -47,4 +47,4 @@ class WithdrawalRequestSerializer(serializers.ModelSerializer):
     """
     class Meta:
         model = WithdrawalRequest
-        fields = ['wallet', 'amount', 'status', 'description', 'created_at', 'processed_at']
+        fields = ['wallet', 'amount', 'status', 'website', 'description', 'created_at', 'processed_at']

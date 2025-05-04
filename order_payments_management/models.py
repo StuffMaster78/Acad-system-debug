@@ -8,11 +8,13 @@ from django.core.exceptions import ValidationError
 from discounts.models import Discount 
 from django.utils.timezone import now
 from referrals.models import Referral, ReferralBonusConfig
-
+from websites.models import Website
 class OrderPayment(models.Model):
     """
-    Manages payments for standard, predefined special, and estimated special orders.
-    Handles discount application, wallet deductions, payment processing, and refunds.
+    Manages payments for standard, predefined special,
+    and estimated special orders.
+    Handles discount application, wallet deductions,
+    payment processing, and refunds.
     """
     STATUS_CHOICES = [
         ("pending", "Pending"),
@@ -28,6 +30,11 @@ class OrderPayment(models.Model):
         ("predefined_special", "Predefined Special Order"),
         ("estimated_special", "Estimated Special Order"),
     ]
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_payment'
+    )
 
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -78,7 +85,10 @@ class OrderPayment(models.Model):
 
 
     def apply_discount(self, discount_code=None, referral_code=None):
-        """Apply discount to the payment, including potential referral discount."""
+        """
+        Apply discount to the payment,
+        including potential referral discount.
+        """
         if self.discount:
             raise ValidationError("A discount has already been applied.")
 
@@ -276,10 +286,34 @@ class OrderPayment(models.Model):
         return f"Payment {self.transaction_id} - {self.status} - ${self.discounted_amount}"
 
 class DiscountUsage(models.Model):
-    discount = models.ForeignKey(Discount, on_delete=models.CASCADE, related_name="usage_logs")
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="discount_usage")
-    order = models.ForeignKey("orders.Order", on_delete=models.CASCADE, null=True, blank=True)
-    special_order = models.ForeignKey("special_orders.SpecialOrder", on_delete=models.CASCADE, null=True, blank=True)
+    """
+    Tracks and updates the usage of discount codes by clients.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_discount_usage'
+    )
+    discount = models.ForeignKey(
+        Discount,
+        on_delete=models.CASCADE,
+        related_name="usage_logs"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="discount_usage"
+    )
+    order = models.ForeignKey(
+        "orders.Order",
+        on_delete=models.CASCADE,
+        null=True, blank=True
+    )
+    special_order = models.ForeignKey(
+        "special_orders.SpecialOrder",
+        on_delete=models.CASCADE,
+        null=True, blank=True
+    )
     applied_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -287,8 +321,24 @@ class DiscountUsage(models.Model):
 
 
 class FailedPayment(models.Model):
-    payment = models.ForeignKey("OrderPayment", on_delete=models.CASCADE, related_name="failed_payments")
-    client = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="failed_payments")
+    """
+    Tracks and logs all the instances of failed payments.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='failed_order_payments'
+    )
+    payment = models.ForeignKey(
+        "OrderPayment",
+        on_delete=models.CASCADE,
+        related_name="failed_payments"
+    )
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="failed_payments"
+    )
     failure_reason = models.TextField()
     failed_at = models.DateTimeField(default=timezone.now)
     retry_count = models.PositiveIntegerField(default=0)
@@ -348,12 +398,20 @@ class PaymentNotification(models.Model):
     Stores notifications related to payment events.
     Helps clients stay informed about payment status updates.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_payment_notification'
+    )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name="payment_notifications"
     )
     payment = models.ForeignKey(
-        "OrderPayment", on_delete=models.CASCADE, related_name="notifications"
+        "OrderPayment",
+        on_delete=models.CASCADE,
+        related_name="notifications"
     )
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
@@ -377,6 +435,11 @@ class PaymentLog(models.Model):
     Stores logs for all payment-related actions.
     Useful for tracking and auditing payment transactions.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_payment_log'
+    )
     payment = models.ForeignKey(
         "OrderPayment",
         on_delete=models.CASCADE,
@@ -410,15 +473,26 @@ class PaymentDispute(models.Model):
         ("rejected", "Rejected"),
     ]
 
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_payment_dispute'
+    )
     payment = models.ForeignKey(
-        "OrderPayment", on_delete=models.CASCADE, related_name="disputes"
+        "OrderPayment",
+        on_delete=models.CASCADE,
+        related_name="disputes"
     )
     client = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="disputes"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="disputes"
     )
     reason = models.TextField()
     status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default="pending"
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     resolved_at = models.DateTimeField(null=True, blank=True)
@@ -449,24 +523,39 @@ class Refund(models.Model):
         ("processed", "Processed"),
         ("rejected", "Rejected"),
     ]
-
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_payment_refund'
+    )
     payment = models.ForeignKey(
-        OrderPayment, on_delete=models.CASCADE, related_name="refunds"
+        OrderPayment,
+        on_delete=models.CASCADE,
+        related_name="refunds"
     )
     client = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="refunds"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="refunds"
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     refund_method = models.CharField(
-        max_length=10, choices=REFUND_METHOD_CHOICES, default="wallet"
+        max_length=10,
+        choices=REFUND_METHOD_CHOICES,
+        default="wallet"
     )
     processed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="processed_refunds", help_text="Admin who processed refund"
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="processed_refunds",
+        help_text="Admin who processed refund"
     )
     processed_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default="pending"
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending"
     )
 
     def process_refund(self, admin_user):
@@ -556,8 +645,15 @@ class SplitPayment(models.Model):
     Manages split payments where a client pays with multiple payment methods.
     Example: Half from wallet, half via card.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='split_order_payments'
+    )
     payment = models.ForeignKey(
-        "OrderPayment", on_delete=models.CASCADE, related_name="split_payments"
+        "OrderPayment",
+        on_delete=models.CASCADE,
+        related_name="split_payments"
     )
     method = models.CharField(max_length=50)  # Card, Wallet, PayPal, etc.
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -582,6 +678,11 @@ class AdminLog(models.Model):
     """
     Logs admin actions related to payments, disputes, and refunds.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='admin_log_payments'
+    )
     admin = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="logs"
     )
@@ -601,6 +702,11 @@ class PaymentReminderSettings(models.Model):
     """
     Allows admins to customize reminder messages and intervals for unpaid orders.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_payment_reminders'
+    )
     first_reminder_hours = models.PositiveIntegerField(
         default=12, help_text="Hours before expiration for the first reminder."
     )
@@ -627,3 +733,32 @@ class PaymentReminderSettings(models.Model):
     class Meta:
         verbose_name = "Payment Reminder Setting"
         verbose_name_plural = "Payment Reminder Settings"
+
+class RequestPayment(models.Model):
+    """
+    Model to track payment for requests like page increases, slide increases,
+    or deadline extensions.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='payment_requests_order'
+    )
+    order = models.ForeignKey(
+        'orders.Order',
+        on_delete=models.CASCADE
+    )
+    payment_method = models.CharField(max_length=50)  # e.g., 'wallet', 'credit_card'
+    additional_cost = models.DecimalField(max_digits=10, decimal_places=2,
+                                          default=0.00)
+    payment_date = models.DateTimeField(auto_now_add=True)
+    payment_for = models.CharField(max_length=100)  # Page/Slide Increase, Deadline Extension, etc.
+
+    def __str__(self):
+        """
+        Return a string representation of the payment record.
+
+        Returns:
+            str: A summary of the payment for the request.
+        """
+        return f"Request Payment for Order {self.order.id} ({self.payment_for})"

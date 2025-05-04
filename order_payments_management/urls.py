@@ -4,7 +4,7 @@ from .views import (
     OrderPaymentViewSet, PaymentNotificationViewSet,
     PaymentLogViewSet, PaymentDisputeViewSet, DiscountUsageViewSet,
     AdminLogViewSet, PaymentReminderSettingsViewSet, TransactionViewSet,
-    RefundViewSet
+    RefundViewSet, PaymentViewSet
 )
 
 # Create a router for RESTful ViewSets
@@ -18,6 +18,7 @@ router.register(r'discount-usage', DiscountUsageViewSet, basename='discount-usag
 router.register(r'admin-logs', AdminLogViewSet, basename='admin-logs')
 router.register(r'payment-reminder-settings', PaymentReminderSettingsViewSet, basename='payment-reminder-settings')
 router.register(r'refunds', RefundViewSet, basename='refunds')
+router.register(r'payments', PaymentViewSet)
 
 # Include router-generated URLs
 urlpatterns = [

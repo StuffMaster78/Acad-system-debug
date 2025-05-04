@@ -14,6 +14,11 @@ def get_order_payment_model():
     return apps.get_model('order_payments_management', 'OrderPayment')
 class SoftDeleteModel(models.Model):
     """Abstract model for soft deletion instead of permanent deletion."""
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='soft_deleted'
+    )
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
 
@@ -37,6 +42,11 @@ class Referral(SoftDeleteModel):
     """
     Tracks referrals and ensures bonuses are awarded only after the referee orders.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='referral'
+    )
     objects = ReferralBonusManager()
     referrer = models.ForeignKey(
         User,
@@ -44,7 +54,6 @@ class Referral(SoftDeleteModel):
         related_name="referrals",
         help_text="The user who made the referral."
     )
-    website = models.ForeignKey(Website, on_delete=models.CASCADE) 
     referee = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
@@ -246,6 +255,11 @@ class ReferralBonusDecay(models.Model):
     """
     Implements bonus decay instead of expiration.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='referral_bonus_decay'
+    )
     wallet_transaction = models.OneToOneField(
         WalletTransaction,
         on_delete=models.CASCADE,
@@ -280,10 +294,27 @@ class ReferralBonusUsage(models.Model):
     """
     Tracks the usage of a referral bonus.
     """
-    referral = models.ForeignKey(Referral, on_delete=models.CASCADE)
-    order = models.ForeignKey("orders.Order", on_delete=models.CASCADE)
-    payment = models.ForeignKey('order_payments_management.OrderPayment', on_delete=models.CASCADE)
-    discount_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='referral_bonus_usage'
+    )
+    referral = models.ForeignKey(
+        Referral,
+        on_delete=models.CASCADE
+    )
+    order = models.ForeignKey(
+        "orders.Order",
+        on_delete=models.CASCADE
+    )
+    payment = models.ForeignKey(
+        'order_payments_management.OrderPayment',
+        on_delete=models.CASCADE
+    )
+    discount_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
     applied_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

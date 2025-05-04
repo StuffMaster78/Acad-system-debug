@@ -7,6 +7,7 @@ from .models import (
     PaymentReminderSettings
 )
 from discounts.models import Discount
+from .models import RequestPayment
 
 class OrderPaymentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -79,7 +80,7 @@ class PaymentNotificationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PaymentNotification
-        fields = ["id", "user", "payment", "message", "created_at", "is_read"]
+        fields = ["id", "user", "payment", "website", "message", "created_at", "is_read"]
         read_only_fields = ["id", "user", "payment", "created_at"]
 
     def update(self, instance, validated_data):
@@ -94,7 +95,7 @@ class PaymentLogSerializer(serializers.ModelSerializer):
     """Serializer for handling system and admin payment logs."""
     class Meta:
         model = PaymentLog
-        fields = ["id", "payment", "event", "timestamp", "details"]
+        fields = ["id", "payment", "event", "website", "timestamp", "details"]
         read_only_fields = ["id", "payment", "timestamp"]
 
 
@@ -104,7 +105,7 @@ class PaymentDisputeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = PaymentDispute
-        fields = ["id", "payment", "client", "reason", "status", "created_at", "resolved_at"]
+        fields = ["id", "payment", "client", "reason", "website", "status", "created_at", "resolved_at"]
         read_only_fields = ["id", "client", "status", "created_at", "resolved_at"]
 
     def validate(self, data):
@@ -135,7 +136,7 @@ class DiscountUsageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DiscountUsage
-        fields = ["id", "discount", "user", "order", "special_order", "applied_at"]
+        fields = ["id", "discount", "user", "website", "order", "special_order", "applied_at"]
         read_only_fields = ["id", "discount", "user", "order", "special_order", "applied_at"]
 
 class SplitPaymentSerializer(serializers.ModelSerializer):
@@ -147,7 +148,7 @@ class SplitPaymentSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SplitPayment
-        fields = ["id", "payment", "method", "amount", "created_at"]
+        fields = ["id", "payment", "website", "method", "amount", "created_at"]
         read_only_fields = ["id", "payment", "created_at"]
 
     def validate(self, data):
@@ -186,7 +187,7 @@ class AdminLogSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = AdminLog
-        fields = ["id", "admin", "action", "timestamp", "details"]
+        fields = ["id", "admin", "action", "website", "timestamp", "details"]
         read_only_fields = ["id", "admin", "timestamp"]
 
 
@@ -226,6 +227,7 @@ class RefundSerializer(serializers.ModelSerializer):
             "payment_id",
             "client_username",
             "amount",
+            "website",
             "reason",
             "status",
             "processed_by_username",
@@ -233,3 +235,14 @@ class RefundSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = ["id", "processed_at", "created_at", "processed_by_username", "payment_id", "client_username"]
+
+
+
+class RequestPaymentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for handling RequestPayment model data transformation.
+    """
+    class Meta:
+        model = RequestPayment
+        fields = ['id', 'order', 'website', 'payment_method', 'additional_cost',
+                  'payment_date', 'payment_for']
