@@ -1,6 +1,10 @@
 from rest_framework import serializers
 from django.utils.timezone import now  
 from .models import Order, Dispute
+from rest_framework.exceptions import PermissionDenied
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class OrderSerializer(serializers.ModelSerializer):
     client_username = serializers.CharField(source='client.username', read_only=True)
@@ -16,13 +20,39 @@ class OrderSerializer(serializers.ModelSerializer):
             'preferred_writer', 'total_cost', 'writer_compensation', 
             'extra_services', 'subject', 'discount_code', 'is_paid', 
             'status', 'flag', 'created_at', 'updated_at', 
-            'created_by_admin', 'is_special_order'
+            'created_by_admin', 'is_special_order', 'is_follow_up',
+            'previous_order'
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_cost', 
             'writer_compensation', 'is_paid', 'created_at', 'updated_at', 
             'flag', 'writer_deadline'
         ]
+
+    def validate_academic_level(self, value):
+        """
+        Make sure the academic level belongs to the current website.
+        """
+        request = self.context['request']
+        if value.website != request.website:
+            raise serializers.ValidationError("Invalid academic level for this website.")
+        return value
+    
+    def perform_create(self, serializer):
+        is_follow_up = self.request.data.get('is_follow_up', False)
+        previous_order_id = self.request.data.get('previous_order')
+
+        if is_follow_up and not previous_order_id:
+            raise serializers.ValidationError("Follow-up orders must reference a previous order.")
+
+        previous_order = None
+        if previous_order_id:
+            previous_order = Order.objects.get(id=previous_order_id)
+            if previous_order.client != self.request.user:
+                raise PermissionDenied("You can only follow up on your own orders.")
+
+        serializer.save(client=self.request.user, previous_order=previous_order)
+
 
 class OrderCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -74,6 +104,7 @@ class DisputeSerializer(serializers.ModelSerializer):
             'order_topic',
             'raised_by_username',
             'status',
+            'website',
             'reason',
             'resolution_notes',
             'created_at',
@@ -86,3 +117,113 @@ class DisputeSerializer(serializers.ModelSerializer):
         if Dispute.objects.filter(order=value).exists():
             raise serializers.ValidationError("A dispute already exists for this order.")
         return value
+
+class AssignOrderSerializer(serializers.Serializer):
+    """
+    Serializer for assigning an order to a writer.
+    Validates the existence of the order and writer,
+    and ensures the order is not already assigned.
+    """
+    writer_id = serializers.IntegerField()
+    order_id = serializers.IntegerField()
+
+    def validate(self, data):
+        order_id = data['order_id']
+        writer_id = data['writer_id']
+
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            raise serializers.ValidationError(f"Order {order_id} does not exist.")
+
+        try:
+            writer = User.objects.get(id=writer_id, role='writer', is_active=True)
+        except User.DoesNotExist:
+            raise serializers.ValidationError(f"Writer {writer_id} does not exist or is inactive.")
+
+        if order.assigned_writer:
+            raise serializers.ValidationError(f"Order {order_id} is already assigned.")
+
+        data['order'] = order
+        data['writer'] = writer
+        return data
+
+class ReassignmentRequestSerializer(serializers.Serializer):
+    """
+    Serializer for creating a reassignment request.
+    Includes validation for the preferred writer, if specified.
+    """
+    reason = serializers.CharField()
+    requested_by = serializers.ChoiceField(choices=["client", "writer"])
+    preferred_writer_id = serializers.IntegerField(
+        required=False,
+        allow_null=True
+    )
+
+    def validate_preferred_writer_id(self, value):
+        """
+        Validates the preferred_writer_id:
+        - Must exist in the system
+        - Must be an active writer
+        """
+        if value is None:
+            return value
+
+        try:
+            user = User.objects.get(id=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Preferred writer not found.")
+
+        if user.role != "writer":
+            raise serializers.ValidationError("Preferred user is not a writer.")
+
+        if not user.is_active:
+            raise serializers.ValidationError("Preferred writer account is inactive.")
+
+        return value
+
+class ResolveReassignmentSerializer(serializers.Serializer):
+    """
+    Serializer for resolving a reassignment request.
+    Supports marking requests as reassigned, rejected, or cancelled,
+    with optional fine and metadata.
+    """
+    request_id = serializers.IntegerField(required=False)
+    order_id = serializers.IntegerField(required=False)
+    status = serializers.ChoiceField(choices=['reassigned', 'rejected', 'cancelled'])
+    fine = serializers.DecimalField(
+        max_digits=10, decimal_places=2, required=False, default=0.00
+    )
+    assigned_writer = serializers.IntegerField(
+        required=False, allow_null=True
+    )
+    metadata = serializers.JSONField(required=False, default=dict)
+
+    def validate(self, data):
+        if not data.get('request_id') and not data.get('order_id'):
+            raise serializers.ValidationError(
+                "Either request_id or order_id must be provided."
+            )
+
+        writer_id = data.get('assigned_writer')
+        if writer_id:
+            try:
+                User.objects.get(id=writer_id, role='writer', is_active=True)
+            except User.DoesNotExist:
+                raise serializers.ValidationError(
+                    f"Writer with ID {writer_id} does not exist or is inactive."
+                )
+
+        return data
+    
+
+class PreferredWriterResponseSerializer(serializers.Serializer):
+    response = serializers.ChoiceField(choices=["accepted", "declined"])
+    reason = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, data):
+        if data["response"] == "declined" and not data.get("reason"):
+            raise serializers.ValidationError({
+                "reason": "Declining requires a reason."
+            })
+        return data

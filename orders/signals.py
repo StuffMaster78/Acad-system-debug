@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from .models import Order, Dispute
+from .models import Order, Dispute, WriterRequest
 
 @receiver(post_save, sender=Order)
 def handle_order_save(sender, instance, created, **kwargs):
@@ -33,3 +33,16 @@ def handle_dispute_creation(sender, instance, created, **kwargs):
         order.save()
         print(f"Dispute created for order: {order.topic}")
         # Example: Notify admin for dispute resolution
+
+
+@receiver(post_save, sender=WriterRequest)
+def on_writer_request_approved(sender, instance, created, **kwargs):
+    if instance.admin_approval and instance.client_approval:
+        # Automatically update total cost after approval
+        instance.order.calculate_total_cost()
+
+@receiver(post_save, sender=Dispute)
+def on_dispute_resolved(sender, instance, created, **kwargs):
+    if instance.status == 'resolved':
+        # Handle dispute resolution, such as notifying users or updating order status
+        pass

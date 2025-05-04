@@ -7,63 +7,129 @@ from django.core.mail import send_mail
 from django.core.validators import (
     MinValueValidator, MaxValueValidator
 )
+from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
 from core.celery import celery
-from core.models.base import WebsiteSpecificBaseModel
+from websites.models import Website
 from discounts.models import Discount
 from order_configs.models import WriterDeadlineConfig
+from order_configs.models import AcademicLevel
 from pricing_configs.models import PricingConfiguration
 from users.models import User
+from django.core.exceptions import ValidationError
 
-STATUS_CHOICES = [
-    ('unpaid', 'Unpaid'),
-    ('pending', 'Pending'),
-    ('on_hold', 'On Hold'),
-    ('available', 'Available'),
-    ('critical', 'Critical'),
-    ('assigned', 'Assigned'),
-    ('late', 'Late'),
-    ('revision', 'Revision'),
-    ('disputed', 'Disputed'),
-    ('completed', 'Completed'),
-    ('approved', 'Approved'),
-    ('cancelled', 'Cancelled'),
-    ('archived', 'Archived'),
-]
+from services.pricing_calculator import (
+    calculate_total_price,
+    calculate_base_price
+)
 
-SPACING_CHOICES = [
-    ('single', 'Single'),
-    ('double', 'Double'),
-]
+# from writer_management.models import wr
+from enum import Enum
 
-FLAG_CHOICES = [
-    ('UO', 'Urgent Order'),
-    ('FCO', 'First Client Order'),
-    ('HVO', 'High-Value Order'),
-    ('PO', 'Preferred Order'),
-    ('RCO', 'Returning Client Order'),
-]
+class OrderStatus(Enum):
+    """
+    Enum representing different statuses an order can have.
+    """
+    UNPAID = 'unpaid'
+    PENDING = 'pending'
+    ON_HOLD = 'on_hold'
+    AVAILABLE = 'available'
+    PENDING_PREFERRED = 'pending_preferred'
+    CRITICAL = 'critical'
+    ASSIGNED = 'assigned'
+    LATE = 'late'
+    REVISION = 'revision'
+    DISPUTED = 'disputed'
+    COMPLETED = 'completed'
+    APPROVED = 'approved'
+    CANCELLED = 'cancelled'
+    ARCHIVED = 'archived'
+
+    @classmethod
+    def choices(cls):
+        """
+        Returns a list of tuples (value, label) for each status in the enum.
+        """
+        return [
+            (status.value, status.name.replace('_', ' ').title()) 
+            for status in cls
+        ]
 
 
-DISPUTE_STATUS_CHOICES = [
-    ('open', 'Open'),
-    ('in_review', 'In Review'),
-    ('resolved', 'Resolved'),
-    ('escalated', 'Escalated'),
-    ('closed', 'Closed'),
-]
+class SpacingOptions(Enum):
+    """
+    Enum representing the different spacing options for an order.
+    """
+    SINGLE = 'single'
+    DOUBLE = 'double'
+
+    @classmethod
+    def choices(cls):
+        """
+        Returns a list of tuples (value, label) for each spacing type in the enum.
+        """
+        return [
+            (spacing.value, spacing.name.capitalize()) 
+            for spacing in cls
+        ]
 
 
-class Order(WebsiteSpecificBaseModel):
+class OrderFlags(Enum):
+    """
+    Enum representing different flags that can be applied to an order.
+    """
+    URGENT_ORDER = 'UO'
+    FIRST_CLIENT_ORDER = 'FCO'
+    HIGH_VALUE_ORDER = 'HVO'
+    PREFERRED_ORDER = 'PO'
+    RETURNING_CLIENT_ORDER = 'RCO'
+
+    @classmethod
+    def choices(cls):
+        """
+        Returns a list of tuples (value, label) for each flag in the enum.
+        """
+        return [
+            (flag.value, flag.name.replace('_', ' ').title()) 
+            for flag in cls
+        ]
+
+
+class DisputeStatusEnum(Enum):
+    """
+    Enum representing the different statuses a dispute can have.
+    """
+    OPEN = 'open'
+    IN_REVIEW = 'in_review'
+    RESOLVED = 'resolved'
+    ESCALATED = 'escalated'
+    CLOSED = 'closed'
+
+    @classmethod
+    def choices(cls):
+        """
+        Returns a list of tuples (value, label) for each dispute status.
+        """
+        return [
+            (status.value, status.name.replace('_', ' ').title()) 
+            for status in cls
+        ]
+
+class Order(models.Models):
     """
     Represents an order placed by a client.
     Inherits from WebsiteSpecificBaseModel
     for multi-website compatibility.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="order"
+    )
     client = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.CASCADE,
         related_name="orders_as_client",
         null=True,
@@ -74,8 +140,8 @@ class Order(WebsiteSpecificBaseModel):
             "Leave blank for admin-created orders."
         )
     )
-    writer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+    assigned_writer = models.ForeignKey(
+        'users.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -84,7 +150,7 @@ class Order(WebsiteSpecificBaseModel):
         help_text="The writer assigned to this order."
     )
     preferred_writer = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -115,14 +181,14 @@ class Order(WebsiteSpecificBaseModel):
             "The topic or title of the order."
         )
     )
-    instructions = models.TextField(
+    order_instructions = models.TextField(
         help_text=(
             "Detailed instructions for the order."
         )
     )
     academic_level = models.ForeignKey(
-        'pricing_configs.AcademicLevelPricing',
-        on_delete=models.SET_NULL,
+        AcademicLevel,
+        on_delete=models.PROTECT,
         null=True,
         blank=True,
         help_text="The academic level required."
@@ -141,6 +207,15 @@ class Order(WebsiteSpecificBaseModel):
         blank=True,
         help_text="The subject of the order."
     )
+    is_follow_up = models.BooleanField(default=False)
+    previous_order = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="follow_up_orders",
+        help_text="Reference to the previous order this one follows up on."
+    )
     type_of_work = models.ForeignKey(
         'order_configs.TypeOfWork',
         on_delete=models.SET_NULL,
@@ -155,19 +230,19 @@ class Order(WebsiteSpecificBaseModel):
         blank=True,
         help_text="Preferred English style for the paper."
     )
-    pages = models.PositiveIntegerField(
+    number_of_pages = models.PositiveIntegerField(
         help_text="Number of pages required."
     )
-    slides = models.PositiveIntegerField(
+    number_of_slides = models.PositiveIntegerField(
         default=0, help_text="Number of slides."
     )
-    resources = models.PositiveIntegerField(
+    number_of_refereces = models.PositiveIntegerField(
         default=0, help_text="Number of references or sources."
     )
     spacing = models.CharField(
         max_length=10,
-        choices=SPACING_CHOICES,
-        default='double',
+        choices=SpacingOptions.choices(),
+        default=SpacingOptions.SINGLE.value,
         help_text="Spacing for the order."
     )
     extra_services = models.ManyToManyField(
@@ -178,17 +253,16 @@ class Order(WebsiteSpecificBaseModel):
     )
     status = models.CharField(
         max_length=20,
-        choices=STATUS_CHOICES,
-        default='unpaid',
+        choices=OrderStatus.choices(),
+        default=OrderStatus.PENDING.value,
         help_text="Current status of the order."
     )
-    flag = models.CharField(
-        max_length=3, 
-        choices=FLAG_CHOICES,
-        null=True, blank=True,
-        help_text="System-assigned or admin-set order flag."
+    flags = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Flags related to the order (e.g., Urgent Order, Returning Client)."
     )
-    deadline = models.DateTimeField(
+    client_deadline = models.DateTimeField(
         help_text="The deadline for the order."
     )
     total_cost = models.DecimalField(
@@ -206,6 +280,13 @@ class Order(WebsiteSpecificBaseModel):
         default=Decimal('0.00'),
         help_text="Compensation for the writer."
     )
+    writer_deadline_percentage = models.ForeignKey(
+        WriterDeadlineConfig,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="The Deadline the Writer sees"
+    )
     writer_deadline = models.DateTimeField(
         null=True,
         blank=True,
@@ -215,6 +296,7 @@ class Order(WebsiteSpecificBaseModel):
         default=False,
         help_text="Indicates if the order is paid."
     )
+    is_urgent = models.BooleanField(default=False)
     created_by_admin = models.BooleanField(
         default=False,
         help_text="Indicates if the order was created by an admin."
@@ -223,6 +305,16 @@ class Order(WebsiteSpecificBaseModel):
         default=False,
         help_text="Indicates if this is a special order."
     )
+    is_public = models.BooleanField(default=False)  # Open to any writer if true
+    reassignment_requested = models.BooleanField(default=False)
+    completed_by = models.ForeignKey(
+        'users.User',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
+    completion_notes = models.TextField(null=True, blank=True)
+    reassigned_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(
         auto_now_add=True, 
         help_text="Date and time when the order was created."
@@ -235,6 +327,92 @@ class Order(WebsiteSpecificBaseModel):
     # Include existing methods: calculate_total_cost,
     # calculate_writer_compensation, assign_flags, etc.
     # *** To add the writer progress field ****
+
+    def save(self, *args, **kwargs):
+            """
+            Trigger price recalculation whenever the order is saved.
+            """
+            self.total_cost = calculate_total_price(self)
+            super(Order, self).save(*args, **kwargs)
+
+    def update_total_price(self):
+        """
+        Calculates and updates the total price of the order.
+        """
+        self.total_price = calculate_total_price(self)
+        self.save(update_fields=["total_price"])
+
+    def calculate_writer_deadline(
+            client_deadline,
+            writer_deadline_percentage
+    ):
+        """
+        Calculates the writer deadline based on client deadline
+        and admin-set buffer (writer deadline) percentage.
+
+        Args:
+            client_deadline (datetime): The deadline the client sees.
+            buffer_percentage (float): A value between 0 and 100 (e.g., 80 for 80%).
+
+        Returns:
+            datetime: The deadline the writer should aim for.
+        """
+        if not (0 < writer_deadline_percentage <= 100):
+            raise ValueError("Buffer percentage must be between 0 and 100.")
+
+        now = timezone.now()
+        total_time = client_deadline - now
+
+        if total_time.total_seconds() <= 0:
+            raise ValueError("Client deadline must be in the future.")
+
+        writer_time = total_time * (writer_deadline_percentage / 100)
+
+        writer_deadline = now + writer_time
+        return writer_deadline
+
+    def apply_discount(self, discount_code):
+        """Apply a discount to the order."""
+        discount = Discount.objects.get(code=discount_code)
+
+        if not discount.is_valid(self.user):
+            raise ValidationError(
+                "Discount is not valid for this order."
+            )
+
+        if discount.discount_type == 'percentage':
+            discount_amount = (self.total_price * discount.value) / Decimal(100)
+        else:  # Fixed amount
+            discount_amount = discount.value
+
+        new_total_price = self.total_price - discount_amount + self.additional_cost
+        
+        # Ensure new total price isn't negative
+        if new_total_price < 0:
+            raise ValidationError("Order total cannot be negative.")
+        
+    def update_status(self, new_status):
+        """Update order status."""
+        self.status = new_status
+        self.save()
+
+
+    def add_additional_cost(self, additional_amount):
+        """Add additional costs (e.g., extra pages or slides)."""
+        self.additional_cost += Decimal(additional_amount)
+        self.save()
+
+    def change_deadline(self, new_deadline):
+        """Method for safely changing the deadline and logging it."""
+        DeadlineChangeLog.objects.create(
+            order=self,
+            old_deadline=self.deadline,
+            new_deadline=new_deadline,
+            changed_by=self.client
+        )
+        self.deadline = new_deadline
+        self.save()
+
 
     def update_status_based_on_payment(self):
         """
@@ -281,6 +459,62 @@ class Order(WebsiteSpecificBaseModel):
                 )
                 return True
         return False
+    
+    def add_pages(self, additional_pages: int):
+        """
+        Add extra pages to the existing order, recalculate the price for the new pages.
+        The client will be redirected to pay for the extra pages.
+        """
+        self.number_of_pages += additional_pages
+        # Recalculate the price with the new page count
+        base_price = calculate_base_price(self)
+        # Calculate price for the new pages
+        new_page_price = additional_pages * PricingConfiguration.objects.first().base_price_per_page
+        self.total_cost = base_price + new_page_price  # Update the total cost
+        self.save()
+
+    def add_slides(self, additional_slides: int):
+        """
+        Add extra slides to the existing order, recalculate the price for the new slides.
+        The client will be redirected to pay for the extra slides.
+        """
+        self.number_of_slides += additional_slides
+        # Recalculate price with new slide count
+        base_price = calculate_base_price(self)
+        new_slide_price = additional_slides * PricingConfiguration.objects.first().base_price_per_slide
+        self.total_cost = base_price + new_slide_price  # Update the total cost
+        self.save()
+
+    def add_extra_service(self, service):
+        """
+        Add extra service to the order, recalculate price, and prompt for payment.
+        """
+        self.extra_services.add(service)
+        self.total_cost = calculate_total_price(self)  # Recalculate price with new service
+        self.save()
+
+    def change_deadline(self, new_deadline):
+        """
+        Change the deadline, apply the necessary convenience fee if reduced.
+        """
+        pricing_config = PricingConfiguration.objects.first()
+        old_deadline = self.deadline
+        self.deadline = new_deadline
+
+        if new_deadline < old_deadline:
+            # Apply convenience fee if deadline is reduced
+            self.total_cost += pricing_config.convenience_fee
+
+        self.total_cost = calculate_total_price(self)  # Recalculate after changing deadline
+        self.save()
+
+    def add_discount(self, discount):
+        """
+        Add a discount to the order and recalculate the total price.
+        """
+        self.discount = discount
+        self.total_cost = calculate_total_price(self)
+        self.save()
 
     def __str__(self):
         return f"Order #{self.id} - {self.topic} ({self.status})"
@@ -288,11 +522,178 @@ class Order(WebsiteSpecificBaseModel):
     class Meta:
         ordering = ['-created_at']
 
+class PreferredWriterResponse(models.Model):
+    """
+    Handles the preferred writer's response when declining
+    to work on an order.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='preferred_writer_decline_response'
+    ) 
+    order = models.OneToOneField(Order, on_delete=models.CASCADE)
+    writer = models.ForeignKey(User, on_delete=models.CASCADE)
+    response = models.CharField(
+        max_length=10,
+        choices=[('accepted', 'Accepted'), ('declined', 'Declined')]
+    )
+    reason = models.TextField(blank=True, null=True)
+    responded_at = models.DateTimeField(auto_now_add=True)
+
+class DeadlineChangeLog(models.Model):
+    """
+    Logs every deadline change for audit.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='deadline_change_log'
+    ) 
+    order = models.ForeignKey(Order, on_delete=models.CASCADE)
+    old_deadline = models.DateTimeField()
+    new_deadline = models.DateTimeField()
+    changed_by = models.ForeignKey('User', on_delete=models.CASCADE)
+    reason = models.TextField()
+
+    def __str__(self):
+        return f"Deadline changed for Order #{self.order.id}"
+
+class WriterRequest(models.Model):
+    """
+    Model to track writer requests such as deadline extensions or page
+    increases.
+    """
+    ORDER_REQUEST_TYPE = [
+        ('deadline_extension', 'Deadline Extension'),
+        ('page_increase', 'Page Increase'),
+        ('slide_increase', 'Slide Increase')
+    ]
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_deadline_pages_request"
+    )
+    order = models.ForeignKey(
+        'Order', on_delete=models.CASCADE,
+        related_name="writer_requests"
+    )
+    request_type = models.CharField(
+        max_length=50,
+        choices=ORDER_REQUEST_TYPE
+    )
+    requested_by_writer = models.ForeignKey(
+        'User', on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    new_deadline = models.DateTimeField(
+        null=True, blank=True
+    )
+    additional_pages = models.PositiveIntegerField(null=True, blank=True)
+    additional_slides = models.PositiveIntegerField(null=True, blank=True)
+    request_reason = models.TextField()
+    client_approval = models.BooleanField(default=False)
+    admin_approval = models.BooleanField(default=False)
+    is_paid = models.BooleanField(default=False)
+    status = models.CharField(
+        max_length=20,
+        choices=[('pending', 'Pending'),
+                 ('accepted', 'Accepted'),
+                 ('declined', 'Declined')
+        ],
+        default='pending'
+    )
+
+    def clean(self):
+        """
+        Validation for requests, ensuring that the new deadline,
+        page increase, or slide increase
+        is set when required based on the request type.
+        """
+        if self.request_type == 'deadline_extension' and not self.new_deadline:
+            raise ValidationError(
+                "New deadline must be provided for deadline extension requests."
+                )
+        
+        if self.request_type == 'page_increase' and not self.additional_pages:
+            raise ValidationError(
+                "Page increase must be provided for page increase requests."
+            )
+        
+        if self.request_type == 'slide_increase' and not self.additional_slides:
+            raise ValidationError(
+                "Slide increase must be provided for slide increase requests."
+            )
+
+    def handle_writer_request(self):
+        """Process the writer's request based on its type."""
+        if self.request_type == 'deadline_extension':
+            if not self.new_deadline:
+                raise ValidationError(
+                    "New deadline is required for deadline extension requests."
+                )
+            self.order.change_deadline(self.new_deadline)
+
+        elif self.request_type == 'page_increase':
+            if self.additional_pages:
+                self.order.update_page_count(self.additional_pages)
+                self.order.calculate_total_cost()  
+
+        elif self.request_type == 'slide_increase':
+            if self.additional_slides:
+                self.order.update_slide_count(self.additional_slides)
+                self.order.calculate_total_cost()  
+
+        # Automatically mark request as accepted after handling
+        self.status = 'accepted'  
+        self.save()
+
+    def apply_discount_or_event(self):
+        """Apply discount or seasonal event benefits to the order if eligible."""
+        if self.discount and self.discount.is_valid(self.requested_by_writer):
+            # Apply discount to the order
+            self.order.apply_discount(self.discount)
+        
+        elif self.seasonal_event and self.seasonal_event.is_currently_active:
+            # Apply seasonal event discount (if active)
+            discount_for_event = Discount.objects.filter(seasonal_event=self.seasonal_event, is_active=True).first()
+            if discount_for_event and discount_for_event.is_valid(self.requested_by_writer):
+                self.order.apply_discount(discount_for_event)
+
+    def approve_request(self, approved_by):
+        """Handle approval of the request."""
+        # Ensure request type is valid and required fields are present
+        if self.request_type == 'deadline_extension' and self.new_deadline:
+            self.order.change_deadline(self.new_deadline)
+        elif self.request_type == 'page_increase' and self.additional_pages:
+            self.order.calculate_total_cost()
+        elif self.request_type == 'slide_increase' and self.additional_slides:
+            self.order.calculate_total_cost()
+
+        # Approve the request
+        self.admin_approval = True
+        self.client_approval = True
+        self.status = 'accepted'
+        self.save()
+
+    def __str__(self):
+        """
+        Return a string representation of the request.
+
+        Returns:
+            str: A summary of the request, including order ID and type.
+        """
+        return f"Writer Request for Order #{self.order.id} by {self.requested_by_writer.username}"
 
 class WriterProgress(models.Model):
     """
     Tracks progress logs for writers working on orders.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='writer_progress'
+    )
     writer = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -320,6 +721,13 @@ class WriterProgress(models.Model):
     def progress(self):
         return f"{self.completed_tasks}/{self.total_tasks}"
     
+
+    def update_progress(self, completed_tasks):
+        """Update the progress based on completed tasks."""
+        self.completed_tasks = completed_tasks
+        self.progress_percentage = (completed_tasks / self.total_tasks) * 100
+        self.save()
+    
     class Meta:
             unique_together = ('writer', 'order', 'timestamp')
             ordering = ['-timestamp']
@@ -331,12 +739,17 @@ class WriterProgress(models.Model):
         )
 
 
-class Dispute(WebsiteSpecificBaseModel):
+class Dispute(models.Model):
     """
     Tracks disputes raised for an order.
     The order status is automatically updated when 
     disputes are raised, reviewed, or resolved.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='order_dispute'
+    )
     order = models.ForeignKey(
         'orders.Order',
         on_delete=models.CASCADE,
@@ -351,10 +764,10 @@ class Dispute(WebsiteSpecificBaseModel):
         related_name='disputes_raised',
         help_text="The user who raised the dispute."
     )
-    status = models.CharField(
+    dispute_status = models.CharField(
         max_length=20,
-        choices=DISPUTE_STATUS_CHOICES,
-        default='open',
+        choices=DisputeStatusEnum.choices(),
+        default=DisputeStatusEnum.OPEN.value,
         help_text="The current status of the dispute."
     )
     resolution_outcome = models.CharField(
@@ -406,6 +819,10 @@ class Dispute(WebsiteSpecificBaseModel):
             raise ValueError(
                 "Cannot raise a dispute for a cancelled order."
             )
+        if self._state.adding and self.order.status == 'progress':
+            raise ValueError(
+                "Cannot raise a dispute for an order in progress."
+            )
 
         if self._state.adding:
             self.order.status = 'disputed'
@@ -425,7 +842,7 @@ class Dispute(WebsiteSpecificBaseModel):
         self.order.save()
         super().save(*args, **kwargs)
 
-    def resolve_dispute_action(self):
+    def resolve_dispute_action(self, resolved_by):
         """
         Updates the order status based on
         the dispute resolution decision.
@@ -435,6 +852,7 @@ class Dispute(WebsiteSpecificBaseModel):
         elif self.resolution_outcome == 'client_wins':
             self.order.status = 'cancelled'
         elif self.resolution_outcome == 'extend_deadline':
+            self.order.change_deadline(resolved_by.new_deadline)
             self.order.status = 'revision'
         elif self.resolution_outcome == 'reassign':
             self.order.status = 'available'
@@ -478,6 +896,11 @@ class DisputeWriterResponse(models.Model):
     Model to track writer responses to disputes.
     Writers must respond before a final decision.
     """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='dispute_writer_response'
+    )
     dispute = models.ForeignKey(
         Dispute,
         on_delete=models.CASCADE,
@@ -524,3 +947,120 @@ class DisputeWriterResponse(models.Model):
     class Meta:
         unique_together = ('dispute', 'responded_by')
         ordering = ['-timestamp']
+
+
+class ReassignmentRequest(models.Model):
+    """
+    Handles reassignment requests by client or writer.
+    Also handles force-reassign by admin.
+    """
+    REQUESTED_BY_CHOICES = (
+        ('client', 'Client'),
+        ('writer', 'Writer'),
+    )
+
+    STATUS_CHOICES = (
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),    # e.g. admin approved but not reassigned yet
+        ('rejected', 'Rejected'),
+        ('reassigned', 'Reassigned'),  # actioned
+    )
+
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='reassignment_requests'
+    )
+
+    requested_by = models.CharField(
+        max_length=10,
+        choices=REQUESTED_BY_CHOICES,
+        help_text="Whether the client or writer requested this reassignment."
+    )
+
+    requester = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='reassignment_requests_made',
+        help_text="The actual user who made the request."
+    )
+    admin_initiated = models.BooleanField(
+        default=False,
+        help_text="Was this reassignment initiated by admin?"
+    )
+    reason = models.TextField(
+        help_text="The reason for requesting reassignment."
+    )
+
+    preferred_writer = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='preferred_reassignments',
+        help_text="Optional preferred writer requested by the client."
+    )
+
+    fine_applied = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0.00,
+        help_text="Fine applied to writer if they requested reassignment near deadline."
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text="The current status of the reassignment request."
+    )
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reassignment_requests_processed',
+        help_text="Admin or system user who processed this request."
+    )
+    metadata = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Optional field for system flags, debug info, auto-approved flags, etc."
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    is_deleted = models.BooleanField(
+        default=False,
+        help_text="Soft delete flag."
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"ReassignmentRequest(Order #{self.order_id}, {self.requested_by}, {self.status})"
+
+    def soft_delete_request(request_id):
+        req = ReassignmentRequest.objects.get(id=request_id)
+        req.is_deleted = True
+        req.save()
+    def is_fine_needed(self, threshold=0.8):
+        from orders.services.reassignment import is_near_deadline
+        return is_near_deadline(self.order, threshold)
+
+    def apply_default_fine(self, percentage=0.10):
+        from orders.services.reassignment import calculate_fine
+        self.fine_applied = calculate_fine(self.order, percentage)
+        self.save()
+
+    def mark_resolved(self, status, fine=0.00, processed_by=None, metadata=None):
+        self.status = status
+        self.fine_applied = fine
+        self.resolved_at = timezone.now()
+        if processed_by:
+            self.processed_by = processed_by
+        if metadata:
+            self.metadata = metadata
+        self.save()

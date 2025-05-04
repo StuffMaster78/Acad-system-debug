@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Order, WriterProgress, Dispute, DisputeWriterResponse
+from .models import Order, WriterProgress, Dispute, DisputeWriterResponse, WriterRequest
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
@@ -54,3 +54,14 @@ class DisputeWriterResponseAdmin(admin.ModelAdmin):
     list_display = ('dispute', 'responded_by', 'timestamp')
     search_fields = ('dispute__id', 'responded_by__username')
     ordering = ('-timestamp',)
+
+
+@admin.register(WriterRequest)
+class WriterRequestAdmin(admin.ModelAdmin):
+    list_display = ('order', 'request_type', 'admin_approval', 'client_approval', 'reason')
+    list_filter = ('request_type', 'admin_approval', 'client_approval')
+
+@admin.register(Dispute)
+class DisputeAdmin(admin.ModelAdmin):
+    list_display = ('order', 'raised_by', 'status', 'reason')
+    list_filter = ('status',)

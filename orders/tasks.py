@@ -5,6 +5,9 @@ from orders.models import Order
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 import logging
+from django.utils import timezone
+from orders.models import Order
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -73,3 +76,43 @@ def send_order_completion_email(client_email, client_username, order_id):
     except Exception as e:
         logger.error(f"Error sending order completion email: {e}", exc_info=True)
         return f"Error sending order completion email: {e}"
+    
+
+@shared_task
+def release_stale_preferred_orders():
+    """
+    This task checks for orders that have been in the 'pending_preferred' status 
+    for too long and moves them back to the public pool (status = 'available').
+
+    This ensures that orders with no response from the preferred writer are 
+    re-opened to the pool after a specified time.
+    """
+    stale_time = timedelta(hours=24)  # Orders older than 24 hours will be released
+
+    # Find orders that are still in 'pending_preferred' and are stale
+    stale_orders = Order.objects.filter(
+        status='pending_preferred',
+        created_at__lte=timezone.now() - stale_time
+    )
+
+    for order in stale_orders:
+        order.status = 'available'  # Move to public pool
+        order.preferred_writer = None  # Remove the preferred writer
+        order.save()
+
+        # Notify the client that their preferred writer did not respond
+        if order.client.email:
+            send_mail(
+                subject="Preferred Writer Did Not Respond",
+                message=f"Dear {order.client.username},\n\n"
+                        f"Your preferred writer did not respond to the order request for Order #{order.id}."
+                        f"The order is now available for other writers to take.\n\n"
+                        f"Best regards,\nYour Team",
+                from_email="no-reply@example.com",
+                recipient_list=[order.client.email],
+                fail_silently=True
+            )
+
+        logger.info(f"Released Order #{order.id} back to the public pool after {stale_time} hours.")
+        
+    print(f"Released {stale_orders.count()} stale preferred orders.")
