@@ -7,15 +7,45 @@ from .views import (
     TypeOfWorkViewSet,
     EnglishTypeViewSet,
     WriterDeadlineConfigViewSet,
+    RevisionPolicyConfigViewSet
 )
 
 router = DefaultRouter()
-router.register('paper-types', PaperTypeViewSet, basename='paper-type')
-router.register('formatting-styles', FormattingStyleViewSet, basename='formatting-style')
-router.register('subjects', SubjectViewSet, basename='subject')
-router.register('types-of-work', TypeOfWorkViewSet, basename='type-of-work')
-router.register('english-types', EnglishTypeViewSet, basename='english-type')
-router.register('writer-deadline-configs', WriterDeadlineConfigViewSet, basename='writer-deadline-config')
+router.register(
+    'paper-types',
+    PaperTypeViewSet,
+    basename='paper-type'
+)
+router.register(
+    'formatting-styles',
+    FormattingStyleViewSet,
+    basename='formatting-style'
+)
+router.register(
+    'subjects',
+    SubjectViewSet,
+    basename='subject'
+)
+router.register(
+    'types-of-work',
+    TypeOfWorkViewSet,
+    basename='type-of-work'
+)
+router.register(
+    'english-types',
+    EnglishTypeViewSet,
+    basename='english-type'
+)
+router.register(
+    'writer-deadline-configs',
+    WriterDeadlineConfigViewSet,
+    basename='writer-deadline-config'
+)
+router.register(
+    r'revision-policy',
+    RevisionPolicyConfigViewSet,
+    basename='revision-policy'
+)
 
 urlpatterns = [
     path('api/', include(router.urls)),
