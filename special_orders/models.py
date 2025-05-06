@@ -1,17 +1,12 @@
 from django.db import models
 from django.conf import settings
 from websites.models import Website
-
+from django.utils import timezone
 class PredefinedSpecialOrderConfig(models.Model):
     """
     Configuration for predefined-cost special orders.
     These are the orders with predefined amount such as $250 etc.
     """
-    website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name='website_settings'
-    )
     name = models.CharField(
         max_length=255,
         unique=True,
@@ -33,6 +28,9 @@ class PredefinedSpecialOrderConfig(models.Model):
     )
     
     def __str__(self):
+        """
+        Returns a string representation of the predefined order configuration.
+        """
         return f"{self.name} - Active: {self.is_active}"
 
 
@@ -64,7 +62,36 @@ class PredefinedSpecialOrderDuration(models.Model):
         unique_together = ('predefined_order', 'duration_days')
 
     def __str__(self):
+        """
+        Returns a string representation of the predefined special order
+        duration and price.
+        """
         return f"{self.predefined_order.name} - {self.duration_days} days - ${self.price}"
+
+
+class EstimatedSpecialOrderSettings(models.Model):
+    """
+    Model to store deposit settings for estimated special orders.
+    This model allows configuration of the default deposit percentage
+    for special orders based on the website.
+    """
+    website = models.OneToOneField(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="estimated_order_settings"
+    )
+    default_deposit_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=50.0,
+        help_text="Default deposit percentage (e.g., 50.00 means 50%)."
+    )
+
+    def __str__(self):
+        """
+        Returns a human-readable string representation of this setting.
+        """
+        return f"{self.website.name} - Deposit: {self.default_deposit_percentage}%"
 
 
 class SpecialOrder(models.Model):
@@ -137,7 +164,20 @@ class SpecialOrder(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    price_per_day = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Price per day for estimated orders."
+    )
+    admin_approved_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="The cost the admin has approved for this special order."
+    )
     # Admin Override Controls
     admin_marked_paid = models.BooleanField(
         default=False,
@@ -153,16 +193,51 @@ class SpecialOrder(models.Model):
     )
     
     def save(self, *args, **kwargs):
+        """
+        Saves the special order and calculates the total cost and deposit
+        required based on the order type (predefined or estimated).
+        For predefined orders, price and deposit are fixed. For estimated
+        orders, the deposit is calculated based on a configurable percentage.
+        """
         if self.order_type == 'predefined' and self.predefined_type:
-            # Get the price for the selected duration
-            duration_price = self.predefined_type.durations.filter(duration_days=self.duration_days).first()
+            duration_price = self.predefined_type.durations.filter(
+                duration_days=self.duration_days
+            ).first()
             if duration_price:
                 self.total_cost = duration_price.price
+                self.deposit_required = self.total_cost  # Full payment required
+        elif self.order_type == 'estimated' and self.total_cost:
+            # Lookup config deposit %
+            config = getattr(self.website, 'estimated_order_settings', None)
+            deposit_percent = config.default_deposit_percentage if config else 50.0
+            self.deposit_required = round(
+                self.total_cost * (deposit_percent / 100), 2
+            )
+
         super().save(*args, **kwargs)
 
 
     def __str__(self):
+        """
+        Returns a string representation of the special order, including
+        its ID.
+        """
         return f"Special Order #{self.id}"
+
+    def approve_cost(self, approved_cost):
+        self.admin_approved_cost = approved_cost
+        self.save()
+
+    def calculate_estimated_cost(self):
+        if self.order_type == 'estimated' and self.duration_days and self.price_per_day:
+            self.total_cost = self.duration_days * self.price_per_day
+        super().save()
+
+    def save(self, *args, **kwargs):
+        # Ensure the estimated cost is calculated
+        if self.order_type == 'estimated':
+            self.calculate_estimated_cost()
+        super().save(*args, **kwargs)
     
 
 class InstallmentPayment(models.Model):
@@ -186,6 +261,15 @@ class InstallmentPayment(models.Model):
         default=False,
         help_text="Indicates whether this installment is paid."
     )
+    paid_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Date when the installment was paid."
+    )
+
+    def mark_paid(self):
+        self.is_paid = True
+        self.paid_at = timezone.now()
+        self.save()
 
     def __str__(self):
         return f"Installment {self.id} for Order #{self.special_order.id} - Due: {self.due_date} - Paid: {self.is_paid}"
@@ -210,14 +294,15 @@ class OrderCompletionLog(models.Model):
         on_delete=models.CASCADE,
         related_name="order_completions"
     )
-    completion_method = models.CharField(
-        max_length=50,
+    completion_steps = models.CharField(
+        max_length=255,
         choices=[
+            ('writer_marked_complete_files', 'Writer Marked Complete with Files'),
+            ('writer_marked_complete_no_files', 'Writer Marked Complete (No Files)'),
             ('admin_marked_paid', 'Admin Marked as Paid'),
             ('admin_unlocked_files', 'Admin Unlocked File Access'),
-            ('writer_completed_no_files', 'Writer Marked Complete (No Files)'),
         ],
-        help_text="Completion method used."
+        help_text="Completion step taken."
     )
     justification = models.TextField(
         blank=True,
@@ -226,7 +311,7 @@ class OrderCompletionLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.completed_by.username} - {self.completion_method} on Order #{self.special_order.id}"
+        return f"{self.completed_by.username} - {self.completion_steps} on Order #{self.special_order.id}"
 
 
 class WriterBonus(models.Model):

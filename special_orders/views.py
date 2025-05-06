@@ -2,126 +2,169 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+
 from .models import (
-    SpecialOrder, 
-    InstallmentPayment, 
-    PredefinedSpecialOrderConfig, 
-    PredefinedSpecialOrderDuration, 
-    WriterBonus
+    SpecialOrder,
+    InstallmentPayment,
+    PredefinedSpecialOrderConfig,
+    PredefinedSpecialOrderDuration,
+    WriterBonus,
+    EstimatedSpecialOrderSettings
 )
 from .serializers import (
-    SpecialOrderSerializer, 
-    InstallmentPaymentSerializer, 
-    PredefinedSpecialOrderConfigSerializer, 
-    PredefinedSpecialOrderDurationSerializer, 
-    WriterBonusSerializer
+    SpecialOrderSerializer,
+    InstallmentPaymentSerializer,
+    PredefinedSpecialOrderConfigSerializer,
+    PredefinedSpecialOrderDurationSerializer,
+    WriterBonusSerializer,
+    EstimatedSpecialOrderSettingsSerializer
 )
+from .services.special_order_service import (
+    approve_special_order,
+    override_payment,
+    complete_special_order
+)
+from .services.installment_payment_service import validate_and_save_installment
+import logging
 
-# 🔹 Special Order API ViewSet
+logger = logging.getLogger("special_orders")
+
+
 class SpecialOrderViewSet(viewsets.ModelViewSet):
     """
-    API for managing Special Orders.
+    ViewSet for managing special orders.
     """
-    queryset = SpecialOrder.objects.all().select_related('client', 'writer', 'predefined_type')
+    queryset = SpecialOrder.objects.select_related(
+        'client', 'writer', 'predefined_type'
+    )
     serializer_class = SpecialOrderSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """Filter orders based on user role."""
+        """
+        Return filtered queryset based on user role.
+        """
         user = self.request.user
         if user.is_staff:
             return SpecialOrder.objects.all()
         return SpecialOrder.objects.filter(client=user)
 
     def perform_create(self, serializer):
-        """Automatically set the client when creating an order."""
+        """
+        Assign the current user as client on creation.
+        """
         serializer.save(client=self.request.user)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def approve(self, request, pk=None):
-        """Admin can approve an order."""
-        special_order = self.get_object()
-        special_order.is_approved = True
-        special_order.save()
-        return Response({'status': 'Order approved'}, status=status.HTTP_200_OK)
+        """
+        Admin endpoint to approve a special order.
+        """
+        order = self.get_object()
+        approve_special_order(order)
+        logger.info(f"Order #{order.id} approved by admin.")
+        return Response({'status': 'approved'})
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def override_payment(self, request, pk=None):
-        """Admin can manually mark an order as paid."""
-        special_order = self.get_object()
-        special_order.admin_marked_paid = True
-        special_order.save()
-        return Response({'status': 'Payment overridden'}, status=status.HTTP_200_OK)
+        """
+        Admin endpoint to override payment status.
+        """
+        order = self.get_object()
+        override_payment(order)
+        logger.info(f"Payment overridden for order #{order.id}")
+        return Response({'status': 'payment overridden'})
 
-    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    @action(detail=True, methods=['post'],
+            permission_classes=[IsAuthenticated])
     def complete_order(self, request, pk=None):
-        """Mark an order as completed (client or admin can confirm)."""
-        special_order = self.get_object()
-        special_order.status = 'completed'
-        special_order.save()
-        return Response({'status': 'Order marked as completed'}, status=status.HTTP_200_OK)
+        """
+        Mark a special order as completed.
+        """
+        order = self.get_object()
+        complete_special_order(order)
+        logger.info(f"Order #{order.id} marked as completed.")
+        return Response({'status': 'order completed'})
 
 
-# 🔹 Installment Payment API ViewSet
 class InstallmentPaymentViewSet(viewsets.ModelViewSet):
     """
-    API for managing Installment Payments.
+    ViewSet for managing installment payments.
     """
-    queryset = InstallmentPayment.objects.all().select_related('special_order')
+    queryset = InstallmentPayment.objects.select_related('special_order')
     serializer_class = InstallmentPaymentSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """Filter installments based on user role."""
+        """
+        Filter installments based on user role.
+        """
         user = self.request.user
         if user.is_staff:
             return InstallmentPayment.objects.all()
-        return InstallmentPayment.objects.filter(special_order__client=user)
+        return InstallmentPayment.objects.filter(
+            special_order__client=user
+        )
 
     def perform_create(self, serializer):
-        """Ensure installment is linked to an order owned by the client."""
-        special_order = serializer.validated_data['special_order']
-        if special_order.client != self.request.user:
-            return Response({'error': 'Not authorized'}, status=status.HTTP_403_FORBIDDEN)
-        serializer.save()
+        """
+        Validate client ownership and save installment.
+        """
+        user = self.request.user
+        try:
+            validate_and_save_installment(serializer, user)
+        except PermissionError as e:
+            logger.warning(str(e))
+            raise PermissionError(str(e))
 
 
-# 🔹 Predefined Special Orders API ViewSet
 class PredefinedSpecialOrderConfigViewSet(viewsets.ModelViewSet):
     """
-    API for predefined special order configurations.
+    ViewSet for predefined special order configs.
     """
     queryset = PredefinedSpecialOrderConfig.objects.all()
     serializer_class = PredefinedSpecialOrderConfigSerializer
     permission_classes = [IsAdminUser]
 
 
-# 🔹 Predefined Special Order Durations API ViewSet
 class PredefinedSpecialOrderDurationViewSet(viewsets.ModelViewSet):
     """
-    API for predefined special order durations.
+    ViewSet for predefined special order durations.
     """
     queryset = PredefinedSpecialOrderDuration.objects.all()
     serializer_class = PredefinedSpecialOrderDurationSerializer
     permission_classes = [IsAdminUser]
 
 
-# 🔹 Writer Bonus API ViewSet
 class WriterBonusViewSet(viewsets.ModelViewSet):
     """
-    API for managing writer bonuses.
+    ViewSet for managing writer bonuses.
     """
-    queryset = WriterBonus.objects.all().select_related('writer', 'special_order')
+    queryset = WriterBonus.objects.select_related(
+        'writer', 'special_order'
+    )
     serializer_class = WriterBonusSerializer
     permission_classes = [IsAdminUser]
 
     def get_queryset(self):
-        """Admins can view all bonuses, writers can only see their own."""
+        """
+        Filter bonuses by writer or return all for admin.
+        """
         user = self.request.user
         if user.is_staff:
             return WriterBonus.objects.all()
         return WriterBonus.objects.filter(writer=user)
 
     def perform_create(self, serializer):
-        """Admin sets writer bonuses."""
+        """
+        Save writer bonus.
+        """
         serializer.save()
+
+class EstimatedSpecialOrderSettingsViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing Estimated Special Order deposit settings.
+    """
+    queryset = EstimatedSpecialOrderSettings.objects.all()
+    serializer_class = EstimatedSpecialOrderSettingsSerializer
+    permission_classes = [IsAdminUser]
