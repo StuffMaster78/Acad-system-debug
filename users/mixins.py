@@ -2,66 +2,114 @@ from django.db import models
 from datetime import timedelta
 from django.utils.timezone import now
 import requests # type: ignore
-from utils import get_client_ip
+from users.utils import get_client_ip
 from django.utils import timezone
-from django.contrib.auth import get_user_model
+# from django.contrib.auth import get_user_model
+# from users.models import User
+from django.conf import settings
 
-User = get_user_model()
 
 class UserReferenceMixin(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     class Meta:
         abstract = True
-
+class UserRole(models.TextChoices):
+    """
+    Enum-like class to represent user roles in the system.
+    Each role corresponds to a specific permission set.
+    """
+    SUPERADMIN = 'superadmin', 'Super Admin'
+    ADMIN = 'admin', 'Admin'
+    EDITOR = 'editor', 'Editor'
+    SUPPORT = 'support', 'Support'
+    WRITER = 'writer', 'Writer'
+    CLIENT = 'client', 'Client'
 # 1. Role-Based Access Mixin
 class RoleMixin(models.Model):
-    ROLE_CHOICES = (
-        ('superadmin', 'Super Admin'),
-        ('admin', 'Admin'),
-        ('editor', 'Editor'),
-        ('support', 'Support'),
-        ('writer', 'Writer'),
-        ('client', 'Client'),
-    )
-
+    """
+    Mixin to add role-based access control to user models.
+    Allows checking and managing roles and permissions for users.
+    """
     role = models.CharField(
         max_length=20,
-        choices=ROLE_CHOICES,
-        default='client',
+        choices=UserRole.choices,
+        default=UserRole.CLIENT,
         help_text="Role assigned to the user."
     )
+
 
     class Meta:
         abstract = True
 
     def is_global_role(self):
-        return self.role in {'superadmin', 'admin', 'support', 'editor'}
+        """
+        Returns True if the user has a global role (superadmin, admin, 
+        support, or editor).
+        """
+        return self.role in {
+            UserRole.SUPERADMIN,
+            UserRole.ADMIN,
+            UserRole.SUPPORT,
+            UserRole.EDITOR
+        }
+    
+    def is_superadmin(self):
+        return self.role == UserRole.SUPERADMIN
 
-    def is_client(self):
-        return self.role == 'client'
-
-    def is_writer(self):
-        return self.role == 'writer'
+    def is_admin(self):
+        return self.role == UserRole.ADMIN
 
     def is_support(self):
-        return self.role == "support"
+        return self.role == UserRole.SUPPORT
+    
+    def is_staff_like(self):
+        return self.role in {
+            UserRole.ADMIN,
+            UserRole.SUPERADMIN,
+            UserRole.SUPPORT
+        }
+
+    def is_client(self):
+        """
+        Returns True if the user is a client.
+        """
+        return self.role == UserRole.CLIENT
+
+    def is_writer(self):
+        """
+        Returns True if the user is a writer.
+        """
+        return self.role == UserRole.WRITER
+
 
     def is_editor(self):
-        return self.role == "editor"
-
+        """
+        Returns True if the user is an editor.
+        """
+        return self.role == UserRole.EDITOR
 
     def get_permissions(self):
+        """
+        Returns the list of permissions associated with the user's role.
+        
+        Returns:
+            list: A list of permissions for the user's role.
+        """
         permissions = {
-            'superadmin': ['can_manage_users',
-                           'can_edit_content',
-                           'can_view_reports'
+            UserRole.SUPERADMIN: [
+                'can_manage_users',
+                'can_edit_content',
+                'can_view_reports'
             ],
-            'admin': ['can_edit_content', 'can_view_reports'],
-            'editor': ['can_edit_content'],
-            'support': ['can_manage_support_tickets'],
-            'writer': ['can_submit_work'],
-            'client': ['can_view_orders']
+            UserRole.ADMIN: [
+                'can_edit_content',
+                'can_view_reports'
+            ],
+            UserRole.EDITOR: ['can_edit_content'],
+            UserRole.SUPPORT: ['can_manage_support_tickets'],
+            UserRole.WRITER: ['can_submit_work'],
+            UserRole.CLIENT: ['can_view_orders']
         }
         return permissions.get(self.role, [])
 
@@ -385,6 +433,29 @@ class ApprovalMixin(models.Model):
     approved_at = models.DateTimeField(null=True, blank=True)
     rejected = models.BooleanField(default=False)
     rejected_reason = models.TextField(null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+
+class UserStampedMixin(models.Model):
+    """
+    Abstract base class that stamps created_by and updated_by fields.
+    """
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        related_name="created_%(class)s_set",
+        on_delete=models.SET_NULL,
+    )
+    updated_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        related_name="updated_%(class)s_set",
+        on_delete=models.SET_NULL,
+    )
 
     class Meta:
         abstract = True

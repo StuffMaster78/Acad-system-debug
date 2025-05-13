@@ -27,7 +27,7 @@ from django.core.cache import cache
 # Load NLP Model
 nlp = spacy.load("en_core_web_md")
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL 
 
 
 class BlogCategory(models.Model):

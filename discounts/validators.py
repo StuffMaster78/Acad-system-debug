@@ -1,6 +1,14 @@
 from datetime import datetime
 from django.utils.timezone import now
-from .models import DiscountUsage
+# from .models import DiscountUsage
+
+from django.apps import apps
+
+# Use apps.get_model() to access Website model lazily
+def get_website_model():
+    DiscountUsage = apps.get_model('discount_usage', 'DiscountUsage')
+    return DiscountUsage
+
 
 class DiscountValidator:
     def __init__(self, discount, user=None, order=None):

@@ -1,7 +1,6 @@
 # from core.models.base import BaseModel
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.contrib.auth import get_user_model
 from django.utils import timezone 
 from django.core.mail import send_mail
 from django.utils.text import slugify
@@ -10,7 +9,7 @@ from django.utils.timezone import now  # Fix missing import
 from django.contrib.postgres.fields import JSONField  # PostgreSQL JSON support
 from django.conf import settings
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL 
 
 def validate_hex_color(value):
     """Ensures valid HEX color format."""

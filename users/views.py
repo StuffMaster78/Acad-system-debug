@@ -13,8 +13,10 @@ from rest_framework.pagination import PageNumberPagination
 from users.utils import send_deletion_confirmation_email, send_unlock_email, send_security_alert
 from django.core.mail import send_mail
 from users.models import (
-    User, AccountDeletionRequest, ProfileUpdateRequest,
-    SecureToken, UserSession, 
+    User, ProfileUpdateRequest,
+)
+from authentication.models import (
+    AccountDeletionRequest, SecureToken, UserSession
 )
 from users.utils import (
     notify_mfa_enabled, notify_mfa_disabled, notify_mfa_reset,
@@ -41,7 +43,6 @@ from admin_management.models import AdminProfile
 from websites.models import Website
 from users.utils import get_client_ip, generate_otp, send_otp_email, send_otp_sms, verify_totp
 from django.utils.timezone import now, timedelta
-from users.models import UserSession
 from users.utils import get_client_ip, get_device_info
 from django.http import JsonResponse
 from datetime import timedelta
@@ -61,7 +62,7 @@ import base64
 from .utils import generate_totp_qr_code, send_unlock_email
 from users.utils import store_active_token, revoke_token, is_token_revoked
 from io import BytesIO
-from authentication.throttling import LoginThrottle, MagicLinkThrottle
+from authentication.throttling import LoginRateThrottle, MagicLinkThrottle
 from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import ViewSet
 import uuid

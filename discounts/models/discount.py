@@ -1,35 +1,45 @@
-from django.contrib.auth import get_user_model
 from django.db import models
-from websites.models import Website
 from django.utils.timezone import now
-from django.db.models import F
+from django.apps import apps
+from django.conf import settings
+from websites.models import Website
 from .seasonal_event import SeasonalEvent
-from users.models import User
-import random
-import string
+from discounts.services import DiscountEngine, DiscountStackingService
 
-from services import DiscountService, DiscountStackingService
+
+
+
+User = settings.AUTH_USER_MODEL
+
 
 class Discount(models.Model):
     """
-    Represents a discount that can be applied to orders, including seasonal 
-    discounts and usage tracking.
+    Represents a discount code that can be applied to orders,
+    including seasonal events and optional stacking rules.
     """
     DISCOUNT_TYPE_CHOICES = [
         ('fixed', 'Fixed Amount'),
         ('percentage', 'Percentage'),
     ]
-
     DISCOUNT_ORIGIN_CHOICES = [
         ('manual', 'Manual'),
         ('seasonal', 'Seasonal Event'),
         ('promo', 'Promotional Campaign'),
     ]
-    # Basic details
+    # @staticmethod
+    # def get_website_model():
+    #     return apps.get_model('websites', 'Website')
+
+    # # @staticmethod
+    # # def get_order_model():
+    # #     return apps.get_model('orders', 'Order')
+    
+    # Website = get_website_model()
+    # Basic info
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
-        related_name='discount'
+        related_name='discounts'
     )
     code = models.CharField(
         max_length=50,
@@ -42,7 +52,6 @@ class Discount(models.Model):
         help_text="Description of the discount"
     )
 
-    # Discount configuration
     discount_type = models.CharField(
         max_length=20,
         choices=DISCOUNT_TYPE_CHOICES,
@@ -53,96 +62,100 @@ class Discount(models.Model):
         max_length=20,
         choices=DISCOUNT_ORIGIN_CHOICES,
         default='manual',
-        help_text="Where or why the discount was created"
+        help_text="How this discount was generated"
     )
     value = models.DecimalField(
-        max_digits=10, decimal_places=2,
-        help_text="Discount value (e.g., $10 or 15%)"
+        max_digits=10,
+        decimal_places=2,
+        help_text="Value of the discount (e.g., 10 for $10 or 15%)"
     )
     max_uses = models.PositiveIntegerField(
-        null=True, blank=True,
-        help_text="Maximum number of uses allowed"
+        null=True,
+        blank=True,
+        help_text="Maximum number of times this discount can be used"
     )
     used_count = models.PositiveIntegerField(
         default=0,
-        help_text="Number of times the code has been used"
+        help_text="Number of times this discount has been used"
     )
 
-    # Restrictions
-    start_date = models.DateTimeField(
-        default=now,
-        help_text="Start date for the discount"
-    )
-    end_date = models.DateTimeField(
-        null=True, blank=True,
-        help_text="End date for the discount"
-    )
+    # Date constraints
+    start_date = models.DateTimeField(default=now)
+    end_date = models.DateTimeField(null=True, blank=True)
+
+    # Order constraints
     min_order_value = models.DecimalField(
-        max_digits=10, decimal_places=2,
-        null=True, blank=True,
-        help_text="Minimum order value to apply the discount"
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Minimum order total required to use this discount"
     )
     max_discount_value = models.DecimalField(
-        max_digits=10, decimal_places=2,
-        null=True, blank=True,
-        help_text="Absolute cap on discount value"
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Maximum absolute discount that can be applied"
     )
-
     applies_to_first_order_only = models.BooleanField(default=False)
 
-
-    # Target Audience
-    is_general = models.BooleanField(
-        default=True,
-        help_text="If True, discount is available for everyone"
-    )
+    # Target audience
+    is_general = models.BooleanField(default=True)
     assigned_to_client = models.ForeignKey(
-        User, null=True, blank=True,
+        User,
+        null=True,
+        blank=True,
         on_delete=models.SET_NULL,
-        help_text="Assign this discount to a specific client (leave blank for general use)"
+        help_text="Specific user this discount is assigned to"
     )
 
-    # Seasonal event (Optional)
     seasonal_event = models.ForeignKey(
-        SeasonalEvent, null=True,
-        blank=True, on_delete=models.SET_NULL,
-        help_text="Attach this discount to a seasonal event"
+        SeasonalEvent,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        help_text="The seasonal event this discount applies to (optional)"
     )
 
-    # Stacking fileds
-    max_discount_percent = models.DecimalField(
-        max_digits=5, decimal_places=2,
-        null=True, blank=True,
-        help_text="Maximum percentage discount allowed when stacking"
+    # Stacking logic
+    stackable = models.BooleanField(
+        default=False,
+        help_text="Is this discount code stackable?"
     )
-    stackable = models.BooleanField(default=False)
     stackable_with = models.ManyToManyField(
         'self',
         blank=True,
-        related_name='stackable_discount_types',
+        symmetrical=False,
         through='DiscountStackingRule',
-        help_text="Defines which discount types this discount can be combined with."
+        related_name='stackable_discount_types'
     )
-    max_stackable_uses_per_customer = models.PositiveIntegerField(
-        default=1,
-        help_text="Maximum number of times a customer can stack this discount"
+    max_discount_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Max percent discount when stacking (e.g., 30%)"
     )
+    max_stackable_uses_per_customer = models.PositiveIntegerField(default=1)
+
     # Status
-    is_active = models.BooleanField(
-        default=True,
-        help_text="Whether the discount is active"
+    expiry_date = models.DateTimeField(
+        null=True, blank=True, help_text="The date the discount expires (optional)"
     )
-    is_deleted = models.BooleanField(
-        default=False,
-        help_text="Soft delete flag for archiving discounts"
+    usage_limit = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="The maximum number of times this discount can be used"
     )
+    is_active = models.BooleanField(default=True)
+    is_deleted = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-start_date']
         constraints = [
             models.UniqueConstraint(
-                fields=["code", "website"], 
-                condition=models.Q(is_deleted=False),  # Ignore deleted discounts
+                fields=["code", "website"],
+                condition=models.Q(is_deleted=False),
                 name="unique_discount_code_per_website"
             )
         ]
@@ -153,89 +166,82 @@ class Discount(models.Model):
         ]
 
     def __str__(self):
-        return f"{self.code} ({self.percentage}% off)"
-    
+        try:
+            return f"{self.code} ({self.value}{'%' if self.discount_type == 'percentage' else '$'})"
+        except Exception:
+            return "Discount"
+
+    # Service method proxies
     def validate_discount(self):
-        """Validates the discount using DiscountService."""
-        service = DiscountService(self)
-        service.validate_clean()
-        service.validate_discount()
+        DiscountEngine(self).validate_clean()
+        DiscountEngine(self).validate_discount()
 
     def apply_discount(self, order_value):
-        """Apply the discount using DiscountService."""
-        service = DiscountService(self)
-        return service.apply_discount(order_value)
+        return DiscountEngine(self).apply_discount(order_value)
 
     def can_stack_with(self, other_discount):
-        """Check if this discount can stack with another using DiscountStackingService."""
         return DiscountStackingService.can_stack(self, other_discount)
 
     def check_usage_limit(self, user):
-        """Check usage limit using DiscountService."""
-        service = DiscountService(self)
-        service.check_usage_per_user_limit(user)
+        DiscountEngine(self).check_usage_per_user_limit(user)
 
     def is_valid(self, order):
-        """Check if this discount is valid for an order."""
-        service = DiscountService(self)
-        return service.is_valid_for_order(order)
+        return DiscountEngine(self).is_valid_for_order(order)
 
     def activate(self):
-        """Activate the discount using DiscountService."""
-        service = DiscountService(self)
-        service.activate_discount()
+        DiscountEngine(self).activate_discount()
 
     def deactivate(self):
-        """Deactivate the discount using DiscountService."""
-        service = DiscountService(self)
-        service.deactivate_discount()
+        DiscountEngine(self).deactivate_discount()
 
     def expire(self):
-        """Expire the discount using DiscountService."""
-        service = DiscountService(self)
-        service.expire_discount()
+        DiscountEngine(self).expire_discount()
 
     def check_stackable(self, user, total_discount_percent=0):
-        """Check if discount can be stacked."""
-        service = DiscountService(self)
-        return service.can_be_stacked(user, total_discount_percent)
-
-    @classmethod
-    def generate_unique_code(cls, prefix="", length=8, max_attempts=10):
-        """Generate a unique discount code."""
-        return DiscountService.generate_unique_code(prefix, length, max_attempts)
+        return DiscountEngine(self).can_be_stacked(user, total_discount_percent)
 
     def soft_delete(self):
-        """Soft delete the discount."""
-        service = DiscountService(self)
-        service.soft_delete()
-    
+        DiscountEngine(self).soft_delete()
+
+    @classmethod
+    def generate_unique_code(cls, prefix: str = "", length: int = 8, max_attempts: int = 10):
+        return DiscountEngine.generate_unique_discount_code(prefix, length, max_attempts)
+
 
 class DiscountUsage(models.Model):
     """
-    A model for tracking the ussage of discounts to
-    prevent overuse
+    Tracks how and when a user used a discount.
+    Prevents overuse or abuse of discounts.
     """
+    # @staticmethod
+    # def get_website_model():
+    #     return apps.get_model('websites', 'Website')
+
+    # @staticmethod
+    # def get_order_model():
+    #     return apps.get_model('orders', 'Order')
+    
+    # Website = get_website_model()
+
     website = models.ForeignKey(
-        'websites.Website',
+        Website,
         on_delete=models.CASCADE,
-        related_name='discount_usage'
+        related_name='discount_usages'
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    base_discount = models.ForeignKey(
+    discount = models.ForeignKey(
         "discounts.Discount",
         on_delete=models.CASCADE,
-        related_name="base_discount_rules"
+        related_name="usages"
     )
-    stackable_with = models.ForeignKey(
-        "discounts.Discount",
-        on_delete=models.CASCADE,
-        related_name="stackable_discount_rules"
+    usage_count = models.PositiveIntegerField(
+        default=0,
+        help_text="The number of times this discount has been used"
     )
     used_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("base_discount", "stackable_with")
+        unique_together = ("user", "discount")
 
     def __str__(self):
-        return f"{self.base_discount.code} can stack with {self.stackable_with.code}"
+        return f"{self.user} used {self.discount.code} on {self.used_at}"

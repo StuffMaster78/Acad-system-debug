@@ -8,7 +8,8 @@ from twilio.rest import Client
 import redis
 from datetime import timedelta
 #  Fancy 
-import qrcode, request
+import qrcode
+import requests
 from io import BytesIO
 from django.conf import settings
 from rest_framework.exceptions import PermissionDenied
@@ -37,16 +38,16 @@ def logout_all_sessions(user):
     return True
 
 
-def get_client_ip(request):
+def get_client_ip(requests):
     """
     Extracts the real client IP address from request headers.
     Supports proxies by checking `HTTP_X_FORWARDED_FOR`.
     """
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    x_forwarded_for = requests.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         ip = x_forwarded_for.split(',')[0]  # Get the first IP (real IP)
     else:
-        ip = request.META.get('REMOTE_ADDR')  # Fallback to remote address
+        ip = requests.META.get('REMOTE_ADDR')  # Fallback to remote address
     return ip
 
 

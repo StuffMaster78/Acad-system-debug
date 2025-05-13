@@ -1,8 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from drf_spectacular.views import SpectacularAPIView
+from drf_spectacular.views import SpectacularAPIView # type: ignore
 from .swagger import SecureSwaggerView, SecureRedocView
-
+from .views import ServicePageViewSet
 router = DefaultRouter()
 router.register(r'service-pages', ServicePageViewSet, basename='service-pages')
 

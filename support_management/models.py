@@ -1,17 +1,17 @@
 from django.db import models
-from django.contrib.auth import get_user_model
 from django.utils.timezone import now, timedelta
 from websites.models import Website
 from orders.models import Order, Dispute
 from tickets.models import Ticket
 from order_files.models import OrderFile
+from django.conf import settings
 
 from tickets.models import Ticket, TicketMessage
 from orders.models import Dispute
 from orders.models import Order
 from order_communications.models import OrderMessage, DisputeMessage
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL 
 
 class SupportProfile(models.Model):
     """

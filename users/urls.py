@@ -10,23 +10,19 @@ from drf_spectacular.views import ( # type: ignore
 
 # Import ViewSets
 from users.views import (
-    AuthViewSet,
     UserViewSet,
-    MFAViewSet,
-    AccountUnlockViewSet,
     AccountDeletionRequestViewSet,
     AdminProfileRequestViewSet,
-    AdminUserManagementViewSet,
-    CustomTokenRefreshView
+    AdminUserManagementViewSet
 )
 
 # Initialize DRF Router
 router = DefaultRouter()
 
-# Authentication endpoints (Signup, Login, Logout, MFA, Unlock)
-router.register(r'auth', AuthViewSet, basename="auth")
-router.register(r'mfa', MFAViewSet, basename="mfa")
-router.register(r'account-unlock', AccountUnlockViewSet, basename="account-unlock")
+# # Authentication endpoints (Signup, Login, Logout, MFA, Unlock)
+# router.register(r'auth', AuthViewSet, basename="auth")
+# router.register(r'mfa', MFAViewSet, basename="mfa")
+# router.register(r'account-unlock', AccountUnlockViewSet, basename="account-unlock")
 
 # User management (Profiles, Impersonation, Requests)
 router.register(r'users', UserViewSet, basename="users")
@@ -41,7 +37,7 @@ router.register(r'account-deletion', AccountDeletionRequestViewSet, basename="ac
 # Define URL patterns
 urlpatterns = [
     path("", include(router.urls)),  # Include all router-based URLs
-    path("auth/token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
+    # path("auth/token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
 
 
     # OpenAPI Schema Endpoints

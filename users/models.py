@@ -26,12 +26,18 @@ from .mixins import (
     UserReferenceMixin,
     ApprovalMixin
 )
-from websites.models import Website
+# from websites.models import Website
 from client_management.models import BlacklistedEmail
 from notifications_system.models import Notification
 from users.utils import logout_all_sessions
-from users.models import User
+from django.apps import apps
+from websites.models import Website
 
+# def get_website_model():
+#     Website = apps.get_model('websites', 'Website')
+#     return Website
+
+# Website = get_website_model()
 
 class User(AbstractUser, PermissionsMixin, 
            RoleMixin, MFAMixin, NotificationPreferenceMixin, 
@@ -629,3 +635,35 @@ class UserConsent(models.Model):
 
     def __str__(self):
         return f"{self.user} consent for {self.consent_type}"
+
+# class AuditLog(models.Model):
+#     ACTION_CHOICES = [
+#         ('CREATE', 'Create'),
+#         ('UPDATE', 'Update'),
+#         ('DELETE', 'Delete'),
+#         ('LOGIN', 'Login'),
+#         ('LOGOUT', 'Logout'),
+#         ('ACCESS', 'Access'),
+#     ]
+
+#     user = models.ForeignKey(
+#         settings.AUTH_USER_MODEL,
+#         on_delete=models.SET_NULL,
+#         null=True,
+#         blank=True,
+#         related_name='audit_logs'
+#     )
+#     action = models.CharField(max_length=10, choices=ACTION_CHOICES)
+#     timestamp = models.DateTimeField(auto_now_add=True)
+#     ip_address = models.GenericIPAddressField(null=True, blank=True)
+#     path = models.TextField(null=True, blank=True)  # e.g. request.path
+#     extra_data = models.JSONField(null=True, blank=True)  # for any custom payload
+
+#     class Meta:
+#         ordering = ['-timestamp']
+#         verbose_name = 'Audit Log'
+#         verbose_name_plural = 'Audit Logs'
+
+#     def __str__(self):
+#         user_str = str(self.user) if self.user else "Anonymous"
+#         return f"{self.timestamp} - {user_str} - {self.action}"

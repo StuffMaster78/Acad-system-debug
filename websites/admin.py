@@ -74,9 +74,7 @@ class WebsiteSettingsInline(admin.TabularInline):
 class WebsiteAdmin(admin.ModelAdmin):
     inlines = [WebsiteSettingsInline]
 
-
-
-admin.site.register(
-    Website, WebsiteAdmin, WebsiteSettings,
-    WebsiteStaticPage, WebsiteStaticPageAdmin
-)
+admin.site.unregister(Website)
+admin.site.register(Website, WebsiteAdmin)
+admin.site.register(WebsiteSettings)  # assuming you don’t have a custom admin
+admin.site.register(WebsiteStaticPage, WebsiteStaticPageAdmin)

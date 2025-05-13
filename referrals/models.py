@@ -3,12 +3,12 @@ from django.utils.timezone import now
 from django.conf import settings
 from decimal import Decimal
 import uuid
-
-from users.models import User
 from wallet.models import Wallet, WalletTransaction
 from websites.models import Website
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier
 from django.apps import apps
+
+User = settings.AUTH_USER_MODEL 
 
 def get_order_payment_model():
     return apps.get_model('order_payments_management', 'OrderPayment')

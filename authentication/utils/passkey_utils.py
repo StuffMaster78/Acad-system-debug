@@ -25,10 +25,25 @@ from webauthn.helpers.structs import (
 from django.conf import settings
 from authentication.models.passkeys import WebAuthnCredential
 from websites.models import Website
-from utils.device_info import (
+from authentication.utils.device_info import (
     generate_device_fingerprint,
     generate_device_label
 )
+
+import base64
+from django.core.cache import cache
+from django.contrib.auth import get_user_model
+from authentication.models.passkeys import WebAuthnCredential
+from fido2.server import Fido2Server
+from fido2.webauthn import AuthenticationCredential
+from fido2.utils import websafe_decode
+from .fido_config import fido_server
+from fido2.webauthn import PublicKeyCredentialDescriptor
+from fido2.webauthn import AttestationObject, CollectedClientData
+from .fido_config import fido_server
+from django.core.exceptions import ValidationError
+from fido2 import cbor
+
 
 User = get_user_model()
 
@@ -210,3 +225,93 @@ def verify_passkey_registration_response(token, response_data, device_info=None)
         return user
     except Exception as exc:
         raise Http404(f"Registration failed: {exc}")
+    
+
+
+def verify_passkey_registration_response(token, client_data_json, attestation_object):
+    """
+    Finalizes passkey registration by verifying attestation data
+    and saving the credential.
+
+    Args:
+        token (str): Cache token used to retrieve the challenge/state.
+        client_data_json (bytes): Client data in JSON format.
+        attestation_object (bytes): Attestation object returned by the client.
+
+    Returns:
+        WebAuthnCredential: Saved credential instance.
+
+    Raises:
+        Exception: If registration fails or challenge expired.
+    """
+    stored = cache.get(token)
+    if not stored:
+        raise Exception("Challenge expired or not found.")
+
+    client_data = CollectedClientData(client_data_json)
+    att_obj = AttestationObject(attestation_object)
+
+    auth_data = fido_server.register_complete(
+        state=stored["state"],
+        client_data=client_data,
+        attestation_object=att_obj
+    )
+
+    credential = WebAuthnCredential.objects.create(
+        user_id=stored["user_id"],
+        credential_id=auth_data.credential_id,
+        public_key=auth_data.credential_public_key,
+        sign_count=auth_data.sign_count
+    )
+
+    return credential
+
+
+def verify_passkey_authentication_response(token, raw_credential):
+    """
+    Verifies the WebAuthn authentication response from the client (passkey).
+    If the response is valid, it returns the user associated with the credential.
+
+    :param token: The challenge token used in the authentication request.
+    :param raw_credential: The credential data returned from the client, containing
+                            the signed assertion and other necessary info.
+    :return: user: The user associated with the valid passkey.
+    :raises ValidationError: If any part of the authentication is invalid.
+    """
+    try:
+        # Decode and parse the response (token + credential data)
+        raw_response = cbor.loads(raw_credential)
+        credential_data = raw_response['credential']
+        signature = raw_response['signature']
+        client_data_json = raw_response['clientDataJSON']
+        authenticator_data = raw_response['authenticatorData']
+        
+        # Retrieve the WebAuthn credential object from the database
+        credential = WebAuthnCredential.objects.get(credential_id=credential_data['id'])
+        
+        # Get the stored public key for the credential
+        public_key = base64.urlsafe_b64decode(credential.public_key)
+        
+        # Create a Fido2Server instance with the RP (relying party) details
+        rp = {
+            "id": "example.com",  # Replace with actual RP ID from your config
+            "name": "Example",
+        }
+        
+        server = Fido2Server(rp)
+        
+        # Verify the signature and other parts of the authentication response
+        try:
+            user = server.authenticate_assertion(
+                credential, authenticator_data, client_data_json, signature
+            )
+        except Exception as e:
+            raise ValidationError(f"Authentication failed: {str(e)}")
+        
+        # If authentication is successful, return the user
+        return credential.user
+
+    except WebAuthnCredential.DoesNotExist:
+        raise ValidationError("Credential not found.")
+    except Exception as e:
+        raise ValidationError(f"Authentication error: {str(e)}")

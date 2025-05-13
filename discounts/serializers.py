@@ -2,8 +2,8 @@ from rest_framework import serializers
 from .models import Discount, DiscountUsage
 from websites.models import Website
 from users.models import User
-from models.seasonal_event import SeasonalEvent
-from models.stacking import DiscountStackingRule
+from .models.seasonal_event import SeasonalEvent
+from .models.stacking import DiscountStackingRule
 from django.utils.timezone import now
 from decimal import Decimal
 

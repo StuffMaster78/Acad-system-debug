@@ -5,6 +5,7 @@ from writer_payments_management.models import WriterPayment
 from writer_management.models import WriterLevel
 from order_payments_management.models import AdminLog, PaymentLog
 from refunds.models import RefundLog
+from discounts.services.discount_applicator import DiscountUsageTracker
 
 def process_refund(refund, admin_user):
     """
@@ -103,13 +104,17 @@ def deduct_writer_earnings(refund, admin_user):
     )
 
 
-def mark_order_refunded(order, amount, source='manual', metadata=None):
+def mark_order_refunded(
+        order, amount, refund,
+        source='manual', metadata=None
+):
     """
     Marks an order as refunded and logs the refund.
 
     Args:
         order: The order instance to mark as refunded.
         amount: The refunded amount.
+        refund: The Refund instance tied to this operation.
         source: Origin of the refund (manual, stripe-webhook, etc.).
         metadata: Optional dictionary with extra refund data.
 
@@ -133,5 +138,9 @@ def mark_order_refunded(order, amount, source='manual', metadata=None):
         status='success',
         metadata=metadata or {}
     )
+
+    # Untrack discounts for full refunds to allow reuse
+    if amount >= order.payment.discounted_amount:
+        DiscountUsageTracker.untrack(order)
 
     return True

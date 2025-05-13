@@ -1,8 +1,13 @@
 from rest_framework import serializers
 from django.utils.timezone import now  
-from .models import Order, Dispute
+from .models import (
+    Order, Dispute,
+    DisputeWriterResponse,
+    WriterRequest
+)
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
+
 
 User = get_user_model()
 
@@ -74,6 +79,37 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         """Ensure the preferred writer is available."""
         if value and not value.is_active:
             raise serializers.ValidationError("The preferred writer is not available.")
+        return value
+    
+
+class OrderActionSerializer(serializers.Serializer):
+    action = serializers.CharField(required=True)
+    order_id = serializers.IntegerField(required=True)
+    
+    # You can also add custom validation logic here if needed
+    def validate_action(self, value):
+        """
+        Ensure the action is valid.
+        """
+        valid_actions = [
+            'put_on_hold', 'resume_order', 'assign_writer', 'complete_order',
+            'dispute_order', 'approve_order', 'cancel_order', 'archive_order',
+            'late_order', 'revision_order', 'transition_to_pending'
+        ]
+        if value not in valid_actions:
+            raise serializers.ValidationError(f"Invalid action '{value}'.")
+        return value
+
+    def validate_order_id(self, value):
+        """
+        Ensure the order exists.
+        """
+        try:
+            # Check if the order exists in the database
+            from orders.models import Order
+            order = Order.objects.get(id=value)
+        except Order.DoesNotExist:
+            raise serializers.ValidationError(f"Order with id {value} does not exist.")
         return value
 
 class DisputeSerializer(serializers.ModelSerializer):
@@ -227,3 +263,109 @@ class PreferredWriterResponseSerializer(serializers.Serializer):
                 "reason": "Declining requires a reason."
             })
         return data
+
+
+class DisputeWriterResponseSerializer(serializers.ModelSerializer):
+    """
+    Serializer for a writer to submit a response to a dispute.
+    """
+    response_text = serializers.CharField(required=True, allow_blank=False, max_length=2000)
+    response_file = serializers.FileField(required=False, allow_null=True)
+
+    class Meta:
+        model = DisputeWriterResponse
+        fields = ['response_text', 'response_file']
+
+    def validate_response_text(self, value):
+        """
+        Custom validation for the writer's response text.
+        """
+        if len(value) < 10:
+            raise serializers.ValidationError("The response text must be at least 10 characters long.")
+        return value
+
+    def create(self, validated_data):
+        """
+        Handle creating the DisputeWriterResponse and updating the dispute status.
+        """
+        dispute = self.context['dispute']  # Assuming the dispute is passed in the context
+        writer = self.context['request'].user  # Writer responding to the dispute
+
+        # Create the dispute writer response
+        dispute_writer_response = DisputeWriterResponse.objects.create(
+            dispute=dispute,
+            responded_by=writer,
+            **validated_data
+        )
+
+        # Mark the dispute as responded
+        dispute.writer_responded = True
+        dispute.save()
+
+        return dispute_writer_response
+
+
+class WriterRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer to handle writer requests such as deadline extensions or page increases.
+    """
+    request_type = serializers.ChoiceField(choices=WriterRequest.ORDER_REQUEST_TYPE)
+    requested_by_writer = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role="writer"),  # Adjusted filter for role "writer"
+        required=False
+    )
+    new_deadline = serializers.DateTimeField(required=False, allow_null=True)
+    additional_pages = serializers.IntegerField(required=False, allow_null=True)
+    additional_slides = serializers.IntegerField(required=False, allow_null=True)
+    request_reason = serializers.CharField(max_length=1000)
+    status = serializers.ChoiceField(choices=[('pending', 'Pending'), ('accepted', 'Accepted'), ('declined', 'Declined')], default='pending')
+    client_approval = serializers.BooleanField(default=False)
+    admin_approval = serializers.BooleanField(default=False)
+    is_paid = serializers.BooleanField(default=False)
+
+    class Meta:
+        model = WriterRequest
+        fields = [
+            'website', 'order', 'request_type', 'requested_by_writer',
+            'new_deadline', 'additional_pages', 'additional_slides',
+            'request_reason', 'status', 'client_approval', 'admin_approval', 'is_paid'
+        ]
+    
+    def validate(self, attrs):
+        """
+        Custom validation to ensure correct fields based on request type.
+        """
+        if attrs['request_type'] == 'deadline_extension' and not attrs.get('new_deadline'):
+            raise serializers.ValidationError("New deadline must be provided for deadline extension requests.")
+        
+        if attrs['request_type'] == 'page_increase' and not attrs.get('additional_pages'):
+            raise serializers.ValidationError("Page increase must be provided for page increase requests.")
+        
+        if attrs['request_type'] == 'slide_increase' and not attrs.get('additional_slides'):
+            raise serializers.ValidationError("Slide increase must be provided for slide increase requests.")
+        
+        return attrs
+
+    def create(self, validated_data):
+        """
+        Override the create method to add custom logic if needed.
+        """
+        # Create the WriterRequest instance
+        writer_request = WriterRequest.objects.create(**validated_data)
+        
+        # You could also add custom behavior here if needed
+        
+        return writer_request
+
+    def update(self, instance, validated_data):
+        """
+        Handle the update of the WriterRequest.
+        """
+        # Update the fields of the instance with the validated data
+        instance.status = validated_data.get('status', instance.status)
+        instance.client_approval = validated_data.get('client_approval', instance.client_approval)
+        instance.admin_approval = validated_data.get('admin_approval', instance.admin_approval)
+        instance.is_paid = validated_data.get('is_paid', instance.is_paid)
+        
+        instance.save()
+        return instance

@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from authentication.utils_backp import get_client_ip
+from authentication.utilsy import get_client_ip
 
 User = settings.AUTH_USER_MODEL
 

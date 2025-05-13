@@ -3,7 +3,8 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth import get_user_model
 from django.utils.html import format_html
 from .models.passkeys import WebAuthnCredential
-from authentication.models import MFASettings
+from authentication.models.mfa_settings import MFASettings
+from django.contrib.admin.sites import NotRegistered
 
 # Register WebAuthnCredential model in the admin
 @admin.register(WebAuthnCredential)
@@ -72,12 +73,7 @@ class CustomUserAdmin(UserAdmin):
     # Optionally, you can use inline editing of WebAuthn credentials within the User model
     inlines = []
 
-# Register the custom UserAdmin to replace the default UserAdmin
-admin.site.unregister(User)
-admin.site.register(User, CustomUserAdmin)
-
-
-# Register MFASettings model in the admin
+#  Register MFASettings model in the admin
 @admin.register(MFASettings)
 class MFASettingsAdmin(admin.ModelAdmin):
     """
@@ -87,3 +83,14 @@ class MFASettingsAdmin(admin.ModelAdmin):
         'user', 'mfa_enabled', 'mfa_method',
         'mfa_phone_number', 'mfa_email_verified'
     )
+
+
+# Register the custom UserAdmin to replace the default UserAdmin
+try:
+    admin.site.unregister(User)
+except NotRegistered:
+    pass 
+admin.site.register(User, CustomUserAdmin)
+
+
+#

@@ -6,7 +6,15 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from admin_management.managers import AdminManager 
 from django.contrib.auth.backends import BaseBackend
+from django.apps import apps
+# from websites.models import Website
 
+# Use apps.get_model() to access Website model lazily
+# def get_website_model():
+#     Website = apps.get_model('websites', 'Website')
+#     return Website
+
+# Website = get_website_model()
 User = get_user_model()
 
 class AdminProfile(models.Model):

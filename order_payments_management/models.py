@@ -355,7 +355,9 @@ class FailedPayment(models.Model):
     def log_failed_payment(cls, order_id, client_id, payment_method, failure_reason):
         """Log a failed payment attempt"""
         from orders.models import Order  # Avoid circular import
-        from users.models import User
+        from django.conf import settings
+
+        User = settings.AUTH_USER_MODEL 
 
         order = Order.objects.get(id=order_id)
         client = User.objects.get(id=client_id)

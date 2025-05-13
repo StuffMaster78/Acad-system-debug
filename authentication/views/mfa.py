@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
 import pyotp # type: ignore
-from authentication.utils_backp import generate_totp_secret
+from authentication.utilsy import generate_totp_secret
 
 class VerifyMFAView(APIView):
     permission_classes = [permissions.IsAuthenticated]

@@ -1,13 +1,18 @@
-from rest_framework.throttling import AnonRateThrottle
+from rest_framework.throttling import SimpleRateThrottle
 
-class LoginThrottle(AnonRateThrottle):
-    """
-    Throttle login attempts to prevent brute force attacks.
-    """
+class LoginRateThrottle(SimpleRateThrottle):
     scope = 'login'
 
-class MagicLinkThrottle(AnonRateThrottle):
-    """
-    Throttle magic link requests to prevent spam.
-    """
+    def get_cache_key(self, request, view):
+        request.throttled_scope = self.scope  # add scope to request
+        return self.get_ident(request)
+
+class MagicLinkThrottle(SimpleRateThrottle):
     scope = 'magic_link'
+
+    def get_cache_key(self, request, view):
+        request.throttled_scope = self.scope
+        email = request.data.get('email')
+        if email:
+            return f'magic-link-{email}'
+        return self.get_ident(request)

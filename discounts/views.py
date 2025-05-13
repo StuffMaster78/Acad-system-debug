@@ -12,7 +12,7 @@ from .serializers import (
     DiscountUsageSerializer,
     DiscountStackingRuleSerializer
 )
-from .services.discounts import DiscountService
+from .services.engine import DiscountEngine
 from django_filters.rest_framework import DjangoFilterBackend # type: ignore
 from rest_framework.filters import SearchFilter, OrderingFilter
 
@@ -128,7 +128,7 @@ class DiscountViewSet(viewsets.ModelViewSet):
             )
 
         discounts = self.get_queryset().filter(id__in=ids)
-        DiscountService.duplicate_discounts(discounts)
+        DiscountEngine.duplicate_discounts(discounts)
         return Response(
             {"detail": f"{discounts.count()} discounts duplicated."}
         )

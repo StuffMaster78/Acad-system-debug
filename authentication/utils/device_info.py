@@ -1,5 +1,5 @@
 import hashlib
-from user_agents import parse as parse_user_agent
+from user_agents import parse as parse_user_agent # type: ignore
 
 
 def parse_device_info(user_agent_string):

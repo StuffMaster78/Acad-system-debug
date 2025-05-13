@@ -1,6 +1,7 @@
 import random
 import string
 import hashlib
+import pyotp
 from datetime import timedelta
 from django.core.cache import cache
 from django.utils import timezone
@@ -8,7 +9,7 @@ from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
 from django.conf import settings
 from celery import shared_task 
-from authentication.models.audit import AuditLog 
+from django.apps import apps
 from authentication.models.otp import OTP
 from authentication.models.magic_links import MagicLink
 from rest_framework.exceptions import AuthenticationFailed
@@ -18,6 +19,9 @@ from authentication.models.logout import LogoutEvent
 from users.models import User
 import jwt # type: ignore
 from datetime import datetime, timedelta
+from itsdangerous import URLSafeTimedSerializer
+from django.conf import settings
+
 
 def get_client_ip(request):
     ip, is_routable = get_client_ip(request)
@@ -83,6 +87,29 @@ def send_custom_email(user, subject, body, website_id):
         fail_silently=False,
     )
 
+
+def generate_totp_secret():
+    """
+    Generate a base32 secret key for TOTP MFA (Google Authenticator, etc.).
+
+    Returns:
+        str: A base32-encoded secret string.
+    """
+    return pyotp.random_base32()
+
+def generate_verification_token(user, salt="auth-token"):
+    """
+    Generate a time-limited token for a user using their primary key.
+
+    Args:
+        user (User): The user instance.
+        salt (str): Optional salt for the serializer.
+
+    Returns:
+        str: Signed token string.
+    """
+    serializer = URLSafeTimedSerializer(settings.SECRET_KEY)
+    return serializer.dumps(str(user.pk), salt=salt)
 
 def get_email_sender_details(website_id, type="notification"):
     """
@@ -278,6 +305,7 @@ def send_magic_link_email(user, token, website_id):
 # Audit Log Utility
 
 def log_audit_action(user, action_type, request):
+    AuditLog = apps.get_model("authentication", "AuditLog")
     ip, _ = get_client_ip(request)
     user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
 
@@ -314,3 +342,68 @@ def log_logout_event(request, user, reason="user_initiated"):
         session_key=request.session.session_key,
         reason=reason
     )
+
+
+def notify_mfa_enabled(user):
+    """
+    Notify user that MFA has been enabled on their account.
+
+    Args:
+        user (User): The user who enabled MFA.
+    """
+    subject = "Multi-Factor Authentication Enabled"
+    message = (
+        f"Hello {user.username},\n\n"
+        "You have successfully enabled MFA on your account.\n"
+        "If this wasn't you, please contact support immediately.\n\n"
+        "– The Security Team"
+    )
+
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        fail_silently=False
+    )
+
+def send_mfa_recovery_email(user, recovery_code):
+    """
+    Sends an MFA recovery email containing a one-time recovery code.
+
+    Args:
+        user (User): The user requesting MFA recovery.
+        recovery_code (str): The unique recovery code to use.
+    """
+    subject = "Your MFA Recovery Code"
+    message = (
+        f"Hi {user.username},\n\n"
+        "You requested a recovery code to regain access to your account.\n"
+        f"Your recovery code is: {recovery_code}\n\n"
+        "Use this code to disable MFA and log in. "
+        "If this wasn't you, contact support immediately.\n\n"
+        "– The Security Team"
+    )
+
+    send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        fail_silently=False
+    )
+
+
+def verify_email_otp(secret, otp_code):
+    """
+    Verifies a 6-digit OTP code against a shared TOTP secret.
+
+    Args:
+        secret (str): The base32 TOTP secret.
+        otp_code (str): The OTP code entered by the user.
+
+    Returns:
+        bool: True if the code is valid, False otherwise.
+    """
+    totp = pyotp.TOTP(secret)
+    return totp.verify(otp_code, valid_window=1)

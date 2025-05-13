@@ -3,11 +3,11 @@ from django.db import models
 from datetime import timedelta
 from django.utils.timezone import now
 from core.models.base import WebsiteSpecificBaseModel
-from users.models import User
+from django.conf import settings
 from websites.models import Website
 # from client_management.models import LoyaltyPoint
 
-
+User = settings.AUTH_USER_MODEL 
 class Wallet(WebsiteSpecificBaseModel):
     """
     Wallet for managing balances of users (clients, writers, etc.), scoped to a specific website.

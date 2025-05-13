@@ -2,8 +2,8 @@ from django.shortcuts import get_object_or_404
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from authentication.models.deletion_requests import DeletionRequest
-from authentication.models import User  # Assuming the User model is imported
+from authentication.models.deletion_requests import AccountDeletionRequest
+# from users.models import User 
 from django.contrib.auth.decorators import login_required
 from rest_framework.decorators import action
 
@@ -20,13 +20,13 @@ class AccountUnlockAPIView(APIView):
         Otherwise, create a new deletion request.
         """
         # Check if a pending deletion request exists for the user
-        if DeletionRequest.objects.filter(user=request.user, 
-                                          status=DeletionRequest.PENDING).exists():
+        if AccountDeletionRequest.objects.filter(user=request.user, 
+                                          status=AccountDeletionRequest.PENDING).exists():
             return Response({"message": "You already have a pending deletion request."},
                             status=status.HTTP_400_BAD_REQUEST)
 
         # Create a new deletion request
-        deletion_request = DeletionRequest.objects.create(user=request.user)
+        deletion_request = AccountDeletionRequest.objects.create(user=request.user)
         return Response({"message": "Deletion request created.", 
                          "request_id": deletion_request.id},
                          status=status.HTTP_201_CREATED)
@@ -36,7 +36,7 @@ class AccountUnlockAPIView(APIView):
         View to display the status of the user's deletion request.
         Shows details like status and timestamps for confirmation or rejection.
         """
-        deletion_request = get_object_or_404(DeletionRequest, id=request_id, 
+        deletion_request = get_object_or_404(AccountDeletionRequest, id=request_id, 
                                               user=request.user)
         return Response({
             'request_id': deletion_request.id,
@@ -58,11 +58,11 @@ class AdminDeletionApprovalAPIView(APIView):
         Admin approves the account deletion request and schedules a soft deletion.
         The user account is frozen and will be deleted in 3 months.
         """
-        deletion_request = get_object_or_404(DeletionRequest, id=pk, 
-                                              status=DeletionRequest.PENDING)
+        deletion_request = get_object_or_404(AccountDeletionRequest, id=pk, 
+                                              status=AccountDeletionRequest.PENDING)
 
         # Update request status to approved
-        deletion_request.status = DeletionRequest.APPROVED
+        deletion_request.status = AccountDeletionRequest.APPROVED
         deletion_request.save()
 
         # Freeze the user account (soft delete)
@@ -87,12 +87,12 @@ class AdminDeletionRejectAPIView(APIView):
         """
         Admin rejects the account deletion request with an optional reason.
         """
-        deletion_request = get_object_or_404(DeletionRequest, id=pk, 
-                                              status=DeletionRequest.PENDING)
+        deletion_request = get_object_or_404(AccountDeletionRequest, id=pk, 
+                                              status=AccountDeletionRequest.PENDING)
         reason = request.data.get("reason", "No reason provided")
 
         # Reject the deletion request
-        deletion_request.status = DeletionRequest.REJECTED
+        deletion_request.status = AccountDeletionRequest.REJECTED
         deletion_request.reject(reason)  # Assuming a `reject` method is defined
 
         return Response({"message": "Account deletion request rejected."}, 

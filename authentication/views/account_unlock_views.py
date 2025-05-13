@@ -5,8 +5,12 @@ from django.contrib.auth import login, logout
 from django.shortcuts import get_object_or_404
 from datetime import timedelta
 
-from authentication.models import User, TrustedDevice
-from authentication.utils_backp import send_unlock_email, log_audit_action, now
+from authentication.models import TrustedDevice
+from users.models import User
+from authentication.utilsy import send_custom_email, log_audit_action
+from datetime import datetime
+
+now = datetime.now()
 
 
 class AccountUnlockAPIView(APIView):
@@ -23,7 +27,7 @@ class AccountUnlockAPIView(APIView):
             return Response({"error": "No locked account found with this email."}, status=status.HTTP_400_BAD_REQUEST)
 
         # Send unlock email
-        send_unlock_email(user)
+        send_custom_email(user)
         return Response({"message": "Unlock instructions have been sent to your email."}, status=status.HTTP_200_OK)
 
 

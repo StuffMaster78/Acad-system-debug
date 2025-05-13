@@ -1,9 +1,9 @@
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from orders.models import Order
 from websites.models import Website
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL 
 
 
 class OrderFilesConfig(models.Model):

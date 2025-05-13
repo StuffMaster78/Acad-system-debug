@@ -1,14 +1,15 @@
 from rest_framework import serializers
-from .models import AuditLog, TrustedDevice, MagicLinkToken, BlockedIP, User, AccountDeletionRequest
+from .models import AuditLog, TrustedDevice, BlockedIP, AccountDeletionRequest
+from .models.magic_links import MagicLink
 from rest_framework import serializers
 from websites.models import Website
 from django.contrib.auth import get_user_model
 from users.models import UserProfile  # Adjusted to import UserProfile from users app
-from .models import MagicLinkToken, AuditLog
-from django.utils.translation import ugettext_lazy as _
+from .models import AuditLog
+from django.utils.translation import gettext_lazy as _
 from phonenumber_field.serializerfields import PhoneNumberField # type: ignore
 from django.contrib.auth.password_validation import validate_password
-from .models.deletion_requests import DeletionRequest
+from .models.deletion_requests import AccountDeletionRequest
 from authentication.models.mfa_settings import MFASettings
 from rest_framework import serializers
 from django.contrib.auth.models import User
@@ -126,7 +127,7 @@ class MagicLinkTokenSerializer(serializers.ModelSerializer):
     Serializer for magic link token used for password-less authentication.
     """
     class Meta:
-        model = MagicLinkToken
+        model = MagicLink
         fields = ('token', 'created_at', 'expires_at')
         read_only_fields = ('token', 'created_at', 'expires_at')
 

@@ -19,12 +19,8 @@ from .serializers import (
     WriterBonusSerializer,
     EstimatedSpecialOrderSettingsSerializer
 )
-from .services.special_order_service import (
-    approve_special_order,
-    override_payment,
-    complete_special_order
-)
-from .services.installment_payment_service import validate_and_save_installment
+from .services.special_order_service import SpecialOrderService
+from .services.installment_payment_service import InstallmentPaymentService
 import logging
 
 logger = logging.getLogger("special_orders")
@@ -61,7 +57,7 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
         Admin endpoint to approve a special order.
         """
         order = self.get_object()
-        approve_special_order(order)
+        SpecialOrderService.approve_special_order(order)
         logger.info(f"Order #{order.id} approved by admin.")
         return Response({'status': 'approved'})
 
@@ -71,7 +67,7 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
         Admin endpoint to override payment status.
         """
         order = self.get_object()
-        override_payment(order)
+        SpecialOrderService.override_payment(order)
         logger.info(f"Payment overridden for order #{order.id}")
         return Response({'status': 'payment overridden'})
 
@@ -82,7 +78,7 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
         Mark a special order as completed.
         """
         order = self.get_object()
-        complete_special_order(order)
+        SpecialOrderService.complete_special_order(order)
         logger.info(f"Order #{order.id} marked as completed.")
         return Response({'status': 'order completed'})
 
@@ -112,7 +108,7 @@ class InstallmentPaymentViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         try:
-            validate_and_save_installment(serializer, user)
+            InstallmentPaymentService.validate_and_save_installment(serializer, user)
         except PermissionError as e:
             logger.warning(str(e))
             raise PermissionError(str(e))

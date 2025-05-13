@@ -60,8 +60,3 @@ class DisputeWriterResponseAdmin(admin.ModelAdmin):
 class WriterRequestAdmin(admin.ModelAdmin):
     list_display = ('order', 'request_type', 'admin_approval', 'client_approval', 'reason')
     list_filter = ('request_type', 'admin_approval', 'client_approval')
-
-@admin.register(Dispute)
-class DisputeAdmin(admin.ModelAdmin):
-    list_display = ('order', 'raised_by', 'status', 'reason')
-    list_filter = ('status',)

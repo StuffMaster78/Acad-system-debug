@@ -12,18 +12,28 @@ from django.db import models
 from django.utils import timezone
 
 from core.celery import celery
-from websites.models import Website
+# from websites.models import Website
 from discounts.models import Discount
 from order_configs.models import WriterDeadlineConfig
 from order_configs.models import AcademicLevel
 from pricing_configs.models import PricingConfiguration
-from users.models import User
 from django.core.exceptions import ValidationError
 
-from services.pricing_calculator import (
+from .services.pricing_calculator import (
     calculate_total_price,
     calculate_base_price
 )
+from django.apps import apps
+from websites.models import Website
+
+User = settings.AUTH_USER_MODEL 
+
+# # Use apps.get_model() to access Website model lazily
+# def get_website_model():
+#     Website = apps.get_model('websites', 'Website')
+#     return Website
+
+# Website = get_website_model()
 
 # from writer_management.models import wr
 from enum import Enum
@@ -32,6 +42,9 @@ class OrderStatus(Enum):
     """
     Enum representing different statuses an order can have.
     """
+    CREATED = 'created'
+    IN_PROGRESS = 'in_progress'
+    REASSIGNED = 'reassigned'
     UNPAID = 'unpaid'
     PENDING = 'pending'
     ON_HOLD = 'on_hold'
@@ -40,12 +53,18 @@ class OrderStatus(Enum):
     CRITICAL = 'critical'
     ASSIGNED = 'assigned'
     LATE = 'late'
-    REVISION = 'revision'
+    REVISION_REQUESTED = 'revision_requested'
     DISPUTED = 'disputed'
     COMPLETED = 'completed'
     APPROVED = 'approved'
     CANCELLED = 'cancelled'
     ARCHIVED = 'archived'
+    EXPIRED = 'expired'
+    UNDER_REVIEW = 'under_review'
+    REOPENED = 're_opened'
+    RATED = 'rated'
+    REVIEWED = 'reviewed'
+    ON_REVISION = 'on_revision'
 
     @classmethod
     def choices(cls):
@@ -117,7 +136,7 @@ class DisputeStatusEnum(Enum):
             for status in cls
         ]
 
-class Order(models.Models):
+class Order(models.Model):
     """
     Represents an order placed by a client.
     Inherits from WebsiteSpecificBaseModel
@@ -1064,3 +1083,28 @@ class ReassignmentRequest(models.Model):
         if metadata:
             self.metadata = metadata
         self.save()
+
+
+class OrderDiscount(models.Model):
+    """
+    Tracks which discounts were applied to a specific order and their amounts.
+    """
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="applied_discounts"
+    )
+    discount = models.ForeignKey(
+        Discount,
+        on_delete=models.CASCADE
+    )
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+    applied_at = models.DateTimeField(
+        auto_now_add=True
+    )
+
+    def __str__(self):
+        return f"{self.discount.code} - ${self.amount} on Order {self.order.id}"

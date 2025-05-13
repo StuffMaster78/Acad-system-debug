@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
-from .models import SpecialOrder, PredefinedSpecialOrderConfig
+from special_orders.models import SpecialOrder, PredefinedSpecialOrderConfig
 from special_orders.services.services_orders import get_deposit_percentage
+
 
 class SpecialOrderService:
     """
@@ -8,49 +9,84 @@ class SpecialOrderService:
     """
 
     @staticmethod
-    def create_special_order(client, website, order_type, predefined_type, 
-                             duration_days, website, inquiry_details=''):
+    def create_special_order(
+        client,
+        website,
+        order_type,
+        predefined_type=None,
+        duration_days=None,
+        inquiry_details=''
+    ):
         """
         Creates a new special order.
 
         Args:
             client (User): The client creating the order.
-            order_type (str): The type of the order (predefined or estimated).
-            predefined_type (PredefinedSpecialOrderConfig): The predefined 
-                order type (if applicable).
-            duration_days (int): The number of days for the special order.
             website (Website): The website associated with the order.
-            inquiry_details (str, optional): Additional details about the order.
+            order_type (str): 'predefined' or 'estimated'.
+            predefined_type (PredefinedSpecialOrderConfig, optional): Predefined config.
+            duration_days (int, optional): Number of days requested.
+            inquiry_details (str, optional): Custom user inquiry or description.
 
         Returns:
-            SpecialOrder: The created special order object.
+            SpecialOrder: The created special order instance.
+
+        Raises:
+            ValidationError: If pricing information is missing.
         """
-        deposit_percentage = get_deposit_percentage(website)
+        if order_type == 'predefined':
+            if not predefined_type or not duration_days:
+                raise ValidationError("Predefined orders require a type and duration.")
 
-        # Calculate the deposit amount based on the total order cost
-        deposit_amount = order_details['total_cost'] * (deposit_percentage / 100)
-
-        special_order = SpecialOrder.objects.create(
-            website=website,
-            client=client,
-            order_type=order_type,
-            predefined_type=predefined_type,
-            duration_days=duration_days,
-            total_cost=order_details['total_cost'],
-            deposit_required=deposit_amount,
-            inquiry_details=inquiry_details
-        )
-        
-        # Apply pricing for predefined orders
-        if order_type == 'predefined' and predefined_type:
             duration_price = predefined_type.durations.filter(
                 duration_days=duration_days
             ).first()
-            if duration_price:
-                special_order.total_cost = duration_price.price
-                special_order.save()
-        
+
+            if not duration_price:
+                raise ValidationError("No pricing found for the selected duration.")
+
+            total_cost = duration_price.price
+
+        elif order_type == 'estimated':
+            # For estimated orders, assume cost is determined later or handled separately.
+            total_cost = 0
+        else:
+            raise ValidationError("Invalid order type.")
+
+        deposit_percentage = get_deposit_percentage(website)
+        deposit_amount = total_cost * (deposit_percentage / 100)
+
+        special_order = SpecialOrder.objects.create(
+            client=client,
+            website=website,
+            order_type=order_type,
+            predefined_type=predefined_type,
+            duration_days=duration_days,
+            total_cost=total_cost,
+            deposit_required=deposit_amount,
+            inquiry_details=inquiry_details
+        )
+
         return special_order
+    
+    @staticmethod
+    def approve_special_order(order: SpecialOrder) -> SpecialOrder:
+        """
+        Approves the given special order.
+
+        Args:
+            order (SpecialOrder): The order to approve.
+
+        Returns:
+            SpecialOrder: The approved order.
+        """
+        if order.is_approved:
+            raise ValidationError("Order is already approved.")
+
+        order.is_approved = True
+        order.status = 'approved'  # Replace with enum or constant if you have one
+        order.save()
+        return order
 
     @staticmethod
     def update_special_order(order, is_approved=None, status=None):
@@ -59,11 +95,11 @@ class SpecialOrderService:
 
         Args:
             order (SpecialOrder): The order to update.
-            is_approved (bool, optional): Whether the order is approved.
-            status (str, optional): The updated status of the order.
+            is_approved (bool, optional): Approval status.
+            status (str, optional): New status value.
 
         Returns:
-            SpecialOrder: The updated special order object.
+            SpecialOrder: The updated order.
         """
         if is_approved is not None:
             order.is_approved = is_approved
@@ -75,15 +111,62 @@ class SpecialOrderService:
     @staticmethod
     def validate_special_order(order):
         """
-        Validates a special order.
+        Validates an existing special order's integrity.
 
         Args:
-            order (SpecialOrder): The special order to validate.
+            order (SpecialOrder): The special order instance.
 
         Raises:
-            ValidationError: If the order is invalid.
+            ValidationError: If the order is misconfigured.
         """
         if order.order_type == 'predefined' and not order.predefined_type:
             raise ValidationError("Predefined order type is required.")
         if order.total_cost <= 0:
             raise ValidationError("Total cost must be greater than zero.")
+        
+    @staticmethod
+    def override_payment(order: SpecialOrder, new_total_cost: float) -> SpecialOrder:
+        """
+        Overrides the payment amount for a special order.
+
+        Args:
+            order (SpecialOrder): The special order to modify.
+            new_total_cost (float): The new total cost to apply.
+
+        Returns:
+            SpecialOrder: The updated special order.
+
+        Raises:
+            ValidationError: If the new total cost is not valid.
+        """
+        if new_total_cost <= 0:
+            raise ValidationError("New total cost must be greater than zero.")
+
+        order.total_cost = new_total_cost
+        order.deposit_required = new_total_cost * 0.5  # You can refactor to fetch deposit %
+        order.save()
+        return order
+
+    @staticmethod
+    def complete_special_order(order: SpecialOrder) -> SpecialOrder:
+        """
+        Marks a special order as complete.
+
+        Args:
+            order (SpecialOrder): The special order to complete.
+
+        Returns:
+            SpecialOrder: The completed special order.
+
+        Raises:
+            ValidationError: If the order is not in an approvable or completable state.
+        """
+        if not order.is_approved:
+            raise ValidationError("Cannot complete an unapproved order.")
+
+        if order.status == 'completed':
+            raise ValidationError("Order is already completed.")
+
+        order.status = 'completed'  # Replace with Enum/Constant if you're fancy
+        order.save()
+        return order

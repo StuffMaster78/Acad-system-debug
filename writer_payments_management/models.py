@@ -6,11 +6,11 @@ from special_orders.models import SpecialOrder
 from writer_management.models import WriterProfile
 from wallet.models import Wallet, WalletTransaction
 from notifications_system import send_notification  # Import notification system
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from websites.models import Website
 
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL 
 class WriterPayment(models.Model):
     """
     Handles writer payments, including order payments, 

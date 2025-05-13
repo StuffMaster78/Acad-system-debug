@@ -3,7 +3,7 @@ from django.contrib.auth.signals import user_logged_in
 from django.dispatch import receiver
 from .models import UserProfile
 from django.conf import settings
-from authentication.models import User
+# from authentication.models import User
 from client_management.models import ClientProfile
 from writer_management.models import WriterProfile
 from editor_management.models import EditorProfile
@@ -11,7 +11,7 @@ from support_management.models import SupportProfile
 from admin_management.models import AdminProfile
 from core.utils.location import get_geolocation_from_ip
 from django.utils.timezone import now
-from .models import AuditLog
+from .models import UserAuditLog
 from django.contrib.auth.signals import user_logged_in, user_logged_out
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
@@ -109,9 +109,9 @@ def get_client_ip(request):
 @receiver(user_logged_in)
 def log_user_login(sender, request, user, **kwargs):
     ip_address = get_client_ip(request)
-    AuditLog.objects.create(user=user, action="LOGIN", ip_address=ip_address)
+    UserAuditLog.objects.create(user=user, action="LOGIN", ip_address=ip_address)
 
 @receiver(user_logged_out)
 def log_user_logout(sender, request, user, **kwargs):
     ip_address = get_client_ip(request)
-    AuditLog.objects.create(user=user, action="LOGOUT", ip_address=ip_address)
+    UserAuditLog.objects.create(user=user, action="LOGOUT", ip_address=ip_address)

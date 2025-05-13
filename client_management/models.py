@@ -2,12 +2,19 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from django.utils.timezone import now
-from websites.models import Website
+# from websites.models import Website
 from orders.models import Order
 from wallet.models import Wallet
 from django.apps import apps
+from django.conf import settings
+from websites.models import Website
+# # Use apps.get_model() to access Website model lazily
+# def get_website_model():
+#     Website = apps.get_model('websites', 'Website')
+#     return Website
 
-User = get_user_model()
+# Website = get_website_model()
+# # User = get_user_model()
 
 class ClientProfile(models.Model):
     """
@@ -15,7 +22,7 @@ class ClientProfile(models.Model):
     order, wallet, and activity data.
     """
     user = models.OneToOneField(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="client_profile",
         limit_choices_to={'role': 'client'},
@@ -77,7 +84,7 @@ class ClientProfile(models.Model):
         help_text=_("Total amount spent by the client.")
     )
     preferred_writers = models.ManyToManyField(
-        User,
+        settings.AUTH_USER_MODEL,
         blank=True,
         limit_choices_to={'role': 'writer'},
         related_name="preferred_by_clients",
@@ -452,7 +459,7 @@ class ClientAction(models.Model):
         help_text="The action taken on the client account."
     )
     performed_by = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         related_name="actions_performed",

@@ -5,8 +5,9 @@ from django.utils import timezone
 from datetime import timedelta
 from django.core.mail import send_mail
 from django.core.exceptions import ValidationError
-from django.contrib.auth import get_user_model
 from orders.models import Order
+
+User = settings.AUTH_USER_MODEL 
 
 class ScreenedWord(models.Model):
     """
@@ -183,7 +184,7 @@ class FlaggedMessage(models.Model):
 
     def send_flagged_notification(self):
         """Send email notification to admins about the flagged message."""
-        admin_users = get_user_model().objects.filter(is_staff=True)
+        admin_users = User.objects.filter(is_staff=True)
         admin_emails = [admin.email for admin in admin_users if admin.email]
 
         if admin_emails:

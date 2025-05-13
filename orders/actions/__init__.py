@@ -1,6 +1,6 @@
 
 from .registry import OrderActionRegistry
-from actions.order_actions import (TransitionToPending,
+from .order_actions import (TransitionToPending,
                       PutOnHold, ResumeOrder, AssignWriter,
                       CompleteOrder, DisputeOrder, ApproveOrder,
                       CancelOrder, ArchiveOrder, LateOrder,

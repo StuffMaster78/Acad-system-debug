@@ -1,9 +1,7 @@
 from django.db import models
 from django.utils.timezone import now
-from django.apps import apps
-from django.contrib.auth import get_user_model
+from django.conf import settings
 
-User = get_user_model()
 class ActiveManager(models.Manager):
     """Custom manager to exclude soft-deleted records by default."""
     def get_queryset(self):
@@ -15,9 +13,11 @@ class BaseModel(models.Model):
     """
     created_at = models.DateTimeField(default=now, editable=False)
     updated_at = models.DateTimeField(auto_now=True)
-    deleted_at = models.DateTimeField(null=True, blank=True, help_text="Soft delete timestamp")
+    deleted_at = models.DateTimeField(null=True, blank=True,
+                                      help_text="Soft delete timestamp")
+
     created_by = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -25,7 +25,7 @@ class BaseModel(models.Model):
         help_text="User who created the record"
     )
     updated_by = models.ForeignKey(
-        User,
+        settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
@@ -33,25 +33,21 @@ class BaseModel(models.Model):
         help_text="User who last updated the record"
     )
 
-    # Managers
-    objects = ActiveManager()  # Default: exclude soft-deleted records
-    all_objects = models.Manager()  # Include all records
+    objects = ActiveManager()
+    all_objects = models.Manager()
 
     class Meta:
-        abstract = True  # Ensure no database table is created for this model
+        abstract = True
 
     def soft_delete(self):
-        """Soft delete the record."""
         self.deleted_at = now()
         self.save()
 
     def restore(self):
-        """Restore a soft-deleted record."""
         self.deleted_at = None
         self.save()
 
     def is_deleted(self):
-        """Check if the record is soft-deleted."""
         return self.deleted_at is not None
 
 class WebsiteSpecificBaseModel(BaseModel):
@@ -61,7 +57,7 @@ class WebsiteSpecificBaseModel(BaseModel):
     website = models.ForeignKey(
         'websites.Website',
         on_delete=models.CASCADE,
-        null=True,  # Allow records to exist without being tied to a specific website
+        null=True,
         blank=True,
         related_name="%(class)s_set",
         help_text="Website this record is associated with"

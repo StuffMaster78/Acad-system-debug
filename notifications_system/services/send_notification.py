@@ -5,6 +5,7 @@ from core.utils.sms_helpers import send_sms_notification
 from core.utils.push_helpers import send_push_notification
 from core.utils.ws_helpers import send_ws_notification
 from django.utils.timezone import now
+from django.conf import settings
 
 def send_notification(recipient, title, message, category="in_app"):
     """
@@ -59,3 +60,15 @@ def send_notification(recipient, title, message, category="in_app"):
     notification.save()
 
     return notification
+
+
+def notify_admin_of_error(error_message: str) -> None:
+    """
+    Notify admin about an error via the notification system.
+    """
+    send_notification(
+        subject='Discount Application Error',
+        message=error_message,
+        recipients=[settings.ADMIN_EMAIL],
+        notification_type='error',  # or whatever your system expects
+    )

@@ -3,7 +3,7 @@ from django.db import models, transaction
 from django.utils.timezone import now
 from datetime import timedelta
 from core.models.base import WebsiteSpecificBaseModel
-from users.models import User
+from django.conf import settings
 from loyalty_management.models import (
     LoyaltyTier, LoyaltyTransaction,
     LoyaltyPointsConversionConfig
@@ -13,7 +13,7 @@ import logging
 
 # Logger setup
 logger = logging.getLogger(__name__)
-
+User = settings.AUTH_USER_MODEL 
 class ClientWallet(WebsiteSpecificBaseModel):
     """
     Wallet for clients, tracking their balance and referral bonuses.

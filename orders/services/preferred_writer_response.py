@@ -23,7 +23,9 @@ def respond_to_preferred_order(writer, order_id, response, reason=None):
         order = Order.objects.get(id=order_id)
 
         if order.preferred_writer != writer:
-            raise ObjectDoesNotExist(f"Order #{order.id} is not assigned to this writer.")
+            raise ObjectDoesNotExist(
+                f"Order #{order.id} is not assigned to this writer."
+            )
         
         # Start a transaction to handle changes atomically
         with transaction.atomic():

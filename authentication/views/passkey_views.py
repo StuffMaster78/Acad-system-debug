@@ -3,13 +3,29 @@ from rest_framework.response import Response
 from rest_framework import status, permissions
 from django.contrib.auth import login
 
-from utils.passkey_utils import (
+from authentication.utils.passkey_utils import (
     generate_passkey_registration_options,
     verify_passkey_registration_response,
     generate_passkey_authentication_options,
-    verify_passkey_authentication_response,
+    verify_passkey_authentication_response
 )
-from utils.device_info import parse_device_info
+from authentication.utils.device_info import parse_device_info
+import base64
+from django.core.cache import cache
+from django.contrib.auth import get_user_model
+from authentication.models.passkeys import WebAuthnCredential
+from fido2.server import Fido2Server
+from fido2.webauthn import AuthenticationCredential
+from fido2.utils import websafe_decode
+from .fido_config import fido_server
+from fido2.webauthn import PublicKeyCredentialDescriptor
+from fido2.webauthn import AttestationObject, CollectedClientData
+from .fido_config import fido_server
+from django.core.exceptions import ValidationError
+from fido2 import cbor
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class PasskeyRegistrationVerify(APIView):
     """
@@ -137,3 +153,62 @@ class PasskeyLoginVerify(APIView):
                 {"detail": str(exc)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+def verify_passkey_authentication_response(token, raw_credential):
+    """
+    Verify the WebAuthn authentication (passkey login) response
+    using the stored challenge and WebAuthn credentials.
+
+    Args:
+        token (str): The cache key holding the authentication challenge.
+        raw_credential (dict): The JSON credential response from the client.
+
+    Returns:
+        User: The authenticated user object.
+
+    Raises:
+        Exception: If the authentication fails.
+    """
+    stored = cache.get(token)
+    if not stored:
+        raise Exception("Challenge expired or not found.")
+
+    user = User.objects.get(pk=stored["user_id"])
+
+    # Fetch registered credentials for the user
+    creds = WebAuthnCredential.objects.filter(user=user)
+    credentials = [cred.to_credential_descriptor() for cred in creds]
+
+    auth_data = AuthenticationCredential.parse(raw_credential)
+    auth_result = fido_server.authenticate_complete(
+        state=stored["state"],
+        credentials=credentials,
+        credential_id=websafe_decode(raw_credential["id"]),
+        client_data=auth_data.client_data,
+        auth_data=auth_data.auth_data,
+        signature=auth_data.signature,
+    )
+
+    # Update sign count in DB
+    cred = WebAuthnCredential.objects.get(
+        user=user,
+        credential_id=base64.urlsafe_b64decode(raw_credential["id"] + "==")
+    )
+    cred.sign_count = auth_result.new_sign_count
+    cred.save()
+
+    return user
+
+
+
+def to_credential_descriptor(self):
+    """
+    Converts the stored credential to a PublicKeyCredentialDescriptor
+    required for FIDO2 authentication.
+
+    Returns:
+        PublicKeyCredentialDescriptor: Credential descriptor instance.
+    """
+    return PublicKeyCredentialDescriptor(
+        id=base64.urlsafe_b64decode(self.credential_id + "==")
+    )

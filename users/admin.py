@@ -4,6 +4,7 @@ from django.contrib.auth.admin import UserAdmin
 from .models import User
 from django.utils import timezone
 from datetime import timedelta
+from django.contrib.auth.models import User
 
 class CustomUserAdmin(UserAdmin):
     """
@@ -239,4 +240,5 @@ class DeletionMixinAdmin(admin.ModelAdmin):
 
 
 # Register the custom user admin
-admin.site.register(User, CustomUserAdmin, DeletionMixinAdmin)
+admin.site.register(User, CustomUserAdmin)
+admin.site.register(User, DeletionMixinAdmin)

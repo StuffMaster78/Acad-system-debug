@@ -3,26 +3,37 @@ from .discount import Discount
 
 class DiscountStackingRule(models.Model):
     """
-    A model that links discounts that can be combined.
+    Links discounts that can be combined in the system.
+    This model specifies which discounts can stack with each other, 
+    and the priority order for stacking.
     """
     website = models.ForeignKey(
         'websites.Website',
         on_delete=models.CASCADE,
-        related_name='discount_stacking_rule'
+        related_name='discount_stacking_rule',
+        help_text="The website for which this discount stacking rule applies"
     )
     discount = models.ForeignKey(
         Discount,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='base_discounts',
+        help_text="The base discount that can be stacked"
     )
     stackable_discount = models.ForeignKey(
         Discount,
         related_name='stackable_discounts',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        help_text="The discount that can be stacked on top of the base discount"
+    )
+    priority = models.PositiveIntegerField(
+        default=0,
+        help_text="Priority of this discount stack (lower number = higher priority)"
     )
 
-
     class Meta:
-        unique_together = ("base_discount", "stackable_with")
+        unique_together = ("discount", "stackable_discount")
+        verbose_name = "Discount Stacking Rule"
+        verbose_name_plural = "Discount Stacking Rules"
 
     def __str__(self):
-        return f"{self.base_discount.code} can stack with {self.stackable_with.code}"
+        return f"{self.discount.code} can stack with {self.stackable_discount.code}"

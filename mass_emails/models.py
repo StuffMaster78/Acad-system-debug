@@ -6,9 +6,8 @@ recipient tracking, file attachments, and email templates.
 """
 from django.conf import settings
 from django.db import models
-from django.contrib.auth import get_user_model
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL 
 
 
 class EmailCampaign(models.Model):
@@ -166,7 +165,7 @@ class EmailTemplate(models.Model):
     """
     name = models.CharField(max_length=255)
     subject = models.CharField(max_length=255)
-    body = RichTextUploadingField()
+    body = models.TextField()
     is_global = models.BooleanField(default=False)
     created_by = models.ForeignKey(
         User,

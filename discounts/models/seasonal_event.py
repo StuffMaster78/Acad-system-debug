@@ -1,6 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-
+from django.utils import timezone
 
 class SeasonalEvent(models.Model):
     """
@@ -41,6 +41,8 @@ class SeasonalEvent(models.Model):
         """Ensure end date is after start date."""
         if self.start_date > self.end_date:
             raise ValidationError("End date must be after start date.")
+        if self.end_date < timezone.now():
+            self.is_active = False
 
     def __str__(self):
         return f"{self.name} ({self.start_date.date()} - {self.end_date.date()})"

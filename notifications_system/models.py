@@ -1,9 +1,10 @@
 from django.db import models
 from django.utils.timezone import now
 from core.models.base import WebsiteSpecificBaseModel
-from users.models import User
+from django.conf import settings
 from websites.models import Website
 
+User = settings.AUTH_USER_MODEL 
 class Notification(models.Model):
     """
     Represents a notification sent to a user.

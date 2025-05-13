@@ -3,7 +3,7 @@ from django.utils import timezone
 from orders.models import Dispute, DisputeWriterResponse, Order
 from django.db import transaction
 from django.apps import apps
-from orders.utils import send_notification_email  # Assume you have this
+from notifications_system.utils import send_website_mail
 from users.models import User
 
 
@@ -165,7 +165,7 @@ class DisputeService:
         recipients = list(set(recipients))  # avoid duplicates
 
         if recipients:
-            send_notification_email(subject, message, recipients)
+            send_website_mail(subject, message, recipients)
 
 
 class DisputeWriterResponseService:

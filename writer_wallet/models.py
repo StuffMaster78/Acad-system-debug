@@ -1,10 +1,10 @@
 from django.db import models
 from django.utils.timezone import now
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from websites.models import Website
 from orders.models import Order  # Linking orders since statuses are tracked there
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL 
 
 
 class WriterWallet(models.Model):

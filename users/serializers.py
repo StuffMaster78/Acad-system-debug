@@ -2,6 +2,7 @@ from django.templatetags.static import static
 from django.conf import settings
 from rest_framework import serializers
 from .models import User
+from users.models import UserProfile
 from client_management.models import ClientProfile
 from writer_management.models import WriterProfile
 from editor_management.models import EditorProfile
@@ -9,8 +10,10 @@ from support_management.models import SupportProfile
 from superadmin_management.models import SuperadminProfile
 from django.contrib.auth import get_user_model
 from websites.models import Website
-from users.models import AccountDeletionRequest
+from authentication.models import AccountDeletionRequest
 from rest_framework.exceptions import ValidationError
+from phonenumber_field.serializerfields import PhoneNumberField
+from django_countries.serializer_fields import CountryField as CountrySerializerField
 
 User = get_user_model()
 
@@ -151,6 +154,56 @@ class AvatarUpdateSerializer(serializers.ModelSerializer):
         model = User
         fields = ['avatar']
 
+
+class UserSerializer(serializers.ModelSerializer):
+    """
+    Minimal User serializer to expose username and role.
+    """
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'role']
+class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for UserProfile, handling nested user and computed fields.
+    """
+    user = UserSerializer(read_only=True)
+    phone_number = PhoneNumberField(required=False, allow_null=True)
+    country = CountrySerializerField(required=False, allow_null=True)
+    avatar_url = serializers.SerializerMethodField()
+    full_bio = serializers.SerializerMethodField()
+    website = serializers.PrimaryKeyRelatedField(
+        queryset=Website.objects.all(),
+        required=False,
+        allow_null=True
+    )
+
+    class Meta:
+        model = UserProfile
+        fields = [
+            'id',
+            'user',
+            'preferences',
+            'profile_picture',
+            'avatar',
+            'avatar_url',
+            'website',
+            'country',
+            'state',
+            'bio',
+            'full_bio',
+            'phone_number',
+            'is_deleted',
+            'deletion_reason',
+            'date_joined',
+            'last_active',
+        ]
+        read_only_fields = ['id', 'date_joined', 'last_active']
+
+    def get_avatar_url(self, obj):
+        return obj.get_avatar_url()
+
+    def get_full_bio(self, obj):
+        return obj.get_full_bio()
 
 class ProfilePictureUpdateSerializer(serializers.ModelSerializer):
     """

@@ -60,11 +60,11 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
 from django.contrib.postgres.search import TrigramSimilarity  # Fuzzy Search
 from rest_framework.pagination import PageNumberPagination
-from .utils_backp import (
-    send_deletion_confirmation_email,
-    send_unlock_email,
-    send_security_alert
-)
+# from .utils_backp import (
+#     send_deletion_confirmation_email,
+#     send_unlock_email,
+#     send_security_alert
+# )
 from django.core.mail import send_mail
 from .models import (
     User, AccountDeletionRequest, ProfileUpdateRequest,
@@ -72,6 +72,7 @@ from .models import (
     UserSession, BlockedIP,   
     MagicLinkToken
 )
+# from authentication.models.magic_links import MagicLinkToken
 User = get_user_model()
 
 

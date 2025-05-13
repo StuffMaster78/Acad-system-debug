@@ -6,7 +6,7 @@ from authentication.serializers import UserSerializer
 from django.core.mail import send_mail
 from django.conf import settings
 import pyotp  # type: ignore
-from authentication.utils_backp import generate_verification_token, generate_totp_secret # Assuming this exists
+from authentication.utilsy import generate_verification_token, generate_totp_secret # Assuming this exists
 from rest_framework_simplejwt.views import TokenRefreshView # type: ignore
 from rest_framework_simplejwt.tokens import RefreshToken # type: ignore
 from rest_framework_simplejwt.exceptions import InvalidToken # type: ignore

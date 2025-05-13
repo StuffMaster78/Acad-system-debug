@@ -72,8 +72,17 @@ INSTALLED_APPS = [
     'core',
     'websites',
     'users',
+    'authentication',
 
 
+     # Financial Apps
+    'wallet',
+    'client_wallet',
+    'writer_wallet',
+    'discounts',
+    'referrals',
+    'fines',
+    
     # Order Management
     'orders',
     'order_payments_management',
@@ -84,12 +93,7 @@ INSTALLED_APPS = [
     'special_orders',
 
 
-    # Financial Apps
-    'wallet',
-    'client_wallet',
-    'writer_wallet',
-    'discounts',
-    'referrals',
+   
 
     # Notifications and Support
     'notifications_system',
@@ -111,7 +115,7 @@ INSTALLED_APPS = [
     'service_pages_management',
 
      # Shared Utilities App
-     "common",
+    #  "common",
 ]
 
 MIDDLEWARE = [
@@ -238,7 +242,9 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 10,
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
 }
 
 
@@ -306,8 +312,8 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.UserRateThrottle',
         'rest_framework.throttling.AnonRateThrottle',
-        'users.throttling.LoginThrottle',
-        'users.throttling.MagicLinkThrottle',
+        'authentication.throttling.LoginRateThrottle',
+        'authentication.throttling.MagicLinkThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'user': '1000/day',  # Normal authenticated users
@@ -315,6 +321,7 @@ REST_FRAMEWORK = {
         'login': '5/minute',  # Limit login attempts to 5 per minute
         'magic_link': '3/minute',  # Limit magic link requests to 3 per minute
     },
+    'EXCEPTION_HANDLER': 'authentication.exceptions.custom_exception_handler',
 }
 
 # JWT Token Settings
