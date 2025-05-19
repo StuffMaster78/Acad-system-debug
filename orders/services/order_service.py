@@ -1,295 +1,384 @@
+from typing import Optional, List, Dict, Any
 from django.db import transaction
+from django.core.exceptions import ValidationError
+from django.apps import apps
+import logging
+from order_configs.models import CriticalDeadlineSetting
+from datetime import datetime, timedelta
 from orders.exceptions import TransitionNotAllowed
+from orders.models import OrderStatus, Order
+from orders.services.order_utils import _get_order, save_order
 from discounts.services.engine import DiscountEngine
 from discounts.services.hints import DiscountHintService
 from discounts.services.usage import DiscountUsageService
-from django.core.exceptions import ValidationError
-from notifications_system.services.send_notification import notify_admin_of_error
-import logging
 from discounts.services.suggestions import DiscountSuggestionService
-from orders.services.order_utils import _get_order, save_order
+from notifications_system.services.send_notification import notify_admin_of_error
 
 logger = logging.getLogger(__name__)
 
+
 class OrderService:
     """
-    Service class to handle the order lifecycle and state transitions.
+    Service class handling order lifecycle, state transitions, and discount
+    applications. Uses `OrderStatus` enums for status management.
     """
+
     @staticmethod
-    def create_order(user, topic, deadline, **kwargs):
+    def create_order(user, topic: str, deadline: Optional[str], **kwargs) -> Order:
         """
-        Creates a new order and evaluates urgency to assign the correct
-        initial status.
+        Create a new order and assign initial status based on urgency.
+
+        Args:
+            user: The user placing the order.
+            topic: The topic of the order.
+            deadline: Optional deadline for the order.
+            **kwargs: Additional fields for the order.
+
+        Returns:
+            Order: The newly created Order instance.
         """
-        from django.apps import apps
-        from orders.models import OrderStatus
         from orders.services.utils import check_if_urgent
-    
-        Order = apps.get_model('orders', 'Order')
 
         status = (
             OrderStatus.CRITICAL
             if deadline and check_if_urgent(deadline)
             else OrderStatus.CREATED
         )
-
         order = Order.objects.create(
             user=user,
             topic=topic,
             deadline=deadline,
-            status=status,
-            **kwargs
+            status=status.value,
+            **kwargs,
         )
         return order
 
     @staticmethod
-    @transaction.atomic
-    def transition_to_pending(order_id):
+    def _assert_status(order: Order, allowed_statuses: List[OrderStatus]) -> None:
         """
-        Transition order to 'pending' state if allowed.
+        Helper to assert order's current status is in allowed_statuses.
+
+        Args:
+            order: The order to check.
+            allowed_statuses: List of allowed OrderStatus enums.
+
+        Raises:
+            TransitionNotAllowed: If order.status is not in allowed_statuses.
+        """
+        if OrderStatus(order.status) not in allowed_statuses:
+            allowed_names = [status.name for status in allowed_statuses]
+            raise TransitionNotAllowed(
+                f"Transition not allowed from status '{order.status}'. "
+                f"Allowed statuses: {allowed_names}"
+            )
+
+    @staticmethod
+    @transaction.atomic
+    def transition_to_pending(order_id: int) -> Order:
+        """
+        Transition order to 'PENDING' if current status allows it.
+
+        Args:
+            order_id: ID of the order.
+
+        Returns:
+            Order: The updated order.
+
+        Raises:
+            TransitionNotAllowed: If current status disallows transition.
         """
         order = _get_order(order_id)
-        if order.status not in ['unpaid', 'available']:
-            raise TransitionNotAllowed(
-                "Order cannot be moved to 'pending' from the current status."
-            )
-        order.status = 'pending'
+        allowed = [OrderStatus.UNPAID, OrderStatus.AVAILABLE]
+        OrderService._assert_status(order, allowed)
+        order.status_enum = OrderStatus.PENDING
         save_order(order)
         return order
 
     @staticmethod
     @transaction.atomic
-    def put_on_hold(order_id):
+    def put_on_hold(order_id: int) -> Order:
         """
-        Puts the order on hold if it is in 'assigned' state.
+        Put order on hold if it is currently 'ASSIGNED'.
+
+        Args:
+            order_id: ID of the order.
+
+        Returns:
+            Order: Updated order with 'ON_HOLD' status.
+
+        Raises:
+            TransitionNotAllowed: If order is not 'ASSIGNED'.
         """
         order = _get_order(order_id)
-        if order.status != 'assigned':
-            raise TransitionNotAllowed(
-                "Order must be 'assigned' to be put on hold."
-            )
-        order.status = 'on_hold'
+        OrderService._assert_status(order, [OrderStatus.ASSIGNED])
+        order.status_enum = OrderStatus.ON_HOLD
         save_order(order)
         return order
 
     @staticmethod
     @transaction.atomic
-    def resume_order(order_id):
+    def resume_order(order_id: int) -> Order:
         """
-        Resume an order from on hold status.
+        Resume an order from 'ON_HOLD' to 'ASSIGNED'.
+
+        Args:
+            order_id: ID of the order.
+
+        Returns:
+            Order: Updated order with 'ASSIGNED' status.
+
+        Raises:
+            TransitionNotAllowed: If order is not 'ON_HOLD'.
         """
         order = _get_order(order_id)
-        if order.status != 'on_hold':
-            raise TransitionNotAllowed(
-                "Only orders on hold can be resumed."
-            )
-        order.status = 'assigned'
+        OrderService._assert_status(order, [OrderStatus.ON_HOLD])
+        order.status_enum = OrderStatus.ASSIGNED
         save_order(order)
         return order
 
     @staticmethod
     @transaction.atomic
-    def assign_writer(order_id, writer):
+    def assign_writer(order_id: int, writer) -> Order:
         """
-        Assign a writer to the order if it is in 'pending' state.
+        Assign a writer to an order in 'PENDING' status.
+
+        Args:
+            order_id: ID of the order.
+            writer: The writer to assign.
+
+        Returns:
+            Order: Updated order with 'ASSIGNED' status and writer set.
+
+        Raises:
+            TransitionNotAllowed: If order is not 'PENDING'.
         """
         order = _get_order(order_id)
-        if order.status != 'pending':
-            raise TransitionNotAllowed(
-                "Order must be in 'pending' state to assign a writer."
-            )
-        order.status = 'assigned'
-        order.writer = writer  # Assuming there is a `writer` field on the `Order`.
+        OrderService._assert_status(order, [OrderStatus.PENDING])
+        order.status_enum = OrderStatus.ASSIGNED
+        order.writer = writer
         save_order(order)
         return order
 
     @staticmethod
     @transaction.atomic
-    def complete_order(order_id, completed_by=None, completion_notes=None):
+    def complete_order(
+        order_id: int,
+        completed_by: Optional[Any] = None,
+        completion_notes: Optional[str] = None,
+    ) -> Order:
         """
-        Mark the order as complete if it is in 'assigned' state.
+        Mark an order as 'COMPLETED' from 'ASSIGNED' status.
+
+        Args:
+            order_id: ID of the order.
+            completed_by: Optional user who completed the order.
+            completion_notes: Optional notes regarding completion.
+
+        Returns:
+            Order: Updated order with 'COMPLETED' status.
+
+        Raises:
+            TransitionNotAllowed: If order is not 'ASSIGNED'.
         """
         order = _get_order(order_id)
-        if order.status != 'assigned':
-            raise TransitionNotAllowed(
-                "Order must be 'assigned' before it can be completed."
-            )
-        
-        # If an admin/support is completing the order manually, record who did it
+        OrderService._assert_status(order, [OrderStatus.ASSIGNED])
+
         if completed_by:
             order.completed_by = completed_by
-            order.completion_notes = (
-                completion_notes or "Completed manually by support/admin."
-            )
-        order.status = 'completed'
+            order.completion_notes = completion_notes or "Completed manually."
+        order.status_enum = OrderStatus.COMPLETED
         save_order(order)
         return order
 
     @staticmethod
     @transaction.atomic
-    def dispute_order(order_id):
+    def dispute_order(order_id: int) -> Order:
         """
-        Mark the order as disputed if it is in 'assigned' or 'revision' state.
-        """
-        order = _get_order(order_id)
-        if order.status not in ['assigned', 'revision']:
-            raise TransitionNotAllowed(
-                "Order must be in 'assigned' or 'revision' state to dispute."
-            )
-        order.status = 'disputed'
-        save_order(order)
-        return order
+        Mark an order as 'DISPUTED' from 'ASSIGNED' or 'REVISION'.
 
-    @staticmethod
-    @transaction.atomic
-    def approve_order(order_id):
-        """
-        Approve the order once completed.
-        """
-        order = _get_order(order_id)
-        if order.status != 'completed':
-            raise TransitionNotAllowed(
-                "Order must be 'completed' before it can be approved."
-            )
-        order.status = 'approved'
-        save_order(order)
-        return order
-
-    @staticmethod
-    @transaction.atomic
-    def cancel_order(order_id):
-        """
-        Cancel the order if it is not in 'completed' or 'archived' state.
-        """
-        order = _get_order(order_id)
-        if order.status in ['completed', 'archived']:
-            raise TransitionNotAllowed(
-                "Order cannot be cancelled once it is completed or archived."
-            )
-        order.status = 'cancelled'
-        save_order(order)
-        return order
-
-    @staticmethod
-    @transaction.atomic
-    def archive_order(order_id):
-        """
-        Archive the order once it is completed.
-        """
-        order = _get_order(order_id)
-        if order.status != 'completed':
-            raise TransitionNotAllowed(
-                "Order must be 'completed' before it can be archived."
-            )
-        order.status = 'archived'
-        save_order(order)
-        return order
-
-    @staticmethod
-    @transaction.atomic
-    def late_order(order_id):
-        """
-        Mark the order as late if it is in 'assigned' state.
-        """
-        order = _get_order(order_id)
-        if order.status != 'assigned':
-            raise TransitionNotAllowed(
-                "Order must be 'assigned' to be marked as late."
-            )
-        order.status = 'late'
-        save_order(order)
-        return order
-
-    @staticmethod
-    @transaction.atomic
-    def revision_order(order_id):
-        """
-        Mark the order for revision if it is in 'assigned' state.
-        """
-        order = _get_order(order_id)
-        if order.status != 'assigned':
-            raise TransitionNotAllowed(
-                "Order must be 'assigned' to be marked for revision."
-            )
-        order.status = 'revision'
-        save_order(order)
-        return order
-    
-        # New State: REVIEWED
-    @staticmethod
-    @transaction.atomic
-    def review_order(order_id):
-        """
-        Transition the order to the 'reviewed' state.
-        
-        The order must be in the 'completed' state before it can be reviewed.
-        Once reviewed, the status of the order is updated to 'reviewed'.
-        
         Args:
-            order_id (int): The ID of the order to be reviewed.
-        
+            order_id: ID of the order.
+
         Returns:
-            Order: The updated order with the status set to 'reviewed'.
-        
+            Order: Updated order with 'DISPUTED' status.
+
         Raises:
-            TransitionNotAllowed: If the order is not in the 'completed' state.
+            TransitionNotAllowed: If order status not allowed.
         """
         order = _get_order(order_id)
-        if order.status != 'completed':
-            raise TransitionNotAllowed(
-                "Order must be 'completed' before it can be reviewed."
-            )
-        order.status = 'reviewed'
+        allowed = [OrderStatus.ASSIGNED, OrderStatus.REVISION]
+        OrderService._assert_status(order, allowed)
+        order.status_enum = OrderStatus.DISPUTED
         save_order(order)
         return order
 
-    # New State: RATED
     @staticmethod
     @transaction.atomic
-    def rate_order(order_id, rating):
+    def approve_order(order_id: int) -> Order:
         """
-        Transition the order to the 'rated' state with a provided rating.
-        
-        The order must be in the 'reviewed' state before it can be rated.
-        The rating must be a value between 1 and 5. Once rated, the order's 
-        status is updated to 'rated', and the rating is saved.
-        
+        Approve an order in 'COMPLETED' status.
+
         Args:
-            order_id (int): The ID of the order to be rated.
-            rating (int): The rating value for the order, between 1 and 5.
-        
+            order_id: ID of the order.
+
         Returns:
-            Order: The updated order with the status set to 'rated' and the 
-            assigned rating.
-        
+            Order: Updated order with 'APPROVED' status.
+
         Raises:
-            TransitionNotAllowed: If the order is not in the 'reviewed' state.
-            ValueError: If the rating is not between 1 and 5.
+            TransitionNotAllowed: If order not 'COMPLETED'.
         """
         order = _get_order(order_id)
-        if order.status != 'reviewed':
-            raise TransitionNotAllowed(
-                "Order must be 'reviewed' before it can be rated."
-            )
-        if not (1 <= rating <= 5):
-            raise ValueError("Rating must be between 1 and 5.")
-        order.status = 'rated'
-        order.rating = rating  # Assuming `rating` field exists on the `Order`.
+        OrderService._assert_status(order, [OrderStatus.COMPLETED])
+        order.status_enum = OrderStatus.APPROVED
         save_order(order)
         return order
 
-    
     @staticmethod
     @transaction.atomic
-    def apply_discounts_to_order(order_id, codes: list[str], user):
+    def cancel_order(order_id: int) -> Order:
         """
-        Applies discount codes to an order.
+        Cancel an order unless it's already 'COMPLETED' or 'ARCHIVED'.
+
+        Args:
+            order_id: ID of the order.
+
+        Returns:
+            Order: Updated order with 'CANCELLED' status.
+
+        Raises:
+            TransitionNotAllowed: If order status disallows cancellation.
         """
         order = _get_order(order_id)
+        disallowed = [OrderStatus.COMPLETED, OrderStatus.ARCHIVED]
+        if OrderStatus(order.status) in disallowed:
+            raise TransitionNotAllowed(
+                "Order cannot be cancelled once completed or archived."
+            )
+        order.status_enum = OrderStatus.CANCELLED
+        save_order(order)
+        return order
+
+    @staticmethod
+    @transaction.atomic
+    def archive_order(order_id: int) -> Order:
+        """
+        Archive an order in 'COMPLETED' status.
+
+        Args:
+            order_id: ID of the order.
+
+        Returns:
+            Order: Updated order with 'ARCHIVED' status.
+
+        Raises:
+            TransitionNotAllowed: If order not 'COMPLETED'.
+        """
+        order = _get_order(order_id)
+        OrderService._assert_status(order, [OrderStatus.COMPLETED])
+        order.status_enum = OrderStatus.ARCHIVED
+        save_order(order)
+        return order
+
+    @staticmethod
+    @transaction.atomic
+    def late_order(order_id: int) -> Order:
+        """
+        Mark an order 'LATE' from 'ASSIGNED' status.
+
+        Args:
+            order_id: ID of the order.
+
+        Returns:
+            Order: Updated order with 'LATE' status.
+
+        Raises:
+            TransitionNotAllowed: If order not 'ASSIGNED'.
+        """
+        order = _get_order(order_id)
+        OrderService._assert_status(order, [OrderStatus.ASSIGNED])
+        order.status_enum = OrderStatus.LATE
+        save_order(order)
+        return order
+
+    @staticmethod
+    @transaction.atomic
+    def revision_order(order_id: int) -> Order:
+        """
+        Mark an order for 'REVISION' from 'ASSIGNED' status.
+
+        Args:
+            order_id: ID of the order.
+
+        Returns:
+            Order: Updated order with 'REVISION' status.
+
+        Raises:
+            TransitionNotAllowed: If order not 'ASSIGNED'.
+        """
+        order = _get_order(order_id)
+        OrderService._assert_status(order, [OrderStatus.ASSIGNED])
+        order.status_enum = OrderStatus.REVISION
+        save_order(order)
+        return order
+
+    @staticmethod
+    @transaction.atomic
+    def review_order(order_id: int) -> Order:
+        """
+        Transition order to 'REVIEWED' from 'COMPLETED' status.
+
+        Args:
+            order_id: ID of the order.
+
+        Returns:
+            Order: Updated order with 'REVIEWED' status.
+
+        Raises:
+            TransitionNotAllowed: If order not 'COMPLETED'.
+        """
+        order = _get_order(order_id)
+        OrderService._assert_status(order, [OrderStatus.COMPLETED])
+        order.status_enum = OrderStatus.REVIEWED
+        save_order(order)
+        return order
+
+    @staticmethod
+    @transaction.atomic
+    def apply_discounts_to_order(order_id: int, codes: List[str], user) -> Dict[str, Any]:
+        """
+        Apply multiple discount codes to an order atomically.
+
+        Args:
+            order_id (int): The ID of the order.
+            codes (List[str]): Discount codes to apply.
+            user: The user applying the discounts.
+
+        Returns:
+            Dict[str, Any]: Result with final price, discounts applied, errors,
+                            stackable hint, suggested discounts, attempted codes.
+        """
+        order = _get_order(order_id)
+        result: Dict[str, Any] = {
+            "final_price": float(order.total_price),
+            "discounts_applied": [],
+            "errors": [],
+            "stackable_hint": None,
+            "suggested_discounts": [],
+            "codes_attempted": codes,
+        }
+
         try:
             discounts = DiscountEngine.fetch_by_codes(codes, order.website)
             applicator = DiscountEngine(order, user, discounts)
-            result = applicator.apply_discounts()
+
+            discount_result = applicator.apply_discounts()
+
+            result.update({
+                "final_price": discount_result.get("final_price", 
+                                                result["final_price"]),
+                "discounts_applied": discount_result.get("discounts_applied", []),
+                "errors": discount_result.get("errors", []),
+            })
 
             DiscountUsageService.track(discounts, order, user)
 
@@ -297,33 +386,55 @@ class OrderService:
             if hint:
                 result["stackable_hint"] = hint
 
-            logger.info(f"Applied {len(discounts)} discounts to order {order.id} "
-                        f"for user {user.id}")
+            logger.info(
+                f"User {user.id} applied discounts {codes} to order {order.id} "
+                f"final price {result['final_price']}"
+            )
+
             return result
 
         except ValidationError as ve:
             order.refresh_from_db()
-            logger.warning(f"Discount validation error for order {order.id}: "
-                           f"{str(ve)}")
+            logger.warning(f"Discount validation failed on order {order.id}: {ve}")
+
             suggestions = DiscountSuggestionService.get_suggestions(order.website)
-            return {
-                "final_price": float(order.total_price),
-                "discounts_applied": [],
+            result.update({
                 "errors": [str(ve)],
-                "stackable_hint": None,
-                "suggested_discounts": suggestions
-            }
+                "suggested_discounts": suggestions,
+            })
+            return result
 
         except Exception as e:
-            logger.exception(f"Unexpected error during discount application on order "
-                             f"{order.id}: {str(e)}")
-            notify_admin_of_error(str(e))
+            logger.exception(f"Critical error applying discounts on order {order.id}: {e}")
+            notify_admin_of_error(f"Discount error on order {order.id}: {e}")
+
             suggestions = DiscountSuggestionService.get_suggestions(order.website)
-            return {
-                "final_price": float(order.total_price),
-                "discounts_applied": [],
-                "errors": ["Unexpected error occurred."],
-                "codes_attempted": codes,
-                "stackable_hint": None,
-                "suggested_discounts": suggestions
-            }
+            result.update({
+                "errors": ["Unexpected internal error. Please try again later."],
+                "suggested_discounts": suggestions,
+            })
+            return result
+        
+    @staticmethod
+    def get_critical_threshold():
+        setting = CriticalDeadlineSetting.objects.first()
+        return setting.threshold_hours if setting else 24
+
+    @staticmethod
+    def update_order_status_based_on_deadline(order):
+        if not order.deadline:
+            return
+
+        threshold = OrderService.get_critical_threshold()
+        now = datetime.utcnow()
+        remaining = order.deadline - now
+
+        if remaining <= timedelta(hours=threshold):
+            if order.status != OrderStatus.CRITICAL:
+                order.status = OrderStatus.CRITICAL
+                order.save(update_fields=["status"])
+        else:
+            if order.status == OrderStatus.CRITICAL:
+                # fallback to a sensible default state
+                order.status = OrderStatus.PENDING
+                order.save(update_fields=["status"])

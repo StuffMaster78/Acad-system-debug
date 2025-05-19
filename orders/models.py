@@ -25,6 +25,8 @@ from .services.pricing_calculator import (
 )
 from django.apps import apps
 from websites.models import Website
+from orders.order_enums import OrderStatus
+
 
 User = settings.AUTH_USER_MODEL 
 
@@ -37,46 +39,6 @@ User = settings.AUTH_USER_MODEL
 
 # from writer_management.models import wr
 from enum import Enum
-
-class OrderStatus(Enum):
-    """
-    Enum representing different statuses an order can have.
-    """
-    CREATED = 'created'
-    IN_PROGRESS = 'in_progress'
-    REASSIGNED = 'reassigned'
-    UNPAID = 'unpaid'
-    PENDING = 'pending'
-    ON_HOLD = 'on_hold'
-    AVAILABLE = 'available'
-    PENDING_PREFERRED = 'pending_preferred'
-    CRITICAL = 'critical'
-    ASSIGNED = 'assigned'
-    LATE = 'late'
-    REVISION_REQUESTED = 'revision_requested'
-    DISPUTED = 'disputed'
-    COMPLETED = 'completed'
-    APPROVED = 'approved'
-    CANCELLED = 'cancelled'
-    ARCHIVED = 'archived'
-    EXPIRED = 'expired'
-    UNDER_REVIEW = 'under_review'
-    REOPENED = 're_opened'
-    RATED = 'rated'
-    REVIEWED = 'reviewed'
-    ON_REVISION = 'on_revision'
-
-    @classmethod
-    def choices(cls):
-        """
-        Returns a list of tuples (value, label) for each status in the enum.
-        """
-        return [
-            (status.value, status.name.replace('_', ' ').title()) 
-            for status in cls
-        ]
-
-
 class SpacingOptions(Enum):
     """
     Enum representing the different spacing options for an order.
@@ -272,8 +234,8 @@ class Order(models.Model):
     )
     status = models.CharField(
         max_length=20,
-        choices=OrderStatus.choices(),
-        default=OrderStatus.PENDING.value,
+        choices=[(status.value, status.name) for status in OrderStatus],
+        default=OrderStatus.CREATED.value,
         help_text="Current status of the order."
     )
     flags = models.JSONField(
@@ -346,7 +308,31 @@ class Order(models.Model):
     # Include existing methods: calculate_total_cost,
     # calculate_writer_compensation, assign_flags, etc.
     # *** To add the writer progress field ****
+    @property
+    def status_enum(self) -> OrderStatus:
+        """Get the order status as an `OrderStatus` enum.
 
+        Returns:
+            OrderStatus: The current status of the order as an enum.
+        """
+        return OrderStatus(self.status)
+
+    @status_enum.setter
+    def status_enum(self, value: OrderStatus):
+        """Set the order status using an `OrderStatus` enum.
+
+        Args:
+            value (OrderStatus): The new status to assign to the order.
+
+        Raises:
+            ValueError: If `value` is not an instance of `OrderStatus`.
+        """
+        if isinstance(value, OrderStatus):
+            self.status = value.value
+        else:
+            raise ValueError("status_enum must be an OrderStatus enum instance")
+
+        
     def save(self, *args, **kwargs):
             """
             Trigger price recalculation whenever the order is saved.
