@@ -2,6 +2,22 @@ from django.db import models
 from websites.models import Website
 
 
+class CriticalDeadlineSetting(models.Model):
+    """
+    Stores the threshold (in hours) before the deadline when an order
+    is considered CRITICAL (urgent).
+    """
+    threshold_hours = models.PositiveIntegerField(
+        default=8,
+        help_text="Hours before deadline when order becomes critical"
+    )
+
+    class Meta:
+        verbose_name = "Critical Deadline Setting"
+        verbose_name_plural = "Critical Deadline Settings"
+
+    def __str__(self):
+        return f"CriticalDeadlineSetting: {self.threshold_hours} hours"
 class AcademicLevel(models.Model):
     """
     Represents types of Academic Levels, tied to specific Websites.

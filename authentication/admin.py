@@ -5,6 +5,8 @@ from django.utils.html import format_html
 from .models.passkeys import WebAuthnCredential
 from authentication.models.mfa_settings import MFASettings
 from django.contrib.admin.sites import NotRegistered
+from django.urls import reverse
+from authentication.models import AuditLog
 
 # Register WebAuthnCredential model in the admin
 @admin.register(WebAuthnCredential)
@@ -93,4 +95,35 @@ except NotRegistered:
 admin.site.register(User, CustomUserAdmin)
 
 
-#
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "id", "event", "linked_user", "ip_address", "device", "location",
+        "created_at", "highlighted",
+    )
+    list_filter = ("event", "created_at")
+    search_fields = ("event", "user__email", "ip_address", "device", "location")
+    ordering = ("-created_at",)
+
+    def linked_user(self, obj):
+        if obj.user:
+            url = reverse("admin:users_user_change", args=[obj.user.id])
+            return format_html('<a href="{}">{}</a>', url, obj.user.email)
+        return "Anonymous"
+
+    def highlighted(self, obj):
+        event = obj.event.lower()
+        if event.startswith("failed"):
+            return format_html(
+                '<span style="color: red; font-weight: bold;">{}</span>',
+                obj.event
+            )
+        elif event.startswith("success"):
+            return format_html(
+                '<span style="color: green; font-weight: bold;">{}</span>',
+                obj.event
+            )
+        return obj.event
+
+    linked_user.short_description = "User"
+    highlighted.short_description = "Event (highlighted)"#

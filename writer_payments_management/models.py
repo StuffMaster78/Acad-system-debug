@@ -78,7 +78,8 @@ class WriterPayment(models.Model):
         help_text="Payment status based on order conditions."
     )
     processed_at = models.DateTimeField(auto_now_add=True)
-
+    updated_at = models.DateTimeField(auto_now=True)
+    transaction_reference = models.CharField(max_length=255, null=True, blank=True)
     def process_payment(self):
         """
         Calculates the final payment, applies bonuses, fines, updates wallet, 

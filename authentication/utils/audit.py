@@ -33,3 +33,15 @@ def log_audit_action(user, action_type, request, reason=None):
         path=request.get_full_path(),
         reason=reason
     )
+
+
+def get_client_ip(request):
+    """
+    Extract the real client IP address from the request.
+    """
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip

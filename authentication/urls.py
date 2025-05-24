@@ -1,4 +1,5 @@
 from django.urls import path, include
+from .views import MagicLinkRequestView, MagicLinkLoginView
 
 urlpatterns = [
     path('account-unlock/', include('authentication.urls.account_unlock')),        # views/account_unlock_views.py
@@ -12,4 +13,7 @@ urlpatterns = [
     path('passkey/', include('authentication.urls.passkey_views')),                # views/passkey_views.py
     path('sessions/', include('authentication.urls.sessions_management')),         # views/sessions_management.py
     path('passkeys/devices/', include('urls.devices')), #views/devices.py
+    path("auth/password-reset/", include("authentication.urls.password_reset")),
+    path("auth/magic-link-request/", MagicLinkRequestView.as_view(), name="magic-link-request"),
+    path("auth/magic-link-login/", MagicLinkLoginView.as_view(), name="magic-link-login"),
 ]

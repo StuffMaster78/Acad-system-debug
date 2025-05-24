@@ -14,6 +14,13 @@ from authentication.utilsy import (
     log_audit_action, notify_mfa_enabled,
     send_mfa_recovery_email, verify_email_otp
 )
+
+
+from utils.jwt import (
+    decode_magic_link_token,
+    decode_mfa_token,
+)
+
 from django.utils.timezone import now
 
 
@@ -147,3 +154,30 @@ class VerifyMFARecovery(APIView):
         return Response({
             "message": "MFA reset successfully. You may now set up a new authenticator app."
         }, status=status.HTTP_200_OK)
+    
+
+class VerifyMagicLinkView(APIView):
+    def post(self, request):
+        token = request.data.get("token")
+        if not token:
+            return Response(
+                {"error": "Token required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = decode_magic_link_token(token)
+        from utils.jwt import get_tokens_for_user
+        return Response(get_tokens_for_user(user))
+
+
+class MFAChallengeVerifyView(APIView):
+    def post(self, request):
+        serializer = MFAChallengeVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        token = serializer.validated_data["token"]
+        code = serializer.validated_data["code"]
+
+        user = decode_mfa_token(token, code)
+        from utils.jwt import get_tokens_for_user
+        return Response(get_tokens_for_user(user))

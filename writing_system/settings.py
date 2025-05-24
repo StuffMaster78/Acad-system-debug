@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     # Core Project Apps
     'core',
     'websites',
+    'audit_logging',
     'users',
     'authentication',
 
@@ -124,6 +125,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'audit_logging.middleware.AuditUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'superadmin_management.middleware.BlacklistMiddleware',
@@ -316,10 +318,12 @@ REST_FRAMEWORK = {
         'authentication.throttling.MagicLinkThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'user': '1000/day',  # Normal authenticated users
-        'anon': '100/hour',  # Unauthenticated users
+        'user': '10/hour',  # Normal authenticated users
+        'anon': '5/hour',  # Unauthenticated users
         'login': '5/minute',  # Limit login attempts to 5 per minute
+        'password_reset': '3/hour', #Limit login attempts to 3 in every hour
         'magic_link': '3/minute',  # Limit magic link requests to 3 per minute
+        'mfa_challenge': '5/hour',
     },
     'EXCEPTION_HANDLER': 'authentication.exceptions.custom_exception_handler',
 }
@@ -373,7 +377,15 @@ CELERY_BEAT_SCHEDULE = {
     'daily_soft_delete_cleanup': {
         "task": "users.tasks.deletion.cleanup_soft_deleted_models",
         "schedule": crontab(hour=3, minute=0),  # every day at 3AM
-    }
+    },
+    "move-complete-to-approved-everyday": {
+        "task": "orders.tasks.move_complete_orders_to_approved",
+        "schedule": crontab(hour=0, minute=0),  # every midnight daily
+    },
+    "archive-approved-orders-everyday": {
+        "task": "orders.tasks.archive_approved_orders",
+        "schedule": crontab(hour=1, minute=0),  # every 1 am daily
+    },
 }
 RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW")
 MAX_FAILED_ATTEMPTS = os.getenv("MAX_FAILED_ATTEMPTS")

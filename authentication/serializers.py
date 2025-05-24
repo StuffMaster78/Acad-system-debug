@@ -19,6 +19,9 @@ from django.core.exceptions import ValidationError
 from authentication.models.sessions import UserSession
 from django.contrib.auth import authenticate
 from django.contrib.auth.tokens import default_token_generator
+from authentication.utils.jwt import decode_password_reset_token
+
+User = get_user_model()
 
 # Defining constants for MFA methods
 MFA_METHODS = (
@@ -449,3 +452,85 @@ class UserSessionSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserSession
         fields = ['id', 'device_info', 'ip_address', 'last_active']
+
+
+class RequestPasswordResetSerializer(serializers.Serializer):
+    """
+    Validates the email field for requesting a password reset.
+    """
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        # Optional: Check if user exists, silently ignore if not.
+        return value
+
+
+class PasswordResetConfirmSerializer(serializers.Serializer):
+    """
+    Validates new password and token for confirming the reset.
+    """
+    token = serializers.CharField()
+    new_password = serializers.CharField(write_only=True)
+
+    def validate_new_password(self, value):
+        validate_password(value)
+        return value
+    
+class PasswordResetRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        try:
+            user = User.objects.get(email__iexact=value)
+        except User.DoesNotExist:
+            # We don’t reveal if the email exists for security reasons
+            return value
+        self.context['user'] = user
+        return value
+
+    @property
+    def validated_data(self):
+        # Expose user for the view after validation
+        data = super().validated_data
+        data["user"] = self.context.get("user")
+        return data
+
+
+class PasswordResetTokenValidationSerializer(serializers.Serializer):
+    token = serializers.CharField()
+
+    def validate_token(self, value):
+        try:
+            user = decode_password_reset_token(value)
+        except Exception as e:
+            raise serializers.ValidationError("Invalid or expired token.")
+        self.context['user'] = user
+        return value
+
+    @property
+    def validated_data(self):
+        data = super().validated_data
+        data["user"] = self.context.get("user")
+        return data
+
+
+class SetNewPasswordSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    password = serializers.CharField(min_length=8, max_length=128, write_only=True)
+
+    def validate_token(self, value):
+        try:
+            user = decode_password_reset_token(value)
+        except Exception:
+            raise serializers.ValidationError("Invalid or expired token.")
+        self.context['user'] = user
+        return value
+
+    def validate_password(self, value):
+        # Add your custom password validators here if any
+        return value
+
+    def validate(self, attrs):
+        # Make user available after full validation
+        attrs['user'] = self.context.get('user')
+        return attrs

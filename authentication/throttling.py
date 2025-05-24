@@ -16,3 +16,24 @@ class MagicLinkThrottle(SimpleRateThrottle):
         if email:
             return f'magic-link-{email}'
         return self.get_ident(request)
+
+
+class PasswordResetRateThrottle(SimpleRateThrottle):
+    scope = 'password_reset'
+
+    def get_cache_key(self, request, view):
+        return self.get_ident(request)  # uses IP address
+
+
+class MagicLinkRateThrottle(SimpleRateThrottle):
+    scope = 'magic_link'
+
+    def get_cache_key(self, request, view):
+        return self.get_ident(request)
+
+
+class MFARateThrottle(SimpleRateThrottle):
+    scope = 'mfa_challenge'
+
+    def get_cache_key(self, request, view):
+        return self.get_ident(request)

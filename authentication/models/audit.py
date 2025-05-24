@@ -1,7 +1,7 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from authentication.utilsy import get_client_ip
+from authentication.utils.audit import get_client_ip
 
 User = settings.AUTH_USER_MODEL
 
@@ -14,11 +14,16 @@ class AuditLog(models.Model):
         ("MFA_DISABLED", "MFA Disabled"),
         ("MFA_RESET", "MFA Reset"),
         ("MFA_RECOVERY_REQUESTED", "MFA Recovery Requested"),
+        ("MFA_CHALLENGE_REQUESTED", "MFA Challenge Requested"),
+        ("MFA_CHALLANGE_VERIFIED", "MFA Challenge Verified"),
         ("MFA_RECOVERY_COMPLETED", "MFA Recovery Completed"),
         ("LOGIN_SUCCESS", "Login Successful"),
         ("LOGIN_FAILED", "Login Failed"),
         ("MFA_VERIFIED", "MFA Verified"),
-        ("PASSWORD_RESET", "Password Reset"),
+        ("PASSWORD_RESET_REQUESTED", "Password Reset Requested"),
+        ("PASSWORD_RESET_USED", "Password Reset Used"),
+        ("MAGIC_LINK_REQUESTED", "Magic Link Requested"),
+        ("MAGIC_LINK_USED", "Magic Link Used"),
         ("ACCOUNT_UPDATED", "Account Updated"),
         ("ACCOUNT_LOCKED", "Account Locked"),
         ("QR_CODE_GENERATED", "QR Code Generated"),
@@ -28,7 +33,9 @@ class AuditLog(models.Model):
 
     user = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="audit_logs"
     )
     action = models.CharField(
@@ -42,8 +49,13 @@ class AuditLog(models.Model):
     metadata = models.JSONField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user.email} - {self.action} at {self.timestamp}"
+        return f"{self.user.email}- {self.user} - {self.action} at {self.timestamp}"
 
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'Audit Log'
+        verbose_name_plural = 'Audit Logs'
 
     @staticmethod    
     def log_device_deletion(user, credential_id, request):

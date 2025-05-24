@@ -7,6 +7,12 @@ from django.db.models.signals import post_save
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import DeletionRequest
+import logging
+from django.dispatch import Signal
+
+auth_event = Signal()
+
+logger = logging.getLogger(__name__)
 
 @receiver(user_logged_in)
 def track_login_data(sender, request, user, **kwargs):
@@ -32,3 +38,11 @@ def send_confirmation_email(sender, instance, created, **kwargs):
             settings.DEFAULT_FROM_EMAIL,
             [instance.user.email]
         )
+
+def log_auth_event(sender, **kwargs):
+    user = kwargs.get('user')
+    event = kwargs.get('event')
+    ip = kwargs.get('ip')
+    logger.info(f"Auth Event: {event} | User: {user} | IP: {ip}")
+
+auth_event.connect(log_auth_event)

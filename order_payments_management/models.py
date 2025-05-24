@@ -70,7 +70,7 @@ class OrderPayment(models.Model):
         max_digits=10, decimal_places=2,
         help_text="Final amount after discount"
     )
-    status = models.CharField(
+    payment_status = models.CharField(
         max_length=20, choices=STATUS_CHOICES, default="pending"
     )
     payment_method = models.CharField(
