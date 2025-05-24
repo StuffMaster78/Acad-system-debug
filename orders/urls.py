@@ -15,7 +15,7 @@ router = DefaultRouter()
 router.register(r'orders', OrderViewSet, basename='order')
 router.register(r'disputes', DisputeViewSet, basename='dispute')
 router.register(r'writer-request', WriterRequestViewSet, basename='writer-request')
-router.register(r'order-actions', OrderActionViewSet, basename='order-action')
+router.register(r"actions", OrderActionViewSet, basename="order-action")
 
 urlpatterns = [
     path('', include(router.urls)), # Include the router-generated URLs

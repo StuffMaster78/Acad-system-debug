@@ -159,6 +159,21 @@ class PricingCalculatorService:
 
         return total_additional_cost
 
+    @staticmethod
+    def calculate_preferred_writer_fee(order) -> Decimal:
+        """
+        Calculate the additional fee for the preferred writer assigned to the order.
+
+        Args:
+            order (Order): The order instance to calculate the fee for.
+
+        Returns:
+            Decimal: The additional fee for the preferred writer if assigned,
+                    otherwise Decimal(0).
+        """
+        if order.preferred_writer:
+            return order.preferred_writer.additional_fee
+        return Decimal(0)
 
     def calculate_total_price(order_id) -> Decimal:
         """
@@ -176,6 +191,7 @@ class PricingCalculatorService:
         extras = PricingCalculatorService.calculate_extra_services_price(order)
         writer_quality = PricingCalculatorService.calculate_writer_quality_price(order)
         urgent_fee = PricingCalculatorService.calculate_urgent_price(order)
+        preferred_writer_fee = PricingCalculatorService.calculate_preferred_writer_fee(order)
         discount = PricingCalculatorService.calculate_discount(order)
 
-        return base + extras + writer_quality + urgent_fee - discount
+        return base + extras + writer_quality + preferred_writer_fee + urgent_fee - discount

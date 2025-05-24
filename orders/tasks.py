@@ -9,6 +9,9 @@ from django.utils import timezone
 from orders.models import Order
 from datetime import timedelta
 
+from orders.services.archive_order_service import ArchiveOrderService
+from orders.services.status_transition_service import StatusTransitionService
+
 logger = logging.getLogger(__name__)
 
 @shared_task
@@ -116,3 +119,22 @@ def release_stale_preferred_orders():
         logger.info(f"Released Order #{order.id} back to the public pool after {stale_time} hours.")
         
     print(f"Released {stale_orders.count()} stale preferred orders.")
+
+
+
+@shared_task
+def archive_approved_orders_task():
+    """
+    Archive orders that are in 'approved' state older than 2 weeks.
+    """
+    cutoff_date = now() - timedelta(weeks=2)
+    ArchiveOrderService.archive_approved_orders_older_than(cutoff_date)
+
+
+@shared_task
+def move_complete_to_approved_task():
+    """
+    Move orders from 'complete' to 'approved' if they are older than 3 weeks.
+    """
+    cutoff_date = now() - timedelta(weeks=3)
+    StatusTransitionService.move_complete_orders_to_approved_older_than(cutoff_date)

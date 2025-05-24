@@ -1,6 +1,9 @@
 from rest_framework.permissions import BasePermission
-from users.models import User
+from django.utils.timezone import now
 
+from users.models import User
+from authentication.constants import ROLE_HIERARCHY
+from authentication.models import AuditLog
 
 
 class IsAuthenticated(BasePermission):
@@ -10,6 +13,8 @@ class IsAuthenticated(BasePermission):
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated
 
+
+# === Admin + Role-based Access ===
 
 class IsSuperadminOnly(BasePermission):
     """
@@ -21,26 +26,36 @@ class IsSuperadminOnly(BasePermission):
 
 class IsAdminOrSuperAdmin(BasePermission):
     """
-    Custom permission to allow admins and superadmins to view or modify any order.
+    Allow admins and superadmins to access.
     """
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in [User.ADMIN, User.SUPERADMIN]
+        return request.user.is_authenticated and request.user.role in [
+            User.ADMIN, User.SUPERADMIN
+        ]
 
 
 class IsSupportOrAdmin(BasePermission):
     """
-    Allow only support or admin staff.
+    Allow support, admins, or superadmins.
     """
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in [User.ADMIN, User.SUPERADMIN, User.SUPPORT]
+        return request.user.is_authenticated and request.user.role in [
+            User.SUPPORT, User.ADMIN, User.SUPERADMIN
+        ]
 
+
+# === Object-Level Permissions ===
 
 class IsAssignedWriter(BasePermission):
     """
     Allow only the writer assigned to this order.
     """
     def has_object_permission(self, request, view, obj):
-        return request.user.is_authenticated and request.user.role == User.WRITER
+        return (
+            request.user.is_authenticated
+            and request.user.role == User.WRITER
+            and obj.writer == request.user
+        )
 
 
 class IsClientWhoOwnsOrder(BasePermission):
@@ -53,61 +68,118 @@ class IsClientWhoOwnsOrder(BasePermission):
 
 class CanRequestReassignment(BasePermission):
     """
-    Custom permission to allow clients, writers, and admins to request reassignment.
+    Allow clients, writers, and admins to request reassignment.
     """
     def has_object_permission(self, request, view, obj):
-        if request.user.role == User.WRITER:
-            return obj.writer == request.user  # Writer must be assigned to the order
-        elif request.user.role == User.CLIENT:
-            return obj.client == request.user  # Client must own the order
-        return request.user.role in [User.ADMIN, User.SUPERADMIN]  # Admins can request reassignment for any order
+        role = request.user.role
+        if role == User.WRITER:
+            return obj.writer == request.user
+        if role == User.CLIENT:
+            return obj.client == request.user
+        return role in [User.ADMIN, User.SUPERADMIN]
 
 
 class CanChangeOrderStatus(BasePermission):
     """
-    Custom permission to allow clients to approve/cancel their own orders,
+    Allow clients to approve/cancel their own orders,
     or allow admins to do so for any order.
     """
     def has_object_permission(self, request, view, obj):
-        return obj.client == request.user or request.user.role in [User.ADMIN, User.SUPERADMIN]  # Clients and admins can change order status
+        return request.user == obj.client or request.user.role in [
+            User.ADMIN, User.SUPERADMIN
+        ]
 
 
 class IsAssignedWriterOrAdmin(BasePermission):
     """
-    Custom permission to allow the assigned writer or an admin to complete the order.
+    Allow the assigned writer or an admin to act.
     """
     def has_object_permission(self, request, view, obj):
-        return obj.writer == request.user or request.user.role in [User.ADMIN, User.SUPERADMIN]
+        return obj.writer == request.user or request.user.role in [
+            User.ADMIN, User.SUPERADMIN
+        ]
 
 
-class CanExecuteOrderAction(BasePermission):
-    """
-    Custom permission to allow only admins or superadmins to force execute order actions.
-    """
-    def has_permission(self, request, view):
-        return request.user.role in [User.ADMIN, User.SUPERADMIN]  # Admins and superadmins can execute any action
-
+# === Dispute Permissions ===
 
 class CanSubmitDispute(BasePermission):
     """
-    Custom permission to allow clients or writers to submit a dispute.
+    Allow clients or writers to submit a dispute.
     """
     def has_permission(self, request, view):
-        return request.user.role in [User.CLIENT, User.WRITER]  # Both writers and clients can submit disputes
+        return request.user.role in [User.CLIENT, User.WRITER]
 
 
 class CanSubmitWriterResponse(BasePermission):
     """
-    Custom permission to allow the assigned writer to submit a response to a dispute.
+    Allow the assigned writer to submit a response to a dispute.
     """
     def has_permission(self, request, view):
-        dispute = view.get_object()  # Fetch the dispute object
-        return dispute.writer == request.user  # Only the assigned writer can respond to the dispute
+        dispute = view.get_object()
+        return dispute.writer == request.user
 
 
 class IsSuperadminOrAdminForDisputeResolution(BasePermission):
     """
-    Custom permission to allow superadmins or admins to resolve disputes.
+    Allow superadmins or admins to resolve disputes.
     """
     def has_permission(self, request, view):
-        return request.user.role in [User.ADMIN, User.SUPERADMIN]  # Only admins or superadmins can resolve disputes
+        return request.user.role in [User.ADMIN, User.SUPERADMIN]
+
+
+# === Order Action Permission (Generic + Logged) ===
+
+class CanExecuteOrderAction(BasePermission):
+    """
+    Allow only admins or superadmins to force execute order actions.
+    """
+    def has_permission(self, request, view):
+        return request.user.role in [User.ADMIN, User.SUPERADMIN]
+
+
+class OrderActionPermission(BasePermission):
+    """
+    Grants permission based on user role and requested action.
+    Logs denied attempts for audit purposes.
+    """
+
+    ACTION_ROLE_MAP = {
+        'approve_order': ['admin', 'superadmin'],
+        'cancel_order': ['support', 'admin', 'superadmin'],
+        'hold_order': ['support', 'admin'],
+        'resume_order': ['support', 'admin'],
+        'complete_order': ['admin', 'superadmin'],
+        'rate_order': ['client'],
+        'review_order': ['client'],
+        'archive_order': ['admin', 'superadmin'],
+        'reopen_order': ['admin', 'superadmin'],
+        'mark_critical': ['support', 'admin'],
+        'apply_discount': ['admin', 'superadmin'],
+    }
+
+    def has_permission(self, request, view):
+        user = request.user
+        action_name = request.data.get('action_name')
+        allowed_roles = self.ACTION_ROLE_MAP.get(action_name, [])
+        user_role = getattr(user, 'role', None)
+
+        if user_role is None or action_name is None:
+            self._log_denial(user, action_name, "Missing role or action_name")
+            return False
+
+        if any(
+            ROLE_HIERARCHY.get(user_role, -1) >= ROLE_HIERARCHY.get(role, -1)
+            for role in allowed_roles
+        ):
+            return True
+
+        self._log_denial(user, action_name, "Role not authorized")
+        return False
+
+    def _log_denial(self, user, action_name, reason):
+        AuditLog.objects.create(
+            user=user,
+            action=f"DENIED: {action_name}",
+            timestamp=now(),
+            metadata={"reason": reason}
+        )

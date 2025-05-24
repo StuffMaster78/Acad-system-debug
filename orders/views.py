@@ -45,6 +45,9 @@ from orders.serializers import (
 )
 from services import reassignment, assignment
 from orders.actions.registry import OrderActionRegistry
+from orders.actions.dispatcher import OrderActionDispatcher
+from orders.actions.registry import all_actions
+from orders.serializers import OrderActionSerializer
 
 User = get_user_model()
 
@@ -598,113 +601,53 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
         return Response({"message": "Invalid response."}, status=400)
 
 
-class OrderActionView(APIView):
+class OrderActionViewSet(viewsets.ViewSet):
     """
-    Handle different actions on the order like assign, hold, complete,
-    cancel, etc.
+    A ViewSet for dispatching dynamic order actions.
     """
     permission_classes = [IsAuthenticated]
 
-    ACTIONS = {
-        "assign": "assign_writer",
-        "hold": "put_on_hold",
-        "complete": "complete_order",
-        "cancel": "cancel_order",
-        "dispute": "dispute_order",
-        "approve": "approve_order",
-        "archive": "archive_order",
-        "late": "late_order",
-        "revision": "revision_order",
-        "resume": "resume_order",
-    }
+    @action(detail=False, methods=["post"], url_path="dispatch")
+    def dispatch_action(self, request):
+        serializer = OrderActionSerializer(data=request.data, context={"request": request})
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @transaction.atomic
-    def patch(self, request, pk):
-        """
-        Endpoint for transitioning an order to a different state.
-        
-        :param request: The HTTP request containing the action.
-        :param pk: The order ID.
-        :return: Response indicating success or failure.
-        """
-        action = request.data.get("action")
-        VERB_MESSAGES = {
-            "assign": "assigned",
-            "hold": "put on hold",
-            "complete": "completed",
-            "cancel": "cancelled",
-            "dispute": "disputed",
-            "approve": "approved",
-            "archive": "archived",
-            "late": "delayed",
-            "revision": "on revision",
-            "resume": "resumed from hold",
+        action = serializer.validated_data["action"]
+        order_id = serializer.validated_data["order_id"]
+
+        # Remove known fields to forward the rest as dynamic kwargs
+        params = {
+            key: value for key, value in request.data.items()
+            if key not in ("action", "order_id")
         }
+
         try:
-            order = Order.objects.get(id=pk)
-
-            if action not in self.ACTIONS:
-                return Response(
-                    {"error": "Invalid action."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            method_name = self.ACTIONS[action]
-
-            # Handle 'assign' separately to get the writer_id from request
-            if action == "assign":
-                writer_id = request.data.get("writer_id")
-                writer = User.objects.get(id=writer_id)
-                order = getattr(OrderService, method_name)(order, writer)
-            else:
-                order = getattr(OrderService, method_name)(order)
-
-            # Global role-based guardrail (customize per action below)
-            if action in ["assign", "cancel", "archive", "dispute"]:
-                self.check_object_permissions(request, order)
-                if not IsSupportOrAdmin().has_permission(request, self):
-                    return Response({"detail": "Not allowed"}, status=403)
-
-            if action == "complete":
-                if not IsAssignedWriter().has_object_permission(request, self, order):
-                    return Response({"detail": "Only assigned writer can complete"},
-                                    status=403)
-
-            if action == "approve":
-                if not IsClientWhoOwnsOrder().has_object_permission(request, self, order):
-                    return Response({"detail": "Only client can approve"},
-                                    status=403)
-                
-            if action == "resume":
-                if not (
-                    IsAssignedWriter().has_object_permission(request, self, order)
-                    or IsSupportOrAdmin().has_permission(request, self)
-                ):
-                    return Response(
-                        {"detail": "Only assigned writer or staff can resume"},
-                        status=403
-                    )
-
-
-            return Response(
-                {"message": f"Order {VERB_MESSAGES[action]}."},
-                status=status.HTTP_200_OK
-            )
-
-        except ObjectDoesNotExist as e:
-            return Response(
-                {"error": f"Object not found: {str(e)}"},
-                status=status.HTTP_404_NOT_FOUND
-            )
-
-        except TransitionNotAllowed as e:
-            return Response(
-                {"error": str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            result = OrderActionDispatcher.dispatch(action, order_id, **params)
+            return Response({
+                "success": True,
+                "action": action,
+                "order_id": order_id,
+                "result": result
+            }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response(
-                {"error": f"An error occurred: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({
+                "success": False,
+                "error": str(e),
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+    @action(detail=False, methods=["get"], url_path="list")
+    def list_actions(self, request):
+        """
+        Return all registered action names and their class names.
+        """
+        actions = all_actions()
+        return Response([
+            {
+                "action": name,
+                "class": cls.__name__,
+                "doc": cls.__doc__ or "No description available"
+            }
+            for name, cls in actions.items()
+        ])

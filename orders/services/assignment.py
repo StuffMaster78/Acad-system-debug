@@ -12,10 +12,16 @@ class OrderAssignmentService:
     """
 
     def __init__(self, order: Order):
+        """
+        Initializes the OrderAssignmentService.
+
+        Args:
+            order (Order): The order to operate on.
+        """
         self.order = order
 
     @transaction.atomic
-    def assign_writer(order: Order, writer_id: int) -> Order:
+    def assign_writer(self, writer_id: int) -> Order:
         """
         Assigns a writer to an order and updates its status.
 
@@ -26,34 +32,40 @@ class OrderAssignmentService:
         Returns:
             Order: The updated order with an assigned writer.
         """
-        if order.assigned_writer:
+        if self.order.assigned_writer:
             raise ValidationError("Order is already assigned to a writer.")
 
         try:
-            writer = User.objects.get(id=writer_id, role='writer', is_active=True)
+            writer = User.objects.get(
+                id=writer_id,
+                role='writer',
+                is_active=True
+            )
         except User.DoesNotExist:
-            raise ObjectDoesNotExist(f"Writer with ID {writer_id} does not exist or is not active.")
+            raise ObjectDoesNotExist(
+                f"Writer with ID {writer_id} does not exist or is not active."
+            )
 
-        order.assigned_writer = writer
-        order.status = "in_progress"  # Update as per your actual status codes
-        order.save()
+        self.order.assigned_writer = writer
+        self.order.status = "in_progress"
+        self.order.save()
 
         send_notification(
             writer,
             "New Order Assigned",
-            f"You've been assigned to Order #{order.id}."
+            f"You've been assigned to Order #{self.order.id}."
         )
         send_notification(
-            order.client,
+            self.order.client,
             "Writer Assigned",
-            f"A writer has been assigned to your Order #{order.id}."
+            f"A writer has been assigned to your Order #{self.order.id}."
         )
 
-        return order
+        return self.order
 
 
     @transaction.atomic
-    def unassign_writer(order: Order) -> Order:
+    def unassign_writer(self) -> Order:
         """
         Unassigns the current writer from an order and sets it back to available.
 
@@ -63,23 +75,23 @@ class OrderAssignmentService:
         Returns:
             Order: The updated order with no assigned writer.
         """
-        if not order.assigned_writer:
+        if not self.order.assigned_writer:
             raise ValidationError("Order is not currently assigned to any writer.")
 
-        writer = order.assigned_writer
-        order.assigned_writer = None
-        order.status = "available"  # Update as needed for your system
-        order.save()
+        writer = self.order.assigned_writer
+        self.order.assigned_writer = None
+        self.order.status = "available"
+        self.order.save()
 
         send_notification(
             writer,
             "Order Unassigned",
-            f"You've been unassigned from Order #{order.id}."
+            f"You've been unassigned from Order #{self.order.id}."
         )
         send_notification(
-            order.client,
+            self.order.client,
             "Writer Unassigned",
-            f"The writer was unassigned from your Order #{order.id} and it's now available again."
+            f"The writer was unassigned from your Order #{self.order.id} and it's now available again."
         )
 
-        return order
+        return self.order

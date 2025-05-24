@@ -25,8 +25,12 @@ from .services.pricing_calculator import (
 )
 from django.apps import apps
 from websites.models import Website
-from orders.order_enums import OrderStatus
-
+from orders.order_enums import (
+    OrderStatus, OrderFlags,
+    DisputeStatusEnum,
+    SpacingOptions
+)
+from django.contrib.postgres.fields import ArrayField
 
 User = settings.AUTH_USER_MODEL 
 
@@ -38,66 +42,6 @@ User = settings.AUTH_USER_MODEL
 # Website = get_website_model()
 
 # from writer_management.models import wr
-from enum import Enum
-class SpacingOptions(Enum):
-    """
-    Enum representing the different spacing options for an order.
-    """
-    SINGLE = 'single'
-    DOUBLE = 'double'
-
-    @classmethod
-    def choices(cls):
-        """
-        Returns a list of tuples (value, label) for each spacing type in the enum.
-        """
-        return [
-            (spacing.value, spacing.name.capitalize()) 
-            for spacing in cls
-        ]
-
-
-class OrderFlags(Enum):
-    """
-    Enum representing different flags that can be applied to an order.
-    """
-    URGENT_ORDER = 'UO'
-    FIRST_CLIENT_ORDER = 'FCO'
-    HIGH_VALUE_ORDER = 'HVO'
-    PREFERRED_ORDER = 'PO'
-    RETURNING_CLIENT_ORDER = 'RCO'
-
-    @classmethod
-    def choices(cls):
-        """
-        Returns a list of tuples (value, label) for each flag in the enum.
-        """
-        return [
-            (flag.value, flag.name.replace('_', ' ').title()) 
-            for flag in cls
-        ]
-
-
-class DisputeStatusEnum(Enum):
-    """
-    Enum representing the different statuses a dispute can have.
-    """
-    OPEN = 'open'
-    IN_REVIEW = 'in_review'
-    RESOLVED = 'resolved'
-    ESCALATED = 'escalated'
-    CLOSED = 'closed'
-
-    @classmethod
-    def choices(cls):
-        """
-        Returns a list of tuples (value, label) for each dispute status.
-        """
-        return [
-            (status.value, status.name.replace('_', ' ').title()) 
-            for status in cls
-        ]
-
 class Order(models.Model):
     """
     Represents an order placed by a client.
@@ -238,7 +182,11 @@ class Order(models.Model):
         default=OrderStatus.CREATED.value,
         help_text="Current status of the order."
     )
-    flags = models.JSONField(
+    flags = ArrayField(
+        base_field=models.CharField(
+            max_length=10,
+            choices=OrderFlags.choices()
+        ),
         default=list,
         blank=True,
         help_text="Flags related to the order (e.g., Urgent Order, Returning Client)."
@@ -569,11 +517,16 @@ class WriterRequest(models.Model):
     Model to track writer requests such as deadline extensions or page
     increases.
     """
-    ORDER_REQUEST_TYPE = [
-        ('deadline_extension', 'Deadline Extension'),
-        ('page_increase', 'Page Increase'),
-        ('slide_increase', 'Slide Increase')
-    ]
+    class RequestType(models.TextChoices):
+        DEADLINE = 'deadline_extension', 'Deadline Extension'
+        PAGES = 'page_increase', 'Page Increase'
+        SLIDES = 'slide_increase', 'Slide Increase'
+
+    class RequestStatus(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        ACCEPTED = 'accepted', 'Accepted'
+        DECLINED = 'declined', 'Declined'
+    
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -585,7 +538,7 @@ class WriterRequest(models.Model):
     )
     request_type = models.CharField(
         max_length=50,
-        choices=ORDER_REQUEST_TYPE
+        choices=RequestType.choices
     )
     requested_by_writer = models.ForeignKey(
         'User', on_delete=models.SET_NULL,
@@ -602,93 +555,21 @@ class WriterRequest(models.Model):
     is_paid = models.BooleanField(default=False)
     status = models.CharField(
         max_length=20,
-        choices=[('pending', 'Pending'),
-                 ('accepted', 'Accepted'),
-                 ('declined', 'Declined')
-        ],
-        default='pending'
+        choices=RequestStatus.choices,
+        default=RequestStatus.PENDING
     )
 
-    def clean(self):
-        """
-        Validation for requests, ensuring that the new deadline,
-        page increase, or slide increase
-        is set when required based on the request type.
-        """
-        if self.request_type == 'deadline_extension' and not self.new_deadline:
-            raise ValidationError(
-                "New deadline must be provided for deadline extension requests."
-                )
-        
-        if self.request_type == 'page_increase' and not self.additional_pages:
-            raise ValidationError(
-                "Page increase must be provided for page increase requests."
-            )
-        
-        if self.request_type == 'slide_increase' and not self.additional_slides:
-            raise ValidationError(
-                "Slide increase must be provided for slide increase requests."
-            )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    def handle_writer_request(self):
-        """Process the writer's request based on its type."""
-        if self.request_type == 'deadline_extension':
-            if not self.new_deadline:
-                raise ValidationError(
-                    "New deadline is required for deadline extension requests."
-                )
-            self.order.change_deadline(self.new_deadline)
-
-        elif self.request_type == 'page_increase':
-            if self.additional_pages:
-                self.order.update_page_count(self.additional_pages)
-                self.order.calculate_total_cost()  
-
-        elif self.request_type == 'slide_increase':
-            if self.additional_slides:
-                self.order.update_slide_count(self.additional_slides)
-                self.order.calculate_total_cost()  
-
-        # Automatically mark request as accepted after handling
-        self.status = 'accepted'  
-        self.save()
-
-    def apply_discount_or_event(self):
-        """Apply discount or seasonal event benefits to the order if eligible."""
-        if self.discount and self.discount.is_valid(self.requested_by_writer):
-            # Apply discount to the order
-            self.order.apply_discount(self.discount)
-        
-        elif self.seasonal_event and self.seasonal_event.is_currently_active:
-            # Apply seasonal event discount (if active)
-            discount_for_event = Discount.objects.filter(seasonal_event=self.seasonal_event, is_active=True).first()
-            if discount_for_event and discount_for_event.is_valid(self.requested_by_writer):
-                self.order.apply_discount(discount_for_event)
-
-    def approve_request(self, approved_by):
-        """Handle approval of the request."""
-        # Ensure request type is valid and required fields are present
-        if self.request_type == 'deadline_extension' and self.new_deadline:
-            self.order.change_deadline(self.new_deadline)
-        elif self.request_type == 'page_increase' and self.additional_pages:
-            self.order.calculate_total_cost()
-        elif self.request_type == 'slide_increase' and self.additional_slides:
-            self.order.calculate_total_cost()
-
-        # Approve the request
-        self.admin_approval = True
-        self.client_approval = True
-        self.status = 'accepted'
-        self.save()
 
     def __str__(self):
         """
         Return a string representation of the request.
-
         Returns:
             str: A summary of the request, including order ID and type.
         """
-        return f"Writer Request for Order #{self.order.id} by {self.requested_by_writer.username}"
+        return f"WriterRequest({self.id}) - {self.request_type} for Order #{self.order.id}"
 
 class WriterProgress(models.Model):
     """

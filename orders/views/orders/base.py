@@ -1,46 +1,48 @@
-from rest_framework import viewsets, permissions, status
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework import status
-from django.shortcuts import get_object_or_404
-from orders.serializers import OrderSerializer
-from orders.models import Order
-from orders.services import OrderService
-from orders.permissions import IsAssignedWriter, IsSupportOrAdmin
+from rest_framework import viewsets, mixins
+from rest_framework.permissions import IsAuthenticated
 
-class OrderViewSet(viewsets.ModelViewSet):
+from orders.models import Order
+from orders.serializers import OrderSerializer
+from orders.permissions import IsOrderOwnerOrSupport
+
+
+class OrderBaseViewSet(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet
+):
     """
-    A ViewSet for managing Orders.
+    Base viewset for orders. Supports list and retrieve operations.
+
+    Attributes:
+        queryset: QuerySet of Order objects.
+        serializer_class: Serializer used for order objects.
+        permission_classes: List of permission classes.
     """
+
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOrderOwnerOrSupport]
 
-    @action(detail=True, methods=["post"], url_path="actions/(?P<action_name>[^/.]+)")
-    def execute_action(self, request, pk=None, action_name=None):
+    def get_queryset(self):
         """
-        Dynamically execute a registered order action via:
-        /orders/{id}/actions/{action_name}/
+        Returns the filtered queryset for the current user.
+
+        Returns:
+            QuerySet: A queryset filtered based on user role.
         """
-        order = self.get_object()
-        action_cls = OrderActionRegistry.get(action_name)
+        user = self.request.user
 
-        if not action_cls:
-            return Response(
-                {"detail": f"Action '{action_name}' is not supported."},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        if user.is_superuser:
+            return Order.objects.all()
 
-        try:
-            if isinstance(action_cls, type):
-                action_instance = action_cls(order, **request.data)
-            else:
-                # Just in case a functional handler is used
-                return Response({"error": "Unsupported action handler type."}, status=500)
+        if user.role == 'client':
+            return Order.objects.filter(client=user)
 
-            result = action_instance.execute()
+        if user.role == 'writer':
+            return Order.objects.filter(writer=user)
 
-            return Response({"message": str(result)}, status=status.HTTP_200_OK)
+        if user.role in ['admin', 'support', 'editor']:
+            return Order.objects.all()
 
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Order.objects.none()

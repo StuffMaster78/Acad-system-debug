@@ -7,7 +7,7 @@ from .models import (
 )
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
-
+from orders.actions.registry import get_action_class
 
 User = get_user_model()
 
@@ -85,30 +85,22 @@ class OrderCreateSerializer(serializers.ModelSerializer):
 class OrderActionSerializer(serializers.Serializer):
     action = serializers.CharField(required=True)
     order_id = serializers.IntegerField(required=True)
+    params = serializers.DictField(required=False, default=dict)
     
     # You can also add custom validation logic here if needed
     def validate_action(self, value):
         """
         Ensure the action is valid.
         """
-        valid_actions = [
-            'put_on_hold', 'resume_order', 'assign_writer', 'complete_order',
-            'dispute_order', 'approve_order', 'cancel_order', 'archive_order',
-            'late_order', 'revision_order', 'transition_to_pending'
-        ]
-        if value not in valid_actions:
-            raise serializers.ValidationError(f"Invalid action '{value}'.")
+        if not get_action_class(value):
+            raise serializers.ValidationError(f"Action '{value}' is not registered.")
         return value
 
     def validate_order_id(self, value):
         """
         Ensure the order exists.
         """
-        try:
-            # Check if the order exists in the database
-            from orders.models import Order
-            order = Order.objects.get(id=value)
-        except Order.DoesNotExist:
+        if not Order.objects.filter(id=value).exists():
             raise serializers.ValidationError(f"Order with id {value} does not exist.")
         return value
 
@@ -306,22 +298,12 @@ class DisputeWriterResponseSerializer(serializers.ModelSerializer):
 
 
 class WriterRequestSerializer(serializers.ModelSerializer):
-    """
-    Serializer to handle writer requests such as deadline extensions or page increases.
-    """
     request_type = serializers.ChoiceField(choices=WriterRequest.ORDER_REQUEST_TYPE)
-    requested_by_writer = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.filter(role="writer"),  # Adjusted filter for role "writer"
-        required=False
-    )
+    requested_by_writer = serializers.PrimaryKeyRelatedField(read_only=True)
     new_deadline = serializers.DateTimeField(required=False, allow_null=True)
     additional_pages = serializers.IntegerField(required=False, allow_null=True)
     additional_slides = serializers.IntegerField(required=False, allow_null=True)
     request_reason = serializers.CharField(max_length=1000)
-    status = serializers.ChoiceField(choices=[('pending', 'Pending'), ('accepted', 'Accepted'), ('declined', 'Declined')], default='pending')
-    client_approval = serializers.BooleanField(default=False)
-    admin_approval = serializers.BooleanField(default=False)
-    is_paid = serializers.BooleanField(default=False)
 
     class Meta:
         model = WriterRequest
@@ -330,42 +312,26 @@ class WriterRequestSerializer(serializers.ModelSerializer):
             'new_deadline', 'additional_pages', 'additional_slides',
             'request_reason', 'status', 'client_approval', 'admin_approval', 'is_paid'
         ]
-    
+        read_only_fields = ['status', 'client_approval', 'admin_approval', 'is_paid']
+
     def validate(self, attrs):
-        """
-        Custom validation to ensure correct fields based on request type.
-        """
-        if attrs['request_type'] == 'deadline_extension' and not attrs.get('new_deadline'):
+        req_type = attrs.get('request_type')
+        if req_type == 'deadline_extension' and not attrs.get('new_deadline'):
             raise serializers.ValidationError("New deadline must be provided for deadline extension requests.")
-        
-        if attrs['request_type'] == 'page_increase' and not attrs.get('additional_pages'):
+        if req_type == 'page_increase' and not attrs.get('additional_pages'):
             raise serializers.ValidationError("Page increase must be provided for page increase requests.")
-        
-        if attrs['request_type'] == 'slide_increase' and not attrs.get('additional_slides'):
+        if req_type == 'slide_increase' and not attrs.get('additional_slides'):
             raise serializers.ValidationError("Slide increase must be provided for slide increase requests.")
-        
         return attrs
 
     def create(self, validated_data):
-        """
-        Override the create method to add custom logic if needed.
-        """
-        # Create the WriterRequest instance
-        writer_request = WriterRequest.objects.create(**validated_data)
-        
-        # You could also add custom behavior here if needed
-        
-        return writer_request
+        validated_data['requested_by_writer'] = self.context['request'].user
+        return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        """
-        Handle the update of the WriterRequest.
-        """
-        # Update the fields of the instance with the validated data
-        instance.status = validated_data.get('status', instance.status)
-        instance.client_approval = validated_data.get('client_approval', instance.client_approval)
-        instance.admin_approval = validated_data.get('admin_approval', instance.admin_approval)
-        instance.is_paid = validated_data.get('is_paid', instance.is_paid)
-        
+        # Only allow system-side fields to be updated if explicitly permitted
+        for field in ['status', 'client_approval', 'admin_approval', 'is_paid']:
+            if field in validated_data:
+                setattr(instance, field, validated_data[field])
         instance.save()
         return instance

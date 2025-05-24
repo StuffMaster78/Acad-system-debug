@@ -1,57 +1,141 @@
+from datetime import timedelta
 from django.utils import timezone
-from orders.models import Order, PreferredWriterResponse
-from django.core.exceptions import ObjectDoesNotExist
 from django.db import transaction
+from django.core.exceptions import ObjectDoesNotExist
+from orders.models import Order, PreferredWriterResponse
+from orders.order_enums import OrderStatus
 
 
-class PreferredWriterForOrderService:
+class PreferredWriterResponseService:
+    """Service to handle preferred writer responses on assigned orders.
+
+    This service supports accepting, declining an assigned order, and 
+    releasing orders back to the available pool if the acceptance window 
+    expires without response.
+
+    Attributes:
+        RESPONSE_ACCEPTED (str): Constant for accepted response.
+        RESPONSE_DECLINED (str): Constant for declined response.
+        ACCEPTANCE_WINDOW_FRACTION (float): Fraction of deadline allowed
+            for acceptance before auto-release.
     """
-    Service to handle responses from preferred writers for specific orders.
-    This includes accepting or declining an order assigned as preferred writer.
-    """
 
-    def respond_to_preferred_order(writer, order_id, response, reason=None):
-        """
-        Allows a preferred writer to respond to an order request (accept/decline).
+    RESPONSE_ACCEPTED = "accepted"
+    RESPONSE_DECLINED = "declined"
+    ACCEPTANCE_WINDOW_FRACTION = 0.2
+
+    @staticmethod
+    def accept(order_id, writer):
+        """Accept an assigned order by the preferred writer.
 
         Args:
-            writer (User): The writer responding to the order.
-            order_id (int): The ID of the order.
-            response (str): The writer's response, either 'accepted' or 'declined'.
-            reason (str, optional): The reason for declining the order (if any).
+            order_id (int): ID of the order being accepted.
+            writer (User): Writer responding to the order.
 
         Returns:
-            Order: The updated order after the writer's response.
-        
+            Order: The updated order with status 'in_progress'.
+
         Raises:
-            ObjectDoesNotExist: If the order does not exist or is not assigned to the writer.
+            ObjectDoesNotExist: If order does not exist or writer
+                is not assigned as preferred.
+            ValueError: If order status is not 'assigned'.
         """
-        try:
-            order = Order.objects.get(id=order_id)
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(id=order_id)
 
             if order.preferred_writer != writer:
                 raise ObjectDoesNotExist(
-                    f"Order #{order.id} is not assigned to this writer."
-                )
-            
-            # Start a transaction to handle changes atomically
-            with transaction.atomic():
-                # Log the writer's response
-                response_record = PreferredWriterResponse.objects.create(
-                    order=order,
-                    writer=writer,
-                    response=response,
-                    reason=reason if response == 'declined' else None
+                    "Order not assigned to this writer."
                 )
 
-                # Handle the order's status based on the writer's response
-                if response == 'accepted':
-                    order.status = 'in_progress'
-                else:  # response == 'declined'
-                    order.status = 'available'  # It goes back to the pool
+            if order.status != OrderStatus.ASSIGNED:
+                raise ValueError("Order is not currently assigned.")
 
-                order.save()
+            PreferredWriterResponse.objects.create(
+                order=order,
+                writer=writer,
+                response=PreferredWriterResponseService.RESPONSE_ACCEPTED,
+            )
 
-                return order
-        except ObjectDoesNotExist:
-            raise ObjectDoesNotExist(f"Order #{order_id} does not exist or no preferred writer.")
+            order.status = OrderStatus.IN_PROGRESS
+            order.accepted_at = timezone.now()
+            order.save()
+
+            return order
+
+    @staticmethod
+    def reject(order_id, writer, reason=None):
+        """Reject an assigned order by the preferred writer.
+
+        Args:
+            order_id (int): ID of the order being declined.
+            writer (User): Writer responding to the order.
+            reason (str, optional): Reason for declining.
+
+        Returns:
+            Order: The updated order with status 'available'.
+
+        Raises:
+            ObjectDoesNotExist: If order does not exist or writer
+                is not assigned as preferred.
+            ValueError: If order status is not 'assigned'.
+        """
+        with transaction.atomic():
+            order = Order.objects.select_for_update().get(id=order_id)
+
+            if order.preferred_writer != writer:
+                raise ObjectDoesNotExist(
+                    "Order not assigned to this writer."
+                )
+
+            if order.status != OrderStatus.ASSIGNED:
+                raise ValueError("Order is not currently assigned.")
+
+            PreferredWriterResponse.objects.create(
+                order=order,
+                writer=writer,
+                response=PreferredWriterResponseService.RESPONSE_DECLINED,
+                reason=reason,
+            )
+
+            order.status = OrderStatus.AVAILABLE
+            order.preferred_writer = None
+            order.save()
+
+            return order
+
+    @staticmethod
+    def release_if_expired():
+        """Release assigned orders if acceptance window expired.
+
+        Finds orders with status 'assigned' where the preferred writer 
+        failed to respond within the acceptance window (20% of time 
+        between assignment and deadline). Such orders are moved back to 
+        'available' and preferred_writer is cleared.
+
+        This method is intended to be called periodically by a background 
+        job or scheduler.
+        """
+        now = timezone.now()
+        assigned_orders = Order.objects.filter(status=OrderStatus.ASSIGNED)
+
+        for order in assigned_orders:
+            if not order.assigned_at or not order.deadline:
+                continue
+
+            total_time = order.deadline - order.assigned_at
+            acceptance_window = timedelta(
+                seconds=total_time.total_seconds() *
+                PreferredWriterResponseService.ACCEPTANCE_WINDOW_FRACTION
+            )
+
+            expire_time = order.assigned_at + acceptance_window
+            if now > expire_time:
+                with transaction.atomic():
+                    locked_order = Order.objects.select_for_update().get(
+                        id=order.id
+                    )
+                    if locked_order.status == OrderStatus.ASSIGNED:
+                        locked_order.status = OrderStatus.AVAILABLE
+                        locked_order.preferred_writer = None
+                        locked_order.save()
