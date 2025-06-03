@@ -44,6 +44,12 @@ def process_refund(refund, admin_user):
     refund.processed_at = timezone.now()
     refund.save()
 
+    # DiscountUsageTracker.untrack(
+    #         order=order,
+    #         actor=actor,
+    #         reason=reason or "Refunded"
+    #     )
+
     deduct_writer_earnings(refund, admin_user)
 
     # Log the refund event for payment logs

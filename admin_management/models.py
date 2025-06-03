@@ -77,7 +77,8 @@ class AdminProfile(models.Model):
     )
     can_manage_writers = models.BooleanField(default=False)
     can_manage_clients = models.BooleanField(default=False)
-
+    can_manage_editors = models.BooleanField(default=False)
+    
     is_active = models.BooleanField(
         default=True, 
         help_text="Soft delete instead of removing admin."

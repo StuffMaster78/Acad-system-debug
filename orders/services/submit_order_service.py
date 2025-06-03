@@ -2,7 +2,7 @@ from orders.models import Order
 from orders.order_enums import OrderStatus
 from orders.services.move_to_editing import MoveOrderToEditingService
 from django.core.exceptions import ObjectDoesNotExist
-
+from fines.services.fine_automation import auto_issue_late_fine
 class SubmitOrderService:
     """
     Handles writer order submission and transition to under_editing.
@@ -36,5 +36,8 @@ class SubmitOrderService:
 
         # Fire editing transition
         MoveOrderToEditingService(user=user, order=order, params={}).execute()
+        
 
+        auto_issue_late_fine(order)
+        
         return order

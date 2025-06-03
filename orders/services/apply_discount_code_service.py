@@ -6,11 +6,10 @@ from django.core.exceptions import ValidationError
 
 from orders.utils.order_utils import get_order_by_id
 from discounts.services import DiscountEngine
-from discounts.services.usage import DiscountUsageService
-from discounts.services.suggestions import   DiscountSuggestionService
-from discounts.services.hints import DiscountHintService
+from discounts.services.discount_suggestions import   DiscountSuggestionService
+from discounts.services.discount_hints import DiscountHintService
 from notifications_system.services import notify_admin_of_error
-
+from discounts.services.discount_usage_tracker import DiscountUsageTracker
 logger = logging.getLogger(__name__)
 
 
@@ -65,7 +64,7 @@ class ApplyDiscountCodeService:
                 "errors": discount_result.get("errors", []),
             })
 
-            DiscountUsageService.track(discounts, order, user)
+            DiscountUsageTracker.track_multiple(discounts, order, user)
 
             hint = DiscountHintService.get_stackable_hint(codes, order.website)
             if hint:

@@ -89,10 +89,12 @@ class WriterPayment(models.Model):
             raise ValueError("Writer level is not set.")
 
         # Fetch writer's level-based pay rate
-        payout_rate = self.writer.writer_level.base_pay_per_page
+        pages_payment = self.writer.writer_level.base_pay_per_page
+        slides_payment = self.writer.writer_level.base_pay_per_slide
 
         # Calculate base payment if an order exists
-        base_payment = self.order.word_count * payout_rate if self.order else 0.00
+        base_payment = (self.order.number_of_pages * pages_payment if self.order else 0.00) + \
+                       (self.order.number_of_slides * slides_payment if self.order else 0.00)
 
         # Apply bonuses from Special Orders
         if self.special_order:
@@ -128,7 +130,7 @@ class WriterPayment(models.Model):
         send_notification(
             user=self.writer.user,
             title="Payment Processed",
-            message=f"You have received a payment of ${self.amount}.",
+            message=f"You payment of ${self.amount} is on it's way.",
             category="payment"
         )
 

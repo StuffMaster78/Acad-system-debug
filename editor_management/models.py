@@ -191,8 +191,14 @@ class EditorNotification(models.Model):
         related_name="editor_notifications",
         help_text="Related order, if applicable."
     )
-    created_at = models.DateTimeField(auto_now_add=True, help_text="Timestamp of the notification.")
-    is_read = models.BooleanField(default=False, help_text="Indicates whether the notification has been read.")
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Timestamp of the notification."
+    )
+    is_read = models.BooleanField(
+        default=False,
+        help_text="Indicates whether the notification has been read."
+    )
 
     def __str__(self):
         return f"Notification for {self.editor.name}: {self.message[:30]}"

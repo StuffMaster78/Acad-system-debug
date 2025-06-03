@@ -8,10 +8,10 @@ from datetime import datetime, timedelta
 from orders.exceptions import TransitionNotAllowed
 from orders.models import OrderStatus, Order
 from orders.services.order_utils import _get_order, save_order
-from discounts.services.engine import DiscountEngine
-from discounts.services.hints import DiscountHintService
-from discounts.services.usage import DiscountUsageService
-from discounts.services.suggestions import DiscountSuggestionService
+from discounts.services.discount_engine import DiscountEngine
+from discounts.services.discount_hints import DiscountHintService
+from discounts.services.discount_suggestions import DiscountSuggestionService
+from discounts.services.discount_usage_tracker import DiscountUsageTracker
 from notifications_system.services.send_notification import notify_admin_of_error
 
 logger = logging.getLogger(__name__)
@@ -380,7 +380,7 @@ class OrderService:
                 "errors": discount_result.get("errors", []),
             })
 
-            DiscountUsageService.track(discounts, order, user)
+            DiscountUsageTracker.track_multiple(discounts, order, user)
 
             hint = DiscountHintService.get_stackable_hint(codes, order.website)
             if hint:

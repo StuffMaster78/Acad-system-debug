@@ -131,11 +131,17 @@ class FileDeletionRequest(models.Model):
     requested_by = models.ForeignKey(User, on_delete=models.CASCADE)
     status = models.CharField(
         max_length=20,
-        choices=[("pending", "Pending"), ("approved", "Approved"), ("rejected", "Rejected")],
+        choices=[
+            ("pending", "Pending"), ("approved", "Approved"),
+            ("rejected", "Rejected")
+        ],
         default="pending"
     )
     requested_at = models.DateTimeField(auto_now_add=True)
-    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="file_deletion_reviews")
+    reviewed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True,
+        blank=True, related_name="file_deletion_reviews"
+    )
 
     def __str__(self):
         return f"Deletion Request - {self.file} by {self.requested_by}"
@@ -160,11 +166,17 @@ class ExternalFileLink(models.Model):
     description = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(
         max_length=20,
-        choices=[("pending", "Pending"), ("approved", "Approved"), ("rejected", "Rejected")],
+        choices=[
+            ("pending", "Pending"), ("approved", "Approved"),
+            ("rejected", "Rejected")
+        ],
         default="pending"
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="external_link_reviews")
+    reviewed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True,
+        blank=True, related_name="external_link_reviews"
+    )
 
     def __str__(self):
         return f"External Link - Order {self.order.id}"

@@ -29,25 +29,41 @@ class OrderMessageThread(models.Model):
         ('standard', 'Standard Order'),
         ('special', 'Special Order'),
     ]
-    order_type = models.CharField(max_length=20, choices=ORDER_TYPE_CHOICES, default='standard', help_text="Type of order this thread is associated with.")
-    order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name="message_thread")
-    special_order = models.ForeignKey('special_orders.SpecialOrder', on_delete=models.CASCADE, null=True, blank=True, related_name="message_threads")
+    order_type = models.CharField(
+        max_length=20,
+        choices=ORDER_TYPE_CHOICES,
+        default='standard',
+        help_text="Type of order this thread is associated with."
+    )
+    order = models.OneToOneField(
+        Order, on_delete=models.CASCADE,
+        related_name="message_thread"
+    )
+    special_order = models.ForeignKey(
+        'special_orders.SpecialOrder', on_delete=models.CASCADE,
+        null=True, blank=True, related_name="message_threads"
+    )
 
     sender_role = models.CharField(max_length=50, choices=[
         ('writer', 'Writer'), 
-        ('client', 'Client'), 
+        ('client', 'Client'),
+        ('superadmin', 'Super Admin'), 
         ('admin', 'Admin'),
         ('editor', 'Editor'), 
         ('support', 'Support')
     ])
     recipient_role = models.CharField(max_length=50, choices=[
         ('writer', 'Writer'), 
-        ('client', 'Client'), 
+        ('client', 'Client'),
+        ('superadmin', 'Super Admin'), 
         ('admin', 'Admin'),
         ('editor', 'Editor'),  
         ('support', 'Support')
     ])
-    participants = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name="message_threads", help_text="Users involved in this thread.")
+    participants = models.ManyToManyField(
+        settings.AUTH_USER_MODEL, related_name="message_threads",
+        help_text="Users involved in this thread."
+    )
     is_active = models.BooleanField(default=True)  # Messaging is active unless order is archived
     admin_override = models.BooleanField(default=False)  # Admin can enable messaging for archived orders
     created_at = models.DateTimeField(auto_now_add=True)
@@ -83,8 +99,14 @@ class OrderMessage(models.Model):
         ("editor", "Editor"),
     ]
 
-    thread = models.ForeignKey(OrderMessageThread, on_delete=models.CASCADE, related_name="messages")
-    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    thread = models.ForeignKey(
+        OrderMessageThread, on_delete=models.CASCADE,
+        related_name="messages"
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
     sender_role = models.CharField(max_length=10, choices=ROLE_CHOICES)
     message = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
@@ -122,7 +144,10 @@ class OrderMessage(models.Model):
             flagged = True
 
         if flagged:
-            FlaggedMessage.objects.create(order_message=self, flagged_reason="Contains restricted content")
+            FlaggedMessage.objects.create(
+                order_message=self,
+                flagged_reason="Contains restricted content"
+            )
 
     def __str__(self):
         return f"{self.sender_role} ({self.sender}) in Order {self.thread.order.id}"
@@ -160,10 +185,17 @@ class FlaggedMessage(models.Model):
     Stores messages flagged for review.
     Admins can review and either unblock or confirm the flag.
     """
-    order_message = models.OneToOneField(OrderMessage, on_delete=models.CASCADE, related_name="flagged_message")
+    order_message = models.OneToOneField(
+        OrderMessage, on_delete=models.CASCADE,
+        related_name="flagged_message"
+    )
     flagged_reason = models.TextField()
     flagged_at = models.DateTimeField(auto_now_add=True)
-    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL)
+    reviewed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     admin_comment = models.TextField(blank=True, null=True)
     is_unblocked = models.BooleanField(default=False)
@@ -221,10 +253,12 @@ class OrderMessageNotification(models.Model):
     If a message is flagged, an admin gets notified.
     """
     recipient = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="order_notifications", null=True, blank=True
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="order_notifications", null=True, blank=True
     )
     message = models.ForeignKey(
-        "OrderMessage", on_delete=models.CASCADE, related_name="notifications", null=True, blank=True
+        "OrderMessage", on_delete=models.CASCADE,
+        related_name="notifications", null=True, blank=True
     )
     notification_text = models.TextField(null=True, blank=True)  # For flagged messages
     is_read = models.BooleanField(default=False)
@@ -263,14 +297,28 @@ class DisputeMessage(models.Model):
         ("other", "Other"),
     ]
 
-    order_message = models.OneToOneField(OrderMessage, on_delete=models.CASCADE, related_name="dispute_message")
-    sender = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    sender_role = models.CharField(max_length=10, choices=OrderMessage.ROLE_CHOICES)
+    order_message = models.OneToOneField(
+        OrderMessage, on_delete=models.CASCADE,
+        related_name="dispute_message"
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
+    sender_role = models.CharField(
+        max_length=10, choices=OrderMessage.ROLE_CHOICES
+    )
     message = models.TextField()
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
-    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default="other")
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="pending"
+    )
+    category = models.CharField(
+        max_length=20, choices=CATEGORY_CHOICES, default="other"
+    )
     resolution_comment = models.TextField(blank=True, null=True)
-    resolution_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="dispute_resolution")
+    resolution_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="dispute_resolution"
+    )
     resolved_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)

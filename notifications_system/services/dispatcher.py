@@ -27,7 +27,11 @@ def notify_user(user, subject, message, *, tenant=None, html_message=None,
 
     if 'in_app' in channels:
         try:
-            send_notification(user=user, title=subject, message=message)
+            send_notification(
+                user=user,
+                title=subject,
+                message=message
+            )
             logger.debug(f"In-app notification sent to {user}")
         except Exception as e:
             logger.error(f"In-app notification failed for {user}: {e}", 
