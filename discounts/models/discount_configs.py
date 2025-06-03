@@ -48,7 +48,7 @@ class DiscountConfig(models.Model):
     allow_stack_across_events = models.BooleanField(
         default=False,
         help_text=(
-            "Allow stacking discount codes from different seasonal events "
+            "Allow stacking discount codes from different promotional campaigns "
             "on the same order."
         )
     )
@@ -59,12 +59,12 @@ class DiscountConfig(models.Model):
         default=10.00, max_digits=5, decimal_places=2,
         help_text="Value of seasonal discount in percentage"
     )
-    seasonal_event = models.ForeignKey(
-        "discounts.SeasonalEvent", 
-        null=True, 
-        blank=True, 
+    promotional_campaign = models.ForeignKey(
+        "discounts.PromotionalCampaign",
+        null=True,
+        blank=True,
         on_delete=models.SET_NULL,
-        help_text="The seasonal event linked to this discount"
+        help_text="The promotional campaign linked to this discount"
     )
 
     created_by = models.ForeignKey(

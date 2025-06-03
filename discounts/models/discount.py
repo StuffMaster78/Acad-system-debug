@@ -21,8 +21,10 @@ class Discount(models.Model):
     ]
     DISCOUNT_ORIGIN_CHOICES = [
         ('manual', 'Manual'),
-        ('seasonal', 'Seasonal Event'),
-        ('promo', 'Promotional Campaign'),
+        ('automatic', 'Automatic'),
+        ('system', 'System Generated'),
+        ('client', 'Client Specific'),
+        ('promo', 'Promotional Campaign')
     ]
     # Basic fields
     website = models.ForeignKey(

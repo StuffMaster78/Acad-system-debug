@@ -20,7 +20,7 @@ class SeasonalEventTests(APITestCase):
         )
 
     def test_create_seasonal_event(self):
-        """Ensure we can create a new seasonal event."""
+        """Ensure we can create a new promotional campaigns."""
         data = {
             "name": "Cyber Monday",
             "description": "Cyber Monday sale!",

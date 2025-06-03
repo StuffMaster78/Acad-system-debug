@@ -15,7 +15,7 @@ router.register(r'discount-stacking-rules', DiscountStackingRuleViewSet, basenam
 router.register(r'promotional-campaigns', PromotionalCamoaignViewSet, basename='promotional-campaigns')
 
 urlpatterns = [
-    # Include the router URLs for the discount and seasonal event endpoints
+    # Include the router URLs for the discount and promotional campaign endpoints
     path('api/', include(router.urls)),
     path(
         "api/discounts/analytics/",

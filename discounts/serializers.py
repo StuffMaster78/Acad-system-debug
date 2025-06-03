@@ -121,14 +121,14 @@ class PromotionalCampaignSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         """
-        Custom create method to handle creation of seasonal event.
+        Custom create method to handle creation of promotional campaign.
         """
         event = PromotionalCampaign.objects.create(**validated_data)
         return event
 
     def update(self, instance, validated_data):
         """
-        Handle update of a seasonal event.
+        Handle update of a Promotional Campaign.
         """
         for field, value in validated_data.items():
             setattr(instance, field, value)

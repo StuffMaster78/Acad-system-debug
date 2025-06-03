@@ -23,7 +23,7 @@ class DiscountCodeService:
     """
     Service to generate discount codes for admins.
 
-    Supports seasonal events, client-specific codes,
+    Supports promotional campaigns, client-specific codes,
     or general codes.
     """
 

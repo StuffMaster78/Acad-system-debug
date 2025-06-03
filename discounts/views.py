@@ -19,9 +19,9 @@ from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
 from django.db.models import Count, Avg, Q, F
 from .models import Discount, DiscountUsage
-class PromotionalCamoaignViewSet(viewsets.ModelViewSet):
+class PromotionalCampaignViewSet(viewsets.ModelViewSet):
     """
-    Viewset for managing seasonal events.
+    Viewset for managing promotional campaigns.
     Supports full CRUD operations.
     """
     queryset = PromotionalCampaign.objects.all()
@@ -72,7 +72,7 @@ class DiscountViewSet(viewsets.ModelViewSet):
         Optimize queries:
         - Filter active discounts
         - Exclude expired ones
-        - Preload related data for seasonal event and assigned client
+        - Preload related data for promotional campaigns and assigned client
         """
         return Discount.objects.filter(
             is_active=True, end_date__gte=now() | Q(end_date__isnull=True)

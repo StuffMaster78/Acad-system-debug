@@ -9,7 +9,7 @@ User = settings.AUTH_USER_MODEL
 ActualUser = get_user_model()
 class PromotionalCampaign(models.Model):
     """
-    Represents a seasonal event that discounts can be associated with.
+    Represents a Promotional Campaign that discounts can be associated with.
     Examples: Summer, Black Friday, CyberMonday etc.
     """
 

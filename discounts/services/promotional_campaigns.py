@@ -1,5 +1,5 @@
 """
-Service for handling seasonal events and their associated discounts.
+Service for handling promotionl campaigns and their associated discounts.
 """
 
 import logging
@@ -21,13 +21,13 @@ def get_order_model():
 
 class PromotionalCampaignService:
     """
-    Service for handling seasonal events and their associated discounts.
+    Service for handling promotional campaigns and their associated discounts.
     """
 
     @staticmethod
     def get_promotional_campaign_model():
         """
-        Returns the SeasonalEvent model from the discounts app.
+        Returns the PromotionalCampaign model from the discounts app.
         This allows for dynamic loading of the model to avoid circular imports.
         """
         return apps.get_model('discounts', 'PromotionalCampaign')
@@ -35,7 +35,7 @@ class PromotionalCampaignService:
     @classmethod
     def get_active_seasonal_events(cls, website):
         """
-        Retrieve all active seasonal events for a given website.
+        Retrieve all active promotional campaigns for a given website.
 
         Args:
             website (Website): The website for which to retrieve events.
@@ -55,7 +55,7 @@ class PromotionalCampaignService:
     @classmethod
     def mark_expired_events(cls):
         """
-        Mark all seasonal events that have expired as inactive.
+        Mark all promotional campaigns that have expired as inactive.
 
         Returns:
             int: Number of events marked inactive.
@@ -73,7 +73,7 @@ class PromotionalCampaignService:
     @staticmethod
     def attach_promotional_campaign_to_discount(discount, promotional_campaign):
         """
-        Attach a seasonal event to a discount, ensuring it aligns with
+        Attach a promotional campaign to a discount, ensuring it aligns with
         the event's active period.
 
         Args:
@@ -93,27 +93,27 @@ class PromotionalCampaignService:
                     f"Attached promotional campaign '{promotional_campaign}' to discount '{discount.code}'."
                 )
             except Exception as e:
-                logger.error(f"Failed to save discount with seasonal event: {e}")
+                logger.error(f"Failed to save discount with promotional campaign: {e}")
                 notify_admin_of_error(
-                    subject="Discount Seasonal Event Save Failure",
+                    subject="Discount Promotional Campaign Save Failure",
                     message=str(e)
                 )
                 raise
         else:
             raise ValidationError(
-                "The seasonal event is not active or is outside its valid period."
+                "The promotional campaign is not active or is outside its valid period."
             )
 
     @staticmethod
     def get_discounts_for_event(promotional_campaign):
         """
-        Retrieve discounts that are part of the given seasonal event.
+        Retrieve discounts that are part of the given promotional campaign.
 
         Args:
-            seasonal_event (SeasonalEvent): The seasonal event instance.
+            promotional_campaign (PromotionalCampaign): The promotional campaign instance.
 
         Returns:
-            QuerySet: Discounts linked to the seasonal event.
+            QuerySet: Discounts linked to the promotional campaign.
         """
         Discount = get_discount_model()
         return Discount.objects.filter(promotional_campaign=promotional_campaign)
@@ -121,7 +121,7 @@ class PromotionalCampaignService:
     @staticmethod
     def is_discount_applicable(discount):
         """
-        Check if the discount is linked to an active seasonal event or has no event.
+        Check if the discount is linked to an active promotional campaign or has no event.
 
         Args:
             discount (Discount): Discount instance to check.
