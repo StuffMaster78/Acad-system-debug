@@ -1,7 +1,7 @@
 from datetime import datetime
 from django.utils.timezone import now
-# from .models import DiscountUsage
-
+# from .services.usage import DiscountUsageService
+from discounts.services.discount_usage_tracker import DiscountUsageTracker
 from django.apps import apps
 
 # Use apps.get_model() to access Website model lazily
@@ -34,7 +34,7 @@ class DiscountValidator:
 
     def _check_usage_limits(self):
         if self.discount.max_uses is not None:
-            count = DiscountUsage.objects.filter(
+            count = DiscountUsageTracker.objects.filter(
                 base_discount=self.discount
             ).count()
             if count >= self.discount.max_uses:
@@ -46,7 +46,7 @@ class DiscountValidator:
         if not self.user:
             return
         if self.discount.max_uses_per_user is not None:
-            count = DiscountUsage.objects.filter(
+            count = DiscountUsageTracker.objects.filter(
                 base_discount=self.discount,
                 user=self.user
             ).count()
@@ -66,7 +66,7 @@ class DiscountValidator:
     def _check_repeat_use_on_order(self):
         if not self.order:
             return
-        if DiscountUsage.objects.filter(
+        if DiscountUsageTracker.objects.filter(
             order=self.order,
             base_discount=self.discount
         ).exists():
@@ -78,7 +78,7 @@ class DiscountValidator:
         if not self.order or not self.user:
             return
 
-        applied_discounts = DiscountUsage.objects.filter(order=self.order)
+        applied_discounts = DiscountUsageTracker.objects.filter(order=self.order)
         applied_codes = {d.base_discount.code for d in applied_discounts}
 
         # Case 1: Non-stackable discount trying to stack
@@ -98,7 +98,7 @@ class DiscountValidator:
 
         # Case 3: Exceeded per-customer stack count
         if self.discount.max_stackable_uses_per_customer is not None:
-            user_stack_count = DiscountUsage.objects.filter(
+            user_stack_count = DiscountUsageTracker.objects.filter(
                 base_discount=self.discount,
                 user=self.user,
                 discount__stackable=True

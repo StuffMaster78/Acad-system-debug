@@ -1,6 +1,6 @@
 from django.db import models
 from .discount import Discount
-
+from django.core.exceptions import ValidationError
 class DiscountStackingRule(models.Model):
     """
     Links discounts that can be combined in the system.
@@ -32,8 +32,18 @@ class DiscountStackingRule(models.Model):
 
     class Meta:
         unique_together = ("discount", "stackable_discount")
+        ordering = ['priority']
         verbose_name = "Discount Stacking Rule"
         verbose_name_plural = "Discount Stacking Rules"
 
+    def clean(self):
+        """
+        Custom validation to ensure that the discounts and website are valid.
+        """
+        if self.discount.website != self.stackable_discount.website:
+            raise ValidationError("Discounts must belong to the same website.")
+        if self.discount.website != self.website:
+            raise ValidationError("Stacking rule website must match discounts' website.")
+
     def __str__(self):
-        return f"{self.discount.code} can stack with {self.stackable_discount.code}"
+        return f"{self.discount.code} can stack with {self.stackable_discount.code} (priority {self.priority})"

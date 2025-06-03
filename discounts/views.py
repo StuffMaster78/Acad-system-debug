@@ -5,24 +5,27 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.exceptions import ValidationError
 from django.utils.timezone import now
 from django.db.models import Q
-from .models import Discount, SeasonalEvent, DiscountUsage, DiscountStackingRule
+from .models import Discount, PromotionalCampaign, DiscountUsage, DiscountStackingRule
 from .serializers import (
-    DiscountSerializer, SeasonalEventSerializer,
-    SeasonalEventWithDiscountsSerializer,
+    DiscountSerializer, PromotionalCampaignSerializer,
+    PromotionalCampaignWithDiscountsSerializer,
     DiscountUsageSerializer,
     DiscountStackingRuleSerializer
 )
-from .services.engine import DiscountEngine
+from .services.discount_engine import DiscountEngine
 from django_filters.rest_framework import DjangoFilterBackend # type: ignore
+from rest_framework.views import APIView
 from rest_framework.filters import SearchFilter, OrderingFilter
-
-class SeasonalEventViewSet(viewsets.ModelViewSet):
+from rest_framework.response import Response
+from django.db.models import Count, Avg, Q, F
+from .models import Discount, DiscountUsage
+class PromotionalCamoaignViewSet(viewsets.ModelViewSet):
     """
     Viewset for managing seasonal events.
     Supports full CRUD operations.
     """
-    queryset = SeasonalEvent.objects.all()
-    serializer_class = SeasonalEventSerializer
+    queryset = PromotionalCampaign.objects.all()
+    serializer_class = PromotionalCampaignSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def get_serializer_class(self):
@@ -31,8 +34,8 @@ class SeasonalEventViewSet(viewsets.ModelViewSet):
         is a list or detail view.
         """
         if self.action == 'list':
-            return SeasonalEventSerializer
-        return SeasonalEventWithDiscountsSerializer
+            return PromotionalCampaignSerializer
+        return PromotionalCampaignWithDiscountsSerializer
 
     def perform_create(self, serializer):
         """
@@ -42,9 +45,9 @@ class SeasonalEventViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Filter seasonal events based on active status and date.
+        Filter promotional campaigns based on active status and date.
         """
-        return SeasonalEvent.objects.filter(is_active=True)
+        return PromotionalCampaign.objects.filter(is_active=True)
     
 
 class DiscountViewSet(viewsets.ModelViewSet):
@@ -338,43 +341,103 @@ class DiscountStackingRuleViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         """
-        Validate and save an updated stacking rule.
-
-        Ensures that the updated stacking rule does not create conflicting
-        relationships between discounts.
+        Validate and update an existing stacking rule.
         """
         stacking_rule = serializer.save()
         self._validate_stacking_rule(stacking_rule)
 
-    def _validate_stacking_rule(self, stacking_rule):
+    def _validate_stacking_rule(self, rule):
         """
-        Validate that the stacking rule does not violate business logic.
-
-        Checks:
-        - Ensures the base discount is not the same as the stackable discount
-        - Prevents stacking of discounts that are already marked as non-stackable
+        Ensure stacking rules are logically valid:
+        - Prevent self-stacking
+        - Avoid conflicting duplicate rules
         """
-        base_discount = stacking_rule.base_discount
-        stackable_discount = stacking_rule.stackable_discount
+        if rule.base_discount == rule.stackable_discount:
+            raise ValidationError("A discount cannot be stackable with itself.")
 
-        # Ensure the discounts are not the same
-        if base_discount == stackable_discount:
-            raise ValidationError("A discount cannot be stacked with itself.")
+        # Prevent reverse duplicate
+        if DiscountStackingRule.objects.filter(
+            base_discount=rule.stackable_discount,
+            stackable_discount=rule.base_discount
+        ).exclude(id=rule.id).exists():
+            raise ValidationError("A reverse stacking rule already exists.")
 
-        # Ensure the stackable discount is actually stackable
-        if not stackable_discount.stackable:
-            raise ValidationError(f"{stackable_discount.code} cannot be stacked "
-                                    "with other discounts.")
+        # Prevent direct duplicate
+        if DiscountStackingRule.objects.filter(
+            base_discount=rule.base_discount,
+            stackable_discount=rule.stackable_discount
+        ).exclude(id=rule.id).exists():
+            raise ValidationError("This stacking rule already exists.")
 
     def destroy(self, request, *args, **kwargs):
         """
-        Soft delete the stacking rule entry.
+        Soft delete stacking rule by removing it entirely.
 
-        Instead of permanently deleting the record, this method will deactivate
-        the stacking rule by calling `delete()`, ensuring that historical data
-        is retained.
+        This method can be overridden in the future to flag as inactive
+        instead of hard deletion if needed.
         """
-        stacking_rule = self.get_object()
-        stacking_rule.delete()
-        return Response({"detail": "Discount stacking rule deleted."},
-                        status=status.HTTP_204_NO_CONTENT)
+        rule = self.get_object()
+        rule.delete()
+        return Response(
+            {"detail": "Stacking rule deleted."},
+            status=status.HTTP_204_NO_CONTENT
+        )
+    
+
+class DiscountAnalyticsView(APIView):
+    """
+    Provides analytics endpoints for discounts.
+    """
+
+    def get(self, request, *args, **kwargs):
+        stats_type = request.query_params.get("type")
+
+        if stats_type == "stats":
+            return self.get_overall_stats()
+        elif stats_type == "top-used":
+            return self.get_top_used()
+        elif stats_type == "events-breakdown":
+            return self.get_events_breakdown()
+        else:
+            return Response(
+                {"error": "Invalid type parameter."}, status=400
+            )
+
+    def get_overall_stats(self):
+        total_discounts = Discount.objects.count()
+        active_discounts = Discount.objects.filter(is_active=True).count()
+        total_usage = DiscountUsage.objects.count()
+        avg_discount_value = (
+            Discount.objects.aggregate(avg=Avg("value"))["avg"] or 0
+        )
+
+        data = {
+            "total_discounts": total_discounts,
+            "active_discounts": active_discounts,
+            "total_usage": total_usage,
+            "avg_discount_value": avg_discount_value,
+        }
+        return Response(data)
+
+    def get_top_used(self):
+        top_discounts = (
+            DiscountUsage.objects.values("discount__code")
+            .annotate(usage_count=Count("id"))
+            .order_by("-usage_count")[:10]
+        )
+
+        data = [{"code": d["discount__code"], "usage_count": d["usage_count"]}
+                for d in top_discounts]
+        return Response(data)
+
+    def get_events_breakdown(self):
+        event_data = (
+            Discount.objects.filter(event__isnull=False)
+            .values("event__name")
+            .annotate(count=Count("id"))
+            .order_by("-count")
+        )
+
+        data = [{"event": e["event__name"], "discount_count": e["count"]}
+                for e in event_data]
+        return Response(data)

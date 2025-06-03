@@ -1,5 +1,5 @@
 from .discount import Discount, DiscountUsage
-from .seasonal_event import SeasonalEvent
+from .promotions import PromotionalCampaign
 from .stacking import DiscountStackingRule
 from .discount_configs import DiscountConfig
 

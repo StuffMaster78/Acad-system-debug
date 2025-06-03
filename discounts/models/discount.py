@@ -1,49 +1,39 @@
 from django.db import models
 from django.utils.timezone import now
-from django.apps import apps
 from django.conf import settings
+
+from discounts.managers import DiscountQuerySet
 from websites.models import Website
-from .seasonal_event import SeasonalEvent
-from discounts.services import DiscountEngine, DiscountStackingService
-
-
-
-
+from .promotions import PromotionalCampaign
+from discounts.services.discount_engine import DiscountEngine
+from discounts.services.discount_stacking import DiscountStackingService
+from discounts.validators.discount_usage_validator import DiscountUsageValidator
+from discounts.validators.code_format_validator import CodeFormatValidator
 User = settings.AUTH_USER_MODEL
 
 
 class Discount(models.Model):
-    """
-    Represents a discount code that can be applied to orders,
-    including seasonal events and optional stacking rules.
-    """
+    """Represents a discount code for client orders."""
+
     DISCOUNT_TYPE_CHOICES = [
         ('fixed', 'Fixed Amount'),
-        ('percentage', 'Percentage'),
+        ('percent', 'Percentage'),
     ]
     DISCOUNT_ORIGIN_CHOICES = [
         ('manual', 'Manual'),
         ('seasonal', 'Seasonal Event'),
         ('promo', 'Promotional Campaign'),
     ]
-    # @staticmethod
-    # def get_website_model():
-    #     return apps.get_model('websites', 'Website')
-
-    # # @staticmethod
-    # # def get_order_model():
-    # #     return apps.get_model('orders', 'Order')
-    
-    # Website = get_website_model()
-    # Basic info
+    # Basic fields
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
         related_name='discounts'
     )
-    code = models.CharField(
+    discount_code = models.CharField(
         max_length=50,
         unique=True,
+        validators=[CodeFormatValidator()],
         help_text="Unique discount code"
     )
     description = models.TextField(
@@ -51,54 +41,45 @@ class Discount(models.Model):
         blank=True,
         help_text="Description of the discount"
     )
-
     discount_type = models.CharField(
         max_length=20,
         choices=DISCOUNT_TYPE_CHOICES,
-        default='percentage',
-        help_text="Type of discount"
+        default='percent'
     )
     origin_type = models.CharField(
         max_length=20,
         choices=DISCOUNT_ORIGIN_CHOICES,
-        default='manual',
-        help_text="How this discount was generated"
+        default='manual'
     )
-    value = models.DecimalField(
+    discount_value = models.DecimalField(
         max_digits=10,
-        decimal_places=2,
-        help_text="Value of the discount (e.g., 10 for $10 or 15%)"
+        decimal_places=2
     )
-    max_uses = models.PositiveIntegerField(
-        null=True,
-        blank=True,
-        help_text="Maximum number of times this discount can be used"
-    )
-    used_count = models.PositiveIntegerField(
-        default=0,
-        help_text="Number of times this discount has been used"
-    )
+    used_count = models.PositiveIntegerField(default=0)
 
-    # Date constraints
+    # Time constraints
     start_date = models.DateTimeField(default=now)
     end_date = models.DateTimeField(null=True, blank=True)
+    expiry_date = models.DateTimeField(null=True, blank=True)
+
+    # Usage constraints
+    usage_limit = models.PositiveIntegerField(null=True, blank=True)
+    per_user_usage_limit = models.PositiveIntegerField(null=True, blank=True)
+    applies_to_first_order_only = models.BooleanField(default=False)
 
     # Order constraints
     min_order_value = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         null=True,
-        blank=True,
-        help_text="Minimum order total required to use this discount"
+        blank=True
     )
     max_discount_value = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         null=True,
-        blank=True,
-        help_text="Maximum absolute discount that can be applied"
+        blank=True
     )
-    applies_to_first_order_only = models.BooleanField(default=False)
 
     # Target audience
     is_general = models.BooleanField(default=True)
@@ -106,84 +87,119 @@ class Discount(models.Model):
         User,
         null=True,
         blank=True,
-        on_delete=models.SET_NULL,
-        help_text="Specific user this discount is assigned to"
+        on_delete=models.SET_NULL
     )
-
-    seasonal_event = models.ForeignKey(
-        SeasonalEvent,
+    promotional_campaign = models.ForeignKey(
+        'discounts.PromotionalCampaign',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        help_text="The seasonal event this discount applies to (optional)"
+        related_name='discounts'
     )
 
-    # Stacking logic
-    stackable = models.BooleanField(
-        default=False,
-        help_text="Is this discount code stackable?"
-    )
+    objects = DiscountQuerySet.as_manager()
+    # Stacking
+    stackable = models.BooleanField(default=False)
     stackable_with = models.ManyToManyField(
         'self',
-        blank=True,
         symmetrical=False,
+        blank=True,
         through='DiscountStackingRule',
         related_name='stackable_discount_types'
     )
+    stacking_priority = models.PositiveIntegerField(default=0)
     max_discount_percent = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         null=True,
-        blank=True,
-        help_text="Max percent discount when stacking (e.g., 30%)"
+        blank=True
     )
     max_stackable_uses_per_customer = models.PositiveIntegerField(default=1)
 
+    # Link to Promotional Campaign
+    promotional_campaign = models.ForeignKey(
+        'discounts.PromotionalCampaign',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='discounts',
+        help_text="Optional campaign this discount is part of"
+    )
     # Status
-    expiry_date = models.DateTimeField(
-        null=True, blank=True, help_text="The date the discount expires (optional)"
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Indicates if the discount is currently active"   
     )
-    usage_limit = models.PositiveIntegerField(
-        null=True, blank=True,
-        help_text="The maximum number of times this discount can be used"
+    is_expired = models.BooleanField(
+        default=False,
+        help_text="Indicates if the discount has expired"
     )
-    is_active = models.BooleanField(default=True)
-    is_deleted = models.BooleanField(default=False)
+    is_archived = models.BooleanField(
+        default=False,
+        help_text="Indicates if the discount is archived and not available for use"
+    )   
+    is_deleted = models.BooleanField(
+        default=False,
+        help_text="Indicates if the discount is soft-deleted")
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when the discount was soft-deleted"
+    )
+
+    def hard_delete(self):
+        """
+        Permanently delete the discount.
+        """
+        super().delete()
+
+    def restore(self):
+        """
+        Restore a soft-deleted discount.
+        """
+        self.is_deleted = False
+        self.deleted_at = None
+        self.save(update_fields=['is_deleted', 'deleted_at'])
+    
 
     class Meta:
         ordering = ['-start_date']
         constraints = [
             models.UniqueConstraint(
-                fields=["code", "website"],
+                fields=['discount_code', 'website'],
                 condition=models.Q(is_deleted=False),
-                name="unique_discount_code_per_website"
+                name='unique_discount_code_per_website'
             )
         ]
         indexes = [
             models.Index(fields=['is_active']),
-            models.Index(fields=['code', 'website']),
+            models.Index(fields=['discount_code', 'website']),
             models.Index(fields=['start_date']),
+            models.Index(fields=['is_deleted']),
         ]
 
     def __str__(self):
         try:
-            return f"{self.code} ({self.value}{'%' if self.discount_type == 'percentage' else '$'})"
+            return f"{self.discount_code} ({self.discount_value}" \
+                   f"{'%' if self.discount_type == 'percent' else '$'})"
         except Exception:
             return "Discount"
 
-    # Service method proxies
+    # --- Service Method Proxies ---
+
     def validate_discount(self):
-        DiscountEngine(self).validate_clean()
-        DiscountEngine(self).validate_discount()
+        engine = DiscountEngine(self)
+        engine.validate_clean()
+        engine.validate_discount()
 
     def apply_discount(self, order_value):
-        return DiscountEngine(self).apply_discount(order_value)
+        return DiscountEngine(self).apply_discount_to_order(order_value)
 
     def can_stack_with(self, other_discount):
-        return DiscountStackingService.can_stack(self, other_discount)
+        return DiscountStackingService._can_stack(self, other_discount)
 
     def check_usage_limit(self, user):
-        DiscountEngine(self).check_usage_per_user_limit(user)
+        DiscountUsageValidator.validate_per_user_limit(self, user)
 
     def is_valid(self, order):
         return DiscountEngine(self).is_valid_for_order(order)
@@ -198,30 +214,22 @@ class Discount(models.Model):
         DiscountEngine(self).expire_discount()
 
     def check_stackable(self, user, total_discount_percent=0):
-        return DiscountEngine(self).can_be_stacked(user, total_discount_percent)
+        return DiscountStackingService(self)._can_stack(
+            self, user, total_discount_percent
+        )
 
     def soft_delete(self):
         DiscountEngine(self).soft_delete()
 
     @classmethod
-    def generate_unique_code(cls, prefix: str = "", length: int = 8, max_attempts: int = 10):
-        return DiscountEngine.generate_unique_discount_code(prefix, length, max_attempts)
+    def generate_unique_code(cls, prefix='', length=8, max_attempts=10):
+        return DiscountEngine.generate_unique_discount_code(
+            prefix, length, max_attempts
+        )
 
 
 class DiscountUsage(models.Model):
-    """
-    Tracks how and when a user used a discount.
-    Prevents overuse or abuse of discounts.
-    """
-    # @staticmethod
-    # def get_website_model():
-    #     return apps.get_model('websites', 'Website')
-
-    # @staticmethod
-    # def get_order_model():
-    #     return apps.get_model('orders', 'Order')
-    
-    # Website = get_website_model()
+    """Tracks how and when a user used a discount."""
 
     website = models.ForeignKey(
         Website,
@@ -229,19 +237,39 @@ class DiscountUsage(models.Model):
         related_name='discount_usages'
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    discount = models.ForeignKey(
-        "discounts.Discount",
+    discount_code = models.CharField(max_length=50)
+    discount_type = models.CharField(
+        max_length=20,
+        choices=Discount.DISCOUNT_TYPE_CHOICES
+    )
+    value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+    order = models.ForeignKey(
+        'orders.Order',
         on_delete=models.CASCADE,
-        related_name="usages"
+        related_name='discount_usages'
     )
-    usage_count = models.PositiveIntegerField(
-        default=0,
-        help_text="The number of times this discount has been used"
+    discount = models.ForeignKey(
+        Discount,
+        on_delete=models.CASCADE,
+        related_name='usages'
     )
+    # usage_count = models.PositiveIntegerField(default=0)
     used_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = ("user", "discount")
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'discount'],
+                name='unique_discount_usage_per_user'
+            )
+        ]
 
     def __str__(self):
-        return f"{self.user} used {self.discount.code} on {self.used_at}"
+        try:
+            return f"{self.discount_code} ({self.value}" \
+                   f"{'%' if self.discount_type == 'percent' else '$'})"
+        except Exception:
+            return "Discount Usage"
