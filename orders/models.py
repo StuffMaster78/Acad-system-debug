@@ -194,12 +194,12 @@ class Order(models.Model):
     client_deadline = models.DateTimeField(
         help_text="The deadline for the order."
     )
-    total_cost = models.DecimalField(
+    total_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
         null=True, blank=True,
         default=Decimal('0.00'),
-        help_text="Total cost of the order."
+        help_text="Total price of the order."
     )
     writer_compensation = models.DecimalField(
         max_digits=10,

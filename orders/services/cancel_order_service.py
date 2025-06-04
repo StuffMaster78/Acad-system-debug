@@ -34,6 +34,15 @@ class CancelOrderService:
             OrderStatus.COMPLETED,
             OrderStatus.RATED,
             OrderStatus.REVIEWED,
+            OrderStatus.APPROVED,
+            OrderStatus.ARCHIVED,
+            OrderStatus.UNPAID,
+            OrderStatus.PENDING,
+            OrderStatus.REJECTED,
+            OrderStatus.EXPIRED,
+            OrderStatus.FAILED,
+            OrderStatus.REFUNDED,
+            OrderStatus.PARTIALLY_REFUNDED
         ]:
             raise ValueError(
                 f"Cannot cancel order in status '{order.status.value}'."
