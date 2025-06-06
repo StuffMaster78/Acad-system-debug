@@ -56,12 +56,16 @@ final_price, applied_discounts = DiscountEngine.apply_discount_to_order(
 
 ## Models
 
+- **DiscountConfig:**
+  A model for storing website-specific discount settings.
 - **Discount:**  
   Represents a discount code, with fields for type, value, stacking, tiers, campaign, and more.
 - **DiscountUsage:**  
   Tracks each use of a discount by a user/order.
 - **DiscountStackingRule:**  
   Defines explicit stacking compatibility between discounts.
+- **PromotionalCampaign:**
+  Defines a promotional campaign that a discount can be linked to.
 
 ---
 
@@ -101,4 +105,4 @@ MIT (or your license here)
 
 ## Support
 
-For issues, open a GitHub issue or contact the maintainers.
+For issues, open a GitHub issue or contact the maintainers
