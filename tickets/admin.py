@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Ticket, TicketMessage, TicketLog, TicketStatistics
+from .models import (
+    Ticket, TicketMessage, TicketLog,
+    TicketStatistics, TicketAttachment
+)
 
 # Admin for Ticket
 class TicketAdmin(admin.ModelAdmin):
@@ -44,3 +47,34 @@ class TicketStatisticsAdmin(admin.ModelAdmin):
         return obj.calculate_avg_resolution_time() 
 
 admin.site.register(TicketStatistics, TicketStatisticsAdmin)
+
+@admin.register(TicketAttachment)
+class TicketAttachmentAdmin(admin.ModelAdmin):
+    list_display = ('ticket', 'uploaded_by', 'uploaded_at')
+    list_filter = ('ticket', 'uploaded_by')
+    search_fields = ['ticket__title', 'uploaded_by__username']
+    readonly_fields = ('uploaded_at',)
+    ordering = ('-uploaded_at',)
+    def uploaded_at(self, obj):
+        return obj.created_at
+    uploaded_at.admin_order_field = 'created_at'
+    uploaded_at.short_description = 'Uploaded At'
+    def get_readonly_fields(self, request, obj=None):
+        if obj:
+            return self.readonly_fields + ('ticket', 'uploaded_by')
+        return self.readonly_fields
+    def has_add_permission(self, request, obj=None):
+        return request.user.is_staff or request.user.groups.filter(name="Support").exists()
+    def has_change_permission(self, request, obj=None):
+        return request.user.is_staff or request.user.groups.filter(name="Support").exists()
+    def has_delete_permission(self, request, obj=None):
+        return request.user.is_staff or request.user.groups.filter(name="Support").exists()
+    def has_view_permission(self, request, obj=None):
+        return request.user.is_staff or request.user.groups.filter(name="Support").exists()
+    def has_module_permission(self, request):
+        return request.user.is_staff or request.user.groups.filter(name="Support").exists()
+# Register the TicketAttachment model with the custom admin class
+admin.site.register(TicketAttachment, TicketAttachmentAdmin)
+
+
+

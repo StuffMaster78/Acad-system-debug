@@ -1,5 +1,8 @@
 from rest_framework import serializers
-from .models import Ticket, TicketMessage, TicketLog, TicketStatistics
+from .models import (
+    Ticket, TicketMessage, TicketLog, 
+    TicketStatistics, TicketAttachment
+)   
 
 class TicketMessageSerializer(serializers.ModelSerializer):
     sender_name = serializers.CharField(source='sender.username', read_only=True)
@@ -32,6 +35,12 @@ class TicketSerializer(serializers.ModelSerializer):
             'messages', 'logs'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+class TicketAttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TicketAttachment
+        fields = ['id', 'ticket', 'uploaded_by', 'file', 'created_at']
+        read_only_fields = ['id', 'created_at']
 
 class TicketCreateSerializer(serializers.ModelSerializer):
     class Meta:

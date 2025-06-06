@@ -2,6 +2,7 @@
 from django.db import models
 from django.conf import settings
 from websites.models import Website
+from tickets.utils import ticket_attachment_upload_path
 
 class Ticket(models.Model):
     STATUS_CHOICES = [
@@ -112,6 +113,27 @@ class TicketMessage(models.Model):
     class Meta:
         ordering = ['created_at']
 
+
+class TicketAttachment(models.Model):
+    ticket = models.ForeignKey(
+        'Ticket',
+        on_delete=models.CASCADE,
+        related_name='attachments',
+        help_text="The ticket this file is attached to."
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        help_text="User who uploaded the file."
+    )
+    file = models.FileField(
+        upload_to=ticket_attachment_upload_path,
+        help_text="The attached file."
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Attachment for {self.ticket.title} by {self.uploaded_by}"
 
 class TicketLog(models.Model):
     """
