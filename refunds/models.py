@@ -104,6 +104,18 @@ class RefundLog(models.Model):
         related_name="refund_logs",
         help_text="The order related to the refund"
     )
+    refund = models.ForeignKey(
+        Refund,
+        on_delete=models.CASCADE,
+        related_name="logs",
+        help_text="The refund associated with this log"
+    )
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="refund_logs",
+        help_text="The client who initiated the refund"
+    )   
     amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -113,9 +125,20 @@ class RefundLog(models.Model):
         max_length=100,
         help_text="Origin of the refund (manual, stripe-webhook, etc.)"
     )
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="refund_processed_logs",
+        help_text="User who processed the refund"
+    )
     status = models.CharField(
         max_length=20,
-        choices=[('success', 'Success'), ('failed', 'Failed')],
+        choices=[
+            ('pending', 'Pending'),
+            ('processed', 'Processed'),
+            ('rejected', 'Rejected')
+        ],
         help_text="Refund status"
     )
     metadata = models.JSONField(
@@ -148,7 +171,40 @@ class RefundReceipt(models.Model):
         Refund, on_delete=models.CASCADE,
         related_name="receipt"
     )
+    amount = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        help_text="Total amount refunded"
+    )
+    order_payment = models.ForeignKey(
+        OrderPayment,
+        on_delete=models.CASCADE,
+        related_name="refund_receipt"
+    )
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="refund_receipts"
+    )
+
+    reason = models.TextField(
+        blank=True, null=True,
+        help_text="Reason for the refund"
+    )
+
+    reason = models.TextField(
+        blank=True, null=True,
+        help_text="Reason for the refund"
+    )
+
+    processed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="processed_receipts"
+    )
+
     generated_at = models.DateTimeField(auto_now_add=True)
+
     reference_code = models.CharField(
         max_length=64, unique=True,
         default="", blank=True

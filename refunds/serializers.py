@@ -1,9 +1,8 @@
 from rest_framework import serializers
 from .models import Refund, RefundLog, RefundReceipt
 
-
 class RefundSerializer(serializers.ModelSerializer):
-    total_amount = serializers.SerializerMethodField()
+    total_amount = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Refund
@@ -34,6 +33,14 @@ class RefundSerializer(serializers.ModelSerializer):
     def get_total_amount(self, obj):
         return obj.total_amount()
 
+    def validate(self, data):
+        wallet_amount = data.get("wallet_amount", 0)
+        external_amount = data.get("external_amount", 0)
+        if wallet_amount < 0 or external_amount < 0:
+            raise serializers.ValidationError("Refund amounts cannot be negative.")
+        if wallet_amount == 0 and external_amount == 0:
+            raise serializers.ValidationError("At least one refund amount must be greater than zero.")
+        return data
 
 class RefundLogSerializer(serializers.ModelSerializer):
     class Meta:
@@ -47,9 +54,12 @@ class RefundLogSerializer(serializers.ModelSerializer):
             "status",
             "metadata",
             "created_at",
+            "refund",
+            "client",
+            "processed_by",
+            "action",
         ]
         read_only_fields = fields
-
 
 class RefundReceiptSerializer(serializers.ModelSerializer):
     class Meta:
@@ -60,5 +70,10 @@ class RefundReceiptSerializer(serializers.ModelSerializer):
             "refund",
             "generated_at",
             "reference_code",
+            "amount",
+            "order_payment",
+            "client",
+            "processed_by",
+            "reason",
         ]
         read_only_fields = fields
