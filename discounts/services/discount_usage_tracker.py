@@ -4,8 +4,7 @@ Tracks and reverts discount usage records tied to orders.
 
 import logging
 from django.db.models import F
-from discounts.models import Discount, DiscountUsage
-from audit_logging.services import audit_log
+from audit_logging.services import log_audit_action
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +38,7 @@ class DiscountUsageTracker:
             user (User, optional): The user using the discount. Defaults to
                 order.user.
         """
+        from discounts.models import Discount, DiscountUsage
         user = user or order.user
         DiscountUsage.objects.create(
             base_discount=discount,
@@ -64,6 +64,7 @@ class DiscountUsageTracker:
         Args:
             order (Order): The order whose discount usages are to be reverted.
         """
+        from discounts.models import DiscountUsage
         deleted_count, _ = DiscountUsage.objects.filter(order=order).delete()
         logger.info(
             f"Reverted {deleted_count} discount usages for order {order.id}"
@@ -82,6 +83,7 @@ class DiscountUsageTracker:
                 audit logging.
             reason (str, optional): Reason for untracking. Logged for context.
         """
+        from discounts.models import Discount, DiscountUsage
         usages = DiscountUsage.objects.filter(order=order)
         if discount:
             usages = usages.filter(base_discount=discount)
@@ -109,7 +111,7 @@ class DiscountUsageTracker:
             f"Reason: {reason}"
         )
 
-        audit_log(
+        log_audit_action(
             actor=actor,
             target=order,
             action="discount_untracked",
@@ -131,6 +133,7 @@ class DiscountUsageTracker:
         Returns:
             bool: True if used, False otherwise.
         """
+        from discounts.models import DiscountUsage
         return DiscountUsage.objects.filter(
             base_discount=discount,
             user=user
@@ -147,6 +150,7 @@ class DiscountUsageTracker:
         Returns:
             int: Usage count.
         """
+        from discounts.models import DiscountUsage
         return DiscountUsage.objects.filter(
             base_discount=discount
         ).count()

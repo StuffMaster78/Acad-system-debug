@@ -13,16 +13,13 @@ from django.utils import timezone
 
 from core.celery import celery
 # from websites.models import Website
-from discounts.models import Discount
+from discounts.models.discount import Discount
 from order_configs.models import WriterDeadlineConfig
 from order_configs.models import AcademicLevel
 from pricing_configs.models import PricingConfiguration
 from django.core.exceptions import ValidationError
 
-from .services.pricing_calculator import (
-    calculate_total_price,
-    calculate_base_price
-)
+from .services.pricing_calculator import PricingCalculatorService
 from django.apps import apps
 from websites.models import Website
 from orders.order_enums import (
@@ -285,14 +282,14 @@ class Order(models.Model):
             """
             Trigger price recalculation whenever the order is saved.
             """
-            self.total_cost = calculate_total_price(self)
+            self.total_cost = PricingCalculatorService.calculate_total_price(self)
             super(Order, self).save(*args, **kwargs)
 
     def update_total_price(self):
         """
         Calculates and updates the total price of the order.
         """
-        self.total_price = calculate_total_price(self)
+        self.total_price = PricingCalculatorService.calculate_total_price(self)
         self.save(update_fields=["total_price"])
 
     def calculate_writer_deadline(
@@ -420,7 +417,7 @@ class Order(models.Model):
         """
         self.number_of_pages += additional_pages
         # Recalculate the price with the new page count
-        base_price = calculate_base_price(self)
+        base_price = PricingCalculatorService.calculate_base_price(self)
         # Calculate price for the new pages
         new_page_price = additional_pages * PricingConfiguration.objects.first().base_price_per_page
         self.total_cost = base_price + new_page_price  # Update the total cost
@@ -433,7 +430,7 @@ class Order(models.Model):
         """
         self.number_of_slides += additional_slides
         # Recalculate price with new slide count
-        base_price = calculate_base_price(self)
+        base_price = PricingCalculatorService.calculate_base_price(self)
         new_slide_price = additional_slides * PricingConfiguration.objects.first().base_price_per_slide
         self.total_cost = base_price + new_slide_price  # Update the total cost
         self.save()
@@ -443,7 +440,7 @@ class Order(models.Model):
         Add extra service to the order, recalculate price, and prompt for payment.
         """
         self.extra_services.add(service)
-        self.total_cost = calculate_total_price(self)  # Recalculate price with new service
+        self.total_cost = PricingCalculatorService.calculate_total_price(self)  # Recalculate price with new service
         self.save()
 
     def change_deadline(self, new_deadline):
@@ -458,7 +455,7 @@ class Order(models.Model):
             # Apply convenience fee if deadline is reduced
             self.total_cost += pricing_config.convenience_fee
 
-        self.total_cost = calculate_total_price(self)  # Recalculate after changing deadline
+        self.total_cost = PricingCalculatorService.calculate_total_price(self)  # Recalculate after changing deadline
         self.save()
 
     def add_discount(self, discount):
@@ -466,7 +463,7 @@ class Order(models.Model):
         Add a discount to the order and recalculate the total price.
         """
         self.discount = discount
-        self.total_cost = calculate_total_price(self)
+        self.total_cost = PricingCalculatorService.calculate_total_price(self)
         self.save()
 
     def __str__(self):

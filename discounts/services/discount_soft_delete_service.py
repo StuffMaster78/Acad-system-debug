@@ -34,7 +34,9 @@ class DiscountSoftDeleteService:
             PermissionDenied: If user is not staff.
         """
         if not self.user.is_staff:
-            raise PermissionDenied("Only admins can soft delete discounts.")
+            raise PermissionDenied(
+                "Only admins can soft delete discounts."
+            )
 
         if discount.is_deleted:
             logger.warning(

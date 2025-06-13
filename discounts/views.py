@@ -5,7 +5,8 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.exceptions import ValidationError
 from django.utils.timezone import now
 from django.db.models import Q
-from .models import Discount, PromotionalCampaign, DiscountUsage, DiscountStackingRule
+from .models.promotions import PromotionalCampaign
+from .models.stacking import DiscountStackingRule
 from .serializers import (
     DiscountSerializer, PromotionalCampaignSerializer,
     PromotionalCampaignWithDiscountsSerializer,
@@ -18,7 +19,7 @@ from rest_framework.views import APIView
 from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.response import Response
 from django.db.models import Count, Avg, Q, F
-from .models import Discount, DiscountUsage
+from .models.discount import Discount, DiscountUsage
 class PromotionalCampaignViewSet(viewsets.ModelViewSet):
     """
     Viewset for managing promotional campaigns.

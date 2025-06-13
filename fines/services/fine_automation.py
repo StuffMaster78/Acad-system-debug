@@ -35,6 +35,7 @@ def auto_issue_late_fine(order):
     else:
         percentage = 50 + days_late * 10  # Escalates daily
 
+    
     # Try loading an active FinePolicy override
     policy = FinePolicy.objects.filter(
         fine_type=FineType.LATE_SUBMISSION,

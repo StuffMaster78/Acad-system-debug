@@ -9,7 +9,6 @@ from typing import List, Optional
 from django.core.cache import cache
 from django.utils.timezone import now
 
-from discounts.models import Discount
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +17,7 @@ class DiscountSuggestionService:
     """
     Provides top discount suggestions for a given website and user context.
     """
-
+    
     @staticmethod
     def get_suggestions(
         website,
@@ -39,6 +38,7 @@ class DiscountSuggestionService:
         Returns:
             List[dict]: List of suggested discounts with hints and metadata.
         """
+        from discounts.models import Discount
         cache_key = (
             f"discount_suggestions:{website.id}:{client_email or 'anon'}:{limit}"
         )
@@ -82,9 +82,9 @@ class DiscountSuggestionService:
                 "percentage": discount.percentage,
                 "flat_amount": discount.flat_amount,
                 "stackable": discount.stackable,
-                "seasonal_event": (
-                    discount.seasonal_event.name
-                    if discount.seasonal_event else None
+                "promotional_campaign": (
+                    discount.promotional_campaign.name
+                    if discount.promotional_campaign else None
                 ),
                 "hint": hint
             })
@@ -93,7 +93,7 @@ class DiscountSuggestionService:
         return suggestions
 
     @staticmethod
-    def _generate_hint(discount: Discount) -> str:
+    def _generate_hint(discount) -> str:
         """
         Generate a hint message for a given discount.
 

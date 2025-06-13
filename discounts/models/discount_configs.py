@@ -41,7 +41,7 @@ class DiscountConfig(models.Model):
     max_discount_percent = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=50.00,
+        default=30.00,
         help_text="Maximum total discount percent allowed per order."
     )
 
@@ -52,12 +52,12 @@ class DiscountConfig(models.Model):
             "on the same order."
         )
     )
-    seasonal_discount_active = models.BooleanField(
-        default=True, help_text="Is the seasonal discount active?"
+    promotional_campaign_discount_active = models.BooleanField(
+        default=True, help_text="Is the promotional campaign discount active?"
     )
-    seasonal_discount_value = models.DecimalField(
+    promotional_campaign_discount_value = models.DecimalField(
         default=10.00, max_digits=5, decimal_places=2,
-        help_text="Value of seasonal discount in percentage"
+        help_text="Value of promotional campaign discount in percentage"
     )
     promotional_campaign = models.ForeignKey(
         "discounts.PromotionalCampaign",
@@ -68,13 +68,24 @@ class DiscountConfig(models.Model):
     )
 
     created_by = models.ForeignKey(
-        "auth.User", 
+        "settings.AUTH_USER_MODEL", 
         null=True, 
         blank=True, 
         on_delete=models.SET_NULL, 
         help_text="User who created or last updated the discount config"
     )
-    
+    updated_by = models.ForeignKey(
+        "auth.User", 
+        null=True, 
+        blank=True, 
+        on_delete=models.SET_NULL, 
+        related_name="discount_configs_updated",
+        help_text="User who last updated the discount config"
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, 
+        help_text="Timestamp when the discount config was created"
+    )   
     updated_at = models.DateTimeField(
         auto_now=True, 
         help_text="Timestamp of the last update"

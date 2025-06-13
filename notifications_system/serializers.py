@@ -78,3 +78,7 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
             "receive_in_app",
         ]
         read_only_fields = ["id", "user"]
+
+
+
+        

@@ -2,12 +2,10 @@ from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.utils.timezone import now
 
-from .models import (
-    Discount,
-    DiscountUsage,
-    DiscountStackingRule,
-    SeasonalEvent
-)
+
+from .models.promotions import PromotionalCampaign
+from .models.discount import Discount, DiscountUsage
+from .models.stacking import DiscountStackingRule
 
 import random
 import string
@@ -125,8 +123,8 @@ class DiscountStackingRuleAdmin(admin.ModelAdmin):
     autocomplete_fields = ('base_discount', 'stackable_with')
 
 
-@admin.register(SeasonalEvent)
-class SeasonalEventAdmin(admin.ModelAdmin):
+@admin.register(PromotionalCampaign)
+class PromotionalCampaignAdmin(admin.ModelAdmin):
     list_display = ('name', 'start_date', 'end_date', 'is_active')
     search_fields = ('name',)
     date_hierarchy = 'start_date'

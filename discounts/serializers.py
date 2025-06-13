@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Discount, DiscountUsage
+from .models.discount import Discount, DiscountUsage
 from websites.models import Website
 from users.models import User
 from .models.promotions import PromotionalCampaign
@@ -239,3 +239,5 @@ class ApplyDiscountSerializer(serializers.Serializer):
 
         data['order'] = order
         return data
+
+

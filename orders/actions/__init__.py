@@ -32,7 +32,7 @@ from .archive_action import ArchiveAction
 from .archive_order import ArchiveOrderAction
 from .reopen_order import ReopenOrderAction
 from .apply_discount import ApplyDirectDiscountAction
-from apply_discount_code import ApplyDiscountCodeAction
+from .apply_discount_code import ApplyDiscountCodeAction
 from .assignment import OrderAssignmentAction
 from .status_transition import StatusTransitionAction
 from .unpaid import UnpaidOrderAction

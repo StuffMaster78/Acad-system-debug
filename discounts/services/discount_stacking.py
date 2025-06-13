@@ -12,7 +12,7 @@ from rest_framework.exceptions import ValidationError
 from django.db.models import Q
 
 from discounts.utils import get_discount_model, get_discount_usage_model
-from discounts.models import DiscountStackingRule
+from discounts.models.stacking import DiscountStackingRule
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +75,7 @@ class DiscountStackingService:
                 f"Discount {new_discount.code} cannot be stacked with: {codes}"
             )
 
-    def _can_stack(self, new_discount):
+    def _can_stack(self, new_discount, d1, d2):
         """
         Internal validation of stacking logic.
 
@@ -88,9 +88,11 @@ class DiscountStackingService:
         if not new_discount.allow_stacking and self.active_discounts.exists():
             return False
         
-        # if d1.promotional_campaign_id and d2.promotional_campaign_id:
-        # if d1.promotional_campaign_id != d2.promotional_campaign_id:
-        #     raise ValidationError("Cannot stack discounts from different campaigns.")
+        if d1.promotional_campaign_id and d2.promotional_campaign_id:
+            if d1.promotional_campaign_id != d2.promotional_campaign_id:
+                raise ValidationError(
+                    "Cannot stack discounts from different campaigns."
+                )
 
         for active in self.active_discounts:
             if not active.allow_stacking:

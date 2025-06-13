@@ -183,3 +183,21 @@ class OrderActionPermission(BasePermission):
             timestamp=now(),
             metadata={"reason": reason}
         )
+
+
+class IsOrderOwnerOrSupport(BasePermission):
+    """
+    Allows access to the owner of the order or support/admin/superadmin.
+    """
+
+    def has_object_permission(self, request, view, obj):
+        if not request.user.is_authenticated:
+            return False
+
+        user_role = getattr(request.user, "role", None)
+        support_roles = {"support", "admin", "superadmin"}
+
+        return (
+            obj.client == request.user or
+            user_role in support_roles
+        )

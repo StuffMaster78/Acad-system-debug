@@ -6,12 +6,12 @@ from django.utils import timezone
 from websites.models import Website
 from orders.models import Dispute, DisputeWriterResponse, Order
 from users.models import User
-from services.dispute_enums import DisputeStatus, ResolutionOutcome
-from services.dispute_helpers import (
+from orders.services.dispute_enums import DisputeStatus, ResolutionOutcome
+from orders.services.dispute_helpers import (
     validate_dispute_status_transition,
     send_dispute_notification,
 )
-from services.order_utils import (
+from orders.services.order_utils import (
     transition_order_status,
     save_order
 )

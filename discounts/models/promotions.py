@@ -3,10 +3,10 @@ from django.core.exceptions import ValidationError
 from django.utils.text import slugify
 from django.utils import timezone
 from django.conf import settings
-from django.contrib.auth import get_user_model
+# from django.contrib.auth import get_user_model
 
 User = settings.AUTH_USER_MODEL
-ActualUser = get_user_model()
+# ActualUser = get_user_model()
 class PromotionalCampaign(models.Model):
     """
     Represents a Promotional Campaign that discounts can be associated with.
@@ -108,7 +108,7 @@ class PromotionalCampaign(models.Model):
 
     class Meta:
         unique_together = ('website', 'slug')
-        ordering = ['-start_date']
+        ordering = ['-is_active', '-start_date']
         indexes = [
             models.Index(fields=['is_active']),
             models.Index(fields=['status']),
@@ -149,7 +149,7 @@ class PromotionalCampaign(models.Model):
         Soft-delete the campaign by setting is_active to False and is_deleted to True.
         Optionally set the user who deleted it.
         """
-        if deleted_by and not isinstance(deleted_by, ActualUser):
+        if deleted_by and not isinstance(deleted_by, User):
             raise ValidationError("deleted_by must be a valid User instance")
 
         if self.is_deleted:
@@ -175,7 +175,7 @@ class PromotionalCampaign(models.Model):
         if not self.is_deleted:
             raise ValidationError("This campaign is not deleted.")
 
-        if restored_by and not isinstance(restored_by, ActualUser):
+        if restored_by and not isinstance(restored_by, User):
             raise ValidationError("restored_by must be a valid User instance")
 
         self.is_active = True
@@ -185,7 +185,11 @@ class PromotionalCampaign(models.Model):
 
         # Regenerate slug cleanly, removing any trailing '-deleted'
         base_slug = slugify(f"{self.name}-{self.website_id}")
-        self.slug = base_slug
+        self.slug = self.generate_unique_slug(
+            base_slug,
+            self.website_id,
+            self.__class__
+        )
 
         self.status = 'active'
         self.updated_at = timezone.now()
@@ -218,6 +222,22 @@ class PromotionalCampaign(models.Model):
             counter += 1
         return slug
 
+    def get_status_display_badge(self):
+        """
+        Returns a status color code for UI badge rendering.
+        """
+        return {
+            'draft': 'secondary',      # Gray
+            'active': 'success',       # Green
+            'paused': 'warning',       # Yellow
+            'pending': 'info',         # Blue
+            'cancelled': 'danger',     # Red
+            'deleted': 'dark',         # Black/Grey
+            'completed': 'primary',    # Blue/Purple
+            'archived': 'muted',       # Faded
+        }.get(self.status, 'light')   # Default fallback
+
+
     @property
     def is_live(self):
         now = timezone.now()
@@ -232,20 +252,3 @@ class PromotionalCampaign(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.start_date.date()} - {self.end_date.date()})"
-
-
-
-
-# For Templates and Admin Display
-# def get_status_display_badge(self):
-#     badge_map = {
-#         'draft': 'gray',
-#         'active': 'green',
-#         'paused': 'yellow',
-#         'pending': 'blue',
-#         'cancelled': 'red',
-#         'deleted': 'dark',
-#         'completed': 'purple',
-#         'archived': 'light'
-#     }
-#     return badge_map.get(self.status, 'secondary')

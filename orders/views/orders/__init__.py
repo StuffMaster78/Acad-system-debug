@@ -1,7 +1,7 @@
-from .base import OrderViewSet
+from .base import OrderBaseViewSet
 from .disputes import DisputeViewSet
-from .actions import OrderActionViewSet
+from .actions import OrderActionView
 __all__ = [
-    "OrderViewSet", "DisputeViewSet",
-    "OrderActionViewSet"
+    "OrderBaseViewSet", "DisputeViewSet",
+    "OrderActionView"
 ]

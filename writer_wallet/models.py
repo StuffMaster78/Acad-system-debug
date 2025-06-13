@@ -290,6 +290,11 @@ class AdminPaymentAdjustment(models.Model):
         ("Other", "Other"),
     ]
 
+    ACTION = [
+        ("Topup", "Topup"),
+        ("Deduct", "Deduct"),
+    ]
+
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE
@@ -302,6 +307,11 @@ class AdminPaymentAdjustment(models.Model):
     adjustment_type = models.CharField(
         max_length=20,
         choices=ADJUSTMENT_TYPES
+    )
+    action = models.CharField(
+        max_length=10,
+        choices=ACTION,
+        default="Topup"
     )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     reason = models.TextField()

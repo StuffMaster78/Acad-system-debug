@@ -13,7 +13,7 @@ from .serializers import (
     TicketAttachmentSerializer
 )
 from .permissions import IsAdminOrSupportForAttachment 
-from notifications_system.utils import notify_user
+from notifications_system.services.dispatcher import notify_user
 
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.select_related(

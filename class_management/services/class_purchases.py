@@ -32,7 +32,7 @@ def handle_purchase_request(user, data, website):
         related_object=purchase,
         allow_negative=True
     )
-
+    # Optionally auto-pay first installment if applicable
     purchase.status = 'paid'
     purchase.paid_at = timezone.now()
     purchase.save()
@@ -40,6 +40,14 @@ def handle_purchase_request(user, data, website):
     return purchase
 
 def create_class_purchase(user, data):
+    """
+    Create a class purchase with installments.
+    This function assumes `data` contains:
+    - 'program': Class program being purchased
+    - 'installments': Number of installments (e.g., 4)
+    - 'duration_weeks': Duration of the class in weeks
+    - 'bundle_size': Size of the class bundle
+    """
     price = get_class_price(...)  # as before
     num_installments = data['installments']  # e.g., 4
 
@@ -114,17 +122,6 @@ def process_class_purchase(purchase):
         charge_wallet(user, amount, purpose='class_purchase', related_object=purchase)
     except InsufficientBalanceError:
         raise ValueError("Insufficient wallet balance. Please top up.")
-
-    purchase.status = 'paid'
-    purchase.paid_at = timezone.now()
-    purchase.save()
-
-def process_class_purchase(purchase):
-    user = purchase.client
-    amount = purchase.price_locked
-
-    # Wallet charge: allows negative
-    charge_wallet(user, amount, purpose='class_purchase', related_object=purchase)
 
     purchase.status = 'paid'
     purchase.paid_at = timezone.now()

@@ -298,7 +298,9 @@ class DisputeWriterResponseSerializer(serializers.ModelSerializer):
 
 
 class WriterRequestSerializer(serializers.ModelSerializer):
-    request_type = serializers.ChoiceField(choices=WriterRequest.ORDER_REQUEST_TYPE)
+    request_type = serializers.ChoiceField(
+        choices=WriterRequest.RequestType.choices
+    )
     requested_by_writer = serializers.PrimaryKeyRelatedField(read_only=True)
     new_deadline = serializers.DateTimeField(required=False, allow_null=True)
     additional_pages = serializers.IntegerField(required=False, allow_null=True)

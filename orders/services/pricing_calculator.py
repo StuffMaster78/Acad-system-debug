@@ -1,7 +1,6 @@
 from django.apps import apps
 from decimal import Decimal
 from functools import lru_cache
-from discounts.models import Discount
 from discounts.services.discount_engine import DiscountEngine  # Import the discount engine
 from django.core.exceptions import ValidationError
 

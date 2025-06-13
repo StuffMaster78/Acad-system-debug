@@ -160,8 +160,8 @@ AUTH_USER_MODEL = 'users.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB'),  #Database Name
-        'USER': os.getenv('POSTGRES_USER'),  #Database username
+        'NAME': os.getenv('POSTGRES_DB_NAME'),  #Database Name
+        'USER': os.getenv('POSTGRES_USER_NAME'),  #Database username
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),  #Database password
         "HOST": os.getenv("DB_HOST"),  # Hostname
         "PORT": os.getenv("DB_PORT"),  # Port
@@ -169,10 +169,10 @@ DATABASES = {
 }
 
 
-print("Database:", os.getenv("POSTGRES_DB"))
-print("User:", os.getenv("POSTGRES_USER"))
+print("Database:", os.getenv("POSTGRES_DB_NAME"))
+print("User:", os.getenv("POSTGRES_USER_NAME"))
 print("Password:", os.getenv("POSTGRES_PASSWORD"))
-print("DATABASE NAME:", os.getenv('POSTGRES_DB'))
+print("DATABASE NAME:", os.getenv('POSTGRES_DB_NAME'))
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

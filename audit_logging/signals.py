@@ -1,9 +1,10 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
-from audit_logging.tasks import log_audit_entry_task
-from audit_logging.utils import get_client_ip, get_user_agent
-from audit_logging.middleware import get_current_request
+from audit_logging.tasks import async_log_audit
+from audit_logging.utils import (
+    get_client_ip, get_user_agent, get_current_request
+)
 
 EXCLUDED_MODELS = {"AuditLog"}
 
@@ -44,7 +45,7 @@ def log_model_save(sender, instance, created, **kwargs):
     )
     request = get_current_request()
 
-    log_audit_entry_task.delay(
+    async_log_audit.delay(
         action=action,
         target=f"{app_label}.{model_name}",
         target_id=instance.pk,
@@ -72,7 +73,7 @@ def log_model_delete(sender, instance, **kwargs):
     user = getattr(instance, "deleted_by", None)
     request = get_current_request()
 
-    log_audit_entry_task.delay(
+    async_log_audit.delay(
         action="DELETE",
         target=f"{app_label}.{model_name}",
         target_id=instance.pk,

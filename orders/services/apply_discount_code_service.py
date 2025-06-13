@@ -8,7 +8,7 @@ from orders.utils.order_utils import get_order_by_id
 from discounts.services import DiscountEngine
 from discounts.services.discount_suggestions import   DiscountSuggestionService
 from discounts.services.discount_hints import DiscountHintService
-from notifications_system.services import notify_admin_of_error
+from notifications_system.services.send_notification import notify_admin_of_error
 from discounts.services.discount_usage_tracker import DiscountUsageTracker
 logger = logging.getLogger(__name__)
 

@@ -4,16 +4,28 @@ from django.conf import settings
 
 from discounts.managers import DiscountQuerySet
 from websites.models import Website
-from .promotions import PromotionalCampaign
+from discounts.models.promotions import PromotionalCampaign
 from discounts.services.discount_engine import DiscountEngine
 from discounts.services.discount_stacking import DiscountStackingService
 from discounts.validators.discount_usage_validator import DiscountUsageValidator
 from discounts.validators.code_format_validator import CodeFormatValidator
+from django.utils import timezone
+
 User = settings.AUTH_USER_MODEL
 
 
 class Discount(models.Model):
-    """Represents a discount code for client orders."""
+    """
+    Represents a discount code for client orders.
+    Discounts can be applied to orders based on various conditions such as
+    order value, user, and promotional campaigns.
+    Discounts can be stackable, have usage limits, and can be applied to
+    specific clients or general users.
+    Discounts can be of different types (fixed amount or percentage) and can
+    originate from different sources (manual, automatic, system generated,
+    client specific, or promotional campaigns).
+    Discounts can be active, expired, archived, or soft-deleted.
+    """
 
     DISCOUNT_TYPE_CHOICES = [
         ('fixed', 'Fixed Amount'),
@@ -28,12 +40,12 @@ class Discount(models.Model):
     ]
     # Basic fields
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='discounts'
     )
     discount_code = models.CharField(
-        max_length=50,
+        max_length=32,
         unique=True,
         validators=[CodeFormatValidator()],
         help_text="Unique discount code"
@@ -53,15 +65,19 @@ class Discount(models.Model):
         choices=DISCOUNT_ORIGIN_CHOICES,
         default='manual'
     )
+
     discount_value = models.DecimalField(
         max_digits=10,
         decimal_places=2
     )
+
     used_count = models.PositiveIntegerField(default=0)
 
     # Time constraints
     start_date = models.DateTimeField(default=now)
+
     end_date = models.DateTimeField(null=True, blank=True)
+    
     expiry_date = models.DateTimeField(null=True, blank=True)
 
     # Usage constraints
@@ -85,23 +101,40 @@ class Discount(models.Model):
 
     # Target audience
     is_general = models.BooleanField(default=True)
+
     assigned_to_client = models.ForeignKey(
         User,
         null=True,
         blank=True,
         on_delete=models.SET_NULL
     )
-    promotional_campaign = models.ForeignKey(
-        'discounts.PromotionalCampaign',
+    assigned_to_group = models.ForeignKey(
+        'auth.Group',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
         related_name='discounts'
     )
+    assigned_to_users = models.ManyToManyField(
+        User,
+        blank=True,
+        related_name='discounts',
+        help_text="Users this discount is specifically assigned to"
+    )
+    assigned_to_groups = models.ManyToManyField(
+        'auth.Group',
+        blank=True,
+        related_name='discounts',
+        help_text="Groups this discount is specifically assigned to"
+    )
+    # Tiered discounts
+    has_tiers = models.BooleanField(default=False)
 
     objects = DiscountQuerySet.as_manager()
+
     # Stacking
     stackable = models.BooleanField(default=False)
+
     stackable_with = models.ManyToManyField(
         'self',
         symmetrical=False,
@@ -109,13 +142,16 @@ class Discount(models.Model):
         through='DiscountStackingRule',
         related_name='stackable_discount_types'
     )
+
     stacking_priority = models.PositiveIntegerField(default=0)
+
     max_discount_percent = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         null=True,
         blank=True
     )
+
     max_stackable_uses_per_customer = models.PositiveIntegerField(default=1)
 
     # Link to Promotional Campaign
@@ -127,22 +163,33 @@ class Discount(models.Model):
         related_name='discounts',
         help_text="Optional campaign this discount is part of"
     )
+
+    cloned_from = models.ForeignKey(
+        'self', null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name='clones'
+    )
     # Status
     is_active = models.BooleanField(
         default=True,
         help_text="Indicates if the discount is currently active"   
     )
+
     is_expired = models.BooleanField(
         default=False,
         help_text="Indicates if the discount has expired"
     )
+
     is_archived = models.BooleanField(
         default=False,
         help_text="Indicates if the discount is archived and not available for use"
-    )   
+    )
+
     is_deleted = models.BooleanField(
         default=False,
-        help_text="Indicates if the discount is soft-deleted")
+        help_text="Indicates if the discount is soft-deleted"
+    )
+
     deleted_at = models.DateTimeField(
         null=True,
         blank=True,
@@ -230,6 +277,90 @@ class Discount(models.Model):
         )
 
 
+class DiscountTier(models.Model):
+    """
+    Defines discount scaling tiers based on order value or other conditions.
+    Each tier can have its own active period and max discount cap.
+    """
+    discount = models.ForeignKey(
+        "Discount",
+        related_name="tiers",
+        on_delete=models.CASCADE,
+        help_text="The discount this tier belongs to."
+    )
+
+    min_order_value = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Minimum order value to activate this tier."
+    )
+
+    percent_off = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        help_text="Percentage discount for this tier."
+    )
+
+    max_discount_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Maximum absolute discount this tier can apply."
+    )
+
+
+    priority = models.PositiveIntegerField(
+        default=0,
+        help_text="Tiers with higher priority override lower ones if multiple match."
+    )
+
+    is_active = models.BooleanField(
+        default=True,
+        help_text="If false, this tier will not be considered."
+    )
+
+    start_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Optional start date/time when this tier becomes active."
+    )
+
+    end_date = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Optional end date/time after which this tier is inactive."
+    )
+
+    class Meta:
+        ordering = ["-priority", "-min_order_value"]
+        verbose_name = "Discount Tier"
+        verbose_name_plural = "Discount Tiers"
+        unique_together = ('discount', 'min_amount')
+
+    def __str__(self):
+        """
+        String representation of the discount tier.
+        """
+        return (
+            f"{self.discount.discount_code} Tier - "
+            f"{self.percent_off}% off for orders ≥ ${self.min_order_value:.2f}"
+        )
+    
+    def is_currently_active(self):
+        """
+        Check if this tier is active right now based on flags and dates.
+        """
+        now = timezone.now()
+        if not self.is_active:
+            return False
+        if self.start_date and self.start_date > now:
+            return False
+        if self.end_date and self.end_date < now:
+            return False
+        return True
+
+
 class DiscountUsage(models.Model):
     """Tracks how and when a user used a discount."""
 
@@ -238,7 +369,14 @@ class DiscountUsage(models.Model):
         on_delete=models.CASCADE,
         related_name='discount_usages'
     )
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+    user = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='discount_usages',
+        help_text="User who used the discount."
+    )
+
     discount_code = models.CharField(max_length=50)
     discount_type = models.CharField(
         max_length=20,
@@ -254,14 +392,30 @@ class DiscountUsage(models.Model):
         related_name='discount_usages'
     )
     discount = models.ForeignKey(
-        Discount,
+        'discounts.Discount',
         on_delete=models.CASCADE,
-        related_name='usages'
+        related_name='usages',
+        help_text="The discount that was used."
+    )
+    # Link to the order that used this discount
+    order = models.ForeignKey(
+        'orders.Order',
+        on_delete=models.CASCADE,
+        related_name='discount_usages',
+        help_text="Order the discount was applied to."
+    )
+    # Timestamp when the discount was applied
+    applied_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    applied_percent = models.DecimalField(max_digits=5, decimal_places=2)
+    applied_by = models.ForeignKey(
+        "auth.User", null=True,
+        blank=True, on_delete=models.SET_NULL
     )
     # usage_count = models.PositiveIntegerField(default=0)
     used_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
+        unique_together = ("discount", "order")
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'discount'],

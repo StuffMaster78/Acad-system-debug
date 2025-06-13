@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 
 from users.models import User
-from services.dispute_enums import DisputeStatus
+from orders.services.dispute_enums import DisputeStatus
 from notifications_system.utils import send_website_mail
 
 

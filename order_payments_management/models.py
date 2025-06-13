@@ -5,7 +5,7 @@ from django.core.mail import send_mail
 from decimal import Decimal
 from wallet.models import Wallet
 from django.core.exceptions import ValidationError
-from discounts.models import Discount 
+from discounts.models.discount import Discount 
 from django.utils.timezone import now
 from referrals.models import Referral, ReferralBonusConfig
 from websites.models import Website

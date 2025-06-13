@@ -132,7 +132,8 @@ class FileDeletionRequest(models.Model):
     status = models.CharField(
         max_length=20,
         choices=[
-            ("pending", "Pending"), ("approved", "Approved"),
+            ("pending", "Pending"),
+            ("approved", "Approved"),
             ("rejected", "Rejected")
         ],
         default="pending"
@@ -167,7 +168,8 @@ class ExternalFileLink(models.Model):
     status = models.CharField(
         max_length=20,
         choices=[
-            ("pending", "Pending"), ("approved", "Approved"),
+            ("pending", "Pending"),
+            ("approved", "Approved"),
             ("rejected", "Rejected")
         ],
         default="pending"
@@ -196,12 +198,17 @@ class ExtraServiceFile(models.Model):
         on_delete=models.CASCADE,
         related_name="extra_service_files"
     )
+    category = models.ForeignKey(
+        OrderFileCategory,
+        on_delete=models.CASCADE,
+        related_name="extra_service_files",
+        help_text="Category for the extra service file (e.g., Plagiarism Report, Smart Paper)"
+    )
     uploaded_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
         null=True
     )
-    service_name = models.CharField(max_length=255)  # Example: "Plagiarism Report", "Smart Paper"
     file = models.FileField(upload_to="extra_service_files/")
     created_at = models.DateTimeField(auto_now_add=True)
     is_downloadable = models.BooleanField(default=False)  # Locked until payment is confirmed

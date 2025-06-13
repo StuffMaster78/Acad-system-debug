@@ -3,7 +3,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from orders.models import WriterRequest, Order
 from orders.serializers import WriterRequestSerializer
-from orders.services.pricing_calculator import calculate_additional_cost
+from orders.services.pricing_calculator import PricingCalculatorService 
+from rest_framework import viewsets, status
+
 from orders.permissions import IsClientWhoOwnsOrder, IsAuthenticated
 
 class WriterRequestViewSet(viewsets.ModelViewSet):
@@ -62,7 +64,7 @@ class WriterRequestViewSet(viewsets.ModelViewSet):
 
             # Handle payment for page/slide increase
             if writer_request.request_type in ["page_increase", "slide_increase"]:
-                additional_cost = calculate_additional_cost(writer_request)
+                additional_cost = PricingCalculatorService.calculate_additional_cost(writer_request)
                 payment = RequestPayment.objects.create(
                     order=order,
                     payment_method="wallet",  # Assuming wallet for now

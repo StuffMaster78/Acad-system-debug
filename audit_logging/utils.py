@@ -41,3 +41,18 @@ def get_current_user():
     """
     request = _request_ctx.get()
     return getattr(request, "user", None) if request else None
+
+
+def get_client_ip(request):
+    """Extract client IP from request."""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+def get_user_agent(request):
+    """Extract User-Agent string from request."""
+    return request.META.get('HTTP_USER_AGENT', '')

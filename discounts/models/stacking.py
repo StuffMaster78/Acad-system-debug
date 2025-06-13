@@ -1,6 +1,6 @@
 from django.db import models
-from .discount import Discount
 from django.core.exceptions import ValidationError
+
 class DiscountStackingRule(models.Model):
     """
     Links discounts that can be combined in the system.
@@ -10,17 +10,17 @@ class DiscountStackingRule(models.Model):
     website = models.ForeignKey(
         'websites.Website',
         on_delete=models.CASCADE,
-        related_name='discount_stacking_rule',
+        related_name='discount_stacking_rules',
         help_text="The website for which this discount stacking rule applies"
     )
     discount = models.ForeignKey(
-        Discount,
+        'discounts.Discount',
         on_delete=models.CASCADE,
         related_name='base_discounts',
         help_text="The base discount that can be stacked"
     )
     stackable_discount = models.ForeignKey(
-        Discount,
+        'discounts.Discount',
         related_name='stackable_discounts',
         on_delete=models.CASCADE,
         help_text="The discount that can be stacked on top of the base discount"
@@ -31,10 +31,15 @@ class DiscountStackingRule(models.Model):
     )
 
     class Meta:
-        unique_together = ("discount", "stackable_discount")
         ordering = ['priority']
         verbose_name = "Discount Stacking Rule"
         verbose_name_plural = "Discount Stacking Rules"
+        constraints = [
+            models.UniqueConstraint(
+                fields=['discount', 'stackable_discount'],
+                name='unique_discount_stacking'
+            )
+        ]
 
     def clean(self):
         """

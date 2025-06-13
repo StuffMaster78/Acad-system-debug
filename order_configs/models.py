@@ -7,7 +7,7 @@ class CriticalDeadlineSetting(models.Model):
     Stores the threshold (in hours) before the deadline when an order
     is considered CRITICAL (urgent).
     """
-    threshold_hours = models.PositiveIntegerField(
+    critical_deadline_threshold_hours = models.PositiveIntegerField(
         default=8,
         help_text="Hours before deadline when order becomes critical"
     )

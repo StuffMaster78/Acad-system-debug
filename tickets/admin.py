@@ -74,7 +74,3 @@ class TicketAttachmentAdmin(admin.ModelAdmin):
     def has_module_permission(self, request):
         return request.user.is_staff or request.user.groups.filter(name="Support").exists()
 # Register the TicketAttachment model with the custom admin class
-admin.site.register(TicketAttachment, TicketAttachmentAdmin)
-
-
-

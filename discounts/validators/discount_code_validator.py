@@ -3,6 +3,7 @@
 import re
 import logging
 from django.core.exceptions import ValidationError
+from discounts.validators.code_format_validator import CodeFormatValidator
 from discounts.models import Discount  # or `get_discount_model()` if dynamic
 # from discounts.services.discount_config import DiscountConfig  # if needed
 
@@ -43,7 +44,7 @@ class DiscountCodeValidator:
         Returns:
             bool: True if format is valid, False otherwise.
         """
-        return bool(re.match(r'^[A-Z0-9_-]{4,30}$', code, re.IGNORECASE))
+        return CodeFormatValidator.is_valid_format(code)
 
     @staticmethod
     def is_valid_code(code):

@@ -6,7 +6,7 @@ from django.utils.timezone import now
 
 from audit_logging.models import AuditLogEntry
 from audit_logging.tasks import async_log_audit
-from audit_logging.middleware import get_current_request
+from audit_logging.utils import get_current_request
 
 logger = logging.getLogger("audit")
 

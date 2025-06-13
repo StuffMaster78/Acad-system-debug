@@ -4,7 +4,6 @@ from django.utils import timezone
 from datetime import datetime
 
 
-from models import Order
 from authentication.models import AuditLog
 
 logger = logging.getLogger(__name__)
@@ -25,6 +24,8 @@ def get_order_by_id(order_id, user=None, check_soft_deleted=True):
     Raises:
         Http404: If the order does not exist.
     """
+    from authentication.models import User
+    from orders.models import Order
     queryset = Order.objects.all()
 
     if check_soft_deleted and hasattr(Order, 'is_deleted'):
@@ -97,4 +98,5 @@ def get_orders_by_status_older_than(status: str, cutoff_date: datetime):
     """
     Return QuerySet of orders with given status older than cutoff_date.
     """
+    from orders.models import Order
     return Order.objects.filter(status=status, updated_at__lt=cutoff_date)

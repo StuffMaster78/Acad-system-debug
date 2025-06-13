@@ -15,10 +15,10 @@ DEFAULT_DISCOUNT_CONFIG = {
     "ENABLE_HINTS": True,
     "DISCOUNT_THRESHOLD": 100.00,
     "MAX_DISCOUNT_PERCENT": 20.00,
-    "ALLOW_STACK_ACROSS_EVENTS": False,
-    "SEASONAL_DISCOUNT_ACTIVE": True,
-    "SEASONAL_DISCOUNT_VALUE": 10.00,
-    "SEASONAL_EVENT_ID": None,
+    "ALLOW_STACK_ACROSS_CAMPAIGNS": False,
+    "PROMOTIONAL_DISCOUNT_ACTIVE": True,
+    "PROMOTIONAL_DISCOUNT_VALUE": 10.00,
+    "PROMOTIONAL_CAMPAIGN_ID": None,
 }
 
 _CACHE = {}
@@ -68,10 +68,10 @@ class DiscountConfigService:
                 "ENABLE_HINTS": db_config.enable_hints,
                 "DISCOUNT_THRESHOLD": float(db_config.discount_threshold),
                 "MAX_DISCOUNT_PERCENT": float(db_config.max_discount_percent),
-                "ALLOW_STACK_ACROSS_EVENTS": db_config.allow_stack_across_events,
-                "SEASONAL_DISCOUNT_ACTIVE": db_config.seasonal_discount_active,
-                "SEASONAL_DISCOUNT_VALUE": float(db_config.seasonal_discount_value),
-                "SEASONAL_EVENT_ID": db_config.seasonal_event_id,
+                "ALLOW_STACK_ACROSS_CAMPAIGNS": db_config.allow_stack_across_campaigns,
+                "PROMOTIONAL_DISCOUNT_ACTIVE": db_config.promotional_discount_active,
+                "PROMOTIONAL_DISCOUNT_VALUE": float(db_config.promotional_discount_value),
+                "PROMOTIONAL_CAMPAIGN_ID": db_config.promotional_campaign_id,
             }
 
         _CACHE[cache_key] = (config, now)

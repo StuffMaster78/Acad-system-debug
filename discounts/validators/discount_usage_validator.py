@@ -3,7 +3,6 @@ Validates discount usage limits per user and global max uses.
 """
 
 from django.core.exceptions import ValidationError
-from discounts.models import DiscountUsage
 from discounts.utils import get_discount_usage_model
 
 

@@ -1,7 +1,10 @@
 from django.contrib import admin
 from .models import Notification, NotificationPreference
 
-
+from django.contrib import admin
+from django.utils import timezone
+from authentication.models.login import LoginSession
+from authentication.models.logout import LogoutEvent
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ('user', 'type', 'title', 'is_read', 'status', 'created_at', 'website')

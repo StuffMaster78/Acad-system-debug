@@ -1,7 +1,7 @@
 from orders.models import Order
 from orders.utils.order_utils import get_order_by_id, save_order
 from datetime import datetime, timedelta
-from order_configs.models import OrderConfig
+from order_configs.models import CriticalDeadlineSetting
 from orders.order_enums import OrderStatus
 
 class MarkCriticalOrderService:
@@ -38,7 +38,7 @@ class MarkCriticalOrderService:
     @staticmethod
     def get_critical_threshold():
         # Grab the first config or default to 24 if none exists
-        config = OrderConfig.objects.first()
+        config = CriticalDeadlineSetting.objects.first()
         if config:
             return config.critical_deadline_threshold_hours
         return 8  # hard fallback

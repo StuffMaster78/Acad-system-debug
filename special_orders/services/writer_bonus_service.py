@@ -7,10 +7,10 @@ class WriterBonusService:
     """
     
     def get_user_bonuses(user):
-    """Return writer bonuses for the user."""
-    if user.is_staff:
-        return WriterBonus.objects.all()
-    return WriterBonus.objects.filter(writer=user)
+        """Return writer bonuses for the user."""
+        if user.is_staff:
+            return WriterBonus.objects.all()
+        return WriterBonus.objects.filter(writer=user)
 
 
     def create_writer_bonus(serializer):

@@ -5,18 +5,15 @@ from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from discounts.models import Discount
 from orders.utils.order_utils import get_order_by_id
 from typing import List, Dict, Any
-from discounts.services.discount_suggestions import DiscountSuggestionService
-from discounts.services.discount_engine import DiscountEngine
-from discounts.services.discount_hints import DiscountHintService
-from notifications_system.services import notify_admin_of_error
+# from notifications_system.services.dispatcher import notify_user
 from discounts.utils import get_discount_model
+from discounts.services.discount_generator import DiscountCodeGenerator
 
 logger = logging.getLogger(__name__)
 # Ensure we have the correct model loaded
-Discount = get_discount_model()
+
 
 
 class DiscountCodeService:
@@ -28,21 +25,19 @@ class DiscountCodeService:
     """
 
     @staticmethod
-    def generate_code(prefix='DISC', length=6):
+    def generate_code(prefix='', length=6):
         """
-        Generate a unique uppercase discount code with prefix.
-
+        Proxy method to generate a globally unique discount code with an optional prefix.
         Args:
-            prefix (str): Prefix for the code. Defaults to 'DISC'.
-            length (int): Length of random suffix. Defaults to 6.
-
+            prefix (str): Optional code prefix (e.g., 'WELCOME2025').
+            length (int): Length of the random suffix.
         Returns:
-            str: Generated discount code in format PREFIX-XXXXXX.
+            str: A unique discount code.
+        Raises:
+            RuntimeError: If unable to generate a unique code after multiple attempts.
         """
-        suffix = ''.join(
-            random.choices(string.ascii_uppercase + string.digits, k=length)
-        )
-        return f"{prefix.upper()}-{suffix}"
+        return DiscountCodeGenerator.generate_unique_code(prefix=prefix, length=length)
+
 
     @classmethod
     def create_discount_code(
@@ -60,19 +55,7 @@ class DiscountCodeService:
         is_active=True,
     ):
         """
-        Create a discount code with optional ties to event or client.
-
-        Args:
-            code (str): Optional exact code. Generated if None.
-            discount_type (str): 'percent' or 'fixed'.
-            discount_value (Decimal): Discount amount.
-            start_date (datetime): Discount valid start datetime.
-            end_date (datetime): Discount valid end datetime.
-            usage_limit (int|None): Max allowed uses.
-            website (Website|None): Website for the discount.
-            seasonal_event (SeasonalEvent|None): Event to link.
-            client (User|None): User to restrict discount.
-            is_active (bool): If discount is active.
+        Create a discount code with optional ties to promotional campaign or client.
 
         Returns:
             Discount: Created Discount instance.
@@ -80,6 +63,7 @@ class DiscountCodeService:
         Raises:
             ValidationError: For invalid data or conflicts.
         """
+        from discounts.models import Discount
         if start_date >= end_date:
             raise ValidationError("End date must be after start date.")
 
@@ -90,13 +74,9 @@ class DiscountCodeService:
                 )
         elif discount_type == 'fixed':
             if discount_value <= 0:
-                raise ValidationError(
-                    "Fixed discount must be greater than zero."
-                )
+                raise ValidationError("Fixed discount must be greater than zero.")
         else:
-            raise ValidationError(
-                "discount_type must be 'percent' or 'fixed'."
-            )
+            raise ValidationError("discount_type must be 'percent' or 'fixed'.")
 
         if promotional_campaign:
             if not promotional_campaign.is_active:
@@ -113,17 +93,13 @@ class DiscountCodeService:
                     "Promotional campaign does not belong to given website."
                 )
 
+        # 🔁 Code generation moved to service
         if not code:
             prefix = getattr(promotional_campaign, 'code_prefix', 'DISC')
-            for _ in range(10):
-                candidate = cls.generate_code(prefix=prefix)
-                if not DiscountEngine.fetch_by_codes(code=candidate).exists():
-                    code = candidate
-                    break
-            else:
-                raise ValidationError(
-                    "Failed to generate unique discount code after 10 tries."
-                )
+            try:
+                code = DiscountCodeGenerator.generate_unique_code(prefix=prefix)
+            except RuntimeError as e:
+                raise ValidationError(str(e))
 
         if Discount.objects.filter(code=code).exists():
             raise ValidationError(f"Discount code '{code}' already exists.")
@@ -144,7 +120,6 @@ class DiscountCodeService:
                 used_count=0,
             )
         return discount
-    
 
     @staticmethod
     def deactivate_code(discount):
