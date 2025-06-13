@@ -8,6 +8,11 @@ class OTP(models.Model):
         get_user_model(),
         on_delete=models.CASCADE
     )
+    website = models.ForeignKey(
+        'website.Website',
+        on_delete=models.CASCADE,
+        help_text="the website getting the OTP"
+        )
     otp_code = models.CharField(max_length=6)
     expiration_time = models.DateTimeField()
 

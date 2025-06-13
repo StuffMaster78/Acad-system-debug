@@ -3,17 +3,21 @@ import uuid
 
 from django.db import models
 from django.utils.timezone import now
-# from django.conf import settings
-from users.models import User
 
 
 class TrustedDevice(models.Model):
     """
-    Stores trusted devices for users who selected
-    "Remember This Device" during MFA.
+    Stores trusted devices per user and per website 
+    for "Remember This Device" during MFA.
     """
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE,
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name="trusted_devices"
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
         related_name="trusted_devices"
     )
     device_token = models.CharField(
@@ -30,10 +34,20 @@ class TrustedDevice(models.Model):
     )
 
     def is_valid(self):
-        """Checks if the device is still trusted."""
+        """
+        Check if the device is still trusted.
+
+        Returns:
+            bool: True if device is within expiration, else False.
+        """
         return self.expires_at > now()
 
     @staticmethod
     def generate_token():
-        """Generates a secure hashed token."""
+        """
+        Generate a secure, hashed token for identifying the device.
+
+        Returns:
+            str: A SHA-256 hashed UUID.
+        """
         return hashlib.sha256(str(uuid.uuid4()).encode()).hexdigest()

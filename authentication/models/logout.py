@@ -10,6 +10,11 @@ class LogoutEvent(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
+    website = models.ForeignKey(
+        'website.Website',
+        on_delete=models.CASCADE,
+        related_name='logout_events'
+    )
     timestamp = models.DateTimeField(default=timezone.now)
     ip_address = models.GenericIPAddressField(
         null=True,
@@ -25,8 +30,10 @@ class LogoutEvent(models.Model):
         max_length=255,
         null=True,
         blank=True,
-        help_text="Optional reason (e.g., user_initiated, session_expired, admin_kick)"
-    )
+        help_text=(
+            "Optional reason (e.g., user_initiated, session_expired, admin_kick)"
+        )
+     )
 
     class Meta:
         ordering = ['-timestamp']

@@ -1,3 +1,5 @@
+import requests
+from django.conf import settings
 from rest_framework import serializers
 from .models import AuditLog, TrustedDevice, BlockedIP, AccountDeletionRequest
 from .models.magic_links import MagicLink
@@ -10,23 +12,52 @@ from django.utils.translation import gettext_lazy as _
 from phonenumber_field.serializerfields import PhoneNumberField # type: ignore
 from django.contrib.auth.password_validation import validate_password
 from .models.deletion_requests import AccountDeletionRequest
+from authentication.models.impersonation import ImpersonationLog, ImpersonationToken
+from authentication.models.login import LoginSession
+from authentication.models.lockout import AccountLockout
 from authentication.models.mfa_settings import MFASettings
+from authentication.models.logout import LogoutEvent
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from authentication.utilsy import decode_verification_token
 from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 from authentication.models.sessions import UserSession
+from authentication.models.tokens import SecureToken, SecureTokenManager
 from django.contrib.auth import authenticate
 from django.contrib.auth.tokens import default_token_generator
 from authentication.utils.jwt import decode_password_reset_token
+from authentication.utils.mfa import get_mfa_session_by_token, verify_mfa_code
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from authentication.models.login import LoginSession
+from authentication.models.logout import LogoutEvent
+from django.utils.timezone import now
+from authentication.models.otp import OTP
+from authentication.models.password_reset import PasswordResetRequest
+from authentication.services.password_reset_service import PasswordResetService
+from authentication.services.token_services import SecureTokenService
+from authentication.models.recovery import BackupCode
+from authentication.models.register import RegistrationToken
+from authentication.services.otp_service import OTPService
+from authentication.services.registration_token_service import (
+    RegistrationTokenService
+)
+from authentication.serializers import (
+    RegistrationTokenSerializer
+)
+from rest_framework.permissions import AllowAny
+from authentication.services.totp_service import TOTPService
+from authentication.models.tokens import SecureToken, EncryptedRefreshToken
+from authentication.models.magic_links import MagicLink
+from authentication.services.magic_link_service import MagicLinkService
 
 User = get_user_model()
 
 # Defining constants for MFA methods
 MFA_METHODS = (
     ('qr_code', 'QR Code (TOTP)'),
-    ('passkey', 'Passkey (WebAuthn)'),
     ('email', 'Email Verification'),
     ('sms', 'SMS Verification'),
 )
@@ -163,6 +194,15 @@ class LoginUserSerializer(serializers.Serializer):
         token['role'] = user.role  # Include role in JWT
         return token
 
+
+class LoginSessionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LoginSession
+        fields = [
+            "id", "user", "website", "ip_address", "user_agent",
+            "device_name", "logged_in_at", "is_active", "token"
+        ]
+        read_only_fields = ["logged_in_at", "id", "user"]
 
 class ChangePasswordSerializer(serializers.Serializer):
     """
@@ -320,20 +360,22 @@ class UserDeletionRequestSerializer(serializers.ModelSerializer):
         ]
 
 
-class ImpersonationSerializer(serializers.ModelSerializer):
+class ImpersonationTokenSerializer(serializers.ModelSerializer):
     """
-    Serializer for impersonation control.
+    Full token detail serializer.
     """
-    impersonated_by = serializers.ReadOnlyField(
-        source='impersonated_by.username'
-    )
 
     class Meta:
-        model = User
+        model = ImpersonationToken
         fields = [
-            'id', 'username', 'email', 'role',
-            'is_impersonated', 'impersonated_by'
+            "id",
+            "token",
+            "admin_user",
+            "target_user",
+            "created_at",
+            "expires_at"
         ]
+        read_only_fields = ["token", "admin_user", "created_at", "expires_at"]
 
 
 class SuspensionSerializer(serializers.ModelSerializer):
@@ -449,9 +491,32 @@ class MFARecoverySerializer(serializers.Serializer):
 
 # Serializer to represent active user sessions
 class UserSessionSerializer(serializers.ModelSerializer):
+    """
+    Serializer for displaying and managing user sessions.
+    """
+
     class Meta:
         model = UserSession
-        fields = ['id', 'device_info', 'ip_address', 'last_active']
+        fields = [
+            "id",
+            "session_key",
+            "ip_address",
+            "device_type",
+            "user_agent",
+            "country",
+            "created_at",
+            "last_activity",
+            "expires_at",
+            "is_active",
+        ]
+        read_only_fields = [
+            "id",
+            "session_key",
+            "created_at",
+            "last_activity",
+            "expires_at",
+            "is_active"
+        ]
 
 
 class RequestPasswordResetSerializer(serializers.Serializer):
@@ -534,3 +599,656 @@ class SetNewPasswordSerializer(serializers.Serializer):
         # Make user available after full validation
         attrs['user'] = self.context.get('user')
         return attrs
+
+
+class MFAChallengeSerializer(serializers.Serializer):
+    """
+    Serializer for handling MFA challenge verification.
+    """
+    mfa_token = serializers.CharField(
+        help_text="Temporary MFA session token issued after initial login."
+    )
+    code = serializers.CharField(
+        max_length=6,
+        help_text="The 6-digit MFA code from your authenticator or SMS."
+    )
+
+    def validate(self, data):
+        token = data.get("mfa_token")
+        code = data.get("code")
+
+        # Replace with your actual token/session lookup
+        mfa_session = get_mfa_session_by_token(token)
+        if not mfa_session:
+            raise serializers.ValidationError("Invalid or expired MFA token.")
+
+        # Replace with your actual code validation
+        if not verify_mfa_code(mfa_session.user, code):
+            raise serializers.ValidationError("Invalid MFA code.")
+
+        data["user"] = mfa_session.user
+        return data
+
+
+class MFAChallengeVerifySerializer(serializers.Serializer):
+    """
+    Serializer for verifying the MFA challenge response.
+    """
+    mfa_token = serializers.CharField(
+        help_text="Temporary MFA token issued after initial authentication."
+    )
+    code = serializers.CharField(
+        max_length=6,
+        help_text="The MFA code (e.g., TOTP, SMS) submitted by the user."
+    )
+
+    def validate(self, data):
+        mfa_token = data.get("mfa_token")
+        code = data.get("code")
+
+        # Hypothetical function to fetch MFA session/context
+        mfa_session = get_mfa_session_by_token(mfa_token)
+        if not mfa_session:
+            raise serializers.ValidationError("Invalid or expired MFA token.")
+
+        # Hypothetical function to verify the MFA code
+        if not verify_mfa_code(mfa_session.user, code):
+            raise serializers.ValidationError("MFA code verification failed.")
+
+        # Mark the session as verified or return user info
+        data["user"] = mfa_session.user
+        data["verified"] = True
+
+        return data
+    
+
+
+class CreateImpersonationTokenSerializer(serializers.Serializer):
+    """
+    Serializer to accept target user ID.
+    """
+    target_user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+
+
+class AccountLockoutSerializer(serializers.ModelSerializer):
+    """
+    Serializes account lockout records.
+    """
+
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    username = serializers.CharField(
+        source='user.username', read_only=True
+    )
+
+    class Meta:
+        model = AccountLockout
+        fields = [
+            'id',
+            'user_id',
+            'username',
+            'reason',
+            'locked_at',
+            'active'
+        ]
+        read_only_fields = ['locked_at']
+
+class LogoutEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LogoutEvent
+        fields = [
+            'id', 'user', 'website', 'timestamp', 'ip_address',
+            'user_agent', 'session_key', 'reason'
+        ]
+        read_only_fields = ['id', 'timestamp', 'user']
+
+class AdminKickoutSerializer(serializers.Serializer):
+    """
+    Validates input for admin-initiated user kickout.
+    """
+    user_id = serializers.IntegerField(required=False)
+    username = serializers.CharField(required=False)
+    ip_address = serializers.IPAddressField(required=False)
+    reason = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Optional reason for the kickout (audit, security, etc.)"
+    )
+
+    def validate(self, attrs):
+        """
+        Ensure at least one identifier is provided and user exists.
+        """
+        user_id = attrs.get("user_id")
+        username = attrs.get("username")
+
+        if not user_id and not username:
+            raise serializers.ValidationError(
+                "Either user_id or username is required."
+            )
+
+        user = None
+        if user_id:
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                raise serializers.ValidationError("User with this ID not found.")
+        else:
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                raise serializers.ValidationError("User with this username not found.")
+
+        attrs["target_user"] = user
+        return attrs
+    
+class SessionManagementViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @action(detail=False, methods=["post"])
+    def kick_others(self, request):
+        """
+        Ends all other active sessions except the current one.
+        """
+        user = request.user
+        current_token = request.auth  # Assuming JWT or session token
+
+        sessions = LoginSession.objects.filter(
+            user=user,
+            website=user.website,
+            is_active=True
+        ).exclude(token=current_token)
+
+        for session in sessions:
+            LogoutEvent.objects.create(
+                user=user,
+                ip_address=session.ip_address,
+                user_agent=session.user_agent,
+                session_key=session.token,
+                reason="kick_other_sessions"
+            )
+            session.is_active = False
+            session.save()
+
+        return Response(
+            {"detail": "All other sessions have been logged out."},
+            status=status.HTTP_200_OK
+        )
+    
+
+class OTPSerializer(serializers.ModelSerializer):
+    """
+    Serializer for OTP data (mostly for debug or testing).
+    """
+
+    class Meta:
+        model = OTP
+        fields = ["id", "user", "website", "otp_code", "expiration_time"]
+        read_only_fields = fields
+
+class PasswordResetRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for the PasswordResetRequest model.
+    """
+
+    class Meta:
+        model = PasswordResetRequest
+        fields = [
+            "id",
+            "user",
+            "website",
+            "token",
+            "created_at",
+            "is_used"
+        ]
+        read_only_fields = ["token", "created_at", "is_used"]
+
+
+class InitiatePasswordResetSerializer(serializers.Serializer):
+    """
+    Serializer to initiate a password reset via email and website context.
+    """
+    email = serializers.EmailField()
+    website = serializers.SlugRelatedField(
+        slug_field="domain",
+        queryset=Website.objects.all()
+    )
+
+    def validate(self, attrs):
+        """
+        Checks if the user exists for the given website and email.
+        """
+        try:
+            user = User.objects.get(email=attrs["email"])
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found.")
+
+        attrs["user"] = user
+        return attrs
+
+    def create(self, validated_data):
+        """
+        Generates a password reset token.
+        """
+        service = PasswordResetService(
+            user=validated_data["user"],
+            website=validated_data["website"]
+        )
+        reset_obj = service.generate_reset_token()
+        return reset_obj
+    
+
+class VerifyResetTokenSerializer(serializers.Serializer):
+    """
+    Serializer to verify a password reset token.
+    """
+    token = serializers.CharField(max_length=255)
+
+    def validate_token(self, value):
+        """
+        Validates that the token exists, is not used, and is not expired.
+        """
+        try:
+            reset_obj = PasswordResetRequest.objects.get(token=value)
+        except PasswordResetRequest.DoesNotExist:
+            raise serializers.ValidationError("Invalid token.")
+
+        if reset_obj.is_used:
+            raise serializers.ValidationError("Token already used.")
+
+        if reset_obj.is_expired():
+            raise serializers.ValidationError("Token has expired.")
+
+        return value
+    
+
+class CompletePasswordResetSerializer(serializers.Serializer):
+    """
+    Serializer to set a new password using a valid reset token.
+    """
+    token = serializers.CharField(max_length=255)
+    new_password = serializers.CharField(write_only=True)
+
+    def validate_new_password(self, value):
+        """
+        Validates the new password with Django's built-in validators.
+        """
+        validate_password(value)
+        return value
+
+    def validate(self, attrs):
+        """
+        Validates token and attaches user instance for password update.
+        """
+        try:
+            reset_obj = PasswordResetRequest.objects.get(token=attrs["token"])
+        except PasswordResetRequest.DoesNotExist:
+            raise serializers.ValidationError({"token": "Invalid token."})
+
+        if reset_obj.is_used:
+            raise serializers.ValidationError({"token": "Token already used."})
+
+        if reset_obj.is_expired():
+            raise serializers.ValidationError({"token": "Token has expired."})
+
+        attrs["user"] = reset_obj.user
+        attrs["reset_obj"] = reset_obj
+        return attrs
+
+    def save(self):
+        """
+        Updates the user's password and marks the token as used.
+        """
+        user = self.validated_data["user"]
+        reset_obj = self.validated_data["reset_obj"]
+        password = self.validated_data["new_password"]
+
+        user.set_password(password)
+        user.save()
+
+        reset_obj.is_used = True
+        reset_obj.save()
+
+        return user
+    
+class BackupCodeGenerateSerializer(serializers.Serializer):
+    """
+    Serializer for generating backup codes.
+    """
+    count = serializers.IntegerField(
+        min_value=1,
+        max_value=20,
+        default=10,
+        help_text="Number of backup codes to generate (1–20)"
+    )
+
+
+class BackupCodeVerifySerializer(serializers.Serializer):
+    """
+    Serializer for validating a submitted backup code.
+    """
+    code = serializers.CharField(
+        max_length=64,
+        help_text="The backup code provided by the user"
+    )
+
+
+class BackupCodeListSerializer(serializers.ModelSerializer):
+    """
+    Read-only serializer to list previously issued backup codes
+    (hashed, no plaintext returned).
+    """
+
+    class Meta:
+        model = BackupCode
+        fields = ["id", "used", "created_at", "used_at"]
+        read_only_fields = fields
+
+
+
+class RegistrationTokenSerializer(serializers.ModelSerializer):
+    """
+    Serializes RegistrationToken data.
+    """
+
+    class Meta:
+        model = RegistrationToken
+        fields = [
+            "id",
+            "token",
+            "created_at",
+            "expires_at",
+            "is_used"
+        ]
+        read_only_fields = ["id", "token", "created_at", "expires_at", "is_used"]
+
+
+class RegistrationTokenValidationSerializer(serializers.Serializer):
+    """
+    Accepts token string input for registration token validation.
+    """
+    token = serializers.UUIDField()
+
+class RegistrationTokenConfirmationSerializer(serializers.Serializer):
+    token = serializers.UUIDField()
+    otp_code = serializers.CharField()
+    captcha_token = serializers.CharField()
+
+    def validate_captcha_token(self, value):
+        response = requests.post(
+            'https://www.google.com/recaptcha/api/siteverify',
+            data={
+                'secret': settings.RECAPTCHA_SECRET_KEY,
+                'response': value
+            }
+        )
+        result = response.json()
+        if not result.get("success"):
+            raise serializers.ValidationError("CAPTCHA validation failed.")
+        return value
+    
+
+
+class RegistrationConfirmationViewSet(viewsets.ViewSet):
+    """
+    Confirms a user registration via token and OTP.
+    """
+    permission_classes = [AllowAny]
+
+    def create(self, request):
+        """
+        POST /api/v1/auth/registration/confirm/
+        """
+        serializer = RegistrationTokenSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user = request.user  # or fetch based on token if unauthenticated
+        website = request.headers.get("X-Website")  # or however you're passing it
+        token = serializer.validated_data['token']
+        otp_code = serializer.validated_data['otp_code']
+
+        confirmation_service = RegistrationTokenService(user, website)
+        otp_service = OTPService(user, website)
+
+        try:
+            confirmation_service.confirm_registration(token, otp_code, otp_service)
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response(
+            {"detail": "Registration confirmed successfully."},
+            status=status.HTTP_200_OK
+        )
+    
+
+class MFASettingsSerializer(serializers.ModelSerializer):
+    """
+    Serializer for reading and updating MFA settings.
+    """
+
+    class Meta:
+        model = MFASettings
+        fields = [
+            "is_mfa_enabled",
+            "mfa_method",
+            "mfa_phone_number",
+            "mfa_email_verified",
+        ]
+        read_only_fields = ["mfa_email_verified"]
+
+
+class MFAOtpVerificationSerializer(serializers.Serializer):
+    """
+    Serializer to verify an OTP code for 2FA.
+    """
+    otp_code = serializers.CharField(
+        min_length=6,
+        max_length=6,
+        help_text="The 6-digit OTP code."
+    )
+
+
+class MFAEnableSerializer(serializers.Serializer):
+    """
+    Serializer to enable MFA for a user.
+    """
+    method = serializers.ChoiceField(
+        choices=[
+            ("qr_code", "QR Code (TOTP)"),
+            ("email", "Email Verification"),
+            ("sms", "SMS Verification"),
+        ],
+        help_text="The MFA method to enable."
+    )
+    phone_number = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        help_text="Required if SMS is chosen as MFA method."
+    )
+
+
+class MFARecoveryTokenSerializer(serializers.Serializer):
+    """
+    Serializer for verifying an MFA recovery token.
+    """
+    recovery_token = serializers.CharField(
+        help_text="The recovery token used for MFA recovery."
+    )
+
+
+
+class TOTPSetupSerializer(serializers.Serializer):
+    """
+    Handles TOTP setup: generates secret, QR code.
+    """
+    qr_code = serializers.CharField(read_only=True)
+    secret = serializers.CharField(read_only=True)
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        secret = TOTPService.generate_totp_secret()
+        qr_code = TOTPService.generate_qr_code(
+            username=user.email,  # Or username
+            secret=secret,
+            issuer="YourApp"  # Replace with your app name
+        )
+
+        mfa_settings, _ = MFASettings.objects.get_or_create(user=user)
+        mfa_settings.mfa_method = "qr_code"
+        mfa_settings.mfa_secret = secret
+        mfa_settings.save()
+
+        return {
+            "qr_code": qr_code,
+            "secret": secret
+        }
+
+
+class TOTPVerifySerializer(serializers.Serializer):
+    """
+    Verifies the TOTP code provided by the user.
+    """
+    otp_code = serializers.CharField(max_length=6)
+
+    def validate(self, attrs):
+        user = self.context["request"].user
+        otp_code = attrs.get("otp_code")
+
+        try:
+            mfa = MFASettings.objects.get(user=user)
+        except MFASettings.DoesNotExist:
+            raise serializers.ValidationError("MFA not initialized.")
+
+        if not mfa.mfa_secret:
+            raise serializers.ValidationError("TOTP secret not found.")
+
+        if not TOTPService.verify_totp(mfa.mfa_secret, otp_code):
+            raise serializers.ValidationError("Invalid OTP code.")
+
+        # If successful, enable MFA
+        mfa.is_mfa_enabled = True
+        mfa.otp_code = None
+        mfa.otp_expires_at = None
+        mfa.save()
+
+        return {"success": True}
+
+
+
+class SecureTokenCreateSerializer(serializers.Serializer):
+    purpose = serializers.ChoiceField(choices=SecureToken.TOKEN_PURPOSE_CHOICES)
+    raw_token = serializers.CharField(write_only=True, max_length=4096)
+    expires_at = serializers.DateTimeField()
+
+    def validate_expires_at(self, value):
+        if value <= now():
+            raise serializers.ValidationError("Expiry must be in the future.")
+        return value
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        website = self.context["website"]
+
+        from authentication.services.token_services import SecureTokenService
+        service = SecureTokenService(user=user, website=website)
+
+        return service.create_token(
+            raw_token=validated_data["raw_token"],
+            purpose=validated_data["purpose"],
+            expires_at=validated_data["expires_at"]
+        )
+
+
+class SecureTokenListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SecureToken
+        fields = [
+            "id", "purpose", "created_at", "expires_at", "is_active"
+        ]
+
+
+class SecureTokenDecryptSerializer(serializers.Serializer):
+    token_id = serializers.UUIDField()
+
+    def validate(self, data):
+        user = self.context["request"].user
+        website = self.context["website"]
+        from authentication.services.token_services import SecureTokenService
+
+        service = SecureTokenService(user=user, website=website)
+        token = service.get_token_by_id(data["token_id"])
+
+        if not token.is_active or token.expires_at <= now():
+            raise serializers.ValidationError("Token is inactive or expired.")
+        return data
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        website = self.context["website"]
+        service = SecureTokenService(user=user, website=website)
+        return {"decrypted_token": service.decrypt_token_by_id(validated_data["token_id"])}
+
+
+class EncryptedRefreshTokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EncryptedRefreshToken
+        fields = ["id", "created_at"]
+
+class MagicLinkRequestSerializer(serializers.Serializer):
+    """
+    Serializer for requesting a magic link via email.
+    """
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        website = self.context["website"]
+        try:
+            user = User.objects.get(email=value, website=website)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User not found for this website.")
+        return value
+
+    def create(self, validated_data):
+        email = validated_data["email"]
+        website = self.context["website"]
+        request = self.context["request"]
+        user = User.objects.get(email=email, website=website)
+
+        ip = request.META.get("REMOTE_ADDR")
+        user_agent = request.META.get("HTTP_USER_AGENT")
+
+        service = MagicLinkService(website)
+        magic_link = service.create_magic_link(user, ip=ip, user_agent=user_agent)
+
+        # 👇 Plug your email service here
+        # send_magic_link_email(user.email, token=magic_link.token)
+
+        return {"message": "Magic link sent."}
+
+
+class MagicLinkVerifySerializer(serializers.Serializer):
+    """
+    Serializer for verifying the magic link token.
+    """
+    token = serializers.UUIDField()
+
+    def validate_token(self, value):
+        website = self.context["website"]
+        service = MagicLinkService(website)
+
+        try:
+            self.link = service.validate_token(str(value))
+        except Exception as e:
+            raise serializers.ValidationError(str(e))
+
+        return value
+
+    def create(self, validated_data):
+        website = self.context["website"]
+        token = str(validated_data["token"])
+        service = MagicLinkService(website)
+
+        user = service.consume_token(token)
+        return user

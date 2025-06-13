@@ -14,6 +14,13 @@ class AccountDeletionRequest(models.Model):
         (REJECTED, 'Rejected'),
     ]
     
+    website = models.ForeignKey(
+        'website.Website',
+        on_delete=models.CASCADE,
+        related_name='deletion_requests',
+        help_text="The website where the request is coming from"
+    )
+    
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
@@ -32,6 +39,21 @@ class AccountDeletionRequest(models.Model):
         null=True,
         blank=True
     )
+    scheduled_deletion_time = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Time after which user will be permanently deleted."
+    )
+    undo_token = models.CharField(
+        max_length=64,
+        null=True,
+        blank=True,
+        unique=True
+    )
+    undo_token_expiry = models.DateTimeField(
+        null=True,
+        blank=True
+    )
     reason = models.TextField(null=True, blank=True)
     
     def confirm(self):
@@ -43,6 +65,22 @@ class AccountDeletionRequest(models.Model):
         self.status = self.REJECTED
         self.rejection_time = timezone.now()
         self.save()
+
+    def schedule_deletion(self, delay_hours=72):
+        self.status = self.CONFIRMED
+        self.confirmation_time = timezone.now()
+        self.scheduled_deletion_time = self.confirmation_time + timezone.timedelta(hours=delay_hours)
+        self.save()
+
+    def generate_undo_token(self):
+        import secrets
+        self.undo_token = secrets.token_urlsafe(32)
+        self.undo_token_expiry = timezone.now() + timezone.timedelta(hours=72)
+        self.save()
+
+    def perform_soft_delete(self):
+        self.user.is_active = False
+        self.user.save()
     
     def __str__(self):
         return f"Deletion request for {self.user.username} ({self.get_status_display()})"    

@@ -1,4 +1,3 @@
-from authentication.models.audit import AuditLog
 from ipware import get_client_ip as ipware_get_ip # type: ignore
 import logging
 
@@ -14,6 +13,25 @@ def log_audit_action(user, action_type, request, reason=None):
         request: The HTTP request object to capture IP and user agent details.
         reason: An optional reason for the action, if applicable.
     """
+    from authentication.models import AuditLog
+    if not user or not action_type or not request:
+        logger.error("Invalid parameters for logging audit action.")
+        return
+    if not isinstance(user, int):
+        logger.error("User must be an instance of User model.")
+        return
+    if not isinstance(action_type, str):
+        logger.error("Action type must be a string.")
+        return
+    if not isinstance(request, object):
+        logger.error("Request must be an instance of HttpRequest.")
+        return
+    if reason is None:
+        reason = "No specific reason provided"
+    if not isinstance(reason, str):
+        logger.error("Reason must be a string.")
+        return
+    # Extract IP address and user agent from the request
     ip, _ = ipware_get_ip(request)
     user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
 

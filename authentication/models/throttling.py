@@ -17,6 +17,10 @@ class MagicLinkThrottle(SimpleRateThrottle):
         if email:
             return f'magic-link-{email}'
         return self.get_ident(request)
+    
+# class OTPThrottle(SimpleRateThrottle):
+#     user = models.ForeignKey(User, on_delete=models.CASCADE)
+#     requested_at = models.DateTimeField(auto_now_add=True)
 
  
 

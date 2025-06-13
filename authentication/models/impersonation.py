@@ -8,6 +8,9 @@ from django.utils import timezone
 User = get_user_model()
 
 class ImpersonationToken(models.Model):
+    """
+    Temporary token allowing an admin to impersonate a user.
+    """
     token = models.CharField(max_length=64, unique=True)
     admin_user = models.ForeignKey(
         User,
@@ -19,26 +22,53 @@ class ImpersonationToken(models.Model):
         related_name='impersonated_by',
         on_delete=models.CASCADE
     )
+
+    website = models.ForeignKey(
+        "websites.Website",
+        on_delete=models.CASCADE,
+        related_name="impersonation_tokens"
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True
     )
     expires_at = models.DateTimeField()
 
     def __str__(self):
-        return f"Impersonation token for {self.admin_user} -> {self.target_user}"
+        return (
+            f"Impersonation token: {self.admin_user} → {self.target_user}"
+        )
 
     @classmethod
-    def generate_token(cls, admin_user, target_user):
-        token = str(uuid.uuid4())[:8]  # You can adjust token length here
-        expiration_time = timezone.now() + timezone.timedelta(hours=1)  # Token expires in 1 hour
+    def generate_token(cls, admin_user, target_user, website):
+        """
+        Creates and stores a new impersonation token.
+
+        Args:
+            admin_user (User): Admin initiating impersonation.
+            target_user (User): Target user to impersonate.
+            website (Website): Current tenant context.
+
+        Returns:
+            ImpersonationToken: The created token instance.
+        """
+        token = str(uuid.uuid4()).replace("-", "")[:32]
+        expires = timezone.now() + timezone.timedelta(hours=1)
         return cls.objects.create(
             token=token,
             admin_user=admin_user,
             target_user=target_user,
-            expires_at=expiration_time
+            website=website,
+            expires_at=expires
         )
 
     def is_expired(self):
+        """
+        Checks if the token has expired.
+
+        Returns:
+            bool: True if token is expired, else False.
+        """
         return timezone.now() > self.expires_at
 
     def impersonate_user(request, token):
@@ -100,6 +130,9 @@ class ImpersonationToken(models.Model):
 
 
 class ImpersonationLog(models.Model):
+    """
+    Records each impersonation action for audit purposes.
+    """
     admin_user = models.ForeignKey(
         User,
         related_name='impersonation_logs',
@@ -110,8 +143,16 @@ class ImpersonationLog(models.Model):
         related_name='impersonation_logs',
         on_delete=models.CASCADE
     )
+    website = models.ForeignKey(
+        "websites.Website",
+        on_delete=models.CASCADE,
+        related_name="impersonation_logs"
+    )
     token = models.ForeignKey(ImpersonationToken, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Impersonation log: {self.admin_user} -> {self.target_user} on {self.created_at}"
+        return (
+            f"{self.admin_user} impersonated {self.target_user} "
+            f"on {self.created_at.strftime('%Y-%m-%d %H:%M:%S')}"
+        )

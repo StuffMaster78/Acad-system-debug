@@ -1,64 +1,109 @@
 from rest_framework.permissions import BasePermission
+from authentication.constants import ROLE_HIERARCHY
+
 
 class IsAdminOrSuperAdmin(BasePermission):
     """
-    Allow access only to superadmins and admins.
+    Allows access to admin or superadmin roles.
     """
-    def has_permission(self, request, view):
-        # return request.user.is_authenticated and request.user.role in ["superadmin", "admin"]
-        return bool(request.user and request.user.is_authenticated and request.user.is_staff)
-    
-class IsSuperadmin(BasePermission):
-    """Allows access only to Superadmin users."""
 
     def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role == "superadmin"
+        return (
+            request.user and
+            request.user.is_authenticated and
+            request.user.role in ["admin", "superadmin"]
+        )
+
+
+class IsSuperadmin(BasePermission):
+    """Allows access only to superadmin users."""
+
+    def has_permission(self, request, view):
+        return (
+            hasattr(request.user, "role") and
+            request.user.role == "superadmin"
+        )
 
 
 class IsAdmin(BasePermission):
-    """Allows access only to Admin users."""
+    """Allows access only to admin users."""
 
     def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role == "admin"
+        return (
+            hasattr(request.user, "role") and
+            request.user.role == "admin"
+        )
 
 
 class IsSupport(BasePermission):
-    """Allows access only to Support users."""
+    """Allows access only to support users."""
 
     def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role == "support"
+        return (
+            hasattr(request.user, "role") and
+            request.user.role == "support"
+        )
 
 
 class IsClient(BasePermission):
-    """Allows access only to Client users."""
+    """Allows access only to client users."""
 
     def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role == "client"
+        return (
+            hasattr(request.user, "role") and
+            request.user.role == "client"
+        )
 
 
 class IsWriter(BasePermission):
-    """Allows access only to Writer users."""
+    """Allows access only to writer users."""
 
     def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role == "writer"
+        return (
+            hasattr(request.user, "role") and
+            request.user.role == "writer"
+        )
 
 
 class IsEditor(BasePermission):
-    """Allows access only to Editor users."""
+    """Allows access only to editor users."""
 
     def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role == "editor"
-    
+        return (
+            hasattr(request.user, "role") and
+            request.user.role == "editor"
+        )
 
-class IsInRole(BasePermission):
+
+def IsInRole(allowed_roles):
     """
-    Allows access if the user's role is in the allowed roles.
+    Returns a permission class checking if user's role is in allowed_roles.
+
     Usage:
-        permission_classes = [IsInRole(('admin', 'superadmin'))]
+        permission_classes = [IsInRole(["admin", "support"])]
+    """
+    class _IsInRole(BasePermission):
+        def has_permission(self, request, view):
+            return (
+                hasattr(request.user, "role") and
+                request.user.role in allowed_roles
+            )
+    return _IsInRole
+
+
+class IsOrderOwnerOrSupport(BasePermission):
+    """
+    Allows access to the owner of the order or support/admin/superadmin.
     """
 
-    def __init__(self, allowed_roles):
-        self.allowed_roles = allowed_roles
+    def has_object_permission(self, request, view, obj):
+        if not request.user.is_authenticated:
+            return False
 
-    def has_permission(self, request, view):
-        return hasattr(request.user, "role") and request.user.role in self.allowed_roles
+        user_role = getattr(request.user, "role", None)
+        support_roles = {"support", "admin", "superadmin"}
+
+        return (
+            obj.client == request.user or
+            user_role in support_roles
+        )

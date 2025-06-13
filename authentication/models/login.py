@@ -7,6 +7,11 @@ class LoginSession(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
+    website = models.ForeignKey(
+        'website.Website',
+        on_delete=models.CASCADE,
+        related_name="login_sessions"
+    )
     ip_address = models.GenericIPAddressField(
         null=True,
         blank=True

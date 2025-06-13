@@ -47,12 +47,3 @@ def generate_device_label(device_info: dict) -> str:
     device = device_info.get('device', 'Unknown Device')
     browser = device_info.get('browser', 'Unknown Browser')
     return f"{device} - {browser}"
-
-def generate_device_label(device_info: dict) -> str:
-    """
-    Create a human-readable device label from device info.
-    E.g., 'iPhone 15 - Safari'
-    """
-    device = device_info.get('device', 'Unknown Device')
-    browser = device_info.get('browser', 'Unknown Browser')
-    return f"{device} - {browser}"

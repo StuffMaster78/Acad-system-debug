@@ -14,6 +14,11 @@ class AccountLockout(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
         related_name="lockouts"
     )
+    website = models.ForeignKey(
+        'website.Website',
+        on_delete=models.CASCADE,
+        related_name="account_lockouts"
+    )
     reason = models.TextField(
         help_text="Explanation for why the user account was locked out"
     )

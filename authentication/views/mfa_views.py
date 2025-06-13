@@ -14,9 +14,9 @@ from authentication.utilsy import (
     log_audit_action, notify_mfa_enabled,
     send_mfa_recovery_email, verify_email_otp
 )
+from authentication.serializers import MFAChallengeVerifySerializer
 
-
-from utils.jwt import (
+from authentication.utils.jwt import (
     decode_magic_link_token,
     decode_mfa_token,
 )

@@ -22,6 +22,11 @@ class SecureToken(models.Model):
         on_delete=models.CASCADE,
         related_name="tokens"
     )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name="secure_tokens"
+    )
     encrypted_token = models.TextField(
         help_text="Encrypted API token."
     )
@@ -67,15 +72,24 @@ class SecureToken(models.Model):
     
 
 class SecureTokenManager(models.Manager):
-    def create_encrypted_token(self, user, refresh_token):
-        """Encrypts and stores the refresh token securely."""
+    def create_token(self, user, website, raw_token, purpose, expires_at):
+        """
+        Creates and stores a new encrypted token.
+        """
         cipher = Fernet(FERNET_KEY)
-        encrypted_token = cipher.encrypt(refresh_token.encode())
+        encrypted_token = cipher.encrypt(raw_token.encode()).decode()
+        return self.create(
+            user=user,
+            website=website,
+            encrypted_token=encrypted_token,
+            purpose=purpose,
+            expires_at=expires_at,
+        )
 
-        return self.create(user=user, encrypted_token=encrypted_token.decode())
-
-    def decrypt_token(self, encrypted_token):
-        """Decrypts an encrypted refresh token."""
+    def decrypt(self, encrypted_token: str) -> str:
+        """
+        Utility for decrypting tokens without model instance.
+        """
         cipher = Fernet(FERNET_KEY)
         return cipher.decrypt(encrypted_token.encode()).decode()
 
@@ -84,6 +98,11 @@ class EncryptedRefreshToken(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name="secure_tokens"
     )
     encrypted_token = models.TextField()
     created_at = models.DateTimeField(

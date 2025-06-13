@@ -1,10 +1,16 @@
-from users.models import User
+# authentication/constants.py
+ROLE_CLIENT = 'client'
+ROLE_WRITER = 'writer'
+ROLE_SUPPORT = 'support'
+ROLE_EDITOR = 'editor'
+ROLE_ADMIN = 'admin'
+ROLE_SUPERADMIN = 'superadmin'
 
 ROLE_HIERARCHY = {
-    User.CLIENT: 0,
-    User.WRITER: 1,
-    User.SUPPORT: 2,
-    User.EDITOR: 3,
-    User.ADMIN: 4,
-    User.SUPERADMIN: 5,
+    ROLE_CLIENT: 0,
+    ROLE_WRITER: 1,
+    ROLE_SUPPORT: 2,
+    ROLE_EDITOR: 3,
+    ROLE_ADMIN: 4,
+    ROLE_SUPERADMIN: 5,
 }

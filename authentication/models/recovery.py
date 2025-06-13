@@ -8,10 +8,23 @@ from django.utils import timezone
 
 class BackupCode(models.Model):
     """
-    Represents a single-use recovery code used as a fallback for MFA access.
+    Represents a single-use recovery code for MFA fallback.
+
+    Attributes:
+        user (User): The user the backup code belongs to.
+        website (Website): Tenant context for multitenancy.
+        code_hash (str): SHA-256 hash of the backup code.
+        used (bool): Whether the code has been used.
+        created_at (datetime): When the code was created.
+        used_at (datetime): When the code was used (if used).
     """
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="backup_codes"
+    )
+    website = models.ForeignKey(
+        "websites.Website",
         on_delete=models.CASCADE,
         related_name="backup_codes"
     )

@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 
 class EmailVerification(models.Model):
     """
-    Handles email verification process.
+    Stores the email verification token for a user (used in link-based verification).
+    Can be used alongside OTP.
     """
     user = models.OneToOneField(
         User,

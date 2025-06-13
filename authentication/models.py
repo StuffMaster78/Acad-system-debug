@@ -7,7 +7,7 @@ from users.utils import get_client_ip
 from cryptography.fernet import Fernet # type: ignore
 # from django_otp.plugins.otp_totp.models import TOTPDevice
 # from django_otp.oath import TOTP
-from authentication.utils_backp import logout_all_sessions
+# from authentication.utils_backp import logout_all_sessions
 from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -25,6 +25,12 @@ from django.contrib.sessions.models import Session
 from django.conf import settings
 from django.core.mail import send_mail
 from managers import CustomUserManager, ActiveManager
+from authentication.constants import (
+    ROLE_CLIENT, ROLE_WRITER, ROLE_ADMIN,
+    ROLE_EDITOR, ROLE_SUPERADMIN, ROLE_SUPPORT
+)
+
+
 # Generate a secret key for token encryption (Store this securely!)
 SECRET_KEY = settings.SECRET_KEY[:32]
 FERNET_KEY = base64.urlsafe_b64encode(SECRET_KEY.encode())
@@ -45,14 +51,22 @@ class User(AbstractUser, PermissionsMixin):
     - Session & security tracking
     """
     objects = CustomUserManager()
-    active_users = ActiveManager() 
+    active_users = ActiveManager()
+
+    CLIENT = ROLE_CLIENT
+    WRITER = ROLE_WRITER
+    SUPPORT = ROLE_SUPPORT
+    EDITOR = ROLE_EDITOR
+    ADMIN = ROLE_ADMIN
+    SUPERADMIN = ROLE_SUPERADMIN
+
     ROLE_CHOICES = (
-        ('superadmin', 'Super Admin'),
-        ('admin', 'Admin'),
-        ('editor', 'Editor'),
-        ('support', 'Support'),
-        ('writer', 'Writer'),
-        ('client', 'Client'),
+        (ROLE_SUPERADMIN, 'Super Admin'),
+        (ROLE_ADMIN, 'Admin'),
+        (ROLE_EDITOR, 'Editor'),
+        (ROLE_SUPPORT, 'Support'),
+        (ROLE_WRITER, 'Writer'),
+        (ROLE_CLIENT, 'Client'),
     )
     MFA_METHODS = (
         ('none', 'No MFA'),
