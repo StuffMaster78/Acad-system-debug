@@ -4,6 +4,7 @@ from audit_logging.services import log_audit_action
 
 
 class CompleteOrderAction(BaseOrderAction):
+    # action_name = "complete_order"
     def execute(self):
         old_status = self.order.status
 

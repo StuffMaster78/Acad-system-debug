@@ -31,13 +31,13 @@ class RoleMixin(models.Model):
     Mixin to add role-based access control to user models.
     Allows checking and managing roles and permissions for users.
     """
+
     role = models.CharField(
         max_length=20,
         choices=UserRole.choices,
-        default=UserRole.CLIENT,
+        default=UserRole.CLIENT.value,
         help_text="Role assigned to the user."
     )
-
 
     class Meta:
         abstract = True
@@ -48,70 +48,69 @@ class RoleMixin(models.Model):
         support, or editor).
         """
         return self.role in {
-            UserRole.SUPERADMIN,
-            UserRole.ADMIN,
-            UserRole.SUPPORT,
-            UserRole.EDITOR
+            UserRole.SUPERADMIN.value,
+            UserRole.ADMIN.value,
+            UserRole.SUPPORT.value,
+            UserRole.EDITOR.value
         }
-    
+
     def is_superadmin(self):
-        return self.role == UserRole.SUPERADMIN
+        return self.role == UserRole.SUPERADMIN.value
 
     def is_admin(self):
-        return self.role == UserRole.ADMIN
+        return self.role == UserRole.ADMIN.value
 
     def is_support(self):
-        return self.role == UserRole.SUPPORT
-    
-    def is_staff_like(self):
-        return self.role in {
-            UserRole.ADMIN,
-            UserRole.SUPERADMIN,
-            UserRole.SUPPORT
-        }
-
-    def is_client(self):
-        """
-        Returns True if the user is a client.
-        """
-        return self.role == UserRole.CLIENT
-
-    def is_writer(self):
-        """
-        Returns True if the user is a writer.
-        """
-        return self.role == UserRole.WRITER
-
+        return self.role == UserRole.SUPPORT.value
 
     def is_editor(self):
-        """
-        Returns True if the user is an editor.
-        """
-        return self.role == UserRole.EDITOR
+        return self.role == UserRole.EDITOR.value
+
+    def is_writer(self):
+        return self.role == UserRole.WRITER.value
+
+    def is_client(self):
+        return self.role == UserRole.CLIENT.value
+
+    def is_staff_like(self):
+        return self.role in {
+            UserRole.SUPERADMIN.value,
+            UserRole.ADMIN.value,
+            UserRole.SUPPORT.value
+        }
 
     def get_permissions(self):
         """
         Returns the list of permissions associated with the user's role.
-        
-        Returns:
-            list: A list of permissions for the user's role.
         """
         permissions = {
-            UserRole.SUPERADMIN: [
+            UserRole.SUPERADMIN.value: [
                 'can_manage_users',
                 'can_edit_content',
                 'can_view_reports'
             ],
-            UserRole.ADMIN: [
+            UserRole.ADMIN.value: [
                 'can_edit_content',
                 'can_view_reports'
             ],
-            UserRole.EDITOR: ['can_edit_content'],
-            UserRole.SUPPORT: ['can_manage_support_tickets'],
-            UserRole.WRITER: ['can_submit_work'],
-            UserRole.CLIENT: ['can_view_orders']
+            UserRole.EDITOR.value: ['can_edit_content'],
+            UserRole.SUPPORT.value: ['can_manage_support_tickets'],
+            UserRole.WRITER.value: ['can_submit_work'],
+            UserRole.CLIENT.value: ['can_view_orders']
         }
         return permissions.get(self.role, [])
+
+    def has_permission(self, perm: str) -> bool:
+        """
+        Checks if the user has a specific permission.
+
+        Args:
+            perm (str): The permission to check.
+
+        Returns:
+            bool: True if the user has the permission, False otherwise.
+        """
+        return perm in self.get_permissions()
 
 # 2. MFA Mixin
 class MFAMixin(models.Model):

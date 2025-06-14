@@ -3,7 +3,8 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from authentication.models import LoginSession, LogoutEvent
+from authentication.models.login import LoginSession
+from authentication.models.logout import LogoutEvent
 from django.utils.timezone import now
 from rest_framework.views import APIView
 from rest_framework.response import Response

@@ -30,7 +30,7 @@ router.register(r'lockouts', AccountLockoutViewSet, basename='lockout')
 router.register(r"sessions", LoginSessionViewSet, basename="session")
 router.register(r'logout-events', LogoutEventViewSet, basename='logout-event')
 router.register(r'kickout', AdminKickoutViewSet, basename='kickout')
-router.register(r"session", SessionManagementViewSet, basename="session")
+router.register(r"session-management", SessionManagementViewSet, basename="session-management")
 router.register("otp", OTPViewSet, basename="otp")
 router.register(r'backup-codes', BackupCodeViewSet, basename='backup-code')
 router.register(r"registration-tokens", RegistrationTokenViewSet, basename="registration-token")
@@ -50,18 +50,18 @@ magic_link_request = MagicLinkRequestViewSet.as_view({'post': 'create'})
 magic_link_verify = MagicLinkVerifyViewSet.as_view({'post': 'create'})
 
 urlpatterns = [
-    path('account-unlock/', include('authentication.urls.account_unlock')),        # views/account_unlock_views.py
-    path('account/', include('authentication.urls.account')),                      # views/account.py
-    path('auth/', include('authentication.urls.authentication')),                  # views/authentication.py
-    path('deletion/', include('authentication.urls.deletion')),                    # views/deletion.py
-    path('forbidden/', include('authentication.urls.forbidden_access')),           # views/forbidden_access.py
-    path('mfa/settings/', include('authentication.urls.mfa_settings')),            # views/mfa_settings.py
-    path('mfa/', include('authentication.urls.mfa')),                              # views/mfa.py
-    path('mfa-views/', include('authentication.urls.mfa_views')),                  # views/mfa_views.py
-    path('passkey/', include('authentication.urls.passkey_views')),                # views/passkey_views.py
-    path('sessions/', include('authentication.urls.sessions_management')),         # views/sessions_management.py
-    path('passkeys/devices/', include('urls.devices')), #views/devices.py
-    path("auth/password-reset/", include("authentication.urls.password_reset")),
+    # path('account-unlock/', include('authentication.urls.account_unlock')),        # views/account_unlock_views.py
+    # path('account/', include('authentication.urls.account')),                      # views/account.py
+    # path('auth/', include('authentication.urls.authentication')),                  # views/authentication.py
+    # path('deletion/', include('authentication.urls.deletion')),                    # views/deletion.py
+    # path('forbidden/', include('authentication.urls.forbidden_access')),           # views/forbidden_access.py
+    # path('mfa/settings/', include('authentication.urls.mfa_settings')),            # views/mfa_settings.py
+    # path('mfa/', include('authentication.urls.mfa')),                              # views/mfa.py
+    # path('mfa-views/', include('authentication.urls.mfa_views')),                  # views/mfa_views.py
+    # path('passkey/', include('authentication.urls.passkey_views')),                # views/passkey_views.py
+    # path('sessions/', include('authentication.urls.sessions_management')),         # views/sessions_management.py
+    # path('passkeys/devices/', include('urls.devices')), #views/devices.py
+    # path("auth/password-reset/", include("authentication.urls.password_reset")),
 
 
     path(

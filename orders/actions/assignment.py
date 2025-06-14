@@ -4,6 +4,7 @@ from orders.services.assignment import OrderAssignmentService
 from audit_logging.services import log_audit_action
 
 class OrderAssignmentAction(BaseOrderAction):
+    # action_name = "assign_order"
     def execute(self):
         service = OrderAssignmentService()
         result = service.assign(self.order_id, **self.params)

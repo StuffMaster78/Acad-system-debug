@@ -5,6 +5,7 @@ from orders.services.create_order_service import CreateOrderService
 from audit_logging.services import log_audit_action
 
 class CreateOrderAction(BaseOrderAction):
+    # action_name = "create_order"
     def execute(self):
         service = CreateOrderService()
         order = service.create_order(**self.params)

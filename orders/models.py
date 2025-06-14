@@ -972,3 +972,38 @@ class OrderDiscount(models.Model):
 
     def __str__(self):
         return f"{self.discount.code} - ${self.amount} on Order {self.order.id}"
+    
+    
+class ClientFeedback(models.Model):
+    """
+    Stores feedback from a client about an order experience.
+    """
+    website = models.ForeignKey(
+        'website.Website',
+        on_delete=models.CASCADE,
+        related_name="client_feedbacks"
+    )
+    order = models.ForeignKey(
+        'orders.Order',
+        on_delete=models.CASCADE,
+        related_name="feedback"
+    )
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="order_feedbacks"
+    )
+    rating = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Optional rating from 1 (worst) to 5 (best)."
+    )
+    comment = models.TextField(
+        blank=True,
+        help_text="Optional client comment about the order."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_public = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Feedback from {self.client} on Order #{self.order.id}"

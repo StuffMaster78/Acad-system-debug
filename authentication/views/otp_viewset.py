@@ -1,5 +1,5 @@
 from rest_framework import viewsets, permissions
-from authentication.models import OTP
+from authentication.models.otp import OTP
 from authentication.serializers import OTPSerializer
 
 class OTPViewSet(viewsets.ReadOnlyModelViewSet):

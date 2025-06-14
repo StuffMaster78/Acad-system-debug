@@ -1,10 +1,10 @@
 from datetime import timedelta
 from django.utils.timezone import now
 from django.core.exceptions import PermissionDenied
-from cryptography.fernet import Fernet
+from django.conf import settings
+from cryptography.fernet import Fernet # type: ignore
 
 from authentication.models.tokens import SecureToken
-from core.secrets import TOKEN_ENCRYPTION_KEY
 
 
 class SecureTokenService:
@@ -20,7 +20,7 @@ class SecureTokenService:
     def __init__(self, user, website):
         self.user = user
         self.website = website
-        self.cipher = Fernet(TOKEN_ENCRYPTION_KEY)
+        self.cipher = Fernet(settings.TOKEN_ENCRYPTION_KEY)
 
     def create_token(self, raw_token, purpose, expires_in_minutes=10):
         """
@@ -71,13 +71,14 @@ class SecureTokenService:
             raise PermissionDenied("Token is invalid, expired, or revoked.")
 
         decrypted = self.cipher.decrypt(token.encrypted_token.encode()).decode()
-        token.revoke()
+        token.revoke()  # 🧨 Revoke to prevent replay
 
         if rotate:
+            remaining_minutes = int((token.expires_at - now()).total_seconds() / 60)
             new_token = self.create_token(
                 raw_token=decrypted,
                 purpose=purpose,
-                expires_in_minutes=int((token.expires_at - now()).total_seconds() / 60)
+                expires_in_minutes=remaining_minutes
             )
             return decrypted, new_token
 

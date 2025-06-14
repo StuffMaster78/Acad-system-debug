@@ -491,6 +491,7 @@ class UserAuditLog(models.Model):
         ('PHONE_NUMBER_CHANGE', 'Phone Number Change')
     )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
     action = models.CharField(max_length=50, choices=ACTION_CHOICES)
     timestamp = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
@@ -533,6 +534,7 @@ class ProfileUpdateRequest(models.Model):
         User, on_delete=models.CASCADE,
         related_name="update_requests"
     )
+    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
     requested_data = models.JSONField(
         help_text="Stores the fields requested for update."
     )
@@ -579,6 +581,7 @@ class DeletionSettings(models.Model):
         help_text="Global grace period in days before final deletion after a "
                   "deletion request."
     )
+    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
 
     def __str__(self):
         return f"Grace period: {self.grace_period_days} days"
@@ -590,6 +593,7 @@ class UserActivity(models.Model):
     additional details.
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
     action = models.CharField(max_length=255)
     timestamp = models.DateTimeField(auto_now_add=True)
     details = models.TextField()
@@ -604,6 +608,7 @@ class EmailVerification(models.Model):
     expiration timestamp.
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
     token = models.CharField(max_length=255)
     expiration = models.DateTimeField()
 
@@ -617,6 +622,7 @@ class UserPermission(models.Model):
     granted timestamp.
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
     permission_name = models.CharField(max_length=100)
     granted_at = models.DateTimeField(auto_now_add=True)
 
@@ -629,41 +635,10 @@ class UserConsent(models.Model):
     consent date, and the consent type.
     """
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
     consent_given = models.BooleanField(default=False)
     consent_date = models.DateTimeField(null=True, blank=True)
     consent_type = models.CharField(max_length=255)
 
     def __str__(self):
         return f"{self.user} consent for {self.consent_type}"
-
-# class AuditLog(models.Model):
-#     ACTION_CHOICES = [
-#         ('CREATE', 'Create'),
-#         ('UPDATE', 'Update'),
-#         ('DELETE', 'Delete'),
-#         ('LOGIN', 'Login'),
-#         ('LOGOUT', 'Logout'),
-#         ('ACCESS', 'Access'),
-#     ]
-
-#     user = models.ForeignKey(
-#         settings.AUTH_USER_MODEL,
-#         on_delete=models.SET_NULL,
-#         null=True,
-#         blank=True,
-#         related_name='audit_logs'
-#     )
-#     action = models.CharField(max_length=10, choices=ACTION_CHOICES)
-#     timestamp = models.DateTimeField(auto_now_add=True)
-#     ip_address = models.GenericIPAddressField(null=True, blank=True)
-#     path = models.TextField(null=True, blank=True)  # e.g. request.path
-#     extra_data = models.JSONField(null=True, blank=True)  # for any custom payload
-
-#     class Meta:
-#         ordering = ['-timestamp']
-#         verbose_name = 'Audit Log'
-#         verbose_name_plural = 'Audit Logs'
-
-#     def __str__(self):
-#         user_str = str(self.user) if self.user else "Anonymous"
-#         return f"{self.timestamp} - {user_str} - {self.action}"

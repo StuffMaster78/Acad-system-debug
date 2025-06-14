@@ -4,8 +4,8 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
 from django.contrib.auth import get_user_model
-from services.kickout_service import KickoutService
-from authentication.serializers.admin_kickout_serializer import (
+from authentication.services.kickout_service import KickoutService
+from authentication.serializers import (
     AdminKickoutSerializer
 )
 

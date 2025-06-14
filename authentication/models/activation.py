@@ -1,15 +1,20 @@
 from django.db import models
 from django.utils import timezone
-from django.contrib.auth.models import User
+from django.conf import settings
 
 class EmailVerification(models.Model):
     """
     Stores the email verification token for a user (used in link-based verification).
     Can be used alongside OTP.
     """
-    user = models.OneToOneField(
-        User,
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
+    )
+    website = models.ForeignKey(
+        "websites.Website",
+        on_delete=models.CASCADE,
+        related_name="email_verification_website"
     )
     token = models.CharField(
         max_length=255,

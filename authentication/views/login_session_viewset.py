@@ -1,5 +1,5 @@
 from rest_framework import viewsets, permissions
-from authentication.models import LoginSession
+from authentication.models.login import LoginSession
 from authentication.serializers import LoginSessionSerializer
 
 

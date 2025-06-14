@@ -3,6 +3,7 @@ from orders.services.cancel_order_service import CancelOrderService
 from audit_logging.services import log_audit_action
 
 class CancelOrderAction(BaseOrderAction):
+    # action_name = "cancel_order"
     def execute(self):
         old_status = self.order.status
 

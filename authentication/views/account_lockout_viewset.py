@@ -1,9 +1,9 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from authentication.models.account_lockout import AccountLockout
+from authentication.models.lockout import AccountLockout
 from authentication.services.account_lockout_service import AccountLockoutService
-from authentication.serializers.account_lockout_serializer import (
+from authentication.serializers import (
     AccountLockoutSerializer
 )
 

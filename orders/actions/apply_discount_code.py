@@ -5,6 +5,7 @@ from audit_logging.services import log_audit_action
 
 
 class ApplyDiscountCodeAction(BaseOrderAction):
+    # action_name = "apply_discount_to_order"
     def execute(self):
         codes = self.params.get("codes", [])
         user = self.params.get("user")

@@ -4,6 +4,7 @@ from audit_logging.services import log_audit_action
 from orders.services.complete_to_approved_service import CompleteToApprovedService
 
 class CompleteToApprovedAction(BaseOrderAction):
+    # action_name = "complete_to_approved"
     def execute(self):
         old_status = self.order.status
         service = CompleteToApprovedService()

@@ -29,7 +29,11 @@ nlp = spacy.load("en_core_web_md")
 
 User = settings.AUTH_USER_MODEL 
 
-
+def generate_tracking_id():
+    value = get_random_string(32)
+    if not isinstance(value, str):
+        raise ValueError("Tracking ID must be a string")
+    return value
 class BlogCategory(models.Model):
     """Represents a category for blog posts."""
     website = models.ForeignKey(
@@ -545,22 +549,28 @@ class NewsletterSubscriber(models.Model):
     - Users can switch between weekly & monthly
     - Tracks category preferences
     """
+
     website = models.ForeignKey(
         Website, on_delete=models.CASCADE, related_name="subscribers"
     )
     email = models.EmailField(unique=True)
     is_active = models.BooleanField(default=True)
     subscription_type = models.CharField(
-        max_length=10, choices=[("weekly", "Weekly"), ("monthly", "Monthly")],
+        max_length=10,
+        choices=[("weekly", "Weekly"), ("monthly", "Monthly")],
         default="weekly"
     )
     categories = models.ManyToManyField(NewsletterCategory, blank=True)
     last_sent_at = models.DateTimeField(null=True, blank=True)
-    open_count = models.PositiveIntegerField(default=0)  # Tracks newsletter opens
+    open_count = models.PositiveIntegerField(default=0)
+    click_count = models.PositiveIntegerField(default=0)
+    last_opened_at = models.DateTimeField(null=True, blank=True)
     tracking_id = models.CharField(
-        max_length=50, unique=True, default=get_random_string
+        max_length=50,
+        unique=True,
+        db_index=True,
+        default=lambda: generate_tracking_id
     )
-
 
     def increment_open_count(self):
         """Increments the open count when the email is viewed."""
@@ -580,6 +590,7 @@ class NewsletterSubscriber(models.Model):
 
     def __str__(self):
         return f"{self.email} - {self.subscription_type} (Opens: {self.open_count})"
+
     
 
 class Newsletter(models.Model):

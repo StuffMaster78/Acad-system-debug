@@ -13,12 +13,12 @@ class TrustedDevice(models.Model):
     user = models.ForeignKey(
         'users.User',
         on_delete=models.CASCADE,
-        related_name="trusted_devices"
+        related_name="trusted_devices_user"
     )
     website = models.ForeignKey(
         'websites.Website',
         on_delete=models.CASCADE,
-        related_name="trusted_devices"
+        related_name="trusted_devices_website"
     )
     device_token = models.CharField(
         max_length=255,

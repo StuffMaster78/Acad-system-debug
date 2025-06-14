@@ -4,7 +4,7 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from authentication.serializers import LogoutEventSerializer
-from utils.logout_utils import logout_user
+from authentication.utils.logout_utils import logout_user
 
 class LogoutEventViewSet(viewsets.ReadOnlyModelViewSet):
     """

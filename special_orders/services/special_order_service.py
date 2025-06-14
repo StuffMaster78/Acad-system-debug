@@ -69,24 +69,24 @@ class SpecialOrderService:
 
         return special_order
     
-    @staticmethod
-    def approve_special_order(order: SpecialOrder) -> SpecialOrder:
-        """
-        Approves the given special order.
+    # @staticmethod
+    # def approve_special_order(order: SpecialOrder) -> SpecialOrder:
+    #     """
+    #     Approves the given special order.
 
-        Args:
-            order (SpecialOrder): The order to approve.
+    #     Args:
+    #         order (SpecialOrder): The order to approve.
 
-        Returns:
-            SpecialOrder: The approved order.
-        """
-        if order.is_approved:
-            raise ValidationError("Order is already approved.")
+    #     Returns:
+    #         SpecialOrder: The approved order.
+    #     """
+    #     if order.is_approved:
+    #         raise ValidationError("Order is already approved.")
 
-        order.is_approved = True
-        order.status = 'approved'  # Replace with enum or constant if you have one
-        order.save()
-        return order
+    #     order.is_approved = True
+    #     order.status = 'approved'  # Replace with enum or constant if you have one
+    #     order.save()
+    #     return order
 
     @staticmethod
     def update_special_order(order, is_approved=None, status=None):

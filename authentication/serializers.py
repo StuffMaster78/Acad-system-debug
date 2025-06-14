@@ -38,15 +38,13 @@ from authentication.models.otp import OTP
 from authentication.models.password_reset import PasswordResetRequest
 from authentication.services.password_reset_service import PasswordResetService
 from authentication.services.token_services import SecureTokenService
-from authentication.models.recovery import BackupCode
+from authentication.models.backup_code import BackupCode
 from authentication.models.register import RegistrationToken
 from authentication.services.otp_service import OTPService
 from authentication.services.registration_token_service import (
     RegistrationTokenService
 )
-from authentication.serializers import (
-    RegistrationTokenSerializer
-)
+
 from rest_framework.permissions import AllowAny
 from authentication.services.totp_service import TOTPService
 from authentication.models.tokens import SecureToken, EncryptedRefreshToken
@@ -670,27 +668,29 @@ class CreateImpersonationTokenSerializer(serializers.Serializer):
     target_user = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
 
 
+
 class AccountLockoutSerializer(serializers.ModelSerializer):
     """
-    Serializes account lockout records.
+    Serializer for account lockout records.
     """
-
-    user_id = serializers.IntegerField(source='user.id', read_only=True)
-    username = serializers.CharField(
-        source='user.username', read_only=True
-    )
+    user_email = serializers.EmailField(source="user.email", read_only=True)
+    website_domain = serializers.CharField(source="website.domain", read_only=True)
 
     class Meta:
         model = AccountLockout
         fields = [
-            'id',
-            'user_id',
-            'username',
-            'reason',
-            'locked_at',
-            'active'
+            "id",
+            "user",
+            "user_email",
+            "website",
+            "website_domain",
+            "reason",
+            "locked_at",
+            "active",
         ]
-        read_only_fields = ['locked_at']
+        read_only_fields = [
+            "id", "locked_at", "user_email", "website_domain"
+        ]
 
 class LogoutEventSerializer(serializers.ModelSerializer):
     class Meta:
@@ -1252,3 +1252,5 @@ class MagicLinkVerifySerializer(serializers.Serializer):
 
         user = service.consume_token(token)
         return user
+
+

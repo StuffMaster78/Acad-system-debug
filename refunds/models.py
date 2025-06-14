@@ -6,7 +6,10 @@ import uuid
 from orders.models import Order
 from websites.models import Website
 from order_payments_management.models import OrderPayment 
+import uuid
 
+def generate_reference_code():
+    return uuid.uuid4().hex 
 class Refund(models.Model):
     """
     Represents a refund record. Supports wallet and external refunds.
@@ -207,7 +210,7 @@ class RefundReceipt(models.Model):
 
     reference_code = models.CharField(
         max_length=64, unique=True,
-        default="", blank=True
+        default=generate_reference_code, blank=True
     )
 
     def save(self, *args, **kwargs):

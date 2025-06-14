@@ -4,6 +4,7 @@ from audit_logging.services import log_audit_action
 
 
 class ArchiveOrderAction(BaseOrderAction):
+    # action_name = "archive_order_action"
     def execute(self):
         old_status = self.order.status
         service = ArchiveOrderService()

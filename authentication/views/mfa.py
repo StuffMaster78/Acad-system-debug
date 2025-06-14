@@ -3,8 +3,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from authentication.models import MFASettings
-from authentication.serializers.mfa import (
+from authentication.models.mfa_settings import MFASettings
+from authentication.serializers import (
     MFASettingsSerializer,
     MFAOtpVerificationSerializer,
     MFAEnableSerializer,

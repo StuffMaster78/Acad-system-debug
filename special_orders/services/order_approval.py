@@ -22,7 +22,7 @@ class OrderApprovalService:
             raise ValueError("Order is not awaiting approval.")
 
         order.is_approved = True
-        order.status = 'in_progress'
+        order.status = 'approved'
         order.approved_by = user  # Optional: track who approved it
         order.save()
 

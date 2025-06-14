@@ -417,3 +417,10 @@ LOCKOUT_DURATION = timedelta(minutes=LOCKOUT_DURATION_MINUTES)
 # FERNET_KEY = Fernet.generate_key().decode() 
 
 TEMPLATES[0]["DIRS"] += [BASE_DIR / "common" / "templates"]
+
+
+# Token Encryption Key (required for Fernet)
+TOKEN_ENCRYPTION_KEY = os.getenv("TOKEN_ENCRYPTION_KEY")
+
+if not TOKEN_ENCRYPTION_KEY:
+    raise RuntimeError("TOKEN_ENCRYPTION_KEY is not set in the environment.")

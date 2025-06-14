@@ -4,6 +4,7 @@ from audit_logging.services import log_audit_action
 
 
 class ApplyDirectDiscountAction(BaseOrderAction):
+    # action_name = "apply_discount_action"
     def execute(self):
         service = ApplyDirectDiscountService()
         result = service.apply_discount(self.order_id, **self.params)

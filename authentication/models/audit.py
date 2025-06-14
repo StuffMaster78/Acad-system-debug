@@ -38,6 +38,11 @@ class AuditLog(models.Model):
         blank=True,
         related_name="audit_logs"
     )
+    website = models.ForeignKey(
+        "websites.Website",
+        on_delete=models.CASCADE,
+        related_name="audit_logging_website"
+    )
     action = models.CharField(
         max_length=50,
         choices=ACTION_CHOICES
