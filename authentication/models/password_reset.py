@@ -8,12 +8,12 @@ class PasswordResetRequest(models.Model):
     Handles password change requests by users.
     """
     website = models.ForeignKey(
-        'website.Website',
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='password_resets'
     )
     user = models.ForeignKey(
-        User,
+        'users.User',
         on_delete=models.CASCADE
     )
     token = models.CharField(

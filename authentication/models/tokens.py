@@ -3,7 +3,7 @@ from django.conf import settings
 from django.utils.timezone import now
 from django.core.exceptions import PermissionDenied
 
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet # type: ignore
 
 
 
@@ -96,13 +96,13 @@ class SecureTokenManager(models.Manager):
 class EncryptedRefreshToken(models.Model):
     """Stores encrypted refresh tokens securely."""
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.CASCADE
     )
     website = models.ForeignKey(
         'websites.Website',
         on_delete=models.CASCADE,
-        related_name="secure_tokens"
+        related_name="secure_website_tokens"
     )
     encrypted_token = models.TextField()
     created_at = models.DateTimeField(

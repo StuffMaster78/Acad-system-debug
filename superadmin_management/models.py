@@ -44,7 +44,10 @@ class Probation(models.Model):
     """
     Tracks users placed on probation by a superadmin.
     """
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="probation_records")
+    user = models.ForeignKey(
+        'users.User', on_delete=models.CASCADE,
+        related_name="probation_records_writers"
+    )
     placed_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,

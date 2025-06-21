@@ -15,7 +15,7 @@ class AccountLockout(models.Model):
         related_name="lockouts"
     )
     website = models.ForeignKey(
-        'website.Website',
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name="account_lockouts"
     )

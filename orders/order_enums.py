@@ -1,4 +1,5 @@
 from enum import Enum
+from django.db import models
 
 class OrderFlags(str, Enum):
     """
@@ -9,7 +10,14 @@ class OrderFlags(str, Enum):
     HIGH_VALUE_ORDER = 'HVO'
     PREFERRED_ORDER = 'PO'
     RETURNING_CLIENT_ORDER = 'RCO'
-
+    CRITICAL_ORDER = 'CO'
+    lATE_ORDER = 'LO'
+    DISPUTED_ORDER = 'DO'
+    ARCHIVED_ORDER = 'AO'
+    EXPIRED_ORDER = 'EO'
+    UNDER_REVIEW_ORDER = 'URO'
+    REOPENED_ORDER = 'RO'
+    
     @classmethod
     def choices(cls):
         """
@@ -114,7 +122,7 @@ class OrderStatus(str, Enum):
     REVISED = 'revised'
     COMPLETED = 'completed'
 
-    UNDER_EDIT = "under_edit"
+    UNDER_EDITING = "under_editing"
 
     RATED = 'rated'
     REVIEWED = 'reviewed'
@@ -230,3 +238,48 @@ def choices(cls):
             (status.value, status.name.replace('_', ' ').title()) 
             for status in cls
         ]
+
+
+
+class OrderRequestStatus(models.TextChoices):
+    """ 
+    Represents the status of an order request made by a writer.
+    """
+    PENDING = "pending", "Pending"
+    ACCEPTED = "accepted", "Accepted"
+    REJECTED = "rejected", "Rejected"
+    WITHDRAWN = "withdrawn", "Withdrawn"
+    EXPIRED = "expired", "Expired"
+
+# class OrderRequestType(models.TextChoices):
+#     """
+#     Represents the type of order request made by a writer.
+#     """
+#     WRITER_REQUEST = "writer_request", "Writer Request"
+#     ORDER_REQUEST = "order_request", "Order Request"
+
+#     @classmethod
+#     def choices(cls):
+#         """
+#         Returns a list of tuples (value, label) for each type in the enum.
+#         """
+#         return [
+#             (request_type.value, request_type.label) 
+#             for request_type in cls
+#         ]
+
+class WebhookEvent(models.TextChoices):
+    """Webhook events for order updates."""
+    ORDER_CREATED = "order_created", "Order Created"
+    ORDER_ASSIGNED = "order_assigned", "Order Assigned"
+    ORDER_REVISED = "order_revised", "Order Revised"
+    ORDER_SUBMITTED = "order_submitted", "Order Submitted"
+    ORDER_REOPENED = "order_reopened", "Order Reopened"
+    ORDER_ON_HOLD = "order_on_hold", "Order On Hold"
+    ORDER_CANCELLED = "order_cancelled", "Order Cancelled"
+    ORDER_ON_REVISION = "order_on_revision", "Order On Revision"
+    REVISION_REQUESTED = "revision_requested", "Revision Requested"
+    ORDER_DISPUTED = "order_disputed", "Order Disputed"
+    ORDER_COMPLETED = "order_completed", "Order Completed"
+    ORDER_REVIEWED = "order_reviewed", "Order Reviewed"
+    ORDER_RATED = "order_rated", "Order Rated"

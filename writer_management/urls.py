@@ -1,13 +1,44 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    WriterProfileViewSet, WriterLevelViewSet, WriterConfigViewSet, WriterOrderRequestViewSet, WriterOrderTakeViewSet,
-    WriterPayoutPreferenceViewSet, WriterPaymentViewSet, WriterEarningsHistoryViewSet,
-    WriterEarningsReviewRequestViewSet, WriterRewardViewSet, WriterRewardCriteriaViewSet, ProbationViewSet,
-    WriterPenaltyViewSet, WriterSuspensionViewSet, WriterActionLogViewSet, WriterSupportTicketViewSet,
-    WriterDeadlineExtensionRequestViewSet, WriterOrderHoldRequestViewSet, WriterOrderReopenRequestViewSet,
-    WriterActivityLogViewSet, WriterRatingCooldownViewSet, WriterFileDownloadLogViewSet, WriterIPLogViewSet
+    WriterProfileViewSet, WriterLevelViewSet,
+    WriterConfigViewSet, WriterOrderRequestViewSet, 
+    WriterOrderTakeViewSet, WriterPayoutPreferenceViewSet,
+    WriterPaymentViewSet, WriterEarningsHistoryViewSet,
+    WriterEarningsReviewRequestViewSet, WriterRewardViewSet,
+    WriterRewardCriteriaViewSet, ProbationViewSet,
+    WriterPenaltyViewSet, WriterSuspensionViewSet,
+    WriterActionLogViewSet, WriterSupportTicketViewSet,
+    WriterDeadlineExtensionRequestViewSet,
+    WriterOrderHoldRequestViewSet, WriterOrderReopenRequestViewSet,
+    WriterActivityLogViewSet, WriterRatingCooldownViewSet,
+    WriterFileDownloadLogViewSet, WriterIPLogViewSet
 )
+
+from writer_management.views import WebhookSettingsViewSet
+from writer_management.views import TipCreateView
+from writer_management.views import WriterActionLogViewSet
+from writer_management.views import WriterPaymentViewSet
+from writer_management.views import WriterEarningsHistoryViewSet
+from writer_management.views import WriterEarningsReviewRequestViewSet
+from writer_management.views import WriterPayoutPreferenceViewSet
+from writer_management.views import WriterRewardViewSet
+from writer_management.views import WriterRewardCriteriaViewSet
+from writer_management.views import WriterProfileViewSet
+from writer_management.views import WriterLevelViewSet
+from writer_management.views import WriterConfigViewSet
+from writer_management.views import WriterOrderRequestViewSet
+from writer_management.views import WriterOrderTakeViewSet
+from writer_management.views import (
+    WriterSupportTicketViewSet, WriterDeadlineExtensionRequestViewSet,
+    WriterOrderHoldRequestViewSet, WriterOrderReopenRequestViewSet,
+    WriterActivityLogViewSet, WriterIPLogViewSet,
+    WriterRatingCooldownViewSet, WriterFileDownloadLogViewSet,
+    WriterActionLogViewSet, WriterPenaltyViewSet,
+    WriterSuspensionViewSet, ProbationViewSet
+)
+from writer_management.views import TipListView
+
 
 # DRF Router
 router = DefaultRouter()
@@ -47,7 +78,18 @@ router.register(r'ip-logs', WriterIPLogViewSet, basename='writer-ip-log')
 router.register(r'rating-cooldowns', WriterRatingCooldownViewSet, basename='writer-rating-cooldown')
 router.register(r'file-download-logs', WriterFileDownloadLogViewSet, basename='writer-file-download-log')
 
+### ---------------- Writer Action Logs ---------------- ###
+router.register(r'action-logs', WriterActionLogViewSet, basename='writer-action-log')
+# Note: Ensure all viewsets are properly implemented in views.py
+
+### ---------------- Webhook Settings Routes ---------------- ###
+router.register("webhooks", WebhookSettingsViewSet, basename="webhook-settings")
+
+
+
 # Include all registered routes
 urlpatterns = [
     path('', include(router.urls)),
+    path("tip/", TipCreateView.as_view(), name="tip-create"),
+    path("tips/", TipListView.as_view(), name="tip-list"),
 ]

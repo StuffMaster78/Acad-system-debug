@@ -16,6 +16,16 @@ class CodeFormatValidator:
 
     CODE_REGEX = re.compile(r"^[A-Z0-9\-]{5,20}$")
 
+    def __call__(self, code):
+        """
+        Validate the discount code format.
+        Args:
+            code (str): The discount code to validate.
+        Raises:
+            ValidationError: If the code format is invalid.
+        """
+        return self.is_valid_format(code)
+
     def is_valid_format(self, code):
         """
         Validate the given discount code.

@@ -57,6 +57,12 @@ class IsAssignedWriter(BasePermission):
             and obj.writer == request.user
         )
 
+class IsClient(BasePermission):
+    """
+    Allow only the client who placed the order.
+    """
+    def has_permission(self, request, view):
+        return request.user.is_authenticated and request.user.role == User.CLIENT   
 
 class IsClientWhoOwnsOrder(BasePermission):
     """
@@ -201,3 +207,9 @@ class IsOrderOwnerOrSupport(BasePermission):
             obj.client == request.user or
             user_role in support_roles
         )
+
+
+
+class IsStaffOrRequestOwner(BasePermission):
+    def has_object_permission(self, request, view, obj):
+        return request.user.is_staff or obj.writer == request.user

@@ -194,11 +194,6 @@ class RefundReceipt(models.Model):
         help_text="Reason for the refund"
     )
 
-    reason = models.TextField(
-        blank=True, null=True,
-        help_text="Reason for the refund"
-    )
-
     processed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True, blank=True,

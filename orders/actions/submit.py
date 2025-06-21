@@ -2,8 +2,8 @@ from orders.actions.base import BaseOrderAction
 from orders.order_enums import OrderStatus
 from orders.services.submit_order_service import SubmitOrderService
 from audit_logging.services import log_audit_action
-
-
+from orders.registry.decorator import register_order_action
+@register_order_action("submit_order")
 class SubmitOrderAction(BaseOrderAction):
     """
     Action to mark an order as submitted by the writer.

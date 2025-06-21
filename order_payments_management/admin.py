@@ -13,9 +13,9 @@ class OrderPaymentAdmin(admin.ModelAdmin):
     """
     list_display = (
         "transaction_id", "client", "payment_type",
-        "discounted_amount", "status", "payment_method", "date_processed"
+        "discounted_amount", "payment_status", "payment_method", "date_processed"
     )
-    list_filter = ("status", "payment_type", "payment_method", "date_processed")
+    list_filter = ("payment_status", "payment_type", "payment_method", "date_processed")
     search_fields = ("transaction_id", "client__username", "order__id")
     ordering = ("-date_processed",)
     readonly_fields = ("transaction_id", "client", "original_amount", "discounted_amount", "date_processed")

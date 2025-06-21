@@ -98,7 +98,7 @@ class WalletTransaction(WebsiteSpecificBaseModel):
         help_text="The wallet this transaction belongs to."
     )
     transaction_type = models.CharField(
-        max_length=20,
+        max_length=32,
         choices=TRANSACTION_TYPES,
         help_text="Type of transaction."
     )

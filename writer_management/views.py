@@ -4,29 +4,52 @@ from rest_framework.response import Response
 from django.utils.timezone import now
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
+from rest_framework.permissions import IsAuthenticated
 
 from .models import (
-    WriterProfile, WriterLevel, WriterConfig, WriterOrderRequest, WriterOrderTake,
-    WriterPayoutPreference, WriterPayment, WriterEarningsHistory,
-    WriterEarningsReviewRequest, WriterReward, WriterRewardCriteria, Probation,
-    WriterPenalty, WriterSuspension, WriterActionLog, WriterSupportTicket,
-    WriterDeadlineExtensionRequest, WriterOrderHoldRequest, WriterOrderReopenRequest,
-    WriterActivityLog, WriterRatingCooldown, WriterFileDownloadLog, WriterIPLog, OrderDispute
+    WriterProfile, WriterLevel, WriterConfig,
+    WriterOrderRequest, WriterOrderTake,
+    WriterPayoutPreference, WriterPayment,
+    WriterEarningsHistory, WriterEarningsReviewRequest,
+    WriterReward, WriterRewardCriteria, Probation,
+    WriterPenalty, WriterSuspension,
+    WriterActionLog, WriterSupportTicket,
+    WriterDeadlineExtensionRequest, WriterOrderHoldRequest,
+    WriterOrderReopenRequest, WriterActivityLog,
+    WriterRatingCooldown, WriterFileDownloadLog,
+    WriterIPLog, OrderDispute
 )
 from orders.models import Order
 from .serializers import (
-    WriterProfileSerializer, WriterLevelSerializer, WriterConfigSerializer,
-    WriterOrderRequestSerializer, WriterOrderTakeSerializer, WriterPayoutPreferenceSerializer,
+    WebhookSettingsSerializer, WriterProfileSerializer, WriterLevelSerializer,
+    WriterConfigSerializer, WriterOrderRequestSerializer,
+    WriterOrderTakeSerializer, WriterPayoutPreferenceSerializer,
     WriterPaymentSerializer, WriterEarningsHistorySerializer,
-    WriterEarningsReviewRequestSerializer, WriterRewardSerializer, WriterRewardCriteriaSerializer,
-    ProbationSerializer, WriterPenaltySerializer, WriterSuspensionSerializer, WriterActionLogSerializer,
-    WriterSupportTicketSerializer, WriterDeadlineExtensionRequestSerializer,
-    WriterOrderHoldRequestSerializer, WriterOrderReopenRequestSerializer,
-    WriterActivityLogSerializer, WriterRatingCooldownSerializer, WriterFileDownloadLogSerializer, WriterIPLogSerializer,
+    WriterEarningsReviewRequestSerializer, WriterRewardSerializer,
+    WriterRewardCriteriaSerializer, ProbationSerializer,
+    WriterPenaltySerializer, WriterSuspensionSerializer,
+    WriterActionLogSerializer, WriterSupportTicketSerializer,
+    WriterDeadlineExtensionRequestSerializer,
+    WriterOrderHoldRequestSerializer,
+    WriterOrderReopenRequestSerializer,
+    WriterActivityLogSerializer, WriterRatingCooldownSerializer,
+    WriterFileDownloadLogSerializer, WriterIPLogSerializer,
     OrderDisputeSerializer
 )
-from core.utils.notifications import send_notification 
+from writer_management.models import WebhookSettings
+from writer_management.serializers import (
+WebhookSettingsSerializer
+)
+from writer_management.services.webhook_settings_service import (
+    WebhookSettingsService
+)
 
+from core.utils.notifications import send_notification 
+from writer_management.serializers import TipCreateSerializer
+from writer_management.models import Tip
+from writer_management.serializers import TipListSerializer
+from writer_management.services.tip_service import TipService
+from rest_framework import generics 
 
 ### ---------------- Writer Profile Views ---------------- ###
 
@@ -318,3 +341,54 @@ class WriterOrderHoldRequestViewSet(viewsets.ModelViewSet):
 class WriterOrderReopenRequestViewSet(viewsets.ModelViewSet):
     queryset = WriterOrderReopenRequest.objects.all()
     serializer_class = WriterOrderReopenRequestSerializer
+
+
+class WebhookSettingsViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing a writer's WebhookSettings.
+    """
+    queryset = WebhookSettings.objects.all()
+    serializer_class = WebhookSettingsSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return WebhookSettings.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user, website=self.request.user.website)
+
+    @action(detail=True, methods=["post"], url_path="test", url_name="test-webhook")
+    def test_webhook(self, request, pk=None):
+        """
+        Sends a test payload to the writer's webhook URL.
+        """
+        webhook_setting = self.get_object()
+        try:
+            WebhookSettingsService.send_test_payload(webhook_setting)
+            return Response({"detail": "Test webhook sent successfully."}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+
+class TipCreateView(generics.CreateAPIView):
+    serializer_class = TipCreateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Tip.objects.filter(client=self.request.user)
+    
+
+class TipListView(generics.ListAPIView):
+    serializer_class = TipListSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        website = self.request.website  # For multitenancy filter
+
+        if user.role == "client":
+            return Tip.objects.filter(client=user, website=website).select_related("writer", "order")
+        elif user.role == "writer":
+            return Tip.objects.filter(writer=user, website=website).select_related("client", "order")
+        else:
+            return Tip.objects.none()

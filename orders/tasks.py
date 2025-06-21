@@ -8,9 +8,22 @@ import logging
 from django.utils import timezone
 from orders.models import Order
 from datetime import timedelta
+from django.db.models import Avg, Count
 
 from orders.services.archive_order_service import ArchiveOrderService
 from orders.services.status_transition_service import StatusTransitionService
+
+from orders.models import OrderRequest
+from orders.order_enums import OrderRequestStatus
+from orders.models import Order
+from orders.order_enums import OrderStatus
+from orders.workflow.state_machine import GenericStateMachineService
+# from orders.models import OrderReview
+from orders.services.order_request_service import OrderRequestService
+from users.models import User
+from websites.models import Website
+from audit_logging.services import AuditLogEntry
+
 
 logger = logging.getLogger(__name__)
 
@@ -138,3 +151,88 @@ def move_complete_to_approved_task():
     """
     cutoff_date = now() - timedelta(weeks=3)
     StatusTransitionService.move_complete_orders_to_approved_older_than(cutoff_date)
+
+
+
+@shared_task
+def expire_stale_requests():
+    now = timezone.now()
+    stale_requests = OrderRequest.objects.filter(
+        status=OrderRequestStatus.PENDING,
+        expires_at__lt=now
+    )
+
+    for request in stale_requests:
+        request.status = OrderRequestStatus.EXPIRED
+        request.rejection_feedback = "Request expired due to no response."
+        request.save(update_fields=["status", "rejection_feedback"])
+
+
+@shared_task
+def archive_expired_orders():
+    timeout_days = 3  # or from settings
+    threshold = timezone.now() - timedelta(days=timeout_days)
+
+    orders_to_archive = Order.objects.filter(
+        status=OrderStatus.APPROVED,
+        deadline__lt=threshold
+    )
+
+    for order in orders_to_archive:
+        try:
+            GenericStateMachineService.transition(
+                order, target="archived",
+                triggered_by="system"
+            )
+        except Exception as e:
+            # log and skip
+            print(f"Failed to archive order {order.id}: {e}")
+
+
+
+# Monthly Writer Reviews
+# @shared_task
+# def generate_monthly_review_summary():
+#     now = timezone.now()
+#     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+#     month_end = (month_start + timezone.timedelta(days=32)).replace(day=1)
+
+#     websites = Website.objects.all()
+
+#     for site in websites:
+#         reviews = OrderReview.objects.filter(
+#             website=site,
+#             created_at__gte=month_start,
+#             created_at__lt=month_end,
+#             status="approved"
+#         )
+
+#         summary = (
+#             reviews
+#             .values('writer_id')
+#             .annotate(
+#                 avg_rating=Avg('rating'),
+#                 total_reviews=Count('id')
+#             )
+#         )
+
+#         for item in summary:
+#             writer_id = item['writer_id']
+#             avg_rating = item['avg_rating']
+#             total_reviews = item['total_reviews']
+
+#             writer = User.objects.filter(id=writer_id).first()
+#             if writer:
+#                 AuditLogEntry.log(
+#                     actor=None,
+#                     target=writer,
+#                     action="monthly_review_summary",
+#                     website=site,
+#                     metadata={
+#                         "month": month_start.strftime("%B %Y"),
+#                         "avg_rating": avg_rating,
+#                         "total_reviews": total_reviews
+#                     }
+#                 )
+
+#     return f"Monthly review summary generated for {now.strftime('%B %Y')}"

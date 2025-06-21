@@ -68,14 +68,14 @@ class DiscountConfig(models.Model):
     )
 
     created_by = models.ForeignKey(
-        "settings.AUTH_USER_MODEL", 
+        "users.User", 
         null=True, 
         blank=True, 
         on_delete=models.SET_NULL, 
         help_text="User who created or last updated the discount config"
     )
     updated_by = models.ForeignKey(
-        "auth.User", 
+        "users.User", 
         null=True, 
         blank=True, 
         on_delete=models.SET_NULL, 

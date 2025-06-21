@@ -14,7 +14,7 @@ class EmailNotificationLog(models.Model):
     per website (tenant).
     """
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.CASCADE,
         related_name="email_logs"
     )

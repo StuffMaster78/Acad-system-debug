@@ -13,9 +13,9 @@ class DeviceFingerprint(models.Model):
     for session validation and fraud scoring.
     """
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.CASCADE,
-        related_name="fingerprints"
+        related_name="fingerprints_user"
     )
     website = models.ForeignKey(
         "websites.Website",

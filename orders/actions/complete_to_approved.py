@@ -2,9 +2,13 @@
 from orders.actions.base import BaseOrderAction
 from audit_logging.services import log_audit_action
 from orders.services.complete_to_approved_service import CompleteToApprovedService
-
+from orders.registry.decorator import register_order_action
+@register_order_action("complete_to_approved")
 class CompleteToApprovedAction(BaseOrderAction):
-    # action_name = "complete_to_approved"
+    """
+    Action to transition an order from completed to approved.
+    This is typically used for manual operations, like an admin action.
+    """
     def execute(self):
         old_status = self.order.status
         service = CompleteToApprovedService()

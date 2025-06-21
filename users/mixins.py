@@ -10,7 +10,12 @@ from django.conf import settings
 
 
 class UserReferenceMixin(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="the_specific_user",
+        help_text="Reference to the user associated with this model."
+    )
 
     class Meta:
         abstract = True
@@ -175,7 +180,8 @@ class NotificationPreferenceMixin(models.Model):
     email_notifications = models.BooleanField(default=True)
     sms_notifications = models.BooleanField(default=False)
     marketing_opt_in = models.BooleanField(default=False)
-
+    mfa_recovery_token = models.CharField(max_length=64, blank=True, null=True)
+    mfa_recovery_expires = models.DateTimeField(blank=True, null=True)
     class Meta:
         abstract = True
 
@@ -186,6 +192,7 @@ class LoginSecurityMixin(models.Model):
     last_failed_login = models.DateTimeField(null=True, blank=True)
     is_locked = models.BooleanField(default=False)
     lockout_until = models.DateTimeField(null=True, blank=True)
+    events = models.JSONField(default=list, blank=True)
 
     class Meta:
         abstract = True
@@ -211,14 +218,23 @@ class LoginSecurityMixin(models.Model):
 
 # 5. Impersonation Mixin
 class ImpersonationMixin(models.Model):
+    """
+    Mixin to handle user impersonation by admins.
+    Allows an admin to impersonate a user, and tracks who is impersonating whom.
+    """
     is_impersonated = models.BooleanField(default=False)
     impersonated_by = models.ForeignKey(
         'self',
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name='impersonated_users'
+        related_name="%(class)s_impersonated_by",
+        help_text="The admin user who is currently impersonating this user."
     )
+    impersonation_start_at = models.DateTimeField(null=True, blank=True)
+    impersonation_end_at = models.DateTimeField(null=True, blank=True)
+    impersonation_reason = models.TextField(blank=True, null=True)
+
 
     class Meta:
         abstract = True
@@ -243,6 +259,13 @@ class DeletionMixin(models.Model):
     is_deletion_requested = models.BooleanField(default=False)
     deletion_scheduled = models.DateTimeField(null=True, blank=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        related_name="deleted_%(class)s_set",
+        on_delete=models.SET_NULL,
+    )
     deletion_requested_at = models.DateTimeField(null=True, blank=True)
     grace_period_days = models.PositiveIntegerField(
         default=30, 
@@ -386,6 +409,8 @@ class DisciplineMixin(models.Model):
 
 # 8. Geo Detection Mixin
 class GeoDetectionMixin(models.Model):
+    """Abstract mixin to automatically detect and store user's geographical information"""
+    location = models.CharField(max_length=100, blank=True, null=True)
     detected_country = models.CharField(max_length=50, blank=True, null=True)
     detected_timezone = models.CharField(max_length=50, blank=True, null=True)
     detected_ip = models.GenericIPAddressField(blank=True, null=True)
@@ -413,11 +438,19 @@ class SessionTrackingMixin(models.Model):
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
     last_login_time = models.DateTimeField(null=True, blank=True)
     session_token = models.CharField(max_length=64, blank=True, null=True)
+    session_expires_at = models.DateTimeField(null=True, blank=True)
+    session_device = models.CharField(max_length=255, blank=True, null=True)
 
+
+    class Meta:
+        abstract = True
 
 class TrustedDeviceMixin(models.Model):
+    """Abstract mixin to manage trusted devices for a user."""
     trusted_devices = models.JSONField(default=list, blank=True)
 
+    class Meta:
+            abstract = True
 
 class TimestampMixin(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
@@ -428,8 +461,16 @@ class TimestampMixin(models.Model):
 
 
 class ApprovalMixin(models.Model):
+    """Abstract mixin to handle approval workflows for user actions."""
     approved = models.BooleanField(default=False)
     approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey(
+        'users.User',
+        null=True,
+        blank=True,
+        related_name="approved_%(class)s_set",
+        on_delete=models.SET_NULL,
+    )
     rejected = models.BooleanField(default=False)
     rejected_reason = models.TextField(null=True, blank=True)
 

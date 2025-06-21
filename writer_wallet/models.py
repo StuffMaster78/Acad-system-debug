@@ -156,7 +156,12 @@ class PaymentSchedule(models.Model):
     )
     schedule_type = models.CharField(max_length=10, choices=SCHEDULE_TYPES)
     scheduled_date = models.DateField()  # When payments should be processed
-    processed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="processed_batches")
+    processed_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="processed_batches_by"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     completed = models.BooleanField(default=False)
 

@@ -20,6 +20,12 @@ from .models import (
     WriterIPLog, WriterRatingCooldown, WriterFileDownloadLog,
     WriterConfig, WriterOrderRequest, WriterOrderTake
 )
+from decimal import Decimal
+from writer_management.models import (
+    WebhookSettings, WebhookPlatform
+)
+from orders.order_enums import WebhookEvent
+from writer_management.models import WriterLevel, WriterConfig, Tip
 from orders.models import Order
 
 User = get_user_model()
@@ -311,3 +317,110 @@ class OrderDisputeSerializer(serializers.ModelSerializer):
     class Meta:
         model = OrderDispute
         fields = '__all__'
+
+class WriterMessageThreadSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Writer Message Threads
+    """
+    class Meta:
+        model = WriterMessageThread
+        fields = '__all__'
+
+
+class WriterMessageSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Writer Messages
+    """
+    thread = serializers.PrimaryKeyRelatedField(queryset=WriterMessageThread.objects.all())
+
+    class Meta:
+        model = WriterMessage
+        fields = '__all__'
+
+class WebhookSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WebhookSettings
+        fields = [
+            "id",
+            "platform",
+            "webhook_url",
+            "enabled",
+            "subscribed_events",
+            "is_active",
+            "updated_at",
+        ]
+        read_only_fields = ["id", "updated_at"]
+
+    def validate_platform(self, value):
+        if value not in WebhookPlatform.values:
+            raise serializers.ValidationError("Invalid platform selected.")
+        return value
+
+    def validate_subscribed_events(self, value):
+        invalid = [v for v in value if v not in WebhookEvent.values]
+        if invalid:
+            raise serializers.ValidationError(f"Invalid events: {', '.join(invalid)}")
+        return value
+
+
+class TipCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating a tip for a writer.
+    This serializer handles the creation of a tip, including validation
+    of the tip amount and linking it to the writer and order.
+    """
+    writer_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role="writer"), source="writer"
+    )
+    order_id = serializers.PrimaryKeyRelatedField(
+        queryset=Order.objects.all(), source="order"
+    )
+    tip_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
+    tip_reason = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = Tip
+        fields = [
+            "writer_id", "order_id", "tip_amount",
+            "tip_reason"
+        ]
+
+    def validate_tip_amount(self, value):
+        """
+        Validate the tip amount to ensure it is greater than zero.
+        """
+        if value <= Decimal("0.00"):
+            raise serializers.ValidationError("Tip amount must be greater than zero.")
+        return value
+
+    def create(self, validated_data):
+        """
+        Create a new tip instance using the validated data.
+        This method uses the TipService to handle the business logic
+        of creating a tip, including calculating the split between
+        the writer and the platform.
+        """
+        from writer_management.services.tip_service import TipService
+        request = self.context["request"]
+        user = request.user
+        website = request.website  # if using custom middleware
+
+        return TipService.create_tip(
+            client=user,
+            website=website,
+            **validated_data
+        )
+    
+
+class TipListSerializer(serializers.ModelSerializer):
+    writer_name = serializers.CharField(source="writer.get_full_name", read_only=True)
+    client_name = serializers.CharField(source="client.get_full_name", read_only=True)
+    order_title = serializers.CharField(source="order.title", read_only=True)
+
+    class Meta:
+        model = Tip
+        fields = [
+            "id", "tip_amount", "tip_reason", "sent_at",
+            "writer_name", "client_name", "order_title",
+            "writer_earning", "platform_profit"
+        ]

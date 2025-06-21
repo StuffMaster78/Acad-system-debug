@@ -3,9 +3,13 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.create_order_service import CreateOrderService
 from audit_logging.services import log_audit_action
-
+from orders.registry.decorator import register_order_action
+@register_order_action("create_order")
 class CreateOrderAction(BaseOrderAction):
-    # action_name = "create_order"
+    """
+    Action to create a new order.
+    This is typically used for manual operations, like an admin action.
+    """
     def execute(self):
         service = CreateOrderService()
         order = service.create_order(**self.params)

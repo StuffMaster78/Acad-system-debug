@@ -3,8 +3,13 @@ from orders.actions.base import BaseOrderAction
 from orders.services.reassignment import ReassignmentRequest
 from orders.services.reassignment import OrderReassignmentService
 from audit_logging.services import log_audit_action
-
+from orders.registry.decorator import register_order_action
+@register_order_action("reassignment_request")
 class ReassignmentRequestAction(BaseOrderAction):
+    """
+    Action to create a reassignment request for an order.
+    This is typically used when a writer requests a reassignment.
+    """
     def execute(self):
         reassignment = ReassignmentRequest.objects.create(**self.params)
 
@@ -17,8 +22,12 @@ class ReassignmentRequestAction(BaseOrderAction):
         )
         return reassignment
     
-
+@register_order_action("reassign_order")
 class OrderReassignmentAction(BaseOrderAction):
+    """
+    Action to reassign an order to a new writer.
+    This is typically used for manual operations, like an admin action.
+    """
     def execute(self):
         service = OrderReassignmentService()
         result = service.reassign(self.order_id, **self.params)

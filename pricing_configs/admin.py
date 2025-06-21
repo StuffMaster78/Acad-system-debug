@@ -10,14 +10,14 @@ class PricingConfigurationAdmin(admin.ModelAdmin):
 
 @admin.register(AdditionalService)
 class AdditionalServiceAdmin(admin.ModelAdmin):
-    list_display = ('name', 'cost', 'is_active', 'website')
+    list_display = ('cost', 'is_active', 'website')
     list_filter = ('is_active', 'website')
-    search_fields = ('name', 'website__name')
+    search_fields = ('website__name',)
 
 
 @admin.register(AcademicLevelPricing)
 class AcademicLevelPricingAdmin(admin.ModelAdmin):
-    list_display = ('name', 'website', 'multiplier', 'created_at', 'updated_at')
-    search_fields = ('name', 'website__name')
+    list_display = ('website', 'multiplier', 'created_at', 'updated_at')
+    search_fields = ('website__name',)
     list_filter = ('website',)
-    ordering = ['name']
+    ordering = ['website']

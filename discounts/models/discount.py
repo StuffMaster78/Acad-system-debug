@@ -113,18 +113,18 @@ class Discount(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name='discounts'
+        related_name='group_discounts'
     )
     assigned_to_users = models.ManyToManyField(
         User,
         blank=True,
-        related_name='discounts',
+        related_name='user_discounts',
         help_text="Users this discount is specifically assigned to"
     )
     assigned_to_groups = models.ManyToManyField(
         'auth.Group',
         blank=True,
-        related_name='discounts',
+        related_name='groups_assigned_discounts',
         help_text="Groups this discount is specifically assigned to"
     )
     # Tiered discounts
@@ -336,7 +336,7 @@ class DiscountTier(models.Model):
         ordering = ["-priority", "-min_order_value"]
         verbose_name = "Discount Tier"
         verbose_name_plural = "Discount Tiers"
-        unique_together = ('discount', 'min_amount')
+        unique_together = ('discount', 'min_order_value', 'percent_off')
 
     def __str__(self):
         """
@@ -408,9 +408,10 @@ class DiscountUsage(models.Model):
     applied_amount = models.DecimalField(max_digits=10, decimal_places=2)
     applied_percent = models.DecimalField(max_digits=5, decimal_places=2)
     applied_by = models.ForeignKey(
-        "auth.User", null=True,
+        "users.User", null=True,
         blank=True, on_delete=models.SET_NULL
     )
+
     # usage_count = models.PositiveIntegerField(default=0)
     used_at = models.DateTimeField(auto_now_add=True)
 

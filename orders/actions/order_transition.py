@@ -2,8 +2,13 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.order_transition import OrderTransitionService
 from audit_logging.services import log_audit_action
-
+from orders.registry.decorator import register_order_action
+@register_order_action("order_transition")
 class OrderTransitionAction(BaseOrderAction):
+    """
+    Action to transition an order to a new status.
+    This is typically used for manual operations, like an admin action.
+    """
     def execute(self):
         old_status = self.order.status
         service = OrderTransitionService()

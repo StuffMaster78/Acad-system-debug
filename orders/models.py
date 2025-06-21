@@ -12,7 +12,7 @@ from django.db import models
 from django.utils import timezone
 
 from core.celery import celery
-# from websites.models import Website
+from websites.models import Website
 from discounts.models.discount import Discount
 from order_configs.models import WriterDeadlineConfig
 from order_configs.models import AcademicLevel
@@ -25,7 +25,8 @@ from websites.models import Website
 from orders.order_enums import (
     OrderStatus, OrderFlags,
     DisputeStatusEnum,
-    SpacingOptions
+    SpacingOptions,
+    OrderRequestStatus
 )
 from django.contrib.postgres.fields import ArrayField
 
@@ -46,7 +47,7 @@ class Order(models.Model):
     for multi-website compatibility.
     """
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name="order"
     )
@@ -237,7 +238,10 @@ class Order(models.Model):
         'users.User',
         null=True,
         blank=True,
-        on_delete=models.SET_NULL
+        on_delete=models.SET_NULL,
+        related_name="completed_orders",
+        limit_choices_to={'role__in': ['writer', 'editor', 'support', 'admin', 'superadmin']},
+        help_text="User who completed the order."
     )
     completion_notes = models.TextField(null=True, blank=True)
     reassigned_at = models.DateTimeField(null=True, blank=True)
@@ -478,12 +482,16 @@ class PreferredWriterResponse(models.Model):
     to work on an order.
     """
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='preferred_writer_decline_response'
     ) 
     order = models.OneToOneField(Order, on_delete=models.CASCADE)
-    writer = models.ForeignKey(User, on_delete=models.CASCADE)
+    writer = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='preferred_writer_responses',
+    )
     response = models.CharField(
         max_length=10,
         choices=[('accepted', 'Accepted'), ('declined', 'Declined')]
@@ -496,18 +504,87 @@ class DeadlineChangeLog(models.Model):
     Logs every deadline change for audit.
     """
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='deadline_change_log'
     ) 
     order = models.ForeignKey(Order, on_delete=models.CASCADE)
     old_deadline = models.DateTimeField()
     new_deadline = models.DateTimeField()
-    changed_by = models.ForeignKey('User', on_delete=models.CASCADE)
+    changed_by = models.ForeignKey(
+        'users.User', on_delete=models.CASCADE,
+        related_name='deadline_changes',
+        help_text="User who changed the deadline."
+    )
     reason = models.TextField()
 
     def __str__(self):
         return f"Deadline changed for Order #{self.order.id}"
+
+class OrderRequest(models.Model):
+    """ 
+    Represents a request made by a writer to work on an order. 
+    This is used when a writer wants to take on an order that is not assigned to them.
+    """
+    order = models.ForeignKey(
+        'orders.Order',
+        on_delete=models.CASCADE,
+        related_name='requests'
+    )
+    writer = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='requested_orders'
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name='order_requests'
+    )
+    message = models.TextField(blank=True)
+
+    status = models.CharField(
+        max_length=20,
+        choices=OrderRequestStatus.choices,
+        default=OrderRequestStatus.PENDING,
+    )
+    rejection_feedback = models.TextField(blank=True, null=True)
+  
+    accepted_by_admin_at = models.DateTimeField(null=True, blank=True)
+    writer_accepted_assignment_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    accepted_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField()
+
+
+    def __str__(self):
+        return f"Writer {self.writer_id} requested Order {self.order_id}"
+    
+    def is_expired(self):
+        """
+        Checks if the order request has expired.
+        """
+        return (
+            self.status == OrderRequestStatus.PENDING and
+            timezone.now() > self.expires_at
+        )
+
+    def mark_expired(self):
+        """
+        Marks the order request as expired.
+        It updates the status and adds feedback.
+        """
+        self.status = OrderRequestStatus.EXPIRED
+        self.rejection_feedback = "Request expired due to no response."
+        self.save(update_fields=["status", "rejection_feedback"])
+    
+    class Meta:
+        unique_together = ('order', 'writer')
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['order', 'expires_at']),
+        ]
 
 class WriterRequest(models.Model):
     """
@@ -525,12 +602,12 @@ class WriterRequest(models.Model):
         DECLINED = 'declined', 'Declined'
     
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name="writer_deadline_pages_request"
     )
     order = models.ForeignKey(
-        'Order', on_delete=models.CASCADE,
+        'orders.Order', on_delete=models.CASCADE,
         related_name="writer_requests"
     )
     request_type = models.CharField(
@@ -538,7 +615,7 @@ class WriterRequest(models.Model):
         choices=RequestType.choices
     )
     requested_by_writer = models.ForeignKey(
-        'User', on_delete=models.SET_NULL,
+        'users.User', on_delete=models.SET_NULL,
         null=True, blank=True
     )
     new_deadline = models.DateTimeField(
@@ -573,19 +650,19 @@ class WriterProgress(models.Model):
     Tracks progress logs for writers working on orders.
     """
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='writer_progress'
     )
     writer = models.ForeignKey(
-        User,
+        'users.User',
         on_delete=models.CASCADE,
         related_name="progress_logs",
         limit_choices_to={"role": "writer"},
         help_text="The writer associated with this progress log."
     )
     order = models.ForeignKey(
-        Order,
+        'orders.Order',
         on_delete=models.CASCADE,
         related_name="progress_logs",
         help_text="The order associated with this progress log."
@@ -629,7 +706,7 @@ class Dispute(models.Model):
     disputes are raised, reviewed, or resolved.
     """
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='order_dispute'
     )
@@ -640,7 +717,7 @@ class Dispute(models.Model):
         help_text="The order associated with this dispute."
     )
     raised_by = models.ForeignKey(
-        User,
+        'users.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -780,18 +857,18 @@ class DisputeWriterResponse(models.Model):
     Writers must respond before a final decision.
     """
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='dispute_writer_response'
     )
     dispute = models.ForeignKey(
         Dispute,
         on_delete=models.CASCADE,
-        related_name='writer_responses',
+        related_name='writer_responses_to_disputes',
         help_text="The dispute being responded to."
     )
     responded_by = models.ForeignKey(
-        User,
+        'users.User',
         on_delete=models.CASCADE,
         related_name='dispute_writer_responses',
         limit_choices_to={'role': 'writer'},
@@ -850,7 +927,7 @@ class ReassignmentRequest(models.Model):
     )
 
     order = models.ForeignKey(
-        Order,
+        'orders.Order',
         on_delete=models.CASCADE,
         related_name='reassignment_requests'
     )
@@ -862,7 +939,7 @@ class ReassignmentRequest(models.Model):
     )
 
     requester = models.ForeignKey(
-        User,
+        'users.User',
         on_delete=models.CASCADE,
         related_name='reassignment_requests_made',
         help_text="The actual user who made the request."
@@ -876,7 +953,7 @@ class ReassignmentRequest(models.Model):
     )
 
     preferred_writer = models.ForeignKey(
-        User,
+        'users.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -898,7 +975,7 @@ class ReassignmentRequest(models.Model):
         help_text="The current status of the reassignment request."
     )
     processed_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -954,12 +1031,12 @@ class OrderDiscount(models.Model):
     Tracks which discounts were applied to a specific order and their amounts.
     """
     order = models.ForeignKey(
-        Order,
+        'orders.Order',
         on_delete=models.CASCADE,
         related_name="applied_discounts"
     )
     discount = models.ForeignKey(
-        Discount,
+        'discounts.Discount',
         on_delete=models.CASCADE
     )
     amount = models.DecimalField(
@@ -979,7 +1056,7 @@ class ClientFeedback(models.Model):
     Stores feedback from a client about an order experience.
     """
     website = models.ForeignKey(
-        'website.Website',
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name="client_feedbacks"
     )
@@ -989,7 +1066,7 @@ class ClientFeedback(models.Model):
         related_name="feedback"
     )
     client = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.CASCADE,
         related_name="order_feedbacks"
     )
@@ -1007,3 +1084,58 @@ class ClientFeedback(models.Model):
 
     def __str__(self):
         return f"Feedback from {self.client} on Order #{self.order.id}"
+    
+
+class OrderTransitionLog(models.Model):
+    """
+    Logs all status transitions for an order.
+    This is useful for auditing and tracking changes in order status.
+    """
+    order = models.ForeignKey(
+        "orders.Order",
+        on_delete=models.CASCADE,
+        related_name="transitions"
+    )
+    user = models.ForeignKey(
+        'users.User',
+        null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
+    old_status = models.CharField(max_length=32)
+    new_status = models.CharField(max_length=32)
+    action = models.CharField(max_length=64)  # e.g. "mark_paid", "auto_expire"
+    is_automatic = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    meta = models.JSONField(null=True, blank=True)  # optional context or payload
+
+    class Meta:
+        ordering = ['-timestamp']
+
+
+class WebhookDeliveryLog(models.Model):
+    """
+    Records each webhook delivery attempt.
+    """
+    user = models.ForeignKey(
+        'users.User', 
+        on_delete=models.CASCADE,
+        related_name="webhook_logs"
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name="webhook_delivery_logs_for_website"
+        )
+    event = models.CharField(max_length=50)
+    url = models.URLField()
+    success = models.BooleanField(default=False)
+    status_code = models.IntegerField(null=True, blank=True)
+    response_body = models.TextField(blank=True, null=True)
+    request_payload = models.JSONField(default=dict)
+    error_message = models.TextField(blank=True, null=True)
+    test_mode = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+    retry_count = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ["-created_at"]

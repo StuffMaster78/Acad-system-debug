@@ -1,5 +1,26 @@
 from django.contrib import admin
 from .models import Website, WebsiteStaticPage, WebsiteSettings
+from django.utils import timezone
+from django.utils.text import slugify
+from django.db.models import Q
+from django.contrib.admin import SimpleListFilter
+from django.utils.translation import gettext_lazy as _
+class SoftDeleteFilter(SimpleListFilter):
+    """Filter to show soft-deleted items."""
+    title = _('Soft Deleted')
+    parameter_name = 'is_deleted'
+
+    def lookups(self, request, model_admin):
+        return (
+            (True, _('Yes')),
+            (False, _('No')),
+        )
+
+    def queryset(self, request, queryset):
+        if self.value() is None:
+            return queryset
+        return queryset.filter(is_deleted=self.value() == 'True')
+    
 
 @admin.register(Website)
 class WebsiteAdmin(admin.ModelAdmin):
@@ -67,14 +88,14 @@ class WebsiteStaticPageAdmin(admin.ModelAdmin):
     
 
 # website/admin.py
-class WebsiteSettingsInline(admin.TabularInline):
-    model = WebsiteSettings
-    extra = 1  # Only show one inline form for the website settings
+# class WebsiteSettingsInline(admin.TabularInline):
+#     model = WebsiteSettings
+#     extra = 1  # Only show one inline form for the website settings
 
-class WebsiteAdmin(admin.ModelAdmin):
-    inlines = [WebsiteSettingsInline]
+# class WebsiteAdmin(admin.ModelAdmin):
+#     inlines = [WebsiteSettingsInline]
 
-admin.site.unregister(Website)
-admin.site.register(Website, WebsiteAdmin)
+# admin.site.unregister(Website)
+# admin.site.register(Website, WebsiteAdmin)
 admin.site.register(WebsiteSettings)  # assuming you don’t have a custom admin
 admin.site.register(WebsiteStaticPage, WebsiteStaticPageAdmin)

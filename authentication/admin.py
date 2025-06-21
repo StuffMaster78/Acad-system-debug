@@ -1,6 +1,4 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth import get_user_model
 from django.utils.html import format_html
 from django.urls import reverse
 from django.contrib.admin.sites import NotRegistered
@@ -11,16 +9,6 @@ from authentication.models.tokens import SecureToken
 from authentication.models.register import RegistrationToken
 from authentication.models.backup_code import BackupCode
 from authentication.models.audit import AuditLog
-
-User = get_user_model()
-
-
-class CustomUserAdmin(UserAdmin):
-    """
-    Custom user admin interface with support for MFA and other custom fields.
-    """
-    list_display = UserAdmin.list_display + ('is_active', 'is_staff')
-    inlines = []
 
 
 @admin.register(MFASettings)
@@ -40,11 +28,11 @@ class MFASettingsAdmin(admin.ModelAdmin):
 class AuditLogAdmin(admin.ModelAdmin):
     list_display = (
         "id", "event", "linked_user", "ip_address", "device",
-        "location", "created_at", "highlighted",
+        "timestamp", "highlighted",
     )
-    list_filter = ("event", "created_at")
+    list_filter = ("event", "timestamp", "user__is_active")
     search_fields = ("event", "user__email", "ip_address", "device", "location")
-    ordering = ("-created_at",)
+    ordering = ("-timestamp",)
 
     def linked_user(self, obj):
         if obj.user:
@@ -105,12 +93,3 @@ class RegistrationTokenAdmin(admin.ModelAdmin):
     )
     search_fields = ('user__email', 'token')
     list_filter = ('is_used',)
-
-
-# Unregister default User if needed, then register our custom admin
-try:
-    admin.site.unregister(User)
-except NotRegistered:
-    pass
-
-admin.site.register(User, CustomUserAdmin)

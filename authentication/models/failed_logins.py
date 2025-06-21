@@ -9,7 +9,7 @@ class FailedLoginAttempt(models.Model):
     Useful for implementing lockout policies.
     """
     user = models.ForeignKey(
-        User,
+        'user.User',
         on_delete=models.CASCADE,
         related_name="failed_logins"
     )

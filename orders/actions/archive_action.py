@@ -1,20 +1,33 @@
 from orders.actions.base import BaseOrderAction
-from orders.services.archive_service import ArchiveService
+from orders.services.auto_archive_service import AutoArchiveService
 from audit_logging.services import log_audit_action
-
-
-class ArchiveAction(BaseOrderAction):
-    # action_name = "archive_order"
+from orders.registry.decorator import register_order_action
+@register_order_action("autorchive")
+class AutorchiveAction(BaseOrderAction):
+    """
+    Action to archive all orders older than a specified cutoff date.
+    This is typically used for bulk operations, like a scheduled job.
+    """
     def execute(self):
-        # This one looks generic – adapt if you know the model.
-        service = ArchiveService()
-        result = service.archive(self.order_id)
+        """
+        Execute the auto-archive action.
+        This will archive all orders older than the specified cutoff date.
+        """
+        service = AutoArchiveService()
+        result = service.archive_orders_older_than(
+            cutoff_date=self.data.get("cutoff_date"),
+            website=self.website,
+        )
 
         log_audit_action(
             actor=self.user,
             action="ARCHIVE",
-            target="orders.Order",  # Adjust if needed
-            target_id=self.order_id,
-            metadata={"message": "Entity archived via general ArchiveAction."}
+            target="orders.Order",
+            target_id=None,
+            metadata={
+                "message": (f"Archived {result['archived_count']}"
+                            f" orders older than {result['cutoff']}"
+                )
+            }
         )
         return result

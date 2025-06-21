@@ -4,12 +4,16 @@ from django.utils import timezone
 
 
 class OTP(models.Model):
+    """
+    Represents a One-Time Password (OTP) for user authentication.
+    This model is used to store OTPs generated for users.
+    """
     user = models.ForeignKey(
         get_user_model(),
         on_delete=models.CASCADE
     )
     website = models.ForeignKey(
-        'website.Website',
+        'websites.Website',
         on_delete=models.CASCADE,
         help_text="the website getting the OTP"
         )

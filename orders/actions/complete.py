@@ -1,10 +1,13 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.complete_order_service import CompleteOrderService
 from audit_logging.services import log_audit_action
-
-
+from orders.registry.decorator import register_order_action
+@register_order_action("complete_order")
 class CompleteOrderAction(BaseOrderAction):
-    # action_name = "complete_order"
+    """
+    Action to mark an order as completed.
+    This is typically used for manual operations, like an admin action.
+    """
     def execute(self):
         old_status = self.order.status
 

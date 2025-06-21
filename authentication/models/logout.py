@@ -11,7 +11,7 @@ class LogoutEvent(models.Model):
         on_delete=models.CASCADE
     )
     website = models.ForeignKey(
-        'website.Website',
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='logout_events'
     )

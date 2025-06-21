@@ -5,9 +5,13 @@ from orders.services.revisions import OrderRevisionService
 from orders.order_enums import OrderStatus
 
 from audit_logging.services import log_audit_action
-
-
+from orders.registry.decorator import register_order_action
+@register_order_action("submit_revision")
 class SubmitRevisionAction(BaseOrderAction):
+    """
+    Action to submit a revision request for an order.
+    This is typically used when a user requests changes to an order.
+    """
     def execute(self):
         service = OrderRevisionService(order=self.order, user=self.user)
         result = service.request_revision(reason=self.params["reason"])
@@ -22,9 +26,11 @@ class SubmitRevisionAction(BaseOrderAction):
             )
         return result
 
+@register_order_action("deny_revision")
 class DenyRevisionAction(BaseOrderAction):
     """
     Action to deny a revision request for an order.
+    This is typically used when an admin rejects a user's revision request.
     """
 
     def execute(self):
@@ -48,7 +54,8 @@ class DenyRevisionAction(BaseOrderAction):
                 },
             )
         return result
-    
+
+@register_order_action("process_revision")
 class ProcessRevisionAction(BaseOrderAction):
     """
     Action to submit the revised work and mark the order complete again.
@@ -76,7 +83,12 @@ class ProcessRevisionAction(BaseOrderAction):
             )
         return result
 
+@register_order_action("request_revision")
 class OrderRevisionAction(BaseOrderAction):
+    """
+    Action to request a revision for an order.
+    This is typically used when a user wants to request changes to an order.
+    """
     def execute(self):
         service = OrderRevisionService()
         result = service.request_revision(self.order_id, **self.params)

@@ -26,7 +26,7 @@ class ApplyDirectDiscountService:
         """
         order = get_order_by_id(order_id)
 
-        if order.status in ('completed','unpaid', 'approved', 'cancelled'):
+        if order.status in ('completed','unpaid', 'approved', 'cancelled', 'archived'):
             raise ValueError(
                 f"Cannot apply discount to order {order_id} "
                 f"in status {order.status}."

@@ -8,7 +8,7 @@ class EmailVerification(models.Model):
     Can be used alongside OTP.
     """
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.CASCADE
     )
     website = models.ForeignKey(

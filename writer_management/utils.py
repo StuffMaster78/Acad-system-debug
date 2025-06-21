@@ -44,3 +44,46 @@ def get_available_writer_for_order(order, max_active_orders=5, min_rating=4.0):
     )
 
     return qualified_writers.first()
+
+
+
+class WebhookPayloadFormatter:
+    """
+    Formats webhook payloads for different platforms (Slack, Discord, etc).
+    """
+
+    @staticmethod
+    def format(event_type, payload, platform):
+        if platform.lower() == "slack":
+            return WebhookPayloadFormatter._format_slack(event_type, payload)
+        elif platform.lower() == "discord":
+            return WebhookPayloadFormatter._format_discord(event_type, payload)
+        else:
+            return payload  # raw fallback
+
+    @staticmethod
+    def _format_slack(event_type, payload):
+        order = payload.get("order", {})
+        return {
+            "text": f"*{event_type.replace('_', ' ').title()}*\n"
+                    f"Order #{order.get('id')} - {order.get('title')}\n"
+                    f"Status: `{order.get('status')}`\n"
+                    f"<{payload.get('order_url', '')}|View Order>",
+        }
+
+    @staticmethod
+    def _format_discord(event_type, payload):
+        order = payload.get("order", {})
+        return {
+            "embeds": [
+                {
+                    "title": f"{event_type.replace('_', ' ').title()}",
+                    "description": (
+                        f"**Order #{order.get('id')}** - {order.get('title')}\n"
+                        f"Status: `{order.get('status')}`"
+                    ),
+                    "url": payload.get("order_url", ""),
+                    "color": 0x00ff99,
+                }
+            ]
+        }

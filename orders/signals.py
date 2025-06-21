@@ -1,6 +1,8 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from .models import Order, Dispute, WriterRequest
+from .models import Order, Dispute, WriterRequest, OrderRequest
+from notifications_system.services.dispatcher import notify_user
+from django.core.mail import send_mail
 
 @receiver(post_save, sender=Order)
 def handle_order_save(sender, instance, created, **kwargs):
@@ -45,4 +47,66 @@ def on_writer_request_approved(sender, instance, created, **kwargs):
 def on_dispute_resolved(sender, instance, created, **kwargs):
     if instance.status == 'resolved':
         # Handle dispute resolution, such as notifying users or updating order status
+        pass
+
+
+
+@receiver(post_save, sender=OrderRequest)
+def notify_writer_on_acceptance(sender, instance, created, **kwargs):
+    """
+    Notify the writer when their request has been accepted.
+    """
+    if created or not instance.accepted or not instance.accepted_at:
+        return
+
+    website = instance.website
+    domain = website.domain.rstrip("/")
+    order = instance.order
+    writer = instance.writer
+
+    subject = "🎉 Your order request has been accepted!"
+    dashboard_url = f"https://{domain}/orders/{order.id}/"
+    accept_url = f"https://{domain}/orders/{order.id}/accept/"
+
+    message = (
+        f"🎉 Congrats {writer.get_full_name()}!\n\n"
+        f"Your request to work on Order #{order.id} has been accepted.\n"
+        f"You can now begin working on it.\n\n"
+        f"🔎 Order Details:\n"
+        f"• Topic: {order.topic}\n"
+        f"• Client: {order.client.username}\n"
+        f"• Due Date: {order.due_date.strftime('%Y-%m-%d %H:%M')}\n"
+        f"• View Order: {dashboard_url}\n"
+        f"• Accept Assignment: {accept_url}\n\n"
+        f"Please ensure you follow all order requirements and timelines.\n"
+        f"Reach out if you need any clarification.\n\n"
+        f"Thank you for your dedication.\n"
+        f"- {domain} Team"
+    )
+
+    # System dashboard notification
+    try:
+        notify_user(
+            user=writer,
+            message="🎯 Your request to work on an order was accepted! "
+                    f"Click to accept the assignment: {accept_url}",
+            metadata={
+                "order_id": order.id,
+                "website_id": website.id,
+                "expires_at": instance.expires_at.isoformat(),
+            },
+        )
+    except Exception:
+        pass  # Silently fail
+
+    # Email notification
+    try:
+        send_mail(
+            subject,
+            message,
+            f"no-reply@{domain}",
+            [writer.email],
+            fail_silently=True,
+        )
+    except Exception:
         pass

@@ -2,7 +2,9 @@ from orders.models import WriterRequest, Order
 from audit_logging.services import log_audit_action
 from orders.services.writer_request_service import WriterRequestService
 from django.shortcuts import get_object_or_404
-
+from datetime import datetime, timedelta
+from orders.registry.decorator import register_order_action
+@register_order_action("create_writer_request")
 class CreateWriterRequestAction:
     """Handle creation of a writer request.
 

@@ -34,7 +34,7 @@ class AuditLogEntry(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="audit_logs",
+        related_name="audit_logs_actor",
         help_text=_("The user who performed the action.")
     )
 
@@ -79,6 +79,19 @@ class AuditLogEntry(models.Model):
         help_text=_("Time the audit log entry was recorded.")
     )
 
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text=_("Time the audit log entry was created.")
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text=_("Time the audit log entry was last updated.")
+    )
+    notes = models.TextField(
+        blank=True,
+        help_text=_("Optional notes or comments about the action.")
+    )
+
     class Meta:
         verbose_name = _("Audit Log Entry")
         verbose_name_plural = _("Audit Log Entries")
@@ -90,3 +103,32 @@ class AuditLogEntry(models.Model):
     def __str__(self):
         actor = self.actor.username if self.actor else "System"
         return f"[{self.timestamp}] {actor} - {self.action} {self.target} ({self.target_id})"
+    
+
+class WebhookAuditLog(models.Model):
+    """
+    Logs all webhook delivery attempts for audit/debugging.
+    This model captures details about each webhook event sent, including
+    the user, platform, payload, response, and success status.
+    Useful for debugging and tracking webhook delivery.
+    """
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name="webhook_user_logs"
+    )
+    platform = models.CharField(max_length=20)  # slack/discord/custom
+    webhook_url = models.URLField()
+    event = models.CharField(max_length=50)
+    order_id = models.IntegerField(null=True, blank=True)
+    payload = models.JSONField()
+    response_body = models.TextField(null=True, blank=True)
+    response_status = models.IntegerField(null=True, blank=True)
+    was_successful = models.BooleanField(default=False)
+    is_test = models.BooleanField(default=False)
+    triggered_at = models.DateTimeField(auto_now_add=True)
+    fallback_icon = models.URLField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-triggered_at']

@@ -54,12 +54,13 @@ class User(AbstractUser, PermissionsMixin,
     email = models.EmailField(unique=True)
     is_available = models.BooleanField(default=True)
     website = models.ForeignKey(
-        'Website',
-        related_name='users',
+        'websites.Website',
+        related_name='website_users',
         on_delete=models.SET_NULL,
         null=True,
         blank=True
     )
+    
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username"]
 
@@ -368,7 +369,7 @@ class UserProfile(models.Model):
     user = models.OneToOneField(
         User,
         on_delete=models.CASCADE,
-        related_name='profile'
+        related_name='user_main_profile'
     )
     preferences = models.JSONField(default=dict, blank=True)
     profile_picture = models.ImageField(
@@ -382,7 +383,7 @@ class UserProfile(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name="users",
+        related_name="websites_users_profiles",
         help_text=_("The website this user is associated with.")
     )
     avatar = models.CharField(
@@ -490,8 +491,18 @@ class UserAuditLog(models.Model):
         ('BLACKLISTED', 'Email Blacklisted'),
         ('PHONE_NUMBER_CHANGE', 'Phone Number Change')
     )
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='users_audit_logs',
+        help_text=_("The user whose action is being logged.")
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name='audit_logs',
+        help_text=_("The website this audit log is associated with.")
+    )
     action = models.CharField(max_length=50, choices=ACTION_CHOICES)
     timestamp = models.DateTimeField(auto_now_add=True)
     ip_address = models.GenericIPAddressField(null=True, blank=True)
@@ -532,9 +543,13 @@ class ProfileUpdateRequest(models.Model):
 
     user = models.ForeignKey(
         User, on_delete=models.CASCADE,
-        related_name="update_requests"
+        related_name="update_requests_users"
     )
-    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name="user_profile_update_requests"
+    )
     requested_data = models.JSONField(
         help_text="Stores the fields requested for update."
     )
@@ -581,7 +596,12 @@ class DeletionSettings(models.Model):
         help_text="Global grace period in days before final deletion after a "
                   "deletion request."
     )
-    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name='deletion_settings',
+        help_text=_("The website this deletion setting is associated with.")
+)
 
     def __str__(self):
         return f"Grace period: {self.grace_period_days} days"
@@ -592,8 +612,18 @@ class UserActivity(models.Model):
     Model for tracking user activities, including actions, timestamps, and
     additional details.
     """
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='users_activities',
+        help_text=_("The user whose activity is being tracked.")
+)
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name='website_activities',
+        help_text=_("The website where the activity took place.")
+    )
     action = models.CharField(max_length=255)
     timestamp = models.DateTimeField(auto_now_add=True)
     details = models.TextField()
@@ -607,8 +637,18 @@ class EmailVerification(models.Model):
     Model to store email verification data, including the user, token, and
     expiration timestamp.
     """
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE,
+        related_name='user_email_verifications',
+        help_text=_("The user whose email is being verified.")
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name='email_verifications',
+        help_text=_("The website this email verification is associated with.")
+    )
     token = models.CharField(max_length=255)
     expiration = models.DateTimeField()
 
@@ -621,8 +661,18 @@ class UserPermission(models.Model):
     Model for managing user permissions, storing the permission name and
     granted timestamp.
     """
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='user_permissions_settings',
+        help_text=_("The user this permission is associated with.")
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name='wbsite_user_permissions',
+        help_text=_("The website this user permission is associated with.")
+    )
     permission_name = models.CharField(max_length=100)
     granted_at = models.DateTimeField(auto_now_add=True)
 
@@ -634,8 +684,18 @@ class UserConsent(models.Model):
     Model to track user consent, including whether consent is given, the
     consent date, and the consent type.
     """
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='user_consents',
+        help_text=_("The user who has given consent.")
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name='user_consents',
+        help_text=_("The website this user consent is associated with.")
+    )
     consent_given = models.BooleanField(default=False)
     consent_date = models.DateTimeField(null=True, blank=True)
     consent_type = models.CharField(max_length=255)

@@ -8,8 +8,9 @@ class RegistrationToken(models.Model):
     Handles registration of new users.
     """
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name="registering_users_token"
     )
     website = models.ForeignKey(
         "websites.Website",

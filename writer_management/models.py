@@ -5,6 +5,7 @@ from websites.models import Website
 from orders.models import Order
 from wallet.models import Wallet
 from django.core.exceptions import ValidationError
+from django.contrib.postgres.fields import ArrayField
 
 User = settings.AUTH_USER_MODEL 
 
@@ -457,7 +458,7 @@ class WriterDemotionRequest(models.Model):
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
-        related_name="writer_demotion-request"
+        related_name="writer_demotion_request_website"
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
@@ -465,7 +466,7 @@ class WriterDemotionRequest(models.Model):
     )
     requested_by = models.ForeignKey(
         User, on_delete=models.CASCADE,
-        related_name="demotion_requests_made"
+        related_name="demotion_requests_made_by"
     )
     reason = models.TextField(
         help_text="Reason for requesting writer demotion."
@@ -474,7 +475,7 @@ class WriterDemotionRequest(models.Model):
     approved = models.BooleanField(default=False)
     reviewed_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True,
-        blank=True, related_name="demotion_reviews"
+        blank=True, related_name="demotion_reviews_by"
     )
 
     def __str__(self):
@@ -539,7 +540,7 @@ class WriterRating(models.Model):
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
-        related_name="writer_ratings",
+        related_name="writer_ratings_on_orders",
         help_text="The order associated with this rating."
     )
     rating = models.PositiveIntegerField(
@@ -615,7 +616,8 @@ class WriterPenalty(models.Model):
     )
     order = models.ForeignKey(
         Order, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name="penalties"
+        null=True, blank=True,
+        related_name="writer_order_penalties"
     )
     reason = models.CharField(
         max_length=50, choices=PENALTY_REASONS,
@@ -758,7 +760,7 @@ class WriterPayment(models.Model):
     )
     tips = models.DecimalField(
         max_digits=12, decimal_places=2,
-        default=0.00, help_text="Tips received."
+        help_text="Tips received."
     )
     payment_date = models.DateTimeField(
         auto_now_add=True, help_text="Date of payment."
@@ -851,11 +853,11 @@ class WriterReassignmentRequest(models.Model):
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
-        related_name="reassignment_requests"
+        related_name="writer_reassignment_requests"
     )
     order = models.ForeignKey(
         Order, on_delete=models.CASCADE,
-        related_name="reassignment_requests"
+        related_name="reassignment_requests_by_writers"
     )
     reason = models.TextField(
         help_text="Reason for requesting reassignment."
@@ -888,7 +890,7 @@ class WriterOrderHoldRequest(models.Model):
     )
     order = models.ForeignKey(
         Order, on_delete=models.CASCADE,
-        related_name="hold_requests"
+        related_name="hold_writer_requests"
     )
     reason = models.TextField(
         help_text="Reason for requesting hold."
@@ -1167,11 +1169,11 @@ class WriterDeadlineExtensionRequest(models.Model):
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
-        related_name="deadline_extension_requests"
+        related_name="writer_deadline_extension_requests"
     )
     order = models.ForeignKey(
         Order, on_delete=models.CASCADE,
-        related_name="deadline_extension_requests"
+        related_name="order_deadline_extension_requests"
     )
     old_deadline = models.DateTimeField(
         help_text="Current order deadline."
@@ -1370,7 +1372,7 @@ class WriterOrderRequest(models.Model):
     )
     order = models.ForeignKey(
         Order, on_delete=models.CASCADE,
-        related_name="writer_requests"
+        related_name="writer_requests_management"
     )
     requested_at = models.DateTimeField(
         auto_now_add=True,
@@ -1445,3 +1447,106 @@ class WriterOrderTake(models.Model):
     def save(self, *args, **kwargs):
         self.clean()
         super().save(*args, **kwargs)
+
+
+class Tip(models.Model):
+    """
+    Represents a tip sent by a client to a writer for an order.
+    """
+    client = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name="tips_sent"
+    )
+    writer = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name="tips_received"
+    )
+    order = models.ForeignKey(
+        "orders.Order",
+        on_delete=models.CASCADE,
+        related_name="tips"
+    )
+    website = models.ForeignKey(
+        "websites.Website",
+        on_delete=models.CASCADE,
+        help_text="Multitenancy support: this tip is for a specific website.",
+    )
+    tip_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2
+    )
+    tip_reason = models.TextField(blank=True)
+    sent_at = models.DateTimeField(auto_now_add=True)
+
+    writer_percentage = models.ForeignKey(
+        'writer_management.WriterLevel',
+        on_delete=models.CASCADE,
+        related_name="tips"
+    )
+    writer_earning = models.DecimalField(max_digits=10, decimal_places=2)
+    platform_profit = models.DecimalField(max_digits=10, decimal_places=2)
+
+class WebhookPlatform(models.TextChoices):
+    """Available platforms for webhooks."""
+    SLACK = "slack", "Slack"
+    DISCORD = "discord", "Discord"
+    TELEGRAM = "telegram", "Telegram"
+
+
+class WebhookSettings(models.Model):
+    """
+    Stores webhook settings for a writer.
+    """
+    from orders.order_enums import WebhookEvent
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="webhook_settings",
+        help_text="The user this webhook setting belongs to."
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name="webhook_settings",
+        help_text="Multitenancy support: this webhook is for a specific website."
+    )
+    platform = models.CharField(
+        max_length=20,
+        choices=WebhookPlatform.choices,
+        help_text="The platform for the webhook (e.g., Slack, Discord)."
+    )
+    webhook_url = models.URLField(
+        help_text="The URL to which the webhook will send requests."
+    )
+    enabled = models.BooleanField(
+        default=True,
+        help_text="If false, this webhook won't send any events."
+    )
+    subscribed_events = ArrayField(
+        models.CharField(
+            max_length=50,
+            choices=WebhookEvent.choices
+        ),
+        default=list,
+        blank=True,
+        help_text="List of events this webhook is subscribed to."
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text= (
+            "Soft delete flag — deactivates the webhook "
+            "without removing the record."
+        )
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("user", "platform", "website")
+        verbose_name = "Webhook Setting"
+        verbose_name_plural = "Webhook Settings"
+
+    def __str__(self):
+        return f"{self.user} – {self.platform} webhook"

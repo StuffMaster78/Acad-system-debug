@@ -190,7 +190,7 @@ class RevisionPolicyConfig(models.Model):
     Days after which revision must be paid.
     """
     website = models.ForeignKey(
-        'website.Website',
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='revision_policies'
     )

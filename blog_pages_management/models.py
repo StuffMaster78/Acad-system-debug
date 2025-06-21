@@ -569,7 +569,7 @@ class NewsletterSubscriber(models.Model):
         max_length=50,
         unique=True,
         db_index=True,
-        default=lambda: generate_tracking_id
+        default=generate_tracking_id
     )
 
     def increment_open_count(self):
@@ -663,7 +663,9 @@ class BlogActionLog(models.Model):
         ("deleted", "Permanently Deleted"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="blog_logs")
+    user = models.ForeignKey(
+        'users.User', on_delete=models.CASCADE,
+        related_name="blog_logs")
     blog = models.ForeignKey(BlogPost, on_delete=models.CASCADE, related_name="action_logs")
     action = models.CharField(max_length=20, choices=ACTION_CHOICES)
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -674,7 +676,10 @@ class BlogActionLog(models.Model):
     
 class AdminNotification(models.Model):
     """Stores notifications for admins about blog deletions."""
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    user = models.ForeignKey(
+        'users.User', on_delete=models.CASCADE,
+        related_name="notifications"
+    )
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)

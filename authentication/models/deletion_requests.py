@@ -15,14 +15,14 @@ class AccountDeletionRequest(models.Model):
     ]
     
     website = models.ForeignKey(
-        'website.Website',
+        'websites.Website',
         on_delete=models.CASCADE,
-        related_name='deletion_requests',
+        related_name='deletion_requests_website',
         help_text="The website where the request is coming from"
     )
     
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.CASCADE
     )
     request_time = models.DateTimeField(auto_now_add=True)

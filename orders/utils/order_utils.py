@@ -24,7 +24,7 @@ def get_order_by_id(order_id, user=None, check_soft_deleted=True):
     Raises:
         Http404: If the order does not exist.
     """
-    from authentication.models import User
+    from users.models import User
     from orders.models import Order
     queryset = Order.objects.all()
 

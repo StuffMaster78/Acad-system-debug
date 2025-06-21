@@ -223,7 +223,7 @@ REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))  # Default Redis port
 # Redis (if used for caching)
 CACHES = {
     "default": {
-        "BACKEND": "django.core.cache.backends.redis.RedisCache",
+        "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', '6379')}/1",
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",

@@ -13,7 +13,7 @@ class MFASettings(models.Model):
         ('sms', 'SMS Verification'),
     )
     user = models.OneToOneField(
-        User,
+        'users.User',
         on_delete=models.CASCADE
     )
     website = models.ForeignKey(
@@ -27,7 +27,6 @@ class MFASettings(models.Model):
     mfa_method = models.CharField(
         max_length=50,
         choices=MFA_METHODS,
-        default='qr_code',  # Fixed default value
         blank=True,
         null=True
     )

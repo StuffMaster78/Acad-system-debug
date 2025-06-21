@@ -13,20 +13,20 @@ class ImpersonationToken(models.Model):
     """
     token = models.CharField(max_length=64, unique=True)
     admin_user = models.ForeignKey(
-        User,
-        related_name='impersonation_tokens',
+        'users.User',
+        related_name='user_impersonation_tokens',
         on_delete=models.CASCADE
     )
     target_user = models.ForeignKey(
-        User,
-        related_name='impersonated_by',
+        'users.User',
+        related_name='impersonated_by_tokens',
         on_delete=models.CASCADE
     )
 
     website = models.ForeignKey(
         "websites.Website",
         on_delete=models.CASCADE,
-        related_name="impersonation_tokens"
+        related_name="impersonation_web_tokens"
     )
 
     created_at = models.DateTimeField(
@@ -135,12 +135,12 @@ class ImpersonationLog(models.Model):
     """
     admin_user = models.ForeignKey(
         User,
-        related_name='impersonation_logs',
+        related_name='impersonation_logs_for_admin',
         on_delete=models.CASCADE
     )
     target_user = models.ForeignKey(
         User,
-        related_name='impersonation_logs',
+        related_name='impersonation_logs_for_target_user',
         on_delete=models.CASCADE
     )
     website = models.ForeignKey(

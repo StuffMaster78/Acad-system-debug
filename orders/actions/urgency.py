@@ -1,8 +1,8 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.order_urgency import OrderUrgencyService
 from audit_logging.services import log_audit_action
-
-
+from orders.registry.decorator import register_order_action
+@register_order_action("set_order_urgency")
 class OrderUrgencyAction(BaseOrderAction):
     def execute(self):
         service = OrderUrgencyService()

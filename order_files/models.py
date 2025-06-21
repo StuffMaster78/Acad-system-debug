@@ -111,7 +111,11 @@ class FileDownloadLog(models.Model):
         on_delete=models.CASCADE,
         related_name="downloads"
     )
-    downloaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    downloaded_by = models.ForeignKey(
+        'users.User', on_delete=models.CASCADE,
+        related_name="file_downloads",
+        help_text="User who downloaded the file"
+    )
     downloaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -128,7 +132,12 @@ class FileDeletionRequest(models.Model):
         related_name='file_deletion_request'
     )
     file = models.ForeignKey(OrderFile, on_delete=models.CASCADE)
-    requested_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    requested_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name="file_deletion_requests",
+        help_text="User who requested the file deletion"
+    )
     status = models.CharField(
         max_length=20,
         choices=[
@@ -162,7 +171,11 @@ class ExternalFileLink(models.Model):
         on_delete=models.CASCADE,
         related_name="external_links"
     )
-    uploaded_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    uploaded_by = models.ForeignKey(
+        'users.User', on_delete=models.CASCADE,
+        related_name="external_file_links",
+        help_text="User who uploaded the external file link"
+    )
     link = models.URLField()
     description = models.CharField(max_length=255, blank=True, null=True)
     status = models.CharField(

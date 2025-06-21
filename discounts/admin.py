@@ -53,7 +53,7 @@ class DiscountStatusFilter(SimpleListFilter):
 @admin.register(Discount)
 class DiscountAdmin(admin.ModelAdmin):
     list_display = (
-        'code', 'website', 'discount_type', 'value', 'is_active',
+        'discount_code', 'website', 'discount_type', 'discount_value', 'is_active',
         'origin_type', 'start_date', 'end_date'
     )
     list_filter = (
@@ -61,16 +61,15 @@ class DiscountAdmin(admin.ModelAdmin):
         'applies_to_first_order_only', DiscountStatusFilter
     )
     inlines = [DiscountStackingRuleInline]
-    search_fields = ('code', 'description')
-    autocomplete_fields = ('assigned_to_client', 'seasonal_event')
-    filter_horizontal = ('stackable_with',)
+    search_fields = ('discount_code', 'description')
+    autocomplete_fields = ('assigned_to_client', 'promotional_campaign')
     readonly_fields = ('used_count',)
     date_hierarchy = 'start_date'
     actions = ['deactivate_discounts', 'duplicate_discounts']
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
-            'assigned_to_client', 'seasonal_event'
+            'assigned_to_client', 'promotional_campaign', 'website'
         )
 
     @admin.action(description="Deactivate selected discounts")
@@ -83,11 +82,11 @@ class DiscountAdmin(admin.ModelAdmin):
         new_discounts = []
         for discount in queryset:
             new_code = (
-                discount.code + "_" +
+                discount.discount_code + "_" +
                 ''.join(random.choices(string.ascii_uppercase, k=4))
             )
             discount.pk = None
-            discount.code = new_code
+            discount.discount_code = new_code
             discount.start_date = now()
             discount.end_date = None
             discount.is_active = True
@@ -101,16 +100,14 @@ class DiscountAdmin(admin.ModelAdmin):
 @admin.register(DiscountUsage)
 class DiscountUsageAdmin(admin.ModelAdmin):
     list_display = (
-        'user', 'website', 'base_discount',
-        'stackable_with', 'used_at'
+        'user', 'website', 'discount', 'used_at'
     )
-    list_filter = ('website', 'base_discount')
+    list_filter = ('website', 'discount')
     search_fields = (
         'user__email',
-        'base_discount__code',
-        'stackable_with__code'
+        'discount__code'
     )
-    autocomplete_fields = ('user', 'base_discount', 'stackable_with')
+    autocomplete_fields = ('user', 'discount')
 
 
 @admin.register(DiscountStackingRule)

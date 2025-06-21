@@ -3,7 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 from authentication.utils.audit import get_client_ip
 
-User = settings.AUTH_USER_MODEL
+
 
 class AuditLog(models.Model):
     """
@@ -30,14 +30,22 @@ class AuditLog(models.Model):
         ("QR_CODE_SCANNED", "QR Code Scanned"),
         ("DEVICE_DELETED", "Device Deleted"),
     )
-
+    
     user = models.ForeignKey(
-        User,
+        'users.User',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="audit_logs"
     )
+    event = models.CharField(
+        max_length=50,
+        choices=ACTION_CHOICES,
+        help_text="The action performed by the user."
+    )
+    # The 'website' field is used to associate the audit log with a specific website.
+    # This is useful for multi-tenant applications where actions may vary by website.
+    # It allows filtering and querying logs based on the website context.
     website = models.ForeignKey(
         "websites.Website",
         on_delete=models.CASCADE,

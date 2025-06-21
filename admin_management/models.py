@@ -97,7 +97,6 @@ class AdminProfile(models.Model):
         help_text="Last performed action."
     )
     action_count = models.IntegerField(
-        default=0,
         help_text="Total actions taken by the admin."
     )
 

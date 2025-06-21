@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import (
-    OrderFile, FileDeletionRequest, ExternalFileLink, ExtraServiceFile, OrderFilesConfig, OrderFileCategory
+    OrderFile, FileDeletionRequest, ExternalFileLink,
+    ExtraServiceFile, OrderFilesConfig, OrderFileCategory
 )
 
 @admin.register(OrderFilesConfig)
@@ -32,6 +33,6 @@ class ExternalFileLinkAdmin(admin.ModelAdmin):
 
 @admin.register(ExtraServiceFile)
 class ExtraServiceFileAdmin(admin.ModelAdmin):
-    list_display = ["order", "service_name", "uploaded_by", "created_at", "is_downloadable"]
-    list_filter = ["service_name", "is_downloadable"]
+    list_display = ["id", "file", "order", "uploaded_by", "created_at", "is_downloadable"]
+    list_filter = []
     search_fields = ["order__id", "uploaded_by__username"]

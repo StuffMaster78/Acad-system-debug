@@ -3,18 +3,22 @@ from django.utils.timezone import now
 from .models import (
     Order, Dispute,
     DisputeWriterResponse,
-    WriterRequest
+    WriterRequest,
+    OrderRequest,
+    OrderTransitionLog
 )
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
-from orders.actions.registry import get_action_class
+from orders.registry.decorator import get_all_registered_actions
+from django.utils import timezone
+from orders.models import WebhookDeliveryLog
 
 User = get_user_model()
 
 class OrderSerializer(serializers.ModelSerializer):
     client_username = serializers.CharField(source='client.username', read_only=True)
     writer_username = serializers.CharField(source='writer.username', read_only=True)
-
+    
     class Meta:
         model = Order
         fields = [
@@ -92,7 +96,7 @@ class OrderActionSerializer(serializers.Serializer):
         """
         Ensure the action is valid.
         """
-        if not get_action_class(value):
+        if not get_all_registered_actions(value):
             raise serializers.ValidationError(f"Action '{value}' is not registered.")
         return value
 
@@ -319,11 +323,17 @@ class WriterRequestSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         req_type = attrs.get('request_type')
         if req_type == 'deadline_extension' and not attrs.get('new_deadline'):
-            raise serializers.ValidationError("New deadline must be provided for deadline extension requests.")
+            raise serializers.ValidationError(
+                "New deadline must be provided for deadline extension requests."
+            )
         if req_type == 'page_increase' and not attrs.get('additional_pages'):
-            raise serializers.ValidationError("Page increase must be provided for page increase requests.")
+            raise serializers.ValidationError(
+                "Page increase must be provided for page increase requests."
+            )
         if req_type == 'slide_increase' and not attrs.get('additional_slides'):
-            raise serializers.ValidationError("Slide increase must be provided for slide increase requests.")
+            raise serializers.ValidationError(
+                "Slide increase must be provided for slide increase requests."
+            )
         return attrs
 
     def create(self, validated_data):
@@ -332,8 +342,105 @@ class WriterRequestSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         # Only allow system-side fields to be updated if explicitly permitted
-        for field in ['status', 'client_approval', 'admin_approval', 'is_paid']:
+        for field in [
+            'status', 'client_approval',
+            'admin_approval', 'is_paid'
+        ]:
             if field in validated_data:
                 setattr(instance, field, validated_data[field])
         instance.save()
         return instance
+
+
+class OrderRequestSerializer(serializers.ModelSerializer):
+    writer_name = serializers.CharField(
+        source="writer.get_full_name", read_only=True
+    )
+    status = serializers.CharField(
+        source="status_display",
+        read_only=True
+    )
+
+    class Meta:
+        model = OrderRequest
+        fields = [
+            "id",
+            "order",
+            "writer",
+            "writer_name",
+            "message",
+            "status",
+            "accepted",
+            "rejected",
+            "created_at",
+        ]
+        read_only_fields = [
+            "accepted",
+            "rejected",
+            "created_at",
+            "status",
+        ]
+
+class OrderTransitionLogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderTransitionLog
+        fields = [
+            "id", "order", "old_status", "new_status", "action",
+            "is_automatic", "user", "timestamp", "meta"
+        ]
+
+class OrderDetailSerializer(serializers.ModelSerializer):
+    transitions = OrderTransitionLogSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = [..., 'transitions']
+
+
+class OrderMinimalSerializer(serializers.ModelSerializer):
+    """ 
+    A minimal serializer for Order, used in webhooks and events.
+    This serializer includes only essential fields to reduce payload size.
+    """
+    class Meta:
+        model = Order
+        fields = ['id', 'title', 'status', 'writer_id']
+
+
+class DeadlineExtensionSerializer(serializers.Serializer):
+    new_deadline = serializers.DateTimeField()
+
+    def validate_new_deadline(self, value):
+        if value <= timezone.now():
+            raise serializers.ValidationError("Deadline must be in the future.")
+        return value
+    
+
+class WebhookDeliveryLogSerializer(serializers.ModelSerializer):
+    user_email = serializers.CharField(source="user.email", read_only=True)
+
+    class Meta:
+        model = WebhookDeliveryLog
+        fields = [
+            "id", "user_email", "event", "url", "success", "status_code",
+            "retry_count", "test_mode", "created_at", "request_payload",
+            "response_body", "error_message"
+        ]
+
+
+class WriterRequestActionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=["approve", "reject"])
+    request_id = serializers.IntegerField()
+
+    def validate(self, attrs):
+        action = attrs.get("action")
+        request_id = attrs.get("request_id")
+
+        if not WriterRequest.objects.filter(id=request_id).exists():
+            raise serializers.ValidationError("Writer request does not exist.")
+
+        if action == "approve":
+            # Additional validation for approval can be added here
+            pass
+
+        return attrs

@@ -44,6 +44,27 @@ CELERY_BEAT_SCHEDULE = {
     }
 }
 
+CELERY_BEAT_SCHEDULE = {
+    "expire-stale-requests-every-minute": {
+        "task": "tasks.order_request_tasks.expire_stale_requests",
+        "schedule": crontab(minute="*"),
+    },
+}
+
+CELERY_BEAT_SCHEDULE = {
+    'archive-expired-orders-every-day': {
+        'task': 'orders.tasks.archive_expired_orders',
+        'schedule': crontab(minute=0, hour=2),  # daily at 2AM
+    },
+}
+
+
+CELERY_BEAT_SCHEDULE = {
+    "generate_monthly_review_summary": {
+        "task": "orders.tasks.review_analytics.generate_monthly_review_summary",
+        "schedule": crontab(minute=0, hour=4, day_of_month=1),
+    }
+}
 
 # Start Celery Beat automatically when Celery starts
 @app.on_after_configure.connect

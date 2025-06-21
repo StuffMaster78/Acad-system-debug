@@ -5,6 +5,23 @@ from .models import User
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.models import User
+from client_management.models import ClientProfile
+from writer_management.models import WriterProfile
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+# Optional inline admin classes for related profiles
+class WriterProfileInline(admin.StackedInline):
+    model = WriterProfile
+    can_delete = False
+    verbose_name_plural = "Writer Profile"
+    extra = 0
+
+class ClientProfileInline(admin.StackedInline):
+    model = ClientProfile
+    can_delete = False
+    verbose_name_plural = "Client Profile"
+    extra = 0
 
 class CustomUserAdmin(UserAdmin):
     """
@@ -12,19 +29,31 @@ class CustomUserAdmin(UserAdmin):
     """
     model = User
 
+    inlines = [
+        WriterProfileInline,
+        ClientProfileInline,
+        # Add EditorProfileInline, SupportProfileInline, etc. if needed
+    ]
+
     list_display = (
         'id',
         'username',
         'email',
-        'country',
-        'state',
         'role',
         'is_active',
         'is_suspended',
         'is_frozen',
         'is_deletion_requested',
+        'deletion_status',
+        'deletion_requested_at',
+        'deletion_date',
+        'is_on_probation',
+        'suspension_reason',
+        'probation_reason',
         'date_joined',
         'last_login',
+        'is_staff',
+        'is_superuser',
         'display_avatar',
     )
 
@@ -67,8 +96,6 @@ class CustomUserAdmin(UserAdmin):
                 'is_active',
                 'is_frozen',
                 'is_deletion_requested',
-                'deletion_requested_at',
-                'deletion_date',
                 'is_suspended',
                 'is_on_probation',
                 'suspension_reason',
@@ -86,6 +113,12 @@ class CustomUserAdmin(UserAdmin):
         ('Impersonation', {
             'fields': ('is_impersonated', 'impersonated_by')
         }),
+        ('Deletion Info', {
+            'fields': (
+                'deletion_requested_at', 'deletion_date', 'deletion_status',
+            )
+        }),
+
     )
 
     add_fieldsets = (
@@ -95,7 +128,23 @@ class CustomUserAdmin(UserAdmin):
         }),
     )
 
-    ### ✅ ADD PERMISSIONS FOR SUPERADMIN
+    # 🧠 Deletion info methods
+    def grace_period_days(self, obj):
+        if obj.is_deletion_requested and obj.deletion_requested_at:
+            return (timezone.now() - obj.deletion_requested_at).days
+        return None
+    grace_period_days.admin_order_field = 'deletion_requested_at'
+    grace_period_days.short_description = "Grace Period (Days)"
+
+    def deletion_status(self, obj):
+        if obj.is_frozen:
+            return "Frozen"
+        if obj.is_deletion_requested:
+            return "Pending Deletion"
+        return "Active"
+    deletion_status.short_description = "Deletion Status"
+
+    ### ADD PERMISSIONS FOR SUPERADMIN
     def has_change_permission(self, request, obj=None):
         """
         Allow Superadmin to edit all users, but restrict lower roles.
@@ -198,47 +247,9 @@ class CustomUserAdmin(UserAdmin):
                 password = form.cleaned_data['password']
                 if password and not password.startswith('pbkdf2_sha256$'):  # Avoid double-hashing
                     obj.set_password(password)
-
-        super().save_model(request, obj, form, change)
-
-class DeletionMixinAdmin(admin.ModelAdmin):
-    list_display = (
-        'username', 'email', 'is_active', 'is_frozen', 'deletion_status', 'grace_period_days'
-    )
-    list_filter = ('is_active', 'is_frozen', 'is_deletion_requested')
-    search_fields = ('username', 'email')
-    
-    # Add grace_period_days field to the admin form
-    fieldsets = (
-        (None, {
-            'fields': ('username', 'email', 'is_active', 'is_frozen', 'is_deletion_requested', 'grace_period_days')
-        }),
-        ('Deletion Settings', {
-            'fields': ('deletion_scheduled', 'deletion_requested_at', 'deleted_at', 'deletion_status'),
-        }),
-    )
-
-    def grace_period_days(self, obj):
-        """
-        Calculate grace period in days if deletion is requested.
-        """
-        if obj.is_deletion_requested and obj.deletion_requested_at:
-            return (timezone.now() - obj.deletion_requested_at).days
-        return None
-
-    grace_period_days.admin_order_field = 'deletion_requested_at'
-    grace_period_days.short_description = "Grace Period (Days)"
-
-    def save_model(self, request, obj, form, change):
-        """
-        Custom behavior when saving the user model.
-        You can add custom logic like adjusting grace period or sending notifications.
-        """
         if obj.is_deletion_requested and not obj.deletion_requested_at:
-            obj.deletion_requested_at = timezone.now()  # Set the deletion request date if it's not already set
-        obj.save()
-
+                obj.deletion_requested_at = timezone.now()
+        super().save_model(request, obj, form, change)
 
 # Register the custom user admin
 admin.site.register(User, CustomUserAdmin)
-admin.site.register(User, DeletionMixinAdmin)

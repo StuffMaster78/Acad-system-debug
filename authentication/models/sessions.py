@@ -11,9 +11,9 @@ class UserSession(models.Model):
     """
 
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'users.User',
         on_delete=models.CASCADE,
-        related_name="sessions"
+        related_name="sessions_for_users"
     )
     website = models.ForeignKey(
         "websites.Website",

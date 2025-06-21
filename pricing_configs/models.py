@@ -169,17 +169,18 @@ class WriterQuality(models.Model):
 class AcademicLevelPricing(models.Model):
     """
     Represents the pricing configuration based on academic levels.
+    Example: Undergraduate, Graduate, PhD, etc.
     """
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
-        related_name="academic_level_pricing",
+        related_name="website_for_academic_level_pricing",
         help_text=("Website this pricing configuration applies to."),
     )
     academic_level = models.OneToOneField( 
         AcademicLevel,
         on_delete=models.CASCADE,
-        related_name="pricing",
+        related_name="pricing_for_academic_level",
         help_text="Academic Level this pricing applies to."
     )
 
@@ -189,10 +190,19 @@ class AcademicLevelPricing(models.Model):
         default=1.00,
         help_text=("Multiplier applied to base order pricing for this academic level."),
     )
+    name = models.CharField(
+        max_length=100,
+        help_text="Name of the academic level (e.g., Undergraduate, Graduate, PhD)."
+    )
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        help_text="Unique slug for the academic level (used in URLs)."
+    )
     description = models.TextField(
         blank=True,
         null=True,
-        help_text=("Optional description of this academic level."),
+        help_text="Optional description of the academic level."
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -206,7 +216,7 @@ class AcademicLevelPricing(models.Model):
     class Meta:
         verbose_name =("Academic Level Pricing")
         verbose_name_plural =("Academic Level Pricing")
-        ordering = ['name']
+        ordering = ['website', 'academic_level']
 
     def __str__(self):
-        return f"{self.name} (Multiplier: {self.multiplier})"
+        return f"{self.academic_level.name} (Multiplier: {self.multiplier})"
