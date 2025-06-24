@@ -74,6 +74,7 @@ class RefundReceiptSerializer(serializers.ModelSerializer):
             "order_payment",
             "client",
             "processed_by",
+            "processed_at",
             "reason",
         ]
         read_only_fields = fields
