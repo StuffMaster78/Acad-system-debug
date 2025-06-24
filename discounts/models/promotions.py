@@ -30,7 +30,7 @@ class PromotionalCampaign(models.Model):
         related_name='promotional_campaigns',
         help_text="Website this campaign is associated with"
     )
-    name = models.CharField(
+    campaign_name = models.CharField(
         max_length=100,
         unique=True,
         help_text="Event name (e.g., Black Friday, Christmas Sale)"

@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'django_otp',
     'django_otp.plugins.otp_totp',
     'drf_yasg',
+    'django_celery_results',
     
 
     # Third-party Apps
@@ -60,6 +61,7 @@ INSTALLED_APPS = [
     'corsheaders',
     # 'drf-queryfields',
     # 'django-rq',
+
     'celery',
     'channels',
     'django_countries',
@@ -130,6 +132,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'superadmin_management.middleware.BlacklistMiddleware',
     'django.middleware.gzip.GZipMiddleware',  # Compress API responses'
+    "activity.middleware.ActivityAuditMiddleware",
 ]
 
 ROOT_URLCONF = 'writing_system.urls'
@@ -288,6 +291,10 @@ GEOLOCATION_API_KEY = os.getenv("GEOLOCATION_API_KEY")
 
 # Celery settings
 CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Example using Redis
+# # Celery Configuration Options
+# CELERY_TIMEZONE = "Australia/Tasmania"
+# CELERY_TASK_TRACK_STARTED = True
+# CELERY_TASK_TIME_LIMIT = 30 * 60
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
@@ -424,3 +431,9 @@ TOKEN_ENCRYPTION_KEY = os.getenv("TOKEN_ENCRYPTION_KEY")
 
 if not TOKEN_ENCRYPTION_KEY:
     raise RuntimeError("TOKEN_ENCRYPTION_KEY is not set in the environment.")
+
+
+
+# STRIPE_WEBHOOK_SECRET = "whsec_..."
+
+# STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")

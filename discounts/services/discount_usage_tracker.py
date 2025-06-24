@@ -13,6 +13,11 @@ class DiscountUsageTracker:
     """
     Handles creation, incrementing, and deletion of discount usage records.
     """
+    def __init__(self):
+        """
+        Initialize the tracker service.
+        """
+        pass
 
     @classmethod
     def track_multiple(cls, discounts, order, user):

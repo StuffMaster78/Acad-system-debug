@@ -6,10 +6,13 @@ from django.core.exceptions import ValidationError
 
 from orders.utils.order_utils import get_order_by_id
 from discounts.services import DiscountEngine
-from discounts.services.discount_suggestions import   DiscountSuggestionService
+from discounts.services.discount_suggestions import DiscountSuggestionService
 from discounts.services.discount_hints import DiscountHintService
-from notifications_system.services.send_notification import notify_admin_of_error
 from discounts.services.discount_usage_tracker import DiscountUsageTracker
+from notifications_system.services.send_notification import notify_admin_of_error
+
+from activity.utils.logger_safe import safe_log_activity
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,14 +56,9 @@ class ApplyDiscountCodeService:
             applicator = DiscountEngine(order, user, discounts)
 
             discount_result = applicator.apply_discounts()
-
             result.update({
-                "final_price": discount_result.get(
-                    "final_price", result["final_price"]
-                ),
-                "discounts_applied": discount_result.get(
-                    "discounts_applied", []
-                ),
+                "final_price": discount_result.get("final_price", result["final_price"]),
+                "discounts_applied": discount_result.get("discounts_applied", []),
                 "errors": discount_result.get("errors", []),
             })
 
@@ -75,6 +73,24 @@ class ApplyDiscountCodeService:
                 f"final price: {result['final_price']}"
             )
 
+            # Log successful application
+            safe_log_activity(
+                user=user,
+                triggered_by=user,
+                website=order.website,
+                action_type="ORDER",
+                description=(
+                    f"User applied discount codes {codes} to Order #{order.id}. "
+                    f"New total: ${result['final_price']}."
+                ),
+                metadata={
+                    "order_id": order.id,
+                    "codes": codes,
+                    "final_price": result["final_price"],
+                    "discounts_applied": result["discounts_applied"],
+                }
+            )
+
             return result
 
         except ValidationError as ve:
@@ -83,13 +99,29 @@ class ApplyDiscountCodeService:
                 f"Discount validation failed for order {order.id}: {ve}"
             )
 
-            suggestions = DiscountSuggestionService.get_suggestions(
-                order.website
-            )
+            suggestions = DiscountSuggestionService.get_suggestions(order.website)
             result.update({
                 "errors": [str(ve)],
                 "suggested_discounts": suggestions,
             })
+
+            # Log validation failure
+            safe_log_activity(
+                user=user,
+                triggered_by=user,
+                website=order.website,
+                action_type="ORDER",
+                description=(
+                    f"Discount validation failed on Order #{order.id} "
+                    f"with codes {codes}: {ve}"
+                ),
+                metadata={
+                    "order_id": order.id,
+                    "codes": codes,
+                    "errors": [str(ve)],
+                }
+            )
+
             return result
 
         except Exception as exc:
@@ -100,13 +132,29 @@ class ApplyDiscountCodeService:
                 f"Discount error on order {order.id}: {exc}"
             )
 
-            suggestions = DiscountSuggestionService.get_suggestions(
-                order.website
-            )
+            suggestions = DiscountSuggestionService.get_suggestions(order.website)
             result.update({
                 "errors": [
                     "Unexpected internal error. Please try again later."
                 ],
                 "suggested_discounts": suggestions,
             })
+
+            # Log system error
+            safe_log_activity(
+                user=user,
+                triggered_by=user,
+                website=order.website,
+                action_type="ORDER",
+                description=(
+                    f"Internal error applying discount codes {codes} "
+                    f"on Order #{order.id}."
+                ),
+                metadata={
+                    "order_id": order.id,
+                    "codes": codes,
+                    "error": str(exc),
+                }
+            )
+
             return result

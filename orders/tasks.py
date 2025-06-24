@@ -1,4 +1,4 @@
-from core.celery import shared_task
+from writing_system.celery import shared_task
 from core.utils.notifications import send_notification
 from django.utils.timezone import now
 from orders.models import Order
@@ -236,3 +236,11 @@ def archive_expired_orders():
 #                 )
 
 #     return f"Monthly review summary generated for {now.strftime('%B %Y')}"
+
+
+
+@shared_task
+def send_order_completion_email(email, username, order_id):
+    subject = f"Order #{order_id} Completed"
+    message = f"Hi {username}, your order #{order_id} has been successfully completed!"
+    send_mail(subject, message, 'noreply@penman.com', [email])

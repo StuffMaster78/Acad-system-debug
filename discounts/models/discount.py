@@ -362,7 +362,11 @@ class DiscountTier(models.Model):
 
 
 class DiscountUsage(models.Model):
-    """Tracks how and when a user used a discount."""
+    """
+    Tracks how and when a user used a discount.
+
+
+    """
 
     website = models.ForeignKey(
         Website,
@@ -386,11 +390,6 @@ class DiscountUsage(models.Model):
         max_digits=10,
         decimal_places=2
     )
-    order = models.ForeignKey(
-        'orders.Order',
-        on_delete=models.CASCADE,
-        related_name='discount_usages'
-    )
     discount = models.ForeignKey(
         'discounts.Discount',
         on_delete=models.CASCADE,
@@ -404,13 +403,23 @@ class DiscountUsage(models.Model):
         related_name='discount_usages',
         help_text="Order the discount was applied to."
     )
+    # Link the special order using the discount
+    special_order = models.ForeignKey(
+        "special_orders.SpecialOrder",
+        on_delete=models.CASCADE,
+        null=True, blank=True
+    )
+    #  Link to a class that used the dicscount
+    class_bundle = models. ForeignKey(
+        'class_management.ClassBundle',
+        on_delete=models.CASCADE,
+        related_name="class_discount_usage",
+        help_text="The class bundle applying a discount"
+    )
     # Timestamp when the discount was applied
     applied_amount = models.DecimalField(max_digits=10, decimal_places=2)
     applied_percent = models.DecimalField(max_digits=5, decimal_places=2)
-    applied_by = models.ForeignKey(
-        "users.User", null=True,
-        blank=True, on_delete=models.SET_NULL
-    )
+    applied_at = models.DateTimeField(auto_now_add=True)
 
     # usage_count = models.PositiveIntegerField(default=0)
     used_at = models.DateTimeField(auto_now_add=True)

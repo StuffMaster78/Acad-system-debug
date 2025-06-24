@@ -7,6 +7,8 @@ import logging
 from order_configs.models import CriticalDeadlineSetting
 from orders.exceptions import TransitionNotAllowed
 from orders.services.order_utils import _get_order, save_order
+from referrals.models import Referral
+from referrals.services.referral_service import ReferralService
 
 logger = logging.getLogger(__name__)
 
@@ -179,10 +181,24 @@ class OrderService:
         order.status_enum = OrderStatus.REVIEWED
         save_order(order)
         return order
+    @staticmethod
+    @transaction.atomic
+    def apply_referral_discount_if_eligible(order):
+        """ Applies referral discount to the order if the user is eligible.
+        This checks if the user has a referral and applies the discount if applicable.
+        """
+        referral = Referral.objects.filter(referee=order.user, website=order.website).first()
+        if not referral:
+            return
+
+        service = ReferralService(referral)
+        service.apply_discount(order)
 
     @staticmethod
     @transaction.atomic
-    def apply_discounts_to_order(order_id: int, codes: List[str], user) -> Dict[str, Any]:
+    def apply_discounts_to_order(
+        order_id: int, codes: List[str], user
+    ) -> Dict[str, Any]:
         """
         Apply multiple discount codes to an order atomically.
         """
@@ -244,11 +260,17 @@ class OrderService:
 
     @staticmethod
     def get_critical_threshold():
+        """ Retrieves the critical deadline threshold in hours.
+        Defaults to 24 hours if no setting is found.
+        """
         setting = CriticalDeadlineSetting.objects.first()
         return setting.threshold_hours if setting else 24
 
     @staticmethod
     def update_order_status_based_on_deadline(order):
+        """ Updates the order status to CRITICAL if the deadline is approaching.
+        If the deadline is not set, it does nothing.
+        """
         from orders.models import OrderStatus
         if not order.deadline:
             return

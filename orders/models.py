@@ -11,7 +11,6 @@ from datetime import timedelta
 from django.db import models
 from django.utils import timezone
 
-from core.celery import celery
 from websites.models import Website
 from discounts.models.discount import Discount
 from order_configs.models import WriterDeadlineConfig
@@ -390,29 +389,6 @@ class Order(models.Model):
 
             self.save()
 
-    def mark_as_completed(self, user):
-        """
-        Marks the order as completed if a Final Draft is
-        uploaded by an authorized user.
-        Ensures only authorized users (staff, writers, editors, support)
-        can complete an order.
-        """
-        allowed_roles = ["Writer", "Editor", "Support", "Admin", "Superadmin"]
-        if user.is_staff or user.groups.filter(
-            name__in=allowed_roles
-            ).exists():
-                self.status = "completed"
-                self.save()
-
-                # Send email notification asynchronously
-                from orders.tasks import send_order_completion_email
-                if self.client:
-                    celery.current_app.send_task(
-                    "orders.tasks.send_order_completion_email",
-                    args=[self.client.email, self.client.username, self.id]
-                )
-                return True
-        return False
     
     def add_pages(self, additional_pages: int):
         """

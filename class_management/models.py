@@ -30,7 +30,7 @@ class ClassDurationOption(models.Model):
         related_name="duration_options",
         help_text="Website-specific duration choice"
     )
-    code = models.CharField(
+    class_code = models.CharField(
         max_length=10,
         help_text="Short identifier e.g., '15-16'"
     )

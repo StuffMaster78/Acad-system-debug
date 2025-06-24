@@ -168,7 +168,9 @@ class DiscountEngine:
     
     
     @classmethod
-    def apply_discount_to_order(cls, order, codes, website, user=None) -> Tuple[Decimal, List[Dict]]:
+    def apply_discount_to_order(
+        cls, order, codes, website, user=None
+    ) -> Tuple[Decimal, List[Dict]]:
         """
         Apply one or more discount codes to an order.
         """

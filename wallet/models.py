@@ -71,20 +71,7 @@ class WalletTransaction(WebsiteSpecificBaseModel):
         ("referral_bonus", "Referral Bonus"),
         ('credit', 'Credit'),
         ('debit', 'Debit'),
-        ('loyalty_point', 'Loyalty Point Redemption'),
-        ('loyalty_point_bonus', 'Loyalty Point Bonus'),
-        ('loyalty_point_adjustment', 'Loyalty Point Adjustment'),
-        ('loyalty_point_expiration', 'Loyalty Point Expiration'),
-        ('loyalty_point_refund', 'Loyalty Point Refund'),
-        ('loyalty_point_transfer', 'Loyalty Point Transfer'),
-        ('loyalty_point_purchase', 'Loyalty Point Purchase'),
-        ('loyalty_point_earn', 'Loyalty Point Earned'),
-        ('loyalty_point_gift', 'Loyalty Point Gift'),
-        ('loyalty_point_bonus_expiration', 'Loyalty Point Bonus Expiration'),
-        ('loyalty_point_bonus_transfer', 'Loyalty Point Bonus Transfer'),
-        ('loyalty_point_bonus_purchase', 'Loyalty Point Bonus Purchase'),
-        ('loyalty_point_bonus_earn', 'Loyalty Point Bonus Earned'),
-        ('loyalty_point_bonus_gift', 'Loyalty Point Bonus Gift'),
+        ('loyalty_point', 'Loyalty Point Redemption')
     )
     website = models.ForeignKey(
         Website,
@@ -111,6 +98,15 @@ class WalletTransaction(WebsiteSpecificBaseModel):
         max_length=255,
         blank=True,
         help_text="Optional description for the transaction."
+    )
+    source = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="Source of the transaction (e.g., 'order', 'referral', etc.)."
+    )
+    note = models.TextField(
+        blank=True,
+        help_text="Additional notes or details about the transaction."
     )
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)

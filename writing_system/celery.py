@@ -1,82 +1,61 @@
-from celery.schedules import crontab
-from celery import Celery
+from __future__ import absolute_import, unicode_literals
 import os
+import json
 from celery import Celery
+from celery.schedules import crontab
 
 # Set default Django settings module for Celery
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "writing_system.settings")
 
-app = Celery("your_project")
-
-# Load task modules from all registered Django apps
+app = Celery("writing_system")
 app.config_from_object("django.conf:settings", namespace="CELERY")
-
-# Autodiscover tasks from installed apps
 app.autodiscover_tasks()
 
 @app.task(bind=True)
 def debug_task(self):
-    print(f"Request: {self.request!r}")  # Simple debug task
+    print(f"Request: {self.request!r}")
 
-
-app = Celery("writing_system")
-
+# --- Static CELERY_BEAT_SCHEDULE ---
 app.conf.beat_schedule = {
     "deactivate-expired-discounts": {
         "task": "discounts.tasks.deactivate_expired_discounts",
-        "schedule": crontab(minute=0, hour=0),  # Runs daily at midnight
+        "schedule": crontab(minute=0, hour=0),  # Daily midnight
     },
-}
-
-
-
-CELERY_BEAT_SCHEDULE = {
     "update_engagement_stats_every_minute": {
         "task": "blogs.tasks.update_engagement_stats",
-        "schedule": crontab(minute="*/1"),  # Runs every 1 minute
+        "schedule": crontab(minute="*/1"),  # Every minute
     },
-}
-
-CELERY_BEAT_SCHEDULE = {
     "check_for_broken_links": {
         "task": "blogs.tasks.check_for_broken_links",
-        "schedule": crontab(day_of_month="15"),  # Runs mid-month
-    }
-}
-
-CELERY_BEAT_SCHEDULE = {
+        "schedule": crontab(day_of_month="15"),  # Mid-month
+    },
     "expire-stale-requests-every-minute": {
         "task": "tasks.order_request_tasks.expire_stale_requests",
-        "schedule": crontab(minute="*"),
+        "schedule": crontab(minute="*"),  # Every minute
     },
-}
-
-CELERY_BEAT_SCHEDULE = {
-    'archive-expired-orders-every-day': {
-        'task': 'orders.tasks.archive_expired_orders',
-        'schedule': crontab(minute=0, hour=2),  # daily at 2AM
+    "archive-expired-orders-every-day": {
+        "task": "orders.tasks.archive_expired_orders",
+        "schedule": crontab(minute=0, hour=2),  # Daily at 2AM
     },
-}
-
-
-CELERY_BEAT_SCHEDULE = {
     "generate_monthly_review_summary": {
         "task": "orders.tasks.review_analytics.generate_monthly_review_summary",
-        "schedule": crontab(minute=0, hour=4, day_of_month=1),
-    }
+        "schedule": crontab(minute=0, hour=4, day_of_month=1),  # Monthly
+    },
+    'decay-referral-bonuses-monthly': {
+        'task': 'loyalty_management.tasks.apply_monthly_referral_bonus_decay',
+        'schedule': crontab(day_of_month=1, hour=1, minute=0),
+    },
 }
 
-# Start Celery Beat automatically when Celery starts
+# --- Dynamic Schedule via django-celery-beat ---
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
     from django_celery_beat.models import PeriodicTask, IntervalSchedule, CrontabSchedule
-    import json
 
-    # Set up intervals
+    # Interval Schedules
     every_5_min, _ = IntervalSchedule.objects.get_or_create(every=5, period=IntervalSchedule.MINUTES)
     every_24_hours, _ = IntervalSchedule.objects.get_or_create(every=1440, period=IntervalSchedule.MINUTES)
 
-    # Define periodic tasks
     periodic_tasks = [
         {"name": "Sync Blog Clicks", "task": "blog_management.tasks.sync_blog_clicks_to_db", "schedule": every_5_min},
         {"name": "Sync Blog Conversions", "task": "blog_management.tasks.sync_blog_conversions_to_db", "schedule": every_5_min},
@@ -92,9 +71,9 @@ def setup_periodic_tasks(sender, **kwargs):
             defaults={"interval": task["schedule"], "task": task["task"], "args": json.dumps([]), "enabled": True}
         )
 
-    # Set up crontab tasks (Weekly & Daily Schedules)
-    weekly_schedule, _ = CrontabSchedule.objects.get_or_create(minute=0, hour=8, day_of_week=1, day_of_month="*", month_of_year="*")
-    sunday_schedule, _ = CrontabSchedule.objects.get_or_create(minute=0, hour=9, day_of_week=0, day_of_month="*", month_of_year="*")
+    # Crontab Schedules
+    weekly_schedule, _ = CrontabSchedule.objects.get_or_create(minute=0, hour=8, day_of_week=1)
+    sunday_schedule, _ = CrontabSchedule.objects.get_or_create(minute=0, hour=9, day_of_week=0)
 
     crontab_tasks = [
         {"name": "Send Weekly Newsletter", "task": "blog_management.tasks.send_weekly_newsletter", "schedule": weekly_schedule},

@@ -57,6 +57,16 @@ services:
         - db
         - redis
 
+  beat:
+      build: .
+      command: celery -A writing_system beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      volumes:
+        - .:/app
+      depends_on:
+        - redis
+      environment:
+        - .env
+        
 volumes:
   postgres_data:
 

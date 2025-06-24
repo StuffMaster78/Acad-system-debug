@@ -19,7 +19,7 @@ class PricingConfiguration(models.Model):
         max_digits=10, decimal_places=2, 
         help_text="Base price per slide (USD)."
     )
-    technical_order_multiplier = models.DecimalField(
+    technical_multiplier = models.DecimalField(
         max_digits=5, decimal_places=2,
         help_text="Multiplier for technical subjects (e.g., 1.5x for technical)."
     )
@@ -74,7 +74,7 @@ class AdditionalService(models.Model):
     """
     Model to store additional services and their pricing.
     """
-    name = models.CharField(
+    service_name = models.CharField(
         max_length=100,
         help_text="Name of the additional service (e.g., Plagiarism Report)."
     )
@@ -96,6 +96,11 @@ class AdditionalService(models.Model):
         on_delete=models.CASCADE,
         related_name="additional_service_pricing_configs"
     )
+    slug = models.SlugField(
+        max_length=100,
+        unique=True,
+        help_text="Unique slug for the service (used in URLs)."
+    )
     created_at = models.DateTimeField(
         auto_now_add=True,
         help_text=("Timestamp when the pricing was created."),
@@ -105,7 +110,7 @@ class AdditionalService(models.Model):
         help_text=("Timestamp when the pricing was last updated."),
     )
     def __str__(self):
-        return f"{self.name} - ${self.cost} (Website: {self.website})"
+        return f"{self.service_name} - ${self.cost} (Website: {self.website})"
 
     class Meta:
         verbose_name = "Additional Service"
@@ -114,6 +119,7 @@ class AdditionalService(models.Model):
 class WriterQuality(models.Model):
     """
     Writer quality levels and associated costs.
+    Example: Beginner, Intermediate, Expert, etc.
     """
     name = models.CharField(
         max_length=100,
@@ -190,7 +196,7 @@ class AcademicLevelPricing(models.Model):
         default=1.00,
         help_text=("Multiplier applied to base order pricing for this academic level."),
     )
-    name = models.CharField(
+    level_name = models.CharField(
         max_length=100,
         help_text="Name of the academic level (e.g., Undergraduate, Graduate, PhD)."
     )

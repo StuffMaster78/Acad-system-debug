@@ -19,7 +19,7 @@ class DiscountCodeGenerator:
     DEFAULT_LENGTH = 6
     MAX_ATTEMPTS = 10
     CHARSET = string.ascii_uppercase + string.digits
-    MAX_CODE_LENGTH = 20
+    MAX_CODE_LENGTH = 15
 
     @classmethod
     def generate_unique_code(cls, prefix: str = '', length: int = None) -> str:

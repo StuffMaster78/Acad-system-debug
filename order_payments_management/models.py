@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -9,27 +10,104 @@ from discounts.models.discount import Discount
 from django.utils.timezone import now
 from referrals.models import Referral, ReferralBonusConfig
 from websites.models import Website
+
+
+STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("unpaid", "Unpaid"),
+        ("succeeded", "Succeeded"),
+        ("failed", "Failed"),
+        ("cancelled", "Cancelled"),
+        ("partially_refunded", "Partially Refunded"),
+        ("fully_refunded", "Fully Refunded"),
+        ("disputed", "Disputed"),
+        ("under_review", "Under Review"),
+    ]
+
+PAYMENT_TYPE_CHOICES = [
+        ("standard", "Standard Order"),
+        ("predefined_special", "Predefined Special Order"),
+        ("estimated_special", "Estimated Special Order"),
+        ("class_payment", "Class Payment"),
+        ("wallet_payment", "Wallet Payment"),
+    ]
+
+def generate_reference_id():
+    return uuid.uuid4().hex
+
+
+class PaymentRecord(models.Model):
+    """
+    Central record of all payment transactions across payment types.
+
+    Attributes:
+        user: The user making the payment.
+        amount: The total amount for the payment.
+        type: The payment type (order, special_order, wallet, bundle).
+        status: The current status of the payment.
+        currency: The currency code used (e.g., 'usd').
+        provider: The payment provider (e.g., 'stripe').
+        external_id: ID returned by the external provider.
+        raw_response: JSON response from the provider for audit/debug.
+        reference_id: Internal unique identifier for the transaction.
+        created_at: Timestamp for when the record was created.
+        confirmed_at: Timestamp for when the payment succeeded.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    payment_type = models.CharField(
+        max_length=30,
+        choices=PAYMENT_TYPE_CHOICES,
+        help_text="The payment being made"
+    )
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    currency = models.CharField(max_length=10, default="usd")
+    provider = models.CharField(
+        max_length=20,
+        default="stripe"
+    )
+    external_id = models.CharField(max_length=100, null=True, blank=True)
+    raw_response = models.JSONField(null=True, blank=True)
+    reference_id = models.CharField(
+        max_length=64, unique=True, default=generate_reference_id
+    )
+    refund_status = models.CharField(
+        max_length=20,
+        choices=[("none", "None"), ("partial", "Partial"), ("full", "Full")],
+        default="none"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.type} | {self.amount} {self.currency} | {self.status}"
+
 class OrderPayment(models.Model):
     """
+    Represents a payment associated with a regular order.
+
+    Attributes:
+        order: The associated order object.
+        user: The user who made the payment.
+        amount: The paid amount.
+        status: Current status of the payment.
+        stripe_payment_intent_id: Stripe Payment Intent ID.
+        reference_id: Internal reference identifier.
+        created_at: Time of creation.
+        confirmed_at: Time when the payment was confirmed.
+
     Manages payments for standard, predefined special,
     and estimated special orders.
     Handles discount application, wallet deductions,
     payment processing, and refunds.
     """
-    STATUS_CHOICES = [
-        ("pending", "Pending"),
-        ("unpaid", "Unpaid"),
-        ("paid", "Paid"),
-        ("completed", "Completed"),
-        ("failed", "Failed"),
-        ("refunded", "Refunded"),
-    ]
-
-    PAYMENT_TYPE_CHOICES = [
-        ("standard", "Standard Order"),
-        ("predefined_special", "Predefined Special Order"),
-        ("estimated_special", "Estimated Special Order"),
-    ]
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -51,12 +129,8 @@ class OrderPayment(models.Model):
         related_name="payments",
         null=True, blank=True
     )
-    special_order = models.ForeignKey(
-        "special_orders.SpecialOrder",
-        on_delete=models.CASCADE,
-        related_name="payments",
-        null=True, blank=True
-    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    
     transaction_id = models.CharField(max_length=255, unique=True)
     original_amount = models.DecimalField(
         max_digits=10, decimal_places=2,
@@ -79,70 +153,86 @@ class OrderPayment(models.Model):
         null=True
     )
     date_processed = models.DateTimeField(auto_now_add=True)
-
     refund_reason = models.TextField(blank=True, null=True)
     refunded_at = models.DateTimeField(blank=True, null=True)
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="pending",
+        help_text="Current payment status"
+    )
 
 
-    def apply_discount(self, discount_code=None, referral_code=None):
-        """
-        Apply discount to the payment,
-        including potential referral discount.
-        """
-        if self.discount:
-            raise ValidationError("A discount has already been applied.")
+    stripe_payment_intent_id = models.CharField(
+        max_length=100, null=True, blank=True
+    )
+    reference_id = models.CharField(
+        max_length=64, unique=True, default=generate_reference_id
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
 
-        # Apply discount from discount code if provided
-        if discount_code:
-            discount = self.get_valid_discount(discount_code)
-            discount_value = self.calculate_discount_value(discount)
-            self.discounted_amount = max(self.original_amount - discount_value, 0)
-            self.discount = discount
-            discount.increment_usage()
 
-        # Apply referral discount if referral code is provided
-        if referral_code:
-            referral = Referral.objects.filter(referral_code=referral_code).first()
-            if referral and referral.referred_user == self.client:
-                # Apply only if it's the referred user's first order
-                if self.order and self.order.user.orders.count() == 1:  # Check for first order
-                    referral_discount = self.apply_referral_discount(referral)
-                    self.discounted_amount = max(self.discounted_amount - referral_discount, 0)
-                    referral.first_order_referral_bonus_credited = True
-                    referral.save()
 
-        self.save()
+    # def apply_discount(self, discount_code=None, referral_code=None):
+    #     """
+    #     Apply discount to the payment,
+    #     including potential referral discount.
+    #     """
+    #     if self.discount:
+    #         raise ValidationError("A discount has already been applied.")
 
-    def apply_referral_discount(self, referral):
-        """Calculate and apply referral discount."""
-        # Assuming referral discount is stored in the Referral model, you can customize this logic
-        bonus_config = ReferralBonusConfig.objects.filter(website=referral.website).first()
-        if bonus_config:
-            if bonus_config.first_order_discount_type == 'percentage':
-                discount_value = (bonus_config.first_order_discount_amount / 100) * self.original_amount
-            elif bonus_config.first_order_discount_type == 'fixed':
-                discount_value = bonus_config.first_order_discount_amount
-            else:
-                discount_value = 0
+    #     # Apply discount from discount code if provided
+    #     if discount_code:
+    #         discount = self.get_valid_discount(discount_code)
+    #         discount_value = self.calculate_discount_value(discount)
+    #         self.discounted_amount = max(self.original_amount - discount_value, 0)
+    #         self.discount = discount
+    #         discount.increment_usage()
 
-            return discount_value
-        return 0
+    #     # Apply referral discount if referral code is provided
+    #     if referral_code:
+    #         referral = Referral.objects.filter(referral_code=referral_code).first()
+    #         if referral and referral.referred_user == self.client:
+    #             # Apply only if it's the referred user's first order
+    #             if self.order and self.order.user.orders.count() == 1:  # Check for first order
+    #                 referral_discount = self.apply_referral_discount(referral)
+    #                 self.discounted_amount = max(self.discounted_amount - referral_discount, 0)
+    #                 referral.first_order_referral_bonus_credited = True
+    #                 referral.save()
 
-    def get_valid_discount(self, discount_code):
-        """Fetch and validate discount."""
-        try:
-            discount = Discount.objects.get(code=discount_code)
-            if not discount.is_valid():
-                raise ValidationError("This discount code is expired or inactive.")
-            if discount.min_order_value and self.original_amount < discount.min_order_value:
-                raise ValidationError(f"Minimum order value for this discount is ${discount.min_order_value}.")
-            return discount
-        except Discount.DoesNotExist:
-            raise ValidationError("Invalid discount code.")
+    #     self.save()
 
-    def calculate_discount_value(self, discount):
-        """Calculate discount value based on type."""
-        return discount.value if discount.discount_type == "fixed" else (discount.value / 100) * self.original_amount
+    # def apply_referral_discount(self, referral):
+    #     """Calculate and apply referral discount."""
+    #     # Assuming referral discount is stored in the Referral model, you can customize this logic
+    #     bonus_config = ReferralBonusConfig.objects.filter(website=referral.website).first()
+    #     if bonus_config:
+    #         if bonus_config.first_order_discount_type == 'percentage':
+    #             discount_value = (bonus_config.first_order_discount_amount / 100) * self.original_amount
+    #         elif bonus_config.first_order_discount_type == 'fixed':
+    #             discount_value = bonus_config.first_order_discount_amount
+    #         else:
+    #             discount_value = 0
+
+    #         return discount_value
+    #     return 0
+
+    # def get_valid_discount(self, discount_code):
+    #     """Fetch and validate discount."""
+    #     try:
+    #         discount = Discount.objects.get(code=discount_code)
+    #         if not discount.is_valid():
+    #             raise ValidationError("This discount code is expired or inactive.")
+    #         if discount.min_order_value and self.original_amount < discount.min_order_value:
+    #             raise ValidationError(f"Minimum order value for this discount is ${discount.min_order_value}.")
+    #         return discount
+    #     except Discount.DoesNotExist:
+    #         raise ValidationError("Invalid discount code.")
+
+    # def calculate_discount_value(self, discount):
+    #     """Calculate discount value based on type."""
+    #     return discount.value if discount.discount_type == "fixed" else (discount.value / 100) * self.original_amount
 
 
     def verify_payment(self):
@@ -150,7 +240,7 @@ class OrderPayment(models.Model):
         Verifies that the payment was successfully processed before completion.
         This is useful for external payment gateways like Stripe or PayPal.
         """
-        if self.status == "completed":
+        if self.status == "paid":
             return True  # Already verified
         
         # # Logic to check payment provider's response
@@ -160,7 +250,7 @@ class OrderPayment(models.Model):
         payment_verified = True  # Assume verification succeeds
 
         if payment_verified:
-            self.mark_completed()
+            self.mark_paid()
         else:
             self.mark_failed()
 
@@ -177,7 +267,7 @@ class OrderPayment(models.Model):
             raise ValidationError("This order has already been paid for.")
 
 
-    def mark_completed(self):
+    def mark_paid(self):
         """Marks the payment as completed and updates the order status."""
         self.status = "completed"
         self.save()
@@ -188,16 +278,25 @@ class OrderPayment(models.Model):
         self.status = "failed"
         self.save()
 
-    def mark_as_paid(self):
-        """Mark the order as paid if a completed payment exists."""
-        self.status = "paid"
-        self.save(update_fields=["status"])
+    # def mark_as_paid(self):
+    #     """Mark the order as paid if a completed payment exists."""
+    #     self.status = "paid"
+    #     self.save(update_fields=["status"])
 
     def mark_as_unpaid(self):
-        """Mark the order as unpaid if all payments are refunded."""
+        """
+        Mark the order as unpaid if all payments are refunded.
+        Also, if the payment has failed or is cancelled,
+        it should be marked as unpaid.
+        This is useful for orders that have not been paid yet.
+        It can be used to reset the payment status for an order.
+        This method is called when a payment is refunded or failed.
+        It ensures that the order is marked as unpaid if all payments are refunded.
+        """
         self.status = "unpaid"
         self.save(update_fields=["status"])
 
+    #   Should be handled in the service layer or task
     def refund(self, reason=None):
         """Marks the transaction as refunded."""
         if self.status not in ["completed"]:
@@ -220,6 +319,8 @@ class OrderPayment(models.Model):
         elif (self.payment_type in ["predefined_special", "estimated_special"] and
               self.special_order):
             self.special_order.update_payment_status()
+
+    
 
     def send_payment_notification(self):
         """
@@ -285,41 +386,118 @@ class OrderPayment(models.Model):
     def __str__(self):
         return f"Payment {self.transaction_id} - {self.status} - ${self.discounted_amount}"
 
-class DiscountUsage(models.Model):
+
+#  This should also go into the service layer or task
+
+class SpecialOrderPayment(models.Model):
     """
-    Tracks and updates the usage of discount codes by clients.
+    Represents a payment for a special order;
+    either predefined or direct.
+
+    Attributes:
+        special_order: The special order being paid.
+        user: The paying user.
+        amount: Total amount paid.
+        status: Status of the payment.
+        stripe_payment_intent_id: Stripe ID used for this payment.
+        reference_id: Internal unique identifier.
+        created_at: Timestamp of creation.
+        confirmed_at: Timestamp when confirmed.
     """
-    website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name='order_discount_usage'
-    )
-    discount = models.ForeignKey(
-        Discount,
-        on_delete=models.CASCADE,
-        related_name="usage_logs"
+
+    special_order = models.ForeignKey(
+        "orders.SpecialOrder", on_delete=models.CASCADE,
+        related_name="special_payments"
     )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        related_name="discount_usage"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )
-    order = models.ForeignKey(
-        "orders.Order",
-        on_delete=models.CASCADE,
-        null=True, blank=True
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    stripe_payment_intent_id = models.CharField(
+        max_length=100, null=True, blank=True
     )
-    special_order = models.ForeignKey(
-        "special_orders.SpecialOrder",
-        on_delete=models.CASCADE,
-        null=True, blank=True
+    reference_id = models.CharField(
+        max_length=64, unique=True, default=generate_reference_id
     )
-    applied_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    confirmed_at = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.user} used {self.discount.code} on {self.applied_at}"
+        return f"SpecialOrder #{self.special_order_id} | {self.status}"
 
 
+class WalletTransaction(models.Model):
+    """
+    Represents a wallet transaction for a user.
+
+    Attributes:
+        user: The user performing the transaction.
+        amount: Amount credited or debited.
+        direction: Transaction direction (credit or debit).
+        purpose: Reason for the transaction.
+        status: Status of the transaction.
+        stripe_payment_intent_id: Stripe intent used (if any).
+        reference_id: Unique internal reference.
+        created_at: Creation timestamp.
+    """
+
+    DIRECTION_CHOICES = [
+        ("credit", "Credit"),
+        ("debit", "Debit"),
+    ]
+
+    PURPOSE_CHOICES = [
+        ("funding", "Funding"),
+        ("payment", "Payment"),
+        ("adjustment", "Adjustment"),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="wallet_transactions"
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    direction = models.CharField(max_length=10, choices=DIRECTION_CHOICES)
+    purpose = models.CharField(max_length=30, choices=PURPOSE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES)
+    stripe_payment_intent_id = models.CharField(
+        max_length=100, null=True, blank=True
+    )
+    reference_id = models.CharField(
+        max_length=64, unique=True, default=generate_reference_id
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} | {self.direction} | {self.amount}"
+
+
+class ClassBundlePurchase(models.Model):
+    """
+    Represents a class bundle purchase made by a user.
+
+    Attributes:
+        user: The purchaser.
+        bundle: The purchased bundle.
+        payment: The payment record used.
+        purchased_at: Timestamp of purchase.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE
+    )
+    bundle = models.ForeignKey(
+        "courses.ClassBundle", on_delete=models.CASCADE
+    )
+    payment = models.OneToOneField(
+        PaymentRecord, on_delete=models.CASCADE,
+        related_name="bundle_purchase"
+    )
+    purchased_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.user} → {self.bundle}"
 class FailedPayment(models.Model):
     """
     Tracks and logs all the instances of failed payments.
@@ -675,6 +853,49 @@ class SplitPayment(models.Model):
             payment.mark_completed()
 
 
+class Invoice(models.Model):
+    """
+    Represents a request for payment sent to a client.
+
+    Attributes:
+        client: User receiving the invoice.
+        issued_by: Admin or system actor who issued it.
+        title: Short label or purpose.
+        description: Detailed reason.
+        amount: Total requested.
+        due_date: Payment deadline.
+        is_paid: Whether it has been settled.
+        payment: Linked PaymentRecord, if paid.
+        reference_id: Internal ID for audit.
+        created_at: When invoice was issued.
+        paid_at: When invoice was settled.
+    """
+
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="invoices"
+    )
+    issued_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="issued_invoices"
+    )
+    title = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    due_date = models.DateField()
+    is_paid = models.BooleanField(default=False)
+    payment = models.OneToOneField(
+        PaymentRecord, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="invoice"
+    )
+    reference_id = models.CharField(
+        max_length=64, unique=True, default=generate_reference_id
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Invoice #{self.reference_id} - {self.amount}"
 
 class AdminLog(models.Model):
     """
@@ -699,6 +920,167 @@ class AdminLog(models.Model):
         """
         return cls.objects.create(admin=admin, action=action, details=details)
     
+def generate_receipt_number():
+    return f"RCT-{timezone.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:6]}"
+
+class PaymentReceipt(models.Model):
+    """
+    Represents a formal receipt issued for a completed payment.
+
+    Attributes:
+        payment: The related payment record.
+        invoice: Optional linked invoice.
+        issued_to: The user who made the payment.
+        issued_by: The system or admin who issued the receipt.
+        receipt_number: Unique receipt identifier.
+        notes: Optional internal notes or remarks.
+        metadata: Custom JSON info (tax, location, etc.).
+        created_at: When the receipt was generated.
+    """
+
+    payment = models.OneToOneField(
+        "PaymentRecord", on_delete=models.CASCADE,
+        related_name="receipt"
+    )
+    invoice = models.ForeignKey(
+        "Invoice", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="receipts"
+    )
+    issued_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        related_name="payment_receipts"
+    )
+    issued_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="issued_receipts"
+    )
+    receipt_number = models.CharField(
+        max_length=64, unique=True, default=generate_reference_id
+    )
+    notes = models.TextField(blank=True)
+    metadata = models.JSONField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Receipt #{self.receipt_number} for {self.payment.reference_id}"
+
+
+class ReceiptDeliveryLog(models.Model):
+    """
+    Tracks when a receipt was sent via email/SMS for audit purposes.
+    """
+
+    receipt = models.ForeignKey(
+        "PaymentReceipt", on_delete=models.CASCADE,
+        related_name="delivery_logs"
+    )
+    method = models.CharField(
+        max_length=20, choices=[("email", "Email"), ("sms", "SMS")]
+    )
+    sent_at = models.DateTimeField(auto_now_add=True)
+    success = models.BooleanField(default=True)
+    response = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.method} sent at {self.sent_at}"
+
+
+class PaymentSupportingDocument(models.Model):
+    """
+    File attachments to support a payment request, such as quotes,
+    contracts, approvals, or invoices.
+
+    Attributes:
+        invoice: Optional related invoice.
+        uploaded_by: User who uploaded the file.
+        file: The actual uploaded document.
+        document_type: Type of document (e.g., quote, approval).
+        description: Additional context or notes.
+        uploaded_at: Timestamp of upload.
+    """
+
+    DOCUMENT_TYPE_CHOICES = [
+        ("quote", "Quote"),
+        ("contract", "Contract"),
+        ("invoice", "Invoice"),
+        ("memo", "Internal Memo"),
+        ("receipt", "Previous Receipt"),
+        ("other", "Other"),
+        ("driving_license", "Driving License"),
+        ("passport", "Passport"),
+        ("id_card", "ID Card"),
+        ("bank_statement", "Bank Statement"),
+        ("tax_document", "Tax Document"),
+        ("w9_form", "W-9 Form"),
+        ("w8_ben_form", "W-8 BEN Form"),
+        ("payment_proof", "Payment Proof"),
+        ("business_license", "Business License"),
+        ("employment_letter", "Employment Letter"),
+        ("other_document", "Other Document"),
+    ]
+
+    invoice = models.ForeignKey(
+        "Invoice", on_delete=models.CASCADE,
+        related_name="supporting_documents"
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        help_text="User who uploaded the document",
+        related_name="payment_proof_uploaded_documents"
+    )
+    file = models.FileField(upload_to="payments/supporting_documents/")
+    document_type = models.CharField(
+        max_length=20, choices=DOCUMENT_TYPE_CHOICES, default="other"
+    )
+    description = models.TextField(blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.document_type} for Invoice {self.invoice.reference_id}"
+
+
+class PaymentInstallment(models.Model):
+    """
+    Represents a scheduled or completed installment toward an invoice.
+
+    Attributes:
+        invoice: The invoice this installment is part of.
+        amount: Scheduled installment amount.
+        due_date: When payment is due.
+        paid_at: When it was actually paid.
+        payment: Linked PaymentRecord if paid.
+        status: Current status of the installment.
+        notes: Any additional context (e.g., late reason).
+        created_at: Timestamp of creation.
+    """
+
+    STATUS_CHOICES = [
+        ("scheduled", "Scheduled"),
+        ("paid", "Paid"),
+        ("late", "Late"),
+        ("cancelled", "Cancelled"),
+    ]
+
+    invoice = models.ForeignKey(
+        "Invoice", on_delete=models.CASCADE,
+        related_name="installments"
+    )
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    due_date = models.DateField()
+    paid_at = models.DateTimeField(null=True, blank=True)
+    payment = models.OneToOneField(
+        "PaymentRecord", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="installment"
+    )
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="scheduled"
+    )
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Installment {self.amount} | {self.status}"
+
 
 class PaymentReminderSettings(models.Model):
     """

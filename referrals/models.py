@@ -54,11 +54,11 @@ class Referral(SoftDeleteModel):
         related_name="referrals",
         help_text="The user who made the referral."
     )
-    referee = models.OneToOneField(
+    referee = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="referred_by",
-        help_text="The user who was referred."
+        related_name="referrals_received",
+        help_text="User who was referred."
     )
     referral_code = models.CharField(
         max_length=50,
@@ -66,48 +66,21 @@ class Referral(SoftDeleteModel):
         blank=True,
         help_text="Unique referral code used by the referee."
     )
+    referral_source = models.CharField(
+        max_length=30,
+        null=True,
+        blank=True,
+        help_text="Optional: how the referral came in (manual, auto, promo code, etc)"
+    )
+
+    referrer_ip = models.GenericIPAddressField(null=True, blank=True)
+    referee_ip = models.GenericIPAddressField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     bonus_awarded = models.BooleanField(default=False)
     registration_bonus_credited = models.BooleanField(default=False)
     first_order_bonus_credited = models.BooleanField(default=False)
 
-    def award_bonus(self):
-        """Credits the referral bonus when the referee places their first paid and completed order."""
-        if self.bonus_awarded:
-            return  # Avoid duplicate bonuses
-
-        bonus_config = ReferralBonusConfig.objects.filter(website=self.website).first()
-        if not bonus_config:
-            return  # No bonus config set up
-
-        # Check if the referee has placed a paid and completed order
-        first_paid_order = self.referee.orders.filter(status='completed', payment_status='paid').first()
-        
-        if not first_paid_order:
-            return  # No paid and completed order found, so don't award bonus
-
-        referrer_wallet = Wallet.objects.get(user=self.referrer)
-
-        with transaction.atomic():
-            # Award referral bonus
-            WalletTransaction.objects.create(
-                wallet=referrer_wallet,
-                transaction_type='bonus',
-                amount=bonus_config.first_order_bonus,
-                description="Referral Bonus",
-                website=self.website,
-            )
-
-            # Award loyalty points
-            LoyaltyTransaction.objects.create(
-                client=self.referrer.client_profile,
-                points=bonus_config.first_order_bonus * 10,  # Example: 10 points per $1 bonus
-                transaction_type='add',
-                reason="Referral Bonus Earned",
-            )
-
-            self.bonus_awarded = True
-            self.save()
+    
 
 
     def apply_referral_discount(self, order):
@@ -143,17 +116,7 @@ class Referral(SoftDeleteModel):
                     return discount_amount
         return 0  # No discount if conditions aren't met
 
-    def _create_wallet_transaction(self, order, discount_amount):
-        """Creates a wallet transaction for the referrer when the discount is applied."""
-        # Create wallet transaction for the referrer
-        wallet, created = Wallet.objects.get_or_create(user=self.referrer)
-        WalletTransaction.objects.create(
-            wallet=wallet,
-            transaction_type='referral_bonus',
-            amount=discount_amount,
-            description=f"Referral Bonus: First Order Discount for {order.user.username}",
-            website=self.website,
-        )
+    
 
     def __str__(self):
         return f"{self.referrer.username} referred {self.referee.username}"
@@ -163,6 +126,10 @@ class ReferralBonusConfig(models.Model):
     """
     Configures referral bonuses and limits per website.
     """
+    DISCOUNT_TYPE_CHOICES = [
+        ('percentage', 'Percentage'),
+        ('fixed', 'Fixed')
+    ]
     website = models.ForeignKey(Website, on_delete=models.CASCADE) 
     first_order_bonus = models.DecimalField(
         max_digits=10,
@@ -171,7 +138,8 @@ class ReferralBonusConfig(models.Model):
         help_text="Bonus amount when a referee places their first order."
     )
     first_order_discount_type = models.CharField(
-        max_length=10, choices=[('percentage', 'Percentage'), ('fixed', 'Fixed')], default='fixed'
+        max_length=10,  choices=DISCOUNT_TYPE_CHOICES,
+        default='fixed'
     )  # To define if the discount is percentage or fixed amount
     first_order_discount_amount = models.DecimalField(max_digits=10, decimal_places=2)  # Discount value
     bonus_expiry_days = models.IntegerField(default=30) 
@@ -208,15 +176,6 @@ class ReferralCode(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def get_referral_link(self):
-        """Dynamically generates a referral link."""
-        return f"https://{self.website.domain}/order?ref={self.code}"
-
-    @staticmethod
-    def generate_unique_code(user, website):
-        """Generates a unique referral code."""
-        return f"REF-{user.id}-{uuid.uuid4().hex[:6].upper()}"
-
     def __str__(self):
         return f"Referral Code: {self.code} (User: {self.user.username})"
 
@@ -238,14 +197,7 @@ class ReferralStats(models.Model):
     )
     last_referral_at = models.DateTimeField(null=True, blank=True)
 
-    def update_stats(self, bonus_amount, successful):
-        """Updates referral stats when a bonus is awarded."""
-        self.total_referrals += 1
-        if successful:
-            self.successful_referrals += 1
-            self.referral_bonus_earned += bonus_amount
-        self.last_referral_at = now()
-        self.save()
+
 
     def __str__(self):
         return f"{self.user.username} Referral Stats"

@@ -1,10 +1,10 @@
-from core.celery import shared_task
+from writing_system.celery import shared_task
 from django.utils.timezone import now
 from .models import WalletTransaction
 from django.core.mail import send_mail
 from django.conf import settings
 from datetime import timedelta
-
+from referrals.models import ReferralBonusDecay
 
 @shared_task
 def expire_referral_bonuses():
@@ -96,6 +96,11 @@ def decay_referral_bonuses():
 
     return f"Decayed {nearing_expiry_wallet_transactions.count()} referral bonuses."
 
+@shared_task
+def apply_monthly_referral_bonus_decay():
+    decays = ReferralBonusDecay.objects.all().select_related('wallet_transaction')
+    for decay in decays:
+        decay.apply_decay()
 
 def send_referral_bonus_decay_email(user, new_amount):
     """Send an email notification about the decay of the referral bonus."""
