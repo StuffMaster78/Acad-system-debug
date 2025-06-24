@@ -17,7 +17,7 @@ class LoyaltyTier(models.Model):
         help_text=_("Name of the loyalty tier (e.g., Bronze, Silver, Gold).")
     )
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name="loyalty_tiers",
         help_text=_("Website this tier is associated with."),
@@ -55,10 +55,10 @@ class LoyaltyTransaction(models.Model):
         ('redeem', _('Redeem')),
         ('deduct', _('Deduct')),
     )
-    website = models.OneToOneField(
+    website = models.ForeignKey(
         'websites.Website', 
         on_delete=models.CASCADE,
-        related_name="loyalty_transactions"
+        related_name="loyalty_transactions_for_website"
     )
 
     client = models.ForeignKey(
@@ -105,7 +105,7 @@ class Milestone(models.Model):
         ('loyalty_points', _('Loyalty Points')),
         ('orders_placed', _('Orders Placed')),
     )
-    website = models.OneToOneField(
+    website = models.ForeignKey(
         'websites.Website',
         on_delete=models.CASCADE,
         related_name="milestone_achieveable"
@@ -130,7 +130,10 @@ class Milestone(models.Model):
     )
     reward_points = models.PositiveIntegerField(
         default=0,
-        help_text=_("Loyalty points rewarded upon achieving this milestone.")
+        help_text=_(
+            "Loyalty points rewarded upon achieving this milestone."
+            "Set to 0 for no reward."
+        )
     )
     created_at = models.DateTimeField(
         auto_now_add=True,
@@ -178,6 +181,7 @@ class ClientBadge(models.Model):
     class Meta:
         verbose_name = _("Client Badge")
         verbose_name_plural = _("Client Badges")
+        unique_together = ('client', 'badge_name')
 
     def __str__(self):
         return f"Badge: {self.badge_name} for {self.client.user.username}"
@@ -187,11 +191,18 @@ class LoyaltyPointsConversionConfig(models.Model):
     """
     Configurations for converting loyalty points into wallet balance.
     """
-    website = models.OneToOneField(
+    website = models.ForeignKey(
         'websites.Website',
         on_delete=models.CASCADE,
         related_name="loyalty_points_conversion_config"
     )
+    points_per_dollar = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.1"),
+        help_text="Number of loyalty points earned per dollar spent."
+    )
+
     conversion_rate = models.DecimalField(
         max_digits=5,
         decimal_places=4,
