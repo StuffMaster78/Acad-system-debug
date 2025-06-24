@@ -1,95 +1,141 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import AdminProfile, AdminActivityLog, BlacklistedUser
+from .models import (
+    AdminProfile, BlacklistedUser, AdminPromotionRequest
+)
 
 User = get_user_model()
 
+
 class AdminProfileSerializer(serializers.ModelSerializer):
-    """Serializer for Admin profile data."""
-    
-    user = serializers.StringRelatedField()  # Show username instead of just ID
+    user = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = AdminProfile
         fields = "__all__"
-
-class AdminLogSerializer(serializers.ModelSerializer):
-    """Serializer for Admin action logs."""
-    
-    admin = serializers.StringRelatedField()  # Display admin's username
-    target_user = serializers.StringRelatedField()  # Display affected user's username
-    order = serializers.StringRelatedField()  # Display order ID (if applicable)
-
-    class Meta:
-        model = AdminActivityLog
-        fields = ["id", "admin", "target_user", "order", "action", "details", "timestamp"]
-
-class UserSerializer(serializers.ModelSerializer):
-    """Serializer for user management by Admins."""
-    
-    class Meta:
-        model = User
-        fields = [
-            "id", "username", "email", "role", "is_suspended", "date_joined",
-            "is_on_probation", "probation_reason", "probation_start_date", "probation_end_date"
+        read_only_fields = [
+            "created_at", "updated_at", "last_login",
+            "last_action", "action_count"
         ]
 
-class CreateUserSerializer(serializers.ModelSerializer):
-    """Serializer for Admins to create new users."""
-    
-    role = serializers.ChoiceField(choices=[("writer", "Writer"), ("editor", "Editor"), ("support", "Support"), ("client", "Client")])
-    email = serializers.EmailField(required=True, allow_blank=False)  # Ensure email is required
-    password = serializers.CharField(write_only=True, min_length=8)  # Enforce strong password
-    
+
+class AdminProfileCreateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = User
-        fields = ["username", "email", "role", "phone_number", "password"]
+        model = AdminProfile
+        fields = [
+            "user",
+            "can_manage_users",
+            "can_suspend_users",
+            "can_put_on_probation",
+            "can_handle_orders",
+            "can_resolve_disputes",
+            "can_manage_payouts",
+            "can_manage_financials",
+            "can_manage_tickets",
+            "can_view_reports",
+            "can_blacklist_users",
+            "can_manage_writers",
+            "can_manage_clients",
+            "can_manage_editors",
+        ]
+        read_only_fields = [
+            "created_at", "updated_at", "last_login",
+            "last_action", "action_count"
+        ]
 
-    def validate_email(self, value):
-        """Ensure email is unique."""
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        return value
 
-    def create(self, validated_data):
-        """Create a user with hashed password."""
-        password = validated_data.pop("password", None)
-        user = User.objects.create(**validated_data)
-        if password:
-            user.set_password(password)
-            user.save()
-        return user
-
-class SuspendUserSerializer(serializers.Serializer):
-    """Serializer for suspending a user."""
-    
-    user_id = serializers.IntegerField()
-    reason = serializers.CharField(max_length=255, required=False)
-
-    def validate_user_id(self, value):
-        """Ensure the user exists before suspending."""
-        if not User.objects.filter(id=value).exists():
-            raise serializers.ValidationError("User not found.")
-        return value
-
-class DashboardSerializer(serializers.Serializer):
-    """Serializer for returning Admin dashboard statistics."""
-    
-    total_writers = serializers.IntegerField()
-    total_editors = serializers.IntegerField()
-    total_support = serializers.IntegerField()
-    total_clients = serializers.IntegerField()
-    active_orders = serializers.IntegerField()
-    completed_orders = serializers.IntegerField()
-    recent_logs = serializers.ListField(child=serializers.CharField())
-
+class AdminProfileUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AdminProfile
+        fields = [
+            "can_manage_users",
+            "can_suspend_users",
+            "can_put_on_probation",
+            "can_handle_orders",
+            "can_resolve_disputes",
+            "can_manage_payouts",
+            "can_manage_financials",
+            "can_manage_tickets",
+            "can_view_reports",
+            "can_blacklist_users",
+            "can_manage_writers",
+            "can_manage_clients",
+            "can_manage_editors",
+        ]
+        read_only_fields = [
+            "user", "created_at", "updated_at",
+            "last_login", "last_action", "action_count"
+        ]
 
 
 class BlacklistedUserSerializer(serializers.ModelSerializer):
-    """Serializer for Blacklisted Users."""
-
-    blacklisted_by = serializers.StringRelatedField()
+    blacklisted_by = serializers.StringRelatedField(read_only=True)
+    user = serializers.StringRelatedField(read_only=True)
+    website = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = BlacklistedUser
-        fields = ["email", "blacklisted_by", "reason", "blacklisted_at"]
+        fields = [
+            "email", "user", "website",
+            "blacklisted_by", "reason", "blacklisted_at"
+        ]
+        read_only_fields = [
+            "blacklisted_at", "blacklisted_by",
+            "user", "website"
+        ]
+
+
+class BlacklistUserSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    website = serializers.CharField(required=True)
+    reason = serializers.CharField(required=False, allow_blank=True)
+
+
+class RemoveBlacklistSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+
+
+class BlacklistedUserDetailSerializer(serializers.ModelSerializer):
+    blacklisted_by = serializers.StringRelatedField(read_only=True)
+    user = serializers.StringRelatedField(read_only=True)
+    website = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = BlacklistedUser
+        fields = [
+            "id", "email", "user", "website",
+            "blacklisted_by", "reason", "blacklisted_at"
+        ]
+        read_only_fields = fields
+
+
+class BlacklistedUserListSerializer(serializers.ModelSerializer):
+    blacklisted_by = serializers.StringRelatedField(read_only=True)
+    user = serializers.StringRelatedField(read_only=True)
+    website = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = BlacklistedUser
+        fields = [
+            "id", "email", "user", "website",
+            "blacklisted_by", "blacklisted_at"
+        ]
+        read_only_fields = fields
+
+
+class AdminPromotionRequestSerializer(serializers.ModelSerializer):
+    requested_by = serializers.StringRelatedField(read_only=True)
+    approved_by = serializers.StringRelatedField(read_only=True)
+    rejected_by = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = AdminPromotionRequest
+        fields = "__all__"
+        read_only_fields = [
+            "id", "status", "requested_at", "approved_at",
+            "rejected_at", "requested_by"
+        ]
+        extra_kwargs = {
+            "requested_role": {"required": True},
+            "reason": {"required": False}
+        }

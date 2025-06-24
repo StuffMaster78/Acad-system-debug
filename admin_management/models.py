@@ -1,20 +1,10 @@
-import json
 from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from admin_management.managers import AdminManager 
-from django.contrib.auth.backends import BaseBackend
-from django.apps import apps
-# from websites.models import Website
 
-# Use apps.get_model() to access Website model lazily
-# def get_website_model():
-#     Website = apps.get_model('websites', 'Website')
-#     return Website
-
-# Website = get_website_model()
 User = get_user_model()
 
 class AdminProfile(models.Model):
@@ -97,14 +87,12 @@ class AdminProfile(models.Model):
         help_text="Last performed action."
     )
     action_count = models.IntegerField(
+        default=0,
         help_text="Total actions taken by the admin."
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
-    def can_manage_writers(self, obj):
-        return obj.can_manage_writers 
 
     def update_last_action(self, action):
         """Updates last activity & action count for admin."""
@@ -122,72 +110,38 @@ class AdminProfile(models.Model):
         if is_new:  # Assign permissions only on creation
             AdminManager.assign_permissions(self)
 
+    class Meta:
+        verbose_name = "Admin Profile"
+        verbose_name_plural = "Admin Profiles"
+        ordering = ["-created_at"]  
+    
+
 
     def __str__(self):
         return f"Admin Profile - {self.user.username}"
 
-class AdminActivityLog(models.Model):
-    """
-    Logs actions performed by Admins.
-    """
-    admin = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="admin_logs"
-    )
-    target_user = models.ForeignKey(
-        User,
-        on_delete=models.SET_NULL,
-        null=True, blank=True,
-        related_name="admin_actions_logs",
-        help_text="User affected by the action"
-    )
-    order = models.ForeignKey(
-        "orders.Order",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="If action is related to an order."
-    )
-    action = models.CharField(max_length=255)
-    details = models.TextField(
-        blank=True,
-        null=True,
-        help_text="Additional context about the action."
-    )
-    
-    # Audit Fields - What Changed
-    old_data = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="Previous data before change."
-    )
-    new_data = models.JSONField(
-        null=True,
-        blank=True,
-        help_text="New data after change."
-    )
-
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    def save(self, *args, **kwargs):
-        """Ensure old/new data is stored in readable format."""
-        if isinstance(self.old_data, dict):
-            self.old_data = json.dumps(self.old_data, indent=4)
-        if isinstance(self.new_data, dict):
-            self.new_data = json.dumps(self.new_data, indent=4)
-        
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.admin.username} - {self.action} - {self.timestamp}"
-    
 
 class BlacklistedUser(models.Model):
     """
     Stores users who are blacklisted from the system.
     """
+    website = models.ForeignKey(
+        "websites.Website",
+        on_delete=models.CASCADE,
+        related_name="blacklisted_users",
+        help_text="Website to which the blacklisted user belongs."
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="blacklisted_user",
+        null=True,
+        blank=True,
+        help_text="User object of the blacklisted user."
+    )
+    # Email is unique to prevent multiple entries for the same email
     email = models.EmailField(unique=True, help_text="Email of the blacklisted user.")
+
     blacklisted_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -209,13 +163,84 @@ class BlacklistedUser(models.Model):
         verbose_name_plural = "Blacklisted Users"
 
 class AdminPromotionRequest(models.Model):
-    # define your fields here
-    request_date = models.DateTimeField(auto_now_add=True)
-    requested_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE
+    """Stores requests for admin promotions.
+    Admins can request to be promoted to superadmin.
+    Superadmins can approve or reject these requests.
+    """
+    website = models.ForeignKey(
+        "websites.Website",
+        on_delete=models.CASCADE,
+        related_name="promotion_requests",
+        help_text="Website for which the promotion request is made."
     )
-    # other fields as necessary
+    requested_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="promotion_requests",
+        help_text="Admin requesting promotion."
+    )
+    requested_role = models.CharField(
+        max_length=50,
+        default="superadmin",
+        help_text="Role being requested for promotion."
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("pending", "Pending"),
+            ("approved", "Approved"),
+            ("rejected", "Rejected")
+        ],
+        default="pending",
+        help_text="Current status of the promotion request."
+    )
+    reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Reason for requesting promotion."
+    )
+    requested_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Timestamp when the request was made."
+    )
+    approved_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="approved_promotion_requests",
+        help_text="Admin who approved the request."
+    )
+    rejected_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="rejected_promotion_requests",
+        help_text="Admin who rejected the request."
+    )
+    approved_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when the request was approved."
+    )
+    rejected_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when the request was rejected."
+    )
+
+    def save(self, *args, **kwargs):
+        """Ensure requested_by is a valid admin."""
+        if not self.requested_by.admin_profile.is_active:
+            raise ValueError("Cannot request promotion for an inactive admin.")
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = "Admin Promotion Request"
+        verbose_name_plural = "Admin Promotion Requests"
+        ordering = ["-request_ed_at"]  # Newest requests first
+
 
     def __str__(self):
         return f"Promotion Request by {self.requested_by.username}"

@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from rest_framework_simplejwt.views import TokenRefreshView # type: ignore
+from rest_framework_simplejwt.views import TokenRefreshView  # type: ignore
 from .views import (
     AdminDashboardView, 
     UserManagementView, 
@@ -17,12 +17,12 @@ router.register(r'blacklisted-users', BlacklistedUserView, basename="blacklisted
 urlpatterns = [
     # Admin Dashboard
     path("dashboard/", AdminDashboardView.as_view({"get": "get_dashboard_data"}), name="admin_dashboard"),
-    
+
     # Authentication APIs (JWT-Based)
     path("auth/login/", AdminLoginView.as_view(), name="admin_login"),
     path("auth/logout/", AdminLogoutView.as_view(), name="admin_logout"),
-    path("auth/token/refresh/", TokenRefreshView.as_view(), name="refresh_token"),  # Uses DRF's built-in view
+    path("auth/token/refresh/", TokenRefreshView.as_view(), name="refresh_token"),
 
-    # Include all registered ViewSets from the router (Users, Blacklisted Users, etc.)
+    # Include all registered ViewSets
     path("", include(router.urls)),
 ]
