@@ -1,11 +1,7 @@
-from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import ActivityLogViewSet
+from activity.views import ActivityLogViewSet
 
-# Create a router to automatically handle routes for ActivityLog
 router = DefaultRouter()
-router.register(r'activities', ActivityLogViewSet, basename='activitylog')
+router.register(r"activity-logs", ActivityLogViewSet, basename="activity-log")
 
-urlpatterns = [
-    path('', include(router.urls)),  # Include all routes handled by the router
-]
+urlpatterns = router.urls
