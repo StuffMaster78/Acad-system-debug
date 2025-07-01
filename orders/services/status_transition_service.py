@@ -18,7 +18,7 @@ VALID_TRANSITIONS: Dict[str, List[str]] = {
     "pending": ["unpaid", "cancelled"],
     "unpaid": ["paid", "cancelled"],
     "paid": ["available","pending_writer_assignment", "in_progress", "cancelled"],
-    "pending_writer_assignment": ["available", "cancelled"],
+    "pending_writer_assignment": ["available", "cancelled", "on_hold"],
     "available": ["in_progress", "cancelled", "on_hold"],
     "in_progress": ["on_hold", "submitted", "reassigned"],
     "on_hold": ["in_progress", "cancelled", "available"],
@@ -27,9 +27,9 @@ VALID_TRANSITIONS: Dict[str, List[str]] = {
     "rated": ["approved", "revision_requested"],
     "approved": ["archived"],
     "cancelled": [],
-    "revision_requested": ["revision_in_progress"],
-    "revision_in_progress": ["revised"],
-    "revised": ["reviewed"],
+    "revision_requested": ["revision_in_progress", "reassigned"],
+    "revision_in_progress": ["revised", "submitted", "cancelled", "reassigned"],
+    "revised": ["reviewed", "rated", "approved", "revision_requested"],
     "reassigned": ["in_progress"],
 }
 

@@ -17,6 +17,11 @@ from django_countries.serializer_fields import CountryField as CountrySerializer
 
 User = get_user_model()
 
+class SimpleUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "username", "email"]
+        
 class UserListSerializer(serializers.ModelSerializer):
     website = serializers.SlugRelatedField(
         slug_field='domain',

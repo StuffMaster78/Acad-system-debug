@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from .models import PricingConfiguration, AdditionalService, WriterQuality, AcademicLevelPricing
+from .models import (
+    PricingConfiguration, AdditionalService,
+    WriterQuality, AcademicLevelPricing,
+    OrderPricingSnapshot
+)
 
 class PricingConfigurationSerializer(serializers.ModelSerializer):
     """
@@ -41,3 +45,9 @@ class AcademicLevelPricingSerializer(serializers.ModelSerializer):
         model = AcademicLevelPricing
         fields = '__all__'  # Include all fields
         read_only_fields = ['website', 'created_at', 'updated_at']
+
+class OrderPricingSnapshotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderPricingSnapshot
+        fields = ["id", "order", "pricing_data", "calculated_at"]
+        read_only_fields = ["id", "calculated_at"]

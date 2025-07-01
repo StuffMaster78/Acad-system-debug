@@ -1,50 +1,101 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from .models import OrderMessage, DisputeMessage, OrderMessageThread, OrderMessageNotification, ScreenedWord, FlaggedMessage
+from .models import (
+    CommunicationMessage, DisputeMessage,
+    CommunicationThread, CommunicationNotification,
+    ScreenedWord, FlaggedMessage, CommunicationLog,
+    WebSocketAuditLog, SystemAlert
+)
+from .services.communication_guard import CommunicationGuardService
+from .services.messages import MessageService
+from .services.notification_service import NotificationService
+from .services.thread_service import ThreadService
+
 from .serializers import (
-    OrderMessageSerializer, OrderMessageThreadSerializer, 
-    OrderMessageNotificationSerializer, ScreenedWordSerializer,
+    CommunicationMessageSerializer, CommunicationThreadSerializer, 
+    CommunicationNotificationSerializer, ScreenedWordSerializer,
     FlaggedMessageSerializer, AdminReviewSerializer,
-    AdminEditFlaggedMessageSerializer, DisputeMessageSerializer
+    AdminEditFlaggedMessageSerializer, DisputeMessageSerializer,
+    CommunicationThreadSerializer, CommunicationMessageSerializer,
+    CommunicationLogSerializer, WebSocketAuditLogSerializer,
 )
 from .permissions import IsAdminOrOwner, CanSendOrderMessage
+from rest_framework.throttling import UserRateThrottle
+from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.views import APIView
+from communications.throttles import AuditLogThrottle
+from rest_framework.permissions import IsAuthenticated
+from communications.permissions import IsSuperAdmin
 
 
-class OrderMessageThreadViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint for managing order message threads.
-    """
-    queryset = OrderMessageThread.objects.all()
-    serializer_class = OrderMessageThreadSerializer
+class MessageThrottle(UserRateThrottle):
+    rate = '10/min'
+
+class CommunicationThreadViewSet(viewsets.ModelViewSet):
+    queryset = CommunicationThread.objects.all()
+    serializer_class = CommunicationThreadSerializer
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [MessageThrottle]
 
+    def perform_create(self, serializer):
+        order = serializer.validated_data["order"]
+        participants = serializer.validated_data["participants"]
+        created_by = self.request.user
 
-class OrderMessageViewSet(viewsets.ModelViewSet):
-    """
-    API endpoint for sending and retrieving order messages.
-    Only returns messages related to the authenticated user.
-    """
-    serializer_class = OrderMessageSerializer
-    permission_classes = [permissions.IsAuthenticated, CanSendOrderMessage, IsAdminOrOwner]
+        # Check thread creation permission
+        if not created_by.profile.role in ["admin", "superadmin"]:
+            ThreadService.assert_can_create_thread(order)
 
-    def get_queryset(self):
-        """
-        Returns only messages related to the authenticated user.
-        """
-        user = self.request.user
-        return OrderMessage.objects.filter(
-            thread__order__client=user
-        ) | OrderMessage.objects.filter(
-            thread__order__writer=user
-        ) | OrderMessage.objects.filter(
-            sender=user
+        # Actually create the thread
+        thread = ThreadService.create_thread(
+            order=order,
+            created_by=created_by,
+            participants=participants
+        )
+        return Response(
+            CommunicationThreadSerializer(thread).data,
+            status=status.HTTP_201_CREATED
         )
 
 
+class CommunicationMessageViewSet(viewsets.ModelViewSet):
+    queryset = CommunicationMessage.objects.all()
+    serializer_class = CommunicationMessageSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        thread_id = self.kwargs.get("thread_pk")
+        thread = CommunicationThread.objects.get(pk=thread_id)
+        return MessageService.get_visible_messages(self.request.user, thread)
+
     def perform_create(self, serializer):
-        """Attach sender information before saving."""
-        serializer.save(sender=self.request.user, sender_role=self.request.user.profile.role)
+        thread_id = self.kwargs.get("thread_pk")
+        thread = CommunicationThread.objects.get(pk=thread_id)
+        sender = self.request.user
+        recipient = serializer.validated_data["recipient"]
+        message = serializer.validated_data["message"]
+        reply_to = serializer.validated_data.get("reply_to")
+        message_type = serializer.validated_data.get("message_type", "text")
+        sender_role = getattr(sender.profile, "role", None)
+
+        # 💥 Guard message creation
+        CommunicationGuardService.assert_can_send_message(sender, thread)
+
+        # ✍️ Create via service
+        msg = MessageService.create_message(
+            thread=thread,
+            sender=sender,
+            recipient=recipient,
+            sender_role=sender_role,
+            message=message,
+            reply_to=reply_to,
+            message_type=message_type
+        )
+        return Response(
+            CommunicationMessageSerializer(msg).data,
+            status=status.HTTP_201_CREATED
+        )
 
 
 class OrderMessageNotificationViewSet(viewsets.ModelViewSet):
@@ -56,7 +107,7 @@ class OrderMessageNotificationViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Return only notifications for the logged-in user."""
-        return OrderMessageNotification.objects.filter(recipient=self.request.user)
+        return CommunicationNotification.objects.filter(recipient=self.request.user)
 
 
 class ScreenedWordViewSet(viewsets.ModelViewSet):
@@ -185,3 +236,61 @@ class DisputeMessageViewSet(viewsets.ModelViewSet):
         dispute_message.resolve(admin_user=request.user, resolution_comment=resolution_comment)
 
         return Response({"detail": "Dispute message resolved successfully."}, status=status.HTTP_200_OK)
+
+
+
+
+
+class MessageAttachmentUploadView(APIView):
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        file = request.FILES.get("file")
+        thread_id = request.data.get("thread_id")
+        recipient_id = request.data.get("recipient_id")
+
+        if not all([file, thread_id, recipient_id]):
+            return Response({"error": "Missing fields."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        thread = CommunicationThread.objects.get(id=thread_id)
+        recipient = User.objects.get(id=recipient_id)
+        sender = request.user
+
+        msg = MessageService.create_message(
+            thread=thread,
+            sender=sender,
+            recipient=recipient,
+            message=f"[Attachment: {file.name}]",
+            message_type="attachment",
+            attachment_file=file,
+            sender_role=getattr(sender.profile, "role", None),
+        )
+
+        # Send notification via socket layer too, if needed
+        return Response(CommunicationMessageSerializer(msg).data,
+                        status=status.HTTP_201_CREATED)
+    
+
+
+
+
+class CommunicationLogViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = CommunicationLog.objects.all().order_by("-created_at")
+    serializer_class = CommunicationLogSerializer
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [AuditLogThrottle]
+
+
+class WebSocketAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Allows superadmins to view WebSocket logs.
+    """
+    queryset = WebSocketAuditLog.objects.select_related("user", "thread")
+    serializer_class = WebSocketAuditLogSerializer
+    permission_classes = [IsAuthenticated, IsSuperAdmin]
+    filterset_fields = ["action", "thread__id"]
+    search_fields = ["user__username", "payload"]
+    ordering = ["-created_at"]
+    throttle_classes = [SuperAdminAuditThrottle]

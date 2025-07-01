@@ -1,18 +1,28 @@
 from django.contrib import admin
 from .models import (
-    OrderMessage, OrderMessageThread, OrderMessageNotification, 
-    ScreenedWord, OrderMessageLog, DisputeMessage
+    CommunicationMessage, CommunicationThread, CommunicationNotification, 
+    ScreenedWord, CommunicationLog, DisputeMessage, FlaggedMessage,
+    MessageReadReceipt, SystemAlert, WebSocketAuditLog
 )
 
-@admin.register(OrderMessageThread)
+@admin.register(CommunicationThread)
 class OrderMessageThreadAdmin(admin.ModelAdmin):
     """
     Admin interface for managing Order Message Threads.
     """
-    list_display = ("order", "is_active", "admin_override", "created_at")
-    list_filter = ("is_active", "admin_override")
-    search_fields = ("order__id",)
+    list_display = (
+        "id", "order", "is_active",
+        "admin_override", "created_at",
+        "updated_at"
+    )
+    list_filter = (
+        "is_active", "admin_override",
+        "created_at", "updated_at"
+    )
+    search_fields = ("id", "order__id",)
     actions = ["enable_messaging", "disable_messaging"]
+    filter_horizontal = ("participants",)
+    readonly_fields = ("created_at", "updated_at")
 
     def enable_messaging(self, request, queryset):
         """Allow admins to enable messaging for archived orders."""
@@ -27,7 +37,7 @@ class OrderMessageThreadAdmin(admin.ModelAdmin):
     disable_messaging.short_description = "Disable messaging for selected orders"
 
 
-@admin.register(OrderMessage)
+@admin.register(CommunicationMessage)
 class OrderMessageAdmin(admin.ModelAdmin):
     """
     Admin interface for managing Order Messages.
@@ -50,15 +60,25 @@ class OrderMessageAdmin(admin.ModelAdmin):
     flag_messages.short_description = "Flag selected messages for admin review"
 
 
-@admin.register(OrderMessageNotification)
-class OrderMessageNotificationAdmin(admin.ModelAdmin):
+@admin.register(CommunicationNotification)
+class CommunicationNotificationAdmin(admin.ModelAdmin):
     """
     Admin interface for managing message notifications.
     """
-    list_display = ("recipient", "message", "notification_text", "is_read", "created_at")
-    list_filter = ("is_read",)
-    search_fields = ("recipient__username", "notification_text")
+    list_display = (
+        "id", "recipient", "message",
+        "notification_text", "is_read", "created_at"
+        "read_at"
+    )
+    list_filter = ("is_read", "created_at", "read_at")
+    search_fields = ("recipient__username", "message_id", "notification_text")
     actions = ["mark_as_read"]
+
+    def recipient_username(self, obj):
+        return obj.recipient.username if obj.recipient else "-"
+
+    def message_id(self, obj):
+        return obj.message.id if obj.message else "-"
 
     def mark_as_read(self, request, queryset):
         """Mark selected notifications as read."""
@@ -72,12 +92,12 @@ class ScreenedWordAdmin(admin.ModelAdmin):
     """
     Admin interface for managing banned words.
     """
-    list_display = ("word",)
+    list_display = ("id", "word")
     search_fields = ("word",)
     actions = ["delete_selected"]
 
 
-@admin.register(OrderMessageLog)
+@admin.register(CommunicationLog)
 class OrderMessageLogAdmin(admin.ModelAdmin):
     """
     Admin interface for viewing message logs.
@@ -94,10 +114,14 @@ class DisputeMessageAdmin(admin.ModelAdmin):
     Admin interface for managing Dispute Messages.
     Allows admins to view, resolve, and update disputes.
     """
-    list_display = ("order_id", "sender_username", "category_display", "status_display", "created_at", "resolved_at")
-    list_filter = ("status", "category", "created_at")
+    list_display = (
+        "id", "order_id", "sender_username", "category_display",
+        "status_display", "created_at", "resolved_at"
+    )
+    list_filter = ("status", "category", "created_at", "resolved_at")
     search_fields = ("order_message__message", "sender__username", "resolution_comment")
     actions = ["mark_as_resolved", "escalate_dispute"]
+    readonly_fields = ("created_at", "resolved_at")
 
     def order_id(self, obj):
         return obj.order_message.thread.order.id
@@ -134,3 +158,88 @@ class DisputeMessageAdmin(admin.ModelAdmin):
 
     mark_as_resolved.short_description = "Mark selected disputes as resolved"
     escalate_dispute.short_description = "Escalate selected disputes"
+
+
+
+@admin.register(FlaggedMessage)
+class FlaggedMessageAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "order_id",
+        "sender_username",
+        "category",
+        "is_unblocked",
+        "flagged_at",
+        "reviewed_by",
+        "reviewed_at"
+    )
+    list_filter = ("category", "is_unblocked", "flagged_at")
+    search_fields = ("order_message__sender__username", "admin_comment")
+    readonly_fields = ("flagged_at", "reviewed_by", "reviewed_at")
+
+    def sender_username(self, obj):
+        return obj.order_message.sender.username if obj.order_message else "-"
+
+    def order_id(self, obj):
+        return obj.order_message.thread.order.id if obj.order_message else "-"
+    
+
+@admin.register(MessageReadReceipt)
+class MessageReadReceiptAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "message_id",
+        "user_username",
+        "read_at"
+    )
+    search_fields = ("user__username", "message__id")
+    list_filter = ("read_at",)
+    readonly_fields = ("read_at",)
+
+    def user_username(self, obj):
+        return obj.user.username if obj.user else "-"
+
+    def message_id(self, obj):
+        return obj.message.id if obj.message else "-"
+    
+@admin.register(CommunicationLog)
+class CommunicationLogAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "user_username",
+        "order",
+        "action",
+        "created_at"
+    )
+    list_filter = ("action", "created_at")
+    search_fields = ("user__username", "order__id", "details")
+    readonly_fields = ("user", "order", "action", "details", "created_at")
+
+    def user_username(self, obj):
+        return obj.user.username if obj.user else "-"
+    
+
+@admin.register(SystemAlert)
+class SystemAlertAdmin(admin.ModelAdmin):
+    list_display = (
+        "id", "title", "severity", "category",
+        "triggered_by", "acknowledged", "created_at"
+    )
+    list_filter = ("severity", "category", "acknowledged", "created_at")
+    search_fields = ("title", "message", "triggered_by__username")
+    readonly_fields = ("created_at",)
+
+    actions = ["mark_as_acknowledged"]
+
+    def mark_as_acknowledged(self, request, queryset):
+        updated = queryset.update(acknowledged=True)
+        self.message_user(request, f"{updated} alerts marked as acknowledged.")
+    mark_as_acknowledged.short_description = "Mark selected alerts as acknowledged"
+
+
+@admin.register(WebSocketAuditLog)
+class WebSocketAuditLogAdmin(admin.ModelAdmin):
+    list_display = ("user", "action", "thread", "created_at")
+    search_fields = ("user__username", "action", "thread__id")
+    list_filter = ("action", "created_at")
+    readonly_fields = ("user", "action", "thread", "payload", "created_at")

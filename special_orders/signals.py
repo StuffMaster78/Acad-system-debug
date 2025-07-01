@@ -4,7 +4,7 @@ from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
 
 from .models import SpecialOrder, InstallmentPayment
-from order_communications.models import OrderMessageThread
+from communications.models import OrderMessageThread
 
 User = get_user_model()
 

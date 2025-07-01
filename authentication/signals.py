@@ -1,7 +1,7 @@
 from django.contrib.auth.signals import user_logged_in
 from django.dispatch import receiver
 from .models import LoginSession
-from .utils_backp import get_country_and_timezone
+from .utils import get_country_and_timezone
 from ipware import get_client_ip # type: ignore
 from django.db.models.signals import post_save
 from django.core.mail import send_mail

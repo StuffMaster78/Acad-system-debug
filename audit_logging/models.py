@@ -3,6 +3,8 @@ from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 import uuid
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 # User = get_user_model()
 
@@ -74,11 +76,6 @@ class AuditLogEntry(models.Model):
         help_text=_("User agent string of the actor’s client.")
     )
 
-    timestamp = models.DateTimeField(
-        auto_now_add=True,
-        help_text=_("Time the audit log entry was recorded.")
-    )
-
     created_at = models.DateTimeField(
         auto_now_add=True,
         help_text=_("Time the audit log entry was created.")
@@ -87,9 +84,26 @@ class AuditLogEntry(models.Model):
         auto_now=True,
         help_text=_("Time the audit log entry was last updated.")
     )
+    timestamp = models.DateTimeField(
+        auto_now_add=True,
+        help_text=_("Timestamp of when the action occurred.")
+    )
     notes = models.TextField(
         blank=True,
         help_text=_("Optional notes or comments about the action.")
+    )
+    target_content_type = models.ForeignKey(
+        ContentType, on_delete=models.SET_NULL,
+        null=True, blank=True
+    )
+    target_object_id = models.PositiveBigIntegerField(
+        null=True, blank=True
+    )
+    target_object = GenericForeignKey(
+        'target_content_type', 'target_object_id'
+    )
+    request_id = models.CharField(
+        max_length=64, blank=True, null=True
     )
 
     class Meta:
@@ -98,11 +112,20 @@ class AuditLogEntry(models.Model):
         ordering = ["-timestamp"]
         indexes = [
             models.Index(fields=['actor', 'target', 'target_id']),
+            models.Index(fields=['action']),
+            models.Index(fields=['timestamp']),
         ]
+
+    def get_target_repr(self):
+        if self.target_object:
+            return str(self.target_object)
+        return f"{self.target} ({self.target_id})"
+
 
     def __str__(self):
         actor = self.actor.username if self.actor else "System"
-        return f"[{self.timestamp}] {actor} - {self.action} {self.target} ({self.target_id})"
+        return f"[{self.timestamp}] {actor} - {self.action} {self.get_target_repr()}"
+
     
 
 class WebhookAuditLog(models.Model):
@@ -129,6 +152,52 @@ class WebhookAuditLog(models.Model):
     is_test = models.BooleanField(default=False)
     triggered_at = models.DateTimeField(auto_now_add=True)
     fallback_icon = models.URLField(null=True, blank=True)
+    retry_count = models.PositiveIntegerField(default=0)
+    target_content_type = models.ForeignKey(
+        ContentType, null=True, blank=True,
+        on_delete=models.SET_NULL
+    )
+    target_object_id = models.PositiveBigIntegerField(
+        null=True, blank=True
+    )
+    target_object = GenericForeignKey(
+        'target_content_type', 'target_object_id'
+    )
+    request_id = models.CharField(max_length=64, blank=True, null=True)
+
+
 
     class Meta:
         ordering = ['-triggered_at']
+        indexes = [
+            models.Index(fields=['user']),
+            models.Index(fields=['event']),
+            models.Index(fields=['was_successful']),
+        ]
+    def __str__(self):
+        return f"Webhook {self.event} for {self.platform} at {self.triggered_at} - {'Success' if self.was_successful else 'Failed'}"
+    
+    def save(self, *args, **kwargs):
+        if not self.webhook_url.startswith("http"):
+            raise ValueError(
+                "Webhook URL must start with 'http' or 'https'"
+            )
+        super().save(*args, **kwargs)
+
+    def get_payload_summary(self):
+        """
+        Returns a short summary of the
+        payload for display purposes.
+        """
+        if isinstance(self.payload, dict):
+            return {k: v for k, v in self.payload.items() if k in ['id', 'name', 'status']}
+        return str(self.payload)[:100]
+    
+    def get_response_summary(self):
+        """
+        Returns a short summary of the
+        response body for display purposes.
+        """
+        if self.response_body:
+            return self.response_body[:100]
+        return "No response body"

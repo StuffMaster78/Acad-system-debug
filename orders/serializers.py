@@ -5,7 +5,8 @@ from .models import (
     DisputeWriterResponse,
     WriterRequest,
     OrderRequest,
-    OrderTransitionLog
+    OrderTransitionLog,
+    OrderPricingSnapshot
 )
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
@@ -444,3 +445,10 @@ class WriterRequestActionSerializer(serializers.Serializer):
             pass
 
         return attrs
+    
+
+class OrderPricingSnapshotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = OrderPricingSnapshot
+        fields = ["id", "order", "pricing_data", "calculated_at"]
+        read_only_fields = ["id", "calculated_at"]

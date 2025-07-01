@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 
 from fines.models import Fine, FinePolicy, FineType, FineStatus
 from fines.services.compensation import adjust_writer_compensation
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 
 
 class FineService:
@@ -63,7 +63,7 @@ class FineService:
             imposed_at=now
         )
 
-        log_audit_action(
+        AuditLogService.log(
             actor=issued_by,
             action="fine_issued",
             target=fine,
@@ -102,7 +102,7 @@ class FineService:
             "status", "waived_by", "waived_at", "waiver_reason"
         ])
 
-        log_audit_action(
+        AuditLogService.log(
             actor=waived_by,
             action="fine_waived",
             target=fine,
@@ -143,11 +143,25 @@ class FineService:
             "status", "resolved", "resolved_at", "resolved_reason"
         ])
 
-        log_audit_action(
+        AuditLogService.log(
             actor=voided_by,
             action="fine_voided",
+            changes={
+                "status": FineStatus.VOIDED,
+                "reason": fine.resolved_reason
+            },
             target=fine,
-            changes={"reason": fine.resolved_reason}
+            context={
+                "voided_by": voided_by.id,
+                "order_id": fine.order_id,
+                "fine_id": fine.id
+            },
+            issued_by=voided_by,
+            reason=reason or "No reason provided."
+            metadata={
+                "fine_id": fine.id,
+                "order_id": fine.order_id
+            },
         )
 
         return fine

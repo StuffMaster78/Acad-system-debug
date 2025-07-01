@@ -60,11 +60,11 @@ class PaperType(models.Model):
         ordering = ['name']
         verbose_name = "Paper Type"
         verbose_name_plural = "Paper Types"
+        unique_together = ('website', 'name')
 
-
-class FormattingStyle(models.Model):
+class FormattingandCitationStyle(models.Model):
     """
-    Represents formatting styles (e.g., APA, MLA).
+    Represents formatting and citation styles (e.g., APA, MLA).
     """
     website = models.ForeignKey(
         Website,
@@ -81,8 +81,9 @@ class FormattingStyle(models.Model):
 
     class Meta:
         ordering = ['name']
-        verbose_name = "Formatting Style"
-        verbose_name_plural = "Formatting Styles"
+        unique_together = ('website', 'name')
+        verbose_name = "Formatting and Citation Style"
+        verbose_name_plural = "Formatting and Citation Styles"
 
 
 class Subject(models.Model):
@@ -110,6 +111,7 @@ class Subject(models.Model):
         ordering = ['name']
         verbose_name = "Subject"
         verbose_name_plural = "Subjects"
+        unique_together = ('website', 'name')
 
 
 class TypeOfWork(models.Model):
@@ -133,6 +135,7 @@ class TypeOfWork(models.Model):
         ordering = ['name']
         verbose_name = "Type of Work"
         verbose_name_plural = "Types of Work"
+        unique_together = ('website', 'name')
 
 
 class EnglishType(models.Model):
@@ -160,6 +163,7 @@ class EnglishType(models.Model):
         ordering = ['name']
         verbose_name = "English Type"
         verbose_name_plural = "English Types"
+        unique_together = ('website', 'name', 'code')
 
 
 class WriterDeadlineConfig(models.Model):
@@ -180,8 +184,11 @@ class WriterDeadlineConfig(models.Model):
         return f"Writer Deadline: {self.writer_deadline_percentage}%"
 
     class Meta:
+        unique_together = ('website', 'writer_deadline_percentage')
+        ordering = ['writer_deadline_percentage']
         verbose_name = "Writer Deadline Config"
         verbose_name_plural = "Writer Deadline Configs"
+
 
 
 class RevisionPolicyConfig(models.Model):
@@ -202,3 +209,5 @@ class RevisionPolicyConfig(models.Model):
 
     class Meta:
         unique_together = ('website', 'active')
+        verbose_name = "Revision Policy Config"
+        verbose_name_plural = "Revision Policy Configs"

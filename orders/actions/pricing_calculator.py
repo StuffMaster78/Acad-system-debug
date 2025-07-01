@@ -3,6 +3,8 @@ from orders.actions.base import BaseOrderAction
 from orders.services.pricing_calculator import PricingCalculatorService
 from audit_logging.services import log_audit_action
 from orders.registry.decorator import register_order_action
+from orders.services.order_pricing_snapshot import OrderPricingSnapshotService 
+
 @register_order_action("calculate_pricing")
 class PricingCalculatorAction(BaseOrderAction):
     """
@@ -10,8 +12,15 @@ class PricingCalculatorAction(BaseOrderAction):
     This is typically used for manual operations, like an admin action.
     """
     def execute(self):
-        service = PricingCalculatorService()
-        result = service.calculate(self.order_id, **self.params)
+        service = PricingCalculatorService(self.order)
+        breakdown = service.calculate_breakdown()
+
+        # If save=true is passed in params, persist snapshot
+        if self.params.get("save") is True:
+            OrderPricingSnapshotService.save_snapshot(
+                order=self.order,
+                pricing_data=breakdown
+            )
 
         log_audit_action(
             actor=self.user,
@@ -20,8 +29,10 @@ class PricingCalculatorAction(BaseOrderAction):
             target_id=self.order_id,
             metadata={
                 "params": self.params,
-                "result_summary": str(result)[:100]
+                "final_total": breakdown.get("final_total"),
+                "base_price": breakdown.get("base_price"),
+                "summary": f"{breakdown.get('final_total')} after discount"
             }
         )
 
-        return result
+        return breakdown

@@ -9,7 +9,7 @@ from django.conf import settings
 from tickets.models import Ticket, TicketMessage
 from orders.models import Dispute
 from orders.models import Order
-from order_communications.models import OrderMessage, DisputeMessage
+from communications.models import OrderMessage, DisputeMessage
 
 User = settings.AUTH_USER_MODEL 
 

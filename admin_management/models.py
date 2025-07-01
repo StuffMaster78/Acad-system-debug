@@ -239,7 +239,7 @@ class AdminPromotionRequest(models.Model):
     class Meta:
         verbose_name = "Admin Promotion Request"
         verbose_name_plural = "Admin Promotion Requests"
-        ordering = ["-request_ed_at"]  # Newest requests first
+        ordering = ["-requested_at"]  # Newest requests first
 
 
     def __str__(self):

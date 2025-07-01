@@ -7,7 +7,7 @@ from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
 from django.conf import settings
 # from websites.models import Website
-from order_communications.models import MessageThread
+from communications.models import MessageThread
 from tickets.models import Ticket
 from wallet.models import Wallet
 from django.apps import apps

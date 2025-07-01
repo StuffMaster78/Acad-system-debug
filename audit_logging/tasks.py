@@ -1,5 +1,5 @@
 import logging
-
+from django.conf import settings
 from celery import shared_task
 from django.utils.timezone import now
 from audit_logging.models import AuditLogEntry
@@ -12,6 +12,7 @@ def async_log_audit(
     self,
     action: str,
     target: str = "",
+    request_id: str = None,
     target_id: int = None,
     actor_id: int = None,
     metadata: dict = None,
@@ -55,6 +56,7 @@ def async_log_audit(
             actor=actor,
             target=target,
             target_id=target_id,
+            request_id=request_id,
             metadata=metadata or {},
             ip_address=ip_address,
             user_agent=user_agent,
@@ -71,4 +73,7 @@ def async_log_audit(
             "[AUDIT] Async log failed for %s on %s(%s): %s. Retrying...",
             action, target, target_id, str(exc)
         )
+        if settings.DEBUG:
+            raise  # Bubble up error in dev
+
         raise self.retry(exc=exc)

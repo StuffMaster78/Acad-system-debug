@@ -5,6 +5,39 @@ Module for storing the pricing configurations for each website
 from django.db import models
 from websites.models import Website
 from order_configs.models import AcademicLevel
+from django.core.validators import MinValueValidator, MaxValueValidator
+
+
+class PreferredWriterConfig(models.Model):
+    """
+    Admin-defined preferred writer types and their pricing per website.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="preferred_writer_configs"
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="Name of the writer tier (e.g., Advanced, Top 10, Elite Ninja)"
+    )
+    preferred_writer_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Extra cost (in USD) for selecting this writer tier"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Optional description for this writer tier"
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        unique_together = ["website", "name"]
+        ordering = ["website", "preferred_writer_cost"]
+
+    def __str__(self):
+        return f"{self.name} - ${self.cost} ({self.website.domain})"
 
 
 class PricingConfiguration(models.Model):
@@ -27,26 +60,20 @@ class PricingConfiguration(models.Model):
         max_digits=5, decimal_places=2,
         help_text="Multiplier for non-technical subjects (e.g., 1.0x for non-technical)."
     )
-    preferred_writer_cost = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0,
-        help_text="Additional cost for selecting a preferred writer."
-    )
     urgent_order_threshold = models.PositiveIntegerField(
-        default=8, 
-        help_text="Urgent order threshold in hours. The deadline that's considered urgent",
-    )
-    urgent_order_multiplier = models.DecimalField(
-        max_digits=5, decimal_places=2, default=1.2,
-        help_text="Multiplier for urgent orders (e.g., 1.2x for urgent).",
+        default=8,
+        help_text="Urgent order threshold in hours. The deadline that's considered urgent.",
     )
     hvo_threshold = models.DecimalField(
         max_digits=10, decimal_places=2, default=100,
         help_text="High-value order threshold (total cost).",
     )
-    hvo_additional_cost = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0,
-        help_text="Additional cost added to high-value orders.",
-    )
+
+    convenience_fee = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0.0,
+        help_text="Convenience fee applied to all orders (USD) for reducing deadline."
+    )   
+
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -116,6 +143,7 @@ class AdditionalService(models.Model):
         verbose_name = "Additional Service"
         verbose_name_plural = "Additional Services"
 
+
 class WriterQuality(models.Model):
     """
     Writer quality levels and associated costs.
@@ -123,7 +151,7 @@ class WriterQuality(models.Model):
     """
     name = models.CharField(
         max_length=100,
-        help_text="Name of the writer quality level (e.g., Beginner, Expert)."
+        help_text="Name of the writer quality level (e.g., Best-Available, Beginner, Expert)."
     )
     description = models.TextField(
         blank=True,
@@ -132,7 +160,8 @@ class WriterQuality(models.Model):
     cost_multiplier = models.DecimalField(
         max_digits=5,
         decimal_places=2, 
-        help_text="Multiplier applied to base price for this quality level (e.g., 1.5x for Expert)."
+        help_text="Multiplier applied to base price for this quality level (e.g., 1.5x for Expert).",
+        validators=[MinValueValidator(0.0), MaxValueValidator(10.0)]
     )
     minimum_rating = models.DecimalField(
         max_digits=3,
@@ -195,6 +224,7 @@ class AcademicLevelPricing(models.Model):
         decimal_places=2,
         default=1.00,
         help_text=("Multiplier applied to base order pricing for this academic level."),
+        validators=[MinValueValidator(0.0), MaxValueValidator(10.0)]
     )
     level_name = models.CharField(
         max_length=100,
@@ -226,3 +256,83 @@ class AcademicLevelPricing(models.Model):
 
     def __str__(self):
         return f"{self.academic_level.name} (Multiplier: {self.multiplier})"
+    
+
+
+class DeadlineMultiplier(models.Model):
+    """ Represents the deadline multipliers for different deadlines.
+    Example: 24 hours, 48 hours, etc.
+    This model allows for different multipliers based on the
+    deadline set for an order.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="deadline_multipliers"
+    )
+    label   = models.CharField(
+        max_length=100,
+        help_text="Label for the deadline (e.g., '1 Hour', '1 Day', '2 Days')."
+    )
+    hours = models.PositiveIntegerField(
+        help_text="Deadline in hours (e.g. 24 hours for a day, 48 for 2 days, etc.)"
+    )
+    multiplier = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        help_text="Multiplier for this deadline (e.g., 1.3 for 24h)",
+        validators=[MinValueValidator(0.0), MaxValueValidator(10.0)]
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.hours}h => {self.multiplier}x ({self.website})"
+
+    class Meta:
+        verbose_name = "Deadline Multiplier"
+        verbose_name_plural = "Deadline Multipliers"
+        unique_together = ("website", "hours")
+        ordering = ["website", "hours"]
+
+class OrderTypeMultiplier(models.Model):
+    """
+    Admin-defined multipliers for different types of work.
+    Example: Technical Writing, Proofreading, Lab Reports, etc.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="order_type_multipliers"
+    )
+    name = models.CharField(
+        max_length=100,
+        help_text="Type of work (e.g., Technical Writing, Lab Report, etc.)"
+    )
+    multiplier = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        help_text="Multiplier applied to base price for this work type.",
+        validators=[MinValueValidator(0.0), MaxValueValidator(10.0)]
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Optional description of the work type."
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text=("Timestamp when the multiplier was created."),
+    )
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        help_text=("Timestamp when the multiplier was last updated."),
+    )
+
+    def __str__(self):
+        return f"{self.name} - x{self.multiplier} ({self.website.domain})"
+    class Meta:
+        verbose_name = "Order Type Multiplier"
+        verbose_name_plural = "Order Type Multipliers"
+        unique_together = ['website', 'name']
+        ordering = ["website", "name", "multiplier"]

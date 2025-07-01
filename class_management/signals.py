@@ -3,7 +3,7 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from class_management.models import ClassPurchase
-from order_communications.models import MessageThread
+from communications.models import MessageThread
 from tickets.models import SupportTicket
 
 @receiver(post_save, sender=ClassPurchase)

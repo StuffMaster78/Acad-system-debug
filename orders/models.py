@@ -79,34 +79,35 @@ class Order(models.Model):
         limit_choices_to={'role': 'writer'},
         help_text="Preferred writer for this order."
     )
-    discount = models.ForeignKey(
-        Discount,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL
-    )
-    writer_quality = models.ForeignKey(
-        'pricing_configs.WriterQuality',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        help_text="Selected writer quality level."
-    )
-    paper_type = models.ForeignKey(
-        'order_configs.PaperType',
-        on_delete=models.PROTECT,
-        help_text="The type of paper requested."
-    )
     topic = models.CharField(
         max_length=255, 
         help_text=(
             "The topic or title of the order."
         )
     )
-    order_instructions = models.TextField(
-        help_text=(
-            "Detailed instructions for the order."
-        )
+    paper_type = models.ForeignKey(
+        'order_configs.PaperType',
+        on_delete=models.PROTECT,
+        help_text="The type of paper requested."
+    )
+    discount = models.ForeignKey(
+        Discount,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL
+    )
+    discount_code_used = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True,
+        help_text="Discount code applied to the order."
+    )   
+    writer_quality = models.ForeignKey(
+        'pricing_configs.WriterQuality',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        help_text="Selected writer quality level."
     )
     academic_level = models.ForeignKey(
         AcademicLevel,
@@ -186,7 +187,7 @@ class Order(models.Model):
         ),
         default=list,
         blank=True,
-        help_text="Flags related to the order (e.g., Urgent Order, Returning Client)."
+        help_text="Flags related to the order (e.g., Urgent Order (UO), Returning Client (RC0))."
     )
     client_deadline = models.DateTimeField(
         help_text="The deadline for the order."
@@ -233,6 +234,11 @@ class Order(models.Model):
     )
     is_public = models.BooleanField(default=False)  # Open to any writer if true
     reassignment_requested = models.BooleanField(default=False)
+    order_instructions = models.TextField(
+        help_text=(
+            "Detailed instructions for the order."
+        )
+    )
     completed_by = models.ForeignKey(
         'users.User',
         null=True,
@@ -285,7 +291,7 @@ class Order(models.Model):
             """
             Trigger price recalculation whenever the order is saved.
             """
-            self.total_cost = PricingCalculatorService.calculate_total_price(self)
+            self.total_price = PricingCalculatorService.calculate_total_price(self)
             super(Order, self).save(*args, **kwargs)
 
     def update_total_price(self):
@@ -355,16 +361,22 @@ class Order(models.Model):
         self.additional_cost += Decimal(additional_amount)
         self.save()
 
-    def change_deadline(self, new_deadline):
+    def change_deadline(self, old_deadline, new_deadline):
         """Method for safely changing the deadline and logging it."""
+        # Ensure new_deadline is a future date
+        if new_deadline <= self.deadline:
+            raise ValidationError("New deadline must be later than the current deadline.")
+        # Update the deadline
+        self.deadline = new_deadline
+        self.save()
+
+        # Log the deadline change 
         DeadlineChangeLog.objects.create(
             order=self,
-            old_deadline=self.deadline,
+            old_deadline=old_deadline,
             new_deadline=new_deadline,
             changed_by=self.client
         )
-        self.deadline = new_deadline
-        self.save()
 
 
     def update_status_based_on_payment(self):
@@ -400,7 +412,7 @@ class Order(models.Model):
         base_price = PricingCalculatorService.calculate_base_price(self)
         # Calculate price for the new pages
         new_page_price = additional_pages * PricingConfiguration.objects.first().base_price_per_page
-        self.total_cost = base_price + new_page_price  # Update the total cost
+        self.total_price = base_price + new_page_price  # Update the total cost
         self.save()
 
     def add_slides(self, additional_slides: int):
@@ -411,8 +423,15 @@ class Order(models.Model):
         self.number_of_slides += additional_slides
         # Recalculate price with new slide count
         base_price = PricingCalculatorService.calculate_base_price(self)
+        # Calculate price for the new slides
         new_slide_price = additional_slides * PricingConfiguration.objects.first().base_price_per_slide
-        self.total_cost = base_price + new_slide_price  # Update the total cost
+        # Apply Discount that was already applied to the order
+        if self.discount:
+            discount_amount = self.discount.calculate_discount(self.total_price)
+            base_price -= discount_amount
+
+        # Update the total cost with the new slide price
+        self.total_price = base_price + new_slide_price  # Update the total cost
         self.save()
 
     def add_extra_service(self, service):
@@ -420,30 +439,38 @@ class Order(models.Model):
         Add extra service to the order, recalculate price, and prompt for payment.
         """
         self.extra_services.add(service)
-        self.total_cost = PricingCalculatorService.calculate_total_price(self)  # Recalculate price with new service
+        self.total_price = PricingCalculatorService.calculate_total_price(self)  # Recalculate price with new service
         self.save()
 
     def change_deadline(self, new_deadline):
         """
         Change the deadline, apply the necessary convenience fee if reduced.
         """
-        pricing_config = PricingConfiguration.objects.first()
+        pricing_config = PricingConfiguration.objects.first(
+            website=self.website,
+            raise_exception=True
+        )
         old_deadline = self.deadline
         self.deadline = new_deadline
 
         if new_deadline < old_deadline:
             # Apply convenience fee if deadline is reduced
-            self.total_cost += pricing_config.convenience_fee
+            self.total_price += pricing_config.convenience_fee
 
-        self.total_cost = PricingCalculatorService.calculate_total_price(self)  # Recalculate after changing deadline
+        self.total_price = PricingCalculatorService.calculate_total_price(self)  # Recalculate after changing deadline
         self.save()
+
+    @property
+    def price_snapshot(self):
+        return getattr(self, "pricing_snapshot", None)
+
 
     def add_discount(self, discount):
         """
         Add a discount to the order and recalculate the total price.
         """
         self.discount = discount
-        self.total_cost = PricingCalculatorService.calculate_total_price(self)
+        self.total_price = PricingCalculatorService.calculate_total_price(self)
         self.save()
 
     def __str__(self):
@@ -1115,3 +1142,18 @@ class WebhookDeliveryLog(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+
+
+class OrderPricingSnapshot(models.Model):
+    """
+    Captures a snapshot of the order's pricing details at a specific time.
+    This is useful for auditing and historical reference.
+    """
+    order = models.OneToOneField(
+        "orders.Order", on_delete=models.CASCADE, related_name="pricing_snapshot"
+    )
+    pricing_data = models.JSONField()
+    calculated_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Pricing Snapshot for Order #{self.order.id} at {self.calculated_at}"

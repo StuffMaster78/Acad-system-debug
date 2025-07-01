@@ -12,4 +12,4 @@ class OrderCommunicationsConfig(AppConfig):
         """
         Import signals when the app is ready.
         """
-        import order_communications.signals  # Ensures signals are loaded
+        import communications.signals  # Ensures signals are loaded

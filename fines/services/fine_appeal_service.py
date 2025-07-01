@@ -2,14 +2,16 @@
 
 from django.utils import timezone
 from fines.models import Fine, FineAppeal, FineStatus
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 
 
 class FineAppealService:
     """Encapsulates fine appeal submission and review logic."""
 
     @staticmethod
-    def submit_appeal(fine, appealed_by, reason):
+    def submit_appeal(
+        fine, appealed_by, reason
+    ):
         """Submit an appeal for a given fine.
 
         Args:
@@ -41,7 +43,7 @@ class FineAppealService:
         fine.status = FineStatus.APPEALED
         fine.save(update_fields=["status"])
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=appealed_by,
             action="fine_appealed",
             target=fine,
@@ -68,11 +70,15 @@ class FineAppealService:
             ValueError: If already reviewed or fine not in appealed status.
         """
         if appeal.reviewed_at is not None:
-            raise ValueError("This appeal has already been reviewed.")
+            raise ValueError(
+                "This appeal has already been reviewed."
+            )
 
         fine = appeal.fine
         if fine.status != FineStatus.APPEALED:
-            raise ValueError("Fine must be in 'appealed' status to review.")
+            raise ValueError(
+                "Fine must be in 'appealed' status to review."
+            )
 
         appeal.reviewed_by = reviewed_by
         appeal.reviewed_at = timezone.now()
@@ -95,7 +101,7 @@ class FineAppealService:
             "status", "resolved", "resolved_at", "resolved_reason"
         ])
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=reviewed_by,
             action="fine_appeal_reviewed",
             target=fine,
