@@ -3,11 +3,11 @@ from django.core.exceptions import ValidationError
 from pricing_configs.models import (
     PricingConfiguration,
     AcademicLevelPricing,
-    WriterQuality,
+    WriterLevelOptionConfig,
     PreferredWriterConfig,
     DeadlineMultiplier,
     AdditionalService,
-    OrderTypeMultiplier
+    TypeOfWorkMultiplier
 )
 
 
@@ -62,6 +62,9 @@ class PricingEstimationService:
     @staticmethod
     def _calculate_base_price(pricing_config, order_input):
         """ Calculates the base price based on number of pages and slides. """
+        if order_input.get("num_pages", 0) < 0 or order_input.get("num_slides", 0) < 0:
+            raise ValidationError("Pages and slides must be non-negative.")
+
         return (
             Decimal(order_input.get("num_pages", 0)) *
             pricing_config.base_price_per_page +
@@ -78,28 +81,31 @@ class PricingEstimationService:
         """
         website = order_input["website"]
 
-        academic_level = order_input["academic_level"]
+        # Academic Level Multiplier
+        academic_level = order_input.get("academic_level")
         level_pricing = AcademicLevelPricing.objects.filter(
             website=website, academic_level=academic_level
         ).first()
         level_multiplier = (
-            level_pricing.multiplier if level_pricing else Decimal(1.0)
+            level_pricing.multiplier if level_pricing else Decimal("1.0")
         )
         base_price *= level_multiplier
         breakdown["multipliers"]["academic_level"] = float(level_multiplier)
 
+        # Type of Work Multiplier
         order_type_name = order_input.get("order_type")
         if order_type_name:
-            order_type = OrderTypeMultiplier.objects.filter(
+            order_type = TypeOfWorkMultiplier.objects.filter(
                 website=website,
                 name__iexact=order_type_name
             ).first()
-            if order_type:
+            if order_type and order_type.is_active:
                 base_price *= order_type.multiplier
                 breakdown["multipliers"]["order_type"] = float(
                     order_type.multiplier
                 )
 
+        # Technicality Multiplier
         is_technical = order_input.get("is_technical", False)
         tech_multiplier = (
             pricing_config.technical_multiplier
@@ -108,6 +114,7 @@ class PricingEstimationService:
         base_price *= tech_multiplier
         breakdown["multipliers"]["technical"] = float(tech_multiplier)
 
+        # Deadline Multiplier
         deadline_hours = order_input.get("deadline_hours", 24)
         deadline = DeadlineMultiplier.objects.filter(
             website=website, hours__lte=deadline_hours
@@ -118,17 +125,6 @@ class PricingEstimationService:
                 deadline.multiplier
             )
 
-        writer_quality = order_input.get("writer_quality")
-        if writer_quality:
-            quality = WriterQuality.objects.filter(
-                website=website, name__iexact=writer_quality
-            ).first()
-            if quality:
-                base_price *= quality.cost_multiplier
-                breakdown["multipliers"]["writer_quality"] = float(
-                    quality.cost_multiplier
-                )
-
         return base_price
 
     @staticmethod
@@ -138,18 +134,35 @@ class PricingEstimationService:
         additional services, and high-value order bump.
         """
         website = order_input["website"]
+        breakdown["add_ons"] = {}
 
+        # Preferred Writer Cost
         preferred_writer = order_input.get("preferred_writer")
         if preferred_writer:
-            pref = PreferredWriterConfig.objects.filter(
+            preferred_writer_config = PreferredWriterConfig.objects.filter(
                 website=website, name__iexact=preferred_writer
             ).first()
-            if pref:
-                base_price += pref.preferred_writer_cost
+            if preferred_writer_config:
+                base_price += preferred_writer_config.preferred_writer_cost
                 breakdown["add_ons"]["preferred_writer"] = float(
-                    pref.preferred_writer_cost
+                    preferred_writer_config.preferred_writer_cost
                 )
 
+        writer_level = order_input.get("writer_level")
+        if writer_level:
+            level = WriterLevelOptionConfig.objects.filter(
+                website=website,
+                name__iexact=writer_level,
+                is_active=True
+            ).first()
+            if level:
+                base_price += level.value
+                breakdown["add_ons"]["writer_level"] = float(
+                    level.value
+                )
+
+
+        # Additional Services Cost
         total_service_cost = Decimal(0)
         for slug in order_input.get("additional_services", []):
             service = AdditionalService.objects.filter(
@@ -160,10 +173,4 @@ class PricingEstimationService:
                 breakdown["add_ons"][service.slug] = float(service.cost)
 
         base_price += total_service_cost
-
-        if base_price >= pricing_config.hvo_threshold:
-            hvo_fee = getattr(pricing_config, "hvo_additional_cost", 0)
-            base_price += hvo_fee
-            breakdown["add_ons"]["high_value_order_bump"] = float(hvo_fee)
-
         return base_price
