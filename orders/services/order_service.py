@@ -96,7 +96,10 @@ class OrderService:
 
     @staticmethod
     @transaction.atomic
-    def complete_order(order_id: int, completed_by: Optional[Any] = None, completion_notes: Optional[str] = None):
+    def complete_order(
+        order_id: int, completed_by: Optional[Any] = None,
+        completion_notes: Optional[str] = None
+    ):
         from orders.models import OrderStatus
         order = _get_order(order_id)
         OrderService._assert_status(order, [OrderStatus.ASSIGNED])
@@ -187,7 +190,9 @@ class OrderService:
         """ Applies referral discount to the order if the user is eligible.
         This checks if the user has a referral and applies the discount if applicable.
         """
-        referral = Referral.objects.filter(referee=order.user, website=order.website).first()
+        referral = Referral.objects.filter(
+            referee=order.user, website=order.website
+        ).first()
         if not referral:
             return
 
@@ -264,7 +269,7 @@ class OrderService:
         Defaults to 24 hours if no setting is found.
         """
         setting = CriticalDeadlineSetting.objects.first()
-        return setting.threshold_hours if setting else 24
+        return setting.threshold_hours if setting else 6
 
     @staticmethod
     def update_order_status_based_on_deadline(order):

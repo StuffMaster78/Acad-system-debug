@@ -13,7 +13,9 @@ class ReopenOrderService:
                       if reopening is allowed.
     """
 
-    def reopen_order(self, order_id: int, reopen_reason: str = None) -> Order:
+    def reopen_order(
+            self, order_id: int, reopen_reason: str = None
+    ) -> Order:
         """
         Reopen a terminal order and transition it to an active state.
 

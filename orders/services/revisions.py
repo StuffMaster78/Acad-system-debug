@@ -26,7 +26,9 @@ class OrderRevisionService:
         """
         policy = get_order_config(self.order.website)
         if not policy:
-            raise PolicyNotFound("No active revision policy found for this website.")
+            raise PolicyNotFound(
+                "No active revision policy found for this website."
+            )
 
         return timedelta(days=policy.free_revision_days)
 

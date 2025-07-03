@@ -23,7 +23,8 @@ from orders.services.order_request_service import OrderRequestService
 from users.models import User
 from websites.models import Website
 from audit_logging.services import AuditLogEntry
-
+from orders.models import WriterRequest
+from audit_logging.services import log_audit_action
 
 logger = logging.getLogger(__name__)
 
@@ -244,3 +245,23 @@ def send_order_completion_email(email, username, order_id):
     subject = f"Order #{order_id} Completed"
     message = f"Hi {username}, your order #{order_id} has been successfully completed!"
     send_mail(subject, message, 'noreply@penman.com', [email])
+
+@shared_task
+def expire_stale_writer_requests():
+    expiry_time = timezone.now() - timedelta(hours=48)
+    stale_requests = WriterRequest.objects.filter(
+        status=WriterRequest.RequestStatus.PENDING,
+        created_at__lt=expiry_time
+    )
+
+    for req in stale_requests:
+        req.status = WriterRequest.RequestStatus.DECLINED
+        req.save()
+
+        log_audit_action(
+            actor=None,
+            action="AUTO_EXPIRE_WRITER_REQUEST",
+            target="orders.WriterRequest",
+            target_id=req.id,
+            metadata={"reason": "Auto-declined after 48 hours"}
+        )

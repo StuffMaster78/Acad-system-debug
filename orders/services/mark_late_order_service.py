@@ -30,7 +30,7 @@ class MarkLateOrderService:
                 f"Cannot mark order {order_id} late from status "
                 f"{order.status}."
             )
-
+        
         order.is_late = True
         save_order(order)
         return order

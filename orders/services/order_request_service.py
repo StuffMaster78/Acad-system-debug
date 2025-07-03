@@ -20,9 +20,12 @@ User = get_user_model()
 class OrderRequestService:
     """
     Service to manage writer interest and admin assignments.
-    This service allows writers to request orders and enables admins to accept or reject these requests.
-    It also provides methods to cancel requests and retrieve requests for orders or writers.
-    The service is initialized with an optional user, which can be used for logging actions.
+    This service allows writers to request orders and enables
+    admins to accept or reject these requests.
+    It also provides methods to cancel requests and retrieve
+    requests for orders or writers.
+    The service is initialized with an optional user,
+    which can be used for logging actions.
     """
 
     def __init__(self, user=None):

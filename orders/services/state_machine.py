@@ -36,7 +36,7 @@ def transition_to(
     self.order.save(update_fields=["status"])
     self._run_hook(f"on_enter_{new_state}")
 
-    # 📝 Log the transition
+    # Log the transition
     OrderTransitionLog.objects.create(
         order=self.order,
         user=actor if actor and actor.is_authenticated else None,

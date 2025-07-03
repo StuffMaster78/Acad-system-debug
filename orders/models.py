@@ -102,7 +102,7 @@ class Order(models.Model):
         blank=True,
         help_text="Discount code applied to the order."
     )   
-    writer_quality = models.ForeignKey(
+    writer_level = models.ForeignKey(
         'pricing_configs.WriterQuality',
         on_delete=models.SET_NULL,
         null=True,
@@ -635,6 +635,21 @@ class WriterRequest(models.Model):
         choices=RequestStatus.choices,
         default=RequestStatus.PENDING
     )
+
+    estimated_cost = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        help_text="Estimated cost of request"
+    )
+
+    final_cost = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        help_text="Final cost to be charged"
+    )
+
+    is_paid = models.BooleanField(default=False)
+    requires_payment = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -1,12 +1,27 @@
+import json
+from django import forms
+from django.forms import widgets
+from django.db import models
+from django.utils.html import format_html
 from django.contrib import admin
 from .models import (
     Order, WriterProgress, Dispute,
     DisputeWriterResponse, WriterRequest,
-    OrderTransitionLog
+    OrderTransitionLog,
+    OrderPricingSnapshot
 )
 from orders.models import WebhookDeliveryLog
 
+class PrettyJSONWidget(widgets.Textarea):
+    def format_value(self, value):
+        if isinstance(value, dict):
+            return json.dumps(value, indent=4)
+        return super().format_value(value)
 
+    def render(self, name, value, attrs=None, renderer=None):
+        value = self.format_value(value)
+        return super().render(name, value, attrs, renderer)
+    
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
     list_display = (
@@ -43,7 +58,10 @@ class WriterProgressAdmin(admin.ModelAdmin):
 
 @admin.register(Dispute)
 class DisputeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order', 'raised_by', 'dispute_status', 'resolution_outcome', 'created_at')
+    list_display = (
+        'id', 'order', 'raised_by', 'dispute_status',
+        'resolution_outcome', 'created_at'
+    )
     list_filter = ('dispute_status', 'resolution_outcome', 'created_at')
     search_fields = ('order__id', 'raised_by__username')
     ordering = ('-created_at',)
@@ -77,7 +95,10 @@ class OrderTransitionLogAdmin(admin.ModelAdmin):
         'id', 'order', 'old_status', 'new_status', 'action',
         'is_automatic', 'user', 'timestamp'
     )
-    list_filter = ('is_automatic', 'old_status', 'new_status', 'action', 'timestamp')
+    list_filter = (
+        'is_automatic', 'old_status',
+        'new_status', 'action', 'timestamp'
+    )
     search_fields = ('order__reference_code', 'user__email', 'action')
     readonly_fields = ('order', 'old_status', 'new_status', 'timestamp', 'user')
     ordering = ('-timestamp',)
@@ -93,7 +114,37 @@ class OrderTransitionLogAdmin(admin.ModelAdmin):
 
 @admin.register(WebhookDeliveryLog)
 class WebhookDeliveryLogAdmin(admin.ModelAdmin):
-    list_display = ("event", "user", "success", "status_code", "retry_count", "created_at")
+    list_display = (
+        "event", "user", "success",
+        "status_code", "retry_count", "created_at"
+    )
     list_filter = ("success", "event", "test_mode")
     search_fields = ("user__email", "event", "url")
     readonly_fields = ("request_payload", "response_body", "error_message")
+
+
+@admin.register(OrderPricingSnapshot)
+class OrderPricingSnapshotAdmin(admin.ModelAdmin):
+    list_display = ["order", "created_at", "display_total"]
+    list_filter = ["created_at"]
+    readonly_fields = ["order", "pricing_data", "created_at"]
+    search_fields = ["order__id"]
+
+    formfield_overrides = {
+        models.JSONField: {"widget": PrettyJSONWidget}
+    }
+
+    def display_total(self, obj):
+        try:
+            return f"${obj.pricing_data.get('final_total', 'N/A')}"
+        except Exception:
+            return "N/A"
+
+    def has_add_permission(self, request):
+        return False  # snapshots should only be created programmatically
+
+    def has_change_permission(self, request, obj=None):
+        return False  # immutable once saved
+
+    def has_delete_permission(self, request, obj=None):
+        return False

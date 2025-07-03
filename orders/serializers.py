@@ -311,13 +311,17 @@ class WriterRequestSerializer(serializers.ModelSerializer):
     additional_pages = serializers.IntegerField(required=False, allow_null=True)
     additional_slides = serializers.IntegerField(required=False, allow_null=True)
     request_reason = serializers.CharField(max_length=1000)
+    status_display = serializers.CharField(source="get_status_display")
+    payment_pending = serializers.SerializerMethodField()
 
     class Meta:
         model = WriterRequest
         fields = [
-            'website', 'order', 'request_type', 'requested_by_writer',
+            'id', 'website', 'order', 'request_type', 'requested_by_writer',
             'new_deadline', 'additional_pages', 'additional_slides',
-            'request_reason', 'status', 'client_approval', 'admin_approval', 'is_paid'
+            'request_reason', 'status', 'client_approval', 'estimated-cost',
+            'final-cost', 'admin_approval', 'is_paid', 'requires_payment',
+            'payment_pending', 'status_display', 'created_at', 'updated_at'
         ]
         read_only_fields = ['status', 'client_approval', 'admin_approval', 'is_paid']
 
@@ -351,6 +355,9 @@ class WriterRequestSerializer(serializers.ModelSerializer):
                 setattr(instance, field, validated_data[field])
         instance.save()
         return instance
+    
+    def get_payment_pending(self, obj):
+        return obj.requires_payment and not obj.is_paid
 
 
 class OrderRequestSerializer(serializers.ModelSerializer):
@@ -452,3 +459,18 @@ class OrderPricingSnapshotSerializer(serializers.ModelSerializer):
         model = OrderPricingSnapshot
         fields = ["id", "order", "pricing_data", "calculated_at"]
         read_only_fields = ["id", "calculated_at"]
+
+
+class WriterRequestPreviewSerializer(serializers.Serializer):
+    order_id = serializers.IntegerField()
+    request_type = serializers.ChoiceField(choices=WriterRequest.RequestType.choices)
+    additional_pages = serializers.IntegerField(required=False, min_value=0)
+    additional_slides = serializers.IntegerField(required=False, min_value=0)
+
+    def validate(self, data):
+        request_type = data['request_type']
+        if request_type == WriterRequest.RequestType.PAGES and not data.get("additional_pages"):
+            raise serializers.ValidationError("additional_pages is required.")
+        if request_type == WriterRequest.RequestType.SLIDES and not data.get("additional_slides"):
+            raise serializers.ValidationError("additional_slides is required.")
+        return data

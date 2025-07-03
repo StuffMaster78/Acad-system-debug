@@ -1,14 +1,13 @@
 from django.apps import apps
 from decimal import Decimal
 from functools import lru_cache
-from discounts.services.discount_engine import DiscountEngine  # Import the discount engine
 from django.core.exceptions import ValidationError
+from discounts.services.discount_engine import DiscountEngine 
 
 class PricingCalculatorService:
     """
-    Service to calculate pricing components and final price for orders.
-    Handles base price, extras, writer quality, urgent fees, discounts, 
-    and applies discount codes with validation.
+    Service to calculate all pricing components and total price for an order.
+    Pulls from centralized pricing_configs.
     """
 
     def __init__(self, order):
@@ -37,10 +36,35 @@ class PricingCalculatorService:
 
     def get_pricing_config(self):
         """
-        Retrieves the latest pricing configuration for the website associated with the order.
-        This method uses caching to optimize performance by avoiding repeated database queries.
+        Retrieves the latest pricing configuration for
+        the website associated with the order.
         """
         return self.get_pricing_config_for_website(self.website.id)
+    
+
+    def get_deadline_multiplier(self) -> Decimal:
+        """
+        Calculates a multiplier based on the deadline proximity.
+        This replaces the old urgent_fee logic.
+        """
+        if not self.order.deadline:
+            return Decimal("1.0")
+
+        DeadlineMultiplier = apps.get_model(
+            "pricing_configs", "DeadlineMultiplier"
+        )
+
+        hours_left = (
+            (self.order.deadline - self.order.created_at)
+            .total_seconds() / 3600
+        )
+
+        match = DeadlineMultiplier.objects.filter(
+            website=self.website,
+            hours__lte=hours_left
+        ).order_by("-hours").first()
+
+        return match.multiplier if match else Decimal("1.0")
 
     def calculate_base_price(self) -> Decimal:
         """
@@ -53,10 +77,12 @@ class PricingCalculatorService:
         Returns:
             Decimal: The base price of the order.
         """
-        return (
-            self.config.base_price_per_page * self.order.number_of_pages +
+        pages_cost = self.config.base_price_per_page * self.order.number_of_pages
+        slides_cost = (
             self.config.base_price_per_slide * self.order.number_of_slides
         )
+        subtotal = pages_cost + slides_cost
+        return subtotal * self.get_deadline_multiplier()
 
 
     def calculate_extra_services_price(self) -> Decimal:
@@ -70,23 +96,26 @@ class PricingCalculatorService:
             Decimal: The total price of extra services.
         """
         return sum(
-            (service.service_cost for service in self.order.extra_services.all()),
-            Decimal(0)
+            (
+                service.service_cost
+                for service in self.order.extra_services.all()
+             ),
+             Decimal(0)
         )
 
 
-    def calculate_writer_quality_price(self) -> Decimal:
+    def calculate_writer_level_price(self) -> Decimal:
         """
-        Calculates the additional cost for a selected writer quality level.
+        Calculates the additional cost for a selected writer level.
 
         Args:
             order (Order): The order instance.
 
         Returns:
-            Decimal: Additional price for higher-tier writer quality.
+            Decimal: Additional price for higher-tier writer level.
         """
-        if self.order.writer_quality:
-            return self.order.writer_quality.additional_price
+        if self.order.writer_level:
+            return self.order.writer_level.value
         return Decimal(0)
     
     def calculate_preferred_writer_fee(self) -> Decimal:
@@ -100,26 +129,15 @@ class PricingCalculatorService:
             Decimal: Additional fee for the preferred writer.
         """
         if self.order.preferred_writer:
-            return self.order.preferred_writer.additional_fee
-        return Decimal(0)
-
-
-    def calculate_urgent_price(self) -> Decimal:
-        """
-        Calculates the additional cost for an urgent order based on deadline.
-
-        Args:
-            order (Order): The order instance.
-
-        Returns:
-            Decimal: The additional urgent fee, if applicable.
-        """
-        if (
-            self.order.is_urgent and
-            self.order.deadline and
-            self.order.deadline < self.config.urgent_order_threshold
-        ):
-            return self.config.urgent_fee
+            from pricing_configs.models import PreferredWriterConfig
+            try:
+                pref = PreferredWriterConfig.objects.get(
+                    writer=self.order.preferred_writer,
+                    website=self.website
+                )
+                return pref.preferred_writer_cost
+            except PreferredWriterConfig.DoesNotExist:
+                return Decimal(0)
         return Decimal(0)
 
 
@@ -159,7 +177,21 @@ class PricingCalculatorService:
         except ValidationError:
             return Decimal(0)
 
-    # orders/services/calculate_additional_cost.py
+
+    # Calculate the cost for additional services
+    def calculate_extra_services_cost(self) -> Decimal:
+
+        """
+        Calculate the total cost of additional services added to the order.
+
+        Returns:
+            Decimal: Total cost of extra services.
+        """
+        return sum(
+            service.service_cost for service in self.order.extra_services.all()
+        )
+    
+
 
     def calculate_additional_cost(self, discount_codes=None) -> Decimal:
         """
@@ -225,12 +257,13 @@ class PricingCalculatorService:
         """
         base = self.calculate_base_price()
         extras = self.calculate_extra_services_price()
-        quality = self.calculate_writer_quality_price()
+        quality = self.calculate_writer_level_price()
         preferred = self.calculate_preferred_writer_fee()
-        urgent = self.calculate_urgent_price()
         discount = self.calculate_discount()
 
-        return base + extras + quality + preferred + urgent - discount
+        final_price = base + extras + quality + preferred - discount
+
+        return final_price if final_price > 0 else Decimal(0)
 
     def calculate_breakdown(self) -> dict:
         """
@@ -238,69 +271,22 @@ class PricingCalculatorService:
         Useful for frontend display or admin review.
         """
         base = self.calculate_base_price()
-        extras = self.calculate_extra_services_price()
-        quality = self.calculate_writer_quality_price()
+        services = self.calculate_extra_services_price()
+        writer_level = self.calculate_writer_level_price()
         preferred = self.calculate_preferred_writer_fee()
-        urgent = self.calculate_urgent_price()
         discount = self.calculate_discount()
-
-        total = base + extras + quality + preferred + urgent - discount
-
+        multiplier = self.get_deadline_multiplier()
+        total = base + services + writer_level + preferred - discount
         return {
             "base_price": float(base),
-            "extra_services": float(extras),
-            "writer_quality": float(quality),
+            "extra_services": float(services),
+            "writer_level": float(writer_level),
             "preferred_writer": float(preferred),
-            "urgent_fee": float(urgent),
-            "discount": float(discount),
-            "final_total": float(total)
-        }
-
-    def calculate_total_price(self) -> Decimal:
-        """
-        Aggregates all pricing components to compute the final total order price.
-
-        Args:
-            order (Order): The order instance.
-
-        Returns:
-            Decimal: The total payable price after all additions and deductions.
-        """
-        base = self.calculate_base_price()
-        extras = self.calculate_extra_services_price()
-        quality = self.calculate_writer_quality_price()
-        preferred = self.calculate_preferred_writer_fee()
-        urgent = self.calculate_urgent_price()
-        discount = self.calculate_discount()
-
-        return base + extras + quality + preferred + urgent - discount
-    
-
-    def calculate_breakdown(self) -> dict:
-        """
-        Returns a detailed breakdown of the price components.
-        Useful for frontend display or admin review.
-        """
-        base = self.calculate_base_price()
-        extras = self.calculate_extra_services_price()
-        quality = self.calculate_writer_quality_price()
-        preferred = self.calculate_preferred_writer_fee()
-        urgent = self.calculate_urgent_price()
-        discount = self.calculate_discount()
-
-        total = base + extras + quality + preferred + urgent - discount
-
-        return {
-            "base_price": float(base),
-            "extra_services": float(extras),
-            "writer_quality": float(quality),
-            "preferred_writer": float(preferred),
-            "urgent_fee": float(urgent),
+            "deadline_multiplier": float(multiplier),
             "discount": float(discount),
             "final_total": float(total)
         }
     
-
     def save_snapshot(self):
         """
         Saves or updates a snapshot of the pricing breakdown.

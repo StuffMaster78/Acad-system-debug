@@ -4,7 +4,7 @@ from django.db import transaction
 from django.core.cache import cache
 from orders.models import Order, PreferredWriterResponse
 from django.contrib.auth import get_user_model
-from pricing_configs.models import PricingConfiguration
+from pricing_configs.models import PreferredWriterConfig
 
 User = get_user_model()
 
@@ -26,9 +26,9 @@ class PreferredWriterService:
             return cost
 
         try:
-            pricing_config = PricingConfiguration.objects.first()
+            pricing_config = PreferredWriterConfig.objects.first()
             cost = pricing_config.preferred_writer_cost if pricing_config else Decimal(0)
-        except PricingConfiguration.DoesNotExist:
+        except PreferredWriterConfig.DoesNotExist:
             cost = Decimal(0)
 
         cache.set(CACHE_KEY_PREFERRED_WRITER_COST, cost, CACHE_TIMEOUT)

@@ -11,7 +11,7 @@ class OrderFlags(str, Enum):
     PREFERRED_ORDER = 'PO'
     RETURNING_CLIENT_ORDER = 'RCO'
     CRITICAL_ORDER = 'CO'
-    lATE_ORDER = 'LO'
+    LATE_ORDER = 'LO'
     DISPUTED_ORDER = 'DO'
     ARCHIVED_ORDER = 'AO'
     EXPIRED_ORDER = 'EO'
@@ -56,6 +56,16 @@ class OrderPaymentStatus(str, Enum):
     FAILED = "failed"
     PENDING = "pending"
     CANCELLED = "cancelled"
+
+    @classmethod
+    def choices(cls):
+        """
+        Returns a list of tuples (value, label) for each dispute status.
+        """
+        return [
+            (status.value, status.name.replace('_', ' ').title()) 
+            for status in cls
+        ]
     
 class DisputeStatusEnum(Enum):
     """
@@ -86,6 +96,16 @@ class ResolutionOutcome(Enum):
     CLIENT_WINS = "client_wins"
     EXTEND_DEADLINE = "extend_deadline"
     REASSIGN = "reassign"
+
+    @classmethod
+    def choices(cls):
+        """
+        Returns a list of tuples (value, label) for each dispute status.
+        """
+        return [
+            (status.value, status.name.replace('_', ' ').title()) 
+            for status in cls
+        ]
 class SpacingOptions(Enum):
     """
     Enum representing the different spacing options for an order.
@@ -108,6 +128,16 @@ class WriterPaymentStatus(Enum):
     PROCESSING = "processing"
     COMPLETED = "completed"
     FAILED = "failed"
+
+    @classmethod
+    def choices(cls):
+        """
+        Returns a list of tuples (value, label) for each dispute status.
+        """
+        return [
+            (status.value, status.name.replace('_', ' ').title()) 
+            for status in cls
+        ]
 class OrderStatus(str, Enum):
     """Represents the possible states of an order."""
     DRAFT = 'draft'
@@ -147,6 +177,16 @@ class OrderStatus(str, Enum):
     EXPIRED = 'expired'
     UNDER_REVIEW = 'under_review'
     REOPENED = 're_opened'
+
+    @classmethod
+    def choices(cls):
+        """
+        Returns a list of tuples (value, label) for each dispute status.
+        """
+        return [
+            (status.value, status.name.replace('_', ' ').title()) 
+            for status in cls
+        ]
 
 
 # Order transitions allowed from each state
