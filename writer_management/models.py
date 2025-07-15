@@ -6,6 +6,7 @@ from orders.models import Order
 from wallet.models import Wallet
 from django.core.exceptions import ValidationError
 from django.contrib.postgres.fields import ArrayField
+from fines.models import Fine
 
 User = settings.AUTH_USER_MODEL 
 
@@ -31,50 +32,10 @@ class WriterProfile(models.Model):
         unique=True,
         help_text="Unique writer registration ID (e.g., Writer #12345)."
     )
-    email = models.EmailField(
-        unique=True,
-        help_text="Writer's email address."
-    )
-    phone_number = models.CharField(
-        max_length=15,
-        blank=True,
-        null=True,
-        help_text="Writer's phone number."
-    )
-    country = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        help_text="Writer's country."
-    )
     timezone = models.CharField(
         max_length=50,
         default="UTC",
         help_text="Writer's timezone."
-    )
-    ip_address = models.GenericIPAddressField(
-        blank=True,
-        null=True,
-        help_text="Last known IP address of the writer."
-    )
-    location_verified = models.BooleanField(
-        default=False,
-        help_text="Whether the writer's location has been verified."
-    )
-    website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name="writers",
-        help_text="Website the writer is associated with."
-    )
-    joined = models.DateTimeField(
-        default=now,
-        help_text="Date when the writer joined."
-    )
-    last_logged_in = models.DateTimeField(
-        blank=True,
-        null=True,
-        help_text="The last time the writer logged in."
     )
     writer_level = models.ForeignKey(
         "WriterLevel",
@@ -121,19 +82,39 @@ class WriterProfile(models.Model):
         blank=True,
         help_text="List of schools attended and uploaded certificates."
     )
-    rating = models.DecimalField(
-        max_digits=3,
-        decimal_places=2,
-        default=0.00,
-        help_text="Average rating of the writer."
-    )
     active_orders = models.PositiveIntegerField(
         default=0,
         help_text="Number of ongoing orders assigned to the writer."
     )
+    joined_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="Date and time when the writer joined the platform."
+    )
+
 
     def __str__(self):
         return f"Writer Profile: {self.user.username} ({self.registration_id})"
+    
+
+    def get_summary(self):
+        """
+        Returns a brief summary of the writer's profile.
+        """
+        return {
+            "username": self.user.username,
+            "registration_id": self.registration_id,
+            "writer_level": self.writer_level.name if self.writer_level else "N/A",
+            "skills": self.skills.split(",") if self.skills else [],
+            "subject_preferences": self.subject_preferences.split(",") if self.subject_preferences else [],
+            "total_orders": self.number_of_takes,
+            "total_completed_orders": self.completed_orders,
+            "total_active_orders": self.active_orders,
+            "total_takes": self.number_of_takes,
+            "total_earnings": str(self.total_earnings),
+            "average_rating": self.average_rating,
+            "active_orders": self.active_orders,
+            "joined_at": self.joined_at.strftime("%Y-%m-%d %H:%M:%S"),
+        }
 
     @property
     def average_rating(self):
@@ -1549,4 +1530,4 @@ class WebhookSettings(models.Model):
         verbose_name_plural = "Webhook Settings"
 
     def __str__(self):
-        return f"{self.user} – {self.platform} webhook"
+        return f"{self.user} - {self.platform} webhook"

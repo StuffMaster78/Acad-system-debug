@@ -6,3 +6,4 @@ class WriterManagementConfig(AppConfig):
 
     def ready(self):
         import writer_management.signals
+        import writer_management.writer_status_signals

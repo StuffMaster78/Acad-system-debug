@@ -1,10 +1,21 @@
-from django.db.models.signals import post_save, pre_delete
+from django.db.models.signals import (
+    post_save, pre_delete, post_delete
+)
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in
 from django.utils.timezone import now
-from .models import WriterProfile, WriterActionLog
-from core.utils.location import get_geolocation_from_ip  # Ensure this exists in the core app
+from .models.profile import WriterProfile
+from models.logs import WriterActionLog
+from core.utils.location import get_geolocation_from_ip
+from models.payout import CurrencyConversionRate
+from django.core.cache import cache
+from writer_management.services.conversion_service import CurrencyConversionService
+
+from writer_management.services.status_service import WriterStatusService
+from writer_management.models.discipline import (
+    WriterStrike, WriterSuspension, WriterBlacklist, Probation
+)
 
 User = get_user_model()
 
@@ -114,3 +125,22 @@ def get_client_ip(request):
     if x_forwarded_for:
         return x_forwarded_for.split(",")[0]
     return request.META.get("REMOTE_ADDR")
+
+@receiver([post_save, post_delete], sender=WriterStrike)
+@receiver([post_save, post_delete], sender=WriterSuspension)
+@receiver([post_save, post_delete], sender=WriterBlacklist)
+@receiver([post_save, post_delete], sender=Probation)
+def invalidate_writer_status_cache(sender, instance, **kwargs):
+    """Invalidate the cache for the writer's status
+    when any discipline-related model is saved or deleted.
+    """
+    WriterStatusService.clear_cache(instance.writer)
+
+
+
+@receiver(post_save, sender=CurrencyConversionRate)
+def clear_cached_conversion_rate(sender, instance, **kwargs):
+    key = CurrencyConversionService._cache_key(
+        instance.website.id, instance.target_currency
+    )
+    cache.delete(key)

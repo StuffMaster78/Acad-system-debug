@@ -7,7 +7,7 @@ class WriterConfig(models.Model):
     Admin-controlled settings for writers.
     This allows admins to enable/disable order takes.
     """
-    website = models.ForeignKey(
+    website = models.OneToOneField(
         Website,
         on_delete=models.CASCADE
     )
@@ -23,10 +23,7 @@ class WriterConfig(models.Model):
         default=10,
         help_text="Maximum number of orders a writer can take at once."
     )
-    max_takes_per_order = models.PositiveIntegerField(
-        default=3,
-        help_text="Maximum number of writers that can take a single order."
-    )
+    
 
     def __str__(self):
         return f"Config for {self.website.name} - Takes Enabled: {self.takes_enabled}"
@@ -36,49 +33,6 @@ class WriterConfig(models.Model):
         verbose_name_plural = "Writer Configs"
         unique_together = ("website",)
         ordering = ["-id"]
-
-class WriterConfigAdmin(models.Model):
-    """
-    Admin interface for managing writer configurations.
-    Allows admins to create, update, and delete configurations.
-    """
-    website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE
-    )
-    takes_enabled = models.BooleanField(
-        default=True,
-        help_text="If True, writers can take orders. If False, writers must request orders."
-    )
-    max_requests_per_writer = models.PositiveIntegerField(
-        default=5,
-        help_text="Maximum number of order requests a writer can have at once."
-    )
-    max_takes_per_writer = models.PositiveIntegerField(
-        default=10,
-        help_text="Maximum number of orders a writer can take at once."
-    )
-    max_takes_per_order = models.PositiveIntegerField(
-        default=3,
-        help_text="Maximum number of writers that can take a single order."
-    )
-
-    def __str__(self):
-        return f"Admin Config for {self.website.name} - Takes Enabled: {self.takes_enabled}"
-    
-    class Meta:
-        verbose_name = "Writer Config Admin"
-        verbose_name_plural = "Writer Config Admins"
-        unique_together = ("website",)
-        ordering = ["-id"]
-
-    def save(self, *args, **kwargs):
-        """
-        Ensure only one config per website.
-        """
-        if WriterConfig.objects.filter(website=self.website).exists():
-            raise ValueError("A configuration for this website already exists.")
-        super().save(*args, **kwargs)
 
 
 class WriterConfigHistory(models.Model):
@@ -115,3 +69,79 @@ class WriterConfigHistory(models.Model):
         verbose_name = "Writer Config History"
         verbose_name_plural = "Writer Config Histories"
         ordering = ['-change_date']
+
+
+class WriterLevelConfig(models.Model):
+    """
+    Configurable writer level, defined by admin.
+    Determines what score/metrics a writer needs
+    to belong to this level.
+    """
+    website = models.ForeignKey(
+        Website, on_delete=models.CASCADE,
+        related_name="writer_levels"
+    )
+    name = models.CharField(max_length=50, unique=True)
+    description = models.TextField(blank=True)
+
+    min_score = models.DecimalField(
+        max_digits=6, decimal_places=2,
+        help_text="Minimum composite score required"
+    )
+    min_rating = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        default=0.00,
+        help_text="Minimum average rating"
+    )
+    max_revision_rate = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        null=True, blank=True,
+        help_text="Max acceptable revision rate (%)"
+    )
+    max_lateness_rate = models.DecimalField(
+        max_digits=5, decimal_places=2,
+        null=True, blank=True,
+        help_text="Max acceptable lateness rate (%)"
+    )
+    priority = models.PositiveIntegerField(
+        default=0,
+        help_text="Higher priority levels appear first"
+    )
+    is_active = models.BooleanField(default=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-priority"]
+
+    def __str__(self):
+        return f"{self.website.name} – {self.name}"
+    
+
+class WriterWarningEscalationConfig(models.Model):
+    """
+    Configures escalation thresholds for writer warnings.
+    This allows admins to set thresholds for probation, suspension,
+    and admin alerts based on the number of warnings issued.
+    """
+    website = models.ForeignKey(
+        Website, on_delete=models.CASCADE,
+        related_name="warning_configs"
+    )
+
+    probation_threshold = models.PositiveIntegerField(default=3)
+    suspension_threshold = models.PositiveIntegerField(default=5)
+    admin_alert_threshold = models.PositiveIntegerField(default=7)
+
+    default_warning_duration_days = models.PositiveIntegerField(default=30)
+
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ("website",)
+        verbose_name = "Writer Warning Escalation Config"
+        verbose_name_plural = "Writer Warning Escalation Configs"
+
+    def __str__(self):
+        return f"Escalation Config for {self.website.domain}"

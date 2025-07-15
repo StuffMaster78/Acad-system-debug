@@ -29,52 +29,13 @@ class WriterProfile(models.Model):
     registration_id = models.CharField(
         max_length=50,
         unique=True,
+        db_index=True,
         help_text="Unique writer registration ID (e.g., Writer #12345)."
-    )
-    email = models.EmailField(
-        unique=True,
-        help_text="Writer's email address."
-    )
-    phone_number = models.CharField(
-        max_length=15,
-        blank=True,
-        null=True,
-        help_text="Writer's phone number."
-    )
-    country = models.CharField(
-        max_length=100,
-        blank=True,
-        null=True,
-        help_text="Writer's country."
     )
     timezone = models.CharField(
         max_length=50,
         default="UTC",
         help_text="Writer's timezone."
-    )
-    ip_address = models.GenericIPAddressField(
-        blank=True,
-        null=True,
-        help_text="Last known IP address of the writer."
-    )
-    location_verified = models.BooleanField(
-        default=False,
-        help_text="Whether the writer's location has been verified."
-    )
-    website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name="writers",
-        help_text="Website the writer is associated with."
-    )
-    joined = models.DateTimeField(
-        default=now,
-        help_text="Date when the writer joined."
-    )
-    last_logged_in = models.DateTimeField(
-        blank=True,
-        null=True,
-        help_text="The last time the writer logged in."
     )
     writer_level = models.ForeignKey(
         "WriterLevel",
@@ -100,6 +61,7 @@ class WriterProfile(models.Model):
     )
     verification_status = models.BooleanField(
         default=False,
+        db_index=True,
         help_text="Indicates whether the writer has been verified."
     )
     verification_documents = models.JSONField(
@@ -116,68 +78,91 @@ class WriterProfile(models.Model):
         null=True,
         help_text="Subjects or topics the writer prefers to handle."
     )
-    education = models.JSONField(
-        default=list,
+    introduction = models.TextField(
         blank=True,
-        help_text="List of schools attended and uploaded certificates."
-    )
-    rating = models.DecimalField(
-        max_digits=3,
-        decimal_places=2,
-        default=0.00,
-        help_text="Average rating of the writer."
+        null=True,
+        help_text="Brief introduction or bio of the writer."
     )
     active_orders = models.PositiveIntegerField(
         default=0,
         help_text="Number of ongoing orders assigned to the writer."
     )
+    joined_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+        help_text="Date and time when the writer joined the platform."
+    )
+    last_active = models.DateTimeField(null=True, blank=True)
+    allow_public_view = models.BooleanField(
+        default=True,
+        help_text="Allow public viewing of the writer's profile."
+    )
+    slug = models.SlugField(unique=True, blank=True)
+    is_draft = models.BooleanField(default=True)
+
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+
+
 
     def __str__(self):
-        return f"Writer Profile: {self.user.username} ({self.registration_id})"
+        username = self.user.username if self.user else "Unknown"
+        return f"Writer Profile: {username} ({self.registration_id})"
 
-    @property
-    def average_rating(self):
-        """
-        Calculate the average rating for the writer based on WriterRating objects.
-        """
-        avg_rating = self.ratings.aggregate(models.Avg("rating"))["rating__avg"]
-        return round(avg_rating, 2) if avg_rating is not None else 0.0
+    class Meta:
+        verbose_name = "Writer Profile"
+        verbose_name_plural = "Writer Profiles"
+        ordering = ['-joined_at']
+        unique_together = ("website", "registration_id")
 
-
-    @property
-    def total_ratings(self):
+    def clean(self):
         """
-        Count the total number of ratings the writer has received.
+        Custom validation to ensure registration ID is unique and valid.
         """
-        return self.ratings.count()
-
-    @property
-    def recent_feedback(self):
-        """
-        Retrieve the most recent feedback provided for the writer.
-        """
-        return self.ratings.order_by("-created_at").values("feedback", "rating", "created_at")[:5]
-
-    @property
-    def leave_status(self):
-        """
-        Check if the writer is currently on leave.
-        """
-        current_leaves = self.leaves.filter(
-            start_date__lte=now(),
-            end_date__gte=now(),
-            approved=True
-        )
-        return current_leaves.exists()
-
-    @property
-    def wallet_balance(self):
-        """
-        Retrieve the writer's wallet balance.
-        """
-        wallet = Wallet.objects.filter(user=self.user).first()
-        return wallet.balance if wallet else 0.00
+        if not self.registration_id:
+            raise ValidationError("Registration ID cannot be empty.")
+        
+        if len(self.registration_id) < 5:
+            raise ValidationError("Registration ID must be at least 5 characters long.")
+        
+        if not self.registration_id.startswith("Writer #"):
+            raise ValidationError("Registration ID must start with 'Writer #'.")
+        
+        if self.website.writer_profile.filter(registration_id=self.registration_id).exists():
+            raise ValidationError("This registration ID already exists for another writer.")    
     
+    def save(self, *args, **kwargs):
+        """
+        Override save method to perform custom validation.
+        """
+        self.clean()
+        super().save(*args, **kwargs)
+
+    def get_summary(self):
+        """
+        Returns a brief summary of the writer's profile.
+        """
+        return {
+            "username": self.user.username,
+            "registration_id": self.registration_id,
+            "writer_level": self.writer_level.name if self.writer_level else "N/A",
+            "skills": [
+                s.strip() for s in self.skills.split(",")
+            ] if self.skills else [],
+            "subject_preferences": [
+                s.strip() for s in self.subject_preferences.split(",")
+            ] if self.subject_preferences else [],
+            "total_completed_orders": self.completed_orders,
+            "total_active_orders": self.active_orders,
+            "total_takes": self.number_of_takes,
+            "total_earnings": str(self.total_earnings),
+            "verification_status": self.verification_status,
+            "verification_documents": self.verification_documents,
+            "active_orders": self.active_orders,
+            "joined_at": self.joined_at.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+
 class WriterEducation(models.Model):
     """
     Tracks education history and uploaded certificates for verification.
@@ -197,9 +182,19 @@ class WriterEducation(models.Model):
         max_length=255,
         help_text="Name of the educational institution."
     )
-    degree = models.CharField(
+    course = models.CharField(
         max_length=255,
         help_text="Degree or certification obtained."
+    )
+    start_year = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Year when the course started."
+    )
+    end_year = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Year when the course ended."
     )
     graduation_year = models.PositiveIntegerField(
         null=True,
@@ -240,126 +235,36 @@ class WriterEducation(models.Model):
         self.clean()
         super().save(*args, **kwargs)
 
-
-class WriterProfileAdmin(models.Model):
+class WriterSubjectPreference(models.Model):
     """
-    Admin interface for managing writer profiles.
-    Allows admins to create, update, and delete writer profiles.
-    """
-    website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name="writer_profile_admin"
-    )
-    writer = models.ForeignKey(
-        WriterProfile,
-        on_delete=models.CASCADE,
-        related_name="admin_profiles",
-        help_text="The writer whose profile is being managed."
-    )
-    admin_user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="managed_writer_profiles",
-        help_text="The admin user managing this writer profile."
-    )
-    updated_at = models.DateTimeField(auto_now=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Admin Profile Management: {self.writer.user.username} by {self.admin_user.username}"
-
-    class Meta:
-        verbose_name = "Writer Profile Admin Management"
-        verbose_name_plural = "Writer Profile Admin Management"
-        ordering = ['-updated_at']
-
-
-class WriterProfileSettings(models.Model):
-    """
-    Settings for writer profiles, allowing customization of profile visibility and features.
+    Represents a writer's subject preferences for assignments.
+    Allows writers to specify subjects they are comfortable with.
     """
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
-        related_name="writer_profile_settings"
+        related_name="writer_subject_preferences"
     )
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
-        related_name="settings",
-        help_text="The writer whose settings are being configured."
+        related_name="subject_preferences",
+        help_text="The writer whose subject preferences are being set."
     )
-    allow_public_view = models.BooleanField(
-        default=True,
-        help_text="Allow public viewing of the writer's profile."
-    )
-    enable_notifications = models.BooleanField(
-        default=True,
-        help_text="Enable notifications for the writer."
-    )
-    custom_fields = models.JSONField(
-        default=dict,
+    subjects = ArrayField(
+        models.CharField(max_length=100),
         blank=True,
-        help_text="Custom fields for additional profile information."
+        default=list,
+        help_text="List of subjects the writer prefers to work on."
     )
-    
+
     def __str__(self):
-        return f"Settings for {self.writer.user.username} on {self.website.name}"
+        return f"Subject Preferences for {self.writer.user.username}"
     
     class Meta:
-        verbose_name = "Writer Profile Settings"
-        verbose_name_plural = "Writer Profile Settings"
+        verbose_name = "Writer Subject Preference"
+        verbose_name_plural = "Writer Subject Preferences"
         unique_together = ("website", "writer")
-
-
-    def clean(self):
-        """
-        Custom validation to ensure settings are valid.
-        """
-        if not isinstance(self.custom_fields, dict):
-            raise ValidationError("Custom fields must be a dictionary.")
-        
-        if not self.custom_fields:
-            raise ValidationError("Custom fields cannot be empty.")
-        
-
-    def save(self, *args, **kwargs):
-        """
-        Override save method to perform custom validation.
-        """
-        self.clean()
-        super().save(*args, **kwargs)
-
-class WriterProfileNotification(models.Model):
-    """
-    Notifications for writers about profile updates or important events.
-    """
-    website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name="writer_profile_notifications"
-    )
-    writer = models.ForeignKey(
-        WriterProfile,
-        on_delete=models.CASCADE,
-        related_name="notifications",
-        help_text="The writer receiving the notification."
-    )
-    message = models.TextField(
-        help_text="Notification message content."
-    )
-    sent_at = models.DateTimeField(auto_now_add=True)
-    read = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"Notification: {self.writer.user.username} - {self.sent_at} (Read: {self.read})"
-    
-    class Meta:
-        verbose_name = "Writer Profile Notification"
-        verbose_name_plural = "Writer Profile Notifications"
-        ordering = ['-sent_at']
-
 
 class WriterProfileWebhookSetting(models.Model):
     """

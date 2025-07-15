@@ -2,31 +2,57 @@ from rest_framework import serializers
 from django.utils.timezone import now
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from .models import (
-    WriterProfile, WriterLevel, WriterLeave,
-    WriterActionLog, WriterEducation,
-    WriterReward, WriterRewardCriteria,
-    WriterDemotionRequest, WriterPerformanceReport,
-    WriterRating, Probation,
-    WriterPenalty, WriterSuspension,
-    WriterPayoutPreference, WriterPayment,
-    WriterEarningsHistory, WriterEarningsReviewRequest,
-    WriterReassignmentRequest, WriterOrderHoldRequest,
-    OrderDispute, WriterOrderReopenRequest,
-    WriterActivityLog, WriterMessageThread,
-    WriterMessage, WriterMessageModeration,
-    WriterSupportTicket, WriterDeadlineExtensionRequest,
-    WriterAutoRanking, WriterActivityTracking,
-    WriterIPLog, WriterRatingCooldown, WriterFileDownloadLog,
-    WriterConfig, WriterOrderRequest, WriterOrderTake
-)
 from decimal import Decimal
+from writer_management.models.order_dispute import OrderDispute
 from writer_management.models import (
     WebhookSettings, WebhookPlatform
 )
 from orders.order_enums import WebhookEvent
-from writer_management.models import WriterLevel, WriterConfig, Tip
+from writer_management.models.levels import (
+    WriterLevel, WriterLevelHistory
+)
+from writer_management.models.configs import WriterConfig
+from writer_management.models.messages import (
+    WriterMessageThread, WriterMessage
+)
+from writer_management.models.tipping import Tip
 from orders.models import Order
+from models.payout import WriterPayment, WriterPayoutPreference
+from writer_management.models.profile import WriterProfile
+from writer_management.models.requests import (
+    WriterOrderRequest, WriterOrderTake, WriterDeadlineExtensionRequest,
+    WriterOrderHoldRequest, WriterOrderReopenRequest
+)
+from writer_management.models.performance import (
+    WriterPerformanceReport, WriterAutoRanking, WriterReward,
+    WriterRewardCriteria, WriterEarningsHistory, WriterEarningsReviewRequest,
+)
+from writer_management.models.tickets import (
+    WriterSupportTicket, WriterDeadlineExtensionRequest,
+    WriterOrderHoldRequest, WriterOrderReopenRequest
+)
+from writer_management.models.discipline import (
+    Probation, WriterPenalty, WriterSuspension
+)
+from writer_management.models.logs import (
+    WriterActivityLog, WriterIPLog, WriterRatingCooldown,
+    WriterFileDownloadLog
+)
+from writer_management.models.logs import WriterActionLog
+from writer_management.models.profile import WriterProfile
+from writer_management.models.requests import WriterOrderRequest, WriterOrderTake
+from writer_management.models.configs import WriterConfig
+from writer_management.models.tipping import Tip
+from writer_management.models.payout import WriterPayoutPreference
+# from writer_management.models.webhook import WebhookSettings, WebhookPlatform
+from writer_management.models.payout import CurrencyConversionRate
+from writer_management.models.performance_snapshot import WriterPerformanceSnapshot
+from writer_management.models.writer_warnings import WriterWarning
+from writer_management.models.status import WriterStatus
+from writer_management.services.status_service import WriterStatusService
+from writer_management.models.badges import WriterBadge
+from websites.models import Website
+
 
 User = get_user_model()
 
@@ -78,10 +104,15 @@ class WriterOrderRequestSerializer(serializers.ModelSerializer):
             raise ValidationError("WriterConfig settings are missing.")
 
         max_requests = config.max_requests_per_writer
-        active_requests = WriterOrderRequest.objects.filter(writer=data['writer'], approved=False).count()
+        active_requests = WriterOrderRequest.objects.filter(
+            writer=data['writer'],
+            approved=False
+        ).count()
 
         if active_requests >= max_requests:
-            raise ValidationError(f"Writer {data['writer'].user.username} has reached their max request limit.")
+            raise ValidationError(
+                f"Writer {data['writer'].user.username} has reached their max request limit."
+            )
 
         return data
 
@@ -103,7 +134,9 @@ class WriterOrderTakeSerializer(serializers.ModelSerializer):
         """
         config = WriterConfig.objects.first()
         if not config or not config.takes_enabled:
-            raise ValidationError("Order takes are currently disabled. Writers must request orders.")
+            raise ValidationError(
+                "Order takes are currently disabled. Writers must request orders."
+            )
 
         max_allowed_orders = data['writer'].writer_level.max_orders if data['writer'].writer_level else 0
         current_taken_orders = WriterOrderTake.objects.filter(writer=data['writer']).count()
@@ -423,4 +456,229 @@ class TipListSerializer(serializers.ModelSerializer):
             "id", "tip_amount", "tip_reason", "sent_at",
             "writer_name", "client_name", "order_title",
             "writer_earning", "platform_profit"
+        ]
+
+class CurrencyConversionRateSerializer(serializers.ModelSerializer):
+    website_id = serializers.PrimaryKeyRelatedField(
+        source="website",
+        queryset=Website.objects.all()
+    )
+
+    class Meta:
+        model = CurrencyConversionRate
+        fields = [
+            "id",
+            "website_id",
+            "target_currency",
+            "rate",
+            "effective_date",
+            "created_at",
+        ]
+        read_only_fields = ["created_at"]
+
+class WriterPaymentSerializer(serializers.ModelSerializer):
+    writer_id = serializers.PrimaryKeyRelatedField(
+        source="writer", queryset=WriterProfile.objects.all()
+    )
+    website_id = serializers.PrimaryKeyRelatedField(
+        source="website", queryset=Website.objects.all()
+    )
+
+    class Meta:
+        model = WriterPayment
+        fields = [
+            "id",
+            "writer_id",
+            "website_id",
+            "amount",
+            "bonuses",
+            "fines",
+            "tips",
+            "converted_amount",
+            "conversion_rate",
+            "currency",
+            "payment_date",
+            "description",
+        ]
+        read_only_fields = [
+            "converted_amount",
+            "conversion_rate",
+            "currency",
+            "payment_date",
+        ]
+
+
+
+class WriterStatusSerializer(serializers.ModelSerializer):
+    status_reason = serializers.SerializerMethodField()
+    status_badge = serializers.SerializerMethodField()
+    days_remaining = serializers.SerializerMethodField()
+    class Meta:
+        model = WriterStatus
+        fields = [
+            "id",
+            "writer",
+            "website",
+            "is_active",
+            "is_suspended",
+            "is_blacklisted",
+            "is_on_probation",
+            "active_strikes",
+            "last_strike_at",
+            "suspension_ends_at",
+            "probation_ends_at",
+            "should_be_suspended",
+            "should_be_probated",
+            "updated_at",
+            "status_reason",
+        ]
+        read_only_fields = fields
+
+    def get_status_reason(self, obj):
+        if obj.is_blacklisted:
+            return "Blacklisted by admin."
+        if obj.is_suspended:
+            return "Suspended for policy violation."
+        if obj.should_be_suspended:
+            return "Auto-flagged for suspension due to warnings."
+        if obj.is_on_probation:
+            return "Currently on probation."
+        return "Active and in good standing."
+    
+    def get_status_badge(self, obj):
+        if obj.is_blacklisted:
+            return "blacklisted"
+        if obj.is_suspended:
+            return "suspended"
+        if obj.should_be_suspended:
+            return "flagged"
+        if obj.is_on_probation:
+            return "probation"
+        return "active"
+
+    def get_days_remaining(self, obj):
+        if obj.is_suspended and obj.suspension_ends_at:
+            delta = obj.suspension_ends_at - now()
+            return max(delta.days, 0)
+        if obj.is_on_probation and obj.probation_ends_at:
+            delta = obj.probation_ends_at - now()
+            return max(delta.days, 0)
+        return None
+
+
+
+class WriterPerformanceSnapshotSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WriterPerformanceSnapshot
+        fields = "__all__"
+        read_only_fields = [
+            "writer",
+            "website",
+            "is_cached",
+            "generated_at",
+        ]
+
+class WriterPerformanceSummarySerializer(serializers.ModelSerializer):
+    writer_name = serializers.CharField(
+        source="writer.user.get_full_name", read_only=True
+    )
+    website_name = serializers.CharField(
+        source="website.domain", read_only=True
+    )
+
+    class Meta:
+        model = WriterPerformanceSnapshot
+        fields = [
+            "writer_name",
+            "website_name",
+            "period_start",
+            "period_end",
+            "average_rating",
+            "completion_rate",
+            "lateness_rate",
+            "revision_rate",
+            "preferred_order_rate",
+            "orders_completed",
+            "pages_completed",
+            "total_earnings",
+            "composite_score",
+            "contribution_to_profit",
+            "generated_at"
+        ]
+
+
+class WriterLevelSerializer(serializers.ModelSerializer):
+    writer_id = serializers.IntegerField(
+        source="writer.id", read_only=True
+    )
+    writer_username = serializers.CharField(
+        source="writer.user.username", read_only=True
+    )
+
+    class Meta:
+        model = WriterLevel
+        fields = [
+            "id",
+            "writer_id",
+            "writer_username",
+            "level",
+            "updated_at",
+        ]
+
+class WriterLevelHistorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WriterLevelHistory
+        fields = [
+            "id", "level", "changed_at", "triggered_by"
+        ]
+
+
+class WriterWarningSerializer(serializers.ModelSerializer):
+    writer_name = serializers.CharField(
+        source='writer.user.username', read_only=True
+    )
+    issued_by_name = serializers.CharField(
+        source='issued_by.username', read_only=True
+    )
+
+    class Meta:
+        model = WriterWarning
+        fields = [
+            'id', 'writer', 'writer_name', 'reason',
+            'issued_by', 'issued_by_name',
+            'issued_at', 'expires_at', 'is_active'
+        ]
+        read_only_fields = ['issued_by', 'issued_at', 'is_active']
+
+class WriterWarningSelfViewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WriterWarning
+        fields = ['reason', 'warning_type', 'created_at', 'expires_at']
+
+
+
+class WriterBadgeSerializer(serializers.ModelSerializer):
+    badge_name = serializers.CharField(source="badge.name")
+    badge_type = serializers.CharField(source="badge.type")
+    badge_icon = serializers.CharField(source="badge.icon")
+
+    class Meta:
+        model = WriterBadge
+        fields = [
+            "id", "writer", "badge_name", "badge_type",
+            "badge_icon", "issued_at", "is_auto_awarded",
+            "revoked", "revoked_reason", "notes"
+        ]
+        read_only_fields = fields
+
+
+class WriterBadgeTimelineSerializer(serializers.ModelSerializer):
+    badge_name = serializers.CharField(source="badge.name")
+    badge_icon = serializers.CharField(source="badge.icon")
+
+    class Meta:
+        model = WriterBadge
+        fields = [
+            "id", "badge_name", "badge_icon",
+            "issued_at", "is_auto_awarded"
         ]

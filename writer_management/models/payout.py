@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from websites.models import Website 
 from writer_management.models.profile import WriterProfile
 from orders.models import Order
@@ -24,7 +25,8 @@ class WriterPayoutPreference(models.Model):
         related_name="writer_payout_preference"
     )
     writer = models.ForeignKey(
-        "writer_management.WriterProfile", on_delete=models.CASCADE,
+        "writer_management.WriterProfile",
+        on_delete=models.CASCADE,
         related_name="payout_preferences"
     )
     preferred_method = models.CharField(
@@ -88,6 +90,22 @@ class WriterPayment(models.Model):
         max_digits=12, decimal_places=2,
         help_text="Tips received."
     )
+    converted_amount = models.DecimalField(
+        max_digits=12, decimal_places=2,
+        null=True, blank=True,
+        help_text="Amount paid in the writer's local currency (e.g., KSH)."
+    )
+    conversion_rate = models.DecimalField(
+        max_digits=10, decimal_places=4,
+        null=True, blank=True,
+        help_text="USD to KSH rate used at time of payment."
+    )
+
+    currency = models.CharField(
+        max_length=5,
+        default="USD",
+        help_text="Currency in which the writer was paid (e.g., USD, KSH)."
+    )
     payment_date = models.DateTimeField(
         auto_now_add=True, help_text="Date of payment."
     )
@@ -97,7 +115,15 @@ class WriterPayment(models.Model):
     )
 
     def __str__(self):
-        return f"Payment of ${self.amount} to {self.writer.user.username} on {self.payment_date}"
+        return (
+            f"Payment of ${self.amount} to {self.writer.user.username}"
+             f"on {self.payment_date}"
+        )
+    
+    def save(self, *args, **kwargs):
+        if not self.writer.user.is_staff and self.conversion_rate is not None:
+            raise PermissionDenied("Only admins can set conversion rates.")
+        super().save(*args, **kwargs)
 
 
 class WriterEarningsHistory(models.Model):
@@ -129,38 +155,40 @@ class WriterEarningsHistory(models.Model):
     )
 
     def __str__(self):
-        return f"Earnings for {self.writer.user.username}: {self.period_start} - {self.period_end}"
+        return (
+            f"Earnings for {self.writer.user.username}: "
+            f"{self.period_start} - {self.period_end}"
+        )
 
-
-# To remove since it risks being abused
-class WriterEarningsReviewRequest(models.Model):
+class CurrencyConversionRate(models.Model):
     """
-    Writers can request an admin to review earnings for a specific order.
+    Stores conversion rates from USD to other currencies.
     """
     website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name="writer_earnings_review"
+        Website, on_delete=models.CASCADE,
+        related_name="conversion_rates"
     )
-    writer = models.ForeignKey(
-        WriterProfile, on_delete=models.CASCADE,
-        related_name="earnings_review_requests"
+    target_currency = models.CharField(
+        max_length=10,
+        default="KSH",
+        help_text="The currency to convert to (e.g., KSH)."
     )
-    order = models.ForeignKey(
-        Order, on_delete=models.CASCADE,
-        related_name="earnings_review_requests"
+    rate = models.DecimalField(
+        max_digits=10, decimal_places=4,
+        help_text="Conversion rate from 1 USD to target currency."
     )
-    reason = models.TextField(
-        help_text="Reason for requesting earnings review."
+    effective_date = models.DateField(
+        help_text="The date this rate became effective."
     )
-    requested_at = models.DateTimeField(
-        auto_now_add=True
-    )
-    resolved = models.BooleanField(default=False)
-    resolution_notes = models.TextField(
-        blank=True, null=True,
-        help_text="Admin resolution notes."
-    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Currency Conversion Rate"
+        verbose_name_plural = "Currency Conversion Rates"
+        unique_together = ("website", "target_currency", "effective_date")
 
     def __str__(self):
-        return f"Earnings Review Request: {self.writer.user.username} for Order {self.order.id} (Resolved: {self.resolved})"
+        return (
+            f"{self.target_currency} @ {self.rate} "
+            f"(as of {self.effective_date})"
+        )

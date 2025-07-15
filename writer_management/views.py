@@ -5,20 +5,51 @@ from django.utils.timezone import now
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
-
-from .models import (
-    WriterProfile, WriterLevel, WriterConfig,
-    WriterOrderRequest, WriterOrderTake,
+from rest_framework.filters import OrderingFilter
+from django_filters.rest_framework import DjangoFilterBackend # type: ignore
+from django.db.models import Q
+from writer_management.models.levels import (
+    WriterLevel, WriterLevelHistory
+)
+from writer_management.models.configs import WriterConfig
+from writer_management.models.messages import (
+    WriterMessageThread, WriterMessage
+)
+from writer_management.models.status import WriterStatus
+from writer_management.models.webhooks import (
+    WebhookSettings, WebhookPlatform
+)
+from writer_management.models.requests import (
+    WriterOrderRequest, WriterOrderTake
+)
+from writer_management.models.payout import (
     WriterPayoutPreference, WriterPayment,
     WriterEarningsHistory, WriterEarningsReviewRequest,
-    WriterReward, WriterRewardCriteria, Probation,
-    WriterPenalty, WriterSuspension,
-    WriterActionLog, WriterSupportTicket,
-    WriterDeadlineExtensionRequest, WriterOrderHoldRequest,
-    WriterOrderReopenRequest, WriterActivityLog,
-    WriterRatingCooldown, WriterFileDownloadLog,
-    WriterIPLog, OrderDispute
+    WriterReward, WriterRewardCriteria, Probation
 )
+from writer_management.models.discipline import (
+    WriterSuspension,   WriterBlacklist,
+    WriterBlacklistHistory, WriterDisciplineConfig,
+    WriterPenalty
+)
+# from writer_management.models. import (
+#     WriterActivityLog
+# )
+
+from writer_management.models.logs import (
+    WriterActionLog, WriterIPLog, WriterRatingCooldown,
+    WriterFileDownloadLog
+)
+
+from writer_management.models.requests import (
+    WriterOrderRequest, WriterOrderTake, WriterDeadlineExtensionRequest,
+    WriterOrderHoldRequest, WriterOrderReopenRequest
+)
+
+from writer_management.models.tickets import (
+    WriterSupportTicket
+)
+
 from orders.models import Order
 from .serializers import (
     WebhookSettingsSerializer, WriterProfileSerializer, WriterLevelSerializer,
@@ -34,7 +65,10 @@ from .serializers import (
     WriterOrderReopenRequestSerializer,
     WriterActivityLogSerializer, WriterRatingCooldownSerializer,
     WriterFileDownloadLogSerializer, WriterIPLogSerializer,
-    OrderDisputeSerializer
+    OrderDisputeSerializer, CurrencyConversionRateSerializer,
+    WriterPaymentSerializer, WriterPerformanceSnapshotSerializer,
+    WriterPerformanceSummarySerializer, WriterLevelHistorySerializer,
+    BadgeDefinitionSerializer, WriterBadgeSerializer,
 )
 from writer_management.models import WebhookSettings
 from writer_management.serializers import (
@@ -43,16 +77,48 @@ WebhookSettingsSerializer
 from writer_management.services.webhook_settings_service import (
     WebhookSettingsService
 )
-
+from writer_management.models.payout import CurrencyConversionRate
+from writer_management.services.payment_service import WriterPaymentService
+from decimal import Decimal
 from core.utils.notifications import send_notification 
 from writer_management.serializers import TipCreateSerializer
 from writer_management.models import Tip
 from writer_management.serializers import TipListSerializer
 from writer_management.services.tip_service import TipService
 from rest_framework import generics 
+from rest_framework.views import APIView
+from writer_management.models.profile import WriterProfile
+from writer_management.serializers import WriterStatusSerializer
+from writer_management.services.status_service import WriterStatusService
+from writer_management.models.performance_snapshot import WriterPerformanceSnapshot
+from writer_management.serializers import (
+    WriterPerformanceSnapshotSerializer, WriterWarningSelfViewSerializer
+)
+from rest_framework.permissions import IsAdminUser
+from writer_management.serializers import WriterLevelSerializer
+from writer_management.models.writer_warnings import WriterWarning
+from writer_management.serializers import WriterWarningSerializer
+from writer_management.services.writer_warning_service import (
+    WriterWarningService
+)
+from django.db.models import Q
+
+from rest_framework import viewsets, filters
+from rest_framework.permissions import IsAdminUser
+from writer_management.models.badges import WriterBadge
+from writer_management.serializers import WriterBadgeSerializer
+from writer_management.models.profile import WriterProfile
+from writer_management.serializers import (
+    WriterBadgeTimelineSerializer
+)
+from rest_framework.response import Response
+from collections import defaultdict
 
 ### ---------------- Writer Profile Views ---------------- ###
 
+class IsWriter(permissions.BasePermission):
+    def has_permission(self, request, view):
+        return request.user.role == "writer"
 class WriterProfileViewSet(viewsets.ModelViewSet):
     """
     Manage Writer Profiles.
@@ -187,13 +253,50 @@ class WriterPayoutPreferenceViewSet(viewsets.ModelViewSet):
         return Response({"message": "Payout method rejected!"}, status=status.HTTP_200_OK)
 
 
-class WriterPaymentViewSet(viewsets.ModelViewSet):
-    """
-    Manage Payments to Writers.
-    """
-    queryset = WriterPayment.objects.all()
-    serializer_class = WriterPaymentSerializer
+class WriterPaymentViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAdminUser]
+
+    def list(self, request):
+        payments = WriterPayment.objects.select_related("writer", "website").order_by("-payment_date")
+        serializer = WriterPaymentSerializer(payments, many=True)
+        return Response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        try:
+            payment = WriterPayment.objects.get(pk=pk)
+        except WriterPayment.DoesNotExist:
+            return Response({"detail": "Not found."}, status=404)
+        serializer = WriterPaymentSerializer(payment)
+        return Response(serializer.data)
+
+    def create(self, request):
+        data = request.data.copy()
+        serializer = WriterPaymentSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        writer = serializer.validated_data["writer"]
+        website = serializer.validated_data["website"]
+        amount = serializer.validated_data["amount"]
+        bonuses = serializer.validated_data.get("bonuses", Decimal("0.00"))
+        fines = serializer.validated_data.get("fines", Decimal("0.00"))
+        tips = serializer.validated_data.get("tips", Decimal("0.00"))
+        currency = request.data.get("currency", "USD")
+        convert = request.data.get("convert_to_local", False)
+
+        payment = WriterPaymentService.create_payment(
+            writer=writer,
+            website=website,
+            amount_usd=amount,
+            bonuses=bonuses,
+            fines=fines,
+            tips=tips,
+            currency=currency,
+            convert_to_local=convert,
+            description=serializer.validated_data.get("description", ""),
+            actor=request.user
+        )
+
+        return Response(WriterPaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
 
 
 ### ---------------- Writer Penalty & Reward Views ---------------- ###
@@ -392,3 +495,405 @@ class TipListView(generics.ListAPIView):
             return Tip.objects.filter(writer=user, website=website).select_related("client", "order")
         else:
             return Tip.objects.none()
+        
+
+
+class CurrencyConversionRateViewSet(viewsets.ModelViewSet):
+    """
+    Admin-only view for managing USD → Local currency conversion rates.
+    """
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = CurrencyConversionRateSerializer
+    queryset = CurrencyConversionRate.objects.all().order_by(
+        "-effective_date", "target_currency"
+    )
+
+    def get_queryset(self):
+        """
+        Optionally filter by website.
+        """
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get("website_id")
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset
+    
+
+
+class CurrencyConversionRateViewSet(viewsets.ModelViewSet):
+    """
+    Admin-only view for managing USD → Local currency conversion rates.
+    """
+    permission_classes = [permissions.IsAdminUser]
+    serializer_class = CurrencyConversionRateSerializer
+    queryset = CurrencyConversionRate.objects.all().order_by(
+        "-effective_date", "target_currency"
+    )
+
+    def get_queryset(self):
+        """
+        Optionally filter by website.
+        """
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get("website_id")
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset
+    
+
+class WriterStatusViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+    qs = qs.order_by("-active_strikes", "-updated_at")
+
+    def retrieve(self, request, pk=None):
+        """
+        GET /api/writer-status/{writer_id}/
+        Admins can query any writer's status.
+        Writers can only see their own.
+        """
+        try:
+            writer = WriterProfile.objects.get(pk=pk)
+        except WriterProfile.DoesNotExist:
+            return Response(
+                {"detail": "Writer not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        if request.user != writer.user and not request.user.is_staff:
+            return Response(
+                {"detail": "Permission denied."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        WriterStatusService.update(writer)
+        serializer = WriterStatusSerializer(writer.status)
+        return Response(serializer.data)
+
+    def update(self, request, pk=None):
+        """
+        PUT /api/writer-status/{writer_id}/
+        Forces a refresh of the status. Admin-only.
+        """
+        if not request.user.is_staff:
+            return Response(
+                {"detail": "Only admins can refresh writer status."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            writer = WriterProfile.objects.get(pk=pk)
+        except WriterProfile.DoesNotExist:
+            return Response(
+                {"detail": "Writer not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        WriterStatusService.update(writer)
+        serializer = WriterStatusSerializer(writer.status)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=["get"], url_path="me")
+    def me(self, request):
+        """
+        GET /api/writer-status/me/
+        Self status for the current authenticated writer.
+        """
+        try:
+            writer = WriterProfile.objects.get(user=request.user)
+        except WriterProfile.DoesNotExist:
+            return Response(
+                {"detail": "No writer profile found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        WriterStatusService.update(writer)
+        serializer = WriterStatusSerializer(writer.status)
+        return Response(serializer.data)
+
+
+    def list(self, request):
+        """
+        GET /api/writer-status/
+        Admins can list writer statuses with filters.
+        """
+        if not request.user.is_staff:
+            return Response(
+                {"detail": "Only admins can access list."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        qs = WriterStatus.objects.select_related("writer", "writer__user")
+
+        # Optional query params
+        is_suspended = request.query_params.get("suspended")
+        is_blacklisted = request.query_params.get("blacklisted")
+        min_strikes = request.query_params.get("min_strikes")
+        on_probation = request.query_params.get("probation")
+        auto_susp = request.query_params.get("auto_flagged")
+
+        if is_suspended in ["true", "1"]:
+            qs = qs.filter(is_suspended=True)
+
+        if is_blacklisted in ["true", "1"]:
+            qs = qs.filter(is_blacklisted=True)
+
+        if min_strikes:
+            qs = qs.filter(active_strikes__gte=int(min_strikes))
+
+        if on_probation in ["true", "1"]:
+            qs = qs.filter(is_on_probation=True)
+
+        if auto_susp in ["true", "1"]:
+            qs = qs.filter(should_be_suspended=True)
+
+        serializer = WriterStatusSerializer(qs, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["patch"], url_path="toggle-flag")
+    def toggle_flag(self, request, pk=None):
+        if not request.user.is_staff:
+            return Response(
+                {"detail": "Only admins can toggle flags."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            status_obj = WriterStatus.objects.get(pk=pk)
+        except WriterStatus.DoesNotExist:
+            return Response(
+                {"detail": "Writer status not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        flag = request.data.get("flag")
+        if flag not in ["should_be_suspended", "should_be_probated"]:
+            return Response(
+                {"detail": "Invalid flag provided."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Toggle the flag
+        current = getattr(status_obj, flag)
+        setattr(status_obj, flag, not current)
+        status_obj.save(update_fields=[flag])
+
+        return Response(
+            {"detail": f"{flag} set to {not current}"},
+            status=status.HTTP_200_OK
+        )
+    
+    @action(detail=False, methods=["post"], url_path="bulk-notify")
+    def bulk_notify(self, request):
+        if not request.user.is_staff:
+            return Response(
+                {"detail": "Only admins can send notifications."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        reason = request.data.get("reason")
+        flag = request.data.get("flag")
+
+        if flag not in ["should_be_suspended", "should_be_probated"]:
+            return Response(
+                {"detail": "Invalid flag type."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if not reason:
+            return Response(
+                {"detail": "Notification reason is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        qs = WriterStatus.objects.filter(**{flag: True}).select_related("writer__user")
+
+        notified = 0
+        for status_obj in qs:
+            writer_user = status_obj.writer.user
+            NotificationService.send(
+                user=writer_user,
+                title="Account Warning",
+                message=reason,
+                category="writer_status_flag"
+            )
+            notified += 1
+
+        return Response(
+            {"detail": f"Notified {notified} writers."},
+            status=status.HTTP_200_OK
+        )
+    
+
+class WriterDashboardStatusView(APIView):
+    def get(self, request):
+        try:
+            writer = WriterProfile.objects.get(user=request.user)
+        except WriterProfile.DoesNotExist:
+            return Response({"detail": "Writer not found."}, status=404)
+
+        status = WriterStatusService.get(writer)
+
+        return Response({
+            "status": "restricted" if not status["is_active"] else "ok",
+            "flags": {
+                "suspended": status["is_suspended"],
+                "blacklisted": status["is_blacklisted"],
+                "on_probation": status["is_on_probation"],
+                "strikes": status["active_strikes"],
+            }
+        })
+    
+
+class WriterPerformanceSnapshotViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet to list or retrieve writer performance snapshots.
+    """
+
+    queryset = WriterPerformanceSnapshot.objects.all()
+    serializer_class = WriterPerformanceSnapshotSerializer
+    permission_classes = [permissions.IsAdminUser]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = [
+        "writer", "website", "period_start", "period_end", "is_cached"
+    ]
+    ordering_fields = [
+        "generated_at", "average_rating", "total_orders", "completion_rate"
+    ]
+    ordering = ["-generated_at"]
+
+class WriterPerformanceDashboardView(generics.RetrieveAPIView):
+    serializer_class = WriterPerformanceSummarySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return (
+            WriterPerformanceSnapshot.objects
+            .filter(writer__user=self.request.user)
+            .order_by("-generated_at")
+            .first()
+        )
+    
+class WriterLevelViewSet(viewsets.ModelViewSet):
+    queryset = WriterLevel.objects.select_related("writer__user")
+    serializer_class = WriterLevelSerializer
+
+    def get_permissions(self):
+        if self.action in ["me", "history"]:
+            return [IsAuthenticated()]
+        return [IsAdminUser()]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        writer_id = self.request.query_params.get("writer_id")
+        if writer_id:
+            qs = qs.filter(writer_id=writer_id)
+        return qs
+
+    @action(detail=False, methods=["get"])
+    def me(self, request):
+        writer = request.user.writer_profile
+        level = WriterLevel.objects.filter(writer=writer).first()
+        if not level:
+            return Response(
+                {"detail": "No level assigned yet."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        return Response(WriterLevelSerializer(level).data)
+
+    @action(detail=False, methods=["get"])
+    def history(self, request):
+        writer = request.user.writer_profile
+        history = WriterLevelHistory.objects.filter(writer=writer)
+        return Response(
+            WriterLevelHistorySerializer(history, many=True).data
+        )
+    
+
+class WriterWarningViewSet(viewsets.ModelViewSet):
+    queryset = WriterWarning.objects.all().select_related(
+        'writer__user', 'issued_by'
+    )
+    serializer_class = WriterWarningSerializer
+    permission_classes = [permissions.IsAdminUser]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['writer', 'is_active']
+
+    def perform_create(self, serializer):
+        writer = serializer.validated_data['writer']
+        reason = serializer.validated_data['reason']
+        expires_at = serializer.validated_data.get('expires_at')
+
+        warning = WriterWarningService.issue_warning(
+            writer=writer,
+            reason=reason,
+            issued_by=self.request.user,
+            expires_days=(expires_at - warning.issued_at).days
+            if expires_at else 30
+        )
+
+        return warning
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save()
+        return Response(
+            {'detail': 'Warning marked as inactive.'},
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=["get"])
+    def active(self, request):
+        queryset = self.queryset.filter(is_active=True)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    @action(detail=False, methods=['get'], url_path='mine',
+            permission_classes=[IsAuthenticated])
+    def my_warnings(self, request):
+        profile = request.user.writer_profile
+        warnings = WriterWarning.objects.filter(
+            writer=profile, is_active=True
+        ).order_by('-issued_at')
+        serializer = self.get_serializer(warnings, many=True)
+        return Response(serializer.data)
+
+class WriterWarningSelfViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = WriterWarningSelfViewSerializer
+    permission_classes = [permissions.IsAuthenticated, IsWriter]
+
+    def get_queryset(self):
+        return WriterWarning.objects.filter(
+            writer__user=self.request.user,
+            is_active=True
+        ).order_by('-created_at')
+
+
+class WriterBadgeAdminViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsAdminUser]
+    queryset = WriterBadge.objects.select_related("writer", "badge")
+    serializer_class = WriterBadgeSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = [
+        "badge__name", "writer__user__username",
+        "notes", "badge__type"
+    ]
+    ordering_fields = ["issued_at", "badge__name"]
+
+
+class WriterBadgeTimelineViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        writer = WriterProfile.objects.get(user=request.user)
+        badges = WriterBadge.objects.filter(
+            writer=writer
+        ).order_by("-issued_at")
+
+        grouped = defaultdict(list)
+        for badge in badges:
+            date_str = badge.issued_at.strftime("%B %Y")
+            grouped[date_str].append(
+                WriterBadgeTimelineSerializer(badge).data
+            )
+
+        return Response(grouped)

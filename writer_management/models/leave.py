@@ -6,6 +6,8 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
+
 class WriterLeave(models.Model):
     """
     Tracks periods when a writer is unavailable for work.

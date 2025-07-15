@@ -1,6 +1,8 @@
 from decimal import Decimal
 from django.db import transaction
-from writer_management.models import WriterLevel, Tip
+from writer_management.models.levels import WriterLevel
+from writer_management.models.tipping import Tip
+from writer_management.models.profile import WriterProfile
 
 
 class TipService:

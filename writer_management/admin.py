@@ -8,7 +8,8 @@ from .models import (
     WriterDeadlineExtensionRequest, WriterOrderHoldRequest, WriterOrderReopenRequest,
     WriterActivityLog, WriterRatingCooldown, WriterFileDownloadLog, WriterIPLog
 )
-
+from writer_management.models.status import WriterStatus
+from writer_management.models.writer_warnings import WriterWarning
 
 ### ---------------- Writer Profile Admin ---------------- ###
 
@@ -181,3 +182,33 @@ class WriterFileDownloadLogAdmin(admin.ModelAdmin):
 @admin.register(WriterIPLog)
 class WriterIPLogAdmin(admin.ModelAdmin):
     list_display = ('writer', 'ip_address', 'logged_at')
+
+
+@admin.register(WriterStatus)
+class WriterStatusAdmin(admin.ModelAdmin):
+    list_display = (
+        "writer", "website", "strikes", "is_suspended",
+        "blacklisted", "on_probation", "updated_at",
+        "is_active", "last_strike_at", "suspension_ends_at",
+        "probation_ends_at", "active_strikes"
+    )
+    readonly_fields = (
+        "writer", "website", "strikes", "is_suspended",
+        "blacklisted", "on_probation", "updated_at",
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+    
+
+@admin.register(WriterWarning)
+class WriterWarningAdmin(admin.ModelAdmin):
+    list_display = ['writer', 'warning_type', 'is_active', 'expires_at']
+    list_filter = ['warning_type', 'is_active']
+    search_fields = ['writer__user__username', 'reason']

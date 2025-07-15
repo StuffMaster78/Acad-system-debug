@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    WriterProfileViewSet, WriterLevelViewSet,
+    WriterBadgeTimelineViewSet, WriterProfileViewSet, WriterLevelViewSet,
     WriterConfigViewSet, WriterOrderRequestViewSet, 
     WriterOrderTakeViewSet, WriterPayoutPreferenceViewSet,
     WriterPaymentViewSet, WriterEarningsHistoryViewSet,
@@ -12,7 +12,13 @@ from .views import (
     WriterDeadlineExtensionRequestViewSet,
     WriterOrderHoldRequestViewSet, WriterOrderReopenRequestViewSet,
     WriterActivityLogViewSet, WriterRatingCooldownViewSet,
-    WriterFileDownloadLogViewSet, WriterIPLogViewSet
+    WriterFileDownloadLogViewSet, WriterIPLogViewSet,
+    WriterStatusViewSet, WebhookSettingsViewSet,
+    TipCreateView, TipListView, CurrencyConversionRateViewSet,
+    WriterDashboardStatusView, WriterPerformanceSnapshotViewSet,
+    WriterPerformanceDashboardView, WriterPaymentViewSet,
+    WriterWarningViewSet, WriterWarningSelfViewSet,
+    WriterBadgeAdminViewSet, BadgeDefinitionAdminViewSet,
 )
 
 from writer_management.views import WebhookSettingsViewSet
@@ -38,7 +44,7 @@ from writer_management.views import (
     WriterSuspensionViewSet, ProbationViewSet
 )
 from writer_management.views import TipListView
-
+from writer_management.views import CurrencyConversionRateViewSet
 
 # DRF Router
 router = DefaultRouter()
@@ -85,11 +91,48 @@ router.register(r'action-logs', WriterActionLogViewSet, basename='writer-action-
 ### ---------------- Webhook Settings Routes ---------------- ###
 router.register("webhooks", WebhookSettingsViewSet, basename="webhook-settings")
 
+## ---------------- Tipping Routes ---------------- ###
+# Note: Ensure TipCreateView and TipListView are implemented in views.py
+# These views should handle the creation and listing of tips sent by clients to writers.    
 
+## ---------------- Conversion Rate Routes ---------------- ###
+router.register(r"conversion-rates", CurrencyConversionRateViewSet, basename="conversion-rate")
+
+## ---------------- Writer Payment Routes ---------------- ###
+router.register(r"writer-payments", WriterPaymentViewSet, basename="writer-payment")
+
+## ---------------- Writer Status Routes ---------------- ###
+router.register(r"writer-status", WriterStatusViewSet, basename="writer-status")
+
+### ---------------- Dashboard Status View ---------------- ###
+router.register(
+    r"performance-snapshots",
+    WriterPerformanceSnapshotViewSet,
+    basename="writer-performance-snapshot"
+)
+
+## ---------------- Issue Warning ---------------- ###
+router.register(r"writer-warnings", WriterWarningViewSet, basename="writer-warning")
+router.register(r'me/writer-warnings', WriterWarningSelfViewSet, basename='my-warnings')
+
+
+## ---------------- Badge System Routes ---------------- ###
+router.register(
+    r"admin/badges", WriterBadgeAdminViewSet, basename="admin-writer-badges"
+)
+router.register(
+    r"my-badges", WriterBadgeTimelineViewSet, basename="my-badge-timeline"
+)
 
 # Include all registered routes
 urlpatterns = [
     path('', include(router.urls)),
     path("tip/", TipCreateView.as_view(), name="tip-create"),
     path("tips/", TipListView.as_view(), name="tip-list"),
+    path(
+        "writer/dashboard-status/",
+        WriterDashboardStatusView.as_view(),
+        name="writer-dashboard-status",
+    ),
+    path("dashboard/metrics/", WriterPerformanceDashboardView.as_view()),
 ]
