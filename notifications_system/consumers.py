@@ -1,6 +1,6 @@
 import json
 import logging
-from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer # type: ignore
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +17,10 @@ class NotificationConsumer(AsyncWebsocketConsumer):
 
         if not self.user or not self.user.is_authenticated:
             logger.info(f"User not authenticated: {self.user}")
+            await self.close()
+            return
+        
+        if self.user.is_anonymous:
             await self.close()
             return
 
@@ -52,6 +56,17 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             logger.error(
                 f"Error removing user {self.user} from group: {e}", exc_info=True
             )
+
+    async def receive(self, text_data=None, bytes_data=None):
+        """
+        Handles incoming messages from the WebSocket.
+        """
+        try:
+            data = json.loads(text_data)
+            if data.get("type") == "ping":
+                await self.send(text_data=json.dumps({"type": "pong"}))
+        except Exception:
+            pass
 
     async def send_notification(self, event):
         """

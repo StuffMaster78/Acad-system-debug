@@ -1,109 +1,99 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import Notification, NotificationPreference
-from .serializers import (
+from rest_framework.throttling import UserRateThrottle
+from django.utils.timezone import now
+
+from notifications_system.models import Notification, NotificationPreference
+from notifications_system.serializers import (
     NotificationSerializer,
     NotificationPreferenceSerializer,
-    NotificationMarkReadSerializer
+    NotificationPriorityMetaSerializer
 )
-from rest_framework import status as rest_status
+from notifications_system.utils.priority_mapper import (
+    PRIORITY_LABEL_CHOICES
+)
+
+class NotificationThrottle(UserRateThrottle):
+    rate = '60/min'  # customize as needed for bell spam prevention
 
 
-class NotificationViewSet(viewsets.ModelViewSet):
+class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    ViewSet for managing notifications.
+    Handles listing and interacting with user notifications.
     """
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = NotificationSerializer
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [NotificationThrottle]
 
     def get_queryset(self):
-        """
-        Return only the notifications for the current user.
-        Supports optional filtering.
-        """
-        user = self.request.user
-        queryset = Notification.objects.filter(user=user).order_by("-created_at")
+        return Notification.objects.filter(
+            user=self.request.user,
+            website=self.request.user.website
+        ).order_by("-created_at")
 
-        # Optional filters
-        notif_type = self.request.query_params.get("type")
-        category = self.request.query_params.get("category")
-        unread = self.request.query_params.get("unread")
+    @action(detail=False, methods=["get"])
+    def unread(self, request):
+        qs = self.get_queryset().filter(is_read=False)
+        serializer = self.get_serializer(qs, many=True)
+        return Response(serializer.data)
 
-        if notif_type:
-            queryset = queryset.filter(type=notif_type)
-        if category:
-            queryset = queryset.filter(category=category)
-        if unread == "true":
-            queryset = queryset.filter(is_read=False)
+    @action(detail=False, methods=["get"])
+    def unread_count(self, request):
+        count = self.get_queryset().filter(is_read=False).count()
+        return Response({"unread_count": count})
 
-        return queryset
+    @action(detail=True, methods=["post"])
+    def mark_as_read(self, request, pk=None):
+        notification = self.get_object()
+        if not notification.is_read:
+            notification.is_read = True
+            notification.save(update_fields=["is_read"])
+        return Response({"status": "marked as read"})
 
     @action(detail=False, methods=["post"])
-    def mark_as_read(self, request):
-        """
-        Mark one or more notifications as read.
-        
-        Endpoint:
-        `POST /api/notifications/mark_as_read/`
-        
-        This action accepts a list of notification IDs and marks them as read.
-
-        Payload Example:
-        {
-            "ids": [1, 2, 3]
-        }
-
-        Returns:
-        - HTTP 200: A count of how many notifications were marked as read
-        - HTTP 400: If the request data is invalid
-        """
-        serializer = NotificationMarkReadSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        ids = serializer.validated_data["ids"]
-
-        updated = Notification.objects.filter(
-            user=request.user,
-            id__in=ids,
-            is_read=False
-        ).update(is_read=True)
-
-        return Response({"updated": updated}, status=rest_status.HTTP_200_OK)
-
-    @action(detail=False, methods=['post'], url_path='mark-all-as-read')
     def mark_all_as_read(self, request):
-        """
-        Mark all notifications for the authenticated user as read.
-        """
-        updated = Notification.objects.filter(
-            user=self.request.user,
-            is_read=False
-        ).update(is_read=True)
-        return Response(
-            {"status": "success", "updated": updated},
-            status=rest_status.HTTP_200_OK
-        )
+        count = self.get_queryset().filter(is_read=False).update(is_read=True)
+        return Response({
+            "status": "all marked as read",
+            "updated": count
+        })
 
 
 class NotificationPreferenceViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for managing notification preferences.
+    Allow users to view and update their notification settings.
     """
-    permission_classes = [permissions.IsAuthenticated]
     serializer_class = NotificationPreferenceSerializer
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        """
-        Filter preferences to the authenticated user.
-        """
         return NotificationPreference.objects.filter(user=self.request.user)
 
-    def update(self, request, *args, **kwargs):
-        """
-        Allow users to update their preferences.
-        """
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response(serializer.data)
+    def get_object(self):
+        obj, _ = NotificationPreference.objects.get_or_create(
+            user=self.request.user,
+            website=self.request.user.website
+        )
+        return obj
+
+    def perform_update(self, serializer):
+        serializer.save(user=self.request.user, website=self.request.user.website)
+
+
+
+class NotificationMetaView(APIView):
+    """
+    Expose priority levels for dropdowns etc.
+    """
+    permission_classes = []  # Public or auth as needed
+
+    def get(self, request, *args, **kwargs):
+        priorities = [
+            {"value": value, "label": label}
+            for value, label in PRIORITY_LABEL_CHOICES
+        ]
+        return Response({
+            "priorities": NotificationPriorityMetaSerializer(priorities, many=True).data
+        })

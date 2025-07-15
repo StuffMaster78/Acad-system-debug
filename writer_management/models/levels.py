@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
+
 class WriterLevel(models.Model):
     """
     Represents different levels or tiers of writers.
