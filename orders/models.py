@@ -28,6 +28,7 @@ from orders.order_enums import (
     OrderRequestStatus
 )
 from django.contrib.postgres.fields import ArrayField
+from django.utils.timezone import now
 
 User = settings.AUTH_USER_MODEL 
 
@@ -1172,3 +1173,51 @@ class OrderPricingSnapshot(models.Model):
 
     def __str__(self):
         return f"Pricing Snapshot for Order #{self.order.id} at {self.calculated_at}"
+    
+
+class WriterReassignmentLog(models.Model):
+    """
+    Logs all writer reassignments for transparency and audit.
+    """
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="reassignment_logs"
+    )
+    previous_writer = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reassignments_lost"
+    )
+    new_writer = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reassignments_gained"
+    )
+    reassigned_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reassignments_made"
+    )
+    reason = models.TextField(
+        blank=True,
+        help_text="Optional reason for the reassignment."
+    )
+    created_at = models.DateTimeField(
+        default=now,
+        help_text="When the reassignment occurred."
+    )
+
+    class Meta:
+        verbose_name = "Writer Reassignment Log"
+        verbose_name_plural = "Writer Reassignment Logs"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Order #{self.order.id} reassigned to {self.new_writer}"

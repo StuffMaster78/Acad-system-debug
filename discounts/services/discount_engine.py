@@ -26,7 +26,7 @@ from discounts.utils import (
     get_discount_model, get_discount_usage_model,
     get_discount_config
 )
-from audit_logging.services import log_audit_action as audit_log
+from audit_logging.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger(__name__)
 User = settings.AUTH_USER_MODEL
@@ -217,7 +217,7 @@ class DiscountEngine:
         
         final_price = final_price.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
-        audit_log(
+        AuditLogService.log(
             actor=user,
             target=order,
             action="discount_applied",

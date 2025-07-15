@@ -14,6 +14,8 @@ from django.utils.timezone import now
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
+from orders.services.order_access_service import OrderAccessService
+from django.core.exceptions import PermissionDenied
 
 User = get_user_model()
 
@@ -53,6 +55,11 @@ class OrderRequestService:
         """
         if OrderRequest.objects.filter(order=order, writer=writer).exists():
             raise ValidationError("You already requested this order.")
+        
+        if not OrderAccessService.can_request(self.writer, self.order):
+            raise PermissionDenied(
+                "Your level does not allow you to request this order."
+            )
 
         request = OrderRequest.objects.create(
             order=order,

@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'django_otp',
     'django_otp.plugins.otp_totp',
     'drf_yasg',
+    "notifications_system.apps.NotificationsSystemConfig",
     # 'django_celery_results',
     
 
@@ -76,6 +77,7 @@ INSTALLED_APPS = [
     'audit_logging',
     'users',
     'authentication',
+    'communications',
 
 
      # Financial Apps
@@ -90,7 +92,6 @@ INSTALLED_APPS = [
     'orders',
     'order_payments_management',
     'order_files',
-    'order_communications',
     'order_configs',
     'pricing_configs',
     'special_orders',
@@ -99,7 +100,7 @@ INSTALLED_APPS = [
    
 
     # Notifications and Support
-    'notifications_system',
+    # 'notifications_system',
     'tickets',
     'mass_emails',
 

@@ -16,18 +16,24 @@ class MagicLinkService:
     def __init__(self, website):
         self.website = website
 
-    def create_magic_link(self, user, expires_in_minutes=15, ip=None, user_agent=None):
+    def create_magic_link(
+            self, user, expires_in_minutes=15,
+            ip=None, user_agent=None
+        ):
         """
         Generates a new magic link token.
         Revokes any active ones first.
         """
         MagicLink.objects.filter(
-            user=user, website=self.website, used_at__isnull=True,
+            user=user, website=self.website,
+            used_at__isnull=True,
             expires_at__gt=now()
         ).delete()
 
         token = uuid.uuid4()
-        expires_at = now() + timedelta(minutes=expires_in_minutes)
+        expires_at = now() + timedelta(
+            minutes=expires_in_minutes
+        )
 
         link = MagicLink.objects.create(
             user=user,

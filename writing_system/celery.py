@@ -45,6 +45,30 @@ app.conf.beat_schedule = {
         'task': 'loyalty_management.tasks.apply_monthly_referral_bonus_decay',
         'schedule': crontab(day_of_month=1, hour=1, minute=0),
     },
+    "weekly_writer_metrics": {
+        "task": "writer_management.tasks.performance.generate_weekly_performance_snapshots",
+        "schedule": crontab(hour=3, minute=0, day_of_week="sunday"),  # 3am Sunday
+    },
+    "run_auto_badge_awards": {
+        "task": "writer_management.tasks.badges.run_auto_badge_awards",
+        "schedule": crontab(0, 7, day_of_week="monday"),  # Every Monday 7am
+    },
+    "update_writer_levels": {
+        "task": "writer_management.tasks.leveling.update_writer_levels",
+        "schedule": crontab(hour=0, minute=0, day_of_week="monday"),  # Every Monday at midnight
+    },
+    "update_composite_scores": {
+        "task": "writer_management.tasks.scoring.update_composite_scores",
+        "schedule": crontab(hour=1, minute=0, day_of_week="monday"),  # Every Monday at 1am
+    },
+    "expire_old_warnings": {
+        "task": "writer_management.tasks.warnings.expire_old_warnings",
+        "schedule": crontab(hour=0, minute=0, day_of_week="monday"),  # Every Monday at midnight
+    },
+    "preload_currency_conversion_rates": {
+        "task": "writer_management.tasks.currency.preload_currency_conversion_rates",
+        "schedule": crontab(hour=0, minute=0, day_of_week="sunday"),  # Every Sunday at midnight
+    },
 }
 
 # --- Dynamic Schedule via django-celery-beat ---

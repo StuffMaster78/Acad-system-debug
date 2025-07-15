@@ -16,7 +16,9 @@ class LogoutThrottleService:
         """
         Returns True if too many logouts in the time window.
         """
-        time_window = timezone.now() - timedelta(minutes=window_minutes)
+        time_window = timezone.now() - timedelta(
+            minutes=window_minutes
+        )
         recent_logouts = LogoutEvent.objects.filter(
             user=self.user,
             timestamp__gte=time_window,

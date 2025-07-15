@@ -1,7 +1,7 @@
 from orders.models import Order
 from orders.utils.order_utils import save_order
 from activity.utils.decorators import auto_log_activity
-
+from notifications_system.services.dispatcher  import notify_user
 
 class CreateOrderService:
     """
@@ -30,4 +30,20 @@ class CreateOrderService:
         order = Order.objects.create(user=user, **order_data)
         self.order = order
         save_order(order)
+        notify_user(
+            user=order.user,
+            message="Your order has been created successfully.",
+            context={"order_id": order.id, "status": order.status},
+            event="order_created",
+            channels=["email", "push", "websocket"],
+            tenant=order.website,
+            actor=user,
+            template_name="order_created",
+            priority=5,
+            is_critical=True,
+            is_digest=False,
+            is_silent=False,
+            email_override=None
+        )
         return order
+    

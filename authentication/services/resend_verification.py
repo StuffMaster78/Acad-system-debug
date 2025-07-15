@@ -8,6 +8,11 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 
 class ResendVerificationService:
+    """
+    Handles resending email verification tokens with cooldown and resend limits.
+    Designed for multitenancy support. 
+    Ensures users can only request a new token after a cooldown period.
+    """
     MAX_RESENDS = 3
     COOLDOWN_MINUTES = 1
 
@@ -17,7 +22,9 @@ class ResendVerificationService:
 
         if ev and not ev.is_verified:
             time_since_last = timezone.now() - ev.created_at
-            if time_since_last < timezone.timedelta(minutes=ResendVerificationService.COOLDOWN_MINUTES):
+            if time_since_last < timezone.timedelta(
+                minutes=ResendVerificationService.COOLDOWN_MINUTES
+            ):
                 raise ValidationError("Please wait before requesting again.")
 
             # Revoke old token, create new one
@@ -28,5 +35,7 @@ class ResendVerificationService:
         token_obj = RegistrationTokenService.create_token(user)
 
         # Reuse existing send logic
-        RegistrationEmailService.send_verification_email(user, otp.code, token_obj.token)
+        RegistrationEmailService.send_verification_email(
+            user, otp.code, token_obj.token
+        )
         return True

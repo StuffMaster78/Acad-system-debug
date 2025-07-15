@@ -1,5 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+
+from orders.views.writers.reassignment_log_viewset import WriterReassignmentLogViewSet
 from .views.orders.base import OrderBaseViewSet
 from .views.orders.disputes import DisputeViewSet
 from .views.writers.writer_requests import WriterRequestViewSet
@@ -20,6 +22,9 @@ router.register(r'orders', OrderBaseViewSet, basename='order')
 router.register(r'disputes', DisputeViewSet, basename='dispute')
 router.register(r'writer-request', WriterRequestViewSet, basename='writer-request')
 router.register(r'order-requests', OrderRequestViewSet, basename='order-request')
+router.register(
+    r"reassignment-logs", WriterReassignmentLogViewSet, basename="reassignment-log"
+)
 
 
 urlpatterns = [

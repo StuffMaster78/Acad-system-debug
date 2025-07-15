@@ -6,7 +6,7 @@ class OrderCommunicationsConfig(AppConfig):
     Configuration class for the Order Communications app.
     """
     default_auto_field = "django.db.models.BigAutoField"
-    name = "order_communications"
+    name = "communications"
 
     def ready(self):
         """

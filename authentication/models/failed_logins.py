@@ -19,11 +19,24 @@ class FailedLoginAttempt(models.Model):
         related_name="failed_login_attempts"
     )
     timestamp = models.DateTimeField(default=timezone.now)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True)
+    city = models.CharField(max_length=128, blank=True, null=True)
+    region = models.CharField(max_length=128, blank=True, null=True)
+    country = models.CharField(max_length=128, blank=True, null=True)
+    asn = models.CharField(max_length=64, blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.username} @ {self.timestamp} ({self.website})"
+    
+    class Meta:
+        ordering = ['-timestamp']
+        unique_together = ('user', 'website', 'timestamp')
+        indexes = [
+            models.Index(fields=["user", "website", "timestamp"]),
+        ]
 
-    def is_locked_out(self, window_minutes=15, max_attempts=5):
+    def is_locked_out(cls, user, website, window_minutes=15, max_attempts=5):
         """
         Determines if the user is locked out on this website.
 
@@ -37,9 +50,9 @@ class FailedLoginAttempt(models.Model):
         time_threshold = timezone.now() - timezone.timedelta(
             minutes=window_minutes
         )
-        recent_attempts = self.__class__.objects.filter(
-            user=self.user,
-            website=self.website,
+        recent_attempts = cls.objects.filter(
+            user=user,
+            website=website,
             timestamp__gte=time_threshold
         ).count()
         return recent_attempts >= max_attempts

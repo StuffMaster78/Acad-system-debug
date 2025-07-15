@@ -22,6 +22,7 @@ def get_email_sender_details(purpose="default"):
     email_map = {
         "marketing": site.marketing_sender_email,
         "support": site.support_sender_email,
+        "admin": site.admin_sender_email,
         "notification": site.notification_sender_email,
         "default": site.default_sender_email,
     }

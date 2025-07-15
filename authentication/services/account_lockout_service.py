@@ -1,4 +1,5 @@
 from django.utils.timezone import now
+from django.utils import timezone
 from authentication.models.lockout import AccountLockout
 
 
@@ -11,19 +12,21 @@ class AccountLockoutService:
         self.user = user
         self.website = website
 
-    def lock_account(self, reason):
+    def lock_account(self, reason="automatic lockout"):
         """
         Locks a user account with a reason.
         Automatically deactivates any existing lockouts.
         """
         self.unlock_account()  # Ensure no overlapping lockouts
 
-        return AccountLockout.objects.create(
+        return AccountLockout.objects.update_or_create(
             user=self.user,
             website=self.website,
-            reason=reason,
-            locked_at=now(),
-            active=True
+            defaults={
+                "reason": reason,
+                "locked_at": now(),
+                "active": True
+            }
         )
 
     def unlock_account(self):
@@ -40,11 +43,19 @@ class AccountLockoutService:
         """
         Returns True if there is an active lockout for the user.
         """
-        return AccountLockout.objects.filter(
-            user=self.user,
-            website=self.website,
-            active=True
-        ).exists()
+        try:
+            lock = AccountLockout.objects.get(user=self.user)
+            if not lock.is_locked:
+                return False
+
+            if (timezone.now() - lock.locked_at).total_seconds() >= 1800:  # 30 min
+                lock.is_locked = False
+                lock.save()
+                return False
+
+            return True
+        except AccountLockout.DoesNotExist:
+            return False
 
     def get_active_lockout(self):
         """

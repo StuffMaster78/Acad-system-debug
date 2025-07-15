@@ -1,4 +1,4 @@
-from core.celery import shared_task
+from celery import shared_task
 from django.utils.timezone import now, timedelta
 from django.db import transaction
 from django.db.models import Sum

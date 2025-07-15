@@ -1,4 +1,4 @@
-from writing_system.celery import shared_task
+from celery import shared_task
 from django.utils.timezone import now
 from .models import WalletTransaction
 from django.core.mail import send_mail

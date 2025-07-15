@@ -303,6 +303,8 @@ class WebsiteSettings(models.Model):
     )
     name = models.CharField(max_length=100)
     no_reply_email = models.EmailField()
+    support_email = models.EmailField()
+    from_email = models.EmailField()
     domain_url = models.URLField(
         max_length=200,
         help_text="The main domain of the website"

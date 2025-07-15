@@ -1,78 +1,133 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from authentication.views.impersonation_views import ImpersonationTokenViewSet
-from authentication.views.account_lockout_viewset import (
-    AccountLockoutViewSet,
-)
-from authentication.views.login_session_viewset import LoginSessionViewSet
-from authentication.views.logout_event_viewset import LogoutEventViewSet
-from authentication.views.admin_kickout_viewset import AdminKickoutViewSet
-from authentication.views.session_management_viewset import SessionManagementViewSet
-from authentication.views.otp_viewset import OTPViewSet
-from authentication.views.backup_code_viewset import BackupCodeViewSet
-from authentication.views.registration_token_viewset import RegistrationTokenViewSet
-from authentication.views.mfa import MFASettingsViewSet
-from authentication.views.user_session import UserSessionViewSet
-from authentication.views.secure_token_viewset import (
-    SecureTokenViewSet,
-    EncryptedRefreshTokenViewSet
-)
-from authentication.views.totp import TOTPViewSet
-from authentication.views.totp_login_sfa import TOTPLogin2FAView
-from authentication.views.magic_links_viewsets import (
-    MagicLinkRequestViewSet,
-    MagicLinkVerifyViewSet
+from authentication.views import (
+    impersonation_views,
+    account_lockout_viewset,
+    login_session_viewset,
+    logout_event_viewset,
+    admin_kickout_viewset,
+    session_management_viewset,
+    otp_viewset,
+    backup_code_viewset,
+    registration_token_viewset,
+    mfa,
+    user_session,
+    secure_token_viewset,
+    totp,
+    totp_login_sfa,
+    magic_links_viewsets,
+    authentication,
+    account_unlock_views,
+    admin_account_unlock_view,
+    account_unlock_confirm_view
 )
 
 router = DefaultRouter()
-router.register(r"impersonate", ImpersonationTokenViewSet, basename="impersonate")
-router.register(r'lockouts', AccountLockoutViewSet, basename='lockout')
-router.register(r"sessions", LoginSessionViewSet, basename="session")
-router.register(r'logout-events', LogoutEventViewSet, basename='logout-event')
-router.register(r'kickout', AdminKickoutViewSet, basename='kickout')
-router.register(r"session-management", SessionManagementViewSet, basename="session-management")
-router.register("otp", OTPViewSet, basename="otp")
-router.register(r'backup-codes', BackupCodeViewSet, basename='backup-code')
-router.register(r"registration-tokens", RegistrationTokenViewSet, basename="registration-token")
-router.register(r'mfa', MFASettingsViewSet, basename='mfa-settings')
-router.register(r'sessions', UserSessionViewSet, basename='user-session')
-router.register(r'secure-tokens', SecureTokenViewSet, basename='secure-tokens')
-router.register(r'refresh-tokens', EncryptedRefreshTokenViewSet, basename='refresh-tokens')
 
-totp = TOTPViewSet.as_view({
-    "post": "setup"
-})
-verify = TOTPViewSet.as_view({
-    "post": "verify"
-})
+# Core authentication routes
+router.register(r"login", authentication.LoginViewSet, basename="login")
+router.register(r"impersonate", impersonation_views.ImpersonationTokenViewSet, basename="impersonate")
+router.register(r"lockouts", account_lockout_viewset.AccountLockoutViewSet, basename="lockout")
+router.register(r"user-sessions", user_session.UserSessionViewSet, basename="user-session")
+router.register(r"logout-events", logout_event_viewset.LogoutEventViewSet, basename="logout-event")
+router.register(r"admin-kickout", admin_kickout_viewset.AdminKickoutViewSet, basename="admin-kickout")
+router.register(r"session-management", session_management_viewset.SessionManagementViewSet, basename="session-management")
+router.register(r"user-sessions", login_session_viewset.LoginSessionViewSet, basename="user-session")
 
-magic_link_request = MagicLinkRequestViewSet.as_view({'post': 'create'})
-magic_link_verify = MagicLinkVerifyViewSet.as_view({'post': 'create'})
+# MFA / OTP
+router.register(r"otp", otp_viewset.OTPViewSet, basename="otp")
+router.register(r"backup-codes", backup_code_viewset.BackupCodeViewSet, basename="backup-code")
+router.register(r"mfa-settings", mfa.MFASettingsViewSet, basename="mfa-settings")
+router.register(r"totp", totp.TOTPViewSet, basename="totp")
+router.register(r"totp-login", totp_login_sfa.TOTPLogin2FAView, basename="totp-login")
 
-urlpatterns = [
-    # path('account-unlock/', include('authentication.urls.account_unlock')),        # views/account_unlock_views.py
-    # path('account/', include('authentication.urls.account')),                      # views/account.py
-    # path('auth/', include('authentication.urls.authentication')),                  # views/authentication.py
-    # path('deletion/', include('authentication.urls.deletion')),                    # views/deletion.py
-    # path('forbidden/', include('authentication.urls.forbidden_access')),           # views/forbidden_access.py
-    # path('mfa/settings/', include('authentication.urls.mfa_settings')),            # views/mfa_settings.py
-    # path('mfa/', include('authentication.urls.mfa')),                              # views/mfa.py
-    # path('mfa-views/', include('authentication.urls.mfa_views')),                  # views/mfa_views.py
-    # path('passkey/', include('authentication.urls.passkey_views')),                # views/passkey_views.py
-    # path('sessions/', include('authentication.urls.sessions_management')),         # views/sessions_management.py
-    # path('passkeys/devices/', include('urls.devices')), #views/devices.py
-    # path("auth/password-reset/", include("authentication.urls.password_reset")),
+# Registration & Token-based flows
+router.register(
+    r"registration-tokens",
+    registration_token_viewset.RegistrationTokenViewSet,
+    basename="registration-token"
+)
+router.register(
+    r"secure-tokens",
+    secure_token_viewset.SecureTokenViewSet,
+    basename="secure-token"
+)
+router.register(
+    r"refresh-tokens",
+    secure_token_viewset.EncryptedRefreshTokenViewSet,
+    basename="refresh-tokens"
+)
 
+# Magic links
+router.register(
+    r"magic-links",
+    magic_links_viewsets.MagicLinkRequestViewSet,
+    basename="magic-link-request"
+)
+router.register(
+    r"magic-link-verification",
+    magic_links_viewsets.MagicLinkVerifyViewSet,
+    basename="magic-link-verify"
+)
+# Admin account unlock
+router.register(
+    r"admin/unlock",
+    admin_account_unlock_view.AdminAccountUnlockViewSet,
+    basename="admin-unlock"
+)
 
+# Custom actions (non-ViewSet method-bound)
+custom_urlpatterns = [
     path(
-        "auth/registration/confirm/",
-        RegistrationTokenViewSet.as_view({"post": "create"}),
+        "registration/confirm/",
+        registration_token_viewset.RegistrationTokenViewSet.as_view({"post": "create"}),
         name="registration-confirm"
     ),
-    path("2fa/totp/setup/", totp, name="2fa-totp-setup"),
-    path("2fa/totp/verify/", verify, name="2fa-totp-verify"),
-    path("2fa/totp/login/", TOTPLogin2FAView.as_view(), name="2fa-totp-login"),
-    path("magic-link/request/", magic_link_request, name="magic-link-request"),
-    path("magic-link/verify/", magic_link_verify, name="magic-link-verify"),
+    path(
+        "2fa/totp/setup/",
+        totp.TOTPViewSet.as_view({"post": "setup"}),
+        name="2fa-totp-setup"
+    ),
+    path(
+        "2fa/totp/verify/",
+        totp.TOTPViewSet.as_view({"post": "verify"}),
+        name="2fa-totp-verify"
+    ),
+    path(
+        "2fa/totp/login/",
+        totp_login_sfa.TOTPLogin2FAView.as_view(),
+        name="2fa-totp-login"
+    ),
+    path(
+        "magic-link/request/",
+        magic_links_viewsets.MagicLinkRequestViewSet.as_view({'post': 'create'}),
+        name="magic-link-request"
+    ),
+    path(
+        "magic-link/verify/",
+        magic_links_viewsets.MagicLinkVerifyViewSet.as_view({'post': 'create'}),
+        name="magic-link-verify"
+    ),
+    path(
+        "auth/account-unlock/",
+        account_unlock_views.AccountUnlockRequestView.as_view(),
+        name="account-unlock"
+    ),
+    path(
+        "auth/account-unlock/confirm/",
+        account_unlock_confirm_view.AccountUnlockConfirmView.as_view(),
+        name="account-unlock-confirm"
+    ),
+]
 
+urlpatterns = [
+    # Main router
+    path("auth/", include(router.urls)),
+
+    # Custom actions
+    path("auth/", include(custom_urlpatterns)),
+
+    # Optional future includes
+    # path("auth/deletion/", include("authentication.urls.deletion")),
+    # path("auth/password-reset/", include("authentication.urls.password_reset")),
 ]

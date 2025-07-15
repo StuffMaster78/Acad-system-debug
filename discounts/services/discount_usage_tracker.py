@@ -4,7 +4,7 @@ Tracks and reverts discount usage records tied to orders.
 
 import logging
 from django.db.models import F
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger(__name__)
 
@@ -116,7 +116,7 @@ class DiscountUsageTracker:
             f"Reason: {reason}"
         )
 
-        log_audit_action(
+        AuditLogService.log(
             actor=actor,
             target=order,
             action="discount_untracked",

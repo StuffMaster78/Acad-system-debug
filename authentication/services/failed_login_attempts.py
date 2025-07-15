@@ -1,6 +1,6 @@
 from django.utils import timezone
 from authentication.models.failed_logins import FailedLoginAttempt
-
+from authentication.services.geo import GeoService
 
 class FailedLoginService:
     """
@@ -58,3 +58,14 @@ class FailedLoginService:
             user=self.user,
             website=self.website
         ).delete()
+
+    @staticmethod
+    def log(user, website, ip=None, user_agent=None):
+        geo = GeoService.get_geo(ip)
+        return FailedLoginAttempt.objects.create(
+            user=user,
+            website=website,
+            ip_address=ip,
+            user_agent=user_agent,
+            **geo,
+        )

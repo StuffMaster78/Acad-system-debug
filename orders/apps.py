@@ -6,7 +6,5 @@ class OrdersConfig(AppConfig):
 
     def ready(self):
         import orders.signals  # Ensures signals are registered only when apps are ready
-
-    def ready(self):
         from orders.registry.discover import auto_discover_order_actions
         auto_discover_order_actions()

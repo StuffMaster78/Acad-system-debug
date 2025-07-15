@@ -1,6 +1,6 @@
 from orders.models import Order
 from orders.utils.order_utils import get_order_by_id, save_order
-from writing_system.celery import current_app
+from celery import current_app
 import logging
 from referrals.models import Referral
 from referrals.services.referral_service import ReferralService

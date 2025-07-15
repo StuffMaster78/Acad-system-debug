@@ -6,7 +6,8 @@ from .models import (
     WriterRequest,
     OrderRequest,
     OrderTransitionLog,
-    OrderPricingSnapshot
+    OrderPricingSnapshot,
+    WriterReassignmentLog
 )
 from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
@@ -474,3 +475,33 @@ class WriterRequestPreviewSerializer(serializers.Serializer):
         if request_type == WriterRequest.RequestType.SLIDES and not data.get("additional_slides"):
             raise serializers.ValidationError("additional_slides is required.")
         return data
+    
+
+class WriterReassignmentLogSerializer(serializers.ModelSerializer):
+    order_id = serializers.IntegerField(source="order.id", read_only=True)
+    order_title = serializers.CharField(
+        source="order.title", read_only=True
+    )
+    previous_writer_username = serializers.CharField(
+        source="previous_writer.username", read_only=True
+    )
+    new_writer_username = serializers.CharField(
+        source="new_writer.username", read_only=True
+    )
+    reassigned_by_username = serializers.CharField(
+        source="reassigned_by.username", read_only=True
+    )
+    
+
+    class Meta:
+        model = WriterReassignmentLog
+        fields = [
+            "id",
+            "order_id",
+            "order_title",
+            "previous_writer_username",
+            "new_writer_username",
+            "reassigned_by_username",
+            "reason",
+            "created_at",
+        ]

@@ -87,6 +87,7 @@ class AccountDeletionRequest(models.Model):
 
 
 class DeletionRequestManager(models.Manager):
+    """Manager for AccountDeletionRequest model."""
     def pending_requests(self):
         """
         Return all deletion requests with 'pending' status.

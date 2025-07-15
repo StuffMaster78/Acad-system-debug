@@ -3,6 +3,12 @@ from django.conf import settings
 from django.utils.timezone import now
 
 class LoginSession(models.Model):
+    """
+    Model representing a user's login session on a website.
+    Stores information about the user, the website, and the session details.
+    This model is used to track user logins, including device and IP information,
+    and to manage active sessions for security purposes.
+    """
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE

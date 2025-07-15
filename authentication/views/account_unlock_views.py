@@ -9,28 +9,33 @@ from authentication.models import TrustedDevice
 from users.models import User
 from authentication.utilsy import send_custom_email, log_audit_action
 from datetime import datetime
+from authentication.services.account_lockout_service import AccountLockoutService
 
 now = datetime.now()
 
-
-class AccountUnlockAPIView(APIView):
-    """Handles account unlocking actions"""
-
+class AccountUnlockRequestView(APIView):
     permission_classes = [permissions.AllowAny]
 
-    def post(self, request, *args, **kwargs):
-        """Handles the account unlock request"""
+    def post(self, request):
+        """Handles the account unlock request by email."""
         email = request.data.get("email")
-        user = User.objects.filter(email=email, is_locked=True).first()
+        if not email:
+            return Response({"error": "Email is required."}, status=400)
 
-        if not user:
-            return Response({"error": "No locked account found with this email."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({"error": "Invalid email."}, status=404)
 
-        # Send unlock email
-        send_custom_email(user)
-        return Response({"message": "Unlock instructions have been sent to your email."}, status=status.HTTP_200_OK)
+        # Check if already unlocked
+        if not AccountLockoutService.is_locked(user):
+            return Response({"message": "Account is not locked."}, status=200)
 
+        # Optional: Send unlock email, trigger verification
+        # For now, we unlock directly (can customize)
+        AccountLockoutService.unlock_user(user)
 
+        return Response({"message": "Your account has been unlocked."}, status=200)
 class AdminUnlockAccountAPIView(APIView):
     """Admin unlocks a locked user account"""
 

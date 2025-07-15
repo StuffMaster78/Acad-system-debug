@@ -83,6 +83,16 @@ class SecureTokenService:
             return decrypted, new_token
 
         return decrypted
+    
+    @staticmethod
+    def validate_token(token_str, purpose):
+        try:
+            token = SecureToken.objects.get(token=token_str, purpose=purpose)
+            if token.is_expired():
+                return None
+            return token
+        except SecureToken.DoesNotExist:
+            return None
 
     def rotate_token(self, raw_token, purpose, expires_in_minutes=10):
         """

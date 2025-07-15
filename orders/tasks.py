@@ -1,4 +1,4 @@
-from writing_system.celery import shared_task
+from celery import shared_task
 from core.utils.notifications import send_notification
 from django.utils.timezone import now
 from orders.models import Order
@@ -25,6 +25,8 @@ from websites.models import Website
 from audit_logging.services import AuditLogEntry
 from orders.models import WriterRequest
 from audit_logging.services import log_audit_action
+from notifications_system.tasks import async_send_notification
+from notifications_system.notification_enums import NotificationType
 
 logger = logging.getLogger(__name__)
 
@@ -265,3 +267,106 @@ def expire_stale_writer_requests():
             target_id=req.id,
             metadata={"reason": "Auto-declined after 48 hours"}
         )
+
+
+
+
+def notify_writer_order_assigned(order):
+    writer = order.writer
+    if not writer:
+        return
+
+    async_send_notification.delay(
+        user_id=writer.id,
+        event="order_assigned",
+        context={
+            "order_id": order.id,
+            "title": "New Order Assigned",
+            "message": f"You have been assigned Order #{order.id} - {order.topic}.",
+            "link": f"/orders/{order.id}/"
+        },
+        website_id=order.website_id,
+        channels=[NotificationType.EMAIL, NotificationType.IN_APP]
+    )
+
+
+def notify_writer_missed_deadline(order):
+    writer = order.writer
+    if not writer:
+        return
+
+    async_send_notification.delay(
+        user_id=writer.id,
+        event="deadline_missed",
+        context={
+            "order_id": order.id,
+            "title": "Deadline Missed",
+            "message": f"You’ve missed the deadline for Order #{order.id}. Please contact support.",
+            "link": f"/orders/{order.id}/"
+        },
+        website_id=order.website_id,
+        channels=[NotificationType.EMAIL, NotificationType.IN_APP],
+        category="warning",
+        is_critical=True
+    )
+
+
+def notify_writer_fined(order, fine_amount):
+    writer = order.writer
+    if not writer:
+        return
+
+    async_send_notification.delay(
+        user_id=writer.id,
+        event="fine_applied",
+        context={
+            "order_id": order.id,
+            "fine_amount": f"{fine_amount:.2f}",
+            "title": "Fine Applied",
+            "message": f"A fine of ${fine_amount:.2f} has been applied to your Order #{order.id}.",
+            "link": f"/orders/{order.id}/"
+        },
+        website_id=order.website_id,
+        channels=[NotificationType.EMAIL, NotificationType.IN_APP],
+        category="error"
+    )
+
+
+def notify_client_writer_declined(order):
+    client = order.client
+    if not client:
+        return
+
+    async_send_notification.delay(
+        user_id=client.id,
+        event="writer_declined",
+        context={
+            "order_id": order.id,
+            "title": "Writer Declined",
+            "message": f"Your preferred writer declined Order #{order.id}. The order is now public.",
+            "link": f"/orders/{order.id}/"
+        },
+        website_id=order.website_id,
+        channels=[NotificationType.EMAIL, NotificationType.IN_APP],
+        category="info"
+    )
+
+
+def notify_client_order_completed(order):
+    client = order.client
+    if not client:
+        return
+
+    async_send_notification.delay(
+        user_id=client.id,
+        event="order_completed",
+        context={
+            "order_id": order.id,
+            "title": "Order Completed",
+            "message": f"Order #{order.id} has been completed. Please log in to review it.",
+            "link": f"/orders/{order.id}/"
+        },
+        website_id=order.website_id,
+        channels=[NotificationType.EMAIL, NotificationType.IN_APP],
+        category="success"
+    )

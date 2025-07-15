@@ -1,4 +1,4 @@
-from writing_system.celery import shared_task
+from celery import shared_task
 from loyalty_management.models import ClientProfile
 from websites.models import Website
 from loyalty_management.services.loyalty_conversion_service import LoyaltyConversionService

@@ -13,6 +13,7 @@ logger = logging.getLogger("audit")
 
 
 class AuditLogService:
+    """ Service for handling audit log entries."""
     @classmethod
     def log(
         cls,

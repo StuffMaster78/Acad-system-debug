@@ -57,7 +57,7 @@ urlpatterns = [
     path('api/v1/pricing-configs/', include('pricing_configs.urls')),
     path('api/v1/loyalty-management/', include('loyalty_management.urls')),
     path('api/v1/notifications/', include('notifications_system.urls')),
-    path('api/v1/order-communications/', include('order_communications.urls')),
+    path('api/v1/order-communications/', include('communications.urls')),
     path('api/v1/order-files/', include('order_files.urls')),
     path('api/v1/referrals/', include('referrals.urls')),
     path('api/v1/special-orders/', include('special_orders.urls')),
@@ -66,6 +66,9 @@ urlpatterns = [
     path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
     path('api/v1/', include('service_pages_management.urls')),
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
+    path('api/v1/analytics/', include('analytics.urls')),  # Analytics app
+    path('api/v1/badges/', include('badges.urls')),  # Badges app
+    
 
     path('/api/v1/auth/', include('authentication.urls')),
 ]

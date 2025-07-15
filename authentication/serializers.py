@@ -202,6 +202,11 @@ class LoginSessionSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["logged_in_at", "id", "user"]
 
+class LoginSerializer(serializers.Serializer):
+    """ Serializer for user login."""
+    email = serializers.EmailField()
+    password = serializers.CharField()
+
 class ChangePasswordSerializer(serializers.Serializer):
     """
     Serializer for changing the user's password.

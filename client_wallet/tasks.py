@@ -1,4 +1,4 @@
-from core.celery import shared_task
+from celery import shared_task
 from django.utils.timezone import now
 from client_wallet.models import ReferralBonus
 

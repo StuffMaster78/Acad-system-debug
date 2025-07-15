@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.utils.timezone import now
 
 from discounts.utils import get_discount_model
-from notifications_system.services.send_notification import notify_admin_of_error
+from notifications_system.services.dispatcher import notify_error
 
 logger = logging.getLogger(__name__)
 
@@ -94,9 +94,11 @@ class PromotionalCampaignService:
                 )
             except Exception as e:
                 logger.error(f"Failed to save discount with promotional campaign: {e}")
-                notify_admin_of_error(
+                notify_error(
                     subject="Discount Promotional Campaign Save Failure",
-                    message=str(e)
+                    message=str(e),
+                    user=discount.user,
+                    context={"discount_id": discount.id, "campaign_id": promotional_campaign.id}
                 )
                 raise
         else:

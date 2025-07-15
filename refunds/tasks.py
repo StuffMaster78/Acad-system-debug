@@ -1,5 +1,5 @@
 from django.db import transaction
-from writing_system.celery import shared_task
+from celery import shared_task
 from refunds.models import Refund
 
 from refunds.services.refunds_processor import RefundProcessorService
