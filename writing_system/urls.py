@@ -68,9 +68,10 @@ urlpatterns = [
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
     path('api/v1/analytics/', include('analytics.urls')),  # Analytics app
     path('api/v1/badges/', include('badges.urls')),  # Badges app
-    
 
-    path('/api/v1/auth/', include('authentication.urls')),
+    path('api/v1/admin/', include('notifications_system.admin_urls')), # Admin URLs for notifications
+
+    path('api/v1/auth/', include('authentication.urls')),
 ]
 
 # Serve media and static files during development

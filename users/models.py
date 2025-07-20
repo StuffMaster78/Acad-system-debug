@@ -32,6 +32,7 @@ from notifications_system.models import Notification
 from users.utils import logout_all_sessions
 from django.apps import apps
 from websites.models import Website
+from notifications_system.models import NotificationPreferenceProfile
 
 # def get_website_model():
 #     Website = apps.get_model('websites', 'Website')
@@ -52,6 +53,13 @@ class User(AbstractUser, PermissionsMixin,
     Includes impersonation, suspension, probation, and audit tracking.
     """
     email = models.EmailField(unique=True)
+    notification_profile = models.ForeignKey(
+        NotificationPreferenceProfile,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="users",
+    )
     is_available = models.BooleanField(default=True)
     website = models.ForeignKey(
         'websites.Website',

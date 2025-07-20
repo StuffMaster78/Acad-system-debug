@@ -1,11 +1,21 @@
+"""
+A module to send notifications to users
+across multiple channels like email, in-app, SMS, and push.
+It handles user preferences, notification creation,
+and sending logic, ensuring notifications are sent
+according to user settings and system requirements.
+"""
 import logging
 from django.utils.timezone import now
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from notifications_system.models import Notification, NotificationPreference
+from notifications_system.models.notifications import Notification
+from notifications_system.models.notification_preferences import (
+    NotificationPreference
+)
 from notifications_system.utils.email_helpers import send_website_mail
-from notifications_system.notification_enums import NotificationPriority
-from notifications_system.models import Website
+from notifications_system.enums import NotificationPriority
+from websites.models import Website
 
 logger = logging.getLogger(__name__)
 
@@ -43,14 +53,18 @@ def send_notification(
     if not website:
         website = getattr(user, 'website', None)
     if not website:
-        raise ImproperlyConfigured("Website must be provided or resolvable from the user.")
+        raise ImproperlyConfigured(
+            "Website must be provided or resolvable from the user."
+        )
 
     context = context or {}
     meta = meta or {}
 
     preferences = getattr(user, 'notification_preferences', None)
     if preferences is None:
-        preferences = NotificationPreference.objects.filter(user=user, website=website).first()
+        preferences = NotificationPreference.objects.filter(
+            user=user, website=website
+        ).first()
 
     # Respect user preferences unless forced
     if not force and preferences:
@@ -120,3 +134,42 @@ def send_notification(
         notification.status = "failed"
         notification.save()
         return notification
+    
+def send_sms_notification(user, message):
+    """
+    Send an SMS notification to a user.
+    This is a stub function for future SMS integration.
+    """
+    logger.info(f"Stub: SMS to {user.username} - {message}")
+    # Here you would integrate with an SMS service like Twilio, Nexmo, etc.
+    return True
+
+def send_push_notification(user, message):
+    """
+    Send a push notification to a user.
+    This is a stub function for future push notification integration.
+    """
+    logger.info(f"Stub: Push to {user.username} - {message}")
+    # Here you would integrate with a push notification service like Firebase, OneSignal, etc.
+    return True
+
+def send_in_app_notification(user, title, message, context=None):
+    """
+    Send an in-app notification to a user.
+    This is a stub function for future in-app notification integration.
+    """
+    context = context or {}
+    context["title"] = title
+    context["message"] = message
+    # Here you would integrate with your in-app notification system
+    logger.info(f"In-app notification to {user.username}: {title} - {message}")
+    return True
+
+def send_ws_notification(user, message):
+    """
+    Send a WebSocket notification to a user.
+    This is a stub function for future WebSocket integration.
+    """
+    logger.info(f"Stub: WebSocket to {user.username} - {message}")
+    # Here you would integrate with your WebSocket server
+    return True

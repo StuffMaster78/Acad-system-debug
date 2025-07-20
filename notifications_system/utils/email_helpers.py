@@ -5,7 +5,12 @@ import logging
 from django.utils.timezone import now
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from notifications_system.models import Notification, NotificationPreference
+from notifications_system.models.notifications import Notification
+from notifications_system.models.notification_preferences import NotificationPreference
+from django.template.loader import render_to_string
+from django.core.mail import EmailMultiAlternatives
+from notifications_system.enums import NotificationPriority
+from notifications_system.utils.template_priority import get_template_for_priority
 import logging
 
 
@@ -34,7 +39,10 @@ def get_website_sender_email(website=None):
     )
 
 
-def send_website_mail(subject, message, recipient_list, website=None, html_message=None):
+def send_website_mail(
+        subject, message, recipient_list,
+        website=None, html_message=None
+):
     """
     Sends tenant-aware email using sender from Website config.
     """
@@ -54,3 +62,30 @@ def send_website_mail(subject, message, recipient_list, website=None, html_messa
     except Exception as e:
         logger.error(f"Failed to send email to {recipient_list}: {e}", exc_info=True)
         return False
+    
+def send_priority_email(
+    user, subject, message, context=None,
+    priority=NotificationPriority.NORMAL, website=None
+):
+    """
+    Sends an email with priority handling.
+    Uses the appropriate template based on priority.
+    """
+    context = context or {}
+    context.update({
+        "user": user,
+        "subject": subject,
+        "message": message,
+            "website_name": getattr(website, "name", "Our Platform"),
+        })
+
+    html_content = render_to_string(get_template_for_priority(priority), context)
+
+    email = EmailMultiAlternatives(
+            subject=subject,
+            body=message,
+            from_email=website.get_from_email() if website else "no-reply@example.com",
+            to=[user.email]
+        )
+    email.attach_alternative(html_content, "text/html")
+    email.send()

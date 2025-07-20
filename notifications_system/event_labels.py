@@ -1,6 +1,6 @@
 # notifications_system/event_labels.py
 
-from .notification_enums import EventType
+from .enums import EventType
 
 EVENT_LABELS = {
     EventType.ORDER_ASSIGNED: "Writer Assigned to Order",

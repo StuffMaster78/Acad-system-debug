@@ -28,3 +28,44 @@ def push_ws_notification(user_id, message: dict):
             return async_to_sync(channel_layer.group_send)(group_name, payload)
     except Exception as e:
         logger.error(f"WebSocket push failed for {group_name}: {e}", exc_info=True)
+
+
+
+def broadcast_ws_message(user, payload):
+    """
+    Send a WebSocket message to a specific user.
+    Assumes user-specific channels use group name: `user_{user.id}`
+    """
+    try:
+        group_name = f"user_{user.id}"
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "notify.message",
+                "payload": payload
+            }
+        )
+        return True
+    except Exception as e:
+        logger.warning(f"WebSocket broadcast failed for user {user.id}: {str(e)}")
+        return False
+
+
+def broadcast_to_group(group_name, payload):
+    """
+    Send a WebSocket message to a custom group of users (e.g. 'admin_notifications')
+    """
+    try:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            group_name,
+            {
+                "type": "notify.message",
+                "payload": payload
+            }
+        )
+        return True
+    except Exception as e:
+        logger.warning(f"WebSocket broadcast to group '{group_name}' failed: {str(e)}")
+        return False

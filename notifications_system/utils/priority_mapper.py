@@ -1,5 +1,10 @@
+"""A module to map notification priority labels to
+their corresponding enum values and vice versa.
+This is useful for ensuring consistent handling
+of notification priorities across the system.
+"""
 import logging
-from notifications_system.notification_enums import (
+from notifications_system.enums import (
     NotificationPriority
 )
 

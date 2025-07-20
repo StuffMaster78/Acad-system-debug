@@ -394,6 +394,14 @@ CELERY_BEAT_SCHEDULE = {
         "task": "orders.tasks.archive_approved_orders",
         "schedule": crontab(hour=1, minute=0),  # every 1 am daily
     },
+    'send-daily-digests': {
+        'task': 'notifications_system.tasks.send_daily_digest',
+        'schedule': crontab(hour=8, minute=0),
+    },
+        'backfill-group-notification-profiles-every-night': {
+        'task': 'notifications.tasks.backfill_profiles.backfill_group_notification_profiles',
+        'schedule': crontab(hour=3, minute=0),  # Run at 3 AM daily
+    },
 }
 RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW")
 MAX_FAILED_ATTEMPTS = os.getenv("MAX_FAILED_ATTEMPTS")
@@ -438,3 +446,32 @@ if not TOKEN_ENCRYPTION_KEY:
 # STRIPE_WEBHOOK_SECRET = "whsec_..."
 
 # STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+
+
+# Notifications System Configurations for override
+NOTIFICATION_CHANNEL_FALLBACKS = {
+    "sms": ["email", "push"],
+    "push": ["email"],
+}
+
+NOTIFICATION_CHANNEL_BACKOFFS = {
+    "email": 10,
+    "sms": 30,
+    "push": 5,
+}
+
+NOTIFICATION_MAX_RETRIES_PER_CHANNEL = {
+    "email": 3,
+    "sms": 2,
+    "push": 2,
+}
+
+
+
+
+NOTIFY_INACTIVITY_FALLBACK_HOURS = 3
+NOTIFY_EMAIL_COOLDOWN_MINUTES = 30
+NOTIFY_DAILY_EMAIL_LIMIT = 5
+NOTIFY_WEEKLY_EMAIL_LIMIT = 20
+NOTIFY_DISABLE_EMAIL_FALLBACK = False

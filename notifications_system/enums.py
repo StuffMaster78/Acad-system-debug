@@ -3,6 +3,11 @@ from django.db.models import TextChoices
 from enum import IntEnum
 
 
+PRIORITIES = ["low", "normal", "high"]
+CHANNELS = ["email", "in_app", "webhook"]
+FREQUENCIES = ["instant", "daily", "weekly"]
+
+
 class NotificationType(TextChoices):
     IN_APP = "in_app", _("In App")
     EMAIL = "email", _("Email")
@@ -17,6 +22,14 @@ class DigestType(TextChoices):
     DAILY = "daily_summary", _("Daily Summary")
     WEEKLY = "weekly_summary", _("Weekly Summary")
     CRITICAL = "critical_alerts", _("Critical Alerts")
+
+class PriorityLabelChoices(TextChoices):
+    HIGH = "high", _("High")
+    MEDIUM = "medium", _("Medium")
+    LOW = "low", _("Low")
+    URGENT = "urgent", _("Urgent")
+    NORMAL = "normal", _("Normal")
+    PASSIVE = "passive", _("Passive")
 
 
 class NotificationCategory(TextChoices):

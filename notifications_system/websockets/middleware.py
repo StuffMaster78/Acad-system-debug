@@ -10,9 +10,22 @@ from django.core.cache import cache
 from rest_framework_simplejwt.tokens import UntypedToken
 from rest_framework_simplejwt.settings import api_settings
 
+import datetime
+from django.utils.timezone import now
+
 from users.models import User
 
 logger = logging.getLogger(__name__)
+class UpdateLastSeenMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        if request.user.is_authenticated:
+            last_seen = request.session.get("last_seen_at")
+            now_time = now().isoformat()
+            request.session["last_seen_at"] = now_time
+        return self.get_response(request)
 
 
 class TokenAuthMiddleware(BaseMiddleware):

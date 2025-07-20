@@ -1,4 +1,4 @@
-from notifications_system.notification_enums import NotificationType
+from notifications_system.enums import NotificationType
 from notifications_system.tasks import async_send_notification
 import logging
 

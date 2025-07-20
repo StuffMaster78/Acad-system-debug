@@ -1,15 +1,22 @@
+from datetime import timezone
 from django.db import models
 from django.utils.timezone import now
 from core.models.base import WebsiteSpecificBaseModel
 from django.conf import settings
 from websites.models import Website
-from notifications_system.notification_enums import (
+from notifications_system.enums import (
     DigestType,
     NotificationType,
     NotificationCategory,
     DeliveryStatus,
     EventType,
+    NotificationPriority
 )
+from django.contrib.postgres.fields import ArrayField
+from users.mixins import UserRole   
+from django.contrib.postgres.fields import JSONField
+from notifications_system.models.notification_log import NotificationLog
+
 
 User = settings.AUTH_USER_MODEL 
 class Notification(models.Model):
@@ -103,6 +110,12 @@ class Notification(models.Model):
         default=5,
         help_text="Higher number = more urgent"
     )
+    priority_label = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Label for the priority, e.g. 'high', 'medium', 'low'"
+    )
     actor = models.ForeignKey(
         User, null=True, blank=True,
         on_delete=models.SET_NULL,
@@ -120,6 +133,7 @@ class Notification(models.Model):
         null=True,
         help_text="Rendered payload for templating"
     )
+    is_broadcast = models.BooleanField(default=False)
     test_mode = models.BooleanField(
         default=False,
         help_text="If true, do not deliver for real."
@@ -197,163 +211,3 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"{self.type.capitalize()} Notification to {self.user.username}: {self.title}"
-
-
-class NotificationPreference(models.Model):
-    """
-    User preferences for notifications.
-    """
-    website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name="system_notifications_settings"
-    )
-    user = models.OneToOneField(
-        User,
-        on_delete=models.CASCADE,
-        related_name="notification_preferences",
-        help_text="The user whose preferences are being managed."
-    )
-    event = models.CharField(
-        max_length=100,
-        choices=EventType.choices,
-        verbose_name=("Event Type")
-    )
-    channel = models.CharField(
-        max_length=20,
-        choices=NotificationType.choices,
-        verbose_name=("Notification Channel")
-    )
-    enabled = models.BooleanField(
-        default=True,
-        help_text="Are notifications enabled for this user?"
-    )
-    frequency = models.CharField(
-        max_length=20,
-        choices=[('immediate', 'Immediate'), ('daily', 'Daily'), ('weekly', 'Weekly')],
-        default='immediate',
-        help_text="Frequency of notifications."
-    )
-    do_not_disturb_until = models.TimeField(
-        null=True,
-        blank=True,
-        help_text="Time until which notifications are muted."
-    )
-    receive_email = models.BooleanField(
-        default=True,
-        help_text="Allow email notifications."
-    )
-    receive_sms = models.BooleanField(
-        default=False,
-        help_text="Allow SMS notifications."
-    )
-    receive_push = models.BooleanField(
-        default=True,
-        help_text="Allow push notifications."
-    )
-    receive_in_app = models.BooleanField(
-        default=True,
-        help_text="Allow in-app notifications."
-    )
-    
-    def __str__(self):
-        return f"Notification Preferences for {self.user.username}"
-    
-
-    def get_active_channels(self):
-        return [
-            channel for channel, enabled in {
-                NotificationType.EMAIL: self.receive_email,
-                NotificationType.SMS: self.receive_sms,
-                NotificationType.PUSH: self.receive_push,
-                NotificationType.IN_APP: self.receive_in_app,
-            }.items() if enabled
-        ]
-
-
-
-# ✅ Lazy Import to Avoid Circular Import Issues
-def get_notification_model():
-    from notifications_system.models import Notification
-    return Notification
-
-
-def send_notification(recipient, title, message, category="in_app"):
-    """
-    Send a notification to a user.
-
-    :param recipient: User receiving the notification
-    :param title: Notification title
-    :param message: Notification content
-    :param category: Type of notification (in_app, email, SMS, push)
-    """
-    Notification = get_notification_model()
-
-    notification = Notification.objects.create(
-        user=recipient,
-        type=category,
-        title=title,
-        message=message,
-        status="pending",
-        sent_at=now(),
-    )
-
-    # Simulate sending
-    notification.status = "sent"
-    notification.save()
-    
-    return notification
-
-
-class NotificationDelivery(models.Model):
-    """ 
-    Represents a delivery attempt for a notification.
-    """
-    notification = models.ForeignKey(
-        Notification,
-        on_delete=models.CASCADE,
-        related_name="deliveries"
-    )
-    channel = models.CharField(
-        max_length=20,
-        choices=NotificationType.choices,
-    )
-    status = models.CharField(
-        max_length=20,
-        choices=DeliveryStatus.choices
-    )
-    sent_at = models.DateTimeField(
-        null=True, blank=True
-    )
-    attempts = models.IntegerField(default=0)
-    error_message = models.TextField(
-        blank=True, null=True
-    )
-
-    def __str__(self):
-        return f"Delivery of {self.notification.title} via {self.channel} - Status: {self.status}"
-
-class NotificationLog(models.Model):
-    """ Represents a log entry for a notification delivery attempt.
-    """
-    notification = models.ForeignKey(Notification, on_delete=models.CASCADE)
-    recipient = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="notification_logs"
-    )
-    response_code = models.IntegerField(
-        null=True, blank=True,
-        help_text="HTTP response code from the delivery attempt."
-    )
-    response_message = models.TextField(
-        null=True, blank=True,
-        help_text="Response message from the delivery attempt."
-    )
-    channel = models.CharField(max_length=20, choices=NotificationType.choices)
-    attempted_at = models.DateTimeField(auto_now_add=True)
-    success = models.BooleanField(default=False)
-    response = models.TextField(null=True, blank=True)
-
-    def __str__(self):
-        return f"Log for {self.notification.title} via {self.channel} - Success: {self.success}"

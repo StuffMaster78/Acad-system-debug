@@ -1,7 +1,25 @@
 from rest_framework import serializers
+from rest_framework.response import Response
+from rest_framework.views import APIView
 from django.utils.timesince import timesince
-from notifications_system.models import Notification, NotificationPreference
-from notifications_system.notification_enums import NotificationType
+
+from notifications_system.models.notifications import Notification
+from notifications_system.models.notification_profile import (
+    NotificationProfile, NotificationGroupProfile,
+    GroupNotificationProfile, 
+)
+from notifications_system.models.notification_preferences import (
+    NotificationPreference, EventNotificationPreference,
+    RoleNotificationPreference, UserNotificationPreference,
+    NotificationEventPreference, NotificationPreferenceGroup
+)
+from notifications_system.models.broadcast_notification import (
+    BroadcastNotification, BroadcastOverride
+)
+from notifications_system.models.notification_event import NotificationEvent
+from notifications_system.models.notification_group import NotificationGroup
+
+from notifications_system.enums import NotificationType
 from notifications_system.utils.priority_mapper import (
     get_priority_from_label, get_label_from_priority
 )
@@ -74,12 +92,18 @@ class NotificationSerializer(serializers.ModelSerializer):
             data["priority"] = get_priority_from_label(priority_label)
         return data
 
+class NotificationProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationProfile
+        fields = "__all__"
+        
 class NotificationPreferenceSerializer(serializers.ModelSerializer):
     class Meta:
         model = NotificationPreference
         fields = [
             "id", "receive_email", "receive_sms", "receive_push",
-            "receive_in_app", "preferred_language"
+            "receive_in_app", "mute_all", "digest_only", "muted_events",
+            "channel_preferences", "user", "website"
         ]
         read_only_fields = ["id"]
         extra_kwargs = {
@@ -87,5 +111,108 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
             "receive_sms": {"required": False},
             "receive_push": {"required": False},
             "receive_in_app": {"required": False},
-            "preferred_language": {"required": False}
+            "mute_all": {"required": False},
+            "digest_only": {"required": False},
+            "muted_events": {"required": False},
+            "channel_preferences": {"required": False},
+            "user": {"required": False},
+            "website": {"required": False}
         }
+
+class NotificationGroupProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationGroupProfile
+        fields = "__all__"
+
+
+class EventNotificationPreferenceSerializer(serializers.ModelSerializer):
+    """ Serializer for event-specific notification preferences.
+    Allows users to set preferences for specific events on a per-website basis.
+    """
+    class Meta:
+        model = EventNotificationPreference
+        fields = [
+            "id", "event", "website",
+            "email_enabled", "sms_enabled", "push_enabled", "in_app_enabled"
+        ]
+        read_only_fields = ["id"]
+        extra_kwargs = {
+            "event": {"required": True},
+            "website": {"required": True},
+            "email_enabled": {"required": False},
+            "sms_enabled": {"required": False},
+            "push_enabled": {"required": False},
+            "in_app_enabled": {"required": False}
+        }
+        def validate_event(self, value):
+            if not value:
+                raise serializers.ValidationError("Event cannot be empty.")
+            return value
+        def validate_website(self, value):
+            if not value:
+                raise serializers.ValidationError("Website cannot be empty.")
+            return value
+        def validate(self, data):
+            if not any([
+                data.get("email_enabled"),
+                data.get("sms_enabled"),
+                data.get("push_enabled"),
+                data.get("in_app_enabled")
+            ]):
+                raise serializers.ValidationError("At least one channel must be enabled.")
+            return data
+        
+class BroadcastNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BroadcastNotification
+        fields = "__all__"
+
+
+class NotificationEventPreferenceSerializer(serializers.ModelSerializer):
+    event_name = serializers.CharField(source="event.name", read_only=True)
+    event_code = serializers.CharField(source="event.event", read_only=True)
+
+    class Meta:
+        model = NotificationEventPreference
+        fields = [
+            "id",
+            "event_name",
+            "event_code",
+            "receive_email",
+            "receive_sms",
+            "receive_push",
+            "receive_in_app",
+        ]
+
+class RoleNotificationPreferenceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = RoleNotificationPreference
+        fields = "__all__"
+
+class GroupNotificationProfileSerializer(serializers.ModelSerializer):
+    group_name = serializers.CharField(source='group.name', read_only=True)
+
+    class Meta:
+        model = GroupNotificationProfile
+        fields = ['id', 'group', 'group_name', 'profile']
+
+class BroadcastOverrideSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BroadcastOverride
+        fields = ['id', 'event_type', 'force_channels', 'title', 'message', 'tenant', 'active']
+
+class NotificationPreferenceGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationPreferenceGroup
+        fields = ['id', 'name', 'description', 'website', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+        extra_kwargs = {
+            'name': {'required': True},
+            'website': {'required': True}
+        }
+
+
+class NotificationGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = NotificationGroup
+        fields = "__all__"

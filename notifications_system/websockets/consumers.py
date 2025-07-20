@@ -86,3 +86,11 @@ class NotificationConsumer(AsyncWebsocketConsumer):
             logger.error(
                 f"Error sending notification to {self.user}: {e}", exc_info=True
             )
+
+
+    async def receive_json(self, content, **kwargs):
+        # Optional: Handle client-sent messages
+        pass
+
+    async def notify(self, event):
+        await self.send_json(event["data"])

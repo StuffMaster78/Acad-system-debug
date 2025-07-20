@@ -1,9 +1,108 @@
 import logging
 from notifications_system.services.core import NotificationService
-from notifications_system.notification_enums import NotificationType
+from notifications_system.enums import NotificationType
 from notifications_system.tasks import async_send_notification
+from notifications_system.models import NotificationPreference
+from django.core.exceptions import ObjectDoesNotExist
+from notifications_system.enums import NotificationPriority
+from django.conf import settings
+from notifications_system.services.templates_registry import get_template
+from core.utils.email_helpers import send_website_mail
+from notifications_system.template_engine import NotificationTemplateEngine
 
 logger = logging.getLogger(__name__)
+
+class Dispatcher:
+    """
+    A class responsible for dispatching notifications to users.
+    It handles user preferences, channels, and event types.
+    """
+
+    @staticmethod
+    def get_channels_for_role(event_key, role):
+        """
+        Returns the list of channels for a given event key and user role.
+        """
+        # This should be implemented to return channels based on event_key and role
+        return [NotificationType.IN_APP]
+    
+    @staticmethod
+    def get_templates_for_event(event_name):
+        """
+        Returns the templates registered for a specific event.
+        This should be implemented to fetch templates from a registry or database.
+        """
+        # Placeholder implementation, should be replaced with actual logic
+        return {
+            'email': 'default_template.html',
+            'in_app': 'default_template.html'
+        }
+    
+    @staticmethod
+    def send_message_via_channel(channel: str, context: dict, message: str):
+        """
+        Sends a message via the specified channel.
+        This should be implemented to handle different channels like email, in-app, etc.
+        """
+        if channel == NotificationType.EMAIL:
+            from django.core.mail import send_mail
+            send_mail(
+                subject=context.get('title', 'Notification'),
+                message=context.get('message', ''),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[context['user'].email],
+                html_message=context.get('html_message', '')
+            )
+        elif channel == NotificationType.IN_APP:
+            # Handle in-app notification logic here
+            pass
+        else:
+            logger.warning(f"Unsupported channel: {channel}")
+
+    @staticmethod
+    def dispatch_notification(event_key: str, context: dict):
+        """
+        Dispatches a notification based on the event key and context.
+        It retrieves the appropriate templates and channels,
+        then sends the notification.
+        """
+        templates = Dispatcher.get_templates_for_event(
+            event_key
+        )
+        channels = Dispatcher.get_channels_for_role(
+            event_key, context.get('role', 'user')
+        )
+
+        if not templates:
+            logger.warning(
+                f"No templates found for event key: {event_key}. Using default template.")
+            templates = {'email': 'default_template.html', 'in_app': 'default_template.html'}
+
+        context['event_key'] = event_key
+        context['role'] = context.get('role', 'user')
+
+        rendered = NotificationTemplateEngine.render_template(templates, context)
+        
+        for channel in channels:
+            try:
+                Dispatcher.send_message_via_channel(channel, context, rendered.get(channel, ''))
+                logger.info(f"Notification sent via {channel} for event {event_key} to user {context['user'].id}.")
+            except Exception as e:
+                logger.error(f"Failed to send notification via {channel} for event {event_key} to user {context['user'].id}: {e}")
+
+    @staticmethod
+    def notify_user(user, subject=None, message=None, **kwargs):
+        """
+        Notifies a user through the appropriate channels.
+        """
+        context = {
+            'user': user,
+            'subject': subject,
+            'message': message,
+            **kwargs
+        }
+        Dispatcher.dispatch_notification('user_notification', context)
+        
 
 def notify_user(
     user,
@@ -47,6 +146,55 @@ def notify_user(
         template_name: If you’re using templates
     """
     logger.info(f"Dispatching notification to {user} | Event: {event} | Channels: {channels}")
+
+    # ✳️ Get or fallback
+    channels = channels or [NotificationType.IN_APP]
+
+    # 🚫 Respect user preferences
+    try:
+        prefs = NotificationPreference.objects.get(user=user, website=website)
+        if prefs.mute_all and not is_critical:
+            logger.info(f"Notification muted for {user} (mute_all)")
+            return None
+
+        if event in prefs.muted_events and not is_critical:
+            logger.info(f"Notification for event '{event}' is muted for {user}")
+            return None
+
+        # Filter out channels the user doesn't want
+        channels = [ch for ch in channels if prefs.channel_preferences.get(ch, True)]
+
+        if not channels and not is_critical:
+            logger.info(f"All channels disabled for {user}")
+            return None
+
+    except ObjectDoesNotExist:
+        pass  # No preferences saved = default to everything enabled
+
+
+    # Check if it is digest
+    if is_digest:
+        from notifications_system.services.digest_service import queue_digest_notification
+        return queue_digest_notification(
+            user=user,
+            event=event,
+            context=payload,
+            website=website,
+            digest_group=digest_group,
+            channels=channels,
+            template_name=template_name,
+            priority=priority,
+        )
+    
+    if user.pref.is_muted() and not is_critical:
+        logger.info(
+            f"User {user} is muted until {user.pref.mute_until}. "
+            f"Skipping notification."
+        )
+        return None
+    
+    
+
     
     payload = payload or {}
 
@@ -95,6 +243,19 @@ def notify_users(
     """
     Bulk notify users — forwards to `notify_user` per user.
     """
+    if is_digest:
+        from notifications_system.services.digest_service import queue_digest_notification
+        return queue_digest_notification(
+            user=user,
+            event=event,
+            context=payload,
+            website=website,
+            digest_group=digest_group,
+            channels=channels,
+            template_name=template_name,
+            priority=priority,
+        )
+
     notifications = []
     for user in users:
         notif = notify_user(
@@ -375,6 +536,7 @@ def notify_all_users(
     is_digest=False,
     digest_group=None,
     is_silent=False,
+    template_name=None
 ):
     """
     Notify all users across the system.
@@ -404,7 +566,8 @@ def notify_all_users(
         is_critical=is_critical,
         is_digest=is_digest,
         digest_group=digest_group,
-        is_silent=is_silent
+        is_silent=is_silent,
+        template_name=template_name,
     )
 
 def test_notify(user, channel="in_app"):
@@ -452,4 +615,36 @@ def notify_user_async(user, **kwargs):
         is_digest=kwargs.get("is_digest", False),
         digest_group=kwargs.get("digest_group"),
         is_silent=kwargs.get("is_silent", False)
+    )
+
+def is_channel_enabled(user, channel, event):
+    """
+    Check if a specific notification channel is enabled for a user for a given event.
+    """
+    pref = NotificationPreference.objects.filter(user=user, channel=channel).first()
+    if pref and event in pref.overrides:
+        return pref.overrides[event]
+    return pref.is_enabled
+
+def notify_sitewide_announcement(subject, message, *, tenant, **kwargs):
+    from users.models import User
+
+    users = User.objects.filter(is_active=True, website=tenant)
+    
+    return notify_users(
+        users,
+        subject=subject,
+        message=message,
+        tenant=tenant,
+        payload=kwargs.get("payload"),
+        actor=kwargs.get("actor"),
+        channels=kwargs.get("channels") or [NotificationType.IN_APP],
+        event="site_broadcast",
+        category="announcement",
+        priority=NotificationPriority.HIGH,
+        is_critical=True,
+        is_silent=False,
+        is_digest=False,
+        digest_group=None,
+        template_name=kwargs.get("template_name"),
     )

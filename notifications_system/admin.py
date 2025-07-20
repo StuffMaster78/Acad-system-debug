@@ -1,20 +1,254 @@
 from django.contrib import admin
-from .models import Notification, NotificationPreference
+
+from notifications_system.services.preferences import assign_default_preferences
+from notifications_system.models.notifications import Notification
+from notifications_system.models.notification_preferences import (
+    NotificationPreference, EventNotificationPreference,
+    RoleNotificationPreference, UserNotificationPreference,
+    NotificationEventPreference, NotificationPreferenceGroup,
+    NotificationPreferenceProfile,
+)
+from notifications_system.models.broadcast_notification import (
+    BroadcastNotification, BroadcastOverride
+)
+from notifications_system.models.notification_profile import (
+    NotificationProfile, NotificationGroupProfile,
+    GroupNotificationProfile
+)
+from notifications_system.models.notification_event import NotificationEvent
+
+from notifications_system.models.notification_group import NotificationGroup
+from notifications_system.models.notification_settings import NotificationSystemSettings
+from notifications_system.utils.email_helpers import send_priority_email
 
 from django.contrib import admin
 from django.utils import timezone
+from django.utils.html import format_html
 from authentication.models.login import LoginSession
 from authentication.models.logout import LogoutEvent
+import json
+from notifications_system.services.preferences import reset_user_preferences
+from django.contrib import admin
+from django.contrib.admin.widgets import AdminTextareaWidget
+from django import forms
+from .models import NotificationSystemSettings
+from notifications_system.utils.email_helpers import send_priority_email
+
+class NotificationSystemSettingsForm(forms.ModelForm):
+    class Meta:
+        model = NotificationSystemSettings
+        fields = '__all__'
+        widgets = {
+            'fallback_rules': AdminTextareaWidget(attrs={'rows': 10, 'cols': 80}),
+            'max_retries_per_channel': AdminTextareaWidget(attrs={'rows': 5, 'cols': 80}),
+        }
+
+    def clean_fallback_rules(self):
+        import json
+        data = self.cleaned_data["fallback_rules"]
+        if isinstance(data, str):
+            return json.loads(data)
+        return data
+
+    def clean_max_retries_per_channel(self):
+        import json
+        data = self.cleaned_data["max_retries_per_channel"]
+        if isinstance(data, str):
+            return json.loads(data)
+        return data
+
+@admin.register(NotificationSystemSettings)
+class NotificationSystemSettingsAdmin(admin.ModelAdmin):
+    form = NotificationSystemSettingsForm
+
+
+@admin.register(NotificationEvent)
+class NotificationEventAdmin(admin.ModelAdmin):
+    list_display = ("event", "name", "is_active", "website")
+    search_fields = ("event", "name")
+    list_filter = ("is_active", "website")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('website')
+    
+@admin.register(NotificationPreferenceProfile)
+class NotificationPreferenceProfileAdmin(admin.ModelAdmin):
+    list_display = ("name", "website", "default_email", "default_sms", "default_push", "default_in_app")
+    search_fields = ("name", "website__domain")
+    list_filter = ("website",)
+
+@admin.register(BroadcastOverride)
+class BroadcastOverrideAdmin(admin.ModelAdmin):
+    list_display = ("name", "website", "is_active")
+    search_fields = ("name", "website__domain")
+    list_filter = ("website",)
+
+
+@admin.register(NotificationGroup)
+class NotificationGroupAdmin(admin.ModelAdmin):
+    list_display = ("name", "default_channel", "default_priority", "is_enabled_by_default")
+    search_fields = ("name",)
+
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
-    list_display = ('user', 'type', 'title', 'is_read', 'status', 'created_at', 'website')
-    search_fields = ('user__username', 'title', 'message')
-    list_filter = ('type', 'is_read', 'status', 'website')
+    list_display = (
+        'id', 'user', 'type', 
+        'event', 'title', 'is_read',
+        'is_sent', 'status', 'created_at',
+        'website', 'short_message'
+    )
+    search_fields = (
+        'user__username', 'user__email',
+        'payload', 'category' 'title', 'message'
+    )
+    list_filter = (
+        'category', 'priority', 'type', 'is_read',
+        'is_sent', 'event', 'status',
+        'website', 'channels'
+    )
+    readonly_fields = (
+        "user",
+        "event",
+        "category",
+        "priority",
+        "payload_pretty",
+        "is_read",
+        "is_sent",
+        "channels",
+        "website",
+        "actor",
+        "created_at",
+        "updated_at",
+    )
     ordering = ('-created_at',)
 
+    actions = [
+        "mark_as_read",
+        "mark_as_sent",
+        "delete_failed_notifications",
+    ]
+
+    def short_message(self, obj):
+        try:
+            return obj.payload.get("message", "")[:50]
+        except Exception:
+            return "-"
+    short_message.short_description = "Message"
+
+    def payload_pretty(self, obj):
+        try:
+            data = json.dumps(obj.payload, indent=2)
+            return format_html(f"<pre style='max-width: 600px;'>{data}</pre>")
+        except Exception:
+            return str(obj.payload)
+    payload_pretty.short_description = "Payload"
+
+    def mark_as_read(self, request, queryset):
+        updated = queryset.update(is_read=True)
+        self.message_user(request, f"{updated} notification(s) marked as read.")
+    mark_as_read.short_description = "Mark selected as read"
+
+    def mark_as_sent(self, request, queryset):
+        updated = queryset.update(is_sent=True)
+        self.message_user(request, f"{updated} notification(s) marked as sent.")
+    mark_as_sent.short_description = "Mark selected as sent"
+
+    def delete_failed_notifications(self, request, queryset):
+        failed = queryset.filter(is_sent=False)
+        count = failed.count()
+        failed.delete()
+        self.message_user(request, f"{count} failed notification(s) deleted.")
+    delete_failed_notifications.short_description = "Delete failed notifications"
+
+@admin.register(NotificationProfile)
+class NotificationProfileAdmin(admin.ModelAdmin):
+    list_display = ("name", "default_email", "default_sms", "default_push", "default_in_app", "dnd_start", "dnd_end")
+    list_filter = ("default_email", "default_in_app")
 
 @admin.register(NotificationPreference)
 class NotificationPreferenceAdmin(admin.ModelAdmin):
-    list_display = ('user', 'receive_email', 'receive_sms', 'receive_push', 'receive_in_app', 'website')
-    search_fields = ('user__username',)
-    list_filter = ('website',)
+    list_display = (
+        'user', 'email_enabled', 'sms_enabled',
+        'push_enabled', 'in_app_enabled', 'website',
+        'mute_all', 'digest_only', 'updated_at',
+        'created_at'
+    )
+    search_fields = ('user__username', 'website__domain')
+    list_filter = (
+        'website', 'mute_all', 'digest_only', 'receive_email',
+        'receive_sms', 'receive_push', 'receive_in_app'
+    )
+
+@admin.register(EventNotificationPreference)
+class EventNotificationPreferenceAdmin(admin.ModelAdmin):
+    list_display = ("user", "event", "website", "email_enabled", "sms_enabled",  "push_enabled", "in_app_enabled")
+    list_filter = ("event", "website", "email_enabled", "push_enabled", "sms_enabled", "in_app_enabled")
+    search_fields = ("user__username", "user__email")
+
+
+@admin.register(NotificationGroupProfile)
+class NotificationGroupProfileAdmin(admin.ModelAdmin):
+    list_display = (
+        "name", "website", "group", "profile",
+        "allowed_channels", "min_priority", "is_active",
+        "created_at", "updated_at"
+    )
+    filter_horizontal = ("users", "roles")
+    search_fields = ("name", "website__domain", "group__name")
+    list_filter = ("website", "group")
+
+
+
+@admin.register(BroadcastNotification)
+class BroadcastNotificationAdmin(admin.ModelAdmin):
+    list_display = ("title", "is_active", "website", "send_email", "pinned", "created_at")
+    list_filter = ("website", "is_active", "pinned", "send_email")
+    search_fields = ("title", "message")
+
+
+@admin.register(NotificationEvent)
+class NotificationEventAdmin(admin.ModelAdmin):
+    list_display = ("event", "name", "is_active", "website")
+
+@admin.register(NotificationEventPreference)
+class NotificationEventPreferenceAdmin(admin.ModelAdmin):
+    list_display = ("user", "event", "website")
+
+    @admin.action(description="Reset and re-seed preferences")
+    def reset_preferences(modeladmin, request, queryset):
+        for user in queryset:
+            reset_user_preferences(user)
+            assign_default_preferences(user, user.website)
+
+
+@admin.register(RoleNotificationPreference)
+class RoleNotificationPreferenceAdmin(admin.ModelAdmin):
+    list_display = ("role", "website", "min_priority")
+    list_filter = ("website", "role")
+
+@admin.register(GroupNotificationProfile)
+class GroupNotificationProfileAdmin(admin.ModelAdmin):
+    list_display = ("name", "role_slug", "is_default", "receive_email", "receive_push")
+    list_filter = ("is_default",)
+    search_fields = ("name", "role_slug")
+
+# notifications_system/admin.py
+
+@admin.action(description="Send test email to self")
+def send_test_email(modeladmin, request, queryset):
+    user = request.user
+    for notif in queryset:
+        send_priority_email(
+            user=user,
+            subject=notif.title,
+            message=notif.message,
+            context={"message": notif.message},
+            priority=notif.priority,
+            website=notif.website
+        )
+        modeladmin.message_user(request, f"Test email sent for: {notif.title}")
+
+@admin.register(Notification)
+class NotificationAdmin(admin.ModelAdmin):
+    list_display = ("title", "user", "priority", "event", "created_at")
+    actions = [send_test_email]

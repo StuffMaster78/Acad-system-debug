@@ -3,7 +3,7 @@
 import logging
 from notifications_system.utils.ws_broadcast import push_ws_notification
 from notifications_system.services.core import NotificationService
-from notifications_system.notification_enums import NotificationType
+from notifications_system.enums import NotificationType
 from notifications_system.tasks import async_send_notification
 
 logger = logging.getLogger(__name__)

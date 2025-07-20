@@ -14,7 +14,7 @@ from channels.routing import ProtocolTypeRouter, URLRouter # type: ignore
 from channels.auth import AuthMiddlewareStack # type: ignore
 import communications
 import communications.routing
-import notifications_system.routing
+import notifications_system.websockets.routing
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings')
 
@@ -22,7 +22,7 @@ application = ProtocolTypeRouter({
     "http": get_asgi_application(),
     "websocket": AuthMiddlewareStack(
         URLRouter(
-            notifications_system.routing.websocket_urlpatterns + communications.routing.websocket_urlpatterns
+            notifications_system.websockets.routing.websocket_urlpatterns + communications.routing.websocket_urlpatterns
         )
     ),
 })

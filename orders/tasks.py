@@ -26,7 +26,7 @@ from audit_logging.services import AuditLogEntry
 from orders.models import WriterRequest
 from audit_logging.services import log_audit_action
 from notifications_system.tasks import async_send_notification
-from notifications_system.notification_enums import NotificationType
+from notifications_system.enums import NotificationType
 
 logger = logging.getLogger(__name__)
 
