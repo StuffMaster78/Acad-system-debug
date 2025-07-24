@@ -6,11 +6,6 @@ from django.conf import settings
 from notifications_system.models.notifications import (
     Notification
 )
-from notifications_system.models.notification_preferences import (
-    NotificationPreference,
-    EventNotificationPreference,
-    RoleNotificationPreference
-)
 from notifications_system.models.broadcast_notification import (
     BroadcastNotification,
     BroadcastOverride
@@ -21,26 +16,20 @@ from notifications_system.models.notification_delivery import (
 from notifications_system.models.digest_notifications import (
     NotificationDigest
 )
-from notifications_system.models.notification_profile import (
-    NotificationProfile,
-    NotificationGroupProfile
-)
 from notifications_system.models.notification_log import (
     NotificationLog
 )
-
-
 from notifications_system.enums import (
     NotificationType,
     DeliveryStatus
 )
-from notifications_system.services.dispatcher import notify_users
+from notifications_system.services.dispatch import NotificationDispatcher
 from notifications_system.services.templates_registry import get_template
 
-from core.utils.email_helpers import send_website_mail
-from core.utils.sms_helpers import send_sms_notification
-from core.utils.push_helpers import send_push_notification
-from core.utils.ws_helpers import send_ws_notification
+from notifications_system.utils.email_helpers import send_website_mail
+from notifications_system.utils.sms_helpers import send_sms_notification
+from notifications_system.utils.push_helpers import send_push_notification
+from notifications_system.utils.ws_helpers import send_ws_notification
 from notifications_system.utils.priority_mapper import get_priority_from_label
 from notifications_system.utils.retry_task import retry_task_with_backoff
 from notifications_system.enums import NotificationPriority
@@ -54,6 +43,8 @@ from notifications_system.models import EventNotificationPreference
 from django.db import models
 
 from notifications_system.utils.fallbacks import should_fall_back_to_email, mark_email_fallback_sent
+from notifications_system.utils.dnd import is_dnd_now
+from notifications_system.services.preferences import NotificationPreferenceResolver
 
 logger = logging.getLogger(__name__)
 
@@ -64,11 +55,11 @@ class NotificationService:
     This service handles the creation, delivery, and management of notifications.
     """
     @staticmethod
-    def send(
+    def send_notification(
         *,
         user,
         event,
-        context=None,
+        payload=None,
         website=None,
         actor=None,
         channels=None,
@@ -82,40 +73,110 @@ class NotificationService:
         is_silent=False,
         email_override=None,
     ):
-        if not user:
-            logger.warning("Notification skipped: No user provided.")
+        # Validate user
+        if not user or not user.is_authenticated:
+            logger.warning("Notification skipped: Invalid user.")
             return None
 
-        context = context or {}
+        # Validate event
+        if not event:
+            logger.warning("Notification skipped: Invalid event.")
+            return None
+        
+        # Validate website
+        if not website:
+            logger.warning("Notification skipped: No website provided.")
+            return None
+        # Validate payload
+        if not payload:
+            logger.warning("Notification skipped: No payload provided.")
+            return None     
+        payload = payload or {}
 
-        # Priority via label
-        if priority_label:
-            priority = get_priority_from_label(priority_label) or priority
+        # Check if user has notification profile
+        if not hasattr(user, 'notification_profile'):
+            logger.warning(
+                f"User {user} has no notification profile. Skipping notification."
+            )
+            return None
+        
+        # Check if user has notification preferences
+        if not hasattr(user, 'notification_preferences'):
+            logger.warning(
+                f"User {user} has no notification preferences. Assigning defaults."
+            )
+            NotificationPreferenceResolver.assign_default_preferences(user)
 
-        # Broadcasts
+        # Check if user is muted
+        if user.pref.is_muted() and not is_critical:
+            logger.info(f"User {user} is muted. Skipping notification.")
+            return None
+        
+        # Check if user is in DND hours
+        if is_dnd_now(user.notification_profile):
+            channels = [ch for ch in (channels or []) if ch not in user.notification_profile.dnd_channels]
+            if not channels:
+                logger.info(
+                    f"User {user} is in DND hours. Skipping notification."
+                )
+                return None
+            
+        # Filter channels based on user preferences
+        if channels:
+            channels = filter_channels_by_user_preferences(
+                user=user,
+                channels=channels,
+                website=website
+            )
+        else:
+            channels = NotificationPreferenceResolver.get_effective_preferences(
+                user=user, website=website
+            )
+
+        # Priority handling
+        if isinstance(priority, str):
+            priority = get_priority_from_label(priority) or NotificationPriority.NORMAL 
+        if priority is None:
+            priority = NotificationPriority.NORMAL
+
+        # Handle Broadcasts
         if (broadcast := BroadcastNotification.objects.filter(event_type=event, is_active=True).first()):
             users = get_target_users(broadcast)
-            notify_users(users, subject=broadcast.title, message=broadcast.message,
-                         website=website, event=event, context=context)
-            return
+            NotificationDispatcher.dispatch(
+                users, subject=broadcast.title, message=broadcast.message,
+                website=website, event=event, payload=payload, channels=channels,
+                category=category, priority=priority, is_critical=is_critical,
+                is_digest=is_digest, digest_group=digest_group, is_silent=is_silent,
+                email_override=email_override
+            )
+            return broadcast
+
+        
+        # Handle Broadcast Overrides
+        payload = payload.copy()
+        payload["user_id"] = user.id
+        payload["website_id"] = website.id if website else None
 
         if (override := BroadcastOverride.objects.filter(event_type=event, active=True).first()):
-            context["title"] = override.title
-            context["message"] = override.message
+            payload["title"] = override.title
+            payload["message"] = override.message
             channels = override.force_channels
 
+
+        # Handle Digests
         profile = getattr(user, "notification_profile", None)
         preferences = getattr(user, "notification_preferences", None)
 
-        if is_dnd_now(profile):
-            channels = [ch for ch in (channels or []) if ch not in profile.dnd_channels]
-            if not channels:
-                logger.info(f"User {user} is in DND hours. Skipping notification.")
-                return None
+        if is_digest and profile and preferences:
+            digest_group = f"{event}_{user.id}"
+            payload["digest_group"] = digest_group
+            payload["is_digest"] = True
 
         # Default to IN_APP
         if not channels:
-            channels = preferences.get_active_channels() if preferences else [NotificationType.IN_APP]
+            channels = NotificationPreferenceResolver.get_effective_preferences(
+                user=user, website=website
+            ) if preferences else [NotificationType.IN_APP]
 
         # Template rendering
         template = get_template(event)
@@ -123,29 +184,25 @@ class NotificationService:
             logger.warning(f"No template registered for event '{event}'")
             return None
 
-        title, message, html = template.render(context)
+        title, message, html = template.render(payload)
 
-        # Check mutes
-        if user.pref.is_muted() and not is_critical:
-            logger.info(f"User {user} is muted. Skipping.")
-            return None
 
         # Create DB notification
         notification = Notification.objects.create(
             user=user,
             actor=actor,
             event=event,
-            payload=context,
+            payload=payload,
             website=website,
             type=channels[0],
             title=title,
             message=message,
             rendered_title=title,
             rendered_message=message,
-            rendered_link=context.get("link"),
-            rendered_payload=context,
+            rendered_link=payload.get("link"),
+            rendered_payload=payload,
             template_name=template_name or template.event_name,
-            template_version=context.get("version"),
+            template_version=payload.get("version"),
             category=category or "info",
             priority=priority,
             is_critical=is_critical,
@@ -178,6 +235,20 @@ class NotificationService:
                     attempts=1
                 )
 
+        # Log Notification
+        NotificationLog.objects.create(
+            notification=notification,
+            channel=channels,
+            success=True,
+            response_code=200,
+            status=DeliveryStatus.SENT,
+            message=f"Notification sent via {', '.join(channels)}",
+            timestamp=timezone.now()
+        )
+        logger.info(
+            f"Notification sent to {user} via {', '.join(channels)} for event '{event}'"
+        )
+        # Update notification status
         notification.status = DeliveryStatus.SENT
         notification.sent_at = timezone.now()
         notification.save()

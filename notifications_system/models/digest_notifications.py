@@ -1,7 +1,6 @@
 from datetime import timezone
 from django.db import models
 from django.utils.timezone import now
-from core.models.base import WebsiteSpecificBaseModel
 from django.conf import settings
 from websites.models import Website
 from notifications_system.enums import (
@@ -16,7 +15,6 @@ from django.contrib.postgres.fields import JSONField
 from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
-from core.models import Website  # or wherever your Website model is
 
 User = get_user_model()
 
@@ -58,7 +56,10 @@ class NotificationDigest(models.Model):
         help_text="Category of the notification digest"
     )
     channels = ArrayField(
-        models.CharField(max_length=50, choices=NotificationType.choices()),
+        models.CharField(
+            max_length=50,
+            choices=NotificationType.choices()
+        ),
         default=list,
         help_text="Channels through which the digest will be sent"
     )
@@ -166,7 +167,10 @@ class NotificationDigestQueue(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     event_key = models.CharField(max_length=255)
     payload = models.JSONField()
-    website = models.ForeignKey(Website, on_delete=models.CASCADE, null=True, blank=True)
+    website = models.ForeignKey(
+        Website, on_delete=models.CASCADE,
+        null=True, blank=True
+    )
     timestamp = models.DateTimeField(default=timezone.now)
 
     class Meta:

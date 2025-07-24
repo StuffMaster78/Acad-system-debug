@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yourdomain.com/schemas/user_event.schema.json",
+  "title": "User Event Schema",
+  "description": "Schema definition for user-related notification events.",
+  "type": "object",
+  "required": ["event_key", "priority", "channels", "roles"],
+  "properties": {
+    "event_key": {
+      "type": "string",
+      "pattern": "^user\\.[a-zA-Z0-9_]+$",
+      "description": "A unique key for the user-related event."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional human-readable description of the event."
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "The urgency level of the notification."
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "dashboard", "email", "sms",
+          "whatsapp", "telegram", "discord", "webhook"
+        ]
+      },
+      "description": "Channels through which the notification should be sent."
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "admin", "superadmin", "user", "support",
+          "writer", "client", "editor"
+        ]
+      },
+      "description": "Roles that should receive this event's notification."
+    },
+    "fallback_message": {
+      "type": "string",
+      "description": "Optional fallback message if the template is missing."
+    },
+    "template_key": {
+      "type": "string",
+      "description": "Optional reference to the notification template key."
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "If false, this event is ignored."
+    }
+  },
+  "additionalProperties": false
+}

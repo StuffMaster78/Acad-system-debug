@@ -1,0 +1,17 @@
+{
+  "$schema": "hhttps://json-schema.org/draft/2020-12/schema",
+  "title": "Order Notification Event",
+  "allOf": [
+    { "$ref": "base_event.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "order_status": {
+          "type": "string",
+          "enum": ["pending", "in_progress", "submitted", "reviewed"]
+        }
+      },
+      "required": ["order_status"]
+    }
+  ]
+}

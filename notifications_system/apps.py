@@ -1,4 +1,6 @@
 from django.apps import AppConfig
+from notifications_system.registry.main_registry import NotificationRegistry
+from notifications_system.registry.notification_event_loader  import load_event_configs
 
 
 class NotificationsSystemConfig(AppConfig):
@@ -16,3 +18,6 @@ class NotificationsSystemConfig(AppConfig):
         auto_register_notification_handlers()  # Automatically register notification handlers for events
         from notifications_system.services import dispatcher
         dispatcher.auto_register_notification_dispatchers()  # Automatically register notification dispatchers for events
+
+        load_event_configs()  # load from JSON/YAML
+        NotificationRegistry.register_from_config()      # fill templates + forced channels

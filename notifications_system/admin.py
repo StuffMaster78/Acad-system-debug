@@ -33,6 +33,16 @@ from django.contrib.admin.widgets import AdminTextareaWidget
 from django import forms
 from .models import NotificationSystemSettings
 from notifications_system.utils.email_helpers import send_priority_email
+from notifications_system.models.event_config import NotificationEventConfig
+from django.contrib import admin
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+
+from notifications_system.models.notification_event_override import NotificationEventOverride
+from notifications_system.registry.event_config_loader import get_event_config
+from notifications_system.registry.validator import validate_event_config
+from django.core.exceptions import ValidationError
+
 
 class NotificationSystemSettingsForm(forms.ModelForm):
     class Meta:
@@ -252,3 +262,96 @@ def send_test_email(modeladmin, request, queryset):
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ("title", "user", "priority", "event", "created_at")
     actions = [send_test_email]
+
+@admin.register(NotificationEventConfig)
+class NotificationEventConfigAdmin(admin.ModelAdmin):
+    list_display = ("event_key", "updated_at")
+    search_fields = ("event_key",)
+    ordering = ("-updated_at",)
+
+
+
+@admin.register(NotificationEventOverride)
+class NotificationEventOverrideAdmin(admin.ModelAdmin):
+    list_display = (
+        "event_key",
+        "website",
+        "enabled",
+        "priority",
+        "updated_at",
+        "schema_valid",
+    )
+    list_filter = ("website", "enabled")
+    search_fields = ("event_key",)
+
+    readonly_fields = ("schema_valid", "full_config_preview")
+
+    fieldsets = (
+        (None, {
+            "fields": (
+                "website",
+                "event_key",
+                "enabled",
+                "priority",
+                "channels",
+                "roles",
+            )
+        }),
+        ("Template & Fallback", {
+            "fields": (
+                "template_key",
+                "fallback_message",
+            )
+        }),
+        ("Debug & Validation", {
+            "classes": ("collapse",),
+            "fields": (
+                "schema_valid",
+                "full_config_preview",
+            )
+        }),
+    )
+
+    def schema_valid(self, obj):
+        """
+        Returns ✅/❌ depending on whether merged config passes schema validation.
+        """
+        if not obj:
+            return "-"
+        try:
+            merged = self._get_merged_config(obj)
+            validate_event_config({obj.event_key: merged})
+            return format_html('<span style="color: green;">✅ Valid</span>')
+        except ValidationError as e:
+            return format_html('<span style="color: red;">❌ Invalid: {}</span>', str(e))
+        except Exception as e:
+            return format_html('<span style="color: red;">⚠️ Error: {}</span>', str(e))
+
+    def full_config_preview(self, obj):
+        """
+        Displays a syntax-highlighted JSON preview of merged event config.
+        """
+        if not obj:
+            return "-"
+        try:
+            import json
+            merged = self._get_merged_config(obj)
+            pretty = json.dumps(merged, indent=2)
+            return format_html(
+                "<pre style='background: #f9f9f9; padding: 10px; border-radius: 4px;'>{}</pre>",
+                mark_safe(pretty)
+            )
+        except Exception as e:
+            return f"Error rendering preview: {e}"
+
+    def _get_merged_config(self, obj):
+        """
+        Load full config for this event_key and override object.
+        """
+        config = get_event_config(force_reload=True)
+        return config.get(obj.event_key, {})
+    
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # Optional: log to your own audit system or console
+        print(f"[Admin] Updated NotificationEventOverride: {obj}")

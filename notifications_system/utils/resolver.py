@@ -10,17 +10,6 @@ from notifications_system.models.notification_profile import (
 from django.db import models
 from notifications_system.enums import NotificationType
 
-def resolve_role_default(user, website):
-        if not hasattr(user, "role"):
-            return None
-
-        try:
-            return RoleNotificationPreference.objects.get(
-                role=user.role, website=website
-            )
-        except RoleNotificationPreference.DoesNotExist:
-            return None
-            
 
 def resolve_channel_preferences(user):
     """ Resolve user's notification preferences for all channels."""
@@ -34,6 +23,9 @@ def resolve_channel_preferences(user):
             "email": profile.email_enabled,
             "sms": profile.sms_enabled,
             "push": profile.push_enabled,
+            "webhook": profile.webhook_enabled,
+            "telegram": profile.telegram_enabled,
+            "discord": profile.discord_enabled,
             "in_app": profile.in_app_enabled,
             "dnd_enabled": profile.dnd_enabled,
             "dnd_start": profile.dnd_start_hour,
@@ -94,7 +86,9 @@ def resolve_profile_settings(user):
     website = user.website
 
     # Check user's notification profile
-    profile = NotificationProfile.objects.filter(user=user, website=website).first()
+    profile = NotificationProfile.objects.filter(
+        user=user, website=website
+    ).first()
     
     if not profile:
         # Fallback to group profile if no user profile exists

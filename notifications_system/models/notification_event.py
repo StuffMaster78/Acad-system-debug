@@ -8,7 +8,12 @@ class NotificationEvent(models.Model):
     Examples include "order.assigned", "payment.failed", etc.
     This allows for dynamic event handling and notification triggering.
     """
+
     event = models.CharField(max_length=100, unique=True)
+    event_key = models.CharField(
+        max_length=100, unique=True,
+        help_text="Unique key for the event, e.g. 'order.created'"
+    )
     name = models.CharField(max_length=150)
     category = models.CharField(max_length=100, blank=True) # e.g. "order", "payment"
     enabled_by_default = models.BooleanField(default=True)
@@ -22,7 +27,7 @@ class NotificationEvent(models.Model):
 
     is_active = models.BooleanField(default=True)
     is_critical = models.BooleanField(default=False)
-    version = models.CharField(max_length=10, default="v1.0")
+    # version = models.CharField(max_length=10, default="v1.0")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

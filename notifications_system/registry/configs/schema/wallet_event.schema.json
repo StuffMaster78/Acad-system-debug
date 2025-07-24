@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://yourdomain.com/schemas/wallet_event.schema.json",
+  "title": "Wallet Event Schema",
+  "description": "Schema definition for wallet-related notification events.",
+  "type": "object",
+  "required": ["event_key", "priority", "channels", "roles"],
+  "properties": {
+    "event_key": {
+      "type": "string",
+      "pattern": "^wallet\\.[a-zA-Z0-9_]+$",
+      "description": "A unique key for the wallet event (e.g. wallet.deposit_success)."
+    },
+    "description": {
+      "type": "string",
+      "description": "Optional human-readable description of the event."
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "Priority of the notification."
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "dashboard", "email", "sms",
+          "whatsapp", "telegram", "discord", "webhook"
+        ]
+      },
+      "description": "Delivery channels for the notification."
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "admin", "superadmin", "client", "support"
+        ]
+      },
+      "description": "Roles eligible to receive this wallet event notification."
+    },
+    "fallback_message": {
+      "type": "string",
+      "description": "Fallback message used if templating fails or no template is set."
+    },
+    "template_key": {
+      "type": "string",
+      "description": "Template reference key, used for rendering notification messages."
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this notification event is active."
+    }
+  },
+  "additionalProperties": false
+}

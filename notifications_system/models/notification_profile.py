@@ -7,10 +7,12 @@ from notifications_system.enums import (
     NotificationPriority
 )
 from django.contrib.postgres.fields import ArrayField
-from notifications_system.models import Notification
+from notifications_system.models.notifications import Notification
 from users.mixins import UserRole   
 from django.contrib.postgres.fields import JSONField
-from notifications_system.models.notification_settings import NotificationSystemSettings
+from notifications_system.models.notification_settings import  (
+    GlobalNotificationSystemSettings
+)
 from notifications_system.models.notification_group import NotificationGroup
 
 User = settings.AUTH_USER_MODEL
@@ -79,18 +81,22 @@ class NotificationProfile(models.Model):
         }
     
     def get_fallback_rules(self):
+        """Returns the fallback rules for this profile.
+        If this profile has its own rules, return them.
+        Otherwise, check the base profile or global settings.
+        """
         if self.fallback_rules:
             return self.fallback_rules
         elif self.base_profile:
             return self.base_profile.get_fallback_rules()
-        return NotificationSystemSettings.get_solo().fallback_rules or {}
+        return GlobalNotificationSystemSettings.get_solo().fallback_rules or {}
 
     def get_max_retries(self):
         if self.max_retries_per_channel:
             return self.max_retries_per_channel
         elif self.base_profile:
             return self.base_profile.get_max_retries()
-        return NotificationSystemSettings.get_solo().max_retries_per_channel or {}
+        return GlobalNotificationSystemSettings.get_solo().max_retries_per_channel or {}
 
     def get_retry_delay(attempt_number):
         return min(60 * attempt_number, 600)  # e.g. 1min, 2min, 3min… max 10min

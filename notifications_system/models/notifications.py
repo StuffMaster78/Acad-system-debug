@@ -151,6 +151,10 @@ class Notification(models.Model):
         blank=True,
         help_text="When the notification was delivered."
     )
+    delivered = models.BooleanField(
+        default=False,
+        help_text="Has the notification been delivered?"
+    )
     delivery_status = models.CharField(
         max_length=20,
         choices=DeliveryStatus.choices,
@@ -164,6 +168,20 @@ class Notification(models.Model):
     retry_count = models.IntegerField(
         default=0,
         help_text="Number of retries attempted for this notification."
+    )
+    failed_channels = models.JSONField(default=list)  # e.g., ["email", "push"]
+    metadata = models.JSONField(
+        default=dict,
+        blank=True
+    )  # optional for payload debugging
+    pinned = models.BooleanField(
+        default=False,
+        help_text="Whether the notification is pinned."
+    )
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the notification expires and shouldn't be shown."
     )
 
     def mark_as_read(self):
@@ -206,6 +224,9 @@ class Notification(models.Model):
             models.Index(fields=['status']),
             models.Index(fields=['created_at']),
             models.Index(fields=['delivered_at']),
+            models.Index(fields=['is_digest', 'digest_group']),
+            models.Index(fields=['priority']),
+            models.Index(fields=['expires_at']),
         ]
         ordering = ['-created_at']
 

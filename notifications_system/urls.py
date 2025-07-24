@@ -7,7 +7,8 @@ from notifications_system.views import (
     MarkNotificationAsReadView, NotificationAdminViewSet,
     NotificationProfileViewSet, MyNotificationPreferencesView,
     MyEventNotificationPreferenceViewSet,
-    NotificationGroupProfileViewSet, BroadcastNotificationViewSet
+    NotificationGroupProfileViewSet, BroadcastNotificationViewSet,
+    fetch_user_broadcasts, acknowledge_broadcast
 )
 from notifications_system.views import notification_enum_choices
 from notifications_system.admin_debug_views import preview_email_template
@@ -30,10 +31,6 @@ router.register(
 router.register(
     r"notification-profiles", NotificationProfileViewSet,
     basename="notification-profiles"
-)
-router.register(
-    "preferences", MyEventNotificationPreferenceViewSet,
-    basename="notification-preferences"
 )
 router.register(
     r"profiles", NotificationProfileViewSet,
@@ -61,11 +58,6 @@ urlpatterns = [
     path(
         "notifications/meta/", NotificationMetaView.as_view(),
         name="notifications-meta"
-    ),
-    path(
-        "notifications/metadata/", 
-        NotificationMetaView.as_view(),
-        name="notifications-metadata"
     ),
     path(
         "notifications/",
@@ -99,6 +91,16 @@ urlpatterns = [
     path(
         "admin/preview-email/<str:priority>/",
         preview_email_template
+    ),
+    path(
+        'broadcasts/',
+        fetch_user_broadcasts,
+        name='fetch_broadcasts'
+    ),
+    path(
+        'broadcasts/<int:broadcast_id>/acknowledge/',
+        acknowledge_broadcast,
+        name='acknowledge_broadcast'
     ),
 
     path("", include(router.urls)),

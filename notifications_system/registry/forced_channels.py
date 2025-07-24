@@ -1,15 +1,61 @@
-FORCED_CHANNELS = {}
+"""
+Forced Channels Registry for Notifications System
 
-def register_forced_channel(event_key, channels: list):
-    """
-    Registers a channel or list of channels that should always be used for a specific event.
-    If the event already has forced channels, they will be replaced.
-    """
-    FORCED_CHANNELS[event_key] = channels
+Manages registration and retrieval of forced channels for specific
+notification events. These channels override user preferences to ensure
+important events are always sent through specified mediums.
+"""
 
-def get_forced_channels(event_key: str) -> list:
+from collections import defaultdict
+from typing import Dict, Set, List
+
+
+class ForcedChannelRegistry:
     """
-    Returns a list of channels that are forced for a specific event.
-    If no channels are forced, returns an empty list.
+    Central registry for forced channels per event_key.
     """
-    return FORCED_CHANNELS.get(event_key, [])
+
+    def __init__(self) -> None:
+        self._forced_channels: Dict[str, Set[str]] = defaultdict(set)
+
+    def register(self, event_key: str, channels: List[str]) -> None:
+        """
+        Registers one or more channels that are always used for a
+        specific event. Replaces existing forced channels.
+        """
+        self._forced_channels[event_key] = set(channels)
+
+    def add(self, event_key: str, channel: str) -> None:
+        """
+        Adds a single forced channel without replacing existing ones.
+        """
+        self._forced_channels[event_key].add(channel)
+
+    def get(self, event_key: str) -> Set[str]:
+        """
+        Returns a set of forced channels for a specific event.
+        """
+        return self._forced_channels.get(event_key, set())
+
+    def all(self) -> Dict[str, Set[str]]:
+        """
+        Returns the entire forced channel mapping.
+        """
+        return self._forced_channels
+
+
+# Shared singleton instance
+forced_channel_registry = ForcedChannelRegistry()
+
+
+# Decorator for convenience
+def forced_channel(event_key: str, channels: List[str]):
+    """
+    Decorator to register forced channels for an event.
+    """
+
+    def decorator(func):
+        forced_channel_registry.register(event_key, channels)
+        return func
+
+    return decorator

@@ -1,10 +1,11 @@
 from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer
+from channels.layers import get_channel_layer # type: ignore
+from notifications_system.tasks.notifications import async_send_ws_notification
 import logging
 
 logger = logging.getLogger(__name__)
 
-def send_ws_notification(user, message, payload=None):
+def send_ws_notification(user, message, payload=None, **kwargs):
     """
     Send a WebSocket notification to the given user.
     """
@@ -13,7 +14,11 @@ def send_ws_notification(user, message, payload=None):
         return
 
     group_name = f"notifications_{user.id}"
+    use_async = kwargs.get('use_async', False)
 
+    if use_async:
+        async_send_ws_notification.delay(user.id, payload)
+        return
     try:
         channel_layer = get_channel_layer()
         async_to_sync(channel_layer.group_send)(

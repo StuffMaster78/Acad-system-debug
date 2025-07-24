@@ -1,137 +1,57 @@
-from typing import Dict, List
+from typing import Optional, Dict, TYPE_CHECKING
+from django.contrib.auth import get_user_model
 
-ROLE_NOTIFICATION_BINDINGS: Dict[str, Dict[str, List[str]]] = {
-    "client": {
-        'order.created': ['email', 'in_app'],
-        'order.on_hold': ['email', 'in_app', 'webhook'],
-        'order.cancelled': ['email', 'in_app'],
-        'order.assigned': ['email', 'in_app'],
-        'order.completed': ['email', 'in_app'],
-        'order.refunded': ['email', 'in_app'],
-        'order.revised': ['email', 'in_app'],
-        'order.archived': ['email', 'in_app'],
-        'order.in_progress': ['email', 'in_app'],
-        'order.unpaid': ['email', 'in_app'],
-        'order.late': ['email', 'in_app'],
-        'order.approved': ['email', 'in_app'],
-        'order.disputed': ['email', 'in_app'],
-        'order.dispute_resolved': ['email', 'in_app'],
-        'order.dispute_appealed': ['email', 'in_app'],
-        'order.dispute_closed': ['email', 'in_app'],
-        'order.reopened': ['email', 'in_app'],
-        'order.under_editing': ['email', 'in_app'],
-        'order.rated': ['email', 'in_app'],
-        'order.reviewed': ['email', 'in_app'],
-        'order.review_approved': ['email', 'in_app'],
-    },
-    "writer": {
-        'order.assigned': ['email', 'in_app'],
-        'order.revised': ['email', 'in_app'],
-        'order.completed': ['email', 'in_app'],
-        'order.refunded': ['email', 'in_app'],
-        'order.approved': ['email', 'in_app'],
-        'order.disputed': ['email', 'in_app'],
-        'order.dispute_resolved': ['email', 'in_app'],
-        'order.dispute_appealed': ['email', 'in_app'],
-        'order.dispute_closed': ['email', 'in_app'],
-        'order.reopened': ['email', 'in_app'],
-        'order.under_editing': ['email', 'in_app'],
-        'order.rated': ['email', 'in_app'],
-        'order.reviewed': ['email', 'in_app'],
-        'order.review_approved': ['email', 'in_app'],   
-    },
-    "admin": {
-        'user.suspended': ['email', 'in_app'],
-        'user.activated': ['email', 'in_app'],
-        'user.deleted': ['email', 'in_app'],
-        'user.created': ['email', 'in_app'],
-        'user.updated': ['email', 'in_app'],
-        'user.striked': ['email', 'in_app'],
-        'user.unstriked': ['email', 'in_app'],
-        'user.password_changed': ['email', 'in_app'],
-        'user.email_changed': ['email', 'in_app'],
-        'user.profile_updated': ['email', 'in_app'],
-        'user.blacklisted': ['email', 'in_app'],
-        'user.unblacklisted': ['email', 'in_app'],
-        'user.notification_preferences_updated': ['email', 'in_app'],
-        'user.profile_update_requested': ['email', 'in_app'],
-        'user.profile_update_approved': ['email', 'in_app'],
-        'user.profile_update_rejected': ['email', 'in_app'],
-        'user.reset_password_requested': ['email', 'in_app'],
-        'user.reset_password_completed': ['email', 'in_app'],
-        'user.notification_preferences_reset': ['email', 'in_app'],
-        'user.notification_preferences_updated': ['email', 'in_app'],
-        'user.notification_preferences_assigned': ['email', 'in_app'],
-        'user.notification_preferences_removed': ['email', 'in_app'],
-        'user.notification_preferences_updated': ['email', 'in_app'],
-        'user.notification_preferences_reset_requested': ['email', 'in_app'],
-        'user.notification_preferences_reset_completed': ['email', 'in_app'],
-        'order.created': ['email', 'in_app'],
-        'order.on_hold': ['email', 'in_app', 'webhook'],
-        'order.cancelled': ['email', 'in_app'],
-        'order.assigned': ['email', 'in_app'],
-        'order.completed': ['email', 'in_app'],
-        'order.refunded': ['email', 'in_app'],
-        'order.revised': ['email', 'in_app'],
-        'order.archived': ['email', 'in_app'],
-        'order.in_progress': ['email', 'in_app'],
-        'order.unpaid': ['email', 'in_app'],
-        'order.late': ['email', 'in_app'],
-        'order.approved': ['email', 'in_app'],
-        'order.disputed': ['email', 'in_app'],
-        'order.dispute_resolved': ['email', 'in_app'],
-        'order.dispute_appealed': ['email', 'in_app'],
-        'order.dispute_closed': ['email', 'in_app'],
-        'order.reopened': ['email', 'in_app'],
-        'order.under_editing': ['email', 'in_app'],
-        'order.rated': ['email', 'in_app'],
-        'order.reviewed': ['email', 'in_app'],
-        'order.review_approved': ['email', 'in_app'],   
-    },
-    "support": {
-        'order.created': ['email', 'in_app'],
-        'order.on_hold': ['email', 'in_app', 'webhook'],
-        'order.cancelled': ['email', 'in_app'],
-        'order.assigned': ['email', 'in_app'],
-        'order.completed': ['email', 'in_app'],
-        'order.refunded': ['email', 'in_app'],
-        'order.revised': ['email', 'in_app'],
-        'order.archived': ['email', 'in_app'],
-        'order.in_progress': ['email', 'in_app'],
-        'order.unpaid': ['email', 'in_app'],
-        'order.late': ['email', 'in_app'],
-        'order.approved': ['email', 'in_app'],
-        'order.disputed': ['email', 'in_app'],
-        'order.dispute_resolved': ['email', 'in_app'],
-        'order.dispute_appealed': ['email', 'in_app'],
-        'order.dispute_closed': ['email', 'in_app'],
-        'order.reopened': ['email', 'in_app'],
-        'order.under_editing': ['email', 'in_app'],
-        'order.rated': ['email', 'in_app'],
-        'order.reviewed': ['email', 'in_app'],
-        'order.review_approved': ['email', 'in_app'],   
-    },
-    "editor": {
-        'document.created': ['email', 'in_app'],
-        'document.updated': ['email', 'in_app'],
-        'document.deleted': ['email', 'in_app'],
-        'document.review_requested': ['email', 'in_app'],
-        'document.review_completed': ['email', 'in_app'],
-        'document.approved': ['email', 'in_app'],
-        'document.rejected': ['email', 'in_app'],
-        'document.published': ['email', 'in_app'],
-        'document.archived': ['email', 'in_app'],
-        'document.restored': ['email', 'in_app'],
-    },
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AbstractBaseUser as UserType
+else:
+    UserType = get_user_model()
 
-}
+User = get_user_model()
 
 
-def get_channels_for_role(
-        event_key: str, role: str
-) -> list[str]:
+def resolve_role_user(
+        role: str, context: Dict
+) -> Optional["UserType"]:
     """
-    Returns the list of channels for a given user role given the event.
-    Falls back to an empty list if the role or event key is not found.
+    Resolves a user for a given role using the provided context.
+
+    Args:
+        role (str): Logical role name (e.g., "client", "writer").
+        context (Dict): Dictionary containing objects like 'order'.
+
+    Returns:
+        Optional[User]: The user instance tied to the role, or None.
     """
-    return ROLE_NOTIFICATION_BINDINGS.get(role, {}).get(event_key, [])
+    order = context.get("order")
+
+    if role == "client":
+        return getattr(order, "client", None)
+
+    if role == "writer":
+        return getattr(order, "writer", None)
+
+    if role == "support":
+        # You can plug in support-assigning logic here
+        return get_active_support_user(order)
+    
+    if role == "admin":
+        return User.objects.filter(is_staff=True).first()
+    
+    if role == "super_admin":
+        return User.objects.filter(is_superuser=True).first()
+    
+    if role == "editor":
+        return User.objects.filter(is_editor=True).first()
+
+    return None
+
+
+def get_active_support_user(
+        order
+) -> Optional["UserType"]:
+    """
+    Dummy function to simulate dynamic resolution.
+    Replace with logic for rotating or assigned support agents.
+    """
+    # Example: assign based on order category, load, region, etc.
+    return User.objects.filter(is_staff=True).order_by("?").first()

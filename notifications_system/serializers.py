@@ -164,8 +164,13 @@ class EventNotificationPreferenceSerializer(serializers.ModelSerializer):
         
 class BroadcastNotificationSerializer(serializers.ModelSerializer):
     class Meta:
-        model = BroadcastNotification
-        fields = "__all__"
+            model = BroadcastNotification
+            fields = [
+                "id", "title", "message", "pinned", "require_acknowledgement",
+                "dismissible", "show_in_dashboard", "send_email", "channels", "created_at",
+                "updated_at", "website", "event_type", "is_active", "scheduled_for",
+                "sent_at", "created_by", "is_blocking", "is_optional"
+            ]
 
 
 class NotificationEventPreferenceSerializer(serializers.ModelSerializer):

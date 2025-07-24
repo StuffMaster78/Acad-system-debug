@@ -1,0 +1,32 @@
+[
+  {
+    "event_key": "broadcast.system_announcement",
+    "description": "System-wide announcement to all users",
+    "scope": "systemwide",
+    "default_channels": ["in_app", "email"],
+    "forced_channels": ["in_app"],
+    "priority": "high",
+    "force_send": true
+  },
+  {
+    "event_key": "broadcast.website_alert",
+    "description": "Website-specific maintenance alert",
+    "scope": "website",
+    "default_channels": ["email"],
+    "filters": {
+      "roles": ["client", "writer"]
+    },
+    "priority": "normal"
+  },
+  {
+    "event_key": "broadcast.discount_code_alert",
+    "description": "website-specific discount promo code",
+    "scope": "website",
+    "default_channels": ["in_app", "email"],
+    "forced_channels": ["in_app"],
+    "filters": {
+        "roles": ["client"]
+    },
+    "priority": "normal"
+  }
+]

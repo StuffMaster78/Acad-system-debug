@@ -1,10 +1,12 @@
 # notifications_system/management/commands/seed_profiles.py
 
 from django.core.management.base import BaseCommand
-from notifications_system.models import NotificationPreferenceProfile
+from notifications_system.models.notification_preferences import (
+    NotificationPreferenceProfile
+)
 
 class Command(BaseCommand):
-    help = "Seed default notification preference profiles"
+    help = "Seed default notification preference profiles for the system."
 
     def handle(self, *args, **kwargs):
         profiles = [

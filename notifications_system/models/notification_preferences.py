@@ -100,18 +100,6 @@ class NotificationPreference(models.Model):
     This model is used to manage how users receive notifications for different events and channels.
     It includes options for enabling/disabling notifications, setting do-not-disturb hours,
     and specifying notification frequency.
-    It also supports multiple channels such as email, SMS, push notifications, and in-app notifications.
-    Additionally, it allows for custom channels and overrides for specific events.
-    This model is linked to a user and a website, allowing for website-specific notification settings.
-    It also supports grouping of preferences for easier management.
-    The model includes fields for enabling/disabling notifications, setting do-not-disturb hours,
-    and specifying notification frequency.
-    It also supports custom channels and overrides for specific events.
-    It is designed to be flexible and extensible, allowing for future enhancements and additional features.
-    It is used to manage user notification preferences across different websites and events.
-    It is linked to a user and a website, allowing for website-specific notification settings.
-    It supports multiple channels such as email, SMS, push notifications, and in-app notifications.
-    It allows for custom channels and overrides for specific events.
     """
     website = models.ForeignKey(
         Website,
@@ -124,10 +112,20 @@ class NotificationPreference(models.Model):
         related_name="notification_preferences",
         help_text="The user whose preferences are being managed."
     )
+    role = models.ForeignKey(
+        UserRole, null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="notification_preferences",
+        help_text="The role associated with these preferences, if any."
+    )
     event = models.CharField(
         max_length=100,
         choices=EventType.choices,
         verbose_name=("Event Type")
+    )
+    event_key = models.CharField(
+        max_length=100,
+        help_text="A unique key for the event, used for overrides and custom handling."
     )
     channel = models.CharField(
         max_length=20,
@@ -151,55 +149,66 @@ class NotificationPreference(models.Model):
     overrides = models.JSONField(default=dict) # e.g. { "order_created": false, "ticket_created": true }
     frequency = models.CharField(
         max_length=20,
-        choices=[('immediate', 'Immediate'), ('daily', 'Daily'), ('weekly', 'Weekly')],
+        choices=[
+            ('immediate', 'Immediate'),
+            ('daily', 'Daily'),
+            ('weekly', 'Weekly')
+        ],
         default='immediate',
         help_text="Frequency of notifications."
     )
+
     do_not_disturb_start = models.TimeField(null=True, blank=True)
     do_not_disturb_end = models.TimeField(null=True, blank=True)
+    do_not_disturb_enabled = models.BooleanField(
+        default=False,
+        help_text="Enable do-not-disturb hours for this user."
+    )
     do_not_disturb_until = models.TimeField(
         null=True,
         blank=True,
         help_text="Time until which notifications are muted."
     )
-    receive_email = models.BooleanField(
-        default=True,
-        help_text="Allow email notifications."
+
+    muted_events = models.JSONField(default=list, blank=True,
+        help_text="List of events that are muted for this user."
     )
-    receive_sms = models.BooleanField(
-        default=False,
-        help_text="Allow SMS notifications."
-    )
-    receive_push = models.BooleanField(
-        default=True,
-        help_text="Allow push notifications."
-    )
-    receive_in_app = models.BooleanField(
-        default=True,
-        help_text="Allow in-app notifications."
-    )
-    receive_digest = models.BooleanField(default=True)
+    muted_events = models.JSONField(
+        default=list, blank=True
+    )  # e.g., ["new_comment", "mention"]
     mute_all = models.BooleanField(
         default=False,
-        help_text="Mute all notifications."
+        help_text="Mute all notifications. example: during maintenance or downtime."
     )
+    mute_until = models.DateTimeField(
+        null=True, blank=True,
+        help_text="Mute notifications until this datetime."
+    )
+
     digest_only = models.BooleanField(
         default=False,
         help_text="Only receive notifications in digest form."
     )
-    muted_events = models.JSONField(default=list, blank=True,
-        help_text="List of events that are muted for this user."
+    fall_back_to_digest = models.BooleanField(
+        default=False,
+        help_text="If enabled, notifications will fall back to digest if the user is not online."
     )
-    channel_preferences = models.JSONField(
+    
+
+    preferred_channels = models.JSONField(
         default=dict,
         blank=True,
         help_text="Preferences for each channel, e.g. {'email': True, 'sms': False}"
+    )  # e.g., ["in_app", "email", "sms"]
+
+    min_priority = models.PositiveSmallIntegerField(
+        default=NotificationPriority.NORMAL
     )
-    custom_channels = ArrayField(models.CharField(
-        max_length=20, choices=NotificationType.choices()),
-        default=list, blank=True
+    max_priority = models.PositiveSmallIntegerField(
+        default=NotificationPriority.HIGH,
+        help_text="Maximum priority level for notifications."
     )
-    
+
     updated_at = models.DateTimeField(auto_now=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -216,6 +225,10 @@ class NotificationPreference(models.Model):
     def __str__(self):
         return f"Notification Preferences for {self.user.username}"
     
+    def get_ordered_channels_for_event(self, event=None):
+        """Get the ordered list of channels for a specific event."""
+        # You could extend this later to be event-aware
+        return self.preferred_channels or self.get_active_channels()
 
     def get_active_channels(self):
         return [

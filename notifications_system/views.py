@@ -7,10 +7,20 @@ from rest_framework.views import APIView
 from rest_framework import generics
 from django.utils.timezone import now
 
-from notifications_system.models import (
-    Notification, NotificationGroupProfile, NotificationPreference,
-    NotificationProfile, EventNotificationPreference,
-    BroadcastNotification, NotificationEventPreference,
+from notifications_system.models.notifications import Notification
+from notifications_system.models.broadcast_notification import (
+    BroadcastAcknowledgement,
+    BroadcastOverride,
+    BroadcastNotification
+)
+from notifications_system.models.notification_profile import (
+    NotificationProfile,
+    NotificationGroupProfile
+)
+from notifications_system.models.notification_preferences import (
+    NotificationPreference,
+    EventNotificationPreference,
+    NotificationEventPreference,
     RoleNotificationPreference
 )
 from notifications_system.serializers import (
@@ -40,6 +50,62 @@ from .utils.enums_export import export_notification_enums
 from notifications_system.services.preferences import (
     reset_user_preferences, assign_default_preferences
 )
+from notifications_system.services.broadcast_acknowledgement import (
+    BroadcastAcknowledgementService,
+)
+from notifications_system.serializers import NotificationSerializer
+from notifications_system.utils.in_app_helpers import get_user_notifications
+
+class InAppNotificationViewSet(viewsets.ViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        """
+        List in-app notifications with sorting & optional website filter.
+        """
+        website = request.query_params.get("website")
+        limit = int(request.query_params.get("limit", 50))
+        offset = int(request.query_params.get("offset", 0))
+
+        notifs = get_user_notifications(request.user, website, limit, offset)
+        data = NotificationSerializer(notifs, many=True).data
+        return Response(data)
+
+    @action(detail=False, methods=["get"])
+    def unread_count(self, request):
+        count = Notification.objects.filter(
+            user=request.user,
+            read=False,
+            type="in_app"
+        ).count()
+        return Response({"unread_count": count})
+
+    @action(detail=True, methods=["post"])
+    def mark_read(self, request, pk=None):
+        notif = Notification.objects.filter(user=request.user, id=pk).first()
+        if notif:
+            notif.read = True
+            notif.save(update_fields=["read"])
+            return Response({"status": "marked as read"})
+        return Response({"error": "Not found"}, status=404)
+
+    @action(detail=True, methods=["post"])
+    def toggle_pin(self, request, pk=None):
+        notif = Notification.objects.filter(user=request.user, id=pk).first()
+        if notif:
+            notif.pinned = not notif.pinned
+            notif.save(update_fields=["pinned"])
+            return Response({"status": f"{'pinned' if notif.pinned else 'unpinned'}"})
+        return Response({"error": "Not found"}, status=404)
+
+    @action(detail=False, methods=["post"])
+    def mark_all_read(self, request):
+        updated = Notification.objects.filter(
+            user=request.user,
+            read=False,
+            type="in_app"
+        ).update(read=True)
+        return Response({"marked": updated})
 
 class NotificationThrottle(UserRateThrottle):
     rate = '60/min'  # customize as needed for bell spam prevention
@@ -401,6 +467,35 @@ class BroadcastNotificationViewSet(viewsets.ModelViewSet):
     serializer_class = BroadcastNotificationSerializer
     permission_classes = [permissions.IsAdminUser]
 
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def fetch_user_broadcasts(request):
+    website = getattr(request.user, 'active_website', None)
+    if not website:
+        return Response({"detail": "Website context missing."}, status=400)
+
+    broadcasts = BroadcastAcknowledgementService.get_user_broadcasts(
+        user=request.user,
+        website=website
+    )
+
+    serializer = BroadcastNotificationSerializer(broadcasts, many=True)
+    return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def acknowledge_broadcast(request, broadcast_id):
+    try:
+        broadcast = BroadcastNotification.objects.get(id=broadcast_id)
+    except BroadcastNotification.DoesNotExist:
+        return Response({"detail": "Broadcast not found."}, status=404)
+
+    BroadcastAcknowledgement.objects.get_or_create(
+        user=request.user,
+        broadcast=broadcast,
+    )
+    return Response({"detail": "Acknowledged."})
 
 class NotificationEventPreferenceViewSet(viewsets.ModelViewSet):
     serializer_class = NotificationEventPreferenceSerializer

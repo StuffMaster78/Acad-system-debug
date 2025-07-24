@@ -64,13 +64,22 @@ def send_website_mail(
         return False
     
 def send_priority_email(
-    user, subject, message, context=None,
+    user, subject, message, html_message=None, context=None,
     priority=NotificationPriority.NORMAL, website=None
 ):
     """
     Sends an email with priority handling.
     Uses the appropriate template based on priority.
     """
+    from django.core.mail import EmailMultiAlternatives
+    from notifications_system.tasks.notifications import async_send_website_mail
+
+    
+    use_async = getattr(settings, "USE_ASYNC_EMAIL", False)
+    if use_async:
+        async_send_website_mail.delay(user.id, subject, message, html_message)
+        return
+    
     context = context or {}
     context.update({
         "user": user,
@@ -81,11 +90,14 @@ def send_priority_email(
 
     html_content = render_to_string(get_template_for_priority(priority), context)
 
-    email = EmailMultiAlternatives(
-            subject=subject,
-            body=message,
-            from_email=website.get_from_email() if website else "no-reply@example.com",
-            to=[user.email]
-        )
-    email.attach_alternative(html_content, "text/html")
-    email.send()
+    try:
+        email = EmailMultiAlternatives(
+                subject=subject,
+                body=message,
+                from_email=website.get_from_email() if website else "no-reply@example.com",
+                to=[user.email]
+            )
+        email.attach_alternative(html_content, "text/html")
+        email.send()
+    except Exception as e:
+        logger.exception(f"Email failed to {user.email}: {str(e)}")

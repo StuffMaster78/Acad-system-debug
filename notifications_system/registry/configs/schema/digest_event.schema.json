@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DigestEventConfig",
+  "type": "object",
+  "required": ["event_key", "title", "template", "channels", "interval", "group_by", "digest"],
+  "properties": {
+    "event_key": { "type": "string" },
+    "title": { "type": "string" },
+    "template": { "type": "string" },
+    "channels": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "interval": {
+      "type": "string",
+      "enum": ["hourly", "daily", "weekly"]
+    },
+    "group_by": { "type": "string" },
+    "digest": {
+      "type": "object",
+      "properties": {
+        "merge_strategy": { "type": "string", "enum": ["list_append", "latest_only"] },
+        "max_items": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["merge_strategy"]
+    }
+  }
+}

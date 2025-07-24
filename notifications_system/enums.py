@@ -7,7 +7,16 @@ PRIORITIES = ["low", "normal", "high"]
 CHANNELS = ["email", "in_app", "webhook"]
 FREQUENCIES = ["instant", "daily", "weekly"]
 
-
+class NotificationChannel(TextChoices):
+    EMAIL = "email", _("Email")
+    IN_APP = "in_app", _("In App")
+    SMS = "sms", _("SMS")
+    WEBSOCKET = "ws", _("Websocket")
+    PUSH = "push", _("Push")
+    WEBHOOK = "webhook", _("Webhook")
+    TELEGRAM = "telegram", _("Telegram")
+    DISCORD = "discord", _("Discord")
+    SYSTEM = "system", _("System Notification")
 class NotificationType(TextChoices):
     IN_APP = "in_app", _("In App")
     EMAIL = "email", _("Email")

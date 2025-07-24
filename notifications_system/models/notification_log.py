@@ -72,6 +72,16 @@ class NotificationLog(models.Model):
     success = models.BooleanField(default=False)
     response = models.TextField(null=True, blank=True)
     timestamp = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(
+        max_length=20,
+        choices=DeliveryStatus.choices(),
+        default=DeliveryStatus.PENDING,
+        help_text="Current status of the notification delivery."
+    )
+    error = models.TextField(
+        null=True, blank=True,
+        help_text="Error message if the delivery failed."
+    )
 
     def __str__(self):
         return f"Log for {self.notification.title} via {self.channel} - Success: {self.success}"

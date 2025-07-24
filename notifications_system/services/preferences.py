@@ -37,7 +37,7 @@ class NotificationPreferenceResolver:
     3. Role-based Default (e.g. Writers → Aggressive)
     4. System Default (in_app only)
     """
-    
+    @staticmethod
     def resolve(
             user, event=None, category=None,
             priority=None, website=None
@@ -84,7 +84,16 @@ class NotificationPreferenceResolver:
 
             # 4. Fallback
             return ["in_app"]
-
+    @staticmethod
+    def get_user_channel_order(user, event=None):
+        # This assumes NotificationPreference has a list field: preferred_channels
+        try:
+            pref = NotificationPreference.objects.get(user=user)
+            return pref.get_ordered_channels_for_event(event)
+        except NotificationPreference.DoesNotExist:
+            return None
+        
+    @staticmethod
     def seed_user_event_preferences(user, website):
         """
         Seeds default event preferences for a user.

@@ -1,9 +1,19 @@
+""""Notification Registry for the Notifications System
+This module manages the registration and
+retrieval of notification events and their configurations.
+It allows for flexible and extensible notification
+management based on event keys.
+"""
+from notifications_system.registry.event_config_loader import (
+    get_event_config
+)
+
 NOTIFICATION_REGISTRY = {}
 
-def register_notification(event_key, config):
-    if event_key in NOTIFICATION_REGISTRY:
-        raise ValueError(f"Notification event '{event_key}' already registered.")
-    NOTIFICATION_REGISTRY[event_key] = config
+def register_notification(force_reload: bool = False, **config):
+    config = get_event_config(force_reload=force_reload)
+    NOTIFICATION_REGISTRY.clear()
+    NOTIFICATION_REGISTRY.update(config)
 
 def get_notification_config(event_key):
     return NOTIFICATION_REGISTRY.get(event_key)
