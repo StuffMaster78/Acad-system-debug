@@ -2,7 +2,7 @@ from __future__ import absolute_import, unicode_literals
 import os
 import json
 from celery import Celery
-from celery.schedules import crontab
+from celery.schedules import crontab # type: ignore
 
 # Set default Django settings module for Celery
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "writing_system.settings")
@@ -69,12 +69,25 @@ app.conf.beat_schedule = {
         "task": "writer_management.tasks.currency.preload_currency_conversion_rates",
         "schedule": crontab(hour=0, minute=0, day_of_week="sunday"),  # Every Sunday at midnight
     },
+    "purge-old-expired-notifications": {
+        "task": "notifications_system.tasks.expiry_tasks.purge_expired_notifications_task",
+        "schedule": crontab(hour=2, minute=30),  # daily at 2:30AM
+        "args": (90,),  # 90 days default
+    },
+    'archive-expired-broadcasts-every-day': {
+        'task': 'notifications_system.tasks.broadcast.archive_expired_broadcasts',
+        'schedule': crontab(minute=0, hour='*/6'),  # Every 6 hours
+    },
+    "delete_old_expired_broadcasts": {
+        "task": "notifications_system.tasks.broadcast.delete_old_expired_broadcasts",
+        "schedule": crontab(minute=30, hour=2),  # daily at 2:30am
+    },
 }
 
 # --- Dynamic Schedule via django-celery-beat ---
 @app.on_after_configure.connect
 def setup_periodic_tasks(sender, **kwargs):
-    from django_celery_beat.models import PeriodicTask, IntervalSchedule, CrontabSchedule
+    from django_celery_beat.models import PeriodicTask, IntervalSchedule, CrontabSchedule # type: ignore
 
     # Interval Schedules
     every_5_min, _ = IntervalSchedule.objects.get_or_create(every=5, period=IntervalSchedule.MINUTES)
