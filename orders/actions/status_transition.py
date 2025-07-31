@@ -5,6 +5,15 @@ from orders.registry.decorator import register_order_action
 
 @register_order_action("status_transition")
 class StatusTransitionAction(BaseOrderAction):
+    """
+    Transitions an order to a new status.
+    This action is typically used for manual operations, like an admin action.
+    It allows for changing the status of an order based on the provided parameters.
+    The parameters should include the new status and any other necessary details.
+    The action logs the transition in the audit log for tracking purposes.
+    The action expects the `order_id` and `params` to be set in the BaseOrderAction class.
+    The `params` should include the new status and any additional information required for
+    """
     def execute(self):
         old_status = self.order.status
         service = StatusTransitionService()
