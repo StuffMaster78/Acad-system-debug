@@ -161,3 +161,18 @@ class NotificationDispatcher:
             )
             for user in users
         ])
+
+    @staticmethod
+    def notify_errors(notification, users):
+        """
+        Notify users about errors in notification delivery.
+        """
+        for user in users:
+            Notification.objects.create(
+                user=user,
+                type='error',
+                title='Notification Delivery Error',
+                message=f"Failed to deliver notification: {notification.title}",
+                website=notification.website
+            )
+            logger.error(f"Error notification sent to user {user.id} for notification {notification.id}.")
