@@ -2,7 +2,7 @@ import logging
 import time
 from datetime import timedelta
 from notifications_system.enums import NotificationChannel
-from notifications_system.services.delivery import DeliveryService
+from notifications_system.services.delivery import NotificationDeliveryService
 from notifications_system.services.preferences import NotificationPreferenceResolver
 from django.utils import timezone
 
@@ -87,7 +87,7 @@ class FallbackOrchestrator:
             self.tried_channels.add(next_channel)
 
             try:
-                success = DeliveryService.deliver(self.notification, channel=next_channel)
+                success = NotificationDeliveryService.deliver(self.notification, channel=next_channel)
             except Exception as e:
                 logger.error(
                     f"[Fallback] Delivery exception on {next_channel}: {e}", exc_info=True
