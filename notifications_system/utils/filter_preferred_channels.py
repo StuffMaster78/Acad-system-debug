@@ -19,7 +19,11 @@ def filter_channels_by_user_preferences(user, requested_channels):
             (channel == NotificationType.EMAIL and pref.email_enabled) or
             (channel == NotificationType.SMS and pref.sms_enabled) or
             (channel == NotificationType.PUSH and pref.push_enabled) or
-            (channel == NotificationType.IN_APP and pref.in_app_enabled)
+            (channel == NotificationType.IN_APP and pref.in_app_enabled) or
+            (channel == NotificationType.WEBHOOK and pref.webhook_enabled) or
+            (channel == NotificationType.SLACK and pref.slack_enabled) or
+            (channel == NotificationType.DISCORD and pref.discord_enabled) or
+            (channel == NotificationType.TELEGRAM and pref.telegram_enabled)
         ):
             allowed.append(channel)
 
