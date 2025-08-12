@@ -4,7 +4,7 @@ from rest_framework import serializers
 from .models import User
 from users.models import UserProfile
 from client_management.models import ClientProfile
-from writer_management.models import WriterProfile
+from writer_management.models.profile import WriterProfile
 from editor_management.models import EditorProfile
 from support_management.models import SupportProfile
 from superadmin_management.models import SuperadminProfile

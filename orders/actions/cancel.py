@@ -1,6 +1,6 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.cancel_order_service import CancelOrderService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("cancel_order")
 class CancelOrderAction(BaseOrderAction):
@@ -16,7 +16,7 @@ class CancelOrderAction(BaseOrderAction):
 
         new_status = "cancelled"
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="DELETE",  
             target="orders.Order", 

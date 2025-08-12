@@ -1,7 +1,7 @@
 # services/client_feedback_service.py
 
 from orders.models import ClientFeedback
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 
 class ClientFeedbackService:
     """
@@ -32,7 +32,7 @@ class ClientFeedbackService:
             is_public=is_public
         )
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=client,
             action="SUBMIT_CLIENT_FEEDBACK",
             target="feedback.ClientFeedback",

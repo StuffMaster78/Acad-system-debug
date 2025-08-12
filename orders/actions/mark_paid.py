@@ -1,6 +1,6 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.mark_order_as_paid_service import MarkOrderPaidService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("mark_order_paid")
 class MarkOrderPaidAction(BaseOrderAction):
@@ -12,7 +12,7 @@ class MarkOrderPaidAction(BaseOrderAction):
         service = MarkOrderPaidService()
         result = service.mark_paid(self.order_id)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="MARK_PAID",
             target="orders.Order",

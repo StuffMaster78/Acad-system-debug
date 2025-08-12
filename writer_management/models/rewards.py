@@ -83,3 +83,4 @@ class WriterReward(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.writer.user.username} ({self.awarded_date})"
+    

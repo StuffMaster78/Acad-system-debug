@@ -63,6 +63,11 @@ class TemplateRegistry:
             cls.register_handler(event_key, template_cls)
             return template_cls
         return decorator
+    
+    @classmethod
+    def get_templates_for_event(cls, event_key: str) -> dict:
+        return cls._templates.get(event_key, {})
+
 
 
 # Optional shortcuts

@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from websites.models import Website
-from notifications_system.services.preferences import assign_default_preferences
+from notifications_system.services.preferences import NotificationPreferenceResolver
 
 User = get_user_model()
 
@@ -17,7 +17,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.WARNING(f"Skipping user {user} (no website)"))
                 continue
             try:
-                assign_default_preferences(user, website)
+                NotificationPreferenceResolver.assign_default_preferences(user, website)
                 success += 1
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"Failed for {user}: {e}"))

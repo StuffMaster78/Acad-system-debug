@@ -23,7 +23,8 @@ class BroadcastNotification(models.Model):
     """
     title = models.CharField(max_length=255)
     event_type = models.CharField(
-        max_length=100, choices=EventType.choices()
+        max_length=100,
+        choices=EventType.choices
     )
     message = models.TextField()
 
@@ -104,7 +105,7 @@ class BroadcastAcknowledgement(models.Model):
         related_name="broadcast_acknowledgements"
     )
     event_type = models.CharField(
-        max_length=100, choices=EventType.choices()
+        max_length=100, choices=EventType.choices
     )
     acknowledged_at = models.DateTimeField(default=now)
     via_channel = models.CharField(
@@ -155,14 +156,15 @@ class BroadcastOverride(models.Model):
         on_delete=models.CASCADE,
         related_name="broadcast_overrides"
     )
+
     role = models.ForeignKey(
-        UserRole,
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="broadcast_overrides"
+        related_name="broadcast_overrides_by_role"
     )
 
     force_channels = ArrayField(models.CharField(
-        max_length=50, choices=NotificationType.choices()
+        max_length=50, choices=NotificationType.choices
     ))
 
     override_config = models.JSONField(
@@ -175,7 +177,7 @@ class BroadcastOverride(models.Model):
 
 
     event_type = models.CharField(
-        max_length=100, choices=EventType.choices()
+        max_length=100, choices=EventType.choices
     )
 
     created_at = models.DateTimeField(auto_now_add=True)

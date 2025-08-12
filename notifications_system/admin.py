@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from notifications_system.services.preferences import assign_default_preferences
+from notifications_system.services.preferences import NotificationPreferenceResolver
 from notifications_system.models.notifications import Notification
 from notifications_system.models.notification_preferences import (
     NotificationPreference, EventNotificationPreference,
@@ -18,7 +18,7 @@ from notifications_system.models.notification_profile import (
 from notifications_system.models.notification_event import NotificationEvent
 
 from notifications_system.models.notification_group import NotificationGroup
-from notifications_system.models.notification_settings import NotificationSystemSettings
+from notifications_system.models.notification_settings import UserNotificationSettings
 from notifications_system.utils.email_helpers import send_priority_email
 
 from django.contrib import admin
@@ -27,11 +27,9 @@ from django.utils.html import format_html
 from authentication.models.login import LoginSession
 from authentication.models.logout import LogoutEvent
 import json
-from notifications_system.services.preferences import reset_user_preferences
 from django.contrib import admin
 from django.contrib.admin.widgets import AdminTextareaWidget
 from django import forms
-from .models import NotificationSystemSettings
 from notifications_system.utils.email_helpers import send_priority_email
 from notifications_system.models.event_config import NotificationEventConfig
 from django.contrib import admin
@@ -44,9 +42,9 @@ from notifications_system.registry.validator import validate_event_config
 from django.core.exceptions import ValidationError
 
 
-class NotificationSystemSettingsForm(forms.ModelForm):
+class UserNotificationSettingsForm(forms.ModelForm):
     class Meta:
-        model = NotificationSystemSettings
+        model = UserNotificationSettings
         fields = '__all__'
         widgets = {
             'fallback_rules': AdminTextareaWidget(attrs={'rows': 10, 'cols': 80}),
@@ -67,9 +65,9 @@ class NotificationSystemSettingsForm(forms.ModelForm):
             return json.loads(data)
         return data
 
-@admin.register(NotificationSystemSettings)
-class NotificationSystemSettingsAdmin(admin.ModelAdmin):
-    form = NotificationSystemSettingsForm
+@admin.register(UserNotificationSettings)
+class UserNotificationSettingsAdmin(admin.ModelAdmin):
+    form = UserNotificationSettingsForm
 
 
 @admin.register(NotificationEvent)
@@ -216,10 +214,6 @@ class BroadcastNotificationAdmin(admin.ModelAdmin):
     search_fields = ("title", "message")
 
 
-@admin.register(NotificationEvent)
-class NotificationEventAdmin(admin.ModelAdmin):
-    list_display = ("event", "name", "is_active", "website")
-
 @admin.register(NotificationEventPreference)
 class NotificationEventPreferenceAdmin(admin.ModelAdmin):
     list_display = ("user", "event", "website")
@@ -227,8 +221,8 @@ class NotificationEventPreferenceAdmin(admin.ModelAdmin):
     @admin.action(description="Reset and re-seed preferences")
     def reset_preferences(modeladmin, request, queryset):
         for user in queryset:
-            reset_user_preferences(user)
-            assign_default_preferences(user, user.website)
+            NotificationPreferenceResolver.reset_user_preferences(user)
+            NotificationPreferenceResolver.assign_default_preferences(user, user.website)
 
 
 @admin.register(RoleNotificationPreference)
@@ -258,10 +252,6 @@ def send_test_email(modeladmin, request, queryset):
         )
         modeladmin.message_user(request, f"Test email sent for: {notif.title}")
 
-@admin.register(Notification)
-class NotificationAdmin(admin.ModelAdmin):
-    list_display = ("title", "user", "priority", "event", "created_at")
-    actions = [send_test_email]
 
 @admin.register(NotificationEventConfig)
 class NotificationEventConfigAdmin(admin.ModelAdmin):

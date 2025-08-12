@@ -3,11 +3,14 @@ from django.db import transaction
 from django.utils.timezone import now
 from decimal import Decimal
 from wallet.models import Wallet, WalletTransaction
-from orders.models import Order
+from django.apps import apps
 from referrals.models import Referral, ReferralCode, ReferralBonusConfig
 from loyalty_management.models import LoyaltyTransaction
+from typing import TYPE_CHECKING
 
 
+if TYPE_CHECKING:
+    from orders.models import Order
 class ReferralService:
     """
     Service class to handle referral logic including awarding bonuses, applying discounts,
@@ -15,9 +18,15 @@ class ReferralService:
     including checking if a bonus can be awarded, applying discounts to orders, and managing
     the referral state.
     """
+    
     def __init__(self, referral: Referral):
         self.referral = referral
         self.config = ReferralBonusConfig.objects.filter(website=referral.website).first()
+
+    def get_orders_for_referral(self, referral_code):
+        
+        Order = apps.get_model('orders', 'Order')
+        return Order.objects.filter(referral_code=referral_code)
 
     def can_award_bonus(self) -> bool:
         if self.referral.bonus_awarded or not self.config:
@@ -31,7 +40,7 @@ class ReferralService:
     
     def get_referral_link(self):
         """Dynamically generates a referral link."""
-        return f"https://{self.website.domain}/order?ref={self.code}"
+        return f"https://{self.referral.website.domain}/order?ref={self.referral.referral_code}"
 
     @staticmethod
     def generate_unique_code(user, website):
@@ -64,7 +73,7 @@ class ReferralService:
         self.referral.bonus_awarded = True
         self.referral.save()
 
-    def apply_discount(self, order: Order) -> Decimal:
+    def apply_discount(self, order: "Order") -> Decimal:
         """
         Applies a referral discount to the order if applicable.
         This method checks if the referral discount can be applied based on
@@ -121,7 +130,7 @@ class ReferralService:
         return self.config.first_order_bonus if self.can_award_bonus() else Decimal('0.00')
     
 
-    def get_referral_discount(self, order: Order) -> Decimal:
+    def get_referral_discount(self, order: "Order") -> Decimal:
         """Returns the referral discount amount for the order if applicable."""
         if not self.config or self.referral.first_order_bonus_credited:
             return Decimal('0.00')
@@ -176,7 +185,7 @@ class ReferralService:
                 'first_order_discount_amount': self.config.first_order_discount_amount if self.config else None,
             }
         }
-    
+    @staticmethod 
     def record_referral_for_user(user, request):
         """
         Record a referral for the user based on the referral code stored in the session.

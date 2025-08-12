@@ -4,7 +4,7 @@ from orders.services.submit_order_service import SubmitOrderService
 from orders.services.revisions import OrderRevisionService
 from orders.order_enums import OrderStatus
 
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("submit_revision")
 class SubmitRevisionAction(BaseOrderAction):
@@ -17,7 +17,7 @@ class SubmitRevisionAction(BaseOrderAction):
         result = service.request_revision(reason=self.params["reason"])
 
         if result:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="SUBMIT_REVISION_REQUEST",
                 target="orders.Order",
@@ -42,7 +42,7 @@ class DenyRevisionAction(BaseOrderAction):
         result = service.deny_revision(reason)
 
         if result:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="DENY_REVISION",
                 target="orders.Order",
@@ -70,7 +70,7 @@ class ProcessRevisionAction(BaseOrderAction):
         result = service.process_revision(revised_work)
 
         if result:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="PROCESS_REVISION",
                 target="orders.Order",
@@ -93,7 +93,7 @@ class OrderRevisionAction(BaseOrderAction):
         service = OrderRevisionService()
         result = service.request_revision(self.order_id, **self.params)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="REQUEST_REVISION",
             target="orders.Order",

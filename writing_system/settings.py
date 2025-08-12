@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     'django_otp',
     'django_otp.plugins.otp_totp',
     'drf_yasg',
-    "notifications_system.apps.NotificationsSystemConfig",
+    # "notifications_system.apps.NotificationsSystemConfig",
     # 'django_celery_results',
     
 
@@ -100,7 +100,7 @@ INSTALLED_APPS = [
    
 
     # Notifications and Support
-    # 'notifications_system',
+    'notifications_system',
     'tickets',
     'mass_emails',
 
@@ -272,7 +272,11 @@ CHANNEL_LAYERS = {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [("127.0.0.1", 6379)],  # Use your Redis instance here
-        },
+            # "password": "your_redis_password",  # Add this if your Redis requires auth
+            # "ssl": True,  # Enable if using SSL (recommended for production)
+            "capacity": 10000,  # Optional: tune for load
+            "expiry": 60,       # Optional: seconds to keep messages
+        }
     },
 }
 

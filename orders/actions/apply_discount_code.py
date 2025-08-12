@@ -1,6 +1,6 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.apply_discount_code_service import ApplyDiscountCodeService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 
 # Lazy import avoids circular reference issue
 from orders.registry.decorator import register_order_action
@@ -29,7 +29,7 @@ class ApplyDiscountCodeAction(BaseOrderAction):
             user
         )
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="DISCOUNT_CODE",
             target="orders.Order",

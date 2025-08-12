@@ -157,3 +157,21 @@ class WriterFileAccessRequest(models.Model):
         ordering = ['-requested_at']
 
 
+class WriterFileVersion(models.Model):
+    """
+    Represents a specific version of a writer's file.
+    """
+    file = models.ForeignKey(
+        WriterFile, on_delete=models.CASCADE,
+        related_name="versions"
+    )
+    version_number = models.PositiveIntegerField()
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Writer File Version"
+        verbose_name_plural = "Writer File Versions"
+        ordering = ['-uploaded_at']
+
+    def __str__(self):
+        return f"{self.file.writer.user.username} - {self.file.file_name} (v{self.version_number})"

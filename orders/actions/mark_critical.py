@@ -1,7 +1,7 @@
 
 from orders.actions.base import BaseOrderAction
 from orders.services.mark_critical_order_service import MarkCriticalOrderService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("mark_critical_order")
 class MarkCriticalAction(BaseOrderAction):
@@ -13,7 +13,7 @@ class MarkCriticalAction(BaseOrderAction):
         service = MarkCriticalOrderService()
         result = service.mark_critical(self.order_id)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="MARK_CRITICAL",
             target="orders.Order",

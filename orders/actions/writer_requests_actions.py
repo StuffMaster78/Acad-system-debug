@@ -1,5 +1,5 @@
 from orders.models import WriterRequest, Order
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.services.writer_request_service import WriterRequestService
 from django.shortcuts import get_object_or_404
 from datetime import datetime, timedelta
@@ -33,7 +33,7 @@ class CreateWriterRequestAction:
             data=self.data
         )
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="CREATE_WRITER_REQUEST",
             target="orders.WriterRequest",
@@ -76,7 +76,7 @@ class ClientRespondToWriterRequestAction:
             reason=self.decline_reason
         )
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="CLIENT_RESPONDED_WRITER_REQUEST",
             target="orders.WriterRequest",
@@ -116,7 +116,7 @@ class AdminOverrideWriterRequestAction:
             new_deadline=self.new_deadline
         )
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="ADMIN_OVERRIDE_WRITER_REQUEST",
             target="orders.WriterRequest",

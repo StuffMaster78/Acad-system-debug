@@ -1,7 +1,7 @@
 from orders.actions.base import BaseOrderAction
 from orders.registry.decorator import register_order_action
 from orders.services.status_transition_service import StatusTransitionService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 
 
 @register_order_action("transition_to_pending")
@@ -17,7 +17,7 @@ class TransitionToPendingAction(BaseOrderAction):
             performed_by=self.user
         )
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="STATUS_TRANSITION",
             target="orders.Order",

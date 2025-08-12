@@ -1,6 +1,6 @@
 import time
-from turtle import update
-from typing import override
+# from turtle import update
+# from typing import override
 from django.utils import timezone
 from django.conf import settings
 from notifications_system.models.notifications import (
@@ -45,6 +45,7 @@ from django.db import models
 from notifications_system.utils.fallbacks import should_fall_back_to_email, mark_email_fallback_sent
 from notifications_system.utils.dnd import is_dnd_now
 from notifications_system.services.preferences import NotificationPreferenceResolver
+from notifications_system.events import NotificationBroadcaster
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,8 @@ class NotificationService:
         digest_group=None,
         is_silent=False,
         email_override=None,
+        global_broadcast=False,
+        groups=None
     ):
         # Validate user
         if not user or not user.is_authenticated:
@@ -248,6 +251,15 @@ class NotificationService:
         logger.info(
             f"Notification sent to {user} via {', '.join(channels)} for event '{event}'"
         )
+
+        # Publish via Redis Pub/Sub
+        NotificationBroadcaster.publish(
+            payload,
+            user_id=user.id if user else None,
+            group=groups,
+            global_broadcast=global_broadcast,
+            notification_id=notification.id,
+        )
         # Update notification status
         notification.status = DeliveryStatus.SENT
         notification.sent_at = timezone.now()
@@ -267,12 +279,22 @@ class NotificationService:
             return preferences.receive_push
         if channel == NotificationType.IN_APP:
             return preferences.receive_in_app
+        if channel == NotificationType.WEBHOOK:
+            return preferences.receive_webhook  
+        if channel == NotificationType.SSE:
+            return preferences.receive_sse
+        if channel == NotificationType.WS:
+            return preferences.receive_ws
 
         return True
 
 
     @staticmethod
-    def _deliver(notification, channel, html_message=None, email_override=None, attempt=1):
+    def _deliver(
+        notification, channel, html_message=None,
+        email_override=None, attempt=1
+    ):
+        """Delivers the notification via the specified channel."""
         backend_cls = CHANNEL_BACKENDS.get(channel)
         if not backend_cls:
             raise ValueError(f"Unsupported delivery channel: {channel}")

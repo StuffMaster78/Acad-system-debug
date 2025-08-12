@@ -1,6 +1,6 @@
 
 from orders.actions.base import BaseOrderAction
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.services.complete_to_approved_service import CompleteToApprovedService
 from orders.registry.decorator import register_order_action
 @register_order_action("complete_to_approved")
@@ -15,7 +15,7 @@ class CompleteToApprovedAction(BaseOrderAction):
         result = service.complete_to_approved(self.order_id)
         new_status = self.order.status
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="COMPLETE_TO_APPROVED",
             target="orders.Order",

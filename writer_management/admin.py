@@ -1,21 +1,56 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import (
-    WriterProfile, WriterLevel, WriterConfig, WriterOrderRequest, WriterOrderTake,
-    WriterPayoutPreference, WriterPayment, WriterEarningsHistory,
-    WriterEarningsReviewRequest, WriterReward, WriterRewardCriteria, Probation,
-    WriterPenalty, WriterSuspension, WriterActionLog, WriterSupportTicket,
-    WriterDeadlineExtensionRequest, WriterOrderHoldRequest, WriterOrderReopenRequest,
-    WriterActivityLog, WriterRatingCooldown, WriterFileDownloadLog, WriterIPLog
-)
 from writer_management.models.status import WriterStatus
+from writer_management.models.profile import (
+    WriterProfile, WriterEducation
+)
+from writer_management.models.levels import WriterLevel
+from writer_management.models.configs import WriterConfig
+from writer_management.models.requests import (
+    WriterOrderHoldRequest, WriterOrderReopenRequest,
+    WriterDeadlineExtensionRequest, WriterOrderRequest,
+    WriterOrderTake, WriterEarningsReviewRequest
+)
+from writer_management.models.tickets import WriterSupportTicket
+from writer_management.models.payout import  (
+    WriterPayoutPreference,
+    WriterEarningsHistory,
+    WriterPayment
+)
+from writer_management.models.rewards import (
+    WriterReward, WriterRewardCriteria
+)
+from writer_management.models.discipline import (
+    Probation, WriterPenalty, WriterSuspension
+)
 from writer_management.models.writer_warnings import WriterWarning
+from writer_management.models.file_management import (
+    WriterFile, WriterFileVersion,
+    WriterFileAccessRequest,
+    WriterFileActivityLog
+)
 
+from writer_management.models.logs import (
+    WriterActionLog,
+    WriterActivityLog, WriterFileDownloadLog,
+    WriterIPLog, WriterActivityTracking
+)
+
+
+from writer_management.models.ratings import (
+    WriterRating,
+    WriterRatingFeedback,
+    WriterRatingCooldown
+)
 ### ---------------- Writer Profile Admin ---------------- ###
 
 @admin.register(WriterProfile)
 class WriterProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'registration_id', 'writer_level', 'completed_orders', 'total_earnings', 'verification_status')
+    list_display = (
+        'user', 'registration_id', 'writer_level',
+        'completed_orders', 'total_earnings',
+        'verification_status'
+    )
     list_filter = ('writer_level', 'verification_status', 'location_verified')
     search_fields = ('user__username', 'registration_id', 'email')
     readonly_fields = ('joined', 'last_logged_in', 'wallet_balance', 'average_rating')
@@ -33,10 +68,29 @@ class WriterProfileAdmin(admin.ModelAdmin):
 
 @admin.register(WriterLevel)
 class WriterLevelAdmin(admin.ModelAdmin):
-    list_display = ('name', 'max_orders', 'base_pay_per_page', 'urgency_percentage_increase', 'tip_percentage')
+    list_display = (
+        'name', 'max_orders', 'base_pay_per_page',
+        'urgency_percentage_increase', 'tip_percentage'
+    )
     list_filter = ('max_orders',)
     search_fields = ('name',)
 
+
+@admin.register(WriterEducation)
+class WriterEducationAdmin(admin.ModelAdmin):
+    list_display = ('writer', 'degree', 'institution', 'graduation_year')
+    search_fields = ('writer__user__username', 'degree', 'institution')
+
+
+@admin.register(WriterActivityTracking)
+class WriterActivityTrackingAdmin(admin.ModelAdmin):
+    list_display = ('writer', 'activity_type', 'timestamp')
+    search_fields = ('writer__user__username', 'activity_type')
+
+@admin.register(WriterActionLog)
+class WriterActionLogAdmin(admin.ModelAdmin):
+    list_display = ('writer', 'action_type', 'timestamp')
+    search_fields = ('writer__user__username', 'action_type')
 
 ### ---------------- Admin Configuration ---------------- ###
 @admin.register(WriterConfig)
@@ -44,6 +98,8 @@ class WriterConfigAdmin(admin.ModelAdmin):
     list_display = ('takes_enabled', 'max_requests_per_writer')
     # list_editable = ('takes_enabled', 'max_requests_per_writer')
     # list_display_links = ('takes_enabled',)  # Add a clickable field for the row
+
+
 
 ### ---------------- Order Request & Take ---------------- ###
 
@@ -79,13 +135,6 @@ class WriterPaymentAdmin(admin.ModelAdmin):
     list_display = ('writer', 'amount', 'payment_date', 'bonuses', 'fines', 'tips')
     list_filter = ('payment_date',)
     search_fields = ('writer__user__username',)
-
-
-# @admin.register(PaymentHistory)
-# class PaymentHistoryAdmin(admin.ModelAdmin):
-#     list_display = ('writer', 'amount', 'payment_date', 'bonuses', 'fines', 'tips')
-#     list_filter = ('payment_date',)
-#     search_fields = ('writer__user__username',)
 
 
 @admin.register(WriterEarningsHistory)
@@ -212,3 +261,43 @@ class WriterWarningAdmin(admin.ModelAdmin):
     list_display = ['writer', 'warning_type', 'is_active', 'expires_at']
     list_filter = ['warning_type', 'is_active']
     search_fields = ['writer__user__username', 'reason']
+
+
+@admin.register(WriterFile)
+class WriterFileAdmin(admin.ModelAdmin):
+    list_display = ['writer', 'order', 'file_name', 'uploaded_at', 'is_active']
+    list_filter = ['is_active']
+    search_fields = ['writer__user__username', 'file_name']
+
+@admin.register(WriterFileVersion)
+class WriterFileVersionAdmin(admin.ModelAdmin):
+    list_display = ['file', 'version_number', 'uploaded_at']
+    list_filter = ['file', 'version_number']
+    search_fields = ['file__file_name', 'version_number']
+    ordering = ['-uploaded_at']
+
+@admin.register(WriterFileAccessRequest)
+class WriterFileAccessRequestAdmin(admin.ModelAdmin):
+    list_display = ['writer', 'order', 'requested_at', 'status']
+    list_filter = ['status']
+    search_fields = ['writer__user__username', 'order__id']
+    ordering = ['-requested_at']
+
+@admin.register(WriterFileActivityLog)
+class WriterFileActivityLogAdmin(admin.ModelAdmin):
+    list_display = ['writer', 'order', 'action', 'timestamp']
+    list_filter = ['action']
+    search_fields = ['writer__user__username', 'order__id']
+    ordering = ['-timestamp']
+
+
+@admin.register(WriterRating)
+class WriterRatingAdmin(admin.ModelAdmin):
+    list_display = ('writer', 'client', 'order', 'rating', 'created_at')
+    list_filter = ('rating', 'created_at')
+    search_fields = ('writer__user__username', 'client__username', 'order__id')
+
+@admin.register(WriterRatingFeedback)
+class WriterRatingFeedbackAdmin(admin.ModelAdmin):
+    list_display = ('rating', 'comment', 'created_at')
+    search_fields = ('rating__writer__user__username', 'comment')

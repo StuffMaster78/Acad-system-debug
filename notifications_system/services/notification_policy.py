@@ -72,7 +72,11 @@ class NotificationPolicy:
         elif role == "client":
             return [NotificationChannel.EMAIL, NotificationChannel.IN_APP]
         elif role == "admin":
-            return [NotificationChannel.EMAIL, NotificationChannel.IN_APP, NotificationChannel.TELEGRAM]
+            return [
+                NotificationChannel.EMAIL,
+                NotificationChannel.IN_APP,
+                NotificationChannel.TELEGRAM
+            ]
         return [NotificationChannel.IN_APP]
 
     def _get_forced_channels(self) -> list[str]:
@@ -80,8 +84,16 @@ class NotificationPolicy:
         For critical events, we can enforce specific channels.
         """
         forced = {
-            "order_assigned": [NotificationChannel.DISCORD],
-            "payment_failed": [NotificationChannel.EMAIL, NotificationChannel.SMS],
-            "security_alert": [NotificationChannel.EMAIL, NotificationChannel.TELEGRAM],
+            "order_assigned": [
+                NotificationChannel.DISCORD
+            ],
+            "payment_failed": [
+                NotificationChannel.EMAIL,
+                NotificationChannel.SMS
+            ],
+            "security_alert": [
+                NotificationChannel.EMAIL,
+                NotificationChannel.TELEGRAM
+            ],
         }
         return forced.get(self.event_key, [])

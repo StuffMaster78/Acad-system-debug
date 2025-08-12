@@ -1,17 +1,31 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from notifications_system.views import (
-    NotificationEventPreferenceViewSet, NotificationViewSet, NotificationPreferenceViewSet,
-    NotificationMetaView, RoleNotificationPreferenceViewSet, UnreadNotificationCountView,
-    NotificationListView, NotificationDetailView,
-    MarkNotificationAsReadView, NotificationAdminViewSet,
-    NotificationProfileViewSet, MyNotificationPreferencesView,
-    MyEventNotificationPreferenceViewSet,
-    NotificationGroupProfileViewSet, BroadcastNotificationViewSet,
-    fetch_user_broadcasts, acknowledge_broadcast
+
+from notifications_system.views.in_app_notifications import InAppNotificationViewSet
+from notifications_system.views.user_notifications import (
+    NotificationViewSet,
+    NotificationListView,
+    NotificationDetailView,
+    MarkNotificationAsReadView,
+    UnreadNotificationCountView
 )
+from notifications_system.views.preferences import (
+    NotificationPreferenceViewSet,
+    MyNotificationPreferencesView,
+    MyEventNotificationPreferenceViewSet,
+    NotificationEventPreferenceViewSet,
+    RoleNotificationPreferenceViewSet
+)
+from notifications_system.views.profiles import (
+    NotificationProfileViewSet,
+    NotificationGroupProfileViewSet
+)
+from notifications_system.views.broadcasts import BroadcastNotificationViewSet
+from notifications_system.views.admin_views import NotificationAdminViewSet
+from notifications_system.views.meta import NotificationMetaView
 from notifications_system.views import notification_enum_choices
 from notifications_system.admin_debug_views import preview_email_template
+from notifications_system.views.stream import notification_event_stream
 
 router = DefaultRouter()
 router.register(
@@ -19,17 +33,26 @@ router.register(
     NotificationViewSet,
     basename='notifications'
 )
+
+router.register(
+    r'in-app-notifications',
+    InAppNotificationViewSet,
+    basename='in-app-notifications'
+)
+
 router.register(
     r'notification-preferences',
     NotificationPreferenceViewSet,
     basename='notification-preferences'
 )
 router.register(
-    r"admin/notifications", NotificationAdminViewSet,
+    r"admin/notifications",
+    NotificationAdminViewSet,
     basename="admin-notifications"
 )
 router.register(
-    r"notification-profiles", NotificationProfileViewSet,
+    r"notification-profiles",
+    NotificationProfileViewSet,
     basename="notification-profiles"
 )
 router.register(
@@ -37,11 +60,13 @@ router.register(
     basename="notification-profiles"
 )
 router.register(
-    "notification-group-profiles", NotificationGroupProfileViewSet,
+    "notification-group-profiles",
+    NotificationGroupProfileViewSet,
     basename="notification-group-profiles"
 )
 router.register(
-    "broadcasts", BroadcastNotificationViewSet,
+    r'broadcast-notifications',
+    BroadcastNotificationViewSet,
     basename="broadcast-notifications"
 )
 router.register(
@@ -50,13 +75,15 @@ router.register(
     basename='event-preferences'
 )
 router.register(
-    "role-defaults", RoleNotificationPreferenceViewSet,
+    "role-defaults",
+    RoleNotificationPreferenceViewSet,
     basename="role-defaults"
 )
 
 urlpatterns = [
     path(
-        "notifications/meta/", NotificationMetaView.as_view(),
+        "notifications/meta/",
+        NotificationMetaView.as_view(),
         name="notifications-meta"
     ),
     path(
@@ -80,10 +107,6 @@ urlpatterns = [
         name="notifications-unread-count"
     ),
     path(
-        "admin/notifications/enums/",
-        notification_enum_choices
-    ),
-    path(
         "notifications/preferences/me/",
         MyNotificationPreferencesView.as_view(),
         name="my-notification-preferences"
@@ -93,14 +116,9 @@ urlpatterns = [
         preview_email_template
     ),
     path(
-        'broadcasts/',
-        fetch_user_broadcasts,
-        name='fetch_broadcasts'
-    ),
-    path(
-        'broadcasts/<int:broadcast_id>/acknowledge/',
-        acknowledge_broadcast,
-        name='acknowledge_broadcast'
+        'notifications/stream/',
+        notification_event_stream,
+        name='notification_event_stream'
     ),
 
     path("", include(router.urls)),

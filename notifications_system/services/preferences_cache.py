@@ -1,6 +1,8 @@
 from django.core.cache import cache
-from notifications_system.models.notification_preferences import NotificationPreference
-from notifications_system.services.preferences import assign_default_preferences
+from notifications_system.models.notification_preferences import (
+NotificationPreference
+)
+from notifications_system.services.preferences import NotificationPreferenceResolver
 
 def get_cached_preferences(user):
     """
@@ -16,9 +18,13 @@ def get_cached_preferences(user):
         return pref
 
     try:
-        pref = NotificationPreference.objects.get(user=user, website=user.website)
+        pref = NotificationPreference.objects.get(
+            user=user, website=user.website
+        )
     except NotificationPreference.DoesNotExist:
-        pref = assign_default_preferences(user, user.website)
+        pref = NotificationPreferenceResolver.assign_default_preferences(
+            user, user.website
+        )
 
     cache.set(key, pref, timeout=3600)
     return pref
@@ -29,5 +35,9 @@ def invalidate_preferences_cache(user_id):
 
 
 def update_preferences_cache(user):
-    pref = NotificationPreference.objects.get(user=user, website=user.website)
-    cache.set(f"notif_prefs:{user.id}", pref, timeout=3600)
+    pref = NotificationPreference.objects.get(
+        user=user, website=user.website
+    )
+    cache.set(
+        f"notif_prefs:{user.id}", pref, timeout=3600
+    )

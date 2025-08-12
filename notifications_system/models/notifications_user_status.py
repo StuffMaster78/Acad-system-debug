@@ -2,17 +2,16 @@ from datetime import timezone
 from django.db import models
 
 from django.conf import settings
+import users
 from websites.models import Website
 from notifications_system.enums import (
     NotificationPriority
 )
 from notifications_system.models.notifications import Notification
 from django.db import models
-from django.contrib.auth import get_user_model
+# from django.contrib.auth import get_user_model
 
-from core.models import Website  # or wherever your Website model is
-
-User = get_user_model()
+# User = get_user_model()
 
 class NotificationsUserStatus(models.Model):
     """
@@ -24,7 +23,7 @@ class NotificationsUserStatus(models.Model):
     as well as their preferences for receiving future notifications.
     """ 
     user = models.ForeignKey(
-        User,
+        "users.User",
         on_delete=models.CASCADE,
         related_name="notification_statuses"
     )

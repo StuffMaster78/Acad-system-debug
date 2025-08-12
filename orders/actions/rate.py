@@ -1,6 +1,6 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.rate_order_service import RateOrderService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("rate_order")
 class RateOrderAction(BaseOrderAction):
@@ -12,7 +12,7 @@ class RateOrderAction(BaseOrderAction):
         service = RateOrderService()
         result = service.rate_order(self.order_id, **self.params)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="RATE",  # Add this to ACTION_CHOICES
             target="orders.Order",

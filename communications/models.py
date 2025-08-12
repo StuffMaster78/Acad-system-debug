@@ -247,7 +247,7 @@ class CommunicationMessage(models.Model):
     is_unblocked = models.BooleanField(default=False)
     class Meta:
         ordering = ["-sent_at"]
-        index_together = ['visible_to_roles', 'is_deleted']
+        unique_together = ['visible_to_roles', 'is_deleted']
 
     def save(self, *args, **kwargs):
         """

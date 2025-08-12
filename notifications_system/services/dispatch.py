@@ -2,11 +2,13 @@ import logging
 from notifications_system.models.notifications_user_status import NotificationsUserStatus
 from notifications_system.template_engine import NotificationTemplateEngine
 from notifications_system.registry.role_bindings import get_channels_for_role
-from notifications_system.registry.template_registry import (
-    NOTIFICATION_TEMPLATES,
-    get_templates_for_event
-)
-from notifications_system.registry.forced_channels import FORCED_CHANNELS
+from notifications_system.registry.template_registry import TemplateRegistry
+
+# import (
+#     NOTIFICATION_TEMPLATES,
+#     get_templates_for_event
+# )
+from notifications_system.registry.forced_channels import ForcedChannelRegistry
 from notifications_system.tasks import send_notification_task
 from notifications_system.models.notifications import Notification
 from django.core.mail import send_mail
@@ -32,8 +34,8 @@ class NotificationDispatcher:
         """
         Dispatches a notification to the user's channels.
         """
-        templates = NOTIFICATION_TEMPLATES.get(self.event_key, {})
-        forced_channels = FORCED_CHANNELS.get(self.event_key, set())
+        templates = TemplateRegistry._templates.get(self.event_key, {})
+        forced_channels = ForcedChannelRegistry.get(self.event_key, set())
         channels = forced_channels or get_channels_for_role(self.event_key, self.role)
 
         if not templates:
@@ -76,7 +78,7 @@ class NotificationDispatcher:
         """
         Async trigger to dispatch all templates tied to an event.
         """
-        templates = get_templates_for_event(event_name)
+        templates = TemplateRegistry.get_templates_for_event(event_name)
         for template in templates:
             send_notification_task.delay(
                 event_name=event_name,

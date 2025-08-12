@@ -1,7 +1,7 @@
 from django.utils import timezone
 from orders.models import Order
 from orders.exceptions import OrderInvalidStateException
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 
 
 class OrderDeadlineService:
@@ -18,7 +18,7 @@ class OrderDeadlineService:
         order.deadline = new_deadline
         order.save()
 
-        log_audit_action(
+        AuditLogService.log_auto(
             order=order,
             field="deadline",
             old_value=old_deadline.isoformat(),

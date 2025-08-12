@@ -97,14 +97,14 @@ class ScreenedWordAdmin(admin.ModelAdmin):
     actions = ["delete_selected"]
 
 
-@admin.register(CommunicationLog)
-class OrderMessageLogAdmin(admin.ModelAdmin):
-    """
-    Admin interface for viewing message logs.
-    """
-    list_display = ("order", "user", "action", "timestamp", "details")
-    list_filter = ("action", "timestamp")
-    search_fields = ("order__id", "user__username", "action", "details")
+# @admin.register(CommunicationLog)
+# class OrderMessageLogAdmin(admin.ModelAdmin):
+#     """
+#     Admin interface for viewing message logs.
+#     """
+#     list_display = ("order", "user", "action", "timestamp", "details")
+#     list_filter = ("action", "timestamp")
+#     search_fields = ("order__id", "user__username", "action", "details")
 
 
 

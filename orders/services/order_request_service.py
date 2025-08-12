@@ -2,7 +2,7 @@ from urllib import request
 from django.core.exceptions import ValidationError
 
 from orders.models import OrderRequest, Order
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.exceptions import (
     OrderTransitionError,
     AlreadyAssignedError,
@@ -71,7 +71,7 @@ class OrderRequestService:
         )
 
         if self.user:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="CREATE_REQUEST",
                 target="orders.OrderRequest",
@@ -179,7 +179,7 @@ class OrderRequestService:
         save_order(order)
 
         if self.user:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="WRITER_ASSIGNED",
                 target="orders.Order",
@@ -217,7 +217,7 @@ class OrderRequestService:
         writer_request.save(update_fields=["status", "rejection_feedback"])
 
         if self.user:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="REJECT_REQUEST",
                 target="orders.OrderRequest",
@@ -250,7 +250,7 @@ class OrderRequestService:
             request.save(update_fields=["status"])
 
         if self.user:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="EXPIRE_REQUEST",
                 target="orders.OrderRequest",
@@ -287,7 +287,7 @@ class OrderRequestService:
         request.save(update_fields=["withdrawn", "rejection_feedback"])
 
         if self.user:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="WITHDRAW_REQUEST",
                 target="orders.OrderRequest",
@@ -335,7 +335,7 @@ class OrderRequestService:
             request.save(update_fields=["status", "rejection_feedback"])
 
         if self.user:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="EXPIRE_REQUEST",
                 target="orders.OrderRequest",
@@ -376,7 +376,7 @@ class OrderRequestService:
         request.save(update_fields=["status", "rejection_feedback"])
 
         if self.user:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="REOPEN_REQUEST",
                 target="orders.OrderRequest",
@@ -431,7 +431,7 @@ class OrderRequestService:
         request.save(update_fields=["status"])
 
         if self.user:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="CANCEL_REQUEST",
                 target="orders.OrderRequest",

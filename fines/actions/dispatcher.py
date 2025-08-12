@@ -1,6 +1,6 @@
 from importlib import import_module
 from actions.base import BaseAction, PermissionDenied
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 
 ACTION_REGISTRY = {}
 
@@ -38,7 +38,7 @@ def dispatch_action(name, actor, **kwargs):
         result = action.perform(**kwargs)
 
         # Log success audit event
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=actor,
             action=name,
             target=result if hasattr(result, 'pk') else None,
@@ -50,7 +50,7 @@ def dispatch_action(name, actor, **kwargs):
 
     except PermissionDenied as e:
         # Log permission denied event
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=actor,
             action=f"{name}_permission_denied",
             target=None,

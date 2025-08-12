@@ -2,6 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
 from websites.models import Website
+from writer_management.models.file_management import WriterFile
 from writer_management.models.profile import WriterProfile
 from orders.models import Order
 
@@ -423,3 +424,31 @@ class WriterProfileUpdateLog(models.Model):
         verbose_name = "Writer Profile Update Log"
         verbose_name_plural = "Writer Profile Update Logs"
         ordering = ['-updated_at']
+
+
+class WriterFileDownloadLog(models.Model):
+    """
+    Logs all file downloads by writers.
+    Helps track file access and accountability.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
+    writer = models.ForeignKey(
+        WriterProfile, on_delete=models.CASCADE,
+        related_name="file_download_logs"
+    )
+    file = models.ForeignKey(
+        WriterFile, on_delete=models.CASCADE,
+        related_name="download_logs"
+    )
+    downloaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"File Download Log: {self.writer.user.username} - File {self.file.id} ({self.downloaded_at})"
+
+    class Meta:
+        verbose_name = "Writer File Download Log"
+        verbose_name_plural = "Writer File Download Logs"
+        ordering = ['-downloaded_at']

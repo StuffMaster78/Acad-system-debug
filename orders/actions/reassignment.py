@@ -2,7 +2,7 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.reassignment import ReassignmentRequest
 from orders.services.reassignment import OrderReassignmentService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("reassignment_request")
 class ReassignmentRequestAction(BaseOrderAction):
@@ -13,7 +13,7 @@ class ReassignmentRequestAction(BaseOrderAction):
     def execute(self):
         reassignment = ReassignmentRequest.objects.create(**self.params)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="CREATE_REASSIGNMENT_REQUEST",
             target="orders.ReassignmentRequest",
@@ -32,7 +32,7 @@ class OrderReassignmentAction(BaseOrderAction):
         service = OrderReassignmentService()
         result = service.reassign(self.order_id, **self.params)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="REASSIGN_ORDER",
             target="orders.Order",

@@ -3,7 +3,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.models import WriterRequest
 from pricing_configs.models import PricingConfiguration
 from discounts.services.discount_engine import DiscountEngine
@@ -44,7 +44,7 @@ class WriterRequestService:
         request.requires_payment = request.final_cost > Decimal("0.00")
         request.save()
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=writer,
             action="CREATE_WRITER_REQUEST",
             target="orders.WriterRequest",
@@ -79,7 +79,7 @@ class WriterRequestService:
 
         request.save()
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=client,
             action="CLIENT_RESPOND_WRITER_REQUEST",
             target="orders.WriterRequest",
@@ -102,7 +102,7 @@ class WriterRequestService:
         WriterRequestService._apply_request_changes(request)
         request.save()
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=admin,
             action="ADMIN_OVERRIDE_WRITER_REQUEST",
             target="orders.WriterRequest",
@@ -126,7 +126,7 @@ class WriterRequestService:
 
         WriterRequestService._apply_request_changes(request)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=request.requested_by_writer,
             action="WRITER_REQUEST_PAID",
             target="orders.WriterRequest",

@@ -7,7 +7,8 @@ from datetime import timedelta
 
 from authentication.models import TrustedDevice
 from users.models import User
-from authentication.utilsy import send_custom_email, log_audit_action
+from authentication.utilsy import send_custom_email
+from audit_logging.services.audit_log_service import AuditLogService
 from datetime import datetime
 from authentication.services.account_lockout_service import AccountLockoutService
 
@@ -47,7 +48,7 @@ class AdminUnlockAccountAPIView(APIView):
         user.unlock_account()  # Assuming unlock_account is a method on your User model
 
         # Log admin action
-        log_audit_action(request.user, "ADMIN_UNLOCKED_ACCOUNT", request)
+        AuditLogService.log_auto(request.user, "ADMIN_UNLOCKED_ACCOUNT", request)
 
         return Response({"message": "User account has been unlocked."}, status=status.HTTP_200_OK)
 
@@ -76,7 +77,7 @@ class MFALoginAPIView(APIView):
             ).first()
             if trusted_device:
                 login(request, user)
-                log_audit_action(user, "MFA_BYPASSED_TRUSTED_DEVICE", request)
+                AuditLogService.log_auto(user, "MFA_BYPASSED_TRUSTED_DEVICE", request)
                 return Response({"message": "MFA skipped, logged in successfully"})
 
         # Verify MFA code
@@ -85,7 +86,7 @@ class MFALoginAPIView(APIView):
 
         # Successful MFA Login
         login(request, user)
-        log_audit_action(user, "MFA_LOGIN_SUCCESS", request)
+        AuditLogService.log_auto(user, "MFA_LOGIN_SUCCESS", request)
 
         # If "Remember This Device" is selected, store trusted device
         if remember_device:

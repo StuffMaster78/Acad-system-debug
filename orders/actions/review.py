@@ -1,6 +1,6 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.review_order_service import ReviewOrderService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("review_order")
 class ReviewOrderAction(BaseOrderAction):
@@ -8,7 +8,7 @@ class ReviewOrderAction(BaseOrderAction):
         service = ReviewOrderService()
         result = service.review_order(self.order_id)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="REVIEW",  # Add to ACTION_CHOICES if needed
             target="orders.Order",

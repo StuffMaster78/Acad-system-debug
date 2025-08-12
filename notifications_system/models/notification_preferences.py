@@ -13,9 +13,9 @@ from notifications_system.enums import (
     NotificationPriority
 )
 from django.contrib.postgres.fields import ArrayField
-from users.mixins import UserRole   
+from users.mixins import UserRole
+from notifications_system.enums import EventType  
 from django.contrib.postgres.fields import JSONField
-from notifications_system.models.notification_preferences import UserNotificationPreference
 from notifications_system.models.notification_event import NotificationEvent
 from django.conf import settings
 
@@ -112,10 +112,10 @@ class NotificationPreference(models.Model):
         related_name="notification_preferences",
         help_text="The user whose preferences are being managed."
     )
-    role = models.ForeignKey(
-        UserRole, null=True, blank=True,
-        on_delete=models.SET_NULL,
-        related_name="notification_preferences",
+    role = models.CharField(
+        max_length=50,
+        choices=UserRole.choices,
+        null=True, blank=True,
         help_text="The role associated with these preferences, if any."
     )
     event = models.CharField(
@@ -288,7 +288,7 @@ class EventNotificationPreference(models.Model):
     website = models.ForeignKey(
         "websites.Website", null=True, blank=True, on_delete=models.CASCADE
     )
-    event = models.CharField(max_length=100, choices=EventType.choices())
+    event = models.CharField(max_length=100, choices=EventType.choices)
     email_enabled = models.BooleanField(default=True)
     sms_enabled = models.BooleanField(default=False)
     push_enabled = models.BooleanField(default=True)
@@ -311,8 +311,11 @@ class RoleNotificationPreference(models.Model):
     Represents default notification preferences for a role.
     This allows roles to have a set of default notification preferences that can be applied to users.
     """
-    role = models.OneToOneField(
-        UserRole, on_delete=models.CASCADE, related_name="notification_preferences"
+    role = models.CharField(
+        max_length=50,
+        choices=UserRole.choices,
+        null=True, blank=True,
+        help_text="The role associated with these preferences, if any."
     )
     website = models.ForeignKey(Website, on_delete=models.CASCADE)
     
@@ -344,7 +347,7 @@ class ChannelPreference(models.Model):
         related_name="channel_prefs"
     )
     channel = models.CharField(
-        max_length=32, choices=NotificationType.choices()
+        max_length=32, choices=NotificationType.choices
     )
     no_notify = models.BooleanField(default=False)
     digest_only = models.BooleanField(default=False)

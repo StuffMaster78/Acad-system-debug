@@ -1,7 +1,7 @@
 
 from orders.actions.base import BaseOrderAction
 from orders.services.pricing_calculator import PricingCalculatorService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 from orders.services.order_pricing_snapshot import OrderPricingSnapshotService 
 
@@ -22,7 +22,7 @@ class PricingCalculatorAction(BaseOrderAction):
                 pricing_data=breakdown
             )
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="CALCULATE_PRICING",
             target="orders.Order",

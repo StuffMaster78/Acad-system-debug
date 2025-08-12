@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.contrib.auth.models import User
 from client_management.models import ClientProfile
-from writer_management.models import WriterProfile
+from writer_management.models.profile import WriterProfile
 from django.contrib.auth import get_user_model
 
 User = get_user_model()

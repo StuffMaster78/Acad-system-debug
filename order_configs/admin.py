@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import PaperType, FormattingStyle, Subject, TypeOfWork, EnglishType, WriterDeadlineConfig
+from .models import PaperType, FormattingandCitationStyle, Subject, TypeOfWork, EnglishType, WriterDeadlineConfig
 
 
 @admin.register(PaperType)
@@ -9,7 +9,7 @@ class PaperTypeAdmin(admin.ModelAdmin):
     list_filter = ['website']
 
 
-@admin.register(FormattingStyle)
+@admin.register(FormattingandCitationStyle)
 class FormattingStyleAdmin(admin.ModelAdmin):
     list_display = ['name', 'website']
     search_fields = ['name']

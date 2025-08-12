@@ -63,5 +63,6 @@ class NotificationRegistry:
                     event_key, channel
                 )
 
+
 # Singleton instance
 notification_registry = NotificationRegistry()

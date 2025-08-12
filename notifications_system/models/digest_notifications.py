@@ -29,11 +29,11 @@ class NotificationDigest(models.Model):
         on_delete=models.CASCADE,
         related_name="notification_digests"
     )
-    role = models.ForeignKey(
-        UserRole,
-        on_delete=models.CASCADE,
-        related_name="notification_digests",
-        null=True, blank=True,
+    role = models.CharField(
+        max_length=50,
+        choices=UserRole.choices,
+        blank=True,
+        null=True,
         help_text="Role of the user for this digest"
     )
     website = models.ForeignKey(
@@ -51,14 +51,14 @@ class NotificationDigest(models.Model):
     )
     category = models.CharField(
         max_length=50,
-        choices=NotificationCategory.choices(),
+        choices=NotificationCategory.choices,
         default=NotificationCategory.INFO,
         help_text="Category of the notification digest"
     )
     channels = ArrayField(
         models.CharField(
             max_length=50,
-            choices=NotificationType.choices()
+            choices=NotificationType.choices
         ),
         default=list,
         help_text="Channels through which the digest will be sent"
@@ -157,7 +157,7 @@ class NotificationDigestQueue(models.Model):
     )
     status = models.CharField(
         max_length=20,
-        choices=DeliveryStatus.choices(),
+        choices=DeliveryStatus.choices,
         default=DeliveryStatus.PENDING,
         help_text="Current status of the digest in the queue."
     )

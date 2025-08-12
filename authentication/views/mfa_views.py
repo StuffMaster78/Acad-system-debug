@@ -11,9 +11,10 @@ from django.shortcuts import get_object_or_404
 
 from users.models import User
 from authentication.utilsy import (
-    log_audit_action, notify_mfa_enabled,
+    notify_mfa_enabled,
     send_mfa_recovery_email, verify_email_otp
 )
+from audit_logging.services.audit_log_service import AuditLogService
 from authentication.serializers import MFAChallengeVerifySerializer
 
 from authentication.utils.jwt import (
@@ -73,7 +74,7 @@ class EnableMFA(APIView):
             qr.save(buffer, format="PNG")
             qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-            log_audit_action(user, "MFA_ENABLED", request)
+            AuditLogService.log_auto(user, "MFA_ENABLED", request)
             notify_mfa_enabled(user)
 
             return Response({"message": "TOTP MFA enabled.", "qr_code": qr_base64}, status=status.HTTP_200_OK)
@@ -86,7 +87,7 @@ class EnableMFA(APIView):
             if not otp_code or not verify_otp(user, otp_code):
                 return Response({"error": "Invalid SMS OTP"}, status=status.HTTP_400_BAD_REQUEST)
 
-        log_audit_action(user, "MFA_ENABLED", request)
+        AuditLogService.log_auto(user, "MFA_ENABLED", request)
         notify_mfa_enabled(user)
 
         return Response({"message": f"MFA enabled via {mfa_method}"}, status=status.HTTP_200_OK)

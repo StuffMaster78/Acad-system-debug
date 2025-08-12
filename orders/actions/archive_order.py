@@ -1,6 +1,6 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.archive_order_service import ArchiveOrderService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 
 @register_order_action("archive_order")
@@ -19,7 +19,7 @@ class ArchiveOrderAction(BaseOrderAction):
         service = ArchiveOrderService()
         result = service.archive_order(self.order_id)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="ARCHIVE",
             target="orders.Order",

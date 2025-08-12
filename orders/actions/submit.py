@@ -1,7 +1,7 @@
 from orders.actions.base import BaseOrderAction
 from orders.order_enums import OrderStatus
 from orders.services.submit_order_service import SubmitOrderService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("submit_order")
 class SubmitOrderAction(BaseOrderAction):
@@ -19,7 +19,7 @@ class SubmitOrderAction(BaseOrderAction):
         service = SubmitOrderService()
         order = service.execute(self.order_id, self.user)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="SUBMIT_ORDER",
             target="orders.Order",

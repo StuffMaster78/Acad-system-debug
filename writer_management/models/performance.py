@@ -83,3 +83,37 @@ class WriterPerformance(models.Model):
             f"Performance: {self.writer.user.username} - "
             f"Avg Rating: {self.average_rating}"
         )
+    
+
+class WriterPerformanceReport(models.Model):
+    """
+    Stores performance analytics for writers.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_performance_report"
+    )
+    writer = models.ForeignKey(
+        WriterProfile, on_delete=models.CASCADE,
+        related_name="performance_reports"
+    )
+    period_start = models.DateTimeField(
+        help_text="Start of performance tracking period."
+    )
+    period_end = models.DateTimeField(
+        help_text="End of performance tracking period."
+    )
+    completed_orders = models.PositiveIntegerField(
+        default=0, help_text="Total completed orders."
+    )
+    disputes = models.PositiveIntegerField(
+        default=0, help_text="Total disputes."
+    )
+    average_rating = models.DecimalField(
+        max_digits=3, decimal_places=2, default=0.00,
+        help_text="Average rating for the period."
+    )
+
+    def __str__(self):
+        return f"Performance Report: {self.writer.user.username} ({self.period_start} - {self.period_end})"

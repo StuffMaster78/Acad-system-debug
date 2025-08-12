@@ -1,6 +1,6 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.apply_direct_discount_service import ApplyDirectDiscountService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("apply_direct_discount")
 class ApplyDirectDiscountAction(BaseOrderAction):
@@ -11,7 +11,7 @@ class ApplyDirectDiscountAction(BaseOrderAction):
         service = ApplyDirectDiscountService()
         result = service.apply_discount(self.order_id, **self.params)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="DISCOUNT",
             target="orders.Order",

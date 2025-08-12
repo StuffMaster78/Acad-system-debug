@@ -1,6 +1,6 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.reopen_order_service import ReopenOrderService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("reopen_order")
 class ReopenOrderAction(BaseOrderAction):
@@ -14,7 +14,7 @@ class ReopenOrderAction(BaseOrderAction):
         service = ReopenOrderService()
         result = service.reopen_order(self.order_id, **self.params)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="REOPEN",
             target="orders.Order",

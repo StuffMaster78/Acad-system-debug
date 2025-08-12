@@ -54,15 +54,6 @@ class NotificationProfile(models.Model):
     class Meta:
         verbose_name = "Notification Profile"
         verbose_name_plural = "Notification Profiles"
-        includes = [
-            "default_email",
-            "default_sms",
-            "default_push",
-            "default_in_app",
-            "dnd_start",
-            "dnd_end",
-            "dnd_channels"
-        ]
         indexes = [
             models.Index(fields=['name']),
             models.Index(fields=['is_active']),
@@ -127,10 +118,10 @@ class NotificationGroupProfile(models.Model):
     )
 
     # Optional targeting
-    roles = models.ManyToManyField(
-        UserRole, blank=True,
-        help_text="Apply to users with these roles"
-    )
+    roles = models.CharField(
+            max_length=50,
+            choices=[(role.name, role.value) for role in UserRole]
+        )
     users = models.ManyToManyField(
         User, blank=True,
         help_text="Directly assigned users"
@@ -199,7 +190,10 @@ class GroupNotificationProfile(models.Model):
     group = models.ForeignKey(NotificationGroup, on_delete=models.CASCADE)
 
     # Optional: if using a roles table instead of Django groups
-    role_slug = models.SlugField(blank=True, null=True, help_text="Optional slug for the role (e.g., 'writer')")
+    role_slug = models.SlugField(
+        blank=True, null=True,
+        help_text="Optional slug for the role (e.g., 'writer')"
+    )
 
     is_default = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)

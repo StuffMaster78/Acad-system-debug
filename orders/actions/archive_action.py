@@ -1,6 +1,6 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.auto_archive_service import AutoArchiveService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("autorchive")
 class AutorchiveAction(BaseOrderAction):
@@ -19,7 +19,7 @@ class AutorchiveAction(BaseOrderAction):
             website=self.website,
         )
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="ARCHIVE",
             target="orders.Order",

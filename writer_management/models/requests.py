@@ -296,3 +296,89 @@ class WriterReassignmentRequest(models.Model):
 
     def __str__(self):
         return f"Reassignment Request: {self.writer.user.username} for Order {self.order.id} (Approved: {self.approved})"
+    
+
+
+class WriterOrderReopenRequest(models.Model):
+    """
+    Writers can request a completed order to be reopened.
+    Admin must approve.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
+    writer = models.ForeignKey(
+        WriterProfile, on_delete=models.CASCADE,
+        related_name="reopen_requests"
+    )
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE,
+        related_name="reopen_requests"
+    )
+    reason = models.TextField(help_text="Reason for reopening the order.")
+    requested_at = models.DateTimeField(auto_now_add=True)
+    approved = models.BooleanField(default=False)
+    reviewed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="reopen_reviews"
+    )
+
+    def __str__(self):
+        return f"Reopen Request: {self.writer.user.username} for Order {self.order.id} (Approved: {self.approved})"
+    
+
+class WriterDemotionRequest(models.Model):
+    """
+    Editors or support staff can request an admin to demote a writer.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="writer_demotion_request_website"
+    )
+    writer = models.ForeignKey(
+        WriterProfile, on_delete=models.CASCADE,
+        related_name="demotion_requests"
+    )
+    requested_by = models.ForeignKey(
+        User, on_delete=models.CASCADE,
+        related_name="demotion_requests_made_by"
+    )
+    reason = models.TextField(
+        help_text="Reason for requesting writer demotion."
+    )
+    requested_at = models.DateTimeField(auto_now_add=True)
+    approved = models.BooleanField(default=False)
+    reviewed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True,
+        blank=True, related_name="demotion_reviews_by"
+    )
+
+    def __str__(self):
+        return f"Demotion Request: {self.writer.user.username} (Approved: {self.approved})"
+
+
+class WriterEarningsReviewRequest(models.Model):
+    """
+    Writers can request a review of their earnings.
+    Admin must approve.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
+    writer = models.ForeignKey(
+        WriterProfile, on_delete=models.CASCADE,
+        related_name="earnings_review_requests"
+    )
+    reason = models.TextField(help_text="Reason for requesting earnings review.")
+    requested_at = models.DateTimeField(auto_now_add=True)
+    approved = models.BooleanField(default=False)
+    reviewed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="earnings_review_reviews"
+    )
+
+    def __str__(self):
+        return f"Earnings Review Request: {self.writer.user.username} (Approved: {self.approved})"

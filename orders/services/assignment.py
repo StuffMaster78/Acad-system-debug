@@ -2,7 +2,7 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from orders.models import Order
-from notifications_system.utils import send_notification 
+from notifications_system.services.core import NotificationService
 from orders.services.order_access_service import OrderAccessService
 from django.core.exceptions import PermissionDenied
 from orders.models import WriterReassignmentLog
@@ -80,16 +80,17 @@ class OrderAssignmentService:
                 reason=reason
             )
 
-        send_notification(
-            writer,
-            "New Order Assigned",
-            f"You've been assigned to Order #{self.order.id}."
+        NotificationService.send_notification(
+            user=writer,
+            event="New Order Assigned",
+            context={"order_id": self.order.id}
         )
 
-        send_notification(
-            self.order.client,
-            "Writer Assigned",
-            f"A writer has been assigned to your Order #{self.order.id}."
+        NotificationService.send_notification(
+            user=self.order.client,
+            event="Writer Assigned",
+            context={"order_id": self.order.id},
+            message=f"A writer has been assigned to your Order #{self.order.id}."
         )
 
         return self.order
@@ -114,50 +115,67 @@ class OrderAssignmentService:
         self.order.status = "available"
         self.order.save()
 
-        send_notification(
-            writer,
-            "Order Unassigned",
-            f"You've been unassigned from Order #{self.order.id}."
+        NotificationService.send_notification(
+            user=writer,
+            event="Order Unassigned",
+            context={"order_id": self.order.id}
         )
-        send_notification(
-            self.order.client,
-            "Writer Unassigned",
-            f"The writer was unassigned from your Order #{self.order.id} and it's now available again."
+        NotificationService.send_notification(
+            user=self.order.client,
+            event="Writer Unassigned",
+            context={"order_id": self.order.id},
+            message=f"The writer was unassigned from your Order #{self.order.id} and it's now available again."
         )
 
         return self.order
     
 
     def _notify_assignment(self, writer):
-        send_notification(
-            writer,
-            "New Order Assigned",
-            f"You've been assigned Order #{self.order.id}."
+        NotificationService.send_notification(
+            user=writer,
+            event="New Order Assigned",
+            context={"order_id": self.order.id}
         )
 
-        send_notification(
-            self.order.client,
-            "Writer Assigned",
-            f"A writer has been assigned to Order #{self.order.id}."
+        NotificationService.send_notification(
+            user=self.order.client,
+            event="Writer Assigned",
+            context={"order_id": self.order.id}
         )
 
     def _notify_reassignment(self, old_writer, new_writer, reason):
-        send_notification(
-            old_writer,
-            "Order Reassigned",
-            f"Order #{self.order.id} has been reassigned to another writer. "
-            f"{'Reason: ' + reason if reason else ''}"
+        NotificationService.send_notification(
+            user=old_writer,
+            event="Order Reassigned",
+            context={
+                "order_id": self.order.id,
+                "reason": reason
+            }
         )
 
-        send_notification(
-            new_writer,
-            "Order Assigned (Reassignment)",
-            f"You've been assigned to Order #{self.order.id}, "
-            f"previously handled by {old_writer.get_full_name()}."
+        NotificationService.send_notification(
+            user=new_writer,
+            event="Order Assigned (Reassignment)",
+            context={
+                "order_id": self.order.id,
+                "previous_writer": old_writer.get_full_name()
+            }
         )
 
-        send_notification(
-            self.order.client,
-            "Writer Reassigned",
-            f"Order #{self.order.id} has a new writer assigned."
+        NotificationService.send_notification(
+            user=self.order.client,
+            event="Writer Reassigned",
+            context={"order_id": self.order.id}
+        )
+
+        NotificationService.send_notification(
+            user=self.order.client,
+            event="Writer Reassigned",
+            context={"order_id": self.order.id}
+        )
+
+        NotificationService.send_notification(
+            user=self.order.client,
+            event="Writer Reassigned",
+            context={"order_id": self.order.id}
         )

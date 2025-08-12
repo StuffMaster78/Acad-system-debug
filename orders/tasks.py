@@ -24,7 +24,7 @@ from users.models import User
 from websites.models import Website
 from audit_logging.services import AuditLogEntry
 from orders.models import WriterRequest
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from notifications_system.tasks import async_send_notification
 from notifications_system.enums import NotificationType
 
@@ -260,7 +260,7 @@ def expire_stale_writer_requests():
         req.status = WriterRequest.RequestStatus.DECLINED
         req.save()
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=None,
             action="AUTO_EXPIRE_WRITER_REQUEST",
             target="orders.WriterRequest",

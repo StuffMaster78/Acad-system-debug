@@ -7,7 +7,7 @@ from notifications_system.utils.digest import summarize_entries
 from users.models import User
 from websites.models import Website
 from notifications_system.emails.reset_notification_preferences import _send_reset_email_now
-from notifications_system.services.preferences import assign_default_preferences
+# from notifications_system.services.preferences import NotificationPreferenceResolver
 from notifications_system.models.notifications import Notification
 from notifications_system.template_engine import NotificationTemplateEngine
 from notifications_system.services.dispatch import NotificationDispatcher 
@@ -15,7 +15,7 @@ import logging
 from datetime import timedelta
 from django.contrib.auth import get_user_model
 
-from notifications_system.models.notification_preferences import  NotificationPreference
+# from notifications_system.models.notification_preferences import  NotificationPreference
 from notifications_system.utils.summarizer import summarize_entries
 from notifications_system.services.templates_registry import get_template
 from core.utils.email_helpers import send_website_mail

@@ -23,9 +23,6 @@ from pathlib import Path
 from django.conf import settings
 from django.core.cache import cache
 
-from notifications_system.registry.validator import (
-    validate_event_config
-)
 from notifications_system.models.notification_event_override import (
     NotificationEventOverride
 )

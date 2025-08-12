@@ -6,7 +6,7 @@ from django.contrib.auth.models import Group, Permission
 from django.core.mail import send_mail
 from django.utils.timezone import now, timedelta
 from django.conf import settings
-from notifications_system.models import send_notification  # Integration with Notifications App
+from notifications_system.services.core import NotificationService  # Integration with Notifications App
 
 User = get_user_model()
 
@@ -51,7 +51,7 @@ class AdminManager:
             )
 
             # Send notification
-            send_notification(
+            NotificationService.send_notification(
                 recipient=admin,
                 title="New User Created",
                 message=f"User {username} ({role}) was created successfully.",
@@ -93,7 +93,7 @@ class AdminManager:
         )
 
         # Send notification
-        send_notification(
+        NotificationService.send_notification(
             recipient=user,
             title="Account Suspended",
             message=f"Your account has been suspended. Reason: {reason}.",
@@ -144,7 +144,7 @@ class AdminManager:
         )
 
         # Send notification
-        send_notification(
+        NotificationService.send_notification(
             recipient=user,
             title="Probation Notice",
             message=f"You have been placed on probation for {duration_in_days} days. Reason: {reason}.",
@@ -173,7 +173,7 @@ class AdminManager:
         )
 
         # Send notification
-        send_notification(
+        NotificationService.send_notification(
             recipient=user,
             title="Probation Removed",
             message="Your probation has been removed. You are now in good standing.",

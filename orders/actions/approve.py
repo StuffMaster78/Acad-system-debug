@@ -1,7 +1,7 @@
 from orders.actions.base import BaseOrderAction
 from orders.registry.decorator import register_order_action
 from orders.services.approve_order_service import ApproveOrderService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 
 
 @register_order_action("approve_order")
@@ -18,7 +18,7 @@ class ApproveOrderAction(BaseOrderAction):
 
         new_status = "approved"
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="APPROVE",  
             target="orders.Order",

@@ -28,9 +28,12 @@ class NotificationExpiryService:
         return updated
 
     @classmethod
-    def purge_expired_notifications(cls, older_than_days: int = 90, dry_run=False):
+    def purge_expired_notifications(
+        cls, older_than_days: int = 90, dry_run=False
+    ):
         """
-        Hard deletes notifications that have been expired for longer than `older_than_days`.
+        Hard deletes notifications that have been
+        expired for longer than `older_than_days`.
         """
         cutoff = timezone.now() - timedelta(days=older_than_days)
         queryset = NotificationsUserStatus.objects.filter(
@@ -40,9 +43,13 @@ class NotificationExpiryService:
 
         count = queryset.count()
         if dry_run:
-            logger.info(f"[Dry Run] Would delete {count} expired notifications older than {older_than_days} days.")
+            logger.info(
+                f"[Dry Run] Would delete {count} expired notifications older than {older_than_days} days."
+            )
             return count
 
         deleted_count, _ = queryset.delete()
-        logger.info(f"Hard-deleted {deleted_count} expired notifications older than {older_than_days} days.")
+        logger.info(
+            f"Hard-deleted {deleted_count} expired notifications older than {older_than_days} days."
+        )
         return deleted_count

@@ -3,7 +3,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, permissions
-from authentication.utilsy import log_audit_action  # Optional: log attempts
+from audit_logging.services.audit_log_service import AuditLogService
 from django.utils.translation import gettext_lazy as _
 
 
@@ -19,7 +19,7 @@ class ForbiddenAccessView(APIView):
 
         # Optional: Audit logging
         if user:
-            log_audit_action(user, "FORBIDDEN_ACCESS_ATTEMPT", request)
+            AuditLogService.log_auto(user, "FORBIDDEN_ACCESS_ATTEMPT", request)
 
         return Response(
             {

@@ -1,7 +1,7 @@
 
 from orders.actions.base import BaseOrderAction
 from orders.services.order_transition import OrderTransitionService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("order_transition")
 class OrderTransitionAction(BaseOrderAction):
@@ -15,7 +15,7 @@ class OrderTransitionAction(BaseOrderAction):
         result = service.transition(self.order_id, **self.params)
 
         new_status = self.order.status  # assumes service updates `self.order`
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="TRANSITION",
             target="orders.Order",

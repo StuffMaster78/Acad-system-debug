@@ -8,7 +8,7 @@ from orders.utils.order_utils import (
     get_orders_by_status_older_than,
     save_order
 )
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.exceptions import (
     InvalidTransitionError,
     AlreadyInTargetStatusError,
@@ -135,7 +135,7 @@ class StatusTransitionService:
         save_order(order)
 
         if log_action and self.user:
-            log_audit_action(
+            AuditLogService.log_auto(
                 actor=self.user,
                 action="STATUS_TRANSITION",
                 target="orders.Order",

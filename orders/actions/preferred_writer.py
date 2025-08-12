@@ -2,7 +2,7 @@
 from orders.actions.base import BaseOrderAction
 from orders.services.preferred_writer_service import PreferredWriterService
 from orders.services.preferred_writer_response import PreferredWriterResponse
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("set_preferred_writer")
 class PreferredWriterAction(BaseOrderAction):
@@ -14,7 +14,7 @@ class PreferredWriterAction(BaseOrderAction):
         service = PreferredWriterService()
         result = service.set_preferred_writer(self.order_id, **self.params)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="SET_PREFERRED_WRITER",
             target="orders.Order",
@@ -33,7 +33,7 @@ class PreferredWriterResponseAction(BaseOrderAction):
         service = PreferredWriterResponse()
         result = service.respond(self.order_id, **self.params)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="PREFERRED_WRITER_RESPONSE",
             target="orders.Order",

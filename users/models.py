@@ -28,11 +28,11 @@ from .mixins import (
 )
 # from websites.models import Website
 from client_management.models import BlacklistedEmail
-from notifications_system.models import Notification
+from notifications_system.models.notifications import Notification
 from users.utils import logout_all_sessions
 from django.apps import apps
 from websites.models import Website
-from notifications_system.models import NotificationPreferenceProfile
+from notifications_system.models.notification_preferences import NotificationPreferenceProfile
 
 # def get_website_model():
 #     Website = apps.get_model('websites', 'Website')

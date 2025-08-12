@@ -3,7 +3,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
-from admin_management.managers import AdminManager 
+# from admin_management.managers import AdminManager 
 
 User = get_user_model()
 
@@ -107,8 +107,8 @@ class AdminProfile(models.Model):
 
         super().save(*args, **kwargs)
 
-        if is_new:  # Assign permissions only on creation
-            AdminManager.assign_permissions(self)
+        # if is_new:  # Assign permissions only on creation
+        #     AdminManager.assign_permissions(self)
 
     class Meta:
         verbose_name = "Admin Profile"

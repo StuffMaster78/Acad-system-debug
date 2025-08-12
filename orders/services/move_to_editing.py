@@ -5,7 +5,7 @@ Service class to handle transition of an order to 'under_editing' status.
 from orders.models import Order
 from orders.order_enums import OrderStatus
 from orders.utils.order_utils import save_order
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 
 
 class MoveOrderToEditingService:
@@ -36,7 +36,7 @@ class MoveOrderToEditingService:
         order.status = OrderStatus.UNDER_EDITING.value
         save_order(order)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=user,
             action="Moved order to under_editing",
             target=order,

@@ -4,11 +4,12 @@ from wallet.models import WalletTransaction
 from .models import Notification
 from core.utils import send_notification
 from users.models import User
-from notifications_system.models import NotificationPreference, NotificationDigest
+from notifications_system.models.notification_preferences import NotificationPreference
+# from notifications_system.models.digest_notifications import  NotificationDigest
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from users.models import User
-from notifications_system.services.preferences import assign_default_preferences
+from notifications_system.services.preferences import NotificationPreferenceResolver
 from notifications_system.services.preferences_cache import update_preferences_cache
 from django.core.cache import cache
 import logging
@@ -60,7 +61,7 @@ def render_template(templates, context):
 @receiver(post_save, sender=User)
 def ensure_user_notification_pref(sender, instance, created, **kwargs):
     if created:
-        assign_default_preferences(instance, instance.website)
+        NotificationPreferenceResolver.assign_default_preferences(instance, instance.website)
     update_preferences_cache(instance)
 
 
@@ -93,7 +94,7 @@ def create_notification_preferences(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def auto_create_notif_preferences(sender, instance, created, **kwargs):
     if created:
-        assign_default_preferences(instance, instance.website)
+        NotificationPreferenceResolver.assign_default_preferences(instance, instance.website)
         cache.set(f"notif_prefs:{instance.id}", instance.notification_preferences, timeout=3600)
 
 @receiver(post_save, sender=Notification)

@@ -1,7 +1,7 @@
 
 from orders.actions.base import BaseOrderAction
 from orders.services.assignment import OrderAssignmentService
-from audit_logging.services import log_audit_action
+from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
 @register_order_action("assign_order")
 class OrderAssignmentAction(BaseOrderAction):
@@ -13,7 +13,7 @@ class OrderAssignmentAction(BaseOrderAction):
         service = OrderAssignmentService()
         result = service.assign(self.order_id, **self.params)
 
-        log_audit_action(
+        AuditLogService.log_auto(
             actor=self.user,
             action="ASSIGN",
             target="orders.Order",

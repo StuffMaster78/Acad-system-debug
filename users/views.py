@@ -20,8 +20,9 @@ from authentication.models import (
 )
 from users.utils import (
     notify_mfa_enabled, notify_mfa_disabled, notify_mfa_reset,
-    send_mfa_recovery_email,log_audit_action
+    send_mfa_recovery_email
 )
+from audit_logging.services.audit_log_service import AuditLogService
 
 from .serializers import (
     UserActivitySerializer,
@@ -268,7 +269,7 @@ class UserViewSet(viewsets.ModelViewSet):
         target_user.impersonate(request.user)
 
         # Log impersonation action
-        log_audit_action(request.user, "USER_IMPERSONATION", request)
+        AuditLogService.log_auto(request.user, "USER_IMPERSONATION", request)
 
         return Response(ImpersonateSerializer(target_user).data, status=status.HTTP_200_OK)
 

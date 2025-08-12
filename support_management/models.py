@@ -9,7 +9,7 @@ from django.conf import settings
 from tickets.models import Ticket, TicketMessage
 from orders.models import Dispute
 from orders.models import Order
-from communications.models import OrderMessage, DisputeMessage
+from communications.models import CommunicationMessage, DisputeMessage
 
 User = settings.AUTH_USER_MODEL 
 
@@ -77,10 +77,10 @@ class SupportProfile(models.Model):
         order.allow_file_download = False
         order.save()
 
-    def send_order_message(self, order, recipient, message):
+    def send_message(self,recipient, message):
         """Allows support agents to send messages to Admin, Client, Writer, or Editor."""
-        return OrderMessage.objects.create(
-            order=order, sender=self.user, recipient=recipient, message=message
+        return CommunicationMessage.objects.create(
+         sender=self.user, recipient=recipient, message=message
         )
 
     def moderate_message(self, message, action):
@@ -91,9 +91,9 @@ class SupportProfile(models.Model):
             message.is_flagged = True
             message.save()
 
-    def access_all_order_messages(self, order):
+    def access_all_messages(self, order):
         """Allows support to view all messages in an order for moderation."""
-        return OrderMessage.objects.filter(order=order)
+        return CommunicationMessage.objects.filter(order=order)
 
     def __str__(self):
         return f"{self.name} ({self.registration_id})"
@@ -155,9 +155,9 @@ class SupportMessageAccess(models.Model):
     can_view_ticket_messages = models.BooleanField(default=True)
     can_moderate_messages = models.BooleanField(default=True)
 
-    def view_order_messages(self, order):
+    def view_messages(self, order):
         """Returns all messages in an order."""
-        return OrderMessage.objects.filter(order=order)
+        return CommunicationMessage.objects.filter(order=order)
 
     def view_dispute_messages(self, dispute):
         """Returns all messages in a dispute."""

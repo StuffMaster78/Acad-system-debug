@@ -14,9 +14,12 @@ from django.contrib.postgres.fields import ArrayField
 from users.mixins import UserRole   
 from django.contrib.postgres.fields import JSONField
 from notifications_system.models.notification_preferences import UserNotificationPreference
-from notifications_system.models.notifications import Notification
+
 
 User = settings.AUTH_USER_MODEL 
+def get_notification_model():
+    from notifications_system.models.notifications import Notification
+    return Notification
 
 
 class NotificationLog(models.Model):
@@ -32,7 +35,17 @@ class NotificationLog(models.Model):
         on_delete=models.CASCADE,
         related_name="notification_logs"
     )
-    notification = models.ForeignKey(Notification, on_delete=models.CASCADE)
+    notification = models.ForeignKey(
+        "notifications_system.Notification",
+        on_delete=models.CASCADE,
+        related_name="logs"
+    )
+    group = models.ForeignKey(
+        "notifications.NotificationGroup",
+        null=True, blank=True,
+        on_delete=models.SET_NULL,
+        related_name="notification_logs"
+    )
     recipient = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -48,7 +61,7 @@ class NotificationLog(models.Model):
     )
     event = models.CharField(
         max_length=100,
-        choices=EventType.choices(),
+        choices=EventType.choices,
         help_text="Event that triggered this notification."
     )
     payload = models.JSONField(
@@ -58,7 +71,7 @@ class NotificationLog(models.Model):
     delivered = models.BooleanField(default=False)
     delivery_status = models.CharField(
         max_length=20,
-        choices=DeliveryStatus.choices(),
+        choices=DeliveryStatus.choices,
         default=DeliveryStatus.PENDING,
         help_text="Current delivery status of the notification."
     )
@@ -74,7 +87,7 @@ class NotificationLog(models.Model):
     timestamp = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
         max_length=20,
-        choices=DeliveryStatus.choices(),
+        choices=DeliveryStatus.choices,
         default=DeliveryStatus.PENDING,
         help_text="Current status of the notification delivery."
     )
@@ -103,7 +116,7 @@ class EmailNotificationLog(models.Model):
     body = models.TextField()
     status = models.CharField(
         max_length=20,
-        choices=DeliveryStatus.choices(),
+        choices=DeliveryStatus.choices,
         default=DeliveryStatus.PENDING,
         help_text="Current delivery status of the email."
     )
