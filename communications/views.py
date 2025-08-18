@@ -19,6 +19,7 @@ from .serializers import (
     AdminEditFlaggedMessageSerializer, DisputeMessageSerializer,
     CommunicationThreadSerializer, CommunicationMessageSerializer,
     CommunicationLogSerializer, WebSocketAuditLogSerializer,
+    OrderMessageNotificationSerializer
 )
 from .permissions import IsAdminOrOwner, CanSendOrderMessage
 from rest_framework.throttling import UserRateThrottle
@@ -27,6 +28,7 @@ from rest_framework.views import APIView
 from communications.throttles import AuditLogThrottle
 from rest_framework.permissions import IsAuthenticated
 from communications.permissions import IsSuperAdmin
+from throttles import SuperAdminAuditThrottle
 
 
 class MessageThrottle(UserRateThrottle):
@@ -242,10 +244,15 @@ class DisputeMessageViewSet(viewsets.ModelViewSet):
 
 
 class MessageAttachmentUploadView(APIView):
+    
     parser_classes = [MultiPartParser, FormParser]
     permission_classes = [permissions.IsAuthenticated]
+    
 
     def post(self, request):
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
         file = request.FILES.get("file")
         thread_id = request.data.get("thread_id")
         recipient_id = request.data.get("recipient_id")
@@ -281,16 +288,3 @@ class CommunicationLogViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CommunicationLogSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [AuditLogThrottle]
-
-
-class WebSocketAuditLogViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    Allows superadmins to view WebSocket logs.
-    """
-    queryset = WebSocketAuditLog.objects.select_related("user", "thread")
-    serializer_class = WebSocketAuditLogSerializer
-    permission_classes = [IsAuthenticated, IsSuperAdmin]
-    filterset_fields = ["action", "thread__id"]
-    search_fields = ["user__username", "payload"]
-    ordering = ["-created_at"]
-    throttle_classes = [SuperAdminAuditThrottle]

@@ -592,8 +592,11 @@ class MyInboxThreadSerializer(serializers.ModelSerializer):
     def get_unread_count(self, obj):
         user = self.context["request"].user
         return obj.messages.exclude(read_by=user).count()
-    
 
+class OrderMessageNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CommunicationNotification
+        fields = ["id", "order", "is_read"]
 
 class WebSocketAuditLogSerializer(serializers.ModelSerializer):
     user = SimpleUserSerializer(read_only=True)

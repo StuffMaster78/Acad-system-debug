@@ -3,6 +3,7 @@ from communications.permissions import (
     can_send_message, can_start_thread
 )
 class CommunicationGuardService:
+    """Service to manage communication permissions."""
     @staticmethod
     def can_start_thread(user, order):
         return can_start_thread(user, order)
