@@ -25,7 +25,11 @@ from notifications_system.views.admin_views import NotificationAdminViewSet
 from notifications_system.views.meta import NotificationMetaView
 from notifications_system.views import notification_enum_choices
 from notifications_system.admin_debug_views import preview_email_template
-from notifications_system.views.stream import notification_event_stream
+from notifications_system.views.stream import (
+    notification_event_stream,
+)
+from notifications_system.views.sse import sse_notifications
+from notifications_system.views.polling import poll_notifications
 
 router = DefaultRouter()
 router.register(
@@ -119,6 +123,12 @@ urlpatterns = [
         'notifications/stream/',
         notification_event_stream,
         name='notification_event_stream'
+    ),
+    path(
+        "stream/", sse_notifications, name="sse_notifications"
+    ),
+    path(
+        "poll/", poll_notifications, name="poll_notifications"
     ),
 
     path("", include(router.urls)),

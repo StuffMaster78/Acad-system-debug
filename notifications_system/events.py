@@ -1,21 +1,23 @@
-from notifications_system.tasks import handle_event
+# notifications_system/events.py
 import json
 import threading
 import redis
 from django.conf import settings
+from notifications_system.tasks import handle_event
 
-# You can put this in settings
+# Redis connection settings
 REDIS_HOST = getattr(settings, "REDIS_HOST", "localhost")
 REDIS_PORT = getattr(settings, "REDIS_PORT", 6379)
 REDIS_DB = getattr(settings, "REDIS_DB", 0)
 NOTIFICATION_CHANNEL_PREFIX = "notifications:user:"
+
 
 class NotificationBroadcaster:
     """
     Handles broadcasting notifications to users via Redis.
     """
     _redis = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB)
-    _subscribers = {}  # user_id -> threading.Event + buffer
+    _subscribers = {}  # user_id -> threading.Event + queue
 
     @classmethod
     def _channel_name(cls, user_id):
@@ -70,7 +72,7 @@ class NotificationBroadcaster:
 def emit_event(event_key: str, payload: dict, delay: bool = True):
     """
     Emit an event to the notification system.
-    This function is a wrapper around the handle_event task.
+    Wrapper around Celery task.
     """
     if delay:
         handle_event.delay(event_key, payload)
