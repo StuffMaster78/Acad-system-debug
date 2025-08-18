@@ -14,6 +14,7 @@ from dotenv import load_dotenv # type: ignore
 import os
 from datetime import timedelta
 from celery.schedules import crontab # type: ignore
+from urllib.parse import quote_plus
 # import sentry_sdk
 # from sentry_sdk.integrations.django import DjangoIntegration
 
@@ -167,16 +168,17 @@ DATABASES = {
         'NAME': os.getenv('POSTGRES_DB_NAME'),  #Database Name
         'USER': os.getenv('POSTGRES_USER_NAME'),  #Database username
         'PASSWORD': os.getenv('POSTGRES_PASSWORD'),  #Database password
-        "HOST": os.getenv("DB_HOST"),  # Hostname
-        "PORT": os.getenv("DB_PORT"),  # Port
+        "HOST": os.getenv("DB_HOST", "db"),  # Hostname
+        "PORT": os.getenv("DB_PORT", 5432),  # Port
     }
 }
 
 
 print("Database:", os.getenv("POSTGRES_DB_NAME"))
 print("User:", os.getenv("POSTGRES_USER_NAME"))
-print("Password:", os.getenv("POSTGRES_PASSWORD"))
-print("DATABASE NAME:", os.getenv('POSTGRES_DB_NAME'))
+print("DATABASE PASSWORD:", os.getenv('POSTGRES_PASSWORD'))
+print("DATABASE HOST:", os.getenv('DB_HOST', 'db'))
+print("DATABASE PORT:", os.getenv('DB_PORT', 5432))
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -221,19 +223,7 @@ CORS_ALLOWED_ORIGINS = [
     # "https://your-production-domain.com",  # To replace with production domain
 ]
 
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")  # Default to localhost if not set
-REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))  # Default Redis port
 
-# Redis (if used for caching)
-CACHES = {
-    "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": f"redis://{os.getenv('REDIS_HOST', 'redis')}:{os.getenv('REDIS_PORT', '6379')}/1",
-        "OPTIONS": {
-            "CLIENT_CLASS": "django_redis.client.DefaultClient",
-        }
-    }
-}
 
 PASSKEY_CHALLENGE_TTL = 300  # 5 minutes
 PASSKEY_REDIS_PREFIX = "passkey"
@@ -264,38 +254,64 @@ SPECTACULAR_SETTINGS = {
 }
 
 # Channels Settings
-ASGI_APPLICATION = "writing_system.asgi.application"
+# ASGI_APPLICATION = "writing_system.asgi.application"
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
-# WebSocket Backend
-CHANNEL_LAYERS = {
+
+REDIS_HOST = os.getenv("REDIS_HOST", "localhost")  # Default to localhost if not set
+REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))  # Default Redis port
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")  # Default Redis password
+# REDIS_SSL = os.getenv("REDIS_SSL", "false").lower() in ("1", "true", "yes")
+
+
+# # WebSocket Backend
+# CHANNEL_LAYERS = {
+#     "default": {
+#         "BACKEND": "channels_redis.core.RedisChannelLayer",
+#         "CONFIG": {
+#             "hosts": [
+#                 {
+#                     "address": (REDIS_HOST, REDIS_PORT),
+#                     **({"password": REDIS_PASSWORD} if REDIS_PASSWORD else {}),
+#                     #  **({"ssl": True} if REDIS_SSL else {}),
+#                     # Only enable SSL if you *know* Redis uses TLS
+#                 }
+#             ],
+#             "capacity": 10000,  # Optional: number of messages allowed in a channel
+#             "expiry": 60,       # Optional: seconds to keep messages before expiring
+#         }
+#     },
+# }
+
+# Build the Redis cache location URL
+if REDIS_PASSWORD:
+    redis_password = quote_plus(REDIS_PASSWORD)
+    redis_cache_url = f"redis://:{redis_password}@{REDIS_HOST}:{REDIS_PORT}/1"
+else:
+    redis_cache_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/1"
+
+# Redis (if used for caching)
+CACHES = {
     "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],  # Use your Redis instance here
-            # "password": "your_redis_password",  # Add this if your Redis requires auth
-            # "ssl": True,  # Enable if using SSL (recommended for production)
-            "capacity": 10000,  # Optional: tune for load
-            "expiry": 60,       # Optional: seconds to keep messages
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": redis_cache_url,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "PASSWORD": REDIS_PASSWORD or None,  # Explicitly set password
+            "SOCKET_CONNECT_TIMEOUT": 5,  # Fail fast if Redis is unreachable
+            "SOCKET_TIMEOUT": 5,
+            # Optional SSL setup if using TLS
+            # "CONNECTION_POOL_KWARGS": {"ssl": bool(os.getenv("REDIS_SSL", False))}
         }
-    },
+    }
 }
 
-
-# Email Settings
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.smtp.EmailBackend")
-EMAIL_HOST = os.getenv("EMAIL_HOST", "smtp.gmail.com")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
-EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
-EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
-EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
-
-# Geolocation API Key
-GEOLOCATION_API_KEY = os.getenv("GEOLOCATION_API_KEY")
-
-
 # Celery settings
-CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Example using Redis
+CELERY_BROKER_URL = os.getenv(
+    "CELERY_BROKER_URL",
+    f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0",
+)
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 # # Celery Configuration Options
 # CELERY_TIMEZONE = "Australia/Tasmania"
 # CELERY_TASK_TRACK_STARTED = True
@@ -311,6 +327,28 @@ RQ_QUEUES = {
         'DEFAULT_TIMEOUT': 360,
     }
 }
+
+# Email Settings
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND",
+    "django.core.mail.backends.smtp.EmailBackend"
+)
+EMAIL_HOST = os.getenv(
+    "EMAIL_HOST", "smtp.gmail.com"
+)
+EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True") == "True"
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
+DEFAULT_FROM_EMAIL = os.getenv(
+    "DEFAULT_FROM_EMAIL", EMAIL_HOST_USER
+)
+
+# Geolocation API Key
+GEOLOCATION_API_KEY = os.getenv("GEOLOCATION_API_KEY")
+
+
+
 #  Media
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
