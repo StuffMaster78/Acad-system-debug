@@ -24,18 +24,17 @@ RUN apt-get update -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip tooling
-RUN pip install --upgrade pip setuptools wheel
+# Install pip tooling (don’t auto-upgrade, just ensure they exist)
+RUN pip install --no-cache-dir "pip==24.0" "setuptools==65.5.1" "wheel"
 
 # Copy requirements file
 COPY requirements.txt .
 
-# Install dependencies exactly as pinned
+# Install dependencies (skip hashes for now, enforce later for prod)
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Install the spaCy model (matches installed spaCy version)
 RUN python -m spacy download en_core_web_md
-
 
 # Copy source code
 COPY . .
