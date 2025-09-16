@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://your.app/schemas/event_config.schema.json",
+  "title": "Notification Event Config (map item)",
+  "type": "object",
+  "required": ["description", "enabled", "roles", "channels", "priority"],
+  "additionalProperties": false,
+  "properties": {
+    "description": { "type": "string", "minLength": 1 },
+    "enabled": { "type": "boolean" },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "client", "writer", "admin", "support",
+          "super_admin", "editor"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "in_app", "email", "sms", "push", "webhook",
+          "telegram", "whatsapp", "sse", "ws", "slack", "discord"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "forced_channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "in_app", "email", "sms", "push", "webhook",
+          "telegram", "whatsapp", "sse", "ws", "slack", "discord"
+        ]
+      },
+      "default": [],
+      "uniqueItems": true
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "normal", "medium", "high", "critical"]
+    },
+    "templates": {
+      "type": "object",
+      "description": "Optional mapping of channel -> template name",
+      "patternProperties": {
+        "^(in_app|email|sms|push|webhook|telegram|whatsapp|sse|ws|slack|discord)$": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "meta": {
+      "type": "object",
+      "description": "Optional free-form metadata",
+      "additionalProperties": true
+    },
+    "cooldown_seconds": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional per-event cooldown to prevent spam."
+    },
+    "idempotency_key": {
+      "type": "string",
+      "description": "Payload field path used to dedupe emits."
+    },
+    "expires_after_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optional TTL for in-app visibility."
+    }
+  }
+}

@@ -10,7 +10,21 @@ from notifications_system.utils.in_app_helpers import get_user_notifications
 
 class InAppNotificationViewSet(viewsets.ViewSet):
     """Handles in-app notifications for users."""
+    serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Base queryset for the authenticated user."""
+        user = self.request.user
+        qs = Notification.objects.filter(
+            user=user, type="in_app"
+        ).order_by("-created_at")
+        # Optional filters
+        unread = self.request.query_params.get("unread")
+        if unread == "1":
+            qs = qs.filter(is_read=False)
+        return qs
+    
 
     def list(self, request):
         """
@@ -37,6 +51,15 @@ class InAppNotificationViewSet(viewsets.ViewSet):
             notif.save(update_fields=["read"])
             return Response({"status": "marked as read"})
         return Response({"error": "Not found"}, status=404)
+    
+    # @action(detail=True, methods=["patch"])
+    # def mark(self, request, pk=None):
+    #     """Mark a single notification read/seen."""
+    #     instance = self.get_object()
+    #     ser = NotificationMarkSerializer(data=request.data)
+    #     ser.is_valid(raise_exception=True)
+    #     ser.save(instance)
+    #     return Response({"ok": True})
 
     @action(detail=True, methods=["post"])
     def toggle_pin(self, request, pk=None):

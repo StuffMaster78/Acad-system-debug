@@ -3,10 +3,14 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from django_filters.rest_framework import DjangoFilterBackend
 from notifications_system.models.notifications import Notification
 from notifications_system.serializers import NotificationSerializer
 from notifications_system.throttles import NotificationThrottle
-
+from notifications_system.filters import NotificationFilter
+from notifications_system.throttles import (
+    NotificationWriteBurstThrottle, NotificationWriteSustainedThrottle
+)
 
 class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     """
@@ -15,12 +19,28 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [NotificationThrottle]
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = NotificationFilter
+
+    # def get_queryset(self):
+    #     return Notification.objects.filter(
+    #         user=self.request.user,
+    #         website=self.request.user.website
+    #     ).order_by("-created_at")
+
 
     def get_queryset(self):
-        return Notification.objects.filter(
-            user=self.request.user,
-            website=self.request.user.website
-        ).order_by("-created_at")
+        qs = Notification.objects.all().select_related("user").prefetch_related("user_statuses")
+        # lock results to the current user for user-facing endpoints
+        if not self.request.user.is_staff:
+            qs = qs.filter(user_statuses__user=self.request.user)
+
+        # ensure distinct if any relation-based filters are used
+        params = self.request.query_params
+        if any(k in params for k in ("is_read", "is_acknowledged", "pinned", "user_id")):
+            qs = qs.distinct()
+        return qs
+    
 
     @action(detail=False, methods=["get"])
     def unread(self, request):
@@ -50,18 +70,19 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
              "updated": count}
         )
 
-
-class NotificationListView(generics.ListAPIView):
-    serializer_class = NotificationSerializer
+class NotificationStatusViewSet(...):
     permission_classes = [IsAuthenticated]
+    throttle_classes = [
+        NotificationWriteBurstThrottle,
+        NotificationWriteSustainedThrottle
+    ]
 
     def get_queryset(self):
-        return Notification.objects.filter(
-            user=self.request.user,
-            website=self.request.user.website
-        )
+        # Always scope to the current user
+        return super().get_queryset().filter(user=self.request.user)
 
-
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 class NotificationListView(generics.ListAPIView):
     serializer_class = NotificationSerializer
     permission_classes = [IsAuthenticated]

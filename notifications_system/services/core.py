@@ -1,210 +1,311 @@
+from __future__ import annotations
+
+import logging
 import time
-# from turtle import update
-# from typing import override
-from django.utils import timezone
+from typing import Any, Dict, Iterable, Optional
+
 from django.conf import settings
-from notifications_system.models.notifications import (
-    Notification
+from django.utils import timezone
+
+from notifications_system.enums import (
+    NotificationPriority,
+    NotificationType,
+    DeliveryStatus,
 )
+from notifications_system.models.notifications import Notification
+from notifications_system.models.notification_delivery import (
+    NotificationDelivery,
+)
+from notifications_system.models.notification_log import NotificationLog
 from notifications_system.models.broadcast_notification import (
     BroadcastNotification,
-    BroadcastOverride
-)
-from notifications_system.models.notification_delivery import (
-    NotificationDelivery
+    BroadcastOverride,
 )
 from notifications_system.models.digest_notifications import (
-    NotificationDigest
+    NotificationDigest,
 )
-from notifications_system.models.notification_log import (
-    NotificationLog
+from notifications_system.registry.template_registry import (
+    get_template,
+    get_template_name,  # kept for hybrid file skins
 )
-from notifications_system.enums import (
-    NotificationType,
-    DeliveryStatus
+from notifications_system.registry.role_bindings import (
+    get_channels_for_role,
 )
-from notifications_system.services.dispatch import NotificationDispatcher
-from notifications_system.services.templates_registry import get_template
-
-from notifications_system.utils.email_helpers import send_website_mail
-from notifications_system.utils.sms_helpers import send_sms_notification
-from notifications_system.utils.push_helpers import send_push_notification
-from notifications_system.utils.ws_helpers import send_ws_notification
-from notifications_system.utils.priority_mapper import get_priority_from_label
-from notifications_system.utils.retry_task import retry_task_with_backoff
-from notifications_system.enums import NotificationPriority
-from notifications_system.delivery import CHANNEL_BACKENDS
+from notifications_system.registry.forced_channels import (
+    ForcedChannelRegistry,
+)
+from notifications_system.services.preferences import (
+    NotificationPreferenceResolver,
+)
 from notifications_system.utils.dnd import is_dnd_now
-from notifications_system.utils.email_renderer import render_notification_email
-from notifications_system.utils.filter_preferred_channels import filter_channels_by_user_preferences
-from notifications_system.services.preferences import get_target_users
-import logging
-from notifications_system.models import EventNotificationPreference
-from django.db import models
-
-from notifications_system.utils.fallbacks import should_fall_back_to_email, mark_email_fallback_sent
-from notifications_system.utils.dnd import is_dnd_now
-from notifications_system.services.preferences import NotificationPreferenceResolver
-from notifications_system.events import NotificationBroadcaster
+from notifications_system.utils.priority_mapper import (
+    get_priority_from_label,
+)
+from notifications_system.utils.filter_preferred_channels import (
+    filter_channels_by_user_preferences,
+)
+from notifications_system.utils.fallbacks import FallbackOrchestrator
+from notifications_system.utils.dedupe import allow_once
 
 logger = logging.getLogger(__name__)
 
 
 class NotificationService:
+    """Central orchestrator for notifications.
+
+    Responsibilities:
+      * Validate inputs (user, event, website).
+      * Respect mute, DND, preferences, and forced channels.
+      * Render class templates (source of truth).
+      * Create the Notification row.
+      * Deliver via channel backends.
+      * Record deliveries and logs centrally.
+      * Coordinate retries/backoff and fallbacks.
+      * Publish SSE/polling broadcasts.
+      * Support digests and broadcast events.
+
+    All sends must flow through this service.
     """
-    A centralized Service for managing and delivering notifications to users.
-    This service handles the creation, delivery, and management of notifications.
-    """
+
     @staticmethod
     def send_notification(
         *,
         user,
-        event,
-        payload=None,
+        event: str,
+        payload: Optional[Dict[str, Any]] = None,
         website=None,
         actor=None,
-        channels=None,
-        category=None,
-        template_name=None,
-        priority=5,
-        priority_label=None,
-        is_critical=False,
-        is_digest=False,
-        digest_group=None,
-        is_silent=False,
-        email_override=None,
-        global_broadcast=False,
-        groups=None
+        channels: Optional[Iterable[str]] = None,
+        category: Optional[str] = None,
+        template_name: Optional[str] = None,
+        priority: int | str = 5,
+        priority_label: Optional[str] = None,
+        is_critical: bool = False,
+        is_digest: bool = False,
+        digest_group: Optional[str] = None,
+        is_silent: bool = False,
+        email_override: Optional[str] = None,
+        global_broadcast: bool = False,
+        groups: Optional[Iterable[str]] = None,
+        role: Optional[str] = None,
     ):
-        # Validate user
-        if not user or not user.is_authenticated:
-            logger.warning("Notification skipped: Invalid user.")
-            return None
+        """Send a notification and fan out to delivery backends.
 
-        # Validate event
-        if not event:
-            logger.warning("Notification skipped: Invalid event.")
-            return None
-        
-        # Validate website
-        if not website:
-            logger.warning("Notification skipped: No website provided.")
-            return None
-        # Validate payload
-        if not payload:
-            logger.warning("Notification skipped: No payload provided.")
-            return None     
-        payload = payload or {}
+        Args:
+            user: Target user (must be authenticated).
+            event: Canonical event key (e.g., "order.created").
+            payload: Event context sent to templates/backends.
+            website: Tenant/site object (required).
+            actor: Optional actor who triggered the event.
+            channels: Optional explicit channels to send on.
+            category: Arbitrary string category.
+            template_name: Optional render skin hint.
+            priority: Integer or label for priority.
+            priority_label: Legacy label (compat).
+            is_critical: If True, may bypass mute.
+            is_digest: If True, mark for digest grouping.
+            digest_group: Explicit digest key.
+            is_silent: If True, persist but do not deliver.
+            email_override: Override recipient email.
+            global_broadcast: Publish to global stream.
+            groups: Optional SSE/polling groups.
+            role: Optional role for role-channel mapping.
 
-        # Check if user has notification profile
-        if not hasattr(user, 'notification_profile'):
+        Returns:
+            Notification ORM instance, broadcast object, or None.
+        """
+        # ----- Basic validation
+        if not user or not getattr(user, "is_authenticated", False):
             logger.warning(
-                f"User {user} has no notification profile. Skipping notification."
+                "Notification skipped: unauthenticated/invalid user."
             )
             return None
-        
-        # Check if user has notification preferences
-        if not hasattr(user, 'notification_preferences'):
+        if not event:
+            logger.warning("Notification skipped: empty event key.")
+            return None
+        if not website:
+            logger.warning("Notification skipped: no website provided.")
+            return None
+
+        payload = dict(payload or {})
+        payload.setdefault("user_id", user.id)
+        payload.setdefault("website_id", getattr(website, "id", None))
+
+        # ----- Deduplication (once-only)
+        dedupe_secs = getattr(settings, "NOTIFICATION_DEDUPE_WINDOW_SECONDS", 45)
+        if dedupe_secs:
+            allowed = allow_once(
+                user.id, event,
+                getattr(website, "id", None),
+                payload=payload,
+                ttl=dedupe_secs
+            )
+            if not allowed:
+                logger.info(
+                    "Deduped notification for user=%s event=%s",
+                    user.id, event
+                )
+                return None
+        # ----- Profiles & preferences
+        if not hasattr(user, "notification_profile"):
             logger.warning(
-                f"User {user} has no notification preferences. Assigning defaults."
+                "User %s has no notification_profile. Consider defaults.",
+                user,
+            )
+
+        if not hasattr(user, "notification_preferences"):
+            logger.info(
+                "User %s has no notification_preferences. Assigning "
+                "defaults.",
+                user,
             )
             NotificationPreferenceResolver.assign_default_preferences(user)
 
-        # Check if user is muted
-        if user.pref.is_muted() and not is_critical:
-            logger.info(f"User {user} is muted. Skipping notification.")
+        # Respect mute unless critical
+        is_muted = getattr(getattr(user, "pref", None), "is_muted", lambda:
+                           False)()
+        if is_muted and not is_critical:
+            logger.info(
+                "User %s is muted. Skipping non-critical notification.",
+                user,
+            )
             return None
-        
-        # Check if user is in DND hours
-        if is_dnd_now(user.notification_profile):
-            channels = [ch for ch in (channels or []) if ch not in user.notification_profile.dnd_channels]
+
+        # ----- DND filter
+        profile = getattr(user, "notification_profile", None)
+        if is_dnd_now(profile):
+            dnd_channels = getattr(profile, "dnd_channels", []) or []
+            channels = [c for c in (channels or []) if c not in dnd_channels]
             if not channels:
                 logger.info(
-                    f"User {user} is in DND hours. Skipping notification."
+                    "User %s is in DND; no eligible channels remain.",
+                    user,
                 )
                 return None
-            
-        # Filter channels based on user preferences
-        if channels:
-            channels = filter_channels_by_user_preferences(
-                user=user,
-                channels=channels,
-                website=website
-            )
+
+        # ----- Resolve channels (forced > explicit > role > prefs)
+        forced = ForcedChannelRegistry.get(event, set())
+        if forced:
+            resolved_channels = list(forced)
+        elif channels:
+            resolved_channels = list(channels)
         else:
-            channels = NotificationPreferenceResolver.get_effective_preferences(
-                user=user, website=website
+            user_role = role or getattr(user, "role", None)
+            role_channels = (
+                get_channels_for_role(event, user_role) if user_role else []
+            )
+            if role_channels:
+                resolved_channels = list(role_channels)
+            else:
+                resolved_channels = (
+                    NotificationPreferenceResolver.get_effective_preferences(
+                        user=user,
+                        website=website,
+                    )
+                )
+
+        # Filter by user prefs (only when not forced)
+        if not forced:
+            resolved_channels = filter_channels_by_user_preferences(
+                user=user,
+                channels=resolved_channels,
+                website=website,
             )
 
-        # Priority handling
+        if not resolved_channels:
+            # As last resort, in_app
+            resolved_channels = [NotificationType.IN_APP]
+
+        # ----- Priority normalize
         if isinstance(priority, str):
-            priority = get_priority_from_label(priority) or NotificationPriority.NORMAL 
+            pr = get_priority_from_label(priority)
+            priority = pr or NotificationPriority.NORMAL
         if priority is None:
             priority = NotificationPriority.NORMAL
+        if priority_label and isinstance(priority_label, str):
+            pr = get_priority_from_label(priority_label)
+            priority = pr or priority
 
-        # Handle Broadcasts
-        if (broadcast := BroadcastNotification.objects.filter(event_type=event, is_active=True).first()):
-            users = get_target_users(broadcast)
-            NotificationDispatcher.dispatch(
-                users, subject=broadcast.title, message=broadcast.message,
-                website=website, event=event, payload=payload, channels=channels,
-                category=category, priority=priority, is_critical=is_critical,
-                is_digest=is_digest, digest_group=digest_group, is_silent=is_silent,
-                email_override=email_override
+        # ----- Broadcasts
+        broadcast = BroadcastNotification.objects.filter(
+            event_type=event,
+            is_active=True,
+        ).first()
+        if broadcast:
+            targeted = NotificationPreferenceResolver.get_target_users(
+                broadcast
             )
+            for target in targeted:
+                NotificationService.send_notification(
+                    user=target,
+                    event=event,
+                    payload=payload,
+                    website=website,
+                    actor=actor,
+                    channels=resolved_channels,
+                    category=category,
+                    template_name=template_name,
+                    priority=priority,
+                    is_critical=is_critical,
+                    is_digest=is_digest,
+                    digest_group=digest_group,
+                    is_silent=is_silent,
+                    email_override=email_override,
+                    global_broadcast=global_broadcast,
+                    groups=groups,
+                )
             return broadcast
 
-        
-        # Handle Broadcast Overrides
-        payload = payload.copy()
-        payload["user_id"] = user.id
-        payload["website_id"] = website.id if website else None
+        # ----- Broadcast override
+        override = BroadcastOverride.objects.filter(
+            event_type=event,
+            active=True,
+        ).first()
+        if override:
+            if override.title:
+                payload["title"] = override.title
+            if override.message:
+                payload["message"] = override.message
+            if override.force_channels:
+                resolved_channels = list(override.force_channels)
 
-        if (override := BroadcastOverride.objects.filter(event_type=event, active=True).first()):
-            payload["title"] = override.title
-            payload["message"] = override.message
-            channels = override.force_channels
-
-
-        # Handle Digests
-        profile = getattr(user, "notification_profile", None)
-        preferences = getattr(user, "notification_preferences", None)
-
-        if is_digest and profile and preferences:
-            digest_group = f"{event}_{user.id}"
+        # ----- Digest marking
+        if is_digest and profile:
+            digest_group = digest_group or f"{event}_{user.id}"
             payload["digest_group"] = digest_group
             payload["is_digest"] = True
 
-        # Default to IN_APP
-        if not channels:
-            channels = NotificationPreferenceResolver.get_effective_preferences(
-                user=user, website=website
-            ) if preferences else [NotificationType.IN_APP]
-
-        # Template rendering
-        template = get_template(event)
-        if not template:
-            logger.warning(f"No template registered for event '{event}'")
+        # ----- Render (class-based template)
+        tmpl = get_template(event)
+        if not tmpl:
+            logger.warning(
+                "No class-based template registered for event '%s'", event
+            )
             return None
 
-        title, message, html = template.render(payload)
+        try:
+            title, text_message, html_message = tmpl.render(payload)
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("Template render failed for '%s': %s", event, exc)
+            return None
 
-
-        # Create DB notification
+        # ----- Create DB Notification
+        primary_channel = resolved_channels[0]
         notification = Notification.objects.create(
             user=user,
             actor=actor,
             event=event,
             payload=payload,
             website=website,
-            type=channels[0],
+            type=primary_channel,
             title=title,
-            message=message,
+            message=text_message,
             rendered_title=title,
-            rendered_message=message,
+            rendered_message=text_message,
             rendered_link=payload.get("link"),
             rendered_payload=payload,
-            template_name=template_name or template.event_name,
+            template_name=template_name or getattr(tmpl, "event_name",
+                                                   "generic"),
             template_version=payload.get("version"),
             category=category or "info",
             priority=priority,
@@ -218,174 +319,303 @@ class NotificationService:
         if is_silent:
             return notification
 
-        for channel in channels:
-            if not NotificationService._is_channel_enabled(user, preferences, channel):
+        # ----- Deliver per channel
+        sent_any = False
+        for channel in resolved_channels:
+            # Allow prefs to veto unless forced
+            if not forced and not NotificationService._is_channel_enabled(
+                user,
+                getattr(user, "notification_preferences", None),
+                channel,
+            ):
                 continue
 
+            ok = False
             try:
-                NotificationService._deliver(
-                    notification, channel,
-                    html_message=html,
-                    email_override=email_override
+                ok = NotificationService._deliver(
+                    notification,
+                    channel,
+                    html_message=html_message,
+                    email_override=email_override,
                 )
-            except Exception as e:
-                logger.exception(f"[{channel}] delivery failed for {user}: {e}")
+            except Exception as exc:  # noqa: BLE001
+                logger.exception(
+                    "[%s] delivery crashed for user %s: %s",
+                    channel,
+                    user,
+                    exc,
+                )
                 NotificationDelivery.objects.create(
                     notification=notification,
                     channel=channel,
                     status=DeliveryStatus.FAILED,
-                    error_message=str(e),
-                    attempts=1
+                    error_message=str(exc),
+                    attempts=1,
                 )
+                NotificationLog.objects.create(
+                    notification=notification,
+                    channel=channel,
+                    success=False,
+                    response_code=500,
+                    status=DeliveryStatus.FAILED,
+                    message=f"[{channel.upper()}] Exception on send",
+                    timestamp=timezone.now(),
+                )
+                ok = False
 
-        # Log Notification
+            ok = False if ok is None else bool(ok)
+            sent_any = sent_any or ok
+
+        # ----- Log summary
         NotificationLog.objects.create(
             notification=notification,
-            channel=channels,
-            success=True,
-            response_code=200,
-            status=DeliveryStatus.SENT,
-            message=f"Notification sent via {', '.join(channels)}",
-            timestamp=timezone.now()
-        )
-        logger.info(
-            f"Notification sent to {user} via {', '.join(channels)} for event '{event}'"
+            channel=primary_channel,
+            success=sent_any,
+            response_code=200 if sent_any else 500,
+            status=DeliveryStatus.SENT if sent_any else DeliveryStatus.FAILED,
+            message="Sent via: " + ", ".join(resolved_channels),
+            timestamp=timezone.now(),
         )
 
-        # Publish via Redis Pub/Sub
-        NotificationBroadcaster.publish(
-            payload,
-            user_id=user.id if user else None,
-            group=groups,
-            global_broadcast=global_broadcast,
-            notification_id=notification.id,
-        )
-        # Update notification status
+        # ----- Publish to broadcaster (SSE/polling)
+        try:
+            from notifications_system.events import NotificationBroadcaster
+            NotificationBroadcaster.publish(
+                payload,
+                user_id=user.id if user else None,
+                group=groups,
+                global_broadcast=global_broadcast,
+                notification_id=notification.id,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Broadcast publish failed for notification %s: %s",
+                notification.id,
+                exc,
+            )
+
         notification.status = DeliveryStatus.SENT
         notification.sent_at = timezone.now()
-        notification.save()
-
+        notification.save(update_fields=["status", "sent_at"])
         return notification
 
+    # -----------------------
+    # Helpers / fan-out core
+    # -----------------------
+
     @staticmethod
-    def _is_channel_enabled(user, preferences, channel):
+    def _is_channel_enabled(user, preferences, channel: str) -> bool:
+        """Return whether a channel is enabled by user preferences."""
         if not preferences:
             return True
         if channel == NotificationType.EMAIL:
-            return preferences.receive_email
+            return getattr(preferences, "receive_email", True)
         if channel == NotificationType.SMS:
-            return preferences.receive_sms
+            return getattr(preferences, "receive_sms", True)
         if channel == NotificationType.PUSH:
-            return preferences.receive_push
+            return getattr(preferences, "receive_push", True)
         if channel == NotificationType.IN_APP:
-            return preferences.receive_in_app
+            return getattr(preferences, "receive_in_app", True)
         if channel == NotificationType.WEBHOOK:
-            return preferences.receive_webhook  
+            return getattr(preferences, "receive_webhook", True)
         if channel == NotificationType.SSE:
-            return preferences.receive_sse
+            return getattr(preferences, "receive_sse", True)
         if channel == NotificationType.WS:
-            return preferences.receive_ws
-
+            return getattr(preferences, "receive_ws", True)
         return True
-
 
     @staticmethod
     def _deliver(
-        notification, channel, html_message=None,
-        email_override=None, attempt=1
-    ):
-        """Delivers the notification via the specified channel."""
+        notification,
+        channel: str,
+        *,
+        html_message: Optional[str] = None,
+        email_override: Optional[str] = None,
+        attempt: int = 1,
+    ) -> bool:
+        """Deliver a single channel and record results.
+
+        Unwraps DeliveryResult from the backend, records delivery and log
+        rows, and orchestrates retries/backoff.
+
+        Args:
+            notification: Notification ORM instance.
+            channel: Channel key (e.g., "email").
+            html_message: Optional pre-rendered HTML for backends.
+            email_override: Optional recipient override for email.
+            attempt: Attempt number (1-based).
+
+        Returns:
+            True on success, False otherwise.
+        """
+        try:
+            # Lazy import avoids cycles with delivery map.
+            from notifications_system.delivery import CHANNEL_BACKENDS
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(
+                f"Delivery registry import failed: {exc}"
+            ) from exc
+
         backend_cls = CHANNEL_BACKENDS.get(channel)
         if not backend_cls:
             raise ValueError(f"Unsupported delivery channel: {channel}")
 
-        backend = backend_cls(notification, channel_config={
-            "html_message": html_message,
-            "email_override": email_override
-        })
+        backend = backend_cls(
+            notification,
+            channel_config={
+                "html_message": html_message,
+                "email_override": email_override,
+                # Backends may call get_template_name(...) if needed.
+            },
+        )
+
+        success = False
+        message = "delivery not attempted"
+        meta = None
 
         try:
-            success = backend.send()
-        except Exception as e:
+            result = backend.send()
+            if hasattr(result, "success"):
+                success = bool(result.success)
+                message = getattr(result, "message", "") or ""
+                meta = getattr(result, "meta", None)
+            else:
+                # Legacy backends may return bare bools.
+                success = bool(result)
+                message = "legacy backend bool result"
+                meta = None
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("[%s] Error during delivery: %s", channel, exc)
             success = False
-            logger.exception(f"[{channel}] Error during delivery: {e}")
+            message = f"exception: {exc}"
+            meta = None
 
         NotificationDelivery.objects.create(
             notification=notification,
             channel=channel,
             status=DeliveryStatus.SENT if success else DeliveryStatus.FAILED,
             sent_at=timezone.now(),
-            attempts=attempt
+            attempts=attempt,
         )
 
-        NotificationLog.objects.create(
-            notification=notification,
-            channel=channel,
-            success=success,
-            response_code=200 if success else 500,
-            status=DeliveryStatus.SENT if success else DeliveryStatus.FAILED,
-            message=f"[{channel.upper()}] Attempt {attempt}: {'Success' if success else 'Failure'}",
-            timestamp=timezone.now()
-        )
-
-        if not success and attempt < settings.DEFAULT_MAX_RETRIES:
-            time.sleep(settings.CHANNEL_BACKOFFS.get(channel, 10))
-            return NotificationService._deliver(
-                notification, channel, html_message=html_message,
-                email_override=email_override, attempt=attempt + 1
+        try:
+            NotificationLog.objects.create(
+                notification=notification,
+                channel=channel,
+                success=success,
+                response_code=200 if success else 500,
+                status=DeliveryStatus.SENT if success else DeliveryStatus.FAILED,
+                message=f"[{channel}] attempt {attempt}: "
+                        f"{message}".strip(),
+                timestamp=timezone.now(),
+                # If your model supports JSON meta, add it here.
             )
+        except Exception:  # noqa: BLE001
+            logger.debug("NotificationLog write skipped/failed.", exc_info=True)
+
+        max_retries = getattr(settings, "DEFAULT_MAX_RETRIES", 3)
+        use_sync = getattr(settings, "USE_SYNC_RETRIES", False)
+        backoff = getattr(settings, "CHANNEL_BACKOFFS", {}).get(channel, 10)
+
+        if not success and attempt < max_retries:
+            if use_sync:
+                time.sleep(backoff)
+                return NotificationService._deliver(
+                    notification,
+                    channel,
+                    html_message=html_message,
+                    email_override=email_override,
+                    attempt=attempt + 1,
+                )
+            try:
+                # Optional Celery task (configure if you have one).
+                from notifications_system.tasks import retry_delivery
+                retry_delivery.apply_async(
+                    kwargs={
+                        "notification_id": notification.id,
+                        "channel": channel,
+                        "attempt": attempt + 1,
+                        "email_override": email_override,
+                        "html_message": html_message,
+                    },
+                    countdown=backoff,
+                )
+            except Exception:  # noqa: BLE001
+                time.sleep(backoff)
+                return NotificationService._deliver(
+                    notification,
+                    channel,
+                    html_message=html_message,
+                    email_override=email_override,
+                    attempt=attempt + 1,
+                )
 
         if not success:
-            for fallback in settings.CHANNEL_FALLBACKS.get(channel, []):
-                if should_fall_back_to_email(notification.user, group=notification.group):
-                    NotificationService._deliver(
-                        notification, fallback,
-                        html_message=html_message,
-                        email_override=email_override
-                    )
-                    mark_email_fallback_sent(notification.user, notification.group)
+            FallbackOrchestrator.handle_fallbacks(
+                notification,
+                channel,
+                html_message=html_message,
+                email_override=email_override,
+            )
 
+        return success
+
+    # -----------------------
+    # Optional extras kept
+    # -----------------------
 
     @staticmethod
     def send_broadcast(
-        event, title, message, context=None, website=None,
-        channels=None, priority=NotificationPriority.NORMAL
+        event: str,
+        title: str,
+        message: str,
+        context: Optional[Dict[str, Any]] = None,
+        website=None,
+        channels: Optional[Iterable[str]] = None,
+        priority: int = NotificationPriority.NORMAL,
     ):
-        channels = channels or [NotificationType.IN_APP, NotificationType.EMAIL]
+        """Create a broadcast and fan out to targeted users."""
+        channels = list(
+            channels or [NotificationType.IN_APP, NotificationType.EMAIL]
+        )
         broadcast = BroadcastNotification.objects.create(
             event_type=event,
             title=title,
             message=message,
             context=context or {},
             website=website,
-            priority=priority
+            priority=priority,
         )
-        for user in get_target_users(broadcast):
-            NotificationService.send(
-                user=user,
+        targeted = NotificationPreferenceResolver.get_target_users(
+            broadcast
+        )
+        for target in targeted:
+            NotificationService.send_notification(
+                user=target,
                 event=event,
-                context=context,
+                payload=context or {},
                 website=website,
                 channels=channels,
-                is_critical=False
+                is_critical=False,
             )
         return broadcast
 
     @staticmethod
-    def send_digests(group, since=None):
+    def send_digests(group: str, since=None):
+        """Send digest emails for a group since a given time."""
+        since = since or timezone.now() - timezone.timedelta(days=1)
         digests = NotificationDigest.objects.filter(
             group=group,
-            created_at__gte=since or timezone.now() - timezone.timedelta(days=1)
+            created_at__gte=since,
         )
-
         for digest in digests:
             for user in digest.users.all():
-                NotificationService.send(
+                NotificationService.send_notification(
                     user=user,
                     event=digest.event,
-                    context=digest.context,
+                    payload=digest.context,
                     website=digest.website,
                     channels=[NotificationType.EMAIL],
-                    is_digest=True
+                    is_digest=True,
                 )
         return digests

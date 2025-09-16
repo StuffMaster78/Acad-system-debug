@@ -120,10 +120,12 @@ class FallbackOrchestrator:
         )
         return False
 
-
-
-
-
+    def _handle_fallbacks(self, notification, channel, html_message=None, email_override=None):
+        """
+        Handle fallback delivery for notifications.
+        """
+        FallbackOrchestrator(notification, channel, html_message=html_message,
+                             email_override=email_override).run()
 
 
 # """

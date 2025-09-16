@@ -1,4 +1,8 @@
 class NotificationGroupNames:
+    """
+    Canonical group names for notification events.
+    Used for grouping preferences, templates, and audit logs.
+    """
     ORDERS = "ORDERS"
     DISCOUNTS = "DISCOUNTS"
     BADGES = "BADGES"

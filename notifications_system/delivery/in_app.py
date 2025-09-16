@@ -1,52 +1,46 @@
-from .base import BaseDeliveryBackend
+from __future__ import annotations
+
 import logging
+
+from notifications_system.delivery.base import (
+    BaseDeliveryBackend,
+    DeliveryResult,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class InAppBackend(BaseDeliveryBackend):
-    """
-    Marks the notification as deliverable via in-app UI.
-    Optionally logs the delivery for tracking, auditing, or analytics.
+    """In-app delivery backend.
+
+    This backend confirms that the notification is available for the
+    in-app UI. The service already persists the notification model
+    instance; we do not mutate status here to avoid racing with the
+    service's final status updates and logs.
+
+    Returns:
+        DeliveryResult indicating success.
     """
 
-    def send(self):
+    channel = "in_app"
+
+    def send(self) -> DeliveryResult:
+        """Return success for in-app availability.
+
+        You can extend this to push an immediate realtime signal
+        (e.g., SSE or WebSocket) if desired.
+
+        Returns:
+            DeliveryResult with success=True on standard path.
+        """
         try:
-            self.notification.status = "sent"
-            self.notification.save(update_fields=["status"])
+            # No-op by default. The Notification is already persisted by
+            # the service and will be fetched by the frontend via API.
+            return DeliveryResult(success=True, message="in_app available")
+        except Exception as exc:  # noqa: BLE001
+            logger.exception("InAppBackend error: %s", exc)
+            return DeliveryResult(False, f"in_app failed: {exc}")
 
-            self._log_delivery(success=True)
-            return True
-
-        except Exception as e:
-            logger.exception(
-                "Failed to mark in-app notification as sent",
-                extra={
-                    "notification_id": self.notification.id,
-                    "user_id": getattr(self.notification.user, "id", None),
-                    "channel": "in_app",
-                }
-            )
-            self._log_delivery(success=False)
-            return False
-
-    def _log_delivery(self, success: bool):
-        """
-        Optional hook to track in-app delivery for auditing, retries, analytics, etc.
-        """
-        from notifications_system.models.notification_log import NotificationLog
-        NotificationLog.objects.create(
-            notification=self.notification,
-            channel="in_app",
-            success=success,
-            user=self.notification.user,
-            website=self.notification.website,
-            payload=self.notification.payload or {},
-            config=self.channel_config or {},
-            message=self.notification.message,
-            title=self.notification.title,
-            html_message=self.channel_config.get("html_message", None)
-        )
-
-    def supports_retry(self):
-        return False  # No retry necessary for in-app tagging
+    def supports_retry(self) -> bool:
+        """Return False; in-app has nothing to retry."""
+        return False

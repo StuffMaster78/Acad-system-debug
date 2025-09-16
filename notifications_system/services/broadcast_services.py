@@ -1,121 +1,149 @@
+"""Broadcast notification service.
+
+Creates a broadcast record, selects recipients, and fans out delivery via
+NotificationService so all channels, retries, fallbacks, and logging are
+consistent with the rest of the system.
 """
-A service for managing and delivering broadcast notifications to users.
-Allows Admin users to create, update, and delete broadcast notifications.
-This service handles the creation, delivery, and management of broadcast notifications.
-It integrates with user notification preferences and ensures compliance with user settings.
-It also supports caching of preferences for performance optimization.   
-"""
-# notifications/services/broadcast.py
+
+from __future__ import annotations
+
+import logging
+from typing import Iterable, Optional
 
 from django.contrib.auth import get_user_model
-from notifications_system.models.broadcast_notification import BroadcastNotification
-from notifications_system.models.notification_delivery import NotificationDelivery
-from notifications_system.services.delivery import NotificationDeliveryService
-from notifications_system.template_engine import render_template
-from notifications_system.utils.fallbacks import should_fallback_to_email
-from notifications_system.utils.ws_broadcast import broadcast_ws_message
-from notifications_system.utils.resolver import resolve_profile_settings
+from django.db.models import QuerySet
 
+from notifications_system.enums import DeliveryStatus, NotificationType
+from notifications_system.models.broadcast_notification import (
+    BroadcastNotification,
+)
+from notifications_system.models.notification_delivery import (
+    NotificationDelivery,
+)
+from notifications_system.services.core import NotificationService
+
+logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
 class BroadcastNotificationService:
+    """High-level API for system/website broadcast notifications."""
+
+    @staticmethod
+    def _resolve_recipients(group: Optional[str] = None) -> QuerySet:
+        """Return active users, optionally filtered by a Django group name."""
+        qs = User.objects.filter(is_active=True)
+        if group:
+            qs = qs.filter(groups__name=group)
+        return qs
 
     @classmethod
     def send_broadcast(
-        cls, title, body, *, group=None,
-        metadata=None, channel='websocket', 
-        fallback=True, test_mode=False
-    ):
-        """
-        Send a broadcast notification to all users or users filtered by group.
-        """
-        users = User.objects.filter(is_active=True)
-        if group:
-            users = users.filter(groups=group)
+        cls,
+        *,
+        event: str,
+        title: str,
+        message: str,
+        website=None,
+        channels: Optional[Iterable[str]] = None,
+        group: Optional[str] = None,
+        is_test: bool = False,
+        priority: int = 5,
+    ) -> BroadcastNotification:
+        """Create and fan out a broadcast.
 
-        notification = BroadcastNotification.objects.create(
+        Args:
+            event: Event key to render (e.g., "broadcast.system_announcement").
+            title: Broadcast title.
+            message: Broadcast text/plain body.
+            website: Tenant/site object.
+            channels: Optional explicit channels (e.g., ["in_app", "email"]).
+            group: Optional Django auth group name to target.
+            is_test: If True, mark the broadcast as test.
+            priority: Priority integer (mapped the same as other sends).
+
+        Returns:
+            The created BroadcastNotification row.
+        """
+        # Persist the broadcast object for auditing.
+        broadcast = BroadcastNotification.objects.create(
+            event_type=event,
             title=title,
-            body=body,
-            metadata=metadata or {},
-            channel=channel,
-            group=group,
-            is_test=test_mode,
+            message=message,
+            context={"is_test": is_test},
+            website=website,
+            priority=priority,
+            is_active=True,
+            is_test=is_test,
         )
 
-        for user in users.iterator():
-            cls._send_to_user(user, notification, fallback=fallback, test_mode=test_mode)
+        recipients = cls._resolve_recipients(group=group).iterator()
+        payload = {"title": title, "message": message}
 
-        return notification
+        for user in recipients:
+            # Delegate to NotificationService for unified behavior.
+            notif = NotificationService.send_notification(
+                user=user,
+                event=event,
+                payload=payload,
+                website=website,
+                channels=list(channels) if channels else None,
+                is_critical=False,
+                global_broadcast=False,
+            )
 
-    @classmethod
-    def _send_to_user(
-        cls, user, notification, *,
-        fallback=True, test_mode=False
-    ):
-        preferences = resolve_profile_settings(user)
+            # Mirror a per-recipient delivery record.
+            try:
+                NotificationDelivery.objects.create(
+                    notification=notif,
+                    user=user,
+                    channel=(notif.type if notif else NotificationType.IN_APP),
+                    status=(DeliveryStatus.SENT if notif
+                            else DeliveryStatus.FAILED),
+                    error_message=("creation failed" if not notif else None),
+                    attempts=1,
+                )
+            except Exception:  # noqa: BLE001
+                logger.debug(
+                    "Delivery record write failed for user=%s broadcast=%s",
+                    getattr(user, "id", None),
+                    getattr(broadcast, "id", None),
+                    exc_info=True,
+                )
 
-        delivery_record = NotificationDelivery.objects.create(
-            user=user,
-            broadcast=notification,
-            channel=notification.channel,
-            status='pending'
-        )
-
-        try:
-            if notification.channel == 'websocket':
-                success = broadcast_ws_message(user, {
-                    "title": notification.title,
-                    "body": notification.body,
-                    "meta": notification.metadata,
-                })
-                delivery_record.status = 'delivered' if success else 'failed'
-
-                if fallback and not success and should_fallback_to_email(user):
-                    cls._fallback_to_email(user, notification, test_mode)
-                    delivery_record.status = 'fallback'
-
-            elif notification.channel == 'email':
-                cls._send_email(user, notification, test_mode)
-                delivery_record.status = 'delivered'
-
-            elif notification.channel == 'sms':
-                NotificationDeliveryService.send_sms(user.phone, notification.body)
-                delivery_record.status = 'delivered'
-
-            else:
-                delivery_record.status = 'unsupported'
-
-        except Exception as e:
-            delivery_record.status = 'error'
-            delivery_record.error_message = str(e)
-
-        delivery_record.save()
+        return broadcast
 
     @classmethod
-    def _fallback_to_email(cls, user, notification, test_mode):
-        subject = f"[Broadcast] {notification.title}"
-        context = {"title": notification.title, "body": notification.body, "user": user}
+    def preview_to_user(
+        cls,
+        *,
+        event: str,
+        title: str,
+        message: str,
+        user,
+        website=None,
+        channels: Optional[Iterable[str]] = None,
+        priority: int = 5,
+    ) -> None:
+        """Send a preview of a broadcast to a single user.
 
-        body_html = render_template("notifications/emails/normal.html", context)
-        NotificationDeliveryService.send_email(
-            user=user,
-            subject=subject,
-            body_html=body_html,
-            template_name="broadcast_fallback",
-            test_mode=test_mode
-        )
-
-    @classmethod
-    def preview(cls, title, body, user):
+        Args:
+            event: Event key.
+            title: Preview title.
+            message: Preview body.
+            user: Target user.
+            website: Tenant/site object.
+            channels: Optional explicit channels.
+            priority: Priority integer.
         """
-        Preview a broadcast notification to a specific user only.
-        """
-        fake_notification = BroadcastNotification(
-            title=title,
-            body=body,
-            metadata={"preview": True},
-            channel='websocket',
-            is_test=True
+        payload = {"title": title, "message": message, "is_preview": True}
+        NotificationService.send_notification(
+            user=user,
+            event=event,
+            payload=payload,
+            website=website,
+            channels=list(channels) if channels else None,
+            is_critical=False,
+            global_broadcast=False,
+            priority=priority,
         )
-        cls._send_to_user(user, fake_notification, fallback=False, test_mode=True)

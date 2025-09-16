@@ -1,391 +1,303 @@
-from django.core.cache import cache
-from django.db import models
-import logging
-from users.mixins import UserRole
+"""Preference resolution and CRUD helpers.
 
+This module focuses on determining effective notification preferences
+for a user and managing default assignment/updates. Cache concerns are
+delegated to `preferences_cache.py`.
+"""
+
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+
+from django.core.cache import cache
+import logging
+
+from notifications_system.enums import NotificationType
 from notifications_system.models.notification_preferences import (
     NotificationPreference,
 )
-from notifications_system.models.notification_event import (
-    NotificationEvent
-)
-from notifications_system.models.notification_profile import (
-    NotificationProfile,
-    NotificationGroupProfile,
-)
-from notifications_system.models.broadcast_notification import (
-    BroadcastNotification,
-)
-from notifications_system.models.notification_log import (
-    NotificationLog,
-)
-from notifications_system.enums import (
-    NotificationType,
-    NotificationPriority
-)
-from django.core.cache import cache
-from django.contrib.auth.models import Group
 
 logger = logging.getLogger(__name__)
 
+
 class NotificationPreferenceResolver:
+    """Resolve and manage a user's notification preferences.
+
+    Resolution order (highest to lowest):
+      1. Active group profile (if forced/override)
+      2. Explicit user preference (per event)
+      3. Role defaults (simple mapping)
+      4. System default (in_app only)
     """
-    Resolves notification preferences for a user based on various criteria.
-    Fallback order:
-    1. Group Profile (if user assigned one)
-    2. User Preference (per event or channel)
-    3. Role-based Default (e.g. Writers → Aggressive)
-    4. System Default (in_app only)
-    """
+
+    # -------------------------
+    # Resolution (read) methods
+    # -------------------------
+
     @staticmethod
     def resolve(
-            user, event=None, category=None,
-            priority=None, website=None
-    ):
-            """
-            Determines preferred delivery channels for a 
-            user for a given event/category.
+        user,
+        event: Optional[str] = None,
+        category: Optional[str] = None,
+        priority: Optional[str] = None,
+        website=None,
+    ) -> List[str]:
+        """Return preferred channels for the user/event.
 
-            Fallback order:
-            1. Group Profile (if user assigned one)
-            2. User Preference (per event or channel)
-            3. Role-based Default (e.g. Writers → Aggressive)
-            4. System Default (in_app only)
-            """
-            if not user or not user.is_authenticated:
-                return [NotificationType.IN_APP]
+        Args:
+            user: Authenticated user instance.
+            event: Optional event key (e.g., "order.created").
+            category: Optional category string (unused hook).
+            priority: Optional priority label (unused hook).
+            website: Tenant/site for multi-tenant setups.
 
-            # 1. Apply active group profile if any
-            if hasattr(user, "notification_group_profile") and user.notification_group_profile:
-                group_profile = user.notification_group_profile
-                if group_profile.force_override:
-                    logger.debug(f"Group profile override for {user}")
-                    return group_profile.channels
+        Returns:
+            List of channel keys (e.g., ["in_app", "email"]).
+        """
+        del category, priority  # reserved hooks
 
-            # 2. User Preferences per event
-            if event:
-                pref = NotificationPreference.objects.filter(
-                    user=user, event=event
-                ).first()
-                if pref:
-                    return pref.channels
+        if not user or not getattr(user, "is_authenticated", False):
+            return [NotificationType.IN_APP]
 
-            # 3. Role-based Defaults
-            role = getattr(user, "role", None)
-            if role:
-                default_map = {
-                    UserRole.WRITER: ["in_app", "email"],
-                    UserRole.CLIENT: ["email"],
-                    UserRole.EDITOR: ["in_app"],
-                    UserRole.SUPPORT: ["in_app", "email"],
-                    UserRole.ADMIN: ["in_app", "email"],
-                }
-                return default_map.get(role, ["in_app"])
+        # 1) Active group profile with force override
+        gprof = getattr(user, "notification_group_profile", None)
+        if gprof and getattr(gprof, "force_override", False):
+            chans = list(getattr(gprof, "channels", []) or [])
+            if chans:
+                logger.debug("Group profile override applied for user %s", user)
+                return chans
 
-            # 4. Fallback
-            return ["in_app"]
+        # 2) User preference per event (if present)
+        if event:
+            try:
+                pref = NotificationPreference.objects.get(
+                    user=user, website=website
+                )
+                chans = pref.get_channels_for_event(event)  # your model helper
+                if chans:
+                    return list(chans)
+            except NotificationPreference.DoesNotExist:
+                pass
+
+        # 3) Role defaults
+        role = getattr(user, "role", None)
+        role_defaults = {
+            "writer": ["in_app", "email"],
+            "client": ["email"],
+            "editor": ["in_app"],
+            "support": ["in_app", "email"],
+            "admin": ["in_app", "email"],
+        }
+        if role in role_defaults:
+            return role_defaults[role]
+
+        # 4) System fallback
+        return [NotificationType.IN_APP]
+
     @staticmethod
-    def get_user_channel_order(user, event=None):
-        # This assumes NotificationPreference has a list field: preferred_channels
+    def get_user_channel_order(user, event: Optional[str] = None) -> Optional[List[str]]:
+        """Return a custom ordering of channels for the user/event.
+
+        Assumes the model exposes:
+            NotificationPreference.get_ordered_channels_for_event(event)
+
+        Args:
+            user: User instance.
+            event: Optional event key.
+
+        Returns:
+            Ordered list of channels or None if unset.
+        """
         try:
-            pref = NotificationPreference.objects.get(user=user)
+            pref = NotificationPreference.objects.get(
+                user=user, website=getattr(user, "website", None)
+            )
             return pref.get_ordered_channels_for_event(event)
         except NotificationPreference.DoesNotExist:
             return None
-        
+
+    # ------------------------
+    # Defaults / seeding / CRUD
+    # ------------------------
+
     @staticmethod
-    def seed_user_event_preferences(user, website):
-        """
-        Seeds default event preferences for a user.
-        This is typically called when a new user is created.
-        It ensures that the user has preferences set for all active events.
+    def seed_user_event_preferences(user, website) -> None:
+        """Seed per-event preference rows for a new user.
+
+        Creates entries for all active events so later edits are simple.
         """
         from notifications_system.models.notification_event import (
-            NotificationEvent
+            NotificationEvent,
         )
         from notifications_system.models.notification_preferences import (
-            NotificationEventPreference
+            NotificationEventPreference,
         )
-        events = NotificationEvent.objects.filter(is_active=True)
 
-        for event in events:
+        for ev in NotificationEvent.objects.filter(is_active=True):
             NotificationEventPreference.objects.get_or_create(
-                user=user,
-                event=event,
-                website=website,
+                user=user, event=ev, website=website
             )
 
-    def assign_default_preferences(user, website):
-        """Assign default notification preferences for a user."""
+    @staticmethod
+    def assign_default_preferences(user, website) -> NotificationPreference:
+        """Create (or fetch) a user's default preference/profile.
+
+        Selects a default NotificationProfile if present, then ensures
+        the user has a NotificationPreference and seeded event rows.
+
+        Args:
+            user: User instance.
+            website: Tenant/site instance.
+
+        Returns:
+            The user's NotificationPreference instance.
+        """
         from notifications_system.models.notification_profile import (
-            NotificationProfile
-        )
-        from notifications_system.models.notification_preferences import (
-            NotificationPreference
+            NotificationProfile,
         )
 
-        # Assign default notification profile
-        default_profile = NotificationProfile.objects.filter(name="Default").first()
-        if not default_profile:
-            raise ValueError("Default notification profile not found.")
-
-        # Create notification preference with the default profile
-        preference, created = NotificationPreference.objects.get_or_create(
-            user=user,
-            website=website,
-            defaults={'profile': default_profile}
+        default_prof = (
+            NotificationProfile.objects.filter(is_default=True).first()
+            or NotificationProfile.objects.filter(name="Default").first()
         )
+        if not default_prof:
+            raise ValueError("No default NotificationProfile found.")
 
+        pref, created = NotificationPreference.objects.get_or_create(
+            user=user, website=website, defaults={"profile": default_prof}
+        )
         if created:
-            NotificationPreferenceResolver.seed_user_event_preferences(user, website)
+            NotificationPreferenceResolver.seed_user_event_preferences(
+                user, website
+            )
+        return pref
 
-        return preference
+    @staticmethod
+    def update_user_preferences(
+        user, preferences_data: Dict[str, Any]
+    ) -> NotificationPreference:
+        """Update a user's preferences and log the change.
 
-    def update_user_preferences(user, preferences_data):
+        Args:
+            user: User instance.
+            preferences_data: Field->value updates for the preference row.
+
+        Returns:
+            The updated NotificationPreference instance.
         """
-        Update user notification preferences based on provided data.
-        """
-        from notifications_system.models.notification_preferences import (
-            NotificationPreference
+        from notifications_system.models.notification_log import (
+            NotificationLog,
         )
 
-        preference, created = NotificationPreference.objects.get_or_create(
-            user=user, website=user.website
+        pref, _ = NotificationPreference.objects.get_or_create(
+            user=user, website=getattr(user, "website", None)
         )
-
-        before = preference.__dict__.copy()
+        before = {k: getattr(pref, k, None) for k in preferences_data.keys()}
 
         for field, value in preferences_data.items():
-            setattr(preference, field, value)
-
-        preference.save()
+            setattr(pref, field, value)
+        pref.save()
 
         NotificationLog.objects.create(
             notification=None,
             user=user,
-            message=f"Preferences updated",
+            message="Preferences updated",
             channel="in_app",
             status="INFO",
-            extra_data={"before": before, "after": preferences_data}
+            extra_data={"before": before, "after": preferences_data},
         )
+        return pref
 
-        return preference
+    # -----------------
+    # Simple fetchers
+    # -----------------
 
-
-    def get_user_preferences(user):
-        """
-        Retrieve the notification preferences for a user.
-        If no preferences exist, return None.
-        """
-        from notifications_system.models.notification_preferences import (
-            NotificationPreference
-        )
-
+    @staticmethod
+    def get_user_preferences(user) -> Optional[NotificationPreference]:
+        """Return a user's NotificationPreference or None."""
         try:
-            preference = NotificationPreference.objects.get(
-                user=user, website=user.website
+            return NotificationPreference.objects.get(
+                user=user, website=getattr(user, "website", None)
             )
-            return preference
         except NotificationPreference.DoesNotExist:
             return None
-        
-    def reset_user_preferences(user):
-        """"Reset user notification preferences to default."""
-        from notifications_system.models.notification_preferences import (
-            NotificationPreference
-        )
 
+    @staticmethod
+    def reset_user_preferences(user) -> bool:
+        """Delete a user's preference row (reverts to defaults)."""
         try:
-            preference = NotificationPreference.objects.get(
-                user=user, website=user.website
+            pref = NotificationPreference.objects.get(
+                user=user, website=getattr(user, "website", None)
             )
-            preference.delete()
+            pref.delete()
             return True
         except NotificationPreference.DoesNotExist:
             return False
-        
 
-    def get_default_notification_profile():
-        """"Get the default notification profile of the user."""
-        from notifications_system.models.notification_profile import (
-            NotificationProfile
-        )
+    # -----------------
+    # Cache utilities
+    # -----------------
 
-        try:
-            return NotificationProfile.objects.get(is_default=True)
-        except NotificationProfile.DoesNotExist:
-            return None
-        
+    @staticmethod
+    def get_effective_preferences(user, website) -> Dict[str, Any]:
+        """Return effective prefs (user/group/role/default), cached.
 
-    def get_notification_profiles():
-        """"Get all notification profiles."""
-        from notifications_system.models.notification_profile import (
-            NotificationProfile
-        )
-
-        return NotificationProfile.objects.all().order_by('name')
-
-
-    def get_notification_preferences(user):
-        """Retrieve the notification preferences for a user.
-        If no preferences exist, return None.
+        Note:
+            This returns a `dict` (flags per channel), not the model.
         """
-        from notifications_system.models.notification_preferences import (
-            NotificationPreference
-        )
-
-        try:
-            return NotificationPreference.objects.get(user=user, website=user.website)
-        except NotificationPreference.DoesNotExist:
-            return None
-        
-
-    def get_notification_preferences_by_profile(profile):
-        """Retrieve notification preferences by profile.
-        If no preferences exist, return an empty queryset.
-        Example usage:
-        >>> profile = NotificationProfile.objects.get(name="Default")
-        >>> preferences = get_notification_preferences_by_profile(profile)
-        :param profile: NotificationProfile instance
-        :return: QuerySet of NotificationPreference objects
-        """
-        from notifications_system.models.notification_preferences import (
-            NotificationPreference
-        )
-
-        return NotificationPreference.objects.filter(profile=profile).order_by('user__username')
-
-
-    def get_cached_user_preferences(user):
-        """"Get cached user notification preferences."""
-        cache_key = f"notif_prefs:{user.id}"
-        prefs = cache.get(cache_key)
-        if not prefs:
-            prefs = NotificationPreference.objects.filter(
-                user=user, website=user.website
-            ).first()
-            if prefs:
-                cache.set(cache_key, prefs, timeout=300)
-        return prefs
-
-    def rebuild_user_preferences_cache(user):
-        """"Rebuild user notification preferences cache."""
-        from notifications_system.models.notification_preferences import (
-            NotificationPreference
-        )
-
-        cache_key = f"notif_prefs:{user.id}"
-        prefs = NotificationPreference.objects.filter(
-            user=user, website=user.website
-        ).first()
-        if prefs:
-            cache.set(cache_key, prefs, timeout=300)
-        else:
-            cache.delete(cache_key)  # Clear cache if no preferences found
-
-
-    def clear_user_preferences_cache(user):
-        """Clear the cache for user notification preferences."""
-        cache_key = f"notif_prefs:{user.id}"
-        cache.delete(cache_key)
-        return True
-
-    def clear_all_preferences_cache():
-        """Clear the cache for all user notification preferences."""
-        from django.core.cache import cache
-
-        cache.clear()
-        return True
-
-
-    def get_broadcast_notifications(website=None):
-        """Retrieve broadcast notifications."""
-        from notifications_system.models.broadcast_notification import (
-            BroadcastNotification
-        )
-
-        if website:
-            return BroadcastNotification.objects.filter(website=website).order_by('-created_at')
-        return BroadcastNotification.objects.all().order_by('-created_at')
-
-    def get_broadcast_notification_by_id(notification_id, website=None):
-        """"Retrieve a specific broadcast notification by ID."""
-        from notifications_system.models.broadcast_notification import BroadcastNotification
-
-        if website:
-            return BroadcastNotification.objects.filter(id=notification_id, website=website).first()
-        return BroadcastNotification.objects.filter(id=notification_id).first()
-
-    def get_notification_log(user=None, notification=None):
-        from notifications_system.models.notification_log import NotificationLog
-
-        if user:
-            return NotificationLog.objects.filter(user=user).order_by('-created_at')
-        elif notification:
-            return NotificationLog.objects.filter(notification=notification).order_by('-created_at')
-        return NotificationLog.objects.all().order_by('-created_at')
-
-    def get_notification_profile(user):
-        from notifications_system.models.notification_profile import NotificationProfile
-
-        try:
-            return NotificationProfile.objects.get(user=user, website=user.website)
-        except NotificationProfile.DoesNotExist:
-            return None
-        
-    def get_notification_group_profile(user):
-        from notifications_system.models.notification_profile import NotificationGroupProfile
-
-        try:
-            return NotificationGroupProfile.objects.get(user=user, website=user.website)
-        except NotificationGroupProfile.DoesNotExist:
-            return None
-        
-
-
-    def get_effective_preferences(user, website):
-        """
-        Get effective notification preferences for a user.
-        This checks user-level, group-level, role-level
-        """
-        cache_key = f"notif_prefs:{user.id}"
-        cached = cache.get(cache_key)
+        wid = getattr(website, "id", "none")
+        key = f"notif_prefs:{user.id}:{wid}"
+        cached = cache.get(key)
         if cached:
             return cached
 
-        # 1. User-level
+        # 1) User-level
         try:
             pref = NotificationPreference.objects.get(
                 user=user, website=website
             )
-            cache.set(cache_key, pref.as_dict(), timeout=3600)
-            return pref.as_dict()
+            result = pref.as_dict()  # model should expose this
+            cache.set(key, result, timeout=3600)
+            return result
         except NotificationPreference.DoesNotExist:
             pass
 
-        # 2. Group-level
-        group = user.groups.first()
+        # 2) Group-level
+        group = getattr(user, "groups", None)
+        group = group.first() if group else None
         if group:
-            group_profile = NotificationGroupProfile.objects.filter(
+            from notifications_system.models.notification_profile import (
+                NotificationGroupProfile,
+            )
+
+            gprof = NotificationGroupProfile.objects.filter(
                 group=group, website=website, is_active=True
             ).first()
-            if group_profile:
-                result = group_profile.as_dict()
-                cache.set(cache_key, result, timeout=3600)
+            if gprof:
+                result = gprof.as_dict()
+                cache.set(key, result, timeout=3600)
                 return result
 
-        # 3. Role-level
+        # 3) Role-level
         role_slug = getattr(getattr(user, "role", None), "slug", None)
         if role_slug:
-            role_profile = NotificationGroupProfile.objects.filter(
+            from notifications_system.models.notification_profile import (
+                NotificationGroupProfile,
+            )
+
+            rprof = NotificationGroupProfile.objects.filter(
                 role_slug=role_slug, website=website, is_active=True
             ).first()
-            if role_profile:
-                result = role_profile.as_dict()
-                cache.set(cache_key, result, timeout=3600)
+            if rprof:
+                result = rprof.as_dict()
+                cache.set(key, result, timeout=3600)
                 return result
 
-        # 4. Global fallback
+        # 4) Global default
+        from notifications_system.models.notification_profile import (
+            NotificationProfile,
+        )
+
         default = NotificationProfile.objects.filter(is_default=True).first()
         if default:
             result = {
@@ -393,26 +305,33 @@ class NotificationPreferenceResolver:
                 "receive_in_app": default.receive_in_app,
                 "receive_push": default.receive_push,
                 "receive_sms": default.receive_sms,
-                "source": "global"
+                "source": "global",
             }
-            cache.set(cache_key, result, timeout=3600)
+            cache.set(key, result, timeout=3600)
             return result
 
-        return {
+        # Hard fallback
+        result = {
             "receive_email": True,
             "receive_in_app": True,
             "receive_push": False,
             "receive_sms": False,
-            "source": "fallback"
+            "source": "fallback",
         }
+        cache.set(key, result, timeout=3600)
+        return result
 
-    def update_preferences_cache(user):
-        """
-        Rebuilds the cache for user notification preferences.
-        """
-        cache_key = f"notif_prefs:{user.id}"
-        prefs = NotificationPreference.objects.filter(user=user, website=user.website).first()
-        if prefs:
-            cache.set(cache_key, prefs.as_dict(), timeout=3600)
-        else:
-            cache.delete(cache_key)  # Clear cache if no preferences found
+    @staticmethod
+    def update_preferences_cache(user) -> None:
+        """Refresh a user's cached effective preferences."""
+        website = getattr(user, "website", None)
+        wid = getattr(website, "id", "none")
+        key = f"notif_prefs:{user.id}:{wid}"
+
+        try:
+            pref = NotificationPreference.objects.get(
+                user=user, website=website
+            )
+            cache.set(key, pref.as_dict(), timeout=3600)
+        except NotificationPreference.DoesNotExist:
+            cache.delete(key)

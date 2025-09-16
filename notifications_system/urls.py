@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
 from notifications_system.views.in_app_notifications import InAppNotificationViewSet
+from notifications_system.views.prefs_api import PreferencesViewSet
 from notifications_system.views.user_notifications import (
     NotificationViewSet,
     NotificationListView,
@@ -16,6 +17,7 @@ from notifications_system.views.preferences import (
     NotificationEventPreferenceViewSet,
     RoleNotificationPreferenceViewSet
 )
+from notifications_system.views.prefs_api import PreferencesViewSet
 from notifications_system.views.profiles import (
     NotificationProfileViewSet,
     NotificationGroupProfileViewSet
@@ -30,6 +32,18 @@ from notifications_system.views.stream import (
 )
 from notifications_system.views.sse import sse_notifications
 from notifications_system.views.polling import poll_notifications
+from notifications_system.views.feed_and_status import (
+    NotificationFeedViewSet,
+    NotificationStatusViewSet
+)
+
+from notifications_system.views.views_feed import NotificationFeedView
+from notifications_system.views.views_actions import (
+    NotificationMarkReadView,
+    NotificationBulkMarkAllReadView,
+)
+from notifications_system.views.views_counters import UnreadCountView
+from notifications_system.views.views_preview import NotificationTemplatePreviewView
 
 router = DefaultRouter()
 router.register(
@@ -48,6 +62,11 @@ router.register(
     r'notification-preferences',
     NotificationPreferenceViewSet,
     basename='notification-preferences'
+)
+router.register(
+    r"preferences",
+    PreferencesViewSet,
+    basename="prefs"
 )
 router.register(
     r"admin/notifications",
@@ -82,6 +101,16 @@ router.register(
     "role-defaults",
     RoleNotificationPreferenceViewSet,
     basename="role-defaults"
+)
+router.register(
+    r"notifications/feed",
+    NotificationFeedViewSet,
+    basename="notifications-feed"
+)
+router.register(
+    r"notifications/status",
+    NotificationStatusViewSet,
+    basename="notifications-status"
 )
 
 urlpatterns = [
@@ -129,6 +158,29 @@ urlpatterns = [
     ),
     path(
         "poll/", poll_notifications, name="poll_notifications"
+    ),
+    path(
+        "feed/", NotificationFeedView.as_view(), name="notifications-feed"
+    ),
+    path(
+        "mark-read/<int:notification_id>/",
+        NotificationMarkReadView.as_view(),
+        name="notifications-mark-read"
+    ),
+    path(
+        "mark-all-read/",
+        NotificationBulkMarkAllReadView.as_view(),
+        name="notifications-mark-all-read"
+    ),
+    path(
+        "unread-count/",
+        UnreadCountView.as_view(),
+        name="notifications-unread-count"
+    ),
+    path(
+        "templates/preview/",
+        NotificationTemplatePreviewView.as_view(),
+        name="notifications-template-preview"
     ),
 
     path("", include(router.urls)),

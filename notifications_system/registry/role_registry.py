@@ -1,14 +1,29 @@
-import logging
+from __future__ import annotations
+
 import importlib
-from typing import Callable, Dict, Optional, Set
+import logging
+from typing import Any, Callable, Dict, Mapping, Optional, Set
+
 from django.apps import apps
 from django.conf import settings
 
 logger = logging.getLogger(__name__)
 
-ROLE_RESOLVERS: Dict[str, Callable] = {}
+# A resolver takes a context mapping (e.g., {"order": ...}) and returns
+# a user instance (or None).
+RoleResolver = Callable[[Mapping[str, Any]], Any]
+
+# Registered role -> resolver callable.
+ROLE_RESOLVERS: Dict[str, RoleResolver] = {}
+
+# Registered role -> { event_key -> set(channels) }.
 ROLE_CHANNELS: Dict[str, Dict[str, Set[str]]] = {}
 
+# Optional project-level defaults from settings:
+# NOTIFICATION_ROLE_DEFAULTS = {
+#   "client": {"*": {"in_app", "email"}},
+#   "admin":  {"order.created": {"email"}}
+# }
 DEFAULT_ROLE_CHANNELS: Dict[str, Dict[str, Set[str]]] = getattr(
     settings,
     "NOTIFICATION_ROLE_DEFAULTS",
@@ -17,159 +32,138 @@ DEFAULT_ROLE_CHANNELS: Dict[str, Dict[str, Set[str]]] = getattr(
 
 
 def get_user_model():
-    """Lazily fetch the User model."""
+    """Return the configured User model (lazy)."""
     return apps.get_model(settings.AUTH_USER_MODEL)
 
 
 def register_role(
     role: str,
-    resolver: Callable,
+    resolver: RoleResolver,
     channels: Optional[Dict[str, Set[str]]] = None,
-):
-    """Register a role's resolver and channels.
+) -> None:
+    """Register a role's resolver and (optional) event channel mapping.
 
     Args:
-        role (str): Role name (e.g., "client", "admin").
-        resolver (Callable): Function to resolve user from context.
-        channels (Optional[Dict[str, Set[str]]]): Event-channel mapping.
+        role: Role name (e.g., "client", "admin").
+        resolver: Callable that maps context -> user instance.
+        channels: Mapping of event_key -> set of channels. Use "*" for
+            a wildcard default for that role.
 
     Notes:
-        - Warns if role is already registered.
-        - Merges channels with defaults from settings.
+        * If re-registered, the prior resolver/channels are overwritten.
+        * Provided channels are merged over project defaults.
     """
     if role in ROLE_RESOLVERS:
         logger.warning(
-            "[notifications] Role '%s' already registered. Overwriting.",
+            "[notifications] Role '%s' already registered; overwriting.",
             role,
         )
 
     ROLE_RESOLVERS[role] = resolver
 
-    merged_channels = dict(DEFAULT_ROLE_CHANNELS.get(role, {}))
+    merged: Dict[str, Set[str]] = {
+        k: set(v) for k, v in DEFAULT_ROLE_CHANNELS.get(role, {}).items()
+    }
     if channels:
         for event_key, chans in channels.items():
-            merged_channels[event_key] = set(chans)
+            merged[event_key] = set(chans)
 
-    ROLE_CHANNELS[role] = merged_channels or {"*": set()}
+    ROLE_CHANNELS[role] = merged or {"*": set()}
 
 
-def resolve_role_user(role: str, context: Dict):
-    """Resolve a user for the given role.
+def resolve_role_user(role: str, context: Mapping[str, Any]) -> Any:
+    """Resolve a user for a role using the provided context.
 
     Args:
-        role (str): Role name.
-        context (Dict): Context dict with objects (e.g., 'order').
+        role: Role name.
+        context: Mapping containing domain objects (e.g., 'order').
 
     Returns:
-        Optional[User]: User instance or None.
+        User instance or None if no resolver/failed resolution.
     """
     resolver = ROLE_RESOLVERS.get(role)
     if not resolver:
-        logger.warning(
-            "[notifications] No resolver found for role '%s'", role
+        logger.warning("[notifications] No resolver for role '%s'", role)
+        return None
+    try:
+        return resolver(context)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception(
+            "[notifications] Resolver for role '%s' raised: %s", role, exc
         )
         return None
-    return resolver(context)
 
 
-def get_channels_for_role(event_key: str, role: str) -> Set[str]:
-    """Get notification channels for a given role and event.
+def get_channels_for_role(event_key: str, role: Optional[str]) -> Set[str]:
+    """Return channels configured for a role on a given event.
 
     Args:
-        event_key (str): Event identifier.
-        role (str): Role name.
+        event_key: Canonical event key.
+        role: Role name or None.
 
     Returns:
-        Set[str]: Set of channel names.
+        Set of channel strings; may be empty.
     """
+    if not role:
+        return set()
     role_channels = ROLE_CHANNELS.get(role, {})
-    return role_channels.get(event_key, role_channels.get("*", set()))
+    return set(role_channels.get(event_key, role_channels.get("*", set())))
 
 
-def autodiscover_roles():
-    """Auto-import `notifications_roles` from each installed app.
+def autodiscover_roles() -> None:
+    """Auto-import `<app>.notifications_roles` across installed apps.
 
-    Notes:
-        - Skips if the app has no `notifications_roles` module.
-        - Logs errors if import fails.
+    Each app may define a `notifications_roles.py` that calls
+    `register_role(...)` for its roles.
     """
     for app_config in apps.get_app_configs():
+        mod = f"{app_config.name}.notifications_roles"
         try:
-            importlib.import_module(
-                f"{app_config.name}.notifications_roles"
-            )
-            logger.debug(
-                "[notifications] Loaded roles from %s",
-                app_config.name,
-            )
-        except ModuleNotFoundError as e:
-            if "notifications_roles" not in str(e):
-                raise
-        except Exception as e:
+            importlib.import_module(mod)
+            logger.debug("[notifications] Loaded roles from %s", mod)
+        except ModuleNotFoundError as exc:
+            # Ignore missing module; raise only if module exists but import
+            # failed for another reason.
+            if "notifications_roles" not in str(exc):
+                logger.debug("Module not found: %s", mod)
+        except Exception as exc:  # noqa: BLE001
             logger.error(
                 "[notifications] Failed to load roles from %s: %s",
-                app_config.name,
-                e,
+                mod,
+                exc,
             )
 
 
-def list_registered_roles() -> Dict[str, Dict]:
-    """List all registered roles and their configuration.
+def list_registered_roles() -> Dict[str, Dict[str, Any]]:
+    """Return a serializable view of registered roles.
 
     Returns:
-        Dict[str, Dict]: Mapping of role to resolver and channels.
+        Dict of role -> {"resolver": str, "channels": {event: [..], ...}}
     """
-    return {
-        role: {
-            "resolver": resolver.__name__,
-            "channels": {
-                k: sorted(v) for k, v in ROLE_CHANNELS[role].items()
-            },
-        }
-        for role, resolver in ROLE_RESOLVERS.items()
-    }
-def clear_role_registry():
-    """Clear the role registry."""
+    out: Dict[str, Dict[str, Any]] = {}
+    for role, resolver in ROLE_RESOLVERS.items():
+        name = getattr(resolver, "__name__", str(resolver))
+        channels = {k: sorted(v) for k, v in ROLE_CHANNELS.get(role, {}).items()}
+        out[role] = {"resolver": name, "channels": channels}
+    return out
+
+
+def clear_role_registry() -> None:
+    """Clear all registered roles and channels (tests/dev only)."""
     ROLE_RESOLVERS.clear()
     ROLE_CHANNELS.clear()
     logger.info("[notifications] Cleared role registry.")
 
-# def resolve_role_user(
-#         role: str, context: Dict
-# ) -> Optional["UserType"]:
-#     """Resolve a user for the given role using the provided context.
 
-#     Args:
-#         role (str): Logical role name (e.g., "client", "writer").
-#         context (Dict): Dictionary containing objects like 'order'.
-
-#     Returns:
-#         Optional[User]: The user instance tied to the role, or None.
-#     """
-#     order = context.get("order")
-
-#     if role == "client":
-#         return getattr(order, "client", None)
-
-#     if role == "writer":
-#         return getattr(order, "writer", None)
-
-#     if role == "support":
-#         # You can plug in support-assigning logic here
-#         return get_active_support_user(order)
-    
-#     if role == "admin":
-#         return UserType.objects.filter(is_staff=True).first()
-    
-#     if role == "super_admin":
-#         return UserType.objects.filter(is_superuser=True).first()
-
-#     if role == "editor":
-#         return UserType.objects.filter(is_editor=True).first()
-
-#     return None
-
-# def get_active_support_user(order):
-#     """Placeholder function to get an active support user for an order."""
-#     # Implement your logic to fetch the active support user
-#     return None  # Replace with actual logic to retrieve the support user
+__all__ = [
+    "RoleResolver",
+    "ROLE_RESOLVERS",
+    "ROLE_CHANNELS",
+    "register_role",
+    "resolve_role_user",
+    "get_channels_for_role",
+    "autodiscover_roles",
+    "list_registered_roles",
+    "clear_role_registry",
+    "get_user_model",
+]

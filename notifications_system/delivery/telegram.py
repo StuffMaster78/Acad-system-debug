@@ -1,52 +1,89 @@
-from .base import BaseDeliveryBackend
+from __future__ import annotations
+
 import logging
-import requests # type: ignore
+from typing import Any, Dict, Optional
+
+import requests  # type: ignore
+
+from notifications_system.delivery.base import (
+    BaseDeliveryBackend,
+    DeliveryResult,
+)
 
 logger = logging.getLogger(__name__)
 
 
 class TelegramBackend(BaseDeliveryBackend):
-    """
-    Sends notification to Telegram via Bot API.
-    Expects `telegram_chat_id` in the channel_config or on the user profile.
+    """Telegram delivery backend.
+
+    Sends notifications via the Telegram Bot API. Requires a bot token
+    and a chat ID. These may be provided in ``channel_config`` or as
+    attributes on the user model.
+
+    Channel config keys:
+      * bot_token: Telegram bot token string (required).
+      * chat_id: Telegram chat ID (optional if user.telegram_chat_id set).
+
+    Returns:
+      DeliveryResult with provider response outcome.
     """
 
+    channel = "telegram"
     TELEGRAM_API_URL = "https://api.telegram.org"
 
-    def send(self):
-        user = self.notification.user
-        website = self.notification.website
-        payload = self.notification.payload or {}
-        config = self.channel_config or {}
+    def send(self) -> DeliveryResult:
+        """Send the notification via Telegram Bot API.
 
-        bot_token = config.get("bot_token")
-        chat_id = config.get("chat_id") or getattr(user, "telegram_chat_id", None)
-        message = payload.get("message") or self.notification.message
+        Returns:
+            DeliveryResult indicating success/failure and meta info.
+        """
+        user = self.user
+        payload: Dict[str, Any] = dict(self.notification.payload or {})
+        cfg: Dict[str, Any] = dict(self.channel_config or {})
+
+        bot_token: Optional[str] = cfg.get("bot_token")
+        chat_id: Optional[str] = (
+            cfg.get("chat_id") or getattr(user, "telegram_chat_id", None)
+        )
+        message = (
+            payload.get("message")
+            or getattr(self.notification, "message", None)
+            or ""
+        )
 
         if not bot_token or not chat_id:
-            logger.warning(
-                f"Missing Telegram config for notification {self.notification.id}. "
-                f"bot_token or chat_id not set."
+            msg = "Missing Telegram bot_token or chat_id"
+            logger.warning("%s (notification=%s)", msg, self.notification.id)
+            return DeliveryResult(
+                success=False,
+                message=msg,
+                meta={"user_id": getattr(user, "id", None)},
             )
-            return False
 
         url = f"{self.TELEGRAM_API_URL}/bot{bot_token}/sendMessage"
-        data = {
-            "chat_id": chat_id,
-            "text": message,
-            "parse_mode": "Markdown",  # or "HTML"
-        }
+        data = {"chat_id": chat_id, "text": message, "parse_mode": "Markdown"}
 
         try:
-            response = requests.post(url, json=data, timeout=5)
-            response.raise_for_status()
-            return True
-        except requests.RequestException as e:
-            logger.error(
-                f"Failed to send Telegram notification {self.notification.id}: {e}",
-                exc_info=True
+            resp = requests.post(url, json=data, timeout=5)
+            resp.raise_for_status()
+            return DeliveryResult(
+                success=True,
+                message="telegram sent",
+                meta={"chat_id": chat_id, "status": resp.status_code},
             )
-            return False
+        except requests.RequestException as exc:
+            logger.error(
+                "Telegram send failed for notification=%s: %s",
+                self.notification.id,
+                exc,
+                exc_info=True,
+            )
+            return DeliveryResult(
+                success=False,
+                message=f"send failed: {exc}",
+                meta={"chat_id": chat_id},
+            )
 
-    def supports_retry(self):
+    def supports_retry(self) -> bool:
+        """Return True; Telegram sends are safe to retry."""
         return True

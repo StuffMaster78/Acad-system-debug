@@ -1,68 +1,68 @@
+# notifications_system/services/delivery.py
+# -*- coding: utf-8 -*-
+"""Compatibility delivery shim.
 
-from django.core.mail import send_mail
-from django.conf import settings
-from asgiref.sync import async_to_sync
-from channels.layers import get_channel_layer # type: ignore
+Prefer NotificationService._deliver and CHANNEL_BACKENDS.
 
-from notifications_system.models.notifications import Notification
+This module exists only for legacy imports that call a single
+"deliver(...)" function. It resolves the backend from the channel
+and invokes it, returning a bool. New code should not import this.
+"""
 
-class NotificationDeliveryService:
+from __future__ import annotations
+
+from typing import Optional
+
+from django.utils import timezone
+
+from notifications_system.enums import DeliveryStatus
+from notifications_system.models.notification_delivery import (
+    NotificationDelivery,
+)
+
+
+def deliver(notification, channel: Optional[str] = None, **config) -> bool:
+    """Deliver a notification via a specific channel.
+
+    Args:
+        notification: Notification ORM instance.
+        channel: Channel key (e.g., "email"). Defaults to notification.type.
+        **config: Extra channel_config passed to the backend.
+
+    Returns:
+        bool: True on success, False otherwise.
     """
-    Handles delivery of notifications via multiple channels.
-    Extendable to SMS, Push, etc.
-    """
+    # Lazy import to avoid cycles.
+    from notifications_system.delivery import CHANNEL_BACKENDS  # noqa
+    from notifications_system.services.core import (  # noqa
+        NotificationService,
+    )
 
-    @classmethod
-    def deliver(cls, notification: Notification) -> bool:
-        """
-        Dispatches the notification to the appropriate delivery method based on its channel.
-        Returns True if delivery was successful, False otherwise.
-        """
-        delivery_method = getattr(
-            cls,
-            f"deliver_via_{notification.channel}",
-            None
+    ch = channel or getattr(notification, "type", None)
+    if not ch:
+        return False
+
+    # Reuse the real delivery path so logs/retries stay consistent.
+    ok = NotificationService._deliver(  # noqa: SLF001
+        notification,
+        ch,
+        html_message=config.get("html_message"),
+        email_override=config.get("email_override"),
+        attempt=config.get("attempt", 1),
+    )
+
+    # Minimal safety record for legacy callers that expected a write.
+    # (Core already writes richer rows; this is harmless duplication.)
+    try:
+        NotificationDelivery.objects.create(
+            notification=notification,
+            channel=ch,
+            status=DeliveryStatus.SENT if ok else DeliveryStatus.FAILED,
+            sent_at=timezone.now(),
+            attempts=config.get("attempt", 1),
         )
-        if callable(delivery_method):
-            return delivery_method(notification)
-        return False  # Unknown/unsupported channel
+    except Exception:  # pragma: no cover
+        # Never let legacy shim crash delivery flow.
+        pass
 
-    @classmethod
-    def deliver_via_email(cls, notification: Notification) -> bool:
-        """Delivers the notification via email."""
-        user_email = getattr(notification.user, 'email', None)
-        if not user_email:
-            return False
-
-        send_mail(
-            subject=notification.title or "Notification",
-            message=notification.body or "",
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user_email],
-            fail_silently=True
-        )
-        return True
-
-    @classmethod
-    def deliver_via_websocket(cls, notification: Notification) -> bool:
-        channel_layer = get_channel_layer()
-        group_name = f"user_notifications_{notification.user.id}"
-
-        payload = {
-            "type": "notify",
-            "data": {
-                "id": notification.id,
-                "title": notification.title,
-                "body": notification.body,
-                "timestamp": str(notification.created_at),
-                "is_read": notification.is_read,
-                "priority": notification.priority,
-                "group": notification.group.name if notification.group else None,
-            }
-        }
-
-        try:
-            async_to_sync(channel_layer.group_send)(group_name, payload)
-            return True
-        except Exception:
-            return False
+    return bool(ok)

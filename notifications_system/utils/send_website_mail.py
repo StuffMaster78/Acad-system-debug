@@ -1,31 +1,84 @@
-from django.core.mail import EmailMultiAlternatives
-from notifications_system.utils.email_renderer import render_notification_email
+"""Utilities for retrying tasks with exponential backoff."""
 
-def send_rich_notification_email(
-        subject, message, recipient_list, *,
-        website=None, context=None, priority=None,
-        template_name=None
-):
-    """
-    Sends a rich HTML email notification to a list of recipients.
-    This function uses the provided subject, message, and context
-    to render an HTML email template. It supports optional parameters
-    like website for branding, context for dynamic content,
-    and priority for notification importance. 
-    """
-    html_message = render_notification_email(
-        subject,
-        message,
-        context=context or {"website_name": getattr(website, "name", None)},
-        priority=priority,
-        template_name=template_name
-    )
+import logging
+import time
+import asyncio
+from typing import Any, Callable, Awaitable, Optional
 
-    email = EmailMultiAlternatives(
-        subject=subject,
-        body=message,
-        from_email=getattr(website, "email_from", "no-reply@example.com"),
-        to=recipient_list
-    )
-    email.attach_alternative(html_message, "text/html")
-    return email.send()
+logger = logging.getLogger(__name__)
+
+
+def retry_task_with_backoff(
+    task: Callable[[], Any],
+    max_retries: int = 3,
+    base_backoff: int = 5,
+    raise_on_fail: bool = False,
+) -> Optional[Any]:
+    """Run a task with retries using exponential backoff (sync).
+
+    Args:
+        task: Callable with no arguments to execute.
+        max_retries: Number of attempts before giving up.
+        base_backoff: Initial sleep time in seconds. Doubled each retry.
+        raise_on_fail: If True, re-raises the last exception.
+
+    Returns:
+        The result of `task()` if it succeeds, or None if it fails and
+        `raise_on_fail` is False.
+    """
+    for attempt in range(max_retries):
+        try:
+            return task()
+        except Exception as exc:  # noqa: BLE001
+            wait = base_backoff * (2**attempt)
+            logger.warning(
+                "Task failed on attempt %s/%s: %s. Retrying in %s sec...",
+                attempt + 1,
+                max_retries,
+                exc,
+                wait,
+            )
+            time.sleep(wait)
+
+    logger.error("Task failed after %s retries", max_retries)
+    if raise_on_fail:
+        raise
+    return None
+
+
+async def retry_task_with_backoff_async(
+    task: Callable[[], Awaitable[Any]],
+    max_retries: int = 3,
+    base_backoff: int = 5,
+    raise_on_fail: bool = False,
+) -> Optional[Any]:
+    """Run an async task with retries using exponential backoff.
+
+    Args:
+        task: Async callable with no arguments to execute.
+        max_retries: Number of attempts before giving up.
+        base_backoff: Initial sleep time in seconds. Doubled each retry.
+        raise_on_fail: If True, re-raises the last exception.
+
+    Returns:
+        The result of `await task()` if it succeeds, or None if it fails and
+        `raise_on_fail` is False.
+    """
+    for attempt in range(max_retries):
+        try:
+            return await task()
+        except Exception as exc:  # noqa: BLE001
+            wait = base_backoff * (2**attempt)
+            logger.warning(
+                "Async task failed on attempt %s/%s: %s. Retrying in %s sec...",
+                attempt + 1,
+                max_retries,
+                exc,
+                wait,
+            )
+            await asyncio.sleep(wait)
+
+    logger.error("Async task failed after %s retries", max_retries)
+    if raise_on_fail:
+        raise
+    return None

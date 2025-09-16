@@ -2,7 +2,7 @@
 from celery import shared_task # type: ignore
 from django.contrib.auth import get_user_model
 from notifications_system.enums import NotificationType, NotificationPriority
-from notifications_system.services.core import NotificationService
+
 
 
 User = get_user_model()
@@ -12,6 +12,7 @@ def handle_event(self, event_key, payload):
     """
     Handle an event by sending a notification to the user based on their role.
     """
+    from notifications_system.services.core import NotificationService
     try:
         user_id = payload.get("user_id")
         user = User.objects.get(id=user_id)

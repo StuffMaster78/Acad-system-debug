@@ -1,180 +1,159 @@
-import logging
-from notifications_system.models.notifications_user_status import NotificationsUserStatus
-from notifications_system.template_engine import NotificationTemplateEngine
-from notifications_system.registry.role_bindings import get_channels_for_role
-from notifications_system.registry.template_registry import TemplateRegistry
+# notifications_system/services/dispatch.py
+# -*- coding: utf-8 -*-
+"""Legacy dispatch shim.
 
-# import (
-#     NOTIFICATION_TEMPLATES,
-#     get_templates_for_event
-# )
-from notifications_system.registry.forced_channels import ForcedChannelRegistry
-from notifications_system.tasks import send_notification_task
-from notifications_system.models.notifications import Notification
-from django.core.mail import send_mail
-from django.conf import settings
-import requests  # type: ignore
+Prefer calling NotificationService directly:
+    from notifications_system.services.core import NotificationService
+    NotificationService.send_notification(...)
 
-logger = logging.getLogger(__name__)
+This module exists to keep older imports working while you migrate.
+"""
+
+from __future__ import annotations
+
+from typing import Any, Dict, Iterable, Optional, Union
+import warnings
 
 
-class NotificationDispatcher:
+def send(
+    *,
+    user,
+    event: str,
+    payload: Optional[Dict[str, Any]] = None,
+    website=None,
+    actor=None,
+    channels: Optional[Iterable[str]] = None,
+    category: Optional[str] = None,
+    template_name: Optional[str] = None,
+    priority: Union[int, str] = 5,
+    priority_label: Optional[str] = None,
+    is_critical: bool = False,
+    is_digest: bool = False,
+    digest_group: Optional[str] = None,
+    is_silent: bool = False,
+    email_override: Optional[str] = None,
+    global_broadcast: bool = False,
+    groups: Optional[Iterable[str]] = None,
+    role: Optional[str] = None,
+):
+    """Send a notification via the core service (legacy wrapper).
+
+    Args:
+        user: Target user (must be authenticated).
+        event: Canonical event key (e.g., "order.created").
+        payload: Optional event context.
+        website: Tenant/site object.
+        actor: Optional actor who triggered the event.
+        channels: Explicit channels to send on.
+        category: Arbitrary category string.
+        template_name: Optional render skin hint.
+        priority: Integer or label for priority.
+        priority_label: Legacy label kept for back-compat.
+        is_critical: If True, may bypass mute.
+        is_digest: If True, mark for digest grouping.
+        digest_group: Explicit digest group key.
+        is_silent: If True, persist but do not deliver.
+        email_override: Override recipient email.
+        global_broadcast: Publish to global stream.
+        groups: Optional SSE/polling groups.
+        role: Optional role for role-channel mapping.
+
+    Returns:
+        The return value of NotificationService.send_notification
+        (usually a Notification instance, a broadcast object, or None).
     """
-    Dispatches notifications across channels for a given user and event.
-    Supports extensible backends.
+    warnings.warn(
+        "notifications_system.services.dispatch.send is deprecated; "
+        "use NotificationService.send_notification instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
+
+    from .core import NotificationService  # lazy to avoid import cycles
+
+    return NotificationService.send_notification(
+        user=user,
+        event=event,
+        payload=payload or {},
+        website=website,
+        actor=actor,
+        channels=list(channels) if channels else None,
+        category=category,
+        template_name=template_name,
+        priority=priority,
+        priority_label=priority_label,
+        is_critical=is_critical,
+        is_digest=is_digest,
+        digest_group=digest_group,
+        is_silent=is_silent,
+        email_override=email_override,
+        global_broadcast=global_broadcast,
+        groups=groups,
+        role=role,
+    )
+
+
+def broadcast(
+    *,
+    event: str,
+    title: str,
+    message: str,
+    context: Optional[Dict[str, Any]] = None,
+    website=None,
+    channels: Optional[Iterable[str]] = None,
+    priority: int = 5,
+):
+    """Create a broadcast and fan out (legacy wrapper).
+
+    Args:
+        event: Broadcast event key.
+        title: Broadcast title.
+        message: Broadcast message.
+        context: Optional context.
+        website: Tenant/site object.
+        channels: Channels to use (defaults handled in core).
+        priority: Integer priority.
+
+    Returns:
+        The BroadcastNotification created by the core service.
     """
+    warnings.warn(
+        "notifications_system.services.dispatch.broadcast is deprecated; "
+        "use NotificationService.send_broadcast instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    def __init__(self, user, event_key: str, context: dict, role: str = None):
-        self.user = user
-        self.event_key = event_key
-        self.context = context
-        self.role = role or getattr(user, 'role', 'client')
+    from .core import NotificationService
 
-    def dispatch(self):
-        """
-        Dispatches a notification to the user's channels.
-        """
-        templates = TemplateRegistry._templates.get(self.event_key, {})
-        forced_channels = ForcedChannelRegistry.get(self.event_key, set())
-        channels = forced_channels or get_channels_for_role(self.event_key, self.role)
+    return NotificationService.send_broadcast(
+        event=event,
+        title=title,
+        message=message,
+        context=context or {},
+        website=website,
+        channels=channels,
+        priority=priority,
+    )
 
-        if not templates:
-            logger.warning(f"No templates found for event key: {self.event_key}. Using default.")
-            templates = {'email': 'default_template.html', 'in_app': 'default_template.html'}
 
-        context = self.context.copy()
-        context.update({
-            'user': self.user,
-            'event_key': self.event_key,
-            'role': self.role,
-            'website': getattr(self.user, 'website', None),
-            'templates': templates,
-            'forced_channels': forced_channels,
-            'event': self.event_key,
-            'payload': self.context.get('payload', {}),
-            'notification': Notification(
-                user=self.user,
-                type='notification',
-                title=context.get('title', 'Notification'),
-                message=context.get('message', 'You have a new notification.'),
-                website=context.get('website', None)
-            )
-        })
+def send_digests(group: str, since=None):
+    """Send digest notifications (legacy wrapper).
 
-        rendered = NotificationTemplateEngine.render_template(templates, context)
+    Args:
+        group: Digest group key.
+        since: Optional datetime lower bound.
 
-        for channel in channels:
-            try:
-                self._send_via_channel(channel, context, rendered.get(channel, ''))
-                logger.info(f"Notification via {channel} sent for {self.event_key} to user {self.user.id}.")
-            except Exception as e:
-                logger.error(
-                    f"[{self.event_key}] Failed via {channel} for user {self.user.id}: {str(e)}",
-                    exc_info=True
-                )
+    Returns:
+        Queryset or list returned by the core digest sender.
+    """
+    warnings.warn(
+        "notifications_system.services.dispatch.send_digests is "
+        "deprecated; use NotificationService.send_digests instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
 
-    @staticmethod
-    def emit_event(event_name: str, context: dict):
-        """
-        Async trigger to dispatch all templates tied to an event.
-        """
-        templates = TemplateRegistry.get_templates_for_event(event_name)
-        for template in templates:
-            send_notification_task.delay(
-                event_name=event_name,
-                channel=template.channel,
-                role=template.role,
-                context=context,
-                template_name=template.template_name,
-            )
+    from .core import NotificationService
 
-    def _send_via_channel(self, channel: str, context: dict, message: str):
-        """
-        Channel-specific sending logic. Plug in new channels easily here.
-        """
-        user = context.get("user")
-
-        if channel == "email":
-            if user and user.email:
-                send_mail(
-                    subject=context.get("subject", "Notification"),
-                    message=message,
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-            else:
-                raise ValueError("Email channel selected, but user has no email.")
-
-        elif channel == "in_app":
-            Notification.objects.create(
-                user=user,
-                type='in_app',
-                title=context.get("title", "Notification"),
-                message=message,
-                website=context.get("website")
-            )
-
-        elif channel == "webhook":
-            url = context.get("webhook_url")
-            if not url:
-                raise ValueError("Webhook URL missing in context.")
-            requests.post(url, json={"message": message})
-
-        elif channel == "websocket":
-            from asgiref.sync import async_to_sync
-            from channels.layers import get_channel_layer # type: ignore
-            group = f"notifications_{user.id}"
-            channel_layer = get_channel_layer()
-            if not channel_layer:
-                raise RuntimeError("No channel layer configured.")
-            async_to_sync(channel_layer.group_send)(group, {
-                "type": "send_notification",
-                "message": message
-            })
-
-        elif channel == "sms":
-            phone = getattr(user.profile, "phone_number", None)
-            if not phone:
-                raise ValueError("No phone number available for SMS.")
-            logger.info(f"SMS sent to {phone}: {message}")
-            # Replace with actual SMS service
-
-        elif channel == "telegram":
-            from notifications_system.delivery.telegram import TelegramBackend
-            telegram_backend = TelegramBackend(notification=self.notification)
-            telegram_backend.send()
-
-        # TO DO: Add more channels as needed
-
-        else:
-            raise ValueError(f"Unknown channel: {channel}")
-        
-    @staticmethod
-    def create_user_status_records(notification, users):
-        from notifications_system.models.notifications_user_status import (
-            NotificationsUserStatus
-        )
-
-        NotificationsUserStatus.objects.bulk_create([
-            NotificationsUserStatus(
-                user=user,
-                notification=notification
-            )
-            for user in users
-        ])
-
-    @staticmethod
-    def notify_errors(notification, users):
-        """
-        Notify users about errors in notification delivery.
-        """
-        for user in users:
-            Notification.objects.create(
-                user=user,
-                type='error',
-                title='Notification Delivery Error',
-                message=f"Failed to deliver notification: {notification.title}",
-                website=notification.website
-            )
-            logger.error(f"Error notification sent to user {user.id} for notification {notification.id}.")
+    return NotificationService.send_digests(group, since=since)

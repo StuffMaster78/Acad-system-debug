@@ -1,0 +1,122 @@
+{
+  "$id": "https://example.com/schemas/broadcast_event.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Broadcast Event Schema",
+  "type": "object",
+  "required": ["event_key", "description", "scope", "channels"],
+  "properties": {
+    "event_key": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$",
+      "description": "Unique dotted key, e.g. broadcast.system_announcement"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Human-readable description of the broadcast event"
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["systemwide", "website"],
+      "description": "Determines the fanout scope of the broadcast"
+    },
+    "priority": {
+      "type": "string",
+      "enum": ["low", "normal", "medium", "high", "critical"],
+      "default": "normal"
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "email",
+          "sms",
+          "in_app",
+          "push",
+          "webhook",
+          "telegram",
+          "whatsapp",
+          "sse",
+          "ws",
+          "slack",
+          "discord"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Default channels for delivery"
+    },
+    "forced_channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "email",
+          "sms",
+          "in_app",
+          "push",
+          "webhook",
+          "telegram",
+          "whatsapp",
+          "sse",
+          "ws",
+          "slack",
+          "discord"
+        ]
+      },
+      "uniqueItems": true,
+      "description": "Channels that override user preferences"
+    },
+    "filters": {
+      "type": "object",
+      "description": "Optional filters for targeted broadcast",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "client",
+              "writer",
+              "admin",
+              "support",
+              "super_admin",
+              "editor"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "is_active": { "type": "boolean" },
+        "custom_conditions": {
+          "type": "object",
+          "description": "Arbitrary key-value conditions",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "force_send": {
+      "type": "boolean",
+      "description": "Bypass user preferences if true",
+      "default": false
+    },
+    "templates": {
+      "type": "object",
+      "description": "Optional per-channel template names",
+      "properties": {
+        "email": { "type": "string" },
+        "in_app": { "type": "string" },
+        "sms": { "type": "string" },
+        "push": { "type": "string" },
+        "webhook": { "type": "string" },
+        "telegram": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "slack": { "type": "string" },
+        "discord": { "type": "string" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

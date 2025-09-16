@@ -1,0 +1,107 @@
+{
+  "$id": "https://example.com/schemas/digest_event.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Digest Event Config",
+  "type": "object",
+  "required": ["event_key", "channels", "interval", "group_by", "digest"],
+  "properties": {
+    "event_key": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$",
+      "description": "e.g. order.created.digest"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Optional display title"
+    },
+    "template": {
+      "type": "string",
+      "description": "Optional per-digest template path/name"
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "email",
+          "in_app",
+          "push",
+          "sms",
+          "webhook",
+          "telegram",
+          "whatsapp",
+          "sse",
+          "ws",
+          "slack",
+          "discord"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "interval": {
+      "type": "string",
+      "enum": ["hourly", "daily", "weekly"]
+    },
+    "group_by": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Field path to group on (e.g. user.id)"
+    },
+    "digest": {
+      "type": "object",
+      "properties": {
+        "merge_strategy": {
+          "type": "string",
+          "enum": ["list_append", "latest_only"]
+        },
+        "max_items": { "type": "integer", "minimum": 1 }
+      },
+      "required": ["merge_strategy"],
+      "additionalProperties": false
+    },
+    "forced_channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "email",
+          "in_app",
+          "push",
+          "sms",
+          "webhook",
+          "telegram",
+          "whatsapp",
+          "sse",
+          "ws",
+          "slack",
+          "discord"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "filters": {
+      "type": "object",
+      "properties": {
+        "roles": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "client",
+              "writer",
+              "admin",
+              "support",
+              "super_admin",
+              "editor"
+            ]
+          },
+          "uniqueItems": true
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": false
+}

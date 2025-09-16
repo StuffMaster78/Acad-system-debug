@@ -1,71 +1,114 @@
 # notifications_system/event_labels.py
 
-from .enums import EventType
+"""
+Maps event enums to human-friendly labels.
+Keep this aligned with notifications_system.enums.*Event classes.
+"""
+
+from .enums import (
+    OrderEvent, FileEvent, WalletEvent, PayoutEvent,
+    TicketEvent, AccountEvent, MessageEvent, WriterEvent
+)
 
 EVENT_LABELS = {
-    EventType.ORDER_ASSIGNED: "Writer Assigned to Order",
-    EventType.ORDER_ON_HOLD: "Order Put on Hold",
-    EventType.ORDER_COMPLETED: "Order Marked as Completed",
-    EventType.ORDER_CANCELLED: "Order Cancelled",
-    EventType.ORDER_REJECTED: "Order Rejected",
-    EventType.ORDER_UPDATED: "Order Updated",
-    EventType.ORDER_CREATED: "New Order Created",
-    EventType.ORDER_PAYMENT_FAILED: "Payment Failed",
-    EventType.ORDER_PAYMENT_SUCCESS: "Payment Successful",
-    EventType.ORDER_REFUNDED: "Order Refunded",
-    EventType.ORDER_ON_DISPUTE: "Order Entered Dispute",
-    EventType.ORDER_DISPUTE_RESOLVED: "Dispute Resolved",
-    EventType.ORDER_DISPUTE_ESCALATED: "Dispute Escalated",
-    EventType.ORDER_DISPUTE_CLOSED: "Dispute Closed",
-    EventType.ORDER_REVIEW_REQUESTED: "Client Asked to Review Order",
-    EventType.ORDER_REVIEW_SUBMITTED: "Review Submitted",
-    EventType.ORDER_REVIEW_APPROVED: "Review Approved",
-    EventType.ORDER_REVIEW_REJECTED: "Review Rejected",
-    EventType.ORDER_ARCHIVED: "Order Archived",
-    EventType.ORDER_RESTORED: "Order Restored",
-    EventType.ORDER_REASSIGNED: "Writer Reassigned",
-    EventType.ORDER_REOPENED: "Order Reopened",
-    EventType.ORDER_APPROVED: "Order Approved",
-    EventType.FILE_UPLOADED: "File Uploaded",
-    EventType.FILE_DELETED: "File Deleted",
-    EventType.WALLET_BALANCE_LOW: "Wallet Balance is Low",
-    EventType.WALLET_CREDITED: "Wallet Credited",
-    EventType.WALLET_DEBITED: "Wallet Debited",
-    EventType.WALLET_TRANSACTION_FAILED: "Wallet Transaction Failed",
-    EventType.WALLET_TRANSACTION_SUCCESS: "Wallet Transaction Succeeded",
-    EventType.WALLET_REFUND_INITIATED: "Refund Initiated",
-    EventType.WALLET_REFUND_COMPLETED: "Refund Completed",
-    EventType.PAYOUT_PROCESSING: "Payout Processing",
-    EventType.PAYOUT_COMPLETED: "Payout Completed",
-    EventType.PAYOUT_FAILED: "Payout Failed",
-    EventType.PAYOUT_CANCELLED: "Payout Cancelled",
-    EventType.TICKET_CREATED: "Support Ticket Created",
-    EventType.TICKET_UPDATED: "Support Ticket Updated",
-    EventType.TICKET_CLOSED: "Ticket Closed",
-    EventType.TICKET_REOPENED: "Ticket Reopened",
-    EventType.TICKET_COMMENT_ADDED: "Comment Added to Ticket",
-    EventType.TICKET_COMMENT_UPDATED: "Comment Updated on Ticket",
-    EventType.TICKET_COMMENT_DELETED: "Comment Deleted from Ticket",
-    EventType.TICKET_ASSIGNED: "Ticket Assigned",
-    EventType.TICKET_UNASSIGNED: "Ticket Unassigned",
-    EventType.TICKET_ESCALATED: "Ticket Escalated",
-    EventType.TICKET_RESOLVED: "Ticket Resolved",
-    EventType.FEEDBACK_RECEIVED: "Feedback Received",
-    EventType.PASSWORD_RESET: "Password Reset Requested",
-    EventType.ACCOUNT_SUSPENDED: "Account Suspended",
-    EventType.NEW_MESSAGE: "New Message",
-    EventType.ORDER_RATED: "Order Rated",
-    EventType.ORDER_REVIEWED: "Order Reviewed",
-    EventType.WRITER_REVIEWED: "Writer Reviewed",
-    EventType.ORDER_REASSIGNMENT_REQUESTED: "Reassignment Requested",
-    EventType.ORDER_REASSIGNMENT_APPROVED: "Reassignment Approved",
-    EventType.WRITER_SUSPENDED: "Writer Suspended",
-    EventType.WRITER_SENT_ON_PROBATION: "Writer Sent on Probation",
-    EventType.USER_BLACKLISTED: "User Blacklisted",
-    EventType.USER_UNBLACKLISTED: "User Removed from Blacklist",
-    EventType.USER_VERIFIED: "User Verified",
-    EventType.USER_UNVERIFIED: "User Unverified",
-    EventType.WRITER_STRIKED: "Writer Received a Strike",
-    EventType.WRITER_UNSTRIKED: "Strike Removed",
-    EventType.WRITER_WARNING: "Writer Warning Issued",
+    # --- Order Events ---
+    OrderEvent.ASSIGNED: "Writer Assigned to Order",
+    OrderEvent.ON_HOLD: "Order Put on Hold",
+    OrderEvent.COMPLETED: "Order Marked as Completed",
+    OrderEvent.CANCELLED: "Order Cancelled",
+    OrderEvent.REJECTED: "Order Rejected",
+    OrderEvent.UPDATED: "Order Updated",
+    OrderEvent.CREATED: "New Order Created",
+    OrderEvent.APPROVED: "Order Approved",
+    OrderEvent.ARCHIVED: "Order Archived",
+    OrderEvent.RESTORED: "Order Restored",
+    OrderEvent.REOPENED: "Order Reopened",
+    OrderEvent.REASSIGNED: "Writer Reassigned",
+    OrderEvent.RATED: "Order Rated",
+    OrderEvent.REVIEWED: "Order Reviewed",
+    OrderEvent.PAYMENT_FAILED: "Payment Failed",
+    OrderEvent.PAYMENT_SUCCESS: "Payment Successful",
+    OrderEvent.REFUNDED: "Order Refunded",
+    OrderEvent.ON_DISPUTE: "Order Entered Dispute",
+    OrderEvent.DISPUTE_RESOLVED: "Dispute Resolved",
+    OrderEvent.DISPUTE_ESCALATED: "Dispute Escalated",
+    OrderEvent.DISPUTE_CLOSED: "Dispute Closed",
+    OrderEvent.REVIEW_REQUESTED: "Client Asked to Review Order",
+    OrderEvent.REVIEW_SUBMITTED: "Review Submitted",
+    OrderEvent.REVIEW_APPROVED: "Review Approved",
+    OrderEvent.REVIEW_REJECTED: "Review Rejected",
+
+    # --- File Events ---
+    FileEvent.UPLOADED: "File Uploaded",
+    FileEvent.DELETED: "File Deleted",
+    FileEvent.UPDATED: "File Updated",
+
+    # --- Wallet Events ---
+    WalletEvent.BALANCE_LOW: "Wallet Balance is Low",
+    WalletEvent.CREDITED: "Wallet Credited",
+    WalletEvent.DEBITED: "Wallet Debited",
+    WalletEvent.TX_FAILED: "Wallet Transaction Failed",
+    WalletEvent.TX_SUCCESS: "Wallet Transaction Succeeded",
+    WalletEvent.REFUND_INITIATED: "Refund Initiated",
+    WalletEvent.REFUND_COMPLETED: "Refund Completed",
+
+    # --- Payout Events ---
+    PayoutEvent.PROCESSING: "Payout Processing",
+    PayoutEvent.COMPLETED: "Payout Completed",
+    PayoutEvent.FAILED: "Payout Failed",
+    PayoutEvent.CANCELLED: "Payout Cancelled",
+
+    # --- Ticket Events ---
+    TicketEvent.CREATED: "Support Ticket Created",
+    TicketEvent.UPDATED: "Support Ticket Updated",
+    TicketEvent.CLOSED: "Ticket Closed",
+    TicketEvent.REOPENED: "Ticket Reopened",
+    TicketEvent.ASSIGNED: "Ticket Assigned",
+    TicketEvent.UNASSIGNED: "Ticket Unassigned",
+    TicketEvent.ESCALATED: "Ticket Escalated",
+    TicketEvent.RESOLVED: "Ticket Resolved",
+    TicketEvent.COMMENT_ADDED: "Comment Added to Ticket",
+    TicketEvent.COMMENT_UPDATED: "Comment Updated on Ticket",
+    TicketEvent.COMMENT_DELETED: "Comment Deleted from Ticket",
+
+    # --- Account Events ---
+    AccountEvent.PASSWORD_RESET: "Password Reset Requested",
+    AccountEvent.ACCOUNT_SUSPENDED: "Account Suspended",
+    AccountEvent.USER_VERIFIED: "User Verified",
+    AccountEvent.USER_UNVERIFIED: "User Unverified",
+    AccountEvent.USER_BLACKLISTED: "User Blacklisted",
+    AccountEvent.USER_UNBLACKLISTED: "User Removed from Blacklist",
+
+    # --- Message Events ---
+    MessageEvent.NEW_MESSAGE: "New Message",
+
+    # --- Writer Events ---
+    WriterEvent.REVIEWED: "Writer Reviewed",
+    WriterEvent.SUSPENDED: "Writer Suspended",
+    WriterEvent.PROBATION: "Writer Sent on Probation",
+    WriterEvent.STRIKED: "Writer Received a Strike",
+    WriterEvent.UNSTRIKED: "Strike Removed",
+    WriterEvent.WARNING: "Writer Warning Issued",
+    WriterEvent.BANNED: "Writer Banned",
+    WriterEvent.UNBANNED: "Writer Unbanned",
+    WriterEvent.REINSTATED: "Writer Reinstated",
+    WriterEvent.REJECTED: "Writer Rejected",
+    WriterEvent.APPROVED: "Writer Approved",
+    WriterEvent.ON_HOLD: "Writer Put On Hold",
+    WriterEvent.ON_PROBATION: "Writer On Probation",
+    WriterEvent.PROMOTED: "Writer Promoted",
+    WriterEvent.DEMOTED: "Writer Demoted",
+    WriterEvent.REVIEW_REQUESTED: "Writer Review Requested",
+    WriterEvent.REVIEW_SUBMITTED: "Writer Review Submitted",
+    WriterEvent.REVIEW_APPROVED: "Writer Review Approved",
 }
+
+def get_event_label(event_key: str) -> str:
+    """
+    Return a human-friendly label for an event key, 
+    or the key itself if unknown.
+    """
+    return EVENT_LABELS.get(event_key, event_key)
+
+# Example usage:
+# label = get_event_label(OrderEvent.CREATED)

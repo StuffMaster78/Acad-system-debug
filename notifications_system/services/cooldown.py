@@ -1,19 +1,31 @@
-from django.utils.timezone import now
+"""Simple per-user per-event throttle helper."""
+
+from __future__ import annotations
+
 from datetime import timedelta
+from django.utils import timezone
+
 from notifications_system.models.notifications import Notification
 
-def should_throttle_user(user, event, cooldown_secs=3600):
-    """
-    Checks if a user has triggered an event within the cooldown period.
+
+def should_throttle_user(
+    user,
+    event: str,
+    cooldown_secs: int = 3600,
+) -> bool:
+    """Check if a user has triggered an event within cooldown.
+
     Args:
-        user: User object
-        event: Event type (string)
-        cooldown_secs: Cooldown period in seconds
+        user: User instance.
+        event: Event key (string).
+        cooldown_secs: Cooldown period in seconds (default: 3600).
+
     Returns:
-        bool: True if the user has triggered the event recently, False otherwise
+        True if throttled (recent event exists), False otherwise.
     """
-    recent = Notification.objects.filter(
-        user=user, event=event,
-        created_at__gte=now() - timedelta(seconds=cooldown_secs)
+    cutoff = timezone.now() - timedelta(seconds=cooldown_secs)
+    return Notification.objects.filter(
+        user=user,
+        event=event,
+        created_at__gte=cutoff,
     ).exists()
-    return recent

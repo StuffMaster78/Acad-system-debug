@@ -37,7 +37,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from notifications_system.models.notification_event_override import NotificationEventOverride
-from notifications_system.registry.event_config_loader import get_event_config
+from notifications_system.registry.notification_event_loader import load_event_configs
 from notifications_system.registry.validator import validate_event_config
 from django.core.exceptions import ValidationError
 
@@ -338,7 +338,7 @@ class NotificationEventOverrideAdmin(admin.ModelAdmin):
         """
         Load full config for this event_key and override object.
         """
-        config = get_event_config(force_reload=True)
+        config = load_event_configs(force_reload=True)
         return config.get(obj.event_key, {})
     
     def save_model(self, request, obj, form, change):

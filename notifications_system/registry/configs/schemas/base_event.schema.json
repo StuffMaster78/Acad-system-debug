@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Base Event Config Schema",
+  "type": "object",
+  "properties": {
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "client",
+          "writer",
+          "admin",
+          "support",
+          "super_admin",
+          "editor"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "email",
+          "in_app",
+          "slack",
+          "discord",
+          "sms",
+          "telegram",
+          "whatsapp",
+          "push",
+          "webhook",
+          "sse",
+          "ws"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "forced_channels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "email",
+          "in_app",
+          "slack",
+          "discord",
+          "sms",
+          "telegram",
+          "whatsapp",
+          "push",
+          "webhook",
+          "sse",
+          "ws"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "enabled": { "type": "boolean" },
+    "description": { "type": "string" }
+  },
+  "required": ["priority", "roles", "channels"],
+  "additionalProperties": true
+}
