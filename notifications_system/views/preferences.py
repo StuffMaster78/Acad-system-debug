@@ -165,7 +165,7 @@ class NotificationPreferenceViewSet(viewsets.ModelViewSet):
         })
 
 
-class MyNotificationPreferencesView(viewsets.ReadOnlyModelViewSet):
+class MyNotificationPreferencesViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = NotificationPreferenceSerializer
     permission_classes = [IsAuthenticated]
 

@@ -5,6 +5,10 @@ services:
       context: .
       dockerfile: Dockerfile
     command: python manage.py runserver 0.0.0.0:8000
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
       - .:/app
     working_dir: /app
@@ -19,8 +23,8 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB: ${POSTGRES_DB_NAME}  # Load database name
-      POSTGRES_USER: ${POSTGRES_USER_NAME}  # Load database user
+      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME}  # Load database name
+      POSTGRES_USER_NAME: ${POSTGRES_USER_NAME}  # Load database user
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Load database password
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -36,6 +40,11 @@ services:
     image: redis:latest
     restart: always
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      - DJANGO_SETTINGS_MODULE=writing_system.settings
     ports:
       - "6379:6379"  # Expose Redis (can remove for production)
     healthcheck:
@@ -49,7 +58,13 @@ services:
       build:
         context: .
         dockerfile: Dockerfile
-      command: celery -A celery worker --loglevel=info
+      command: celery -A writing_system worker --loglevel=info
+      environment:
+        - REDIS_HOST=redis
+        - REDIS_PORT=6379
+        - DEBUG=${DEBUG}
+        - REDIS_PASSWORD=${REDIS_PASSWORD}
+        - DJANGO_SETTINGS_MODULE=writing_system.settings
       volumes:
         - .:/app
       env_file:
@@ -61,11 +76,17 @@ services:
   beat:
       build: .
       command: celery -A writing_system beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+      environment:
+        - REDIS_HOST=redis
+        - REDIS_PORT=6379
+        - DEBUG=${DEBUG}
+        - REDIS_PASSWORD=${REDIS_PASSWORD}
+        - DJANGO_SETTINGS_MODULE=writing_system.settings
       volumes:
         - .:/app
       depends_on:
         - redis
-      environment:
+      env_file:
         - .env
         
 volumes:

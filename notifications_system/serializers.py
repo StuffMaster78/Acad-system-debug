@@ -181,6 +181,52 @@ class NotificationPreferenceSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["id"]
 
+class UserNotificationPreferenceSerializer(serializers.ModelSerializer):
+    """User-specific notification preferences."""
+
+    class Meta:
+        model = UserNotificationPreference
+        fields = [
+            "id", "user", "preference_group", "website",
+            "receive_email", "receive_sms", "receive_push",
+            "receive_in_app", "mute_all", "digest_only",
+            "muted_events", "channel_preferences",
+        ]
+        read_only_fields = ["id"]
+
+class NotificationPreferencesSerializer(serializers.Serializer):
+    """Serializer for updating multiple notification preferences at once."""
+    preferences = UserNotificationPreferenceSerializer(many=True)
+
+    def validate(self, data):
+        if not data.get("preferences"):
+            raise serializers.ValidationError("Preferences list cannot be empty.")
+        return data
+
+    def save(self, user):
+        preferences_data = self.validated_data.get("preferences", [])
+        updated_preferences = []
+
+        for pref_data in preferences_data:
+            pref_instance, created = UserNotificationPreference.objects.update_or_create(
+                user=user,
+                website=pref_data.get("website"),
+                defaults={
+                    "preference_group": pref_data.get("preference_group"),
+                    "receive_email": pref_data.get("receive_email"),
+                    "receive_sms": pref_data.get("receive_sms"),
+                    "receive_push": pref_data.get("receive_push"),
+                    "receive_in_app": pref_data.get("receive_in_app"),
+                    "mute_all": pref_data.get("mute_all"),
+                    "digest_only": pref_data.get("digest_only"),
+                    "muted_events": pref_data.get("muted_events"),
+                    "channel_preferences": pref_data.get("channel_preferences"),
+                }
+            )
+            updated_preferences.append(pref_instance)
+
+        return updated_preferences
+
 
 class EventNotificationPreferenceSerializer(serializers.ModelSerializer):
     """Per-event channel toggles on a per-website basis."""
@@ -406,6 +452,7 @@ class NotificationStatusMarkSerializer(serializers.Serializer):
 
 
 class PreviewRequestSerializer(serializers.Serializer):
+    """Serializer for previewing a notification event."""
     event = serializers.CharField()
     payload = serializers.JSONField(required=False, default=dict)
 
@@ -436,3 +483,11 @@ class NotificationStatusBulkMarkSerializer(serializers.Serializer):
                 "Provide 'ids' OR set 'all_unread'=true."
             )
         return data
+    
+class NotificationGroupProfileSerializer(serializers.ModelSerializer):
+    """Serializer for notification preferences at the group level."""
+    
+    class Meta:
+        model = GroupNotificationProfile
+        fields = ["id", "profile", "group"]
+        read_only_fields = ["id"]

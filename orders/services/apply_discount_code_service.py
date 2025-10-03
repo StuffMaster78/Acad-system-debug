@@ -9,7 +9,7 @@ from discounts.services import DiscountEngine
 from discounts.services.discount_suggestions import DiscountSuggestionService
 from discounts.services.discount_hints import DiscountHintService
 from discounts.services.discount_usage_tracker import DiscountUsageTracker
-from notifications_system.services.dispatch import NotificationDispatcher
+from notifications_system.services.dispatch import send
 
 from activity.utils.logger_safe import safe_log_activity
 
@@ -128,8 +128,12 @@ class ApplyDiscountCodeService:
             logger.exception(
                 f"Critical error applying discounts on order {order.id}: {exc}"
             )
-            NotificationDispatcher.notify_errors(
-                f"Discount error on order {order.id}: {exc}"
+            send(
+                event_key="discount.error",
+                context={
+                    "order_id": order.id,
+                    "error": str(exc),
+                }
             )
 
             suggestions = DiscountSuggestionService.get_suggestions(order.website)

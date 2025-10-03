@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from writer_management.models.writer_warnings import WriterWarning
 from writer_management.models.profile import WriterProfile
-from notifications_system.services import NotificationService
+from notifications_system.services.dispatch import send
 from writer_management.services.escalation_config_service import (
     EscalationConfigService,
 )
@@ -31,11 +31,12 @@ class WriterWarningService:
             expires_at=expires_at,
         )
 
-        NotificationService.send(
+        send(
             user=writer.user,
             title="You've received a warning",
             message=reason,
-            category="writer_warning"
+            category="writer_warning",
+            data={"warning_id": warning.id}
         )
 
         WriterWarningService.check_threshold(writer)
@@ -54,7 +55,8 @@ class WriterWarningService:
         count = WriterWarningService.get_active_warning_count(writer)
 
         if count >= config.admin_alert_threshold:
-            NotificationService.notify_admins(
+            send(
+                user=writer.user,
                 title="Writer Warning Threshold Reached",
                 message=(
                     f"{writer.user.username} has {count} active warnings. "

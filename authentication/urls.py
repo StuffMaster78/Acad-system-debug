@@ -25,14 +25,14 @@ from authentication.views import (
 router = DefaultRouter()
 
 # Core authentication routes
-router.register(r"login", authentication.LoginViewSet, basename="login")
+# router.register(r"login", login_session_viewset.LoginViewSet, basename="login")
 router.register(r"impersonate", impersonation_views.ImpersonationTokenViewSet, basename="impersonate")
 router.register(r"lockouts", account_lockout_viewset.AccountLockoutViewSet, basename="lockout")
 router.register(r"user-sessions", user_session.UserSessionViewSet, basename="user-session")
 router.register(r"logout-events", logout_event_viewset.LogoutEventViewSet, basename="logout-event")
 router.register(r"admin-kickout", admin_kickout_viewset.AdminKickoutViewSet, basename="admin-kickout")
 router.register(r"session-management", session_management_viewset.SessionManagementViewSet, basename="session-management")
-router.register(r"user-sessions", login_session_viewset.LoginSessionViewSet, basename="user-session")
+router.register(r"user-login-sessions", login_session_viewset.LoginSessionViewSet, basename="user-login-session")
 
 # MFA / OTP
 router.register(r"otp", otp_viewset.OTPViewSet, basename="otp")
@@ -122,7 +122,7 @@ custom_urlpatterns = [
 
 urlpatterns = [
     # Main router
-    path("auth/", include(router.urls)),
+    # path("auth/", include(router.urls)),
 
     # Custom actions
     path("auth/", include(custom_urlpatterns)),

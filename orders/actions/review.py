@@ -6,7 +6,7 @@ from orders.registry.decorator import register_order_action
 class ReviewOrderAction(BaseOrderAction):
     def execute(self):
         service = ReviewOrderService()
-        result = service.review_order(self.order_id)
+        result = service.submit_review(self.order_id)
 
         AuditLogService.log_auto(
             actor=self.user,

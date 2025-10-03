@@ -16,31 +16,46 @@ from writer_management.models.messages import (
     WriterMessageThread, WriterMessage
 )
 from writer_management.models.status import WriterStatus
-from writer_management.models.webhooks import (
+from writer_management.models.webhook_settings import (
     WebhookSettings, WebhookPlatform
 )
 from writer_management.models.requests import (
-    WriterOrderRequest, WriterOrderTake
+    WriterOrderRequest, WriterOrderTake, WriterDeadlineExtensionRequest,
+    WriterOrderHoldRequest, WriterOrderReopenRequest,
+    WriterEarningsReviewRequest
 )
 from writer_management.models.payout import (
     WriterPayoutPreference, WriterPayment,
-    WriterEarningsHistory, WriterEarningsReviewRequest,
-    WriterReward, WriterRewardCriteria, Probation
+    WriterEarningsHistory
 )
+
+from writer_management.models.rewards import ( 
+    WriterReward, WriterRewardCriteria
+)
+# from writer_management.models.discipline import (
+#     WriterStrike, WriterSuspension, WriterBlacklist, Probation
+# )
+from writer_management.models.performance_snapshot import (
+    WriterPerformanceSnapshot
+)
+
 from writer_management.models.discipline import (
     WriterSuspension,   WriterBlacklist,
     WriterBlacklistHistory, WriterDisciplineConfig,
-    WriterPenalty
+    WriterPenalty, Probation, WriterStrike, WriterStrikeHistory,
+    WriterSuspensionHistory
 )
-# from writer_management.models. import (
-#     WriterActivityLog
-# )
+from writer_management.models.logs import (
+    WriterActivityLog
+)
 
 from writer_management.models.logs import (
-    WriterActionLog, WriterIPLog, WriterRatingCooldown,
-    WriterFileDownloadLog
+    WriterActionLog, WriterIPLog, WriterFileDownloadLog
 )
 
+from writer_management.models.ratings import (
+    WriterRating, WriterRatingCooldown
+)
 from writer_management.models.requests import (
     WriterOrderRequest, WriterOrderTake, WriterDeadlineExtensionRequest,
     WriterOrderHoldRequest, WriterOrderReopenRequest
@@ -51,6 +66,7 @@ from writer_management.models.tickets import (
 )
 
 from orders.models import Order
+from writer_management.models.order_dispute import OrderDispute
 from .serializers import (
     WebhookSettingsSerializer, WriterProfileSerializer, WriterLevelSerializer,
     WriterConfigSerializer, WriterOrderRequestSerializer,
@@ -68,9 +84,9 @@ from .serializers import (
     OrderDisputeSerializer, CurrencyConversionRateSerializer,
     WriterPaymentSerializer, WriterPerformanceSnapshotSerializer,
     WriterPerformanceSummarySerializer, WriterLevelHistorySerializer,
-    BadgeDefinitionSerializer, WriterBadgeSerializer,
+    WriterBadgeSerializer,
 )
-from writer_management.models import WebhookSettings
+
 from writer_management.serializers import (
 WebhookSettingsSerializer
 )
@@ -82,7 +98,7 @@ from writer_management.services.payment_service import WriterPaymentService
 from decimal import Decimal
 from core.utils.notifications import send_notification 
 from writer_management.serializers import TipCreateSerializer
-from writer_management.models import Tip
+from writer_management.models.tipping import Tip
 from writer_management.serializers import TipListSerializer
 from writer_management.services.tip_service import TipService
 from rest_framework import generics 
@@ -113,6 +129,8 @@ from writer_management.serializers import (
 )
 from rest_framework.response import Response
 from collections import defaultdict
+
+from notifications_system.services.dispatch import send
 
 ### ---------------- Writer Profile Views ---------------- ###
 
@@ -543,7 +561,15 @@ class CurrencyConversionRateViewSet(viewsets.ModelViewSet):
 
 class WriterStatusViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
-    qs = qs.order_by("-active_strikes", "-updated_at")
+
+    def get_queryset(self):
+        qs = WriterStatus.objects.all()
+        return qs.order_by("-active_strikes", "-updated_at")
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        serializer = WriterStatusSerializer(queryset, many=True)
+        return Response(serializer.data)
 
     def retrieve(self, request, pk=None):
         """
@@ -710,12 +736,15 @@ class WriterStatusViewSet(viewsets.ViewSet):
         notified = 0
         for status_obj in qs:
             writer_user = status_obj.writer.user
-            NotificationService.send(
+            send(
                 user=writer_user,
                 title="Account Warning",
                 message=reason,
-                category="writer_status_flag"
+                category="writer_status_flag",
+                metadata={"flag": flag},
+                immediate=True
             )
+
             notified += 1
 
         return Response(

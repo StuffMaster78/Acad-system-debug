@@ -244,3 +244,28 @@ class AdminPromotionRequest(models.Model):
 
     def __str__(self):
         return f"Promotion Request by {self.requested_by.username}"
+    
+
+class AdminActivityLog(models.Model):
+    """
+    Logs significant actions taken by admins for auditing purposes.
+    """
+    admin = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="admin_activity_logs",
+        help_text="Admin who performed the action."
+    )
+    action = models.CharField(
+        max_length=255,
+        help_text="Description of the action performed."
+    )
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.admin.username} - {self.action} at {self.timestamp}"
+
+    class Meta:
+        verbose_name = "Admin Activity Log"
+        verbose_name_plural = "Admin Activity Logs"
+        ordering = ["-timestamp"]  # Newest logs first

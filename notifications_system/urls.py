@@ -12,7 +12,7 @@ from notifications_system.views.user_notifications import (
 )
 from notifications_system.views.preferences import (
     NotificationPreferenceViewSet,
-    MyNotificationPreferencesView,
+    MyNotificationPreferencesViewSet,
     MyEventNotificationPreferenceViewSet,
     NotificationEventPreferenceViewSet,
     RoleNotificationPreferenceViewSet
@@ -25,7 +25,6 @@ from notifications_system.views.profiles import (
 from notifications_system.views.broadcasts import BroadcastNotificationViewSet
 from notifications_system.views.admin_views import NotificationAdminViewSet
 from notifications_system.views.meta import NotificationMetaView
-from notifications_system.views import notification_enum_choices
 from notifications_system.admin_debug_views import preview_email_template
 from notifications_system.views.stream import (
     notification_event_stream,
@@ -78,10 +77,10 @@ router.register(
     NotificationProfileViewSet,
     basename="notification-profiles"
 )
-router.register(
-    r"profiles", NotificationProfileViewSet,
-    basename="notification-profiles"
-)
+# router.register(
+#     r"profiles", NotificationProfileViewSet,
+#     basename="notification-profiles"
+# )
 router.register(
     "notification-group-profiles",
     NotificationGroupProfileViewSet,
@@ -112,6 +111,11 @@ router.register(
     NotificationStatusViewSet,
     basename="notifications-status"
 )
+router.register(
+    r"my/event-preferences",
+    MyEventNotificationPreferenceViewSet,
+    basename="my-event-preferences"
+)
 
 urlpatterns = [
     path(
@@ -138,11 +142,6 @@ urlpatterns = [
         "notifications/unread-count/",
         UnreadNotificationCountView.as_view(),
         name="notifications-unread-count"
-    ),
-    path(
-        "notifications/preferences/me/",
-        MyNotificationPreferencesView.as_view(),
-        name="my-notification-preferences"
     ),
     path(
         "admin/preview-email/<str:priority>/",

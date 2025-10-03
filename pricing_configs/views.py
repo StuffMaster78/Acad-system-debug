@@ -18,7 +18,7 @@ from rest_framework.permissions import AllowAny
 from pricing_configs.services.price_estimation_service import (
     PricingEstimationService
 )
-from .utils import get_website_from_request, WebsiteScopedViewSetMixin
+from .mixins import WebsiteScopedViewSetMixin
 
 class PricingConfigurationViewSet(viewsets.ModelViewSet):
     """

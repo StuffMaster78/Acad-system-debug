@@ -136,33 +136,3 @@ def log_audit_action(
         metadata=metadata
     )
 
-class WebhookAuditLogger:
-
-    @staticmethod
-    def log_webhook_event(
-        *,
-        user,
-        platform,
-        webhook_url,
-        event,
-        order_id,
-        payload,
-        response_body,
-        response_status,
-        was_successful,
-        is_test=False,
-        fallback_icon=None,
-    ):
-        WebhookAuditLog.objects.create(
-            user=user,
-            platform=platform,
-            webhook_url=webhook_url,
-            event=event,
-            order_id=order_id,
-            payload=payload,
-            response_body=response_body,
-            response_status=response_status,
-            was_successful=was_successful,
-            is_test=is_test,
-            fallback_icon=fallback_icon,
-        )

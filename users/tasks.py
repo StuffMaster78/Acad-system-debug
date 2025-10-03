@@ -2,7 +2,7 @@ from celery import shared_task
 from django.utils.timezone import now
 from users.models import User
 from datetime import timedelta
-from users.models import UserSession, SecureToken
+from authentication.models import UserSession, SecureToken
 
 @shared_task
 def archive_expired_accounts():

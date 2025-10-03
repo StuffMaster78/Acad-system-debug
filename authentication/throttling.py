@@ -6,6 +6,11 @@ class LoginRateThrottle(SimpleRateThrottle):
     def get_cache_key(self, request, view):
         request.throttled_scope = self.scope  # add scope to request
         return self.get_ident(request)
+    
+class LoginSustainedThrottle(SimpleRateThrottle):
+    scope = "login_sustained"
+    def get_cache_key(self, request, view):
+        return self.get_ident(request)
 
 class MagicLinkThrottle(SimpleRateThrottle):
     scope = 'magic_link'
@@ -23,14 +28,6 @@ class PasswordResetRateThrottle(SimpleRateThrottle):
 
     def get_cache_key(self, request, view):
         return self.get_ident(request)  # uses IP address
-
-
-class MagicLinkRateThrottle(SimpleRateThrottle):
-    scope = 'magic_link'
-
-    def get_cache_key(self, request, view):
-        return self.get_ident(request)
-
 
 class MFARateThrottle(SimpleRateThrottle):
     scope = 'mfa_challenge'

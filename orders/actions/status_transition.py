@@ -17,7 +17,7 @@ class StatusTransitionAction(BaseOrderAction):
     def execute(self):
         old_status = self.order.status
         service = StatusTransitionService()
-        result = service.transition(self.order_id, **self.params)
+        result = service.transition_order_to_status(self.order_id, **self.params)
         new_status = self.order.status
 
         AuditLogService.log_auto(

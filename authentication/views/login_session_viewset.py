@@ -1,14 +1,16 @@
 from rest_framework import viewsets, permissions
 from authentication.models.login import LoginSession
 from authentication.serializers import LoginSessionSerializer
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import action
 from django.conf import settings
+from rest_framework.exceptions import APIException
 
 from django.contrib.auth import authenticate
 from django.utils.timezone import now
+from django.utils import timezone
 
 from authentication.serializers import LoginSerializer
 from authentication.services.failed_login_attempts import FailedLoginService
@@ -19,28 +21,80 @@ from authentication.services.login_service import LoginService
 
 user = settings.AUTH_USER_MODEL
 
-class LoginSessionViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    API viewset for listing and retrieving user login sessions.
-    """
-    serializer_class = LoginSessionSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    # After successful auth, before token issuance
-    if not user.mfa_enabled:
-        return Response({
+# Optional: raise a 403 with a structured body if MFA isn't set up
+class MFANotSetup(APIException):
+    status_code = status.HTTP_403_FORBIDDEN
+    default_code = "mfa_required"
+
+    def __init__(self, user):
+        detail = {
             "error": "2FA required",
             "setup_required": True,
-            "totp_url": LoginService.generate_provisioning_uri(user)
-        }, status=403)
+            "totp_url": LoginService.generate_provisioning_uri(user),
+        }
+        super().__init__(detail=detail)
+
+
+class RequireMFAOrDeny(permissions.BasePermission):
+    """
+    Gate endpoints until user has enabled MFA.
+    Use only where it makes sense (read APIs are fine;
+    most folks enforce this at auth/token endpoints).
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if getattr(request.user, "mfa_enabled", False):
+            return True
+        # Raise a structured 403 payload
+        raise MFANotSetup(request.user)
+
+
+class LoginSessionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List/retrieve the caller's login sessions (tenant-scoped).
+    """
+    serializer_class = LoginSessionSerializer
+    permission_classes = [permissions.IsAuthenticated, RequireMFAOrDeny]
+
     def get_queryset(self):
         """
-        Returns sessions only for the authenticated user and website.
+        Only sessions for the authenticated user AND current website.
+        Assumes middleware sets request.website (or website_id).
         """
-        return LoginSession.objects.filter(
-            user=self.request.user,
-            website=self.request.website  # website set via middleware/context
-        )
-    
+        user = self.request.user
+        website = getattr(self.request, "website", None)
+        website_id = getattr(website, "id", website)  # supports id or raw int
+
+        qs = LoginSession.objects.select_related("user", "website") \
+                                 .filter(user=user)
+        if website_id is not None:
+            qs = qs.filter(website_id=website_id)
+        return qs.order_by("-last_activity")
+
+    @action(detail=True, methods=["post"])
+    def revoke(self, request, pk=None):
+        """
+        Revoke (logout) a specific session by marking it expired.
+        """
+        session = self.get_object()  # already filtered to owner & website
+        if session.is_active:
+            session.is_active = False
+            session.revoked_at = timezone.now()
+            session.revoked_by_id = request.user.id  # if you track it
+            session.save(update_fields=["is_active", "revoked_at", "revoked_by_id"])
+        return Response({"ok": True, "revoked": True})
+
+    @action(detail=False, methods=["post"], url_path="revoke-all")
+    def revoke_all(self, request):
+        """
+        Revoke all other active sessions for this user on this website.
+        """
+        qs = self.get_queryset().filter(is_active=True)
+        if "keep_current" in request.query_params and request.query_params["keep_current"] == "1":
+            qs = qs.exclude(id=getattr(request, "session_id", None))  # if you track current
+        count = qs.update(is_active=False, revoked_at=timezone.now())
+        return Response({"ok": True, "revoked_count": count})
 class LoginViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 

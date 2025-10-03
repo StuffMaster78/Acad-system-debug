@@ -4,7 +4,8 @@ from django.db import transaction
 from django.contrib.auth import get_user_model
 from admin_management.models import AdminProfile, BlacklistedUser
 from orders.models import Dispute
-from notifications_system.models import send_notification
+from admin_management.models import AdminActivityLog
+from notifications_system.services.core import NotificationService
 
 User = get_user_model()
 
@@ -50,7 +51,7 @@ def assign_admin_permissions(user, admin_profile=None):
 def notify_superadmins_new_admin(user):
     if user.role == "admin":
         for superadmin in User.objects.filter(role="superadmin"):
-            send_notification(
+            NotificationService.send_notification(
                 recipient=superadmin,
                 title="New Admin Added",
                 message=f"{user.username} has been assigned as an Admin.",
@@ -75,7 +76,7 @@ def log_user_suspension_if_changed(user, previous_state):
 
 def notify_superadmins_blacklist(blacklisted_user):
     for superadmin in User.objects.filter(role="superadmin"):
-        send_notification(
+        NotificationService.send_notification(
             recipient=superadmin,
             title="User Blacklisted",
             message=f"{blacklisted_user.email} was blacklisted by {blacklisted_user.blacklisted_by.username}.",
@@ -87,7 +88,7 @@ def notify_admins_new_dispute(dispute):
         return
     created_by = dispute.user.username
     for admin in User.objects.filter(role="admin"):
-        send_notification(
+        NotificationService.send_notification(
             recipient=admin,
             title="New Dispute Opened",
             message=f"A dispute for Order #{dispute.order.id} was opened by {created_by}.",

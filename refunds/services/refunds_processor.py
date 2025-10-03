@@ -7,7 +7,7 @@ from order_payments_management.models import AdminLog, PaymentLog
 from refunds.models import RefundLog
 from discounts.services.discount_usage_tracker import DiscountUsageTracker
 from refunds.models import RefundReceipt
-from notifications_system.services.dispatcher import notify_user
+from notifications_system.services.core import NotificationService
 from django.db import transaction as transaction
 from wallet.services.wallet_transaction_service import WalletTransactionService
 
@@ -254,7 +254,7 @@ class RefundProcessorService:
         )
 
         # Notify the writer about the deduction
-        notify_user(
+        NotificationService.send_notification(
             recipient=writer,
             title="Earnings Deduction Due to Refund",
             message=(
@@ -328,7 +328,7 @@ class RefundProcessorService:
     
     @staticmethod
     def notify_client(refund, processed_by, reason):
-        notify_user(
+        NotificationService.send_notification(
             recipient=refund.client,
             title="Refund Processed",
             message=(

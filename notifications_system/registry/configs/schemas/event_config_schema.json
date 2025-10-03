@@ -3,9 +3,23 @@
   "$id": "https://your.app/schemas/event_config.schema.json",
   "title": "Notification Event Config (map item)",
   "type": "object",
-  "required": ["description", "enabled", "roles", "channels", "priority"],
+  "required": [
+    "key", "label", "description", "enabled",
+    "roles", "channels", "priority", "templates"
+  ],
   "additionalProperties": false,
   "properties": {
+    "key": {
+      "type": "string",
+      "pattern": "^[A-Z0-9_]+$",
+      "minLength": 3,
+      "description": "Programmatic key, e.g., ORDER_ASSIGNED"
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable name"
+    },
     "description": { "type": "string", "minLength": 1 },
     "enabled": { "type": "boolean" },
     "roles": {
@@ -26,7 +40,7 @@
         "type": "string",
         "enum": [
           "in_app", "email", "sms", "push", "webhook",
-          "telegram", "whatsapp", "sse", "ws", "slack", "discord"
+          "telegram", "whatsapp", "sse", "slack", "discord"
         ]
       },
       "minItems": 1,
@@ -38,7 +52,7 @@
         "type": "string",
         "enum": [
           "in_app", "email", "sms", "push", "webhook",
-          "telegram", "whatsapp", "sse", "ws", "slack", "discord"
+          "telegram", "whatsapp", "sse", "slack", "discord"
         ]
       },
       "default": [],
@@ -46,13 +60,14 @@
     },
     "priority": {
       "type": "string",
-      "enum": ["low", "normal", "medium", "high", "critical"]
+      "enum": ["low", "normal", "medium", "high", "critical"],
+      "default": "normal"
     },
     "templates": {
       "type": "object",
       "description": "Optional mapping of channel -> template name",
       "patternProperties": {
-        "^(in_app|email|sms|push|webhook|telegram|whatsapp|sse|ws|slack|discord)$": {
+        "^(in_app|email|sms|push|webhook|telegram|whatsapp|sse|slack|discord)$": {
           "type": "string",
           "minLength": 1
         }
@@ -77,6 +92,17 @@
       "type": "integer",
       "minimum": 1,
       "description": "Optional TTL for in-app visibility."
+    },
+    "scope": {
+      "type": "string",
+      "enum": ["tenant", "global", "systemwide"],
+      "default": "tenant",
+      "description": "Delivery scope/visibility domain."
+    },
+    "force_send": {
+      "type": "boolean",
+      "default": false,
+      "description": "DEPRECATED. Use forced_channels instead."
     }
   }
 }

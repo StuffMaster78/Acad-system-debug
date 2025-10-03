@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 from django.utils.timezone import now
 
 from discounts.utils import get_discount_model
-from notifications_system.services.dispatch import NotificationDispatcher
+from notifications_system.services.dispatch import send
 
 logger = logging.getLogger(__name__)
 
@@ -92,15 +92,19 @@ class PromotionalCampaignService:
                 logger.info(
                     f"Attached promotional campaign '{promotional_campaign}' to discount '{discount.code}'."
                 )
+
+                # Optionally send a notification about this change
+                send(
+                    user=None,
+                    notification_type="discount_updated",
+                    context={
+                        "discount_code": discount.code,
+                        "promotional_campaign": str(promotional_campaign),
+                    },
+                )
             except Exception as e:
                 logger.error(f"Failed to save discount with promotional campaign: {e}")
-                NotificationDispatcher.notify_errors(
-                    subject="Discount Promotional Campaign Save Failure",
-                    message=str(e),
-                    user=discount.user,
-                    context={"discount_id": discount.id, "campaign_id": promotional_campaign.id}
-                )
-                raise
+                raise ValidationError(f"Failed to save discount: {e}")
         else:
             raise ValidationError(
                 "The promotional campaign is not active or is outside its valid period."

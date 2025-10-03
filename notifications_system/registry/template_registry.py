@@ -4,6 +4,7 @@ import importlib
 import logging
 import pkgutil
 from pathlib import Path
+import threading
 from threading import Lock
 from typing import Callable, Dict, List, Tuple, Type
 
@@ -62,7 +63,7 @@ _TEMPLATE_NAMES: Dict[str, Dict[str, str]] = {}
 # Optional class-based handlers tied to events
 _HANDLERS: Dict[str, List[Type]] = {}
 
-_LOCK = Lock()
+_LOCK = threading.RLock()
 _AUTOLOADED = False
 
 

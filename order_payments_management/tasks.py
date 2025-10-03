@@ -5,7 +5,7 @@ import logging
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import OrderPayment, FailedPayment, PaymentReminderSettings, PaymentLog
-from notifications_system.models import Notification
+from notifications_system.models.notifications import Notification
 from .models import AdminLog  # Ensure admin logs are properly tracked
 
 logger = logging.getLogger(__name__)

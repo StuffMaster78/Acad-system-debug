@@ -45,7 +45,7 @@ class WriterConfigHistory(models.Model):
         related_name="history"
     )
     changed_by = models.ForeignKey(
-        'auth.User', on_delete=models.SET_NULL, null=True,
+        'settings.AUTH_USER_MODEL', on_delete=models.SET_NULL, null=True,
         related_name="config_changes"
     )
     change_date = models.DateTimeField(

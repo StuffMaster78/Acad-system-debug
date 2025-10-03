@@ -21,6 +21,7 @@
             "revision_requested",
             "revision_in_progress",
             "revised",
+            "returned",
             "rated",
             "approved",
             "refunded",

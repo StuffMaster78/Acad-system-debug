@@ -8,11 +8,11 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
-from services.admin_profile_service import AdminProfileService
-from services.promotion_service import AdminPromotionService
+from .services.admin_profile_service import AdminProfileService
+from .services.promotion_service import AdminPromotionService
 
 from .models import AdminActivityLog, AdminProfile, BlacklistedUser
-from .serializers import (
+from admin_management.serializers import (
     AdminProfileSerializer,
     AdminLogSerializer,
     BlacklistedUserSerializer,
@@ -23,32 +23,24 @@ from .serializers import (
 )
 from .permissions import IsAdmin, IsSuperAdmin
 from orders.models import Order, Dispute
-from .services.blacklist_service import blacklist_user, remove_from_blacklist
-from .services.admin_profile_service import (
-    submit_promotion_request,
-    approve_promotion_request,
-    reject_promotion_request,
-)
+from admin_management.services.blacklist_service import BlacklistService
+from admin_management.services.admin_profile_service import  AdminProfileService
 from .serializers import (
     BlacklistedUserListSerializer,
     BlacklistedUserDetailSerializer,
     AdminPromotionRequestSerializer,
     AdminPromotionRequestCreateSerializer,
 )
-from .services.promotion_service import (
-    submit_promotion_request,
-    approve_promotion_request,
-    reject_promotion_request,
-)
+from .services.promotion_service import AdminPromotionService
 from .models import AdminPromotionRequest, BlacklistedUser  
-from .permissions import IsAdminUser, IsSuperAdminUser
+from rest_framework import mixins
 from .serializers import (
     BlacklistedUserListSerializer,
     BlacklistedUserDetailSerializer,
     AdminPromotionRequestSerializer,
     AdminPromotionRequestCreateSerializer,
 )
-from .permissions import IsAdmin, IsSuperAdmin, IsAdminUser
+
 from .serializers import (
     DashboardSerializer,
     CreateUserSerializer,
@@ -57,7 +49,7 @@ from .serializers import (
     RemoveBlacklistSerializer,
 )
 from .models import AdminActivityLog, BlacklistedUser, AdminPromotionRequest
-from .permissions import IsAdmin, IsSuperAdmin, IsAdminUser
+from .permissions import IsAdmin, IsSuperAdmin
 
 
 User = get_user_model()
@@ -206,16 +198,16 @@ class BlacklistedUserViewSet(mixins.ListModelMixin,
                               viewsets.GenericViewSet):
     queryset = BlacklistedUser.objects.select_related(
         "blacklisted_by", "user", "website"
-    ).order_by("-created_at")
+    ).order_by("-blacklisted_at")
     lookup_field = "email"
     lookup_value_regex = r"[\w\.-]+@[\w\.-]+\.\w+"
     pagination_class = None  # Disable pagination for simplicity
     filterset_fields = ["website", "blacklisted_by"]
     search_fields = ["email", "website__name"]
-    ordering_fields = ["created_at", "email"]
-    ordering = ["-created_at"]
+    ordering_fields = ["blacklisted_at", "email"]
+    ordering = ["-blacklisted_at"]
     serializer_class = BlacklistedUserListSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdmin]
 
     def get_serializer_class(self):
         if self.action == "retrieve":
@@ -248,7 +240,7 @@ class AdminPromotionRequestViewSet(viewsets.ModelViewSet):
         "requested_by", "approved_by", "rejected_by"
     ).order_by("-requested_at")
     serializer_class = AdminPromotionRequestSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdmin]
 
     def perform_create(self, serializer):
         AdminPromotionService.submit_promotion_request(request=self.request, serializer=serializer)

@@ -1,6 +1,6 @@
 from celery import shared_task
 from django.utils.timezone import now
-from .models import Discount
+from .models.discount import Discount
 
 @shared_task
 def deactivate_expired_discounts():

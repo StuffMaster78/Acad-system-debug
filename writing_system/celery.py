@@ -9,6 +9,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "writing_system.settings")
 
 app = Celery("writing_system")
 app.config_from_object("django.conf:settings", namespace="CELERY")
+
+
+app.conf.broker_url = os.getenv("CELERY_BROKER_URL")
+app.conf.result_backend = os.getenv("CELERY_RESULT_BACKEND")
+
 app.autodiscover_tasks()
 
 @app.task(bind=True)
@@ -82,6 +87,37 @@ app.conf.beat_schedule = {
         "task": "notifications_system.tasks.broadcast.delete_old_expired_broadcasts",
         "schedule": crontab(minute=30, hour=2),  # daily at 2:30am
     },
+
+    # User digests (HTML summary of unread notifications)
+    "daily-notification-digest": {
+        "task": "notifications_system.tasks.send_notification_digests",
+        "schedule": crontab(minute=5, hour=8),   # every day at 08:05
+        "args": ("daily",),
+    },
+    "weekly-notification-digest": {
+        "task": "notifications_system.tasks.send_notification_digests",
+        "schedule": crontab(minute=30, hour=8, day_of_week="monday"),  # weekly on Monday
+        "args": ("weekly",),
+    },
+
+    # If you also store digest rows and want a nightly pass:
+    "send-digest-rows-nightly": {
+        "task": "notifications_system.tasks.send_daily_digests",
+        "schedule": crontab(minute=20, hour=2),  # nightly at 02:20
+    },
+
+    # Hygiene: soft-expire & purge (if you added the slim wrappers I proposed)
+    "soft-expire-inapp-30d": {
+        "task": "notifications_system.tasks.soft_expire_inapp_old",
+        "schedule": crontab(minute=0, hour=3),   # daily 03:00
+        "kwargs": {"older_than_days": 30},
+    },
+    "purge-expired-inapp-90d": {
+        "task": "notifications_system.tasks.purge_expired_inapp",
+        "schedule": crontab(minute=15, hour=3, day_of_week="sunday"),  # Sundays 03:15
+        "kwargs": {"older_than_days": 90, "dry_run": False},
+    },
+
 }
 
 # --- Dynamic Schedule via django-celery-beat ---

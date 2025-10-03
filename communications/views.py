@@ -28,7 +28,7 @@ from rest_framework.views import APIView
 from communications.throttles import AuditLogThrottle
 from rest_framework.permissions import IsAuthenticated
 from communications.permissions import IsSuperAdmin
-from throttles import SuperAdminAuditThrottle
+from .throttles import SuperAdminAuditThrottle
 
 
 class MessageThrottle(UserRateThrottle):
@@ -240,9 +240,6 @@ class DisputeMessageViewSet(viewsets.ModelViewSet):
         return Response({"detail": "Dispute message resolved successfully."}, status=status.HTTP_200_OK)
 
 
-
-
-
 class MessageAttachmentUploadView(APIView):
     
     parser_classes = [MultiPartParser, FormParser]
@@ -284,7 +281,7 @@ class MessageAttachmentUploadView(APIView):
 
 
 class CommunicationLogViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = CommunicationLog.objects.all().order_by("-created_at")
+    queryset = CommunicationLog.objects.all().order_by("-timestamp")
     serializer_class = CommunicationLogSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [AuditLogThrottle]

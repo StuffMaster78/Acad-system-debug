@@ -6,9 +6,9 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.signals import user_logged_in
 from django.utils.timezone import now
 from .models.profile import WriterProfile
-from models.logs import WriterActionLog
+from .models.logs import WriterActionLog
 from core.utils.location import get_geolocation_from_ip
-from models.payout import CurrencyConversionRate
+from .models.payout import CurrencyConversionRate
 from django.core.cache import cache
 from writer_management.services.conversion_service import CurrencyConversionService
 

@@ -6,7 +6,7 @@ from django.core.mail import send_mail
 from django.utils.timezone import now
 from django.conf import settings
 from .models import SuperadminLog, Probation, Blacklist, User, UserActionLog
-from notifications_system.models import Notification
+from notifications_system.models.notifications import Notification
 class SuperadminManager:
     """Handles all Superadmin operations."""
 

@@ -35,3 +35,14 @@ class OrderUrgencyService(OrderService):
         """
         self.order.is_critical = self.is_critical(threshold_hours)
         self.save()
+
+    def set_urgency(self, urgency_level, threshold_hours=24):
+        """
+        Set the urgency level of the order.
+
+        Args:
+            urgency_level (str): The urgency level to set.
+            threshold_hours (int): Hours before deadline to mark critical.
+        """
+        self.order.urgency_level = urgency_level
+        self.update_critical_status(threshold_hours)

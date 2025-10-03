@@ -1,42 +1,19 @@
-
-# from .registry import OrderActionRegistry
-# from .order_actions import (TransitionToPending,
-#                       PutOnHold, ResumeOrder, AssignWriter,
-#                       CompleteOrder, DisputeOrder, ApproveOrder,
-#                       CancelOrder, ArchiveOrder, LateOrder,
-#                       RevisionOrder)
-
-# __all__ = [
-#     "OrderActionRegistry",  # To allow importing of the registry
-#     "TransitionToPending", 
-#     "PutOnHold", 
-#     "ResumeOrder", 
-#     "AssignWriter",
-#     "CompleteOrder", 
-#     "DisputeOrder", 
-#     "ApproveOrder", 
-#     "CancelOrder", 
-#     "ArchiveOrder", 
-#     "LateOrder", 
-#     "RevisionOrder"
-# ]
-
-
-
-
-
 import importlib
 import pkgutil
-import sys
+import logging
 
-def autodiscover_actions():
-    """
-    Imports all modules in this package to trigger decorators.
-    """
-    package = sys.modules[__name__]
-    for _, module_name, _ in pkgutil.iter_modules(package.__path__):
-        full_module_name = f"{__name__}.{module_name}"
-        importlib.import_module(full_module_name)
+log = logging.getLogger(__name__)
+_SKIP = {"__init__", "base", "registry", "discover", "helpers"}
 
-# Auto-trigger when imported
-autodiscover_actions()
+def autodiscover() -> list[str]:
+    loaded: list[str] = []
+    pkg = __name__  # "orders.actions"
+    for _, modname, ispkg in pkgutil.iter_modules(__path__):  # type: ignore[name-defined]
+        if ispkg or modname in _SKIP or modname.startswith("_"):
+            continue
+        try:
+            importlib.import_module(f"{pkg}.{modname}")
+            loaded.append(modname)
+        except Exception as exc:
+            log.warning("[actions] failed to import %s: %s", modname, exc, exc_info=True)
+    return loaded

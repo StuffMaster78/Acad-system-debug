@@ -1,8 +1,8 @@
 from django.core.mail import send_mail
 from django.conf import settings
-from notifications_system.models import Notification
+from notifications_system.models.notifications import Notification
 from django.contrib.auth import get_user_model
-from channels.layers import get_channel_layer
+# from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from superadmin_management.tasks import send_email_task  # Celery task for email retry
 import logging
@@ -45,12 +45,12 @@ class SuperadminNotifier:
                 recipient_list=recipient_emails
             )
 
-        # Send WebSocket Notification
-        try:
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
-                "superadmin_notifications",
-                {"type": "send_notification", "message": {"title": title, "message": message}}
-            )
-        except Exception as e:
-            logger.error(f"WebSocket notification failed: {e}")
+        # # Send WebSocket Notification
+        # try:
+        #     channel_layer = get_channel_layer()
+        #     async_to_sync(channel_layer.group_send)(
+        #         "superadmin_notifications",
+        #         {"type": "send_notification", "message": {"title": title, "message": message}}
+        #     )
+        # except Exception as e:
+        #     logger.error(f"WebSocket notification failed: {e}")

@@ -1,6 +1,6 @@
 from rest_framework import viewsets, permissions
 from .models import (
-    PaperType, FormattingStyle, Subject,
+    PaperType, FormattingandCitationStyle, Subject,
     TypeOfWork, EnglishType, WriterDeadlineConfig,
     RevisionPolicyConfig
 )
@@ -22,7 +22,7 @@ class PaperTypeViewSet(viewsets.ModelViewSet):
 
 
 class FormattingStyleViewSet(viewsets.ModelViewSet):
-    queryset = FormattingStyle.objects.all()
+    queryset = FormattingandCitationStyle.objects.all()
     serializer_class = FormattingStyleSerializer
 
 

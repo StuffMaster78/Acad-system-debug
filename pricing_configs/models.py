@@ -18,7 +18,7 @@ class WriterLevelOptionConfig(models.Model):
     Example: $10 for Top 10 writers
     """
     website = models.ForeignKey(
-        "core.Website",
+        "websites.Website",
         on_delete=models.CASCADE,
         related_name="writer_level_options"
     )

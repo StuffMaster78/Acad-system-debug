@@ -23,7 +23,11 @@ Includes API documentation, schema generation, and app-specific endpoints.
 
 from django.contrib import admin
 from django.urls import path, include
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularSwaggerView,
+    SpectacularRedocView
+)
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -66,10 +70,10 @@ urlpatterns = [
     path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
     path('api/v1/', include('service_pages_management.urls')),
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
-    path('api/v1/analytics/', include('analytics.urls')),  # Analytics app
-    path('api/v1/badges/', include('badges.urls')),  # Badges app
+    # path('api/v1/analytics/', include('analytics.urls')),  # Analytics app
+    # path('api/v1/badge_management/', include('badge_management.urls')),  # Badges app
 
-    path('api/v1/admin/', include('notifications_system.admin_urls')), # Admin URLs for notifications
+    # path('api/v1/admin/', include('notifications_system.admin_urls')), # Admin URLs for notifications
 
     path('api/v1/auth/', include('authentication.urls')),
 ]

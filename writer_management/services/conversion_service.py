@@ -2,7 +2,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from django.core.cache import cache
 from django.utils.timezone import now
 
-from models.payout import CurrencyConversionRate
+from writer_management.models.payout import CurrencyConversionRate
 
 
 class CurrencyConversionService:

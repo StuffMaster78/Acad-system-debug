@@ -18,7 +18,7 @@ from .views import (
     WriterDashboardStatusView, WriterPerformanceSnapshotViewSet,
     WriterPerformanceDashboardView, WriterPaymentViewSet,
     WriterWarningViewSet, WriterWarningSelfViewSet,
-    WriterBadgeAdminViewSet, BadgeDefinitionAdminViewSet,
+    WriterBadgeAdminViewSet
 )
 
 from writer_management.views import WebhookSettingsViewSet
@@ -99,7 +99,7 @@ router.register("webhooks", WebhookSettingsViewSet, basename="webhook-settings")
 router.register(r"conversion-rates", CurrencyConversionRateViewSet, basename="conversion-rate")
 
 ## ---------------- Writer Payment Routes ---------------- ###
-router.register(r"writer-payments", WriterPaymentViewSet, basename="writer-payment")
+router.register(r"writers-payments", WriterPaymentViewSet, basename="writers-payment")
 
 ## ---------------- Writer Status Routes ---------------- ###
 router.register(r"writer-status", WriterStatusViewSet, basename="writer-status")

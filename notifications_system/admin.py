@@ -41,6 +41,7 @@ from notifications_system.registry.notification_event_loader import load_event_c
 from notifications_system.registry.validator import validate_event_config
 from django.core.exceptions import ValidationError
 
+from .models.notifications_user_status import NotificationsUserStatus
 
 class UserNotificationSettingsForm(forms.ModelForm):
     class Meta:
@@ -345,3 +346,11 @@ class NotificationEventOverrideAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
         # Optional: log to your own audit system or console
         print(f"[Admin] Updated NotificationEventOverride: {obj}")
+
+
+
+@admin.register(NotificationsUserStatus)
+class NotificationsUserStatusAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "notification", "is_read", "pinned", "priority", "created_at")
+    list_filter = ("is_read", "pinned", "priority")
+    search_fields = ("user__username", "notification__title")

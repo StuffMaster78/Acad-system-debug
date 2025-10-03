@@ -1,8 +1,9 @@
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
 
-from writer_management.models import WebhookSettings
-from writer_management.models import WebhookPlatform
+from writer_management.models.webhook_settings import (
+    WebhookSettings, WebhookPlatform
+)
 from orders.order_enums import WebhookEvent
 from writer_management.tasks import deliver_webhook_payload
 from orders.serializers import OrderMinimalSerializer 

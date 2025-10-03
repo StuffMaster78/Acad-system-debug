@@ -4,6 +4,26 @@ from .models import Website
 def get_primary_website():
     return Website.objects.filter(is_active=True, is_deleted=False).order_by("id").first()
 
+def get_current_website(request):
+    """
+    Determines the current website based on the request.
+    Priority:   1. request.website (set by middleware)
+                2. request.user's website (if authenticated)
+                3. domain from request host
+                4. primary website as fallback
+    """
+    if hasattr(request, "website") and request.website:
+        return request.website
+
+    if request.user.is_authenticated:
+        return getattr(request.user, "website", None)
+
+    host = request.get_host().split(":")[0]
+    site = Website.objects.filter(domain__iexact=host, is_active=True, is_deleted=False).first()
+    if not site:
+        site = get_primary_website()
+    return site
+
 def get_primary_domain():
     """
     Returns the primary domain for the website.

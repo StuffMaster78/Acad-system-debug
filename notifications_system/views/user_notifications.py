@@ -70,7 +70,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
              "updated": count}
         )
 
-class NotificationStatusViewSet(...):
+class NotificationStatusViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     throttle_classes = [
         NotificationWriteBurstThrottle,

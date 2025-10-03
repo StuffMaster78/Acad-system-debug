@@ -4,8 +4,7 @@ from django.core.cache import cache
 from writer_management.models.status import WriterStatus
 from writer_management.models.profile import WriterProfile
 from writer_management.services.escalation_config_service import EscalationConfigService
-from audit_logging.services import AuditLogger
-
+from audit_logging.services.audit_log_service import AuditLogService
 class WriterStatusService:
     """
     Service to fetch and update a writer's centralized status,
@@ -93,7 +92,7 @@ class WriterStatusService:
         WriterStatusService._notify_on_change(writer, prev, status)
         cache.set(f"writer_status:{writer.id}", status, timeout=300)
 
-        AuditLogger.log(
+        AuditLogService.log(
             actor=None,  # system-initiated
             target=writer.user,
             action="status_changed",
@@ -109,7 +108,7 @@ class WriterStatusService:
         )
 
         if should_suspend:
-            AuditLogger.log(
+            AuditLogService.log(
                 actor=None,
                 target=writer.user,
                 action="status_auto_flagged",
@@ -130,11 +129,15 @@ class WriterStatusService:
     @staticmethod
     def _notify_on_change(writer, prev, new):
         def notify(message):
-            NotificationService.send_to_user(
+            from notifications_system.services.dispatch import send
+            send(
                 user=writer.user,
                 title="Account Status Update",
                 message=message,
-                category="writer_status"
+                category="writer_status",
+                notification_type="in_app",
+                context={"writer_id": writer.id},
+                message_type="info"
             )
 
         if new["is_suspended"] and not prev["is_suspended"]:

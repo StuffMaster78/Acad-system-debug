@@ -8,7 +8,7 @@ from .models import (
     PaymentLog, FailedPayment, AdminLog
 )
 from orders.models import WriterRequest
-from notifications_system.models import Notification
+from notifications_system.models.notifications import Notification
 import logging
 from django.db import models
 from django.core.exceptions import ValidationError

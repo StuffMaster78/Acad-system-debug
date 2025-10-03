@@ -5,10 +5,11 @@ from django.core.cache import cache
 from django.conf import settings
 from .utils import WebhookPayloadFormatter
 from django.core.exceptions import ValidationError
-from writer_management.models import WebhookSettings
-from writer_management.models import WebhookPlatform
+from writer_management.models.webhook_settings import (
+    WebhookSettings, WebhookPlatform
+)
 from orders.order_enums import  WebhookEvent
-from models.payout import CurrencyConversionRate
+from writer_management.models.payout import CurrencyConversionRate
 from writer_management.services.conversion_service import CurrencyConversionService
 from writer_management.models.profile import WriterProfile
 from writer_management.services.writer_metrics_snapshot import WriterMetricsService

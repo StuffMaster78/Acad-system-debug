@@ -5,6 +5,23 @@ from .models import (
 )
 from client_management.models import ClientProfile
 
+
+class AdminLoyaltyTransferSerializer(serializers.Serializer):
+    from_client_id = serializers.PrimaryKeyRelatedField(queryset=ClientProfile.objects.all(), source='from_client')
+    to_client_id = serializers.PrimaryKeyRelatedField(queryset=ClientProfile.objects.all(), source='to_client')
+    website_id = serializers.IntegerField()
+    points = serializers.IntegerField(min_value=1)
+    reason = serializers.CharField(max_length=255)
+
+    def validate_points(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Points must be greater than zero.")
+        return value
+
+    def validate(self, attrs):
+        # Additional validation logic can be added here if needed
+        return attrs
+    
 class LoyaltyTierSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoyaltyTier

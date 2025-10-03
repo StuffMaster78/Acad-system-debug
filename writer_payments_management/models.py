@@ -5,7 +5,7 @@ from orders.models import Order
 from special_orders.models import SpecialOrder
 from writer_management.models import WriterProfile
 from wallet.models import Wallet, WalletTransaction
-from notifications_system import send_notification  # Import notification system
+from notifications_system.services.core import NotificationService  # Import notification system
 from django.conf import settings
 from websites.models import Website
 
@@ -127,7 +127,7 @@ class WriterPayment(models.Model):
         self.save()
 
         # Send notifications
-        send_notification(
+        NotificationService.send_notification(
             user=self.writer.user,
             title="Payment Processed",
             message=f"You payment of ${self.amount} is on it's way.",
@@ -187,7 +187,7 @@ class WriterPayment(models.Model):
             )
 
             # Notify writer
-            send_notification(
+            NotificationService.send_notification(
                 user=self.writer.user,
                 title="Payment Approved",
                 message=f"Your payment of ${self.amount} has been approved.",
@@ -263,7 +263,7 @@ class WriterPayoutRequest(models.Model):
         self.save()
 
         # Send notification
-        send_notification(
+        NotificationService.send_notification(
             user=self.writer.user,
             title="Payout Approved",
             message=f"Your payout request of ${self.amount_requested} has been approved.",
@@ -315,7 +315,7 @@ class SpecialOrderBonus(models.Model):
         )
 
         # Notify writer
-        send_notification(
+        NotificationService.send_notification(
             user=self.writer.user,
             title="Bonus Received",
             message=f"You have received a special order bonus of ${self.bonus_amount}.",

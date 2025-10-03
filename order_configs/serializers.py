@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    PaperType, FormattingStyle,
+    PaperType, FormattingandCitationStyle,
     Subject, TypeOfWork, EnglishType,
     WriterDeadlineConfig,
     RevisionPolicyConfig
@@ -15,7 +15,7 @@ class PaperTypeSerializer(serializers.ModelSerializer):
 
 class FormattingStyleSerializer(serializers.ModelSerializer):
     class Meta:
-        model = FormattingStyle
+        model = FormattingandCitationStyle
         fields = ['id', 'website', 'name']
 
 

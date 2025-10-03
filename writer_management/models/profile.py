@@ -274,7 +274,7 @@ class WriterProfileWebhookSetting(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="writer_webhook_settings",
+        related_name="webhook_settings_for_writer_profile",
         help_text="The user associated with the webhook settings."
     )
     platform = models.CharField(

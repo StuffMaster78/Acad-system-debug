@@ -6,8 +6,8 @@ from audit_logging.services.audit_log_service import (
 )
 from writer_management.models.profile import WriterProfile
 from websites.models import Website
-from models.payout import WriterPayment
-from services.conversion_service import (
+from writer_management.models.payout import WriterPayment
+from writer_management.services.conversion_service import (
     CurrencyConversionService
 )
 

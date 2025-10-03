@@ -17,9 +17,12 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import importlib.resources as resources
-from jsonschema import Draft7Validator as _Validator
-from jsonschema import RefResolver
-from jsonschema import exceptions as js_exceptions
+# from jsonschema import Draft7Validator as _Validator
+from jsonschema import (
+    RefResolver,
+    exceptions as js_exceptions,
+    Draft202012Validator
+)
 
 logger = logging.getLogger(__name__)
 
@@ -344,7 +347,7 @@ def _validate_obj(
         ValidationResult with success flag and error messages.
     """
     try:
-        validator = _Validator(schema, resolver=resolver)
+        validator = Draft202012Validator(schema, resolver=resolver)
         errors = list(validator.iter_errors(obj))
         if errors:
             return ValidationResult(False, _normalize_errors(errors))
@@ -434,3 +437,30 @@ def validate_all_in_dir(
             overall_ok = False
 
     return overall_ok, results
+
+
+# Works the same as validate_event_config()
+# def validate_schema_config(
+#     instance: dict,
+#     schema: dict,
+#     *,
+#     file_path: Optional[str] = None,
+# ) -> ValidationResult:
+#     """Validate a single config dict against a JSON Schema.
+
+#     Returns a ValidationResult with file+JSONPath formatted errors.
+#     """
+#     try:
+#         validator = Draft202012Validator(schema)
+#     except Exception as e:
+#         return ValidationResult(
+#             ok=False,
+#             errors=[f"{file_path or '<schema>'}:$: Invalid schema: {e}"]
+#         )
+
+#     errs = []
+#     for err in sorted(validator.iter_errors(instance), key=lambda e: list(e.path)):
+#         path = "$" if not err.path else "$." + ".".join(map(str, err.path))
+#         errs.append(f"{file_path or '<mem>'}:{path}: {err.message}")
+
+#     return ValidationResult(ok=(len(errs) == 0), errors=errs)

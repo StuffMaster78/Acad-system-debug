@@ -38,7 +38,7 @@ class WriterOrderRequest(models.Model):
     )
     reviewed_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True,
-        blank=True, related_name="order_request_reviews"
+        blank=True, related_name="order_request_reviewer"
     )
 
     def __str__(self):

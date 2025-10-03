@@ -4,7 +4,10 @@ from django.utils import timezone
 from decimal import Decimal
 from wallet.models import Wallet, WalletTransaction
 from wallet.exceptions import InsufficientWalletBalance
+from notifications_system.services.dispatch import send
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 class WalletTransactionService:
     """
@@ -59,6 +62,13 @@ class WalletTransactionService:
         """
         wallet = WalletTransactionService.get_wallet(user, website)
 
+        send (
+            recipient=user,
+            title="Wallet Credited",
+            message=f"Your wallet has been credited with {amount} on {website}.",
+            category="wallet"
+        )
+
         return WalletTransaction.objects.create(
             wallet=wallet,
             website=website,
@@ -71,10 +81,16 @@ class WalletTransactionService:
             reference=reference,
             metadata=metadata or {}
         )
+        
+
+        
 
     @staticmethod
     @transaction.atomic
-    def debit(user, website, amount,  description="", source="", note="", reference=None, metadata=None):
+    def debit(
+        user, website, amount,  description="",
+        source="", note="", reference=None, metadata=None
+    ):
         """
         Debits the user's wallet by a specified amount. Raises an error
         if funds are insufficient.
@@ -97,7 +113,14 @@ class WalletTransactionService:
             raise InsufficientWalletBalance(
                 f"Insufficient funds. Current balance: {current_balance}"
             )
-        
+
+        send (
+            recipient=user,
+            title="Wallet Debited",
+            message=f"Your wallet has been debited by {amount} on {website}.",
+            category="wallet"
+        )
+
         wallet = WalletTransactionService.get_wallet(user, website)
 
         return WalletTransaction.objects.create(
@@ -112,6 +135,7 @@ class WalletTransactionService:
             reference=reference,
             metadata=metadata or {}
         )
+        
 
     @staticmethod
     def refund(

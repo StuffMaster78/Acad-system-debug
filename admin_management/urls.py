@@ -6,13 +6,13 @@ from .views import (
     UserManagementView, 
     AdminLoginView, 
     AdminLogoutView, 
-    BlacklistedUserView
+    BlacklistedUserViewSet
 )
 
 # DRF Router for ViewSets
 router = DefaultRouter()
 router.register(r'users', UserManagementView, basename="users")
-router.register(r'blacklisted-users', BlacklistedUserView, basename="blacklisted_users")
+router.register(r'blacklisted-users', BlacklistedUserViewSet, basename="blacklisted_users")
 
 urlpatterns = [
     # Admin Dashboard

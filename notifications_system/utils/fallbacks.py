@@ -2,7 +2,7 @@ import logging
 import time
 from datetime import timedelta
 from notifications_system.enums import NotificationChannel
-from notifications_system.services.delivery import NotificationDeliveryService
+from notifications_system.services.delivery import deliver
 from notifications_system.services.preferences import NotificationPreferenceResolver
 from django.utils import timezone
 
@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 class FallbackOrchestrator:
     """
     Orchestrates fallback delivery when the preferred channel fails.
-    Supports dynamic event-based fallback routing, retry delay (e.g., exponential backoff),
+    Supports dynamic event-based fallback routing, retry delay
+    (e.g., exponential backoff),
     and respects user preferences.
     """
 
@@ -87,7 +88,14 @@ class FallbackOrchestrator:
             self.tried_channels.add(next_channel)
 
             try:
-                success = NotificationDeliveryService.deliver(self.notification, channel=next_channel)
+                success = deliver(
+                    self.notification,
+                    channel=next_channel,
+                    attempt=self.retry_count + 1,
+                    html_message=getattr(self.notification, "rendered_html", None),
+                    email_override=getattr(self.notification, "email_override", None),
+                    context_data={"order": self.notification.order}
+                )
             except Exception as e:
                 logger.error(
                     f"[Fallback] Delivery exception on {next_channel}: {e}", exc_info=True

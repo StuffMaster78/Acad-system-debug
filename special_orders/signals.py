@@ -4,7 +4,7 @@ from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
 
 from .models import SpecialOrder, InstallmentPayment
-from communications.models import OrderMessageThread
+from communications.models import CommunicationThread
 
 User = get_user_model()
 
@@ -48,7 +48,7 @@ def handle_new_special_order(sender, instance, created, **kwargs):
             recipients=admin_emails
         )
 
-    OrderMessageThread.objects.create(
+    CommunicationThread.objects.create(
         order_type='special',
         special_order=instance,
         sender_role='client',

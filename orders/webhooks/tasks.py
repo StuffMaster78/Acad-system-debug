@@ -4,8 +4,8 @@ import logging
 from orders.webhooks.payloads import build_webhook_payload
 from orders.models import Order
 from users.models import User  # adjust path if different
-from writer_management.models import WebhookSettings
-from audit_logging.services import WebhookAuditLogger
+from writer_management.models.webhook_settings import WebhookSettings
+from audit_logging.services.audit_log_service import WebhookAuditLogger
 from orders.webhooks.payloads import build_webhook_payload
 from orders.models import WebhookDeliveryLog
 
@@ -41,6 +41,17 @@ def send_webhook_task(self, webhook_url: str, payload: dict, headers: dict = Non
         response.raise_for_status()
 
         logger.info(f"✅ Webhook sent to {webhook_url} | Status: {response.status_code}")
+        
+        WebhookAuditLogger.log_webhook_event(
+            user=None,  # system user
+            platform="unknown",
+            webhook_url=webhook_url,
+            event=payload.get("event", "unknown"),
+            order_id=payload.get("order_id"),
+            payload=payload,
+            response_body=response.text,
+            response_status=response.status_code,
+        )
 
     except requests.exceptions.RequestException as exc:
         logger.warning(f"❌ Webhook failed for {webhook_url}: {exc}")
@@ -92,6 +103,20 @@ def send_webhook_notification(self, order_id: int, user_id: int, event: str, tes
 
         # Audit logging (optional)
         # WebhookLog.objects.create(...)
+
+        WebhookDeliveryLog.objects.create(
+            user=user,
+            website=order.website,
+            event=event,
+            url=settings.webhook_url,
+            success=True,
+            status_code=resp.status_code,
+            response_body=resp.text,
+            request_payload=payload,
+            test_mode=test,
+            retry_count=0,  # no retries needed
+            error_message=None
+        )
 
     except (Order.DoesNotExist, User.DoesNotExist, WebhookSettings.DoesNotExist):
         pass

@@ -17,7 +17,7 @@ from .managers import SuperadminManager
 from .pagination import SuperadminPagination , SuperadminLogCursorPagination
 from orders.models import Order, Dispute
 from order_payments_management.models import OrderPayment
-from notifications_system.models import Notification
+from notifications_system.models.notifications import Notification
 from django_filters import rest_framework as filters
 from django.core.cache import cache
 

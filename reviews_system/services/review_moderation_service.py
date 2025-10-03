@@ -1,6 +1,8 @@
 from django.utils import timezone
-from reviews_system.models import WebsiteReview, WriterReview, OrderReview
-
+from reviews_system.models.order_review import WebsiteReview
+from reviews_system.models.writer_review import WriterReview
+from reviews_system.models.order_review import OrderReview
+from notifications_system.services.core import NotificationService
 
 class ReviewModerationService:
     """
@@ -93,6 +95,13 @@ class ReviewModerationService:
             review.is_approved = True
             review.moderated_at = timezone.now()
             review.save(update_fields=["is_approved", "moderated_at"])
+
+        NotificationService.send_notification(
+            recipient=review.user,
+            title="Review Approved",
+            message=f"Your {ReviewModerationService._get_review_type(review)} review has been approved and is now visible.",
+            category="reviews"
+        )
 
     @staticmethod
     def shadow_review(review, reason: str = ""):

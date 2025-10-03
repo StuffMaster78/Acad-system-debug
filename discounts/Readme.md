@@ -99,7 +99,7 @@ MIT (or your license here)
 
 ## Authors
 
-- Your team or company name
+- Erick Awwy
 
 ---
 

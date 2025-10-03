@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     'order_configs',
     'pricing_configs',
     'special_orders',
+    # 'orders.apps.OrdersConfig',  # Custom AppConfig for Orders
 
 
    
@@ -114,6 +115,7 @@ INSTALLED_APPS = [
     'support_management',
     'loyalty_management',
     'activity',
+    'reviews_system',
 
     # Content Management Apps
     'blog_pages_management',
@@ -135,6 +137,7 @@ MIDDLEWARE = [
     'superadmin_management.middleware.BlacklistMiddleware',
     'django.middleware.gzip.GZipMiddleware',  # Compress API responses'
     "activity.middleware.ActivityAuditMiddleware",
+    "notifications_system.middleware.sse_middleware.SSEAuthMiddleware"
 ]
 
 ROOT_URLCONF = 'writing_system.urls'
@@ -232,17 +235,6 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 
 
-REST_FRAMEWORK = {
-    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
-    'DEFAULT_VERSION': '1.0',
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
-    'DEFAULT_FILTER_BACKENDS': [
-        'django_filters.rest_framework.DjangoFilterBackend'
-    ],
-}
-
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Your Project API',
@@ -258,10 +250,34 @@ SPECTACULAR_SETTINGS = {
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
 
 
-REDIS_HOST = os.getenv("REDIS_HOST", "localhost")  # Default to localhost if not set
+REDIS_HOST = os.getenv("REDIS_HOST", "redis")  # Default to localhost if not set
 REDIS_PORT = int(os.getenv("REDIS_PORT", 6379))  # Default Redis port
 REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")  # Default Redis password
+
 # REDIS_SSL = os.getenv("REDIS_SSL", "false").lower() in ("1", "true", "yes")
+
+
+# # Build the Redis cache location URL
+# if REDIS_PASSWORD:
+#     _pwd = os.getenv("REDIS_PASSWORD")
+#     CELERY_BROKER_URL = f"redis://:{quote_plus(_pwd)}@{REDIS_HOST}:{REDIS_PORT}/0"
+#     CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+#     redis_password = quote_plus(REDIS_PASSWORD)
+#     redis_cache_url = f"redis://:{redis_password}@{REDIS_HOST}:{REDIS_PORT}/1"
+# else:
+#     redis_cache_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/1"
+#     CELERY_BROKER_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
+#     CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+
+
+
+def _redis_url(db: int) -> str:
+    if REDIS_PASSWORD:
+        return (
+            f"redis://:{quote_plus(REDIS_PASSWORD)}@"
+            f"{REDIS_HOST}:{REDIS_PORT}/{db}"
+        )
+    return f"redis://{REDIS_HOST}:{REDIS_PORT}/{db}"
 
 
 # # WebSocket Backend
@@ -283,21 +299,21 @@ REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")  # Default Redis password
 #     },
 # }
 
-# Build the Redis cache location URL
-if REDIS_PASSWORD:
-    redis_password = quote_plus(REDIS_PASSWORD)
-    redis_cache_url = f"redis://:{redis_password}@{REDIS_HOST}:{REDIS_PORT}/1"
-else:
-    redis_cache_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/1"
+
+
+
+CELERY_BROKER_URL = _redis_url(0)
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 
 # Redis (if used for caching)
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": redis_cache_url,
+        "LOCATION": _redis_url(1),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "PASSWORD": REDIS_PASSWORD or None,  # Explicitly set password
+            # Only include PASSWORD in OPTIONS if you actually have one:
+            **({"PASSWORD": REDIS_PASSWORD} if REDIS_PASSWORD else {}),
             "SOCKET_CONNECT_TIMEOUT": 5,  # Fail fast if Redis is unreachable
             "SOCKET_TIMEOUT": 5,
             # Optional SSL setup if using TLS
@@ -307,11 +323,11 @@ CACHES = {
 }
 
 # Celery settings
-CELERY_BROKER_URL = os.getenv(
-    "CELERY_BROKER_URL",
-    f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0",
-)
-CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+# CELERY_BROKER_URL = os.getenv(
+#     "CELERY_BROKER_URL",
+#     f"redis://:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/0",
+# )
+# CELERY_RESULT_BACKEND = CELERY_BROKER_URL
 # # Celery Configuration Options
 # CELERY_TIMEZONE = "Australia/Tasmania"
 # CELERY_TASK_TRACK_STARTED = True
@@ -322,7 +338,7 @@ CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 RQ_QUEUES = {
     'default': {
         'USE_REDIS_CACHE': 'default',  # Use Redis as the backend
-        'URL': 'redis://localhost:6379',  # Redis URL
+        'URL': _redis_url(0),  # Redis URL
         'DB': 0,
         'DEFAULT_TIMEOUT': 360,
     }
@@ -353,10 +369,20 @@ GEOLOCATION_API_KEY = os.getenv("GEOLOCATION_API_KEY")
 MEDIA_URL = "/media/"
 MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
+
 # DRF Settings with JWT Authentication
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
+        # "rest_framework.authentication.SessionAuthentication",
+        # "rest_framework.authentication.BasicAuthentication",
+        # "notifications_system.authentication.SSEAuthentication",
+        # "notifications_system.authentication.PassthroughAuthentication",
+        # "notifications_system.authentication.WebhookAuthentication",
+        # "notifications_system.authentication.InAppAuthentication",
+        # "notifications_system.authentication.TokenQueryParamAuthentication",
+        "notifications_system.throttles.NotificationWriteBurstThrottle",
+        "notifications_system.throttles.NotificationWriteSustainedThrottle",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -371,12 +397,36 @@ REST_FRAMEWORK = {
         'user': '10/hour',  # Normal authenticated users
         'anon': '5/hour',  # Unauthenticated users
         'login': '5/minute',  # Limit login attempts to 5 per minute
+        'login_sustained': '100/day',  # Limit sustained login attempts to 100 per day
         'password_reset': '3/hour', #Limit login attempts to 3 in every hour
         'magic_link': '3/minute',  # Limit magic link requests to 3 per minute
         'mfa_challenge': '5/hour',
+        'notifications_write_burst': '20/min',  # e.g. 20 writes per minute
+        'notifications_write_sustained': '200/day',  # e.g. 200
     },
     'EXCEPTION_HANDLER': 'authentication.exceptions.custom_exception_handler',
+    'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
+    'DEFAULT_VERSION': '1.0',
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_FILTER_BACKENDS': [
+        'django_filters.rest_framework.DjangoFilterBackend'
+    ],
+    "SPECTACULAR_SETTINGS": {
+        "TITLE": "Your API",
+        "DESCRIPTION": "Internal API docs",
+        "VERSION": "1.0.0",
+        "SERVE_INCLUDE_SCHEMA": False,
+        "COMPONENT_SPLIT_REQUEST": True,
+        "SCHEMA_PATH_PREFIX": r"/api/v[0-9]+",
+    }
+
+
 }
+
+
+
 
 # JWT Token Settings
 SIMPLE_JWT = {
@@ -496,11 +546,15 @@ NOTIFICATION_CHANNEL_FALLBACKS = {
     "sms": ["email", "push"],
     "push": ["email"],
 }
-
+USE_SYNC_RETRIES = False          # True only in dev; Celery in prod
 NOTIFICATION_CHANNEL_BACKOFFS = {
     "email": 10,
     "sms": 30,
     "push": 5,
+    "in_app": 0,
+    "telegram": 5,
+    "whatsapp": 5,
+    "sse": 1,
 }
 
 NOTIFICATION_MAX_RETRIES_PER_CHANNEL = {
@@ -517,3 +571,30 @@ NOTIFY_EMAIL_COOLDOWN_MINUTES = 30
 NOTIFY_DAILY_EMAIL_LIMIT = 5
 NOTIFY_WEEKLY_EMAIL_LIMIT = 20
 NOTIFY_DISABLE_EMAIL_FALLBACK = False
+
+NOTIFICATION_DEDUPE_WINDOW_SECONDS = 45
+
+# Where all event JSONs live (file or directory is OK)
+NOTIFY_EVENTS_DIR = BASE_DIR / "notifications_system" / "registry" / \
+    "configs"
+
+# Per-app override directory name (inside each app)
+NOTIFY_APP_EVENTS_SUBDIR = "notification_configs"
+
+# Explicit single-file overrides (optional)
+NOTIFY_DIGEST_CONFIG_FILE = (
+    BASE_DIR / "notifications_system" / "registry" / "configs" /
+    "digest_event_config.json"
+)
+NOTIFY_BROADCAST_CONFIG_FILE = (
+    BASE_DIR / "notifications_system" / "registry" / "configs" /
+    "broadcast_event_config.json"
+)
+
+
+# ======= Webhook Settings =======
+# --- Webhook delivery settings ---
+WEBHOOK_DEFAULT_TIMEOUT = 5  # seconds
+WEBHOOK_HMAC_HEADER = "X-Notif-Signature"
+WEBHOOK_HMAC_ALGO = "sha256"  # "sha1" or "sha256"
+# WEBHOOK_SECRET = os.getenv.str("WEBHOOK_SECRET", default="")

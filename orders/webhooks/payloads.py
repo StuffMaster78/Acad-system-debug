@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Any, Optional
 from enum import Enum
 from orders.models import Order
-from writer_management.models import WebhookPlatform
+from writer_management.models.webhook_settings import WebhookPlatform
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 

@@ -1,7 +1,7 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from .models import Order, Dispute, WriterRequest, OrderRequest
-from notifications_system.services.dispatch import NotificationDispatcher
+from notifications_system.services.dispatch import send
 from django.core.mail import send_mail
 
 @receiver(post_save, sender=Order)
@@ -86,7 +86,7 @@ def notify_writer_on_acceptance(sender, instance, created, **kwargs):
 
     # System dashboard notification
     try:
-        NotificationDispatcher.dispatch(
+        send(
             user=writer,
             message="🎯 Your request to work on an order was accepted! "
                     f"Click to accept the assignment: {accept_url}",

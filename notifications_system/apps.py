@@ -26,8 +26,8 @@ class NotificationsSystemConfig(AppConfig):
     def ready(self) -> None:  # noqa: D401
         # 1) Signals / checks (must not raise)
         try:
-            import notifications_system.signals  # noqa: F401
-            import notifications_system.checks  # noqa: F401
+            from .  import signals  # noqa: F401
+            from . import checks  # noqa: F401
         except Exception as exc:  # noqa: BLE001
             logger.warning("Signals/checks load failed: %s", exc, exc_info=True)
 
