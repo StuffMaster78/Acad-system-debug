@@ -88,8 +88,9 @@ class NotificationPreferenceProfileAdmin(admin.ModelAdmin):
 
 @admin.register(BroadcastOverride)
 class BroadcastOverrideAdmin(admin.ModelAdmin):
-    list_display = ("name", "website", "is_active")
-    search_fields = ("name", "website__domain")
+    """Admin for BroadcastOverride model."""
+    list_display = ("broadcast", "website", "is_active")
+    search_fields = ("website__domain",)
     list_filter = ("website",)
 
 
@@ -102,17 +103,17 @@ class NotificationGroupAdmin(admin.ModelAdmin):
 class NotificationAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'user', 'type', 
-        'event', 'title', 'is_read',
-        'is_sent', 'status', 'created_at',
+        'event', 'title', 'is_read', 'is_sent',
+        'sent_at', 'status', 'created_at',
         'website', 'short_message'
     )
     search_fields = (
         'user__username', 'user__email',
-        'payload', 'category' 'title', 'message'
+        'payload', 'category', 'title', 'message'
     )
     list_filter = (
         'category', 'priority', 'type', 'is_read',
-        'is_sent', 'event', 'status',
+        'sent_at', 'event', 'status', 'is_sent',
         'website', 'channels'
     )
     readonly_fields = (
@@ -123,6 +124,7 @@ class NotificationAdmin(admin.ModelAdmin):
         "payload_pretty",
         "is_read",
         "is_sent",
+        "sent_at",
         "channels",
         "website",
         "actor",
@@ -202,7 +204,7 @@ class NotificationGroupProfileAdmin(admin.ModelAdmin):
         "allowed_channels", "min_priority", "is_active",
         "created_at", "updated_at"
     )
-    filter_horizontal = ("users", "roles")
+    # filter_horizontal = ("users", "roles")
     search_fields = ("name", "website__domain", "group__name")
     list_filter = ("website", "group")
 

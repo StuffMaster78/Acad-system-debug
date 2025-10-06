@@ -96,6 +96,7 @@ INSTALLED_APPS = [
     'order_configs',
     'pricing_configs',
     'special_orders',
+    'class_management',
     # 'orders.apps.OrdersConfig',  # Custom AppConfig for Orders
 
 

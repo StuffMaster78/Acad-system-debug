@@ -406,8 +406,8 @@ class SpecialOrderPayment(models.Model):
     """
 
     special_order = models.ForeignKey(
-        "orders.SpecialOrder", on_delete=models.CASCADE,
-        related_name="special_payments"
+        "special_orders.SpecialOrder", on_delete=models.CASCADE,
+        related_name="payments_for_special_orders"
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE
@@ -488,7 +488,9 @@ class ClassBundlePurchase(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )
     bundle = models.ForeignKey(
-        "courses.ClassBundle", on_delete=models.CASCADE
+        "class_management.ClassBundle",
+        on_delete=models.CASCADE,
+        related_name="class_bundles_payments"
     )
     payment = models.OneToOneField(
         PaymentRecord, on_delete=models.CASCADE,

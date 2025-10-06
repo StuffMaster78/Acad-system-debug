@@ -7,17 +7,19 @@ from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
 from django.conf import settings
 # from websites.models import Website
-from communications.models import MessageThread
+from communications.models import CommunicationThread
 from tickets.models import Ticket
 from wallet.models import Wallet
 from django.apps import apps
 
-# Use apps.get_model() to access Website model lazily
-def get_website_model():
-    Website = apps.get_model('websites', 'Website')
-    return Website
+from websites.models import Website
 
-Website = get_website_model()
+# Use apps.get_model() to access Website model lazily
+# def get_website_model():
+#     Website = apps.get_model('websites', 'Website')
+#     return Website
+
+# Website = get_website_model()
 User = settings.AUTH_USER_MODEL
 
 class ClassDurationOption(models.Model):
@@ -41,7 +43,7 @@ class ClassDurationOption(models.Model):
     is_active = models.BooleanField(default=True)
 
     class Meta:
-        unique_together = ("website", "code")
+        unique_together = ("website", "class_code")
 
     def __str__(self):
         return f"{self.website.name} - {self.label}"
@@ -160,7 +162,7 @@ class ClassBundle(models.Model):
         decimal_places=2,
         help_text="Remaining balance after payments"
     )
-    message_threads = GenericRelation(MessageThread)
+    message_threads = GenericRelation(CommunicationThread)
     support_tickets = GenericRelation(Ticket)
     is_complete = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

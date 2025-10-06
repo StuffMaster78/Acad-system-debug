@@ -104,11 +104,11 @@ class Order(models.Model):
         help_text="Discount code applied to the order."
     )   
     writer_level = models.ForeignKey(
-        'pricing_configs.WriterQuality',
+        'pricing_configs.WriterLevelOptionConfig',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        help_text="Selected writer quality level."
+        help_text="Selected writer quality level. eg. Standard, Premium."
     )
     academic_level = models.ForeignKey(
         AcademicLevel,
@@ -118,7 +118,7 @@ class Order(models.Model):
         help_text="The academic level required."
     )
     formatting_style = models.ForeignKey(
-        'order_configs.FormattingStyle',
+        'order_configs.FormattingandCitationStyle',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

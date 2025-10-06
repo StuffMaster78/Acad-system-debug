@@ -57,6 +57,12 @@ class GlobalNotificationSystemSettings(models.Model):
     This includes fallback rules, max retries,
     and other system-wide configurations.
     """
+    website = models.ForeignKey(
+        "websites.Website",
+        on_delete=models.CASCADE,
+        db_index=True,
+        related_name="global_notification_settings"
+    )
     fallback_rules = models.JSONField(default=dict, blank=True)
     max_retries_per_channel = models.JSONField(default=dict, blank=True)
     updated_at = models.DateTimeField(auto_now=True)

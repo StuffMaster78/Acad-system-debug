@@ -138,7 +138,15 @@ class Notification(models.Model):
         default=False,
         help_text="If true, do not deliver for real."
     )
-
+    is_sent = models.BooleanField(
+        default=False,
+        help_text="Has the notification been sent?"
+    )
+    channels = ArrayField(
+        models.CharField(max_length=50),
+        default=list,
+        help_text="Channels through which the notification was sent, e.g. ['email', 'push']"
+    )
     sent_at = models.DateTimeField(
         null=True,
         blank=True,

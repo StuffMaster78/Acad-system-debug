@@ -90,7 +90,7 @@ class WriterRatingFeedback(models.Model):
     rating = models.ForeignKey(
         WriterRating,
         on_delete=models.CASCADE,
-        related_name="feedback"
+        related_name="feedback_for_specific_writer_rating"
     )
     comment = models.TextField(
         help_text="Feedback comment provided by the client."

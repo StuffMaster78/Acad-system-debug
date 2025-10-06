@@ -122,7 +122,7 @@ class DiscountStackingRuleAdmin(admin.ModelAdmin):
 
 @admin.register(PromotionalCampaign)
 class PromotionalCampaignAdmin(admin.ModelAdmin):
-    list_display = ('name', 'start_date', 'end_date', 'is_active')
-    search_fields = ('name',)
+    list_display = ('campaign_name', 'start_date', 'end_date', 'is_active')
+    search_fields = ('campaign_name',)
     date_hierarchy = 'start_date'
     inlines = [DiscountInline]

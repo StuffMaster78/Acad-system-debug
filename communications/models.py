@@ -120,8 +120,8 @@ class CommunicationThread(models.Model):
     # Admin can enable messaging for archived orders
     admin_override = models.BooleanField(default=False)  
     created_at = models.DateTimeField(auto_now_add=True)
-
-
+    updated_at = models.DateTimeField(auto_now=True)
+    # Whether users are allowed to send messages in this thread
     allow_messaging = models.BooleanField(default=True)
 
     def disable_messaging(self):
@@ -487,6 +487,7 @@ class CommunicationNotification(models.Model):
     )
     notification_text = models.TextField(null=True, blank=True)
     is_read = models.BooleanField(default=False)
+    read_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
 

@@ -1,7 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
-
+from django.conf import settings
 
 class FailedLoginAttempt(models.Model):
     """
@@ -9,7 +9,7 @@ class FailedLoginAttempt(models.Model):
     Useful for implementing lockout policies.
     """
     user = models.ForeignKey(
-        'user.User',
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="failed_logins"
     )

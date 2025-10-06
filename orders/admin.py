@@ -125,9 +125,9 @@ class WebhookDeliveryLogAdmin(admin.ModelAdmin):
 
 @admin.register(OrderPricingSnapshot)
 class OrderPricingSnapshotAdmin(admin.ModelAdmin):
-    list_display = ["order", "created_at", "display_total"]
-    list_filter = ["created_at"]
-    readonly_fields = ["order", "pricing_data", "created_at"]
+    list_display = ["order", "calculated_at", "display_total"]
+    list_filter = ["calculated_at"]
+    readonly_fields = ["order", "pricing_data", "calculated_at"]
     search_fields = ["order__id"]
 
     formfield_overrides = {

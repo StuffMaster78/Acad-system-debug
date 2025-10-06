@@ -1,5 +1,6 @@
 from django.db import models
 from websites.models import Website
+from users.models import User
 
 
 class WriterConfig(models.Model):
@@ -45,7 +46,7 @@ class WriterConfigHistory(models.Model):
         related_name="history"
     )
     changed_by = models.ForeignKey(
-        'settings.AUTH_USER_MODEL', on_delete=models.SET_NULL, null=True,
+        User, on_delete=models.SET_NULL, null=True,
         related_name="config_changes"
     )
     change_date = models.DateTimeField(

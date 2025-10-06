@@ -93,8 +93,35 @@ class WriterProfile(models.Model):
         help_text="Date and time when the writer joined the platform."
     )
     last_active = models.DateTimeField(null=True, blank=True)
+    last_logged_in = models.DateTimeField(null=True, blank=True)
+    location_verified = models.BooleanField(
+        default=False,
+        help_text="Indicates whether the writer's location has been verified."
+    )
+    location = models.CharField(
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Writer's location."
+    )
+    wallet = models.OneToOneField(
+        Wallet,
+        on_delete=models.CASCADE,
+        related_name="writer_profile",
+        help_text="The wallet associated with the writer."
+    )
+    average_rating = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        default=0.00,
+        help_text="Average rating received by the writer."
+    )
+    reviews_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Total number of reviews received by the writer."
+    )
     allow_public_view = models.BooleanField(
-        default=True,
+        default=False,
         help_text="Allow public viewing of the writer's profile."
     )
     slug = models.SlugField(unique=True, blank=True)
@@ -102,6 +129,7 @@ class WriterProfile(models.Model):
 
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
+
 
 
 
@@ -209,6 +237,16 @@ class WriterEducation(models.Model):
         default=False,
         help_text="Indicates whether this education has been verified by the admin."
     )
+    degree = models.CharField(
+        max_length=255,
+        help_text="Degree or qualification obtained."
+    )
+    academic_level = models.CharField(
+        max_length=100,
+        help_text="Level of education (e.g., Bachelor's, Master's, PhD)."
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.degree} from {self.institution_name} ({self.writer.user.username})"
@@ -248,7 +286,7 @@ class WriterSubjectPreference(models.Model):
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
-        related_name="subject_preferences",
+        related_name="subject_preferences_for_specific_writer",
         help_text="The writer whose subject preferences are being set."
     )
     subjects = ArrayField(
@@ -376,7 +414,7 @@ class WriterProfileWebhookEvent(models.Model):
     webhook_setting = models.ForeignKey(
         WriterProfileWebhookSetting,
         on_delete=models.CASCADE,
-        related_name="events",
+        related_name="webhook_for_specific_events",
         help_text="The webhook setting that triggered this event."
     )
     event_type = models.CharField(

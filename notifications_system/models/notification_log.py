@@ -15,7 +15,6 @@ from users.mixins import UserRole
 from django.contrib.postgres.fields import JSONField
 from notifications_system.models.notification_preferences import UserNotificationPreference
 
-
 User = settings.AUTH_USER_MODEL 
 def get_notification_model():
     from notifications_system.models.notifications import Notification
@@ -41,7 +40,7 @@ class NotificationLog(models.Model):
         related_name="logs"
     )
     group = models.ForeignKey(
-        "notifications.NotificationGroup",
+        "notifications_system.NotificationGroup",
         null=True, blank=True,
         on_delete=models.SET_NULL,
         related_name="notification_logs"
@@ -49,7 +48,7 @@ class NotificationLog(models.Model):
     recipient = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        related_name="notification_logs"
+        related_name="user_notification_logs"
     )
     response_code = models.IntegerField(
         null=True, blank=True,
@@ -107,7 +106,7 @@ class EmailNotificationLog(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE
     )
     group = models.ForeignKey(
-        "notifications.NotificationGroup",
+        "notifications_system.NotificationGroup",
         null=True, blank=True, on_delete=models.SET_NULL
     )
     created_at = models.DateTimeField(auto_now_add=True)

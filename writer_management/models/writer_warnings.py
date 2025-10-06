@@ -20,6 +20,15 @@ class WriterWarning(models.Model):
         null=True, blank=True,
         related_name="issued_warnings"
     )
+    warning_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('minor', 'Minor'),
+            ('major', 'Major'),
+            ('critical', 'Critical')
+        ],
+        default='minor'
+    )
     issued_at = models.DateTimeField(default=now)
     expires_at = models.DateTimeField(null=True, blank=True)
     is_active = models.BooleanField(default=True)

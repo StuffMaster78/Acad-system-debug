@@ -146,6 +146,17 @@ class NotificationPreference(models.Model):
         default=True,
         help_text="Are notifications enabled for this user?"
     )
+    email_enabled = models.BooleanField(default=True)
+    sms_enabled = models.BooleanField(default=False)
+    push_enabled = models.BooleanField(default=False)
+    in_app_enabled = models.BooleanField(default=True)
+    digest_enabled = models.BooleanField(default=False)
+    digest_type = models.CharField(
+        max_length=20,
+        choices=DigestType.choices,
+        default='daily',
+        help_text="Type of digest for notifications."
+    )
     overrides = models.JSONField(default=dict) # e.g. { "order_created": false, "ticket_created": true }
     frequency = models.CharField(
         max_length=20,
@@ -201,6 +212,13 @@ class NotificationPreference(models.Model):
         help_text="Preferences for each channel, e.g. {'email': True, 'sms': False}"
     )  # e.g., ["in_app", "email", "sms"]
 
+
+    receive_email = models.BooleanField(default=True)
+    receive_in_app = models.BooleanField(default=True)
+    receive_push = models.BooleanField(default=False)
+    receive_sms = models.BooleanField(default=False)
+    allowed_channels = models.JSONField(default=list)
+
     min_priority = models.PositiveSmallIntegerField(
         default=NotificationPriority.NORMAL
     )
@@ -254,9 +272,16 @@ class NotificationPreferenceProfile(models.Model):
     """
     Represents a set of notification preferences that can be applied to users.
     """
+    website = models.ForeignKey("websites.Website", on_delete=models.CASCADE, null=True, blank=True)
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
 
+    default_email = models.BooleanField(default=True)
+    default_sms = models.BooleanField(default=False)
+    default_push = models.BooleanField(default=False)
+    default_in_app = models.BooleanField(default=True)
+
+    
     email_enabled = models.BooleanField(default=True)
     sms_enabled = models.BooleanField(default=False)
     push_enabled = models.BooleanField(default=False)

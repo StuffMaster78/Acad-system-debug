@@ -53,7 +53,7 @@ class WriterProfileAdmin(admin.ModelAdmin):
     )
     list_filter = ('writer_level', 'verification_status', 'location_verified')
     search_fields = ('user__username', 'registration_id', 'email')
-    readonly_fields = ('joined', 'last_logged_in', 'wallet_balance', 'average_rating')
+    readonly_fields = ('joined_at', 'last_logged_in', 'wallet_balance', 'average_rating')
     
     def wallet_balance(self, obj):
         return f"${obj.wallet_balance():,.2f}"
@@ -78,19 +78,19 @@ class WriterLevelAdmin(admin.ModelAdmin):
 
 @admin.register(WriterEducation)
 class WriterEducationAdmin(admin.ModelAdmin):
-    list_display = ('writer', 'degree', 'institution', 'graduation_year')
-    search_fields = ('writer__user__username', 'degree', 'institution')
+    list_display = ('writer', 'degree', 'institution_name', 'academic_level', 'graduation_year')
+    search_fields = ('writer__user__username', 'degree', 'institution_name', 'academic_level')
 
 
 @admin.register(WriterActivityTracking)
 class WriterActivityTrackingAdmin(admin.ModelAdmin):
-    list_display = ('writer', 'activity_type', 'timestamp')
-    search_fields = ('writer__user__username', 'activity_type')
+    list_display = ('writer', 'last_login', 'last_seen', 'created_at')
+    search_fields = ('writer__user__username', 'activity')
 
 @admin.register(WriterActionLog)
 class WriterActionLogAdmin(admin.ModelAdmin):
-    list_display = ('writer', 'action_type', 'timestamp')
-    search_fields = ('writer__user__username', 'action_type')
+    list_display = ('writer', 'action', 'created_at')
+    search_fields = ('writer__user__username', 'action')
 
 ### ---------------- Admin Configuration ---------------- ###
 @admin.register(WriterConfig)
@@ -146,8 +146,8 @@ class WriterEarningsHistoryAdmin(admin.ModelAdmin):
 
 @admin.register(WriterEarningsReviewRequest)
 class WriterEarningsReviewRequestAdmin(admin.ModelAdmin):
-    list_display = ('writer', 'order', 'requested_at', 'resolved')
-    list_filter = ('resolved',)
+    list_display = ('writer', 'order', 'requested_at', 'approved')
+    list_filter = ('approved',)
     search_fields = ('writer__user__username', 'order__id')
 
 
@@ -225,7 +225,7 @@ class WriterRatingCooldownAdmin(admin.ModelAdmin):
 
 @admin.register(WriterFileDownloadLog)
 class WriterFileDownloadLogAdmin(admin.ModelAdmin):
-    list_display = ('writer', 'order', 'file_name', 'downloaded_at')
+    list_display = ('writer', 'order', 'file', 'downloaded_at')
 
 
 @admin.register(WriterIPLog)
@@ -237,13 +237,13 @@ class WriterIPLogAdmin(admin.ModelAdmin):
 class WriterStatusAdmin(admin.ModelAdmin):
     list_display = (
         "writer", "website", "strikes", "is_suspended",
-        "blacklisted", "on_probation", "updated_at",
+        "is_blacklisted", "is_on_probation", "updated_at",
         "is_active", "last_strike_at", "suspension_ends_at",
         "probation_ends_at", "active_strikes"
     )
     readonly_fields = (
         "writer", "website", "strikes", "is_suspended",
-        "blacklisted", "on_probation", "updated_at",
+        "is_blacklisted", "is_on_probation", "updated_at",
     )
 
     def has_add_permission(self, request):
@@ -285,10 +285,10 @@ class WriterFileAccessRequestAdmin(admin.ModelAdmin):
 
 @admin.register(WriterFileActivityLog)
 class WriterFileActivityLogAdmin(admin.ModelAdmin):
-    list_display = ['writer', 'order', 'action', 'timestamp']
+    list_display = ['writer', 'order', 'action', 'occurred_at']
     list_filter = ['action']
     search_fields = ['writer__user__username', 'order__id']
-    ordering = ['-timestamp']
+    ordering = ['-occurred_at']
 
 
 @admin.register(WriterRating)

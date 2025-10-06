@@ -111,6 +111,8 @@ class WriterActivityTracking(models.Model):
         blank=True, null=True,
         help_text="Last time the writer was active."
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def update_last_seen(self):
         self.last_seen = now()
@@ -435,13 +437,17 @@ class WriterFileDownloadLog(models.Model):
         Website,
         on_delete=models.CASCADE
     )
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE,
+        related_name="file_download_logs"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="file_download_logs"
     )
     file = models.ForeignKey(
         WriterFile, on_delete=models.CASCADE,
-        related_name="download_logs"
+        related_name="file_download_name_log"
     )
     downloaded_at = models.DateTimeField(auto_now_add=True)
 

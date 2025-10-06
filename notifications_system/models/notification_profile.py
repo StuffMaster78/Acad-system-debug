@@ -47,8 +47,8 @@ class NotificationProfile(models.Model):
         models.CharField(max_length=20),
         default=list, blank=True
     )
-    fallback_rules = JSONField(default=dict, blank=True)
-    max_retries_per_channel = JSONField(default=dict, blank=True)
+    fallback_rules = models.JSONField(default=dict, blank=True)
+    max_retries_per_channel = models.JSONField(default=dict, blank=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -144,6 +144,8 @@ class NotificationGroupProfile(models.Model):
     min_priority = models.PositiveSmallIntegerField(
         default=NotificationPriority.NORMAL
     )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ("website", "group")

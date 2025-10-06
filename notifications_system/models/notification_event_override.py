@@ -13,7 +13,7 @@ class NotificationEventOverride(models.Model):
     """
 
     website = models.ForeignKey(
-        "core.Website",  # or whatever your Website model is
+        "websites.Website",  # or whatever your Website model is
         on_delete=models.CASCADE,
         related_name="notification_event_overrides",
         null=True,  # null = global config

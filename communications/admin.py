@@ -6,9 +6,9 @@ from .models import (
 )
 
 @admin.register(CommunicationThread)
-class OrderMessageThreadAdmin(admin.ModelAdmin):
+class CommunicationMessageThreadAdmin(admin.ModelAdmin):
     """
-    Admin interface for managing Order Message Threads.
+    Admin interface for managing Communication Message Threads.
     """
     list_display = (
         "id", "order", "is_active",
@@ -38,9 +38,9 @@ class OrderMessageThreadAdmin(admin.ModelAdmin):
 
 
 @admin.register(CommunicationMessage)
-class OrderMessageAdmin(admin.ModelAdmin):
+class CommunicationMessageAdmin(admin.ModelAdmin):
     """
-    Admin interface for managing Order Messages.
+    Admin interface for managing Communication Messages.
     """
     list_display = ("id", "thread", "sender", "message", "sender_role", "sent_at", "is_read", "is_flagged", "is_unblocked")
     list_filter = ("is_flagged", "is_unblocked", "is_read", "sender_role")
@@ -67,7 +67,7 @@ class CommunicationNotificationAdmin(admin.ModelAdmin):
     """
     list_display = (
         "id", "recipient", "message",
-        "notification_text", "is_read", "created_at"
+        "notification_text", "is_read", "created_at",
         "read_at"
     )
     list_filter = ("is_read", "created_at", "read_at")
@@ -167,13 +167,12 @@ class FlaggedMessageAdmin(admin.ModelAdmin):
         "id",
         "order_id",
         "sender_username",
-        "category",
         "is_unblocked",
         "flagged_at",
         "reviewed_by",
         "reviewed_at"
     )
-    list_filter = ("category", "is_unblocked", "flagged_at")
+    list_filter = ("is_unblocked", "flagged_at")
     search_fields = ("order_message__sender__username", "admin_comment")
     readonly_fields = ("flagged_at", "reviewed_by", "reviewed_at")
 
@@ -209,11 +208,11 @@ class CommunicationLogAdmin(admin.ModelAdmin):
         "user_username",
         "order",
         "action",
-        "created_at"
+        "timestamp"
     )
-    list_filter = ("action", "created_at")
+    list_filter = ("action", "timestamp")
     search_fields = ("user__username", "order__id", "details")
-    readonly_fields = ("user", "order", "action", "details", "created_at")
+    readonly_fields = ("user", "order", "action", "details", "timestamp")
 
     def user_username(self, obj):
         return obj.user.username if obj.user else "-"

@@ -368,6 +368,10 @@ class WriterEarningsReviewRequest(models.Model):
         Website,
         on_delete=models.CASCADE
     )
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE,
+        related_name="earnings_review_requests"
+    )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
         related_name="earnings_review_requests"
