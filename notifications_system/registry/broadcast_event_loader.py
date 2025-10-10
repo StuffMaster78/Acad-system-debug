@@ -1,12 +1,18 @@
+# notifications_system/registry/broadcast_event_loader.py
 from __future__ import annotations
 
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, List, Optional
+
+from .compat import normalize_broadcast
+from .validator import validate_config_file  # use schema by base name (no .json)
 
 logger = logging.getLogger(__name__)
 
+
+# ---------- helpers ----------
 
 def _pkg_path(*parts: str) -> Path:
     """Return a path relative to this module file."""
@@ -22,49 +28,73 @@ def _read_json(path: Path) -> Any:
         raise RuntimeError(f"Failed reading JSON: {path}: {exc}") from exc
 
 
-def _validate_json(data: Any, schema_path: Path) -> None:
-    """Validate JSON data against a JSON Schema if jsonschema is present.
-
-    Args:
-        data: Parsed JSON-compatible object.
-        schema_path: Path to the schema file.
-
-    Raises:
-        RuntimeError: If validation fails or schema is unreadable.
+def _map_to_list(d: Dict[str, Any]) -> List[Dict[str, Any]]:
     """
+    {"broadcast.system_announcement": {...}}  -->
+    [{"event_key": "broadcast.system_announcement", ...}]
+    """
+    return [{**v, "event_key": k} for k, v in d.items()]
+
+
+# ---------- loader that accepts list or mapping ----------
+
+def _load_and_normalize(path: Path) -> List[Dict[str, Any]]:
+    """
+    Load JSON (list or mapping), normalize shapes/legacy keys, and return a list of event dicts.
+    """
+    raw = _read_json(path)
+
+    # First, validate the *file* against the broadcast schema.
+    # IMPORTANT: schema_name has no ".json" suffix.
+    res = validate_config_file(path, schema_name="broadcast_event.schema")
+    res.raise_if_failed()
+
+    # Accept either list or mapping; normalize to list.
+    if isinstance(raw, dict):
+        items = _map_to_list(raw)
+    elif isinstance(raw, list):
+        items = raw
+    else:
+        raise ValueError(
+            "broadcast_event_config.json must be either a list of objects or a mapping "
+            "{event_key: { ... }}."
+        )
+
+    # Apply tolerant normalizer (handles default_channels -> channels, etc.)
     try:
-        import jsonschema  # type: ignore
+        items = normalize_broadcast(items)  # idempotent if already normalized
     except Exception:
-        # Soft dependency: skip validation if library not installed.
-        logger.debug("jsonschema not installed; skipping validation.")
-        return
+        # Be forgiving; continue with items as-is.
+        pass
 
-    try:
-        schema = _read_json(schema_path)
-        jsonschema.validate(instance=data, schema=schema)
-    except Exception as exc:  # noqa: BLE001
-        raise RuntimeError(f"JSON schema validation failed: {exc}") from exc
+    # Final sanity
+    for idx, it in enumerate(items):
+        if not isinstance(it, dict):
+            raise ValueError(f"broadcast_event_config item #{idx} is not an object")
+        if not it.get("event_key"):
+            raise ValueError(f"broadcast_event_config item #{idx} missing 'event_key'")
 
+    return items
+
+
+# ---------- in-process registry (keyed by event_key) ----------
 
 class BroadcastEventRegistry:
-    """In-process registry for broadcast event metadata.
+    """
+    In-process registry for broadcast event metadata.
 
-    Data source:
-        notifications_system/registry/configs/broadcast_events.json
+    Source file:
+        notifications_system/registry/configs/broadcast_event_config.json
 
     Schema:
-        notifications_system/registry/configs/schemas/
-            broadcast_event.schema.json
-
-    The registry is process-local and safe to call repeatedly; loads are
-    idempotent.
+        notifications_system/registry/configs/schemas/broadcast_event.schema.json
 
     Stored per event (keyed by `event_key`):
         {
           "event_key": str,
           "description": str,
           "scope": "systemwide" | "website",
-          "default_channels": [str, ...],
+          "channels": [str, ...],          # normalized from channels/default_channels
           "forced_channels": [str, ...],
           "priority": str | int,
           "force_send": bool,
@@ -76,100 +106,88 @@ class BroadcastEventRegistry:
     _events: Dict[str, Dict[str, Any]] = {}
 
     @classmethod
-    def load(cls) -> int:
-        """Load and validate broadcast event configs into the registry.
+    def load(cls, *, path: Optional[Path] = None) -> int:
+        """
+        Load and validate broadcast event configs into the registry.
 
         Returns:
             Number of events loaded.
         """
-        cfg_path = _pkg_path("configs", "broadcast_events.json")
-        schema_path = _pkg_path(
-            "configs", "schemas", "broadcast_event.schema.json"
-        )
+        cfg_path = path or _pkg_path("configs", "broadcast_event_config.json")
 
-        data = _read_json(cfg_path)
-        _validate_json(data, schema_path)
+        items = _load_and_normalize(cfg_path)
 
-        events: Dict[str, Dict[str, Any]] = {}
-        for item in data:
-            try:
-                key = str(item["event_key"])
-            except KeyError as exc:
-                raise RuntimeError("broadcast item missing event_key") from exc
+        events_by_key: Dict[str, Dict[str, Any]] = {}
 
-            events[key] = {
+        for item in items:
+            key = str(item["event_key"])
+
+            # Normalize channels: accept either "channels" or "default_channels"
+            channels = item.get("channels")
+            if not isinstance(channels, list):
+                channels = item.get("default_channels", [])
+            channels = list(channels or [])
+
+            events_by_key[key] = {
                 "event_key": key,
                 "description": item.get("description", ""),
                 "scope": item.get("scope", "systemwide"),
-                "default_channels": list(
-                    item.get("default_channels", [])
-                ),
-                "forced_channels": list(
-                    item.get("forced_channels", [])
-                ),
+                "channels": channels,
+                "forced_channels": list(item.get("forced_channels", []) or []),
                 "priority": item.get("priority", "normal"),
                 "force_send": bool(item.get("force_send", False)),
-                "filters": dict(item.get("filters", {})),
+                "filters": dict(item.get("filters", {}) or {}),
             }
 
-        cls._events = events
+        cls._events = events_by_key
         cls._loaded = True
-        logger.debug("BroadcastEventRegistry loaded %d events.", len(events))
-        return len(events)
+        logger.debug("BroadcastEventRegistry loaded %d events.", len(events_by_key))
+        return len(events_by_key)
 
     @classmethod
     def ensure_loaded(cls) -> None:
-        """Load registry if not already loaded."""
         if not cls._loaded:
             cls.load()
 
-    # ---------- Accessors ----------
+    # ---------- accessors ----------
 
     @classmethod
     def all(cls) -> Dict[str, Dict[str, Any]]:
-        """Return a copy of the full registry."""
         cls.ensure_loaded()
         return dict(cls._events)
 
     @classmethod
     def get(cls, event_key: str) -> Optional[Dict[str, Any]]:
-        """Return the event dict for an event_key, or None."""
         cls.ensure_loaded()
         return cls._events.get(event_key)
 
     @classmethod
-    def default_channels(cls, event_key: str) -> Iterable[str]:
-        """Return default channels for an event."""
+    def channels(cls, event_key: str) -> Iterable[str]:
         ev = cls.get(event_key) or {}
-        return list(ev.get("default_channels", []))
+        return list(ev.get("channels", []))
 
     @classmethod
     def forced_channels(cls, event_key: str) -> Iterable[str]:
-        """Return forced channels for an event (may be empty)."""
         ev = cls.get(event_key) or {}
         return list(ev.get("forced_channels", []))
 
     @classmethod
     def is_force_send(cls, event_key: str) -> bool:
-        """Return True if event bypasses preferences."""
         ev = cls.get(event_key) or {}
         return bool(ev.get("force_send", False))
 
     @classmethod
     def priority(cls, event_key: str) -> Any:
-        """Return priority for an event (label or int)."""
         ev = cls.get(event_key) or {}
         return ev.get("priority", "normal")
 
     @classmethod
     def scope(cls, event_key: str) -> str:
-        """Return scope ('systemwide' or 'website')."""
         ev = cls.get(event_key) or {}
         return str(ev.get("scope", "systemwide"))
 
     @classmethod
     def filters(cls, event_key: str) -> Dict[str, Any]:
-        """Return filters dict (e.g., roles) for targeting."""
         ev = cls.get(event_key) or {}
         return dict(ev.get("filters", {}))
 

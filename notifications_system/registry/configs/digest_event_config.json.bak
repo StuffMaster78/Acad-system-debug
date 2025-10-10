@@ -1,5 +1,5 @@
-[
-  {
+{
+  "user.activity_digest": {
     "event_key": "user.activity_digest",
     "channels": [
       "email"
@@ -9,9 +9,10 @@
     "digest": {
       "merge_strategy": "list_append",
       "max_items": 20
-    }
+    },
+    "template": "emails/digests/activity_summary.html"
   },
-  {
+  "user.comment_digest": {
     "event_key": "user.comment_digest",
     "channels": [
       "email"
@@ -21,9 +22,10 @@
     "digest": {
       "merge_strategy": "list_append",
       "max_items": 20
-    }
+    },
+    "template": "emails/digests/comment_summary.html"
   },
-  {
+  "user.orders_digest": {
     "event_key": "user.orders_digest",
     "channels": [
       "email"
@@ -33,9 +35,10 @@
     "digest": {
       "merge_strategy": "list_append",
       "max_items": 20
-    }
+    },
+    "template": "emails/digests/orders_summary.html"
   },
-  {
+  "user.revisions_digest": {
     "event_key": "user.revisions_digest",
     "channels": [
       "email"
@@ -45,6 +48,7 @@
     "digest": {
       "merge_strategy": "list_append",
       "max_items": 20
-    }
+    },
+    "template": "emails/digests/revisions_summary.html"
   }
-]
+}

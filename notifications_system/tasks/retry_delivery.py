@@ -6,7 +6,7 @@ from typing import Optional
 from celery import shared_task
 from django.db import transaction
 
-from notifications_system.services.core import NotificationService
+
 from notifications_system.models.notifications import Notification
 
 logger = logging.getLogger(__name__)
@@ -68,6 +68,7 @@ def retry_delivery(
                 return
 
         # Call back into the service (centralized logging + fallbacks).
+        from notifications_system.services.core import NotificationService
         NotificationService._deliver(  # noqa: SLF001 (internal on purpose)
             note,
             channel,

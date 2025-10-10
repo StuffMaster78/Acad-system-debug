@@ -7,11 +7,11 @@
     "key", "label", "description", "enabled",
     "roles", "channels", "priority", "templates"
   ],
-  "additionalProperties": false,
+  "additionalProperties": true,
   "properties": {
     "key": {
       "type": "string",
-      "pattern": "^[A-Z0-9_]+$",
+      "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$",
       "minLength": 3,
       "description": "Programmatic key, e.g., ORDER_ASSIGNED"
     },
@@ -72,7 +72,7 @@
           "minLength": 1
         }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     },
     "meta": {
       "type": "object",

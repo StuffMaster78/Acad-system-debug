@@ -110,28 +110,86 @@ def get_channels_for_role(event_key: str, role: Optional[str]) -> Set[str]:
     return set(role_channels.get(event_key, role_channels.get("*", set())))
 
 
-def autodiscover_roles() -> None:
-    """Auto-import `<app>.notifications_roles` across installed apps.
+# def autodiscover_roles() -> None:
+#     """Auto-import `<app>.notifications_roles` across installed apps.
 
-    Each app may define a `notifications_roles.py` that calls
-    `register_role(...)` for its roles.
+#     Each app may define a `notifications_roles.py` that calls
+#     `register_role(...)` for its roles.
+#     """
+#     for app_config in apps.get_app_configs():
+#         mod = f"{app_config.name}.notifications_roles"
+#         try:
+#             importlib.import_module(mod)
+#             logger.debug("[notifications] Loaded roles from %s", mod)
+#         except ModuleNotFoundError as exc:
+#             # Ignore missing module; raise only if module exists but import
+#             # failed for another reason.
+#             if "notifications_roles" not in str(exc):
+#                 logger.debug("Module not found: %s", mod)
+#         except Exception as exc:  # noqa: BLE001
+#             logger.error(
+#                 "[notifications] Failed to load roles from %s: %s",
+#                 mod,
+#                 exc,
+#             )
+
+
+def autodiscover_roles() -> None:
+    """Auto-import role shims and (optionally) common defaults.
+
+    Behavior:
+      1) If settings.NOTIFICATION_AUTOREGISTER_COMMON_ROLES is true
+         (default), register common roles using optional project-level
+         overrides from settings.NOTIFICATION_COMMON_ROLE_OVERRIDES.
+      2) Import `<app>.notifications_roles` for each installed app.
+         App modules may re-register roles; this intentionally overwrites
+         previous resolvers/channels.
     """
+    # 1) Optional common roles (project-level DRY defaults)
+    try:
+        auto = getattr(
+            settings, "NOTIFICATION_AUTOREGISTER_COMMON_ROLES", True
+        )
+        if auto:
+            from notifications_system.roles import register_common_roles
+
+            overrides = getattr(
+                settings, "NOTIFICATION_COMMON_ROLE_OVERRIDES", {}
+            )
+            register_common_roles(overrides=overrides)
+            logger.debug(
+                "[notifications] Registered common roles with overrides: %s",
+                sorted(overrides.keys()) if overrides else "none",
+            )
+    except Exception as exc:  # noqa: BLE001
+        logger.error(
+            "[notifications] Failed registering common roles: %s", exc
+        )
+
+    # 2) Per-app shims: <app>.notifications_roles
     for app_config in apps.get_app_configs():
         mod = f"{app_config.name}.notifications_roles"
         try:
             importlib.import_module(mod)
             logger.debug("[notifications] Loaded roles from %s", mod)
         except ModuleNotFoundError as exc:
-            # Ignore missing module; raise only if module exists but import
-            # failed for another reason.
             if "notifications_roles" not in str(exc):
                 logger.debug("Module not found: %s", mod)
         except Exception as exc:  # noqa: BLE001
             logger.error(
-                "[notifications] Failed to load roles from %s: %s",
-                mod,
-                exc,
+                "[notifications] Failed to load roles from %s: %s", mod, exc
             )
+
+    # Optional visibility: what’s registered now?
+    try:
+        summary = list_registered_roles()
+        logger.debug(
+            "[notifications] Roles registered: %s",
+            ", ".join(sorted(summary.keys())) or "<none>",
+        )
+    except Exception:  # pragma: no cover
+        pass
+
 
 
 def list_registered_roles() -> Dict[str, Dict[str, Any]]:

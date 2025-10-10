@@ -15,3 +15,5 @@ class OrderAssignedTemplate(BaseNotificationTemplate):
         )
         html = f"<h2>{title}</h2><p>{msg}</p>"
         return title, msg, html
+
+register_template_class(OrderAssignedTemplate)

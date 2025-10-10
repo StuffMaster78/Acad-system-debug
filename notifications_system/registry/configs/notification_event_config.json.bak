@@ -1,0 +1,1092 @@
+[
+  {
+    "key": "order.approved",
+    "label": "Triggered when an order is approved",
+    "enabled": true,
+    "roles": [
+      "writer",
+      "editor"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_approved.html"
+    },
+    "description": "Triggered when an order is approved.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.approved"
+  },
+  {
+    "key": "order.archived",
+    "label": "Triggered when an order is archived",
+    "enabled": true,
+    "roles": [
+      "client",
+      "support",
+      "writer"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_archived.html"
+    },
+    "description": "Triggered when an order is archived.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.archived"
+  },
+  {
+    "key": "order.assigned",
+    "label": "Triggered when an order is assigned to a writer",
+    "enabled": true,
+    "roles": [
+      "writer",
+      "editor"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_assigned.html"
+    },
+    "description": "Triggered when an order is assigned to a writer.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.assigned"
+  },
+  {
+    "key": "order.cancellation_requested",
+    "label": "Triggered when a client requests an order cancellation",
+    "enabled": true,
+    "roles": [
+      "client",
+      "support",
+      "writer"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_cancellation_requested.html"
+    },
+    "description": "Triggered when a client requests an order cancellation.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "order.cancellation_requested"
+  },
+  {
+    "key": "order.cancelled",
+    "label": "Triggered when an order is cancelled",
+    "enabled": true,
+    "roles": [
+      "client",
+      "support",
+      "writer"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_cancelled.html"
+    },
+    "description": "Triggered when an order is cancelled.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "order.cancelled"
+  },
+  {
+    "key": "order.completed",
+    "label": "Triggered when an order is marked as completed",
+    "enabled": true,
+    "roles": [
+      "client",
+      "writer",
+      "editor"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_completed.html"
+    },
+    "description": "Triggered when an order is marked as completed.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.completed"
+  },
+  {
+    "key": "order.custom_notification",
+    "label": "Triggered for custom notifications related to an order",
+    "enabled": true,
+    "roles": [
+      "client",
+      "writer",
+      "editor"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_custom_notification.html"
+    },
+    "description": "Triggered for custom notifications related to an order.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.custom_notification"
+  },
+  {
+    "key": "order.dispute_opened",
+    "label": "Triggered when a dispute is opened for an order",
+    "enabled": true,
+    "roles": [
+      "client",
+      "writer",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_dispute_opened.html"
+    },
+    "description": "Triggered when a dispute is opened for an order.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "order.dispute_opened"
+  },
+  {
+    "key": "order.dispute_resolved",
+    "label": "Triggered when a dispute is resolved",
+    "enabled": true,
+    "roles": [
+      "client",
+      "writer",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_dispute_resolved.html"
+    },
+    "description": "Triggered when a dispute is resolved.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.dispute_resolved"
+  },
+  {
+    "key": "order.feedback_received",
+    "label": "Triggered when feedback is received on an order",
+    "enabled": true,
+    "roles": [
+      "client",
+      "writer",
+      "editor"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_feedback_received.html"
+    },
+    "description": "Triggered when feedback is received on an order.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.feedback_received"
+  },
+  {
+    "key": "order.on_hold",
+    "label": "Triggered when an order is put on hold",
+    "enabled": true,
+    "roles": [
+      "client",
+      "support",
+      "writer"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_on_hold.html"
+    },
+    "description": "Triggered when an order is put on hold.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "order.on_hold"
+  },
+  {
+    "key": "order.paid",
+    "label": "Triggered when payment is confirmed",
+    "enabled": true,
+    "roles": [
+      "admin",
+      "client",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_paid.html"
+    },
+    "description": "Triggered when payment is confirmed.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email",
+      "whatsapp"
+    ],
+    "forced_channels": [],
+    "event_key": "order.paid"
+  },
+  {
+    "key": "order.quality_check_failed",
+    "label": "Triggered when an order fails the quality check",
+    "enabled": true,
+    "roles": [
+      "client",
+      "writer",
+      "editor",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_quality_check_failed.html"
+    },
+    "description": "Triggered when an order fails the quality check.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "order.quality_check_failed"
+  },
+  {
+    "key": "order.quality_check_passed",
+    "label": "Triggered when an order passes the quality check",
+    "enabled": true,
+    "roles": [
+      "client",
+      "writer",
+      "editor"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_quality_check_passed.html"
+    },
+    "description": "Triggered when an order passes the quality check.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.quality_check_passed"
+  },
+  {
+    "key": "order.rated",
+    "label": "Triggered when an order is rated",
+    "enabled": true,
+    "roles": [
+      "writer",
+      "editor"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_rated.html"
+    },
+    "description": "Triggered when an order is rated.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.rated"
+  },
+  {
+    "key": "order.reminder_sent",
+    "label": "Triggered when a reminder is sent for an order",
+    "enabled": true,
+    "roles": [
+      "client",
+      "writer"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_reminder_sent.html"
+    },
+    "description": "Triggered when a reminder is sent for an order.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.reminder_sent"
+  },
+  {
+    "key": "order.revised",
+    "label": "Triggered when an order is revised",
+    "enabled": true,
+    "roles": [
+      "writer",
+      "editor"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_revised.html"
+    },
+    "description": "Triggered when an order is revised.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "order.revised"
+  },
+  {
+    "key": "order.revision_in_progress",
+    "label": "Triggered when an order is under revision",
+    "enabled": true,
+    "roles": [
+      "writer",
+      "editor",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_revision_in_progress.html"
+    },
+    "description": "Triggered when an order is under revision.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "order.revision_in_progress"
+  },
+  {
+    "key": "order.revision_requested",
+    "label": "Triggered when a client requests a revision",
+    "enabled": true,
+    "roles": [
+      "writer",
+      "editor",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_revision_requested.html"
+    },
+    "description": "Triggered when a client requests a revision.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "order.revision_requested"
+  },
+  {
+    "key": "order.urgent_notification",
+    "label": "Triggered for urgent notifications related to an order",
+    "enabled": true,
+    "roles": [
+      "client",
+      "writer",
+      "editor",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/order_urgent_notification.html"
+    },
+    "description": "Triggered for urgent notifications related to an order.",
+    "priority": "critical",
+    "channels": [
+      "in_app",
+      "email",
+      "sms"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "order.urgent_notification"
+  },
+  {
+    "key": "payment.refunded",
+    "label": "Triggered when a refund is processed",
+    "enabled": true,
+    "roles": [
+      "client",
+      "writer",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/payment_refunded.html"
+    },
+    "description": "Triggered when a refund is processed.",
+    "priority": "critical",
+    "channels": [
+      "in_app",
+      "email",
+      "sms"
+    ],
+    "forced_channels": [
+      "email"
+    ],
+    "event_key": "payment.refunded"
+  },
+  {
+    "key": "referral_rewarded",
+    "label": "Triggered when a user is rewarded for a referral",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/referral_rewarded.html"
+    },
+    "description": "Triggered when a user is rewarded for a referral.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "referral_rewarded"
+  },
+  {
+    "key": "system.maintenance",
+    "label": "Triggered when the system is undergoing maintenance",
+    "enabled": true,
+    "roles": [
+      "admin",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/system_maintenance.html"
+    },
+    "description": "Triggered when the system is undergoing maintenance.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "system.maintenance"
+  },
+  {
+    "key": "system.new_feature_announced",
+    "label": "Triggered when a new feature is announced in the system",
+    "enabled": true,
+    "roles": [
+      "admin",
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/system_new_feature_announced.html"
+    },
+    "description": "Triggered when a new feature is announced in the system.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "system.new_feature_announced"
+  },
+  {
+    "key": "system.security_alert",
+    "label": "Triggered when a security alert is detected in the system",
+    "enabled": true,
+    "roles": [
+      "admin",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/system_security_alert.html"
+    },
+    "description": "Triggered when a security alert is detected in the system.",
+    "priority": "critical",
+    "channels": [
+      "in_app",
+      "email",
+      "sms"
+    ],
+    "forced_channels": [
+      "email"
+    ],
+    "event_key": "system.security_alert"
+  },
+  {
+    "key": "system.update_available",
+    "label": "Triggered when a system update is available",
+    "enabled": true,
+    "roles": [
+      "admin",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/system_update_available.html"
+    },
+    "description": "Triggered when a system update is available.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "system.update_available"
+  },
+  {
+    "key": "ticket.response_added",
+    "label": "Triggered when a response is added to a support ticket",
+    "enabled": true,
+    "roles": [
+      "support",
+      "client"
+    ],
+    "templates": {
+      "email": "notifications/emails/ticket_response_added.html"
+    },
+    "description": "Triggered when a response is added to a support ticket.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "ticket.response_added"
+  },
+  {
+    "key": "user.account_activity_summary",
+    "label": "Triggered to provide a summary of account activity",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_account_activity_summary.html"
+    },
+    "description": "Triggered to provide a summary of account activity.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.account_activity_summary"
+  },
+  {
+    "key": "user.account_deletion_cancelled",
+    "label": "Triggered when a user cancels their account deletion request",
+    "enabled": true,
+    "roles": [
+      "user",
+      "admin"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_account_deletion_cancelled.html"
+    },
+    "description": "Triggered when a user cancels their account deletion request.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.account_deletion_cancelled"
+  },
+  {
+    "key": "user.account_deletion_confirmed",
+    "label": "Triggered when a user's account deletion is confirmed",
+    "enabled": true,
+    "roles": [
+      "user",
+      "admin"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_account_deletion_confirmed.html"
+    },
+    "description": "Triggered when a user's account deletion is confirmed.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "user.account_deletion_confirmed"
+  },
+  {
+    "key": "user.account_deletion_requested",
+    "label": "Triggered when a user requests account deletion",
+    "enabled": true,
+    "roles": [
+      "user",
+      "admin"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_account_deletion_requested.html"
+    },
+    "description": "Triggered when a user requests account deletion.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "user.account_deletion_requested"
+  },
+  {
+    "key": "user.account_locked",
+    "label": "Triggered when a user's account is locked due to suspicious activity",
+    "enabled": true,
+    "roles": [
+      "user",
+      "admin"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_account_locked.html"
+    },
+    "description": "Triggered when a user's account is locked due to suspicious activity.",
+    "priority": "critical",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "email"
+    ],
+    "event_key": "user.account_locked"
+  },
+  {
+    "key": "user.account_reactivated",
+    "label": "Triggered when a user's account is reactivated",
+    "enabled": true,
+    "roles": [
+      "user",
+      "admin"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_account_reactivated.html"
+    },
+    "description": "Triggered when a user's account is reactivated.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.account_reactivated"
+  },
+  {
+    "key": "user.account_suspended",
+    "label": "Triggered when a user's account is suspended",
+    "enabled": true,
+    "roles": [
+      "user",
+      "admin"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_account_suspended.html"
+    },
+    "description": "Triggered when a user's account is suspended.",
+    "priority": "critical",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "email"
+    ],
+    "event_key": "user.account_suspended"
+  },
+  {
+    "key": "user.account_unlocked",
+    "label": "Triggered when a user's account is unlocked after verification",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_account_unlocked.html"
+    },
+    "description": "Triggered when a user's account is unlocked after verification.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.account_unlocked"
+  },
+  {
+    "key": "user.blacklist_notification",
+    "label": "Triggered when a user is added to a blacklist",
+    "enabled": true,
+    "roles": [
+      "admin",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_blacklist_notification.html"
+    },
+    "description": "Triggered when a user is added to a blacklist.",
+    "priority": "critical",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "email"
+    ],
+    "event_key": "user.blacklist_notification"
+  },
+  {
+    "key": "user.login",
+    "label": "Triggered when a user logs in",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_login.html"
+    },
+    "description": "Triggered when a user logs in.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.login"
+  },
+  {
+    "key": "user.login_alert",
+    "label": "Triggered when a user logs in from a new device or location",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_login_alert.html"
+    },
+    "description": "Triggered when a user logs in from a new device or location.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email",
+      "sms"
+    ],
+    "forced_channels": [
+      "email"
+    ],
+    "event_key": "user.login_alert"
+  },
+  {
+    "key": "user.logout",
+    "label": "Triggered when a user logs out",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_logout.html"
+    },
+    "description": "Triggered when a user logs out.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.logout"
+  },
+  {
+    "key": "user.password_reset",
+    "label": "Triggered when a user requests a password reset",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_password_reset.html"
+    },
+    "description": "Triggered when a user requests a password reset.",
+    "priority": "high",
+    "channels": [
+      "email",
+      "sms"
+    ],
+    "forced_channels": [
+      "email"
+    ],
+    "event_key": "user.password_reset"
+  },
+  {
+    "key": "user.profile_change_approved",
+    "label": "Triggered when a user's profile change request is approved",
+    "enabled": true,
+    "roles": [
+      "user",
+      "admin"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_profile_change_approved.html"
+    },
+    "description": "Triggered when a user's profile change request is approved.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.profile_change_approved"
+  },
+  {
+    "key": "user.profile_change_rejected",
+    "label": "Triggered when a user's profile change request is rejected",
+    "enabled": true,
+    "roles": [
+      "user",
+      "admin"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_profile_change_rejected.html"
+    },
+    "description": "Triggered when a user's profile change request is rejected.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "in_app"
+    ],
+    "event_key": "user.profile_change_rejected"
+  },
+  {
+    "key": "user.profile_change_requested",
+    "label": "Triggered when a user requests a change to their profile information",
+    "enabled": true,
+    "roles": [
+      "user",
+      "admin"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_profile_change_requested.html"
+    },
+    "description": "Triggered when a user requests a change to their profile information.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.profile_change_requested"
+  },
+  {
+    "key": "user.profile_picture_updated",
+    "label": "Triggered when a user updates their profile picture",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_profile_picture_updated.html"
+    },
+    "description": "Triggered when a user updates their profile picture.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.profile_picture_updated"
+  },
+  {
+    "key": "user.profile_updated",
+    "label": "Triggered when a user updates their profile information",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_profile_updated.html"
+    },
+    "description": "Triggered when a user updates their profile information.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.profile_updated"
+  },
+  {
+    "key": "user.registered",
+    "label": "Triggered when a user registers",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_registered.html"
+    },
+    "description": "Triggered when a user registers.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.registered"
+  },
+  {
+    "key": "user.subscription_renewed",
+    "label": "Triggered when a user's subscription is renewed",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_subscription_renewed.html"
+    },
+    "description": "Triggered when a user's subscription is renewed.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.subscription_renewed"
+  },
+  {
+    "key": "user.two_factor_disabled",
+    "label": "Triggered when a user disables two-factor authentication",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_two_factor_disabled.html"
+    },
+    "description": "Triggered when a user disables two-factor authentication.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "email"
+    ],
+    "event_key": "user.two_factor_disabled"
+  },
+  {
+    "key": "user.two_factor_enabled",
+    "label": "Triggered when a user enables two-factor authentication",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_two_factor_enabled.html"
+    },
+    "description": "Triggered when a user enables two-factor authentication.",
+    "priority": "high",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [
+      "email"
+    ],
+    "event_key": "user.two_factor_enabled"
+  },
+  {
+    "key": "user.verified",
+    "label": "Triggered when a user's account is verified",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_verified.html"
+    },
+    "description": "Triggered when a user's account is verified.",
+    "priority": "low",
+    "channels": [
+      "in_app"
+    ],
+    "forced_channels": [],
+    "event_key": "user.verified"
+  },
+  {
+    "key": "user.whitelist_notification",
+    "label": "Triggered when a user is removed from a blacklist",
+    "enabled": true,
+    "roles": [
+      "admin",
+      "support"
+    ],
+    "templates": {
+      "email": "notifications/emails/user_whitelist_notification.html"
+    },
+    "description": "Triggered when a user is removed from a blacklist.",
+    "priority": "low",
+    "channels": [
+      "in_app",
+      "email"
+    ],
+    "forced_channels": [],
+    "event_key": "user.whitelist_notification"
+  },
+  {
+    "key": "wallet.balance_low",
+    "label": "Triggered when a user's wallet hits a low threshold",
+    "enabled": true,
+    "roles": [
+      "user"
+    ],
+    "templates": {
+      "email": "notifications/emails/wallet_balance_low.html"
+    },
+    "description": "Triggered when a user's wallet hits a low threshold.",
+    "priority": "medium",
+    "channels": [
+      "in_app",
+      "email",
+      "telegram"
+    ],
+    "forced_channels": [],
+    "event_key": "wallet.balance_low"
+  }
+]

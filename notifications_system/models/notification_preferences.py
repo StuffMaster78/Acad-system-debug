@@ -36,6 +36,13 @@ class UserNotificationPreference(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE
     )
+    channel = models.CharField(
+        max_length=20,
+        choices=NotificationType.choices,
+        verbose_name=("Notification Channel of Preference")
+    )
+    enabled = models.BooleanField(default=True)
+    quiet_hours = models.JSONField(default=dict, blank=True)  # {"start": "22:00", "end": "07:00"}
     mute_until = models.DateTimeField(null=True, blank=True)
 
     def __str__(self):
@@ -64,7 +71,6 @@ class NotificationPreferenceGroup(models.Model):
     )
     quiet_hours = models.JSONField(default=dict, blank=True)  # {"start": "22:00", "end": "07:00"}
     is_active = models.BooleanField(default=True)
-    website = models.ForeignKey("websites.Website", on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
         return self.name

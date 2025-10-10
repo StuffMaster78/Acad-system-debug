@@ -4,7 +4,6 @@ from typing import Optional
 
 from django.conf import settings
 
-from notifications_system.services.core import NotificationService
 from notifications_system.enums import NotificationType
 
 
@@ -51,6 +50,7 @@ def _send_reset_confirmation_now(
             "Your notification preferences have been reset to defaults."
         ),
     }
+    from notifications_system.services.core import NotificationService
     NotificationService.send_notification(
         user=user,
         event="preferences.reset",

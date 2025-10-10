@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import logging
 import time
 from typing import Any, Dict, Iterable, Optional
@@ -47,8 +48,52 @@ from notifications_system.utils.filter_preferred_channels import (
 from notifications_system.utils.fallbacks import FallbackOrchestrator
 from notifications_system.utils.dedupe import allow_once
 
+from notifications_system.registry.notification_registry import get_event 
+from notifications_system.services.templates_registry import resolve_template
+from notifications_system.services.dispatcher import queue_delivery
+from notifications_system.services.outbox import enqueue_outbox 
+from notifications_system.tasks.notification_tasks import process_outbox
+
 logger = logging.getLogger(__name__)
 
+ENABLE_NOTIFICATIONS = os.getenv("ENABLE_NOTIFICATIONS", "1") == "1"
+ENABLE_REDIS = os.getenv("ENABLE_REDIS", "0") == "1"
+ENABLE_CELERY = os.getenv("ENABLE_CELERY", "1") == "1"
+ASYNC_NOTIFICATIONS = getattr(settings, "ASYNC_NOTIFICATIONS", True) 
+
+
+def _enqueue_outbox_safe(
+    *,
+    user_id: Optional[int],
+    website_id: Optional[int],
+    event_key: str,
+    payload: Dict[str, Any],
+    dedupe_key: str,
+) -> Optional[int]:
+    """
+    Write to your existing Outbox model and (if available) kick a worker.
+    Returns the Outbox id or None on failure.
+    """
+    try:
+        from notifications_system.models.outbox import Outbox
+        ob = Outbox.objects.create(
+            user_id=user_id,
+            website_id=website_id,
+            event_key=event_key,
+            payload=payload,
+            dedupe_key=dedupe_key,
+        )
+        if ENABLE_CELERY:
+            try:
+                # adjust if your task path/name differs
+                from notifications_system.tasks.notifications import process_outbox
+                process_outbox.delay(ob.id)
+            except Exception as exc:
+                logger.warning("Celery not available; outbox %s queued for later: %s", ob.id, exc)
+        return ob.id
+    except Exception as exc:
+        logger.warning("Outbox enqueue failed (falling back to sync): %s", exc)
+        return None
 
 class NotificationService:
     """Central orchestrator for notifications.
@@ -66,6 +111,7 @@ class NotificationService:
 
     All sends must flow through this service.
     """
+    
 
     @staticmethod
     def send_notification(
@@ -127,9 +173,17 @@ class NotificationService:
             logger.warning("Notification skipped: no website provided.")
             return None
 
+
+        if not ENABLE_NOTIFICATIONS:
+            logger.info("Notifications disabled; noop for %s", event)
+            return None
+
         payload = dict(payload or {})
-        payload.setdefault("user_id", user.id)
+        payload.setdefault("user_id", getattr(user, "id", None))
         payload.setdefault("website_id", getattr(website, "id", None))
+        payload.setdefault("_ts", int(time.time()))
+
+        
 
         # ----- Deduplication (once-only)
         dedupe_secs = getattr(settings, "NOTIFICATION_DEDUPE_WINDOW_SECONDS", 45)
@@ -174,14 +228,26 @@ class NotificationService:
         # ----- DND filter
         profile = getattr(user, "notification_profile", None)
         if is_dnd_now(profile):
-            dnd_channels = getattr(profile, "dnd_channels", []) or []
-            channels = [c for c in (channels or []) if c not in dnd_channels]
-            if not channels:
-                logger.info(
-                    "User %s is in DND; no eligible channels remain.",
-                    user,
-                )
-                return None
+            dnd_channels = (getattr(profile, "dnd_channels", []) or [])
+            _incoming = list(channels) if channels else None
+            if _incoming is not None:
+                channels = [c for c in _incoming if c not in dnd_channels]
+                if not channels:
+                    logger.info("User %s is in DND; no eligible channels remain.", user)
+                    return None
+                
+
+        # ----- Event defaults (from registry)
+        ev = get_event(event)
+        if ev:
+            # if caller didn't specify channels, use event defaults
+            if channels is None and ev.channels:
+                channels = list(ev.channels)
+            # if caller passed a string label for priority and it doesn't map, fall back to ev.priority
+            if isinstance(priority, str):
+                pr = get_priority_from_label(priority)
+                if pr is None:
+                    priority = ev.priority
 
         # ----- Resolve channels (forced > explicit > role > prefs)
         forced = ForcedChannelRegistry.get(event, set())
@@ -203,6 +269,9 @@ class NotificationService:
                         website=website,
                     )
                 )
+
+        if not resolved_channels:
+            resolved_channels = [NotificationType.IN_APP]
 
         # Filter by user prefs (only when not forced)
         if not forced:
@@ -275,6 +344,32 @@ class NotificationService:
             payload["digest_group"] = digest_group
             payload["is_digest"] = True
 
+        # ----- Optional async path (outbox) BEFORE rendering
+        if ASYNC_NOTIFICATIONS and not is_silent and not is_digest:
+            dedupe_key = f"{event}:{user.id}:{getattr(website, 'id', 'global')}:{','.join(resolved_channels)}"
+            ob_payload = {
+                **payload,
+                "channels": resolved_channels,
+                "priority": priority,
+                "template_name": template_name,
+                "category": category or "info",
+                "email_override": email_override,
+                "global_broadcast": global_broadcast,
+                "groups": list(groups or []),
+                "_from_outbox": True,  # so outbox worker doesn't re-enqueue
+            }
+            outbox_id = _enqueue_outbox_safe(
+                user_id=user.id,
+                website_id=getattr(website, "id", None),
+                event_key=event,
+                payload=ob_payload,
+                dedupe_key=dedupe_key,
+            )
+            if outbox_id:  # handoff done; return lightweight handle
+                return None  # or return outbox_id if you prefer
+            # Fall through to sync path if enqueue failed 
+
+            
         # ----- Render (class-based template)
         tmpl = get_template(event)
         if not tmpl:
@@ -288,6 +383,7 @@ class NotificationService:
         except Exception as exc:  # noqa: BLE001
             logger.exception("Template render failed for '%s': %s", event, exc)
             return None
+
 
         # ----- Create DB Notification
         primary_channel = resolved_channels[0]

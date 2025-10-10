@@ -23,6 +23,7 @@ class NotificationChannel(TextChoices):
     TELEGRAM = "telegram", _("Telegram")
     DISCORD = "discord", _("Discord")
     SYSTEM = "system", _("System")
+    WHATSAPP = "whatsapp", _("WhatsApp")
 
 # Alias to keep legacy imports working
 NotificationType = NotificationChannel
@@ -40,6 +41,16 @@ class DeliveryStatus(TextChoices):
     DELAYED = "delayed", _("Delayed")
     TIMEOUT = "timeout", _("Timeout")
     FAILED = "failed", _("Failed")
+    DLQ = "dlq", _("Dead Letter Queue")
+    CANCELLED = "cancelled", _("Cancelled")
+    BOUNCED = "bounced", _("Bounced")
+    OPENED = "opened", _("Opened")
+    CLICKED = "clicked", _("Clicked")
+    UNDELIVERABLE = "undeliverable", _("Undeliverable")
+    COMPLAINT = "complaint", _("Complaint")
+    SUBSCRIBED = "subscribed", _("Subscribed")
+    UNSUBSCRIBED = "unsubscribed", _("Unsubscribed")
+    SKIPPEd = "skipped", _("Skipped")
 
 
 class NotificationCategory(TextChoices):

@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 import logging
+import os
 from django.apps import AppConfig
 
 logger = logging.getLogger(__name__)
-
 
 class NotificationsSystemConfig(AppConfig):
     """AppConfig for the Notifications System.
@@ -24,6 +24,15 @@ class NotificationsSystemConfig(AppConfig):
     verbose_name = "Notifications System"
 
     def ready(self) -> None:  # noqa: D401
+        from . import checks 
+        if os.getenv("ENABLE_NOTIFICATIONS", "1") != "1":
+            logger.info("Notifications disabled in this env.")
+            return
+        # Soft checks only; never raise here.
+        try:
+            import redis  # noqa
+        except Exception:
+            logger.warning("Redis client not available (ok in dev).")
         # 1) Signals / checks (must not raise)
         try:
             from .  import signals  # noqa: F401

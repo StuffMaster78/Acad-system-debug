@@ -11,8 +11,14 @@ from notifications_system.registry.template_registry import (
 from pathlib import Path
 # We’ll access the internal dict for a precise check.
 # If you prefer, expose a public helper in template_registry instead.
+import json
 from notifications_system.registry import template_registry as _tpl_mod
-
+from notifications_system.registry.validator import (
+    validate_broadcast_events,
+    validate_digest_events,
+    validate_notification_events,
+)
+from django.core import checks
 
 @register()
 def check_notification_templates(app_configs, **kwargs):
@@ -182,9 +188,9 @@ def check_notification_config_schemas(app_configs, **kwargs):
     required_schema_files = {
         "event_config_schema.json",
         "base_event.schema.json",
-        "user_event.schema.json",
-        "order_event.schema.json",
-        "wallet_event.schema.json",
+        "user_event_schema.json",
+        "order_event_schema.json",
+        "wallet_event_schema.json",
         "broadcast_event.schema.json",
         "digest_event.schema.json",
     }
@@ -416,3 +422,72 @@ def check_notification_events_loadable(app_configs, **kwargs):
         )
 
     return errors
+
+
+@register()
+def check_broadcast_config(app_configs, **kwargs):
+    path = Path(__file__).resolve().parent / "registry" / "configs" / "broadcast_event_config.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        res = validate_broadcast_events(data)
+    except Exception as exc:
+        return [Error(
+            "broadcast_event_config.json failed validation.",
+            hint=str(exc),
+            id="notifications_system.E027",
+        )]
+    if not res.ok:
+        return [Error(
+            "broadcast_event_config.json failed validation.",
+            hint="\n".join(res.errors),
+            id="notifications_system.E027",
+        )]
+    return []
+
+
+@register()
+def check_digest_config(app_configs, **kwargs):
+    path = Path(__file__).resolve().parent / "registry" / "configs" / "digest_event_config.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        res = validate_digest_events(data)
+    except Exception as exc:
+        return [Error(
+            "digest_event_config.json failed validation.",
+            hint=str(exc),
+            id="notifications_system.E030",
+        )]
+    if not res.ok:
+        return [Error(
+            "digest_event_config.json failed validation.",
+            hint="\n".join(res.errors),
+            id="notifications_system.E030",
+        )]
+    return []
+
+
+@register()
+def check_notification_config(app_configs, **kwargs):
+    path = Path(__file__).resolve().parent / "registry" / "configs" / "notification_event_config.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        res = validate_notification_events(data)
+    except Exception as exc:
+        return [Error(
+            "notification_event_config.json failed validation.",
+            hint=str(exc),
+            id="notifications_system.E025",
+        )]
+    if not res.ok:
+        return [Error(
+            "notification_event_config.json failed validation.",
+            hint="\n".join(res.errors),
+            id="notifications_system.E024",
+        )]
+    return []

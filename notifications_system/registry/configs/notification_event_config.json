@@ -1,575 +1,223 @@
 {
-        "order.paid": {
-            "description": "Triggered when payment is confirmed.",
-            "priority": "medium",
-            "channels": ["in_app", "email", "whatsapp"],
-            "forced_channels": [],
-            "roles": ["admin", "client", "support"],
-            "enabled": true,
-            "templates": {
-                "email": "notifications/emails/order_paid.html"
-            }
-        },
-        "order.revision_requested": {
-            "description": "Triggered when a client requests a revision.",
-            "priority": "high",
-            "channels": ["in_app", "email"],
-            "forced_channels": ["in_app"],
-            "roles": ["writer", "editor", "support"],
-            "enabled": true,
-            "templates": {
-                "email": "notifications/emails/order_revision_requested.html"
-            }
-    },
-        "order.revision_in_progress": {
-            "description": "Triggered when an order is under revision.",
-            "priority": "high",
-            "channels": ["in_app", "email"],
-            "forced_channels": ["in_app"],
-            "roles": ["writer", "editor", "support"],
-            "enabled": true,
-            "templates": {
-                "email": "notifications/emails/order_revision_in_progress.html"
-            }
-    },
-        "order.revised": {
-            "description": "Triggered when an order is revised.",
-            "priority": "medium",
-            "channels": ["in_app", "email"],
-            "forced_channels": [],
-            "roles": ["writer", "editor"],
-            "enabled": true,
-            "templates": {
-                "email": "notifications/emails/order_revised.html"
-            }
-    },
-        "order.rated": {
-            "description": "Triggered when an order is rated.",
-            "priority": "medium",
-            "channels": ["in_app", "email"],
-            "forced_channels": [],
-            "roles": ["writer", "editor"],
-            "enabled": true,
-            "templates": {
-                "email": "notifications/emails/order_rated.html"
-            }
-    },
-        "order.approved": {
-            "description": "Triggered when an order is approved.",
-            "priority": "medium",
-            "channels": ["in_app", "email"],
-            "forced_channels": [],
-            "roles": ["writer", "editor"],
-            "enabled": true,
-            "templates": {
-                "email": "notifications/emails/order_approved.html"
-            }
-    },
-        "order.cancelled": {
-            "description": "Triggered when an order is cancelled.",
-            "priority": "high",
-            "channels": ["in_app", "email"],
-            "forced_channels": ["in_app"],
-            "roles": ["client", "support", "writer"],
-            "enabled": true,
-            "templates": {
-                "email": "notifications/emails/order_cancelled.html"
-            }
-    },
-    "order.archived": {
-        "description": "Triggered when an order is archived.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["client", "support", "writer"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_archived.html"
-        }
-    },
-    "order.on_hold": {
-        "description": "Triggered when an order is put on hold.",
-        "priority": "high",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["in_app"],
-        "roles": ["client", "support", "writer"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_on_hold.html"
-        }
-    },
-    "user.verified": {
-        "description": "Triggered when a user's account is verified.",
-        "priority": "low",
-        "channels": ["in_app"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_verified.html"
-        }
-    },
-    "user.registered": {
-        "description": "Triggered when a user registers.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_registered.html"
-        }
-    },
-    "user.login": {
-        "description": "Triggered when a user logs in.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_login.html"
-        }
-
-    },
-    "user.logout": {
-        "description": "Triggered when a user logs out.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_logout.html"
-        }
-    },
-    "user.password_reset": {
-        "description": "Triggered when a user requests a password reset.",
-        "priority": "high",
-        "channels": ["email", "sms"],
-        "forced_channels": ["email"],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_password_reset.html"
-        }
-    },
-    "payment.refunded": {
-        "description": "Triggered when a refund is processed.",
-        "priority": "critical",
-        "channels": ["in_app", "email", "sms"],
-        "forced_channels": ["email"],
-        "roles": ["client", "writer", "support"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/payment_refunded.html"
-        }
-    },
-    "ticket.response_added": {
-        "description": "Triggered when a response is added to a support ticket.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["support", "client"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/ticket_response_added.html"
-        }
-    },
-    "wallet.balance_low": {
-        "description": "Triggered when a user's wallet hits a low threshold.",
-        "priority": "medium",
-        "channels": ["in_app", "email", "telegram"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/wallet_balance_low.html"
-        }
-    },
-    "system.maintenance": {
-        "description": "Triggered when the system is undergoing maintenance.",
-        "priority": "high",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["in_app"],
-        "roles": ["admin", "support"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/system_maintenance.html"
-        }
-    },
-    "system.update_available": {    
-        "description": "Triggered when a system update is available.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["admin", "support"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/system_update_available.html"
-        }
-    },
-    "order.cancellation_requested": {
-        "description": "Triggered when a client requests an order cancellation.",
-        "priority": "high",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["in_app"],
-        "roles": ["client", "support", "writer"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_cancellation_requested.html"
-        }
-    },
-    "order.completed": {
-        "description": "Triggered when an order is marked as completed.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["client", "writer", "editor"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_completed.html"
-        }
+  "events": {
+    "order.created": {
+      "priority": "high",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "A new order has been created.",
+      "enabled": true
     },
     "order.assigned": {
-        "description": "Triggered when an order is assigned to a writer.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["writer", "editor"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_assigned.html"
-        }
+      "priority": "high",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email", "webhook"],
+      "description": "Order assigned to a writer.",
+      "enabled": true
     },
-    "user.account_suspended": {
-        "description": "Triggered when a user's account is suspended.",
-        "priority": "critical",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["email"],
-        "roles": ["user", "admin"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_account_suspended.html"
-        }
+    "order.preferred_writer_assigned": {
+      "priority": "high",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Assigned to client's preferred writer.",
+      "enabled": true
     },
-    "user.account_reactivated": {
-        "description": "Triggered when a user's account is reactivated.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user", "admin"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_account_reactivated.html"
-        }
+    "order.unpaid": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Order marked unpaid / invoice issued.",
+      "enabled": true
     },
-    "order.dispute_opened": {
-        "description": "Triggered when a dispute is opened for an order.",
-        "priority": "high",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["in_app"],
-        "roles": ["client", "writer", "support"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_dispute_opened.html"
-        }
+    "order.paid": {
+      "priority": "high",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Payment received for the order.",
+      "enabled": true
     },
-    "order.dispute_resolved": {
-        "description": "Triggered when a dispute is resolved.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["client", "writer", "support"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_dispute_resolved.html"
-        }
+    "order.payment_failed": {
+      "priority": "high",
+      "roles": ["client"],
+      "channels": ["in_app", "email", "sms"],
+      "description": "Payment attempt failed.",
+      "enabled": true,
+      "forced_channels": ["email"]
     },
-    "user.profile_updated": {
-        "description": "Triggered when a user updates their profile information.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_profile_updated.html"
-        }
+    "order.available": {
+      "priority": "low",
+      "roles": ["writer"],
+      "channels": ["in_app"],
+      "description": "Order available for assignment.",
+      "enabled": true
     },
-    "user.two_factor_enabled": {    
-        "description": "Triggered when a user enables two-factor authentication.",
-        "priority": "high",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["email"],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_two_factor_enabled.html"
-        }
+    "order.in_progress": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Work on the order has started.",
+      "enabled": true
     },
-    "user.two_factor_disabled": {
-        "description": "Triggered when a user disables two-factor authentication.",
-        "priority": "high",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["email"],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_two_factor_disabled.html"
-        }
+    "order.on_hold": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Order placed on hold.",
+      "enabled": true
     },
-    "order.quality_check_passed": {
-        "description": "Triggered when an order passes the quality check.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["client", "writer", "editor"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_quality_check_passed.html"
-        }
+    "order.off_hold": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app"],
+      "description": "Order taken off hold.",
+      "enabled": true
     },
-    "order.quality_check_failed": {
-        "description": "Triggered when an order fails the quality check.",
-        "priority": "high",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["in_app"],
-        "roles": ["client", "writer", "editor", "support"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_quality_check_failed.html"
-        }
+    "order.under_editing": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app"],
+      "description": "Order is under editing.",
+      "enabled": true
     },
-    "order.feedback_received": {
-        "description": "Triggered when feedback is received on an order.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["client", "writer", "editor"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_feedback_received.html"
-        }
+    "order.submitted": {
+      "priority": "high",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Writer submitted files for review.",
+      "enabled": true
     },
-    "order.reminder_sent": {
-        "description": "Triggered when a reminder is sent for an order.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["client", "writer"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_reminder_sent.html"
-        }
+    "order.reviewed": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app"],
+      "description": "Submission reviewed by client/QA.",
+      "enabled": true
     },
-    "system.security_alert": {
-        "description": "Triggered when a security alert is detected in the system.",
-        "priority": "critical",
-        "channels": ["in_app", "email", "sms"],
-        "forced_channels": ["email"],
-        "roles": ["admin", "support"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/system_security_alert.html"
-        }
+    "order.revision_requested": {
+      "priority": "high",
+      "roles": ["writer"],
+      "channels": ["in_app", "email"],
+      "description": "Client requested a revision.",
+      "enabled": true
     },
-    "system.new_feature_announced": {
-        "description": "Triggered when a new feature is announced in the system.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["admin", "user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/system_new_feature_announced.html"
-        }
+    "order.revision_in_progress": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app"],
+      "description": "Writer started the revision.",
+      "enabled": true
     },
-    "user.subscription_renewed": {
-        "description": "Triggered when a user's subscription is renewed.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_subscription_renewed.html"
-        }
+    "order.revised": {
+      "priority": "high",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Revised files submitted.",
+      "enabled": true
     },
-    "referral_rewarded": {
-        "description": "Triggered when a user is rewarded for a referral.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/referral_rewarded.html"
-        }
+    "order.returned": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Submission returned outside revision flow.",
+      "enabled": true
     },
-    "user.login_alert": {
-        "description": "Triggered when a user logs in from a new device or location.",
-        "priority": "high",
-        "channels": ["in_app", "email", "sms"],
-        "forced_channels": ["email"],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_login_alert.html"
-        }
+    "order.rated": {
+      "priority": "low",
+      "roles": ["client", "writer"],
+      "channels": ["in_app"],
+      "description": "Client rated the order.",
+      "enabled": true
     },
-    "user.account_locked": {
-        "description": "Triggered when a user's account is locked due to suspicious activity.",
-        "priority": "critical",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["email"],
-        "roles": ["user", "admin"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_account_locked.html"
-        }
+    "order.approved": {
+      "priority": "high",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Order approved by client/QA.",
+      "enabled": true
     },
-    "user.account_unlocked": {
-        "description": "Triggered when a user's account is unlocked after verification.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_account_unlocked.html"
-        }
+    "order.refunded": {
+      "priority": "high",
+      "roles": ["client"],
+      "channels": ["in_app", "email"],
+      "description": "Order refunded (full or partial).",
+      "enabled": true
     },
-    "order.urgent_notification": {
-        "description": "Triggered for urgent notifications related to an order.",
-        "priority": "critical",
-        "channels": ["in_app", "email", "sms"],
-        "forced_channels": ["in_app"],
-        "roles": ["client", "writer", "editor", "support"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_urgent_notification.html"
-        }
+    "order.cancelled": {
+      "priority": "high",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Order cancelled.",
+      "enabled": true
     },
-    "user.account_activity_summary": {
-        "description": "Triggered to provide a summary of account activity.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_account_activity_summary.html"
-        }
+    "order.cancellation_requested": {
+      "priority": "medium",
+      "roles": ["admin", "support"],
+      "channels": ["in_app", "email"],
+      "description": "Client requested cancellation.",
+      "enabled": true
     },
-    "order.custom_notification": {
-        "description": "Triggered for custom notifications related to an order.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["client", "writer", "editor"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/order_custom_notification.html"
-        }
+    "order.archived": {
+      "priority": "low",
+      "roles": ["client", "writer"],
+      "channels": ["in_app"],
+      "description": "Order archived for housekeeping.",
+      "enabled": true
     },
-    "user.blacklist_notification": {
-        "description": "Triggered when a user is added to a blacklist.",
-        "priority": "critical",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["email"],
-        "roles": ["admin", "support"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_blacklist_notification.html"
-        }
+    "order.unarchived": {
+      "priority": "low",
+      "roles": ["client", "writer"],
+      "channels": ["in_app"],
+      "description": "Order restored from archive.",
+      "enabled": true
     },
-    "user.whitelist_notification": {
-        "description": "Triggered when a user is removed from a blacklist.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["admin", "support"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_whitelist_notification.html"
-        }
+    "order.restored": {
+      "priority": "low",
+      "roles": ["client", "writer"],
+      "channels": ["in_app"],
+      "description": "Explicit restore transition.",
+      "enabled": true
     },
-    "user.profile_picture_updated": {
-        "description": "Triggered when a user updates their profile picture.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_profile_picture_updated.html"
-        }
+    "order.completed": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Order lifecycle completed.",
+      "enabled": true
     },
-    "user.profile_change_requested": {
-        "description": "Triggered when a user requests a change to their profile information.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user", "admin"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_profile_change_requested.html"
-        }
+    "order.closed": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app"],
+      "description": "Order closed by staff/policy.",
+      "enabled": true
     },
-    "user.profile_change_approved": {
-        "description": "Triggered when a user's profile change request is approved.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user", "admin"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_profile_change_approved.html"
-        }
+    "order.reassigned": {
+      "priority": "high",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "Order reassigned to a different writer.",
+      "enabled": true
     },
-    "user.profile_change_rejected": {
-        "description": "Triggered when a user's profile change request is rejected.",
-        "priority": "high",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["in_app"],
-        "roles": ["user", "admin"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_profile_change_rejected.html"
-        }
+    "order.expired": {
+      "priority": "critical",
+      "roles": ["client", "writer", "admin"],
+      "channels": ["in_app", "email", "sms"],
+      "description": "Deadline missed / SLA breach.",
+      "enabled": true,
+      "forced_channels": ["email"]
     },
-    "user.account_deletion_requested": {
-        "description": "Triggered when a user requests account deletion.",
-        "priority": "high",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["in_app"],
-        "roles": ["user", "admin"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_account_deletion_requested.html"
-        }
+    "order.updated": {
+      "priority": "low",
+      "roles": ["client", "writer"],
+      "channels": ["in_app"],
+      "description": "Order fields/metadata updated.",
+      "enabled": true
     },
-    "user.account_deletion_confirmed": {
-        "description": "Triggered when a user's account deletion is confirmed.",
-        "priority": "medium",
-        "channels": ["in_app", "email"],
-        "forced_channels": ["in_app"],
-        "roles": ["user", "admin"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_account_deletion_confirmed.html"
-        }
-    },
-    "user.account_deletion_cancelled": {
-        "description": "Triggered when a user cancels their account deletion request.",
-        "priority": "low",
-        "channels": ["in_app", "email"],
-        "forced_channels": [],
-        "roles": ["user", "admin"],
-        "enabled": true,
-        "templates": {
-            "email": "notifications/emails/user_account_deletion_cancelled.html"
-        }
+    "order.file_uploaded": {
+      "priority": "medium",
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "description": "A new file was uploaded to the order.",
+      "enabled": true
     }
+  }
 }

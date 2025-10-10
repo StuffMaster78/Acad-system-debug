@@ -1,6 +1,5 @@
 {
-  "$id": "https://yourdomain.com/schemas/user_event.schema.json",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "User Event Schema (map item)",
   "description": "Validates values for user.* events when using map form.",
   "allOf": [
@@ -15,7 +14,7 @@
         "template_key": { "type": "string" },
         "fallback_message": { "type": "string" }
       },
-      "additionalProperties": false
+      "additionalProperties": true
     }
   ]
 }

@@ -37,12 +37,18 @@ SCHEMA_BASE_DIR = Path(__file__).resolve().parent / "configs" / "schemas"
 _SCHEMA_CACHE: Dict[str, Dict[str, Any]] = {}
 
 # At top-level (near SCHEMA_* constants)
+# SCHEMA_BY_PREFIX = {
+#     "user.": "user_event_schema",
+#     "order.": "order_event_schema",
+#     "wallet.": "wallet_event_schema",
+# }
+# DEFAULT_EVENT_SCHEMA = "event_config_schema"
 SCHEMA_BY_PREFIX = {
-    "user.": "user_event_schema",
-    "order.": "order_event_schema",
-    "wallet.": "wallet_event_schema",
+    "user.": "user_event_schema",    # maps to user_event.schema.json
+    "order.": "order_event_schema",  # maps to order_event.schema.json
+    "wallet.": "wallet_event_schema" # maps to wallet_event.schema.json
 }
-DEFAULT_EVENT_SCHEMA = "event_config_schema"
+DEFAULT_EVENT_SCHEMA = "event_config_schema"  # event_config_schema.json exists
 
 
 @dataclass
@@ -159,6 +165,10 @@ def load_schema(schema_name: str) -> Dict[str, Any]:
         )
 
     _SCHEMA_CACHE[schema_name] = data
+        # also cache by $id to help any callers that look it up by id
+    schema_id = data.get("$id")
+    if isinstance(schema_id, str) and schema_id.strip():
+        _SCHEMA_CACHE[schema_id] = data
     return data
 
 
@@ -290,25 +300,45 @@ def validate_events_file(path: Union[str, Path]) -> ValidationResult:
 
 
 def _build_resolver(base_dir: Path) -> RefResolver:
-    """Build a RefResolver for local $ref resolution.
-
-    Args:
-        base_dir: Directory containing related schema files.
-
-    Returns:
-        A RefResolver with a preloaded store for all files in base_dir.
-    """
+    """Build a RefResolver for local $ref resolution (no network)."""
     base_uri = base_dir.as_uri() + "/"
     store: Dict[str, dict] = {}
 
+    # Preload all schemas in the directory into the store
     for p in base_dir.glob("*.json"):
         try:
             doc = json.loads(p.read_text(encoding="utf-8"))
+            # 1) map by file URI
             store[p.as_uri()] = doc
+            # 2) map by $id, if present
+            schema_id = doc.get("$id")
+            if isinstance(schema_id, str) and schema_id.strip():
+                store[schema_id] = doc
         except Exception as exc:
             logger.warning("Failed to preload schema %s: %s", p, exc)
 
-    return RefResolver(base_uri=base_uri, referrer=None, store=store)
+    # Handler that resolves http(s) URIs to local files in base_dir
+    def _local_handler(uri: str) -> dict:
+        # Direct hit in store?
+        if uri in store:
+            return store[uri]
+        # Try by filename suffix
+        name = uri.rsplit("/", 1)[-1]
+        candidate = base_dir / name
+        if candidate.exists():
+            try:
+                doc = json.loads(candidate.read_text(encoding="utf-8"))
+                store[uri] = doc
+                return doc
+            except Exception as exc:  # pragma: no cover
+                raise RuntimeError(f"Failed reading local schema for {uri}: {exc}") from exc
+        raise RuntimeError(f"No local schema mapped for {uri}")
+
+    # Save handlers on the resolver (Draft202012Validator will consume them)
+    resolver = RefResolver(base_uri=base_uri, referrer=None, store=store)
+    resolver.handlers = {"http": _local_handler, "https": _local_handler}
+    return resolver
+
 
 
 def _normalize_errors(
@@ -438,29 +468,48 @@ def validate_all_in_dir(
 
     return overall_ok, results
 
+# ----------------------------
+# File-level validators we call from loaders
+# ----------------------------
 
-# Works the same as validate_event_config()
-# def validate_schema_config(
-#     instance: dict,
-#     schema: dict,
-#     *,
-#     file_path: Optional[str] = None,
-# ) -> ValidationResult:
-#     """Validate a single config dict against a JSON Schema.
+def validate_broadcast_events(data: Any) -> ValidationResult:
+    """
+    Validate broadcast events file (list form or wrapped {"events":[...]}).
+    Uses broadcast_event.schema.json (root may be array or object).
+    """
+    schema = load_schema("broadcast_event")  # broadcast_event.schema.json
+    resolver = _build_resolver(SCHEMA_BASE_DIR)
 
-#     Returns a ValidationResult with file+JSONPath formatted errors.
-#     """
-#     try:
-#         validator = Draft202012Validator(schema)
-#     except Exception as e:
-#         return ValidationResult(
-#             ok=False,
-#             errors=[f"{file_path or '<schema>'}:$: Invalid schema: {e}"]
-#         )
+    # Many configs may use {"events":[...]} as root; accept both.
+    inst = data.get("events") if isinstance(data, dict) and "events" in data else data
+    return _validate_obj(inst, schema, resolver=resolver)
 
-#     errs = []
-#     for err in sorted(validator.iter_errors(instance), key=lambda e: list(e.path)):
-#         path = "$" if not err.path else "$." + ".".join(map(str, err.path))
-#         errs.append(f"{file_path or '<mem>'}:{path}: {err.message}")
 
-#     return ValidationResult(ok=(len(errs) == 0), errors=errs)
+def validate_digest_events(data: Any) -> ValidationResult:
+    """
+    Validate digest events file (list form or wrapped {"events":[...]}).
+    Uses digest_event.schema.json.
+    """
+    schema = load_schema("digest_event")  # digest_event.schema.json
+    resolver = _build_resolver(SCHEMA_BASE_DIR)
+    inst = data.get("events") if isinstance(data, dict) and "events" in data else data
+    return _validate_obj(inst, schema, resolver=resolver)
+
+
+def validate_notification_events(data: Any) -> ValidationResult:
+    """
+    Validate notification events file.
+    Accepts:
+      - list of event dicts (must contain key/event_key per item)
+      - wrapped {"events":[...]}
+      - mapping {"order.paid": {...}} (we validate per-item via per-event schemas)
+    """
+    # If wrapped object, peel to list
+    if isinstance(data, dict) and "events" in data and isinstance(data["events"], list):
+        return validate_events_any(data["events"])
+
+    # If list or dict, validate via our per-item logic which picks schema by prefix.
+    if isinstance(data, (list, dict)):
+        return validate_events_any(data)
+
+    return ValidationResult(False, ["$: expected object or array"])

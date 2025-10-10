@@ -6,6 +6,12 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 class UserNotificationMeta(models.Model):
+    """
+    Tracks metadata about a user's notifications,
+    such as the last time they checked their notifications.
+    This helps in determining which notifications are new
+    since their last visit.
+    """
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="notif_meta")
     # If you’re multi-tenant per-website, make this a FK instead (user+website unique_together).
     last_seen_at = models.DateTimeField(default=timezone.now)

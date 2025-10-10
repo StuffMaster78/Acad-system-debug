@@ -42,7 +42,53 @@ from notifications_system.registry.validator import validate_event_config
 from django.core.exceptions import ValidationError
 
 from .models.notifications_user_status import NotificationsUserStatus
+from .models.delivery import Delivery
+from .models.outbox import Outbox
+from .models.notifications_template import NotificationTemplate
 
+@admin.register(UserNotificationPreference)
+class UserNotificationPreferenceAdmin(admin.ModelAdmin):
+    list_display = ["website", "user", "channel"]
+    list_filter = ["website", "channel"]
+    search_fields = ["user__email", "user__username"]
+
+admin.register(NotificationPreferenceGroup)
+class NotificationPreferenceGroup(admin.ModelAdmin):
+    list_display = ("website", "name", "description", "default_channels", "is_active", "quiet_hours")
+    list_filter = ("website", "is_active")
+    search_fields = ("name", "description", "quiet_hours")
+
+@admin.register(NotificationTemplate)
+class NotificationTemplateAdmin(admin.ModelAdmin):
+    list_display = ("event", "channel", "website", "locale", "version")
+    list_filter = ("channel", "website", "locale")
+    search_fields = ("event__key",)
+    autocomplete_fields = ("event", "website")
+
+# @admin.register(UserPreference)
+# class UserPreferenceAdmin(admin.ModelAdmin):
+#     list_display = ("user", "website", "channel", "enabled")
+#     list_filter = ("channel", "enabled", "website")
+#     search_fields = ("user__email", "user__username")
+#     autocomplete_fields = ("user", "website")
+
+@admin.register(Delivery)
+class DeliveryAdmin(admin.ModelAdmin):
+    list_display = (
+        "id", "event_key", "user", "channel", "status",
+        "priority", "attempts", "queued_at", "sent_at",
+    )
+    list_filter = ("status", "channel", "priority")
+    search_fields = ("event_key", "user__email")
+    date_hierarchy = "queued_at"
+    autocomplete_fields = ("user", "website")
+
+@admin.register(Outbox)
+class OutboxAdmin(admin.ModelAdmin):
+    list_display = ("id", "event_key", "user", "attempts", "processed_at")
+    list_filter = ("processed_at",)
+    search_fields = ("event_key", "user__email")
+    autocomplete_fields = ("user", "website")
 class UserNotificationSettingsForm(forms.ModelForm):
     class Meta:
         model = UserNotificationSettings
@@ -73,9 +119,9 @@ class UserNotificationSettingsAdmin(admin.ModelAdmin):
 
 @admin.register(NotificationEvent)
 class NotificationEventAdmin(admin.ModelAdmin):
-    list_display = ("event", "name", "is_active", "website")
-    search_fields = ("event", "name")
-    list_filter = ("is_active", "website")
+    list_display = ("event", "name", "is_active", "website", "key", "label", "priority", "enabled", "schema_version")
+    list_filter = ("enabled", "priority", "website", "is_active")
+    search_fields = ("key", "label", "event", "name")
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related('website')
