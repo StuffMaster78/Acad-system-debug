@@ -15,21 +15,21 @@ from orders.exceptions import (
 )
 
 VALID_TRANSITIONS: Dict[str, List[str]] = {
-    "pending": ["unpaid", "cancelled"],
-    "unpaid": ["paid", "cancelled"],
-    "paid": ["available","pending_writer_assignment", "in_progress", "cancelled"],
+    "pending": ["unpaid", "cancelled", "deleted"],
+    "unpaid": ["paid", "cancelled", "deleted", "on_hold"],
+    "paid": ["available","pending_writer_assignment", "in_progress", "on_hold", "cancelled"],
     "pending_writer_assignment": ["available", "cancelled", "on_hold"],
     "available": ["in_progress", "cancelled", "on_hold"],
-    "in_progress": ["on_hold", "submitted", "reassigned"],
+    "in_progress": ["on_hold", "cancelled", "submitted", "reassigned"],
     "on_hold": ["in_progress", "cancelled", "available"],
-    "submitted": ["reviewed", "revision_requested", "disputed", "cancelled"],
+    "submitted": ["reviewed", "rated", "revision_requested", "disputed", "cancelled"],
     "reviewed": ["rated", "revision_requested"],
     "rated": ["approved", "revision_requested"],
     "approved": ["archived"],
     "cancelled": [],
     "revision_requested": ["revision_in_progress", "reassigned"],
-    "revision_in_progress": ["revised", "submitted", "cancelled", "reassigned"],
-    "revised": ["reviewed", "rated", "approved", "revision_requested"],
+    "revision_in_progress": ["revised", "submitted", "cancelled", "reassigned", "closed"],
+    "revised": ["reviewed", "rated", "approved", "revision_requested", "cancelled", "closed"],
     "reassigned": ["in_progress"],
 }
 

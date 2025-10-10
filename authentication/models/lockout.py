@@ -8,10 +8,12 @@ from django.conf import settings
 
 class AccountLockout(models.Model):
     """
-    Represents an account lockout event due to suspicious activity or admin action.
+    Represents an account lockout event due to
+    suspicious activity or admin action.
     """
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE,
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
         related_name="lockouts"
     )
     website = models.ForeignKey(

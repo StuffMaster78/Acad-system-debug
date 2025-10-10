@@ -41,6 +41,9 @@ class RegistrationToken(models.Model):
         return f"{self.user.email} - {self.token}"
     
 class RegistrationConfirmationLog(models.Model):
+    """
+    Logs confirmation attempts for user registrations.
+    """
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
     ip_address = models.GenericIPAddressField()

@@ -16,7 +16,7 @@ from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework.permissions import AllowAny
 
-# ✅ Swagger API Documentation Setup
+# Swagger API Documentation Setup
 schema_view = get_schema_view(
     openapi.Info(
         title="Blog Management API",
@@ -30,7 +30,7 @@ schema_view = get_schema_view(
     permission_classes=[AllowAny],
 )
 
-# ✅ Use DefaultRouter for CRUD-based ViewSets
+# Use DefaultRouter for CRUD-based ViewSets
 router = DefaultRouter()
 router.register(r'blogs', BlogPostViewSet, basename='blogs')
 router.register(r'categories', BlogCategoryViewSet, basename='categories')
@@ -48,27 +48,27 @@ router.register(r"conversions", BlogConversionViewSet, basename="conversions")
 router.register(r"social-platforms", SocialPlatformViewSet, basename="social-platforms")
 router.register(r"blog-shares", BlogShareViewSet, basename="blog-shares")
 
-# ✅ Combine urlpatterns properly to prevent overwrites
+# Combine urlpatterns properly to prevent overwrites
 urlpatterns = [
-    # ✅ Swagger & API Docs
+    # Swagger & API Docs
     path("swagger/", schema_view.with_ui("swagger", cache_timeout=0), name="schema-swagger-ui"),
     path("redoc/", schema_view.with_ui("redoc", cache_timeout=0), name="schema-redoc"),
 
-    # ✅ Include all router-based endpoints
+    # Include all router-based endpoints
     path('', include(router.urls)),
 
-    # ✅ Admin notifications
+    # Admin notifications
     path("admin-notifications/", AdminNotificationsView.as_view(), name="admin-notifications"),
 
-    # ✅ Soft Deletion & Restoration
+    # Soft Deletion & Restoration
     path('blogs/<int:blog_id>/restore/', RestoreSoftDeletedBlogView.as_view(), name='restore-blog'),
     path('blogs/<int:blog_id>/delete/', PermanentlyDeleteBlogView.as_view(), name='delete-blog'),
 
-    # ✅ SEO: Robots.txt & Sitemaps (Supports Pagination)
+    # SEO: Robots.txt & Sitemaps (Supports Pagination)
     path("robots.txt", robots_txt, name="robots_txt"),
     path("sitemap.xml", sitemap_index, name="sitemap_index"),
     path("sitemap/<int:website_id>/<int:page>/", blog_sitemap, name="blog_sitemap"),
 
-    # ✅ Redirect old blog URLs to new slugs
+    # Redirect old blog URLs to new slugs
     path("blogs/old/<slug:old_slug>/", blog_redirect, name="blog-redirect"),
 ]

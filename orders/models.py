@@ -1221,3 +1221,42 @@ class WriterReassignmentLog(models.Model):
 
     def __str__(self):
         return f"Order #{self.order.id} reassigned to {self.new_writer}"
+    
+
+class SoftDeletableMixin(models.Model):
+    """Soft deletion flags and metadata."""
+
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="deleted_%(class)ss",
+    )
+    delete_reason = models.CharField(max_length=255, blank=True, default="")
+    restored_at = models.DateTimeField(null=True, blank=True)
+    restored_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="restored_%(class)ss",
+    )
+
+    class Meta:
+        abstract = True
+
+    def mark_deleted(self, user, reason=""):
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.deleted_by = user
+        self.delete_reason = reason[:255] if reason else ""
+        self.restored_at = None
+        self.restored_by = None
+
+    def mark_restored(self, user):
+        self.is_deleted = False
+        self.restored_at = timezone.now()
+        self.restored_by = user

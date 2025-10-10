@@ -80,11 +80,15 @@ class ImpersonationToken(models.Model):
 
             # Check for expiration
             if impersonation_token.is_expired():
-                raise PermissionDenied("This impersonation token has expired.")
+                raise PermissionDenied(
+                    "This impersonation token has expired."
+                )
 
             # Check if the requesting user is an admin
             if not request.user.is_staff or impersonation_token.admin_user != request.user:
-                raise PermissionDenied("You are not authorized to impersonate this user.")
+                raise PermissionDenied(
+                    "You are not authorized to impersonate this user."
+                )
 
             # Create an impersonation log entry
             ImpersonationLog.objects.create(
@@ -99,7 +103,9 @@ class ImpersonationToken(models.Model):
             request.session.save()
 
         except ImpersonationToken.DoesNotExist:
-            raise PermissionDenied("Invalid impersonation token.")
+            raise PermissionDenied(
+                "Invalid impersonation token."
+            )
         
 
     def end_impersonation(request):
@@ -111,7 +117,9 @@ class ImpersonationToken(models.Model):
 
             # Check if the current user is impersonating
             if request.user == original_user:
-                raise PermissionDenied("You are not impersonating anyone.")
+                raise PermissionDenied(
+                    "You are not impersonating anyone."
+                )
 
             # Log the action
             ImpersonationLog.objects.create(
@@ -126,7 +134,9 @@ class ImpersonationToken(models.Model):
             request.session.save()
 
         except KeyError:
-            raise PermissionDenied("You are not impersonating anyone.")
+            raise PermissionDenied(
+                "You are not impersonating anyone."
+            )
 
 
 class ImpersonationLog(models.Model):

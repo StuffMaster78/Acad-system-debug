@@ -415,7 +415,7 @@ REST_FRAMEWORK = {
         'django_filters.rest_framework.DjangoFilterBackend'
     ],
     "SPECTACULAR_SETTINGS": {
-        "TITLE": "Your API",
+        "TITLE": "Writing System Management API",
         "DESCRIPTION": "Internal API docs",
         "VERSION": "1.0.0",
         "SERVE_INCLUDE_SCHEMA": False,
@@ -564,7 +564,19 @@ NOTIFICATION_MAX_RETRIES_PER_CHANNEL = {
     "push": 2,
 }
 
+# Turn off if you want ONLY per-app shims to register roles.
+NOTIFICATION_AUTOREGISTER_COMMON_ROLES = True
 
+# Optional project-wide channel tweaks layered into common roles.
+NOTIFICATION_COMMON_ROLE_OVERRIDES = {
+    "client": {"*": {"in_app", "email"}},
+    "writer": {"*": {"in_app", "email"}},
+    # staff defaults you want globally
+    "support": {"*": {"in_app"}},
+    "admin": {"*": {"in_app", "email"}},
+    "super_admin": {"*": {"in_app", "email"}},
+    "editor": {"*": {"in_app", "email"}},
+}
 
 
 NOTIFY_INACTIVITY_FALLBACK_HOURS = 3

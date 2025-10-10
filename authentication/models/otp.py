@@ -19,6 +19,16 @@ class OTP(models.Model):
         )
     otp_code = models.CharField(max_length=6)
     expiration_time = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    purpose = models.CharField(
+        max_length=50,
+        help_text=("Purpose of the OTP, e.g., 'login', 'mfa', 'password_reset'")
+    )
+    
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'otp_code']),
+        ]
 
     def is_expired(self):
         return timezone.now() > self.expiration_time

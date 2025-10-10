@@ -505,3 +505,11 @@ class WriterReassignmentLogSerializer(serializers.ModelSerializer):
             "reason",
             "created_at",
         ]
+    
+    class OrderDeleteSerializer(serializers.Serializer):
+        reason = serializers.CharField(
+            max_length=255, required=False, allow_blank=True
+        )
+
+        class Meta:
+            fields = ['reason']

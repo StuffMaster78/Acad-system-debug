@@ -61,7 +61,8 @@ class WriterRatingCooldown(models.Model):
     """
     website = models.ForeignKey(
         Website,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="wt_rating_cooldown"
     )
     order = models.OneToOneField(
         Order, on_delete=models.CASCADE,
@@ -69,7 +70,7 @@ class WriterRatingCooldown(models.Model):
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
-        related_name="rating_cooldowns"
+        related_name="writer_rating_cooldowns"
     )
     cooldown_until = models.DateTimeField(
         help_text="Time until the client can submit a rating."

@@ -7,8 +7,14 @@ class RateLimitEvent(models.Model):
     This model is designed to handle multitenancy scenarios where each website
     may have different rate limits.
     """
-    user = models.ForeignKey('user.User', null=True, blank=True, on_delete=models.SET_NULL)
-    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
+    user = models.ForeignKey(
+        'user.User', null=True,
+        blank=True, on_delete=models.SET_NULL
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE
+    )
     ip_address = models.GenericIPAddressField()
     user_agent = models.TextField(null=True, blank=True)
     path = models.CharField(max_length=255)

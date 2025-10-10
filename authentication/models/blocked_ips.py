@@ -12,7 +12,7 @@ class BlockedIP(models.Model):
     )
     ip_address = models.GenericIPAddressField()
     blocked_until = models.DateTimeField(
-        help_text="Time until this IP is blocked."
+        help_text="Time until this IP is unblocked."
     )
 
     class Meta:

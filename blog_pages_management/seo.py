@@ -67,7 +67,10 @@ def blog_sitemap(request, website_id, page=1):
         return HttpResponse("Page out of range", status=404)
 
     sitemap_content = render_to_string(
-        "sitemap.xml", {"blogs": paginated_blogs, "website_id": website_id, "total_pages": total_pages}
+        "sitemap.xml",
+        {"blogs": paginated_blogs,
+         "website_id": website_id,
+         "total_pages": total_pages}
     )
 
     cache.set(cache_key, sitemap_content, timeout=86400)  # Cache for 1 day

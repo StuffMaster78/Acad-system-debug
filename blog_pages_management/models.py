@@ -40,6 +40,7 @@ class BlogCategory(models.Model):
         Website, on_delete=models.CASCADE, related_name="categories"
     )
     name = models.CharField(max_length=255, unique=True)
+    description = models.TextField(blank=True, null=True)
     slug = models.SlugField(unique=True, blank=True)
 
     def save(self, *args, **kwargs):
@@ -107,6 +108,31 @@ class AuthorProfile(models.Model):
     social_links = models.JSONField(default=dict, blank=True)
     is_fake = models.BooleanField(default=False)  # Fake authors flag
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    expertise = models.CharField(max_length=255, blank=True, null=True)
+    contact_email = models.EmailField(blank=True, null=True)
+    twitter_handle = models.CharField(max_length=100, blank=True, null=True)
+    linkedin_profile = models.URLField(blank=True, null=True)
+    personal_website = models.URLField(blank=True, null=True)
+    facebook_profile = models.URLField(blank=True, null=True)
+    instagram_profile = models.URLField(blank=True, null=True)
+    pinterest_profile = models.URLField(blank=True, null=True)
+    medium_profile = models.URLField(blank=True, null=True)
+    github_profile = models.URLField(blank=True, null=True)
+    youtube_channel = models.URLField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)  # Active status
+    display_order = models.IntegerField(default=0)  # For ordering authors
+    specialties = models.CharField(max_length=255, blank=True, null=True)
+    awards = models.TextField(blank=True, null=True, help_text="Awards and recognitions")
+    notable_works = models.TextField(blank=True, null=True, help_text="Notable works or publications")
+
+    class Meta:
+        ordering = ['display_order', 'name']
+    def save(self, *args, **kwargs):
+        """Auto-generates slug if not provided."""
+        if self.profile_picture:
+            self.profile_picture = self.compress_image(self.profile_picture)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -315,7 +341,10 @@ class BlogPost(models.Model):
         self.save()
 
     def update_freshness_score(self):
-        """Calculates and stores the freshness score in the database instead of computing it every request."""
+        """
+        Calculates and stores the freshness score in
+        the database instead of computing it every request.
+        """
         days_since_update = (now() - self.updated_at).days
         days_since_last_click = (now() - self.last_engagement).days if self.last_engagement else days_since_update
 
@@ -699,6 +728,7 @@ class BlogVideo(models.Model):
         ("youtube", "YouTube"),
         ("vimeo", "Vimeo"),
         ("self_hosted", "Self-Hosted"),
+        ("other", "Other"),
     ]
 
     website = models.ForeignKey(
@@ -869,6 +899,25 @@ class BlogShare(models.Model):
         return f"{self.blog.title} shared on {self.platform.name} ({self.share_count} times)"
     
 class BlogSlugHistory(models.Model):
+    """Keeps a history of old slugs for blogs to manage redirects."""
     blog = models.ForeignKey(BlogPost, on_delete=models.CASCADE, related_name="slug_history")
     old_slug = models.SlugField()
     changed_at = models.DateTimeField(auto_now_add=True)
+    changed_by = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        help_text="User who changed the slug"
+    )
+    is_active = models.BooleanField(default=True, help_text="If True, redirect from old slug is active")
+    redirected_count = models.PositiveIntegerField(default=0, help_text="Number of times this old slug was used for redirection")
+    last_redirected_at = models.DateTimeField(null=True, blank=True, help_text="Last time this slug was used for redirection")
+    class Meta:
+        unique_together = ("blog", "old_slug")
+        indexes = [
+            models.Index(fields=["old_slug"]),
+        ]
+    def increment_redirect(self):
+        """Increments the redirect count and updates the last redirected timestamp."""
+        self.redirected_count += 1
+        self.last_redirected_at = now()
+        self.save(update_fields=["redirected_count", "last_redirected_at"])
+    

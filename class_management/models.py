@@ -334,3 +334,88 @@ class ClassInstallment(models.Model):
 
     def __str__(self):
         return f"Installment of ${self.amount} for {self.class_bundle}"
+
+
+class ExpressClass(models.Model):
+    """
+    Represents a class that does not fit into the bundle model.
+    """
+    client = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        help_text="Client booking the express class"
+    )
+    start_date = models.DateField(
+        help_text="Start date for the express class"
+    )
+    end_date = models.DateField(
+        help_text="End date for the express class"
+    )
+    discipline = models.CharField(
+        max_length=100,
+        help_text="Discipline of the express class e.g., Math, Nursing"
+    )
+    number_of_discussion_posts = models.PositiveIntegerField(
+        help_text="Number of discussion posts required"
+    )
+    number_of_discussion_posts_replies = models.PositiveIntegerField(
+        help_text="Number of discussion post replies required"
+    )
+    number_of_assignments = models.PositiveIntegerField(
+        help_text="Number of assignments required"
+    )
+    number_of_exams = models.PositiveIntegerField(
+        help_text="Number of exams required"
+    )
+    number_of_quizzes = models.PositiveIntegerField(
+        help_text="Number of quizzes required"
+    )
+    number_of_projects = models.PositiveIntegerField(
+        help_text="Number of projects required"
+    )
+    number_of_presentations = models.PositiveIntegerField(
+        help_text="Number of presentations required"
+    )
+    number_of_papers = models.PositiveIntegerField(
+        help_text="Number of papers required"
+    )
+    total_workload_in_pages = models.CharField(
+        max_length=100,
+        help_text="Workload e.g., 'number of pages total'"
+    )
+    price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        help_text="Price for the express class"
+    )
+    installments_needed = models.PositiveIntegerField(
+        help_text="Number of installments needed"
+    )
+    instructions = models.TextField(
+        help_text="Special instructions for the express class"
+    )
+    institution = models.CharField(
+        max_length=255,
+        help_text="Client's institution"
+    )
+    course = models.CharField(
+        max_length=255,
+        help_text="Course name or code"
+    )
+    academic_level = models.CharField(
+        max_length=50,
+        help_text="Academic level e.g., Undergraduate, Graduate"
+    )
+    message_threads = GenericRelation(CommunicationThread)
+    support_tickets = GenericRelation(Ticket)
+    is_complete = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Express Class"
+        verbose_name_plural = "Express Classes"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Express Class for {self.client} from {self.start_date} to {self.end_date}"
