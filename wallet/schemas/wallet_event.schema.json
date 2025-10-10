@@ -1,0 +1,24 @@
+{
+  "$id": "https://yourdomain.com/schemas/wallet_event.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Wallet Event Schema (map item)",
+  "description": "Validates values for wallet.* events when using map form.",
+  "allOf": [
+    { "$ref": "./base_event.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "event_key": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(\\.[a-z0-9_]+)+$"
+        },
+        "meta": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": ["event_key"],
+      "additionalProperties": true
+    }
+  ]
+}
