@@ -13,12 +13,24 @@ from pathlib import Path
 from dotenv import load_dotenv # type: ignore
 import os
 from datetime import timedelta
-from celery.schedules import crontab # type: ignore
+try:
+    from celery.schedules import crontab # type: ignore
+except ImportError:
+    # Celery not installed, define a dummy crontab function
+    def crontab(*args, **kwargs):
+        return None
 from urllib.parse import quote_plus
 # import sentry_sdk
 # from sentry_sdk.integrations.django import DjangoIntegration
 
-from cryptography.fernet import Fernet # type: ignore
+try:
+    from cryptography.fernet import Fernet # type: ignore
+except ImportError:
+    # Cryptography not installed, define a dummy Fernet class
+    class Fernet:
+        @staticmethod
+        def generate_key():
+            return b'dummy-key'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -302,9 +314,10 @@ def _redis_url(db: int) -> str:
 
 
 
-
-CELERY_BROKER_URL = _redis_url(0)
-CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+REDIS_URL = _redis_url(0)
+CELERY_BROKER_URL = REDIS_URL
+CELERY_RESULT_BACKEND = REDIS_URL
+# CACHES["default"]["LOCATION"] = _redis_url(1)
 
 # Redis (if used for caching)
 CACHES = {
@@ -567,6 +580,10 @@ NOTIFICATION_MAX_RETRIES_PER_CHANNEL = {
 # Turn off if you want ONLY per-app shims to register roles.
 NOTIFICATION_AUTOREGISTER_COMMON_ROLES = True
 
+
+NOTIFY_DIGEST_CONFIG_FILE = None
+NOTIFY_BROADCAST_CONFIG_FILE = None
+
 # Optional project-wide channel tweaks layered into common roles.
 NOTIFICATION_COMMON_ROLE_OVERRIDES = {
     "client": {"*": {"in_app", "email"}},
@@ -586,6 +603,8 @@ NOTIFY_WEEKLY_EMAIL_LIMIT = 20
 NOTIFY_DISABLE_EMAIL_FALLBACK = False
 
 NOTIFICATION_DEDUPE_WINDOW_SECONDS = 45
+
+NOTIFICATION_EVENT_GLOBS = ["*/notification_configs/events.json"]
 
 # Where all event JSONs live (file or directory is OK)
 NOTIFY_EVENTS_DIR = BASE_DIR / "notifications_system" / "registry" / \

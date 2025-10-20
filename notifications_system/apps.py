@@ -93,3 +93,4 @@ class NotificationsSystemConfig(AppConfig):
                 exc,
                 exc_info=True,
             )
+        logger.info("Notifications system ready.")

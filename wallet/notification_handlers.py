@@ -1,127 +1,239 @@
-# wallet/notification_templates.py
+# wallet/notification_handlers.py
 from __future__ import annotations
 
-"""Class-based wallet templates bound to canonical event keys.
+"""Wallet notification handlers.
 
-These read the enriched context built by wallet emitters:
-  - context["wallet"], ["transaction"], ["payment_method"], ["urls"]
-  - context["presentation"].subject/preheader/cta_text/cta_url
-Return (title, text, html) from render(context).
+These handlers register lightweight functions (via the project's
+notification handler registry) that forward enriched context to the
+notification service. They keep business logic out of the registry and
+ensure a consistent payload shape for templates (email/in-app/push).
+
+Each handler:
+  * builds a rich context with build_wallet_context(...)
+  * shallow-merges any provided payload
+  * calls NotificationService.send_notification(...)
 """
 
-from typing import Dict, Tuple
+from typing import Any, Dict, Optional
 
-from notifications_system.registry.template_registry import (
-    register_template,
-    BaseNotificationTemplate,
+from notifications_system.registry.handler_registry import (
+    notification_handler,
 )
+from notifications_system.services.core import NotificationService
+from .notification_context import build_wallet_context
 
 
-def _title(ctx: Dict, default: str) -> str:
-    pres = ctx.get("presentation", {})
-    return pres.get("subject") or default
+def _merge(a: Optional[Dict[str, Any]], b: Dict[str, Any]) -> Dict[str, Any]:
+    """Shallow-merge dictionaries with ``b`` overriding.
+
+    Args:
+        a: Existing/partial payload.
+        b: Context produced for the event.
+
+    Returns:
+        A new dictionary containing keys from both mappings.
+    """
+    base = dict(a or {})
+    base.update(b)
+    return base
 
 
-def _pre(ctx: Dict, default: str) -> str:
-    pres = ctx.get("presentation", {})
-    return pres.get("preheader") or default
+def _send(
+    *,
+    user: Any,
+    event: str,
+    payload: Optional[Dict[str, Any]],
+    subject: str,
+    preheader: str,
+    **kwargs: Any,
+) -> None:
+    """Common sender used by all wallet handlers.
+
+    Args:
+        user: Recipient user instance.
+        event: Canonical event key (e.g., ``wallet.funded``).
+        payload: Optional custom payload to merge.
+        subject: Default subject hint for email templates.
+        preheader: Optional preheader/preview text.
+        **kwargs: Extra args passed by emitters (wallet/actor/website/...).
+    """
+    ctx = build_wallet_context(
+        event=event,
+        wallet=kwargs.get("wallet"),
+        actor=kwargs.get("actor"),
+        website=kwargs.get("website"),
+        viewer_role=kwargs.get("viewer_role"),
+        subject=subject,
+        preheader=preheader,
+    )
+    NotificationService.send_notification(
+        user=user,
+        event=event,
+        payload=_merge(payload, ctx),
+        website=kwargs.get("website"),
+        actor=kwargs.get("actor"),
+        channels=kwargs.get("channels"),
+        category=kwargs.get("category"),
+        template_name=kwargs.get("template_name"),
+        priority=kwargs.get("priority", 5),
+        is_critical=kwargs.get("is_critical", False),
+        is_digest=kwargs.get("is_digest", False),
+        digest_group=kwargs.get("digest_group"),
+        is_silent=kwargs.get("is_silent", False),
+    )
 
 
-def _cta(ctx: Dict) -> Tuple[str, str]:
-    pres = ctx.get("presentation", {})
-    return pres.get("cta_text", "Open"), pres.get("cta_url", "")
+@notification_handler("wallet.funded")
+def on_wallet_funded(*, user, event, payload=None, **kw) -> None:
+    """Wallet balance increased by a successful deposit."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Wallet funded",
+        preheader="Your deposit was successful.",
+        **kw,
+    )
 
 
-def _html(title: str, body: str, cta_text: str, cta_url: str) -> str:
-    cta = f'<p><a href="{cta_url}">{cta_text}</a></p>' if cta_url else ""
-    return f"<h3>{title}</h3><p>{body}</p>{cta}"
+@notification_handler("wallet.deposit_pending")
+def on_deposit_pending(*, user, event, payload=None, **kw) -> None:
+    """A deposit was created and is pending confirmation."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Deposit pending",
+        preheader="We are processing your deposit.",
+        **kw,
+    )
 
 
-def _amt(ctx: Dict) -> str:
-    txn = ctx.get("transaction", {}) or {}
-    val = txn.get("amount")
-    cur = txn.get("currency") or ""
-    return f" {val} {cur}".strip() if val is not None else ""
+@notification_handler("wallet.deposit_failed")
+def on_deposit_failed(*, user, event, payload=None, **kw) -> None:
+    """A deposit attempt failed."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Deposit failed",
+        preheader="Your deposit attempt did not go through.",
+        **kw,
+    )
 
 
-def _bal(ctx: Dict) -> str:
-    w = ctx.get("wallet", {}) or {}
-    val = w.get("balance")
-    cur = w.get("currency") or ""
-    return f"{val} {cur}".strip() if val is not None else ""
+@notification_handler("wallet.withdrawal_requested")
+def on_withdrawal_requested(*, user, event, payload=None, **kw) -> None:
+    """A withdrawal request was created by the user."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Withdrawal requested",
+        preheader="Your withdrawal request is being reviewed.",
+        **kw,
+    )
 
 
-@register_template("wallet.balance_low")
-class WalletLowBalance(BaseNotificationTemplate):
-    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
-        ctx = {**self.context, **(context or {})}
-        title = _title(ctx, "Low wallet balance")
-        body = _pre(
-            ctx, f"Your balance is low ({_bal(ctx)}). Consider topping up."
-        )
-        t, u = _cta(ctx)
-        return title, body, _html(title, body, t, u)
+@notification_handler("wallet.withdrawal_approved")
+def on_withdrawal_approved(*, user, event, payload=None, **kw) -> None:
+    """A withdrawal request was approved by staff."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Withdrawal approved",
+        preheader="Your withdrawal was approved.",
+        **kw,
+    )
 
 
-@register_template("wallet.credit_added")
-class WalletCreditAdded(BaseNotificationTemplate):
-    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
-        ctx = {**self.context, **(context or {})}
-        title = _title(ctx, "Wallet credited")
-        body = _pre(ctx, f"A credit of{_amt(ctx)} was added to your wallet.")
-        t, u = _cta(ctx)
-        return title, body, _html(title, body, t, u)
+@notification_handler("wallet.withdrawal_paid")
+def on_withdrawal_paid(*, user, event, payload=None, **kw) -> None:
+    """Funds have been paid out for a withdrawal."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Withdrawal paid",
+        preheader="Your withdrawal has been paid out.",
+        **kw,
+    )
 
 
-@register_template("wallet.debit_made")
-class WalletDebitMade(BaseNotificationTemplate):
-    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
-        ctx = {**self.context, **(context or {})}
-        title = _title(ctx, "Wallet charge")
-        body = _pre(ctx, f"A debit of{_amt(ctx)} was charged from wallet.")
-        t, u = _cta(ctx)
-        return title, body, _html(title, body, t, u)
+@notification_handler("wallet.withdrawal_rejected")
+def on_withdrawal_rejected(*, user, event, payload=None, **kw) -> None:
+    """A withdrawal request was rejected."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Withdrawal rejected",
+        preheader="Your withdrawal request was not approved.",
+        **kw,
+    )
 
 
-@register_template("wallet.topup_failed")
-class WalletTopupFailed(BaseNotificationTemplate):
-    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
-        ctx = {**self.context, **(context or {})}
-        title = _title(ctx, "Top-up failed")
-        body = _pre(ctx, "Your wallet top-up attempt failed.")
-        t, u = _cta(ctx)
-        return title, body, _html(title, body, t, u)
+@notification_handler("wallet.transfer_sent")
+def on_transfer_sent(*, user, event, payload=None, **kw) -> None:
+    """User sent a transfer from their wallet."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Transfer sent",
+        preheader="Your wallet transfer has been sent.",
+        **kw,
+    )
 
 
-@register_template("wallet.payment_method_expiring")
-class WalletPMExpiring(BaseNotificationTemplate):
-    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
-        ctx = {**self.context, **(context or {})}
-        pm = ctx.get("payment_method") or {}
-        brand = pm.get("brand") or "Payment method"
-        last4 = pm.get("last4") or ""
-        tail = f" ****{last4}" if last4 else ""
-        title = _title(ctx, "Payment method expiring")
-        body = _pre(ctx, f"{brand}{tail} is expiring soon.")
-        t, u = _cta(ctx)
-        return title, body, _html(title, body, t, u)
+@notification_handler("wallet.transfer_received")
+def on_transfer_received(*, user, event, payload=None, **kw) -> None:
+    """User received a wallet transfer."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Transfer received",
+        preheader="You have received a wallet transfer.",
+        **kw,
+    )
 
 
-@register_template("wallet.withdrawal_requested")
-class WalletWithdrawalRequested(BaseNotificationTemplate):
-    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
-        ctx = {**self.context, **(context or {})}
-        title = _title(ctx, "Withdrawal requested")
-        body = _pre(ctx, f"You requested a withdrawal of{_amt(ctx)}.")
-        t, u = _cta(ctx)
-        return title, body, _html(title, body, t, u)
+@notification_handler("wallet.refund_issued")
+def on_refund_issued(*, user, event, payload=None, **kw) -> None:
+    """A refund was credited back to the wallet."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Refund issued",
+        preheader="A refund has been credited to your wallet.",
+        **kw,
+    )
 
 
-@register_template("wallet.withdrawal_processed")
-class WalletWithdrawalProcessed(BaseNotificationTemplate):
-    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
-        ctx = {**self.context, **(context or {})}
-        title = _title(ctx, "Withdrawal processed")
-        body = _pre(ctx, f"Your withdrawal of{_amt(ctx)} was processed.")
-        t, u = _cta(ctx)
-        return title, body, _html(title, body, t, u)
+@notification_handler("wallet.balance_low")
+def on_balance_low(*, user, event, payload=None, **kw) -> None:
+    """Balance dropped below the low threshold."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Low wallet balance",
+        preheader="Your wallet balance is getting low.",
+        **kw,
+    )
+
+
+@notification_handler("wallet.balance_critical")
+def on_balance_critical(*, user, event, payload=None, **kw) -> None:
+    """Balance reached a critical threshold."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Critical wallet balance",
+        preheader="Your wallet balance is critical.",
+        **kw,
+    )

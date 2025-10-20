@@ -4,17 +4,8 @@
   "type": "object",
   "properties": {
     "priority": {
-      "oneOf": [
-        {
-          "type": "string",
-          "enum": ["low", "normal", "medium", "high", "critical"]
-        },
-        {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 10
-        }
-      ]
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
     },
     "roles": {
       "type": "array",

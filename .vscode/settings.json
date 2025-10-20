@@ -4,5 +4,9 @@
     ],
     "python.analysis.diagnosticSeverityOverrides": {
         
-    }
+    },
+    "cursorpyright.analysis.diagnosticSeverityOverrides": {},
+    "cursorpyright.analysis.extraPaths": [
+        "./core"
+    ]
 }

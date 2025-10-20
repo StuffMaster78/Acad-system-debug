@@ -28,6 +28,7 @@ from django.conf import settings
 from .main_registry import NOTIFICATION_REGISTRY
 from .compat import normalize_notifications
 from .validator import validate_notification_events
+from .forced_channels import forced_channel_registry
 
 logger = logging.getLogger(__name__)
 
@@ -314,6 +315,14 @@ def load_event_configs() -> None:
 
             new_registry[key] = cfg
             logger.debug("Registered event '%s' from %s (%s)", key, path.name, origin)
+
+            # Register any forced channels into the runtime registry
+            forced = cfg.get("forced_channels") or []
+            if isinstance(forced, list) and forced:
+                try:
+                    forced_channel_registry.register(key, forced)
+                except Exception:
+                    logger.debug("Skipping forced channel registration for %s", key)
 
     NOTIFICATION_REGISTRY.clear()
     NOTIFICATION_REGISTRY.update(new_registry)

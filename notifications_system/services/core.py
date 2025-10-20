@@ -370,19 +370,27 @@ class NotificationService:
             # Fall through to sync path if enqueue failed 
 
             
-        # ----- Render (class-based template)
-        tmpl = get_template(event)
-        if not tmpl:
-            logger.warning(
-                "No class-based template registered for event '%s'", event
-            )
-            return None
-
-        try:
-            title, text_message, html_message = tmpl.render(payload)
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("Template render failed for '%s': %s", event, exc)
-            return None
+        # ----- Render templates using smart resolver
+        from notifications_system.services.smart_resolver import resolve_smart_template
+        from notifications_system.utils.logging import log_notification_flow, with_correlation_id
+        from notifications_system.monitoring.performance import get_performance_monitor
+        import uuid
+        
+        # Generate correlation ID for this notification
+        correlation_id = str(uuid.uuid4())
+        
+        with with_correlation_id(correlation_id):
+            log_notification_flow("template_rendering_start", event=event, user_id=user.id)
+            
+            # Use smart resolver for template rendering
+            try:
+                title, text_message, html_message = resolve_smart_template(
+                    event, payload, channel="email"
+                )
+                log_notification_flow("template_rendering_complete", event=event, user_id=user.id)
+            except Exception as exc:  # noqa: BLE001
+                logger.exception("Smart template resolution failed for '%s': %s", event, exc)
+                return None
 
 
         # ----- Create DB Notification
@@ -489,6 +497,20 @@ class NotificationService:
                 notification.id,
                 exc,
             )
+        
+        # ----- SSE delivery for real-time notifications
+        if NotificationType.SSE in resolved_channels:
+            try:
+                from notifications_system.delivery.sse import SSEDeliveryBackend
+                sse_backend = SSEDeliveryBackend()
+                sse_backend.deliver(notification, user.id)
+                log_notification_flow("sse_delivery_complete", event=event, user_id=user.id)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "SSE delivery failed for notification %s: %s",
+                    notification.id,
+                    exc,
+                )
 
         notification.status = DeliveryStatus.SENT
         notification.sent_at = timezone.now()

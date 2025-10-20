@@ -29,7 +29,7 @@ from notifications_system.admin_debug_views import preview_email_template
 from notifications_system.views.stream import (
     notification_event_stream,
 )
-from notifications_system.views.sse import sse_notifications
+from notifications_system.views.sse import SSEStreamView, SSEStatusView, SSECloseView
 from notifications_system.views.polling import poll_notifications
 from notifications_system.views.feed_and_status import (
     NotificationFeedViewSet,
@@ -43,6 +43,15 @@ from notifications_system.views.views_actions import (
 )
 from notifications_system.views.views_counters import UnreadCountView
 from notifications_system.views.views_preview import NotificationTemplatePreviewView
+from notifications_system.dashboard.views import (
+    PerformanceDashboardView,
+    RealTimeMetricsView,
+    TemplateAnalyticsView,
+    CacheManagementView,
+    SystemHealthView,
+)
+
+app_name = "notifications_system"
 
 router = DefaultRouter()
 router.register(
@@ -153,7 +162,13 @@ urlpatterns = [
         name='notification_event_stream'
     ),
     path(
-        "stream/", sse_notifications, name="sse_notifications"
+        "sse/stream/", SSEStreamView.as_view(), name="sse_stream"
+    ),
+    path(
+        "sse/status/", SSEStatusView.as_view(), name="sse_status"
+    ),
+    path(
+        "sse/close/", SSECloseView.as_view(), name="sse_close"
     ),
     path(
         "poll/", poll_notifications, name="poll_notifications"
@@ -181,6 +196,12 @@ urlpatterns = [
         NotificationTemplatePreviewView.as_view(),
         name="notifications-template-preview"
     ),
+    # Dashboard endpoints
+    path("dashboard/", PerformanceDashboardView.as_view(), name="performance_dashboard"),
+    path("dashboard/metrics/", RealTimeMetricsView.as_view(), name="realtime_metrics"),
+    path("dashboard/templates/", TemplateAnalyticsView.as_view(), name="template_analytics"),
+    path("dashboard/cache/", CacheManagementView.as_view(), name="cache_management"),
+    path("dashboard/health/", SystemHealthView.as_view(), name="system_health"),
 
     path("", include(router.urls)),
 ]

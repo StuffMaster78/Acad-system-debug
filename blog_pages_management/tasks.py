@@ -12,82 +12,82 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
 from itertools import islice
-import spacy
-import numpy as np
-import pandas as pd
-from surprise import SVD, Dataset, Reader
+# import spacy
+# import numpy as np
+# import pandas as pd
+# from surprise import SVD, Dataset, Reader
 from celery import shared_task
 from django.core.cache import cache
 from .models import BlogClick
 
-nlp = spacy.load("en_core_web_md")
+# nlp = spacy.load("en_core_web_md")
 User = get_user_model()
 
-@shared_task
-def generate_blog_embeddings():
-    """Computes and stores NLP-based vector embeddings for all blogs."""
-    blogs = BlogPost.objects.filter(embedding__isnull=True)
-    for blog in blogs:
-        doc = nlp(blog.content)
-        blog.embedding = doc.vector.tolist()  # Store vector representation
-        blog.save(update_fields=["embedding"])
+# @shared_task
+# def generate_blog_embeddings():
+#     """Computes and stores NLP-based vector embeddings for all blogs."""
+#     blogs = BlogPost.objects.filter(embedding__isnull=True)
+#     for blog in blogs:
+#         doc = nlp(blog.content)
+#         blog.embedding = doc.vector.tolist()  # Store vector representation
+#         blog.save(update_fields=["embedding"])
 
-    return f"Generated embeddings for {blogs.count()} blogs."
+#     return f"Generated embeddings for {blogs.count()} blogs."
 
-@shared_task
-def find_similar_blogs(blog_id):
-    """Finds and caches similar blogs using content similarity."""
-    blog = BlogPost.objects.get(id=blog_id)
-    if not blog.embedding:
-        return "No embedding found for this blog."
+# @shared_task
+# def find_similar_blogs(blog_id):
+#     """Finds and caches similar blogs using content similarity."""
+#     blog = BlogPost.objects.get(id=blog_id)
+#     if not blog.embedding:
+#         return "No embedding found for this blog."
 
-    all_blogs = BlogPost.objects.exclude(id=blog.id).exclude(embedding__isnull=True)
+#     all_blogs = BlogPost.objects.exclude(id=blog.id).exclude(embedding__isnull=True)
     
-    similarities = [
-        (
-            other_blog,
-            np.dot(blog.embedding, other_blog.embedding) / (np.linalg.norm(blog.embedding) * np.linalg.norm(other_blog.embedding))
-        )
-        for other_blog in all_blogs
-    ]
+#     similarities = [
+#         (
+#             other_blog,
+#             np.dot(blog.embedding, other_blog.embedding) / (np.linalg.norm(blog.embedding) * np.linalg.norm(other_blog.embedding))
+#         )
+#         for other_blog in all_blogs
+#     ]
     
-    sorted_blogs = sorted(similarities, key=lambda x: x[1], reverse=True)[:5]
-    similar_blog_data = [{"title": b[0].title, "slug": b[0].slug, "similarity": b[1]} for b in sorted_blogs]
+#     sorted_blogs = sorted(similarities, key=lambda x: x[1], reverse=True)[:5]
+#     similar_blog_data = [{"title": b[0].title, "slug": b[0].slug, "similarity": b[1]} for b in sorted_blogs]
 
-    cache.set(f"similar_blogs_{blog.id}", similar_blog_data, timeout=3600)
-    return f"Cached similar blogs for {blog.title}."
+#     cache.set(f"similar_blogs_{blog.id}", similar_blog_data, timeout=3600)
+#     return f"Cached similar blogs for {blog.title}."
 
-@shared_task
-def train_blog_recommendation_model():
-    """Trains a collaborative filtering model for personalized blog recommendations."""
-    data = BlogClick.objects.values("user_id", "blog_id")
-    df = pd.DataFrame(data)
+# @shared_task
+# def train_blog_recommendation_model():
+#     """Trains a collaborative filtering model for personalized blog recommendations."""
+#     data = BlogClick.objects.values("user_id", "blog_id")
+#     df = pd.DataFrame(data)
 
-    reader = Reader(rating_scale=(1, 1))  # Binary rating (clicked/not clicked)
-    dataset = Dataset.load_from_df(df[["user_id", "blog_id"]], reader)
+#     reader = Reader(rating_scale=(1, 1))  # Binary rating (clicked/not clicked)
+#     dataset = Dataset.load_from_df(df[["user_id", "blog_id"]], reader)
 
-    trainset = dataset.build_full_trainset()
-    model = SVD()
-    model.fit(trainset)
+#     trainset = dataset.build_full_trainset()
+#     model = SVD()
+#     model.fit(trainset)
 
-    cache.set("blog_recommendation_model", model, timeout=86400)
-    return "Trained blog recommendation model."
+#     cache.set("blog_recommendation_model", model, timeout=86400)
+#     return "Trained blog recommendation model."
 
-@shared_task
-def recommend_blogs_for_user(user_id):
-    """Generates personalized blog recommendations using an ML model."""
-    model = cache.get("blog_recommendation_model")
-    if not model:
-        return "No trained model found."
+# @shared_task
+# def recommend_blogs_for_user(user_id):
+#     """Generates personalized blog recommendations using an ML model."""
+#     model = cache.get("blog_recommendation_model")
+#     if not model:
+#         return "No trained model found."
 
-    blogs = BlogPost.objects.all()
-    predictions = [(blog, model.predict(user_id, blog.id).est) for blog in blogs]
-    sorted_blogs = sorted(predictions, key=lambda x: x[1], reverse=True)[:5]
+#     blogs = BlogPost.objects.all()
+#     predictions = [(blog, model.predict(user_id, blog.id).est) for blog in blogs]
+#     sorted_blogs = sorted(predictions, key=lambda x: x[1], reverse=True)[:5]
 
-    recommended_blog_data = [{"title": b[0].title, "slug": b[0].slug, "score": b[1]} for b in sorted_blogs]
-    cache.set(f"user_recommendations_{user_id}", recommended_blog_data, timeout=86400)
+#     recommended_blog_data = [{"title": b[0].title, "slug": b[0].slug, "score": b[1]} for b in sorted_blogs]
+#     cache.set(f"user_recommendations_{user_id}", recommended_blog_data, timeout=86400)
     
-    return f"Generated recommendations for User {user_id}."
+#     return f"Generated recommendations for User {user_id}."
 
 
 @shared_task

@@ -8,7 +8,7 @@ from typing import Iterable, List, Optional, Set
 from django.utils import timezone
 
 from notifications_system.enums import NotificationType
-from notifications_system.registry.forced_channels import ForcedChannelRegistry
+from notifications_system.registry.forced_channels import forced_channel_registry
 from notifications_system.registry.role_bindings import get_channels_for_role
 from notifications_system.services.preferences import (
     NotificationPreferenceResolver,
@@ -95,7 +95,7 @@ class NotificationPolicy:
         Returns:
             List of channel keys (e.g., ["in_app", "email"]).
         """
-        forced: Set[str] = ForcedChannelRegistry.get(self.event_key, set())
+        forced: Set[str] = forced_channel_registry.get(self.event_key)
         if forced:
             base: List[str] = list(forced)
         elif explicit_channels:

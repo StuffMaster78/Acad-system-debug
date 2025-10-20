@@ -1,0 +1,17 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-family:Arial, Helvetica, sans-serif;">
+  <tr>
+    <td>
+      <h3 style="margin:0 0 8px 0;">{{ title|default:"Payment received" }}</h3>
+      <p style="margin:0 0 12px 0;">Order #{{ order_id }}</p>
+      {% if amount %}
+      <p style="margin:0 0 12px 0;">Amount: <strong>{{ amount }} {{ currency|default:"USD" }}</strong></p>
+      {% endif %}
+      {% if message %}
+      <p style="margin:0;">{{ message }}</p>
+      {% endif %}
+    </td>
+  </tr>
+</table>
+
+
+

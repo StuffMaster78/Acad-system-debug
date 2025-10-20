@@ -54,7 +54,18 @@ def register_role(
         * Provided channels are merged over project defaults.
     """
     if role in ROLE_RESOLVERS:
-        logger.warning(
+        # If the incoming registration is identical to the existing one,
+        # treat it as a no-op to avoid noisy logs under auto-reload.
+        existing_resolver = ROLE_RESOLVERS.get(role)
+        existing_channels = ROLE_CHANNELS.get(role, {})
+        incoming_channels = {k: set(v) for k, v in (channels or {}).items()}
+        if existing_resolver is resolver and existing_channels == incoming_channels:
+            logger.debug(
+                "[notifications] Role '%s' already registered with identical config; skipping.",
+                role,
+            )
+            return
+        logger.info(
             "[notifications] Role '%s' already registered; overwriting.",
             role,
         )
@@ -108,30 +119,6 @@ def get_channels_for_role(event_key: str, role: Optional[str]) -> Set[str]:
         return set()
     role_channels = ROLE_CHANNELS.get(role, {})
     return set(role_channels.get(event_key, role_channels.get("*", set())))
-
-
-# def autodiscover_roles() -> None:
-#     """Auto-import `<app>.notifications_roles` across installed apps.
-
-#     Each app may define a `notifications_roles.py` that calls
-#     `register_role(...)` for its roles.
-#     """
-#     for app_config in apps.get_app_configs():
-#         mod = f"{app_config.name}.notifications_roles"
-#         try:
-#             importlib.import_module(mod)
-#             logger.debug("[notifications] Loaded roles from %s", mod)
-#         except ModuleNotFoundError as exc:
-#             # Ignore missing module; raise only if module exists but import
-#             # failed for another reason.
-#             if "notifications_roles" not in str(exc):
-#                 logger.debug("Module not found: %s", mod)
-#         except Exception as exc:  # noqa: BLE001
-#             logger.error(
-#                 "[notifications] Failed to load roles from %s: %s",
-#                 mod,
-#                 exc,
-#             )
 
 
 def autodiscover_roles() -> None:
@@ -223,5 +210,5 @@ __all__ = [
     "autodiscover_roles",
     "list_registered_roles",
     "clear_role_registry",
-    "get_user_model",
+    "get_user_model"
 ]

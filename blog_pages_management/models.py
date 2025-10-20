@@ -19,13 +19,13 @@ import os
 import subprocess
 from django.conf import settings
 from PIL import Image, ImageEnhance
-import spacy
+# import spacy
 import numpy as np
 from django.contrib.postgres.fields import ArrayField
 from django.core.cache import cache
 
-# Load NLP Model
-nlp = spacy.load("en_core_web_md")
+# # Load NLP Model
+# nlp = spacy.load("en_core_web_md")
 
 User = settings.AUTH_USER_MODEL 
 
@@ -412,11 +412,11 @@ class BlogPost(models.Model):
         self.conversion_count = BlogConversion.objects.filter(blog=self, order_placed=True).count()
         self.save(update_fields=['conversion_count'])
 
-    def generate_embedding(self):
-        """Generates and stores a vector embedding of the blog content."""
-        doc = nlp(self.content)
-        self.embedding = doc.vector.tolist()  # Convert to list for storage
-        self.save(update_fields=["embedding"])
+    # def generate_embedding(self):
+    #     """Generates and stores a vector embedding of the blog content."""
+    #     doc = nlp(self.content)
+    #     self.embedding = doc.vector.tolist()  # Convert to list for storage
+    #     self.save(update_fields=["embedding"])
 
     def find_related_blogs(self):
         """Finds related blogs using cosine similarity on embeddings."""
