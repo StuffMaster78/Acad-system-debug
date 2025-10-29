@@ -224,7 +224,8 @@ class OrderRequestService:
                 target_id=writer_request.id,
                 metadata={"order_id": order.id, "writer_id": writer.id}
             )
-        # Optionally notify the writer about rejection (TODO)
+        # TODO: Implement writer rejection notification
+        # This would send a notification to the writer about the rejection
         # notify_writer_rejection.delay(writer_request.id, feedback)
 
         return writer_request

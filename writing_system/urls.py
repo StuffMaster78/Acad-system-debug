@@ -63,7 +63,6 @@ urlpatterns = [
     path('api/v1/notifications/', include('notifications_system.urls')),
     path('api/v1/order-communications/', include('communications.urls')),
     path('api/v1/order-files/', include('order_files.urls')),
-    path('api/v1/referrals/', include('referrals.urls')),
     path('api/v1/special-orders/', include('special_orders.urls')),
     path('api/v1/tickets/', include('tickets.urls')),
     path('api/v1/wallet/', include('wallet.urls')),

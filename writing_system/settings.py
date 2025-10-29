@@ -556,11 +556,13 @@ if not TOKEN_ENCRYPTION_KEY:
 
 
 # Notifications System Configurations for override
+# --- Delivery behavior ---
 NOTIFICATION_CHANNEL_FALLBACKS = {
     "sms": ["email", "push"],
     "push": ["email"],
 }
-USE_SYNC_RETRIES = False          # True only in dev; Celery in prod
+USE_SYNC_RETRIES = False  # Celery in prod
+
 NOTIFICATION_CHANNEL_BACKOFFS = {
     "email": 10,
     "sms": 30,
@@ -570,63 +572,57 @@ NOTIFICATION_CHANNEL_BACKOFFS = {
     "whatsapp": 5,
     "sse": 1,
 }
-
 NOTIFICATION_MAX_RETRIES_PER_CHANNEL = {
     "email": 3,
     "sms": 2,
     "push": 2,
 }
 
-# Turn off if you want ONLY per-app shims to register roles.
+# --- What to load ---
+LOAD_CENTRAL_NOTIFICATION_CONFIG = False      # no central "notification_event_config.json"
+LOAD_BROADCAST_CONFIG = True                  # keep these centralized
+LOAD_DIGEST_CONFIG = True
+
+# If you truly don’t have digest/broadcast files, set these to None.
+# Otherwise point them at real files. Pick ONE set; don’t redefine later.
+NOTIFY_DIGEST_CONFIG_FILE = (
+    BASE_DIR / "notifications_system" / "registry" / "configs" / "digest_event_config.json"
+)
+NOTIFY_BROADCAST_CONFIG_FILE = (
+    BASE_DIR / "notifications_system" / "registry" / "configs" / "broadcast_event_config.json"
+)
+
+# --- Role wiring ---
 NOTIFICATION_AUTOREGISTER_COMMON_ROLES = True
-
-
-NOTIFY_DIGEST_CONFIG_FILE = None
-NOTIFY_BROADCAST_CONFIG_FILE = None
-
-# Optional project-wide channel tweaks layered into common roles.
 NOTIFICATION_COMMON_ROLE_OVERRIDES = {
     "client": {"*": {"in_app", "email"}},
     "writer": {"*": {"in_app", "email"}},
-    # staff defaults you want globally
     "support": {"*": {"in_app"}},
     "admin": {"*": {"in_app", "email"}},
     "super_admin": {"*": {"in_app", "email"}},
     "editor": {"*": {"in_app", "email"}},
 }
 
-
+# --- Throttles / dedupe ---
 NOTIFY_INACTIVITY_FALLBACK_HOURS = 3
 NOTIFY_EMAIL_COOLDOWN_MINUTES = 30
 NOTIFY_DAILY_EMAIL_LIMIT = 5
 NOTIFY_WEEKLY_EMAIL_LIMIT = 20
 NOTIFY_DISABLE_EMAIL_FALLBACK = False
-
 NOTIFICATION_DEDUPE_WINDOW_SECONDS = 45
 
-NOTIFICATION_EVENT_GLOBS = ["*/notification_configs/events.json"]
+# --- Per-app discovery (use ** to match deep trees) ---
+NOTIFICATION_EVENT_GLOBS = [
+    "**/notification_configs/events.json",
+    "**/notifications_config/events.json",  # tolerate singular dir name
+]
+NOTIFY_APP_EVENTS_SUBDIR = "notification_configs"  # or "notifications_config" if that’s what you use
 
-# Where all event JSONs live (file or directory is OK)
-NOTIFY_EVENTS_DIR = BASE_DIR / "notifications_system" / "registry" / \
-    "configs"
+# Optional: central schemas dir (still useful for $ref resolution)
+NOTIFY_EVENTS_DIR = BASE_DIR / "notifications_system" / "registry" / "configs"
 
-# Per-app override directory name (inside each app)
-NOTIFY_APP_EVENTS_SUBDIR = "notification_configs"
-
-# Explicit single-file overrides (optional)
-NOTIFY_DIGEST_CONFIG_FILE = (
-    BASE_DIR / "notifications_system" / "registry" / "configs" /
-    "digest_event_config.json"
-)
-NOTIFY_BROADCAST_CONFIG_FILE = (
-    BASE_DIR / "notifications_system" / "registry" / "configs" /
-    "broadcast_event_config.json"
-)
-
-
-# ======= Webhook Settings =======
-# --- Webhook delivery settings ---
-WEBHOOK_DEFAULT_TIMEOUT = 5  # seconds
+# --- Webhook ---
+WEBHOOK_DEFAULT_TIMEOUT = 5
 WEBHOOK_HMAC_HEADER = "X-Notif-Signature"
-WEBHOOK_HMAC_ALGO = "sha256"  # "sha1" or "sha256"
-# WEBHOOK_SECRET = os.getenv.str("WEBHOOK_SECRET", default="")
+WEBHOOK_HMAC_ALGO = "sha256"
+# WEBHOOK_SECRET = ...

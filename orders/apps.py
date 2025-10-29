@@ -28,7 +28,10 @@ class OrdersConfig(AppConfig):
         """
         if settings.DEBUG and os.environ.get("RUN_MAIN") != "true":
             return
-
+        from orders.registry.discover import auto_discover_order_actions
+        count = auto_discover_order_actions()
+        log.info("[orders] loaded %d actions", count)
+        
         # 1) Actions autodiscovery (your existing mechanism)
         try:
             from . import actions  # local import to avoid import loops

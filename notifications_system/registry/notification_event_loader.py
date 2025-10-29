@@ -47,6 +47,20 @@ PER_APP_EVENTS_SUBDIR = getattr(settings, "NOTIFY_APP_EVENTS_SUBDIR", "notificat
 # File discovery
 # --------------------
 
+def _root_inst(data):
+    """
+    Accept:
+      - {"events": [ {...}, ... ]}
+      - {"events": { "ev.key": {...} }}
+      - [ {...}, ... ]
+      - { "ev.key": {...} }
+    Return the actual root instance (list or dict). Raise on anything else.
+    """
+    inst = data.get("events") if isinstance(data, dict) and "events" in data else data
+    if isinstance(inst, (list, dict)):
+        return inst
+    raise ValueError("events root must be list or object")
+
 def _json_files_in(path: Path) -> Iterable[Path]:
     """Yield *.json files inside a directory, if it exists."""
     if path.exists() and path.is_dir():
@@ -239,30 +253,28 @@ def load_notification_events(path: Optional[Path] = None) -> Any:
 # Registry population
 # --------------------
 
-def _iter_items(validated: Any) -> List[Dict[str, Any]]:
+def _iter_items(data):
     """
-    Return a list of event dicts regardless of accepted root shape.
-    Supports:
-      - list of items
-      - {"events": [ ... ]}
-      - {"events": { "event.key": {...}, ... }}
-      - flat map: { "event.key": {...}, ... }
+    Iterate as (event_key, cfg) across all supported shapes.
     """
-    # Case 1: already a list
-    if isinstance(validated, list):
-        return validated
+    inst = _root_inst(data)
 
-    # Case 2: wrapped
-    if isinstance(validated, dict):
-        ev = validated["events"]
-        if isinstance(ev, list):
-            return ev
-        if isinstance(ev, dict):
-            return _to_list_from_mapping(ev)
+    if isinstance(inst, list):
+        for idx, item in enumerate(inst):
+            if not isinstance(item, dict):
+                raise ValueError(f"events[{idx}] must be object")
+            ek = item.get("event_key") or item.get("key")
+            if not ek:
+                raise ValueError(f"events[{idx}].event_key is required")
+            cfg = {k: v for k, v in item.items() if k not in ("event_key", "key")}
+            yield ek, cfg
+        return
 
-    raise RuntimeError(
-        "Validated notification config not in a recognized iterable shape."
-    )
+    # dict/map form
+    for ek, cfg in inst.items():
+        if not isinstance(cfg, dict):
+            raise ValueError(f"events.{ek} value must be object")
+        yield ek, cfg
 
 def _canonical_key(item: Dict[str, Any]) -> str:
     k = (item.get("key") or item.get("event_key") or "").strip()

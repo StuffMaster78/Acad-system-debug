@@ -1,6 +1,7 @@
 from writer_management.models.badges import Badge, WriterBadge
 from writer_management.models.profile import WriterProfile
 from writer_management.models.metrics import WriterPerformanceMetrics
+from writer_management.notification_handlers import send_badge_milestone_notification
 from django.utils.timezone import now
 
 
@@ -54,5 +55,22 @@ class AutoBadgeAwardService:
         # 👑 Chosen One: Preferred by 5+ clients
         if metrics.preferred_by_count >= 5:
             _award("👑")
+
+        # Send milestone notifications for significant achievements
+        if awarded:
+            # Check for milestone achievements
+            total_badges = WriterBadge.objects.filter(writer=writer, revoked=False).count()
+            
+            # Send milestone notifications for badge count milestones
+            if total_badges == 1:
+                send_badge_milestone_notification(writer, "First Badge", 1)
+            elif total_badges == 5:
+                send_badge_milestone_notification(writer, "Badge Collector", 5)
+            elif total_badges == 10:
+                send_badge_milestone_notification(writer, "Badge Master", 10)
+            elif total_badges == 20:
+                send_badge_milestone_notification(writer, "Badge Legend", 20)
+            elif total_badges == 50:
+                send_badge_milestone_notification(writer, "Badge God", 50)
 
         return awarded

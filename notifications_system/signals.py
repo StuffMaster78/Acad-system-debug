@@ -1,6 +1,6 @@
 # notifications_system/signals.py
 from __future__ import annotations
-
+from django.conf import settings
 import logging
 from typing import Optional
 
@@ -35,7 +35,7 @@ def send_email_helper(to_email: str, subject: str, message: str, html_message=No
     send_mail(
         subject,
         message,
-        "no-reply@example.com",  # TODO: replace with settings.DEFAULT_FROM_EMAIL
+        settings.DEFAULT_FROM_EMAIL,
         [to_email],
         html_message=html_message,
         fail_silently=False,

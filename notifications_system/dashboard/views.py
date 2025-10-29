@@ -18,6 +18,7 @@ from notifications_system.monitoring.performance import get_performance_monitor
 from notifications_system.analytics.template_analytics import get_template_analytics
 from notifications_system.caching.template_cache import get_cache_manager
 from notifications_system.delivery.sse import get_connection_manager
+from django.urls import path
 
 logger = logging.getLogger(__name__)
 

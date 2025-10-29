@@ -1,6 +1,7 @@
 from django.utils.timezone import now
 from writer_management.models.badges import WriterBadge, Badge
 from audit_logging.services import AuditLogService
+from writer_management.notification_handlers import send_badge_awarded_notification, send_badge_revoked_notification
 
 
 class WriterBadgeAwardService:
@@ -36,6 +37,9 @@ class WriterBadgeAwardService:
             extra={"badge": badge.name, "auto": is_auto}
         )
 
+        # Send notification
+        send_badge_awarded_notification(writer_badge)
+
         return writer_badge
 
     @staticmethod
@@ -64,5 +68,8 @@ class WriterBadgeAwardService:
             message=f"Badge '{writer_badge.badge.name}' revoked.",
             extra={"reason": reason}
         )
+
+        # Send notification
+        send_badge_revoked_notification(writer_badge)
 
         return True

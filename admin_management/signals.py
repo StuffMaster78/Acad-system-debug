@@ -3,7 +3,15 @@ from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from orders.models import Dispute
 from .models import BlacklistedUser
-from .services.admin_services import *
+from .services.admin_services import (
+    create_admin_profile_if_needed,
+    notify_superadmins_new_admin,
+    promote_to_admin_if_needed,
+    log_user_suspension_if_changed,
+    notify_admins_new_dispute,
+    notify_superadmins_blacklist,
+    assign_admin_permissions
+)
 
 User = get_user_model()
 

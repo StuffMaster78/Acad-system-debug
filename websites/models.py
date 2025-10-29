@@ -103,7 +103,7 @@ class Website(models.Model):
         max_length=50,
         blank=True,
         null=True,
-        help_text="Google Analytics Tracking ID (e.g., UA-XXXXX-X or G-XXXXXXXXXX)"
+        help_text="Google Analytics Tracking ID (e.g., UA-123456789-1 or G-XXXXXXXXXX)"
     )
     google_search_console_id = models.CharField(
         max_length=255, blank=True, null=True,

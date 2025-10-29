@@ -105,6 +105,16 @@ def _context(event_key: str,
         return base
     return _default_ctx(order, actor=actor, extra=extra)
 
+def _assert_event_known(event_key: str) -> None:
+    try:
+        # reuse your tolerant validator path by validating a dummy payload
+        from notifications_system.registry.validator import select_schema_for_event, load_schema
+        select_schema_for_event(event_key)  # raises nothing; just ensures domain exists
+        load_schema(select_schema_for_event(event_key))  # schema must exist
+    except Exception:
+        # Don’t crash prod; just warn. Switch to raise in tests if you prefer.
+        import logging
+        logging.getLogger(__name__).warning("[notifications] Unknown or unregistered event: %s", event_key)
 
 def emit_event(event_key: str,
                *,
@@ -126,6 +136,7 @@ def emit_event(event_key: str,
         None
     """
     ctx = _context(event_key, order, actor=actor, extra=extra)
+    _assert_event_known(event_key)
     dispatch(event_key, ctx)
 
 
@@ -254,6 +265,51 @@ def emit_order_assigned(*, order: Any, actor: Any | None = None,
     """Order assigned to a writer (initial assignment)."""
     emit_event("order.assigned", order=order, actor=actor, extra=extra)
 
+# added
+
+def emit_order_created(*, order: Any, actor: Any | None = None,
+                       extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.created", order=order, actor=actor, extra=extra)
+
+def emit_order_preferred_writer_assigned(*, order: Any, actor: Any | None = None,
+                                         extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.preferred_writer_assigned", order=order, actor=actor, extra=extra)
+
+def emit_order_off_hold(*, order: Any, actor: Any | None = None,
+                        extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.off_hold", order=order, actor=actor, extra=extra)
+
+def emit_order_under_editing(*, order: Any, actor: Any | None = None,
+                             extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.under_editing", order=order, actor=actor, extra=extra)
+
+def emit_order_unarchived(*, order: Any, actor: Any | None = None,
+                          extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.unarchived", order=order, actor=actor, extra=extra)
+
+def emit_order_restored(*, order: Any, actor: Any | None = None,
+                        extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.restored", order=order, actor=actor, extra=extra)
+
+def emit_order_closed(*, order: Any, actor: Any | None = None,
+                      extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.closed", order=order, actor=actor, extra=extra)
+
+def emit_order_updated(*, order: Any, actor: Any | None = None,
+                       extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.updated", order=order, actor=actor, extra=extra)
+
+def emit_order_file_uploaded(*, order: Any, actor: Any | None = None,
+                             extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.file_uploaded", order=order, actor=actor, extra=extra)
+
+def emit_order_payment_failed(*, order: Any, actor: Any | None = None,
+                              extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.payment_failed", order=order, actor=actor, extra=extra)
+
+def emit_order_cancellation_requested(*, order: Any, actor: Any | None = None,
+                                      extra: Mapping[str, Any] | None = None) -> None:
+    emit_event("order.cancellation_requested", order=order, actor=actor, extra=extra)
 
 __all__ = [
     "emit_event",
@@ -277,4 +333,15 @@ __all__ = [
     "emit_order_reassigned",
     "emit_order_expired",
     "emit_order_assigned",
+    "emit_order_created",
+    "emit_order_preferred_writer_assigned",
+    "emit_order_off_hold",
+    "emit_order_under_editing",
+    "emit_order_unarchived",
+    "emit_order_restored",
+    "emit_order_closed",
+    "emit_order_updated",
+    "emit_order_file_uploaded",
+    "emit_order_payment_failed",
+    "emit_order_cancellation_requested",
 ]

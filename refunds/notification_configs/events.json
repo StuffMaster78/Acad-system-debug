@@ -1,0 +1,49 @@
+{
+  "events": {
+    "refund.requested": {
+      "key": "refund.requested",
+      "event_key": "refund.requested",
+      "label": "Refund Requested",
+      "description": "A refund has been requested",
+      "enabled": true,
+      "roles": ["client", "admin", "support"],
+      "channels": ["in_app", "email"],
+      "priority": 7,
+      "templates": {}
+    },
+    "refund.processed": {
+      "key": "refund.processed",
+      "event_key": "refund.processed",
+      "label": "Refund Processed",
+      "description": "A refund has been processed successfully",
+      "enabled": true,
+      "roles": ["client", "admin", "support"],
+      "channels": ["in_app", "email"],
+      "priority": 8,
+      "templates": {}
+    },
+    "refund.failed": {
+      "key": "refund.failed",
+      "event_key": "refund.failed",
+      "label": "Refund Failed",
+      "description": "A refund processing has failed",
+      "enabled": true,
+      "roles": ["client", "admin", "support"],
+      "channels": ["in_app", "email", "sms"],
+      "forced_channels": ["email"],
+      "priority": 9,
+      "templates": {}
+    },
+    "refund.request_declined": {
+      "key": "refund.request_declined",
+      "event_key": "refund.request_declined",
+      "label": "Refund Request Declined",
+      "description": "A refund request has been declined",
+      "enabled": true,
+      "roles": ["client", "admin", "support"],
+      "channels": ["in_app", "email"],
+      "priority": 7,
+      "templates": {}
+    }
+  }
+}

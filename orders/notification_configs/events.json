@@ -8,7 +8,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 7,
+      "priority": "high",
       "templates": {}
     },
     "order.assigned": {
@@ -19,7 +19,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email", "webhook"],
-      "priority": 7,
+      "priority": "critical",
       "templates": {}
     },
     "order.preferred_writer_assigned": {
@@ -30,7 +30,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 7,
+      "priority": "high",
       "templates": {}
     },
     "order.unpaid": {
@@ -41,7 +41,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     },
     "order.paid": {
@@ -50,9 +50,9 @@
       "label": "Order paid",
       "description": "Payment received for the order.",
       "enabled": true,
-      "roles": ["client", "writer"],
+      "roles": ["client", "admin"],
       "channels": ["in_app", "email"],
-      "priority": 7,
+      "priority": "high",
       "templates": {}
     },
     "order.payment_failed": {
@@ -61,10 +61,10 @@
       "label": "Payment failed",
       "description": "Payment attempt failed.",
       "enabled": true,
-      "roles": ["client"],
+      "roles": ["client", "admin"],
       "channels": ["in_app", "email", "sms"],
       "forced_channels": ["email"],
-      "priority": 7,
+      "priority": "high",
       "templates": {}
     },
     "order.available": {
@@ -75,7 +75,7 @@
       "enabled": true,
       "roles": ["writer"],
       "channels": ["in_app"],
-      "priority": 3,
+      "priority": "low",
       "templates": {}
     },
     "order.in_progress": {
@@ -86,7 +86,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     },
     "order.on_hold": {
@@ -97,7 +97,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     },
     "order.off_hold": {
@@ -108,7 +108,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     },
     "order.under_editing": {
@@ -119,7 +119,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     },
     "order.submitted": {
@@ -128,9 +128,9 @@
       "label": "Order submitted",
       "description": "Writer submitted files for review.",
       "enabled": true,
-      "roles": ["client", "writer"],
+      "roles": ["client", "writer", "admin"],
       "channels": ["in_app", "email"],
-      "priority": 7,
+      "priority": "high",
       "templates": {}
     },
     "order.reviewed": {
@@ -141,7 +141,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app"],
-      "priority": 5,
+      "priority": "high",
       "templates": {}
     },
     "order.revision_requested": {
@@ -150,9 +150,9 @@
       "label": "Revision requested",
       "description": "Client requested a revision.",
       "enabled": true,
-      "roles": ["writer"],
+      "roles": ["writer", "admin"],
       "channels": ["in_app", "email"],
-      "priority": 7,
+      "priority": "critical",
       "templates": {}
     },
     "order.revision_in_progress": {
@@ -163,7 +163,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     },
     "order.revised": {
@@ -174,7 +174,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 7,
+      "priority": "high",
       "templates": {}
     },
     "order.returned": {
@@ -185,7 +185,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     },
     "order.rated": {
@@ -196,7 +196,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app"],
-      "priority": 3,
+      "priority": "low",
       "templates": {}
     },
     "order.approved": {
@@ -207,7 +207,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 7,
+      "priority": "high",
       "templates": {}
     },
     "order.refunded": {
@@ -218,7 +218,7 @@
       "enabled": true,
       "roles": ["client"],
       "channels": ["in_app", "email"],
-      "priority": 7,
+      "priority": "high",
       "templates": {}
     },
     "order.cancelled": {
@@ -229,7 +229,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 7,
+      "priority": "high",
       "templates": {}
     },
     "order.cancellation_requested": {
@@ -240,7 +240,7 @@
       "enabled": true,
       "roles": ["admin", "support"],
       "channels": ["in_app", "email"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     },
     "order.archived": {
@@ -251,7 +251,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app"],
-      "priority": 3,
+      "priority": "low",
       "templates": {}
     },
     "order.unarchived": {
@@ -262,7 +262,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app"],
-      "priority": 3,
+      "priority": "low",
       "templates": {}
     },
     "order.restored": {
@@ -273,7 +273,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app"],
-      "priority": 3,
+      "priority": "low",
       "templates": {}
     },
     "order.completed": {
@@ -284,7 +284,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     },
     "order.closed": {
@@ -295,7 +295,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     },
     "order.reassigned": {
@@ -306,7 +306,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 7,
+      "priority": "high",
       "templates": {}
     },
     "order.expired": {
@@ -318,7 +318,7 @@
       "roles": ["client", "writer", "admin"],
       "channels": ["in_app", "email", "sms"],
       "forced_channels": ["email"],
-      "priority": 9,
+      "priority": "high",
       "templates": {}
     },
     "order.updated": {
@@ -329,7 +329,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app"],
-      "priority": 3,
+      "priority": "low",
       "templates": {}
     },
     "order.file_uploaded": {
@@ -340,7 +340,7 @@
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
-      "priority": 5,
+      "priority": "medium",
       "templates": {}
     }
   }

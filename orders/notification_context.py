@@ -8,6 +8,8 @@ from typing import Any, Dict, Optional
 
 from django.conf import settings
 from django.urls import reverse, NoReverseMatch
+from urllib.parse import urljoin
+
 
 
 @dataclass(frozen=True)
@@ -236,6 +238,7 @@ def build_order_context(
     client_d = _user_bits(getattr(order, "client", None))
     writer_d = _user_bits(getattr(order, "writer", None))
     actor_d = _user_bits(actor)
+    meta = meta or {}
 
     base = {
         "event": event,
@@ -262,5 +265,98 @@ def build_order_context(
             **_cta_defaults(event, urls),
         },
         "viewer": {"role": viewer_role or ""},
+        "event_meta": {
+            "priority": meta.get("priority", ""),
+            "order_status": meta.get("order_status", ""),
+        },
     }
     return base
+
+
+def _try_reverse(name: str, args: tuple = (), **kwargs) -> str:
+    """Best-effort URL reversing with graceful fallback."""
+    try:
+        return reverse(name, args=args, kwargs=kwargs)
+    except NoReverseMatch:
+        return ""
+
+def _absolute(url: str) -> str:
+    """Promote relative URL to absolute using SITE_BASE_URL if set."""
+    if not url:
+        return ""
+    base = getattr(settings, "SITE_BASE_URL", "")  # e.g. "https://nursemygrade.com"
+    return urljoin(base, url) if base else url
+
+def _currency_symbol(code: Optional[str]) -> str:
+    m = {"USD": "$", "EUR": "€", "GBP": "£", "KES": "KSh"}
+    code_up = (code or "").upper()
+    return m.get(code_up, code_up)  # fall back to code itself
+
+def _time_left(deadline: Optional[datetime]) -> str:
+    """Human-friendly time left string."""
+    if not deadline:
+        return ""
+    now = datetime.now(timezone.utc)
+    secs = int((deadline - now).total_seconds())
+    if secs <= 0:
+        return "0s"
+    mins, s = divmod(secs, 60)
+    hrs, m = divmod(mins, 60)
+    days, h = divmod(hrs, 24)
+    if days:
+        return f"{days}d {h}h"
+    if hrs:
+        return f"{hrs}h {m}m"
+    if mins:
+        return f"{mins}m"
+    return f"{s}s"
+
+def _order_urls(order: Any) -> Urls:
+    """Compute common deep links for an order."""
+    oid = _safe_str(getattr(order, "pk", getattr(order, "id", None)))
+    order_url = _try_reverse("orders:detail", pk=oid)
+    approve_url = _try_reverse("orders:approve", pk=oid)
+    rate_url = _try_reverse("orders:rate", pk=oid)
+    upload_url = _try_reverse("orders:upload", pk=oid)
+    client_dash = _try_reverse("client:orders")
+    writer_dash = _try_reverse("writer:orders")
+    # promote to absolute if SITE_BASE_URL is defined
+    return Urls(
+        order=_absolute(order_url),
+        client_dashboard=_absolute(client_dash),
+        writer_dashboard=_absolute(writer_dash),
+        approve=_absolute(approve_url),
+        rate=_absolute(rate_url),
+        upload=_absolute(upload_url),
+    )
+
+def _cta_defaults(event: str, urls: Urls) -> Dict[str, str]:
+    """Suggest a CTA text/url based on event."""
+    mapping = {
+        "order.created": ("View order", urls.order),
+        "order.assigned": ("Start work", urls.order),
+        "order.available": ("Claim order", urls.order),
+        "order.in_progress": ("Open order", urls.order),
+        "order.on_hold": ("View issue", urls.order),
+        "order.off_hold": ("Resume work", urls.order),
+        "order.under_editing": ("Check status", urls.order),
+        "order.submitted": ("Review files", urls.order),
+        "order.reviewed": ("View feedback", urls.order),
+        "order.revision_requested": ("View revision", urls.order),
+        "order.revision_in_progress": ("Continue", urls.order),
+        "order.revised": ("Review changes", urls.order),
+        "order.approved": ("Rate order", urls.rate or urls.order),
+        "order.paid": ("View receipt", urls.order),
+        "order.payment_failed": ("Fix payment", urls.order),
+        "order.completed": ("View order", urls.order),
+        "order.archived": ("Open order", urls.order),
+        "order.unarchived": ("Open order", urls.order),
+        "order.restored": ("Open order", urls.order),
+        "order.reassigned": ("Open order", urls.order),
+        "order.expired": ("Open order", urls.order),
+        "order.updated": ("View order", urls.order),
+        "order.file_uploaded": ("Review file", urls.order),
+        # fallback handled below
+    }
+    text, url = mapping.get(event, ("Open", urls.order))
+    return {"cta_text": text, "cta_url": url}

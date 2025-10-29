@@ -1,16 +1,45 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Type
+import difflib
+
 from orders.registry.decorator import get_registered_action
 
-def get_action_or_raise(name: str):
+if TYPE_CHECKING:  # avoid runtime import cycles
+    from orders.actions.base import BaseOrderAction
+
+
+def get_action_or_raise(name: str) -> "Type[BaseOrderAction]":
     """
-    Retrieve a registered order action by name, raising an error if not found.
-    Args:
-        name (str): The name of the registered action.
-    Returns:
-    Type[BaseOrderAction]: The action class if found.
+    Return a registered order action class by name.
+
     Raises:
-        ValueError: If the action is not registered.
+        KeyError: if the action name is not registered.
     """
     action = get_registered_action(name)
-    if not action:
-        raise ValueError(f"Order action '{name}' not found in registry.")
-    return action
+    if action:
+        return action
+
+    keys = list(get_registered_action_keys())  # type: ignore[name-defined]
+    # lazy import to dodge circulars
+    from orders.registry.decorator import get_registered_action_keys  # noqa
+
+    keys = list(get_registered_action_keys())
+    hint = ""
+    if keys:
+        close = difflib.get_close_matches(name, keys, n=3, cutoff=0.5)
+        if close:
+            hint = f" Did you mean: {', '.join(close)}?"
+
+    raise KeyError(f"Unknown order action '{name}'.{hint}")
+
+
+def run_action_or_raise(name: str, /, **kwargs):
+    """
+    Instantiate and run a registered order action by name.
+
+    Raises:
+        KeyError: if the action name is not registered.
+    """
+    cls = get_action_or_raise(name)
+    return cls(**kwargs).execute()
