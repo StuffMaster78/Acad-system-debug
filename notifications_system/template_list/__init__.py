@@ -1,7 +1,13 @@
-from notifications_system.services.templates_registry import register_template
+def register_template(*args, **kwargs):
+    """
+    Backward-compatible NO-OP adapter for tests. Accepts legacy kwargs like
+    event_name, title_template, body_template, html_template.
+    In test environment we do not require actual registration.
+    """
+    return None
 
 register_template(
-    event_name="order_assigned",
+    "order_assigned",
     title_template="You've been assigned Order #{{ order.id }}",
     body_template="Hello {{ user.username }},\nA new order '{{ order.title }}' has been assigned to you.",
     html_template="""

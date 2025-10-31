@@ -62,16 +62,14 @@ def log_user_suspension_if_needed(user):
     if user.is_suspended:
         AdminActivityLog.objects.create(
             admin=user,
-            action="User Suspension",
-            details=f"{user.username} was suspended."
+            action=f"User Suspension: {user.username} was suspended."
         )
 
 def log_user_suspension_if_changed(user, previous_state):
     if not previous_state.is_suspended and user.is_suspended:
         AdminActivityLog.objects.create(
             admin=user,
-            action="User Suspension",
-            details=f"{user.username} was suspended."
+            action=f"User Suspension: {user.username} was suspended."
         )
 
 def notify_superadmins_blacklist(blacklisted_user):

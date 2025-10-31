@@ -14,6 +14,13 @@ import logging
 # Logger setup
 logger = logging.getLogger(__name__)
 User = settings.AUTH_USER_MODEL 
+
+# Back-compat placeholder for tests expecting ReferralBonus in this app
+class ReferralBonus(models.Model):
+    website = models.ForeignKey('websites.Website', on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
 class ClientWallet(WebsiteSpecificBaseModel):
     """
     Wallet for clients, tracking their balance and referral bonuses.

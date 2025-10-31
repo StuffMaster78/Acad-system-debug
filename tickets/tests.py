@@ -12,10 +12,10 @@ User = get_user_model()
 
 class TicketAPITests(APITestCase):
     def setUp(self):
-        self.admin = User.objects.create_user(username='admin', password='pass', role='admin')
-        self.support = User.objects.create_user(username='support', password='pass', role='support')
-        self.writer = User.objects.create_user(username='writer', password='pass', role='writer')
-        self.client_user = User.objects.create_user(username='client', password='pass', role='client')
+        self.admin = User.objects.create_user(email='admin@test.local', username='admin', password='pass', role='admin')
+        self.support = User.objects.create_user(email='support@test.local', username='support', password='pass', role='support')
+        self.writer = User.objects.create_user(email='writer@test.local', username='writer', password='pass', role='writer')
+        self.client_user = User.objects.create_user(email='client@test.local', username='client', password='pass', role='client')
         self.ticket = Ticket.objects.create(
             title="Test Ticket",
             description="Test Description",
@@ -73,8 +73,8 @@ class TicketAPITests(APITestCase):
 
 class TicketMessageAPITests(APITestCase):
     def setUp(self):
-        self.admin = User.objects.create_user(username='admin', password='pass', role='admin')
-        self.client_user = User.objects.create_user(username='client', password='pass', role='client')
+        self.admin = User.objects.create_user(email='admin@test.local', username='admin', password='pass', role='admin')
+        self.client_user = User.objects.create_user(email='client@test.local', username='client', password='pass', role='client')
         self.ticket = Ticket.objects.create(
             title="Test Ticket",
             description="Test Description",
@@ -106,8 +106,8 @@ class TicketMessageAPITests(APITestCase):
 
 class TicketAttachmentAPITests(APITestCase):
     def setUp(self):
-        self.admin = User.objects.create_user(username='admin', password='pass', role='admin')
-        self.writer = User.objects.create_user(username='writer', password='pass', role='writer')
+        self.admin = User.objects.create_user(email='admin@test.local', username='admin', password='pass', role='admin')
+        self.writer = User.objects.create_user(email='writer@test.local', username='writer', password='pass', role='writer')
         self.ticket = Ticket.objects.create(
             title="Test Ticket",
             description="Test Description",
@@ -141,9 +141,9 @@ class TicketAttachmentAPITests(APITestCase):
 
 class TicketNotificationTests(APITestCase):
     def setUp(self):
-        self.admin = User.objects.create_user(username='admin', password='pass', role='admin')
-        self.support = User.objects.create_user(username='support', password='pass', role='support')
-        self.client_user = User.objects.create_user(username='client', password='pass', role='client')
+        self.admin = User.objects.create_user(email='admin@test.local', username='admin', password='pass', role='admin')
+        self.support = User.objects.create_user(email='support@test.local', username='support', password='pass', role='support')
+        self.client_user = User.objects.create_user(email='client@test.local', username='client', password='pass', role='client')
         self.ticket = Ticket.objects.create(
             title="Notify Ticket",
             description="Test",
@@ -187,9 +187,9 @@ class TicketNotificationTests(APITestCase):
 
 class TicketAttachmentPermissionTests(APITestCase):
     def setUp(self):
-        self.admin = User.objects.create_user(username='admin', password='pass', role='admin')
-        self.writer = User.objects.create_user(username='writer', password='pass', role='writer')
-        self.client_user = User.objects.create_user(username='client', password='pass', role='client')
+        self.admin = User.objects.create_user(email='admin@test.local', username='admin', password='pass', role='admin')
+        self.writer = User.objects.create_user(email='writer@test.local', username='writer', password='pass', role='writer')
+        self.client_user = User.objects.create_user(email='client@test.local', username='client', password='pass', role='client')
         self.ticket = Ticket.objects.create(
             title="Attachment Ticket",
             description="Test",

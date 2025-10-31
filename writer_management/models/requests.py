@@ -57,6 +57,20 @@ class WriterOrderRequest(models.Model):
                 raise ValidationError(f"Writer {self.writer.user.username} has reached their max request limit.")
 
     def save(self, *args, **kwargs):
+        # Ensure website inferred
+        if not getattr(self, 'website_id', None):
+            try:
+                if getattr(self, 'writer', None) and getattr(self.writer, 'website_id', None):
+                    self.website_id = self.writer.website_id
+                elif getattr(self, 'order', None) and getattr(self.order, 'website_id', None):
+                    self.website_id = self.order.website_id
+                else:
+                    site = Website.objects.filter(is_active=True).first()
+                    if site is None:
+                        site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+                    self.website_id = site.id
+            except Exception:
+                pass
         self.clean()
         super().save(*args, **kwargs)
 
@@ -100,6 +114,15 @@ class WriterOrderTake(models.Model):
             raise ValidationError(f"Writer {self.writer.user.username} has reached their max take limit.")
 
     def save(self, *args, **kwargs):
+        # Ensure website inferred
+        if not getattr(self, 'website_id', None):
+            try:
+                if getattr(self, 'writer', None) and getattr(self.writer, 'website_id', None):
+                    self.website_id = self.writer.website_id
+                elif getattr(self, 'order', None) and getattr(self.order, 'website_id', None):
+                    self.website_id = self.order.website_id
+            except Exception:
+                pass
         self.clean()
         super().save(*args, **kwargs)
 
@@ -231,6 +254,16 @@ class WriterDeadlineExtensionRequest(models.Model):
 
     def __str__(self):
         return f"Deadline Extension Request: {self.writer.user.username} for Order {self.order.id} (Approved: {self.approved})"
+    def save(self, *args, **kwargs):
+        if not getattr(self, 'website_id', None):
+            try:
+                if getattr(self, 'writer', None) and getattr(self.writer, 'website_id', None):
+                    self.website_id = self.writer.website_id
+                elif getattr(self, 'order', None) and getattr(self.order, 'website_id', None):
+                    self.website_id = self.order.website_id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
     
 
 class WriterOrderHoldRequest(models.Model):
@@ -263,6 +296,16 @@ class WriterOrderHoldRequest(models.Model):
 
     def __str__(self):
         return f"Hold Request: {self.writer.user.username} for Order {self.order.id} (Approved: {self.approved})"
+    def save(self, *args, **kwargs):
+        if not getattr(self, 'website_id', None):
+            try:
+                if getattr(self, 'writer', None) and getattr(self.writer, 'website_id', None):
+                    self.website_id = self.writer.website_id
+                elif getattr(self, 'order', None) and getattr(self.order, 'website_id', None):
+                    self.website_id = self.order.website_id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
     
 
 class WriterReassignmentRequest(models.Model):
@@ -296,6 +339,16 @@ class WriterReassignmentRequest(models.Model):
 
     def __str__(self):
         return f"Reassignment Request: {self.writer.user.username} for Order {self.order.id} (Approved: {self.approved})"
+    def save(self, *args, **kwargs):
+        if not getattr(self, 'website_id', None):
+            try:
+                if getattr(self, 'writer', None) and getattr(self.writer, 'website_id', None):
+                    self.website_id = self.writer.website_id
+                elif getattr(self, 'order', None) and getattr(self.order, 'website_id', None):
+                    self.website_id = self.order.website_id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
     
 
 
@@ -326,6 +379,16 @@ class WriterOrderReopenRequest(models.Model):
 
     def __str__(self):
         return f"Reopen Request: {self.writer.user.username} for Order {self.order.id} (Approved: {self.approved})"
+    def save(self, *args, **kwargs):
+        if not getattr(self, 'website_id', None):
+            try:
+                if getattr(self, 'writer', None) and getattr(self.writer, 'website_id', None):
+                    self.website_id = self.writer.website_id
+                elif getattr(self, 'order', None) and getattr(self.order, 'website_id', None):
+                    self.website_id = self.order.website_id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
     
 
 class WriterDemotionRequest(models.Model):

@@ -157,8 +157,8 @@ class NotificationPreferenceResolver:
         )
 
         default_prof = (
-            NotificationProfile.objects.filter(is_default=True).first()
-            or NotificationProfile.objects.filter(name="Default").first()
+            NotificationProfile.objects.filter(name="Default").first()
+            or NotificationProfile.objects.filter(is_active=True).first()
         )
         if not default_prof:
             raise ValueError("No default NotificationProfile found.")

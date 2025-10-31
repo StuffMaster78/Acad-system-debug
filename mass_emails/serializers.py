@@ -28,13 +28,27 @@ class EmailRecipientSerializer(serializers.ModelSerializer):
     """
     Read-only serializer for recipients of a campaign.
     """
+    campaign = serializers.SerializerMethodField()
     class Meta:
         model = EmailRecipient
         fields = [
-            'id', 'email', 'status',
+            'id', 'email', 'status', 'campaign',
             'sent_at', 'opened_at', 'error_message'
         ]
         read_only_fields = fields
+
+    def get_campaign(self, obj):
+        c = getattr(obj, 'campaign', None)
+        if not c:
+            return None
+        return {
+            'id': c.id,
+            'title': c.title,
+            'subject': c.subject,
+            'status': c.status,
+            'email_type': c.email_type,
+            'sent_time': c.sent_time.isoformat() if c.sent_time else None,
+        }
 
 
 class EmailCampaignListSerializer(serializers.ModelSerializer):

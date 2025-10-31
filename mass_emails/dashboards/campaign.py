@@ -26,8 +26,10 @@ class CampaignAnalyticsDashboard(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        start_date = parse_date(request.GET.get('start'))
-        end_date = parse_date(request.GET.get('end'))
+        start_raw = request.GET.get('start')
+        end_raw = request.GET.get('end')
+        start_date = parse_date(start_raw) if isinstance(start_raw, str) else None
+        end_date = parse_date(end_raw) if isinstance(end_raw, str) else None
         export_format = request.GET.get('export')
         
         campaigns = EmailCampaign.objects.all()
@@ -55,19 +57,16 @@ class CampaignAnalyticsDashboard(APIView):
             ).count()
 
             rows.append({
-                "Campaign ID": campaign.id,
-                "Title": campaign.title,
-                "Sent Time": campaign.sent_time,
-                "Recipients": recipient_count,
-                "Opens": opens,
-                "Clicks": clicks,
-                "Unsubscribes": unsubscribes,
-                "Open Rate (%)": round(opens / recipient_count * 100, 2)
-                if recipient_count else 0,
-                "Click Rate (%)": round(clicks / recipient_count * 100, 2)
-                if recipient_count else 0,
-                "Unsubscribe Rate (%)": round(unsubscribes / recipient_count * 100, 2)
-                if recipient_count else 0,
+                "campaign_id": campaign.id,
+                "title": campaign.title,
+                "sent_time": campaign.sent_time.isoformat() if campaign.sent_time else None,
+                "recipients": recipient_count,
+                "opens": opens,
+                "clicks": clicks,
+                "unsubscribes": unsubscribes,
+                "open_rate": round(opens / recipient_count * 100, 2) if recipient_count else 0,
+                "click_rate": round(clicks / recipient_count * 100, 2) if recipient_count else 0,
+                "unsubscribe_rate": round(unsubscribes / recipient_count * 100, 2) if recipient_count else 0,
             })
 
             # The Export logic

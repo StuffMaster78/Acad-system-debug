@@ -45,10 +45,33 @@ class AuditLogService:
             target_str = target
             target_id = None
 
+        # Ensure ip/user_agent always have safe defaults
+        if not ip_address or not user_agent:
+            try:
+                req = get_current_request()
+            except Exception:
+                req = None
+            if not ip_address:
+                try:
+                    ip_address = get_client_ip(req)
+                except Exception:
+                    ip_address = None
+            if not user_agent:
+                try:
+                    user_agent = get_user_agent(req)
+                except Exception:
+                    user_agent = None
+
+        ip_address = ip_address or None  # Use None instead of "Unknown IP" for GenericIPAddressField
+        user_agent = user_agent or "Unknown Agent"
+
+        # Ensure non-nullable fields
+        safe_target = target_str or ""
+
         return AuditLogEntry.objects.create(
             action=action,
             actor=actor,
-            target=target_str,
+            target=safe_target,
             target_id=target_id,
             metadata=metadata or {},
             changes=changes or {},

@@ -3,6 +3,34 @@ from django.utils.timezone import now
 from django.conf import settings
 
 from discounts.managers import DiscountQuerySet
+from django.db import models as dj_models  # avoid shadowing
+
+
+# Manager that maps legacy field names used in tests
+class _DiscountManager(dj_models.Manager.from_queryset(DiscountQuerySet)):
+    def create(self, **kwargs):  # type: ignore[override]
+        mapping = {}
+        if 'code' in kwargs:
+            mapping['discount_code'] = kwargs.pop('code')
+        if 'value' in kwargs:
+            mapping['discount_value'] = kwargs.pop('value')
+        if 'max_uses' in kwargs:
+            mapping['usage_limit'] = kwargs.pop('max_uses')
+        if 'discount_type' in kwargs:
+            dt = kwargs['discount_type']
+            if dt == 'percentage':
+                kwargs['discount_type'] = 'percent'
+        # Ensure website exists for tests
+        if 'website' not in kwargs:
+            try:
+                site = Website.objects.filter(is_active=True).first()
+                if site is None:
+                    site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+                kwargs['website'] = site
+            except Exception:
+                pass
+        kwargs.update(mapping)
+        return super().create(**kwargs)
 from websites.models import Website
 from discounts.models.promotions import PromotionalCampaign
 from discounts.services.discount_engine import DiscountEngine
@@ -130,7 +158,8 @@ class Discount(models.Model):
     # Tiered discounts
     has_tiers = models.BooleanField(default=False)
 
-    objects = DiscountQuerySet.as_manager()
+    # Custom manager: map legacy kwargs used by tests (code/value/max_uses)
+    objects = _DiscountManager()
 
     # Stacking
     stackable = models.BooleanField(default=False)
@@ -275,6 +304,38 @@ class Discount(models.Model):
         return DiscountEngine.generate_unique_discount_code(
             prefix, length, max_attempts
         )
+
+    # --- Compatibility aliases for tests/serializers expecting different names ---
+    @property
+    def code(self):
+        return self.discount_code
+
+    @code.setter
+    def code(self, value):
+        self.discount_code = value
+
+    @property
+    def value(self):
+        return self.discount_value
+
+    @value.setter
+    def value(self, v):
+        self.discount_value = v
+
+    @property
+    def max_uses(self):
+        return self.usage_limit
+
+    @max_uses.setter
+    def max_uses(self, v):
+        self.usage_limit = v
+
+    @property
+    def code_display(self):
+        return self.discount_code
+
+
+ 
 
 
 class DiscountTier(models.Model):

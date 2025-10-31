@@ -308,16 +308,14 @@ def load_event_configs() -> None:
         except Exception as exc:  # noqa: BLE001
             raise ValueError(f"Failed to load/validate {path}: {exc}") from exc
 
-        for item in _iter_items(validated):
-            if not isinstance(item, dict):
+        for key, cfg in _iter_items(validated):
+            if not isinstance(cfg, dict):
                 raise ValueError(f"{path}: event item must be an object.")
-            # Ensure canonical keys exist
-            key = _canonical_key(item)
-            # Prefer 'key' as canonical, but keep both in stored record
-            cfg = dict(item)
-            cfg["key"] = key
-            cfg.setdefault("event_key", key)
-            cfg["__source__"] = f"{origin}:{path.name}"
+            # Build stored record from cfg and attach canonical key
+            item = dict(cfg)
+            item["key"] = key
+            item.setdefault("event_key", key)
+            item["__source__"] = f"{origin}:{path.name}"
 
             if key in new_registry:
                 prev = new_registry[key].get("__source__", "<unknown>")
@@ -325,11 +323,11 @@ def load_event_configs() -> None:
                     f"Duplicate event key '{key}' from {path} ({origin}); already provided by {prev}"
                 )
 
-            new_registry[key] = cfg
+            new_registry[key] = item
             logger.debug("Registered event '%s' from %s (%s)", key, path.name, origin)
 
             # Register any forced channels into the runtime registry
-            forced = cfg.get("forced_channels") or []
+            forced = item.get("forced_channels") or []
             if isinstance(forced, list) and forced:
                 try:
                     forced_channel_registry.register(key, forced)

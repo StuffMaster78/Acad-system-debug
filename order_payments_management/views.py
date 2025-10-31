@@ -117,42 +117,48 @@ class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     serializer_class = TransactionSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = TransactionPagination
+    pagination_class = None
     filter_backends = [DjangoFilterBackend]
 
-    def get_queryset(self):
+    def list(self, request, *args, **kwargs):
         """
-        - Clients: See only their own transactions.
-        - Admins: See all transactions.
-        - Filters: Supports `?transaction_type=payment/refund/split_payment`
+        Return a combined, sorted list of payments, refunds, and split payments.
+        Avoids SQL UNION to keep column compatibility and works across backends.
         """
-        user = self.request.user
-        transaction_type = self.request.query_params.get("transaction_type", None)
+        user = request.user
+        tx_type = request.query_params.get("transaction_type")
 
-        # Optimize QuerySet filtering
         if user.is_staff:
-            queryset = OrderPayment.objects.all().union(
-                Refund.objects.all(),
-                SplitPayment.objects.all()
-            )
+            payments_qs = OrderPayment.objects.all()
+            refunds_qs = Refund.objects.select_related("payment", "client")
+            split_qs = SplitPayment.objects.select_related("payment")
         else:
-            queryset = OrderPayment.objects.filter(client=user).union(
-                Refund.objects.filter(client=user),
-                SplitPayment.objects.filter(payment__client=user)
+            payments_qs = OrderPayment.objects.filter(client=user)
+            refunds_qs = Refund.objects.filter(client=user).select_related("payment", "client")
+            split_qs = SplitPayment.objects.filter(payment__client=user).select_related("payment")
+
+        # Optional filter by transaction type
+        items = []
+        if not tx_type or tx_type == "payment":
+            items.extend(list(payments_qs))
+        if not tx_type or tx_type == "refund":
+            items.extend(list(refunds_qs))
+        if not tx_type or tx_type == "split_payment":
+            items.extend(list(split_qs))
+
+        def sort_key(obj):
+            return (
+                getattr(obj, "date_processed", None)
+                or getattr(obj, "processed_at", None)
+                or getattr(obj, "created_at", None)
+                or getattr(obj, "timestamp", None)
+                or getattr(obj, "id", 0)
             )
 
-        # Filter by transaction type
-        if transaction_type:
-            model_mapping = {
-                "payment": OrderPayment,
-                "refund": Refund,
-                "split_payment": SplitPayment
-            }
-            model = model_mapping.get(transaction_type)
-            if model:
-                queryset = queryset.filter(id__in=model.objects.values_list("id", flat=True))
+        items.sort(key=sort_key, reverse=True)
 
-        return queryset.order_by("-date_processed")
+        serializer = self.get_serializer(items, many=True)
+        return Response(serializer.data)
 
 
 class PaymentNotificationViewSet(viewsets.ReadOnlyModelViewSet, mixins.UpdateModelMixin):
@@ -193,6 +199,11 @@ class PaymentDisputeViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ["client", "status"]
+
+    def get_permissions(self):
+        if self.action in ["update", "partial_update", "destroy"]:
+            return [IsAdminUser()]
+        return super().get_permissions()
 
     def perform_create(self, serializer):
         """Ensures the dispute is linked to the requesting user."""
@@ -249,7 +260,17 @@ class PaymentReminderSettingsViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """Ensures only one global settings entry is retrieved."""
-        return PaymentReminderSettings.objects.all()[:1]
+        qs = PaymentReminderSettings.objects.all()
+        if not qs.exists():
+            PaymentReminderSettings.objects.create()
+            qs = PaymentReminderSettings.objects.all()
+        return qs
+
+    def get_object(self):
+        obj = PaymentReminderSettings.objects.first()
+        if obj is None:
+            obj = PaymentReminderSettings.objects.create()
+        return obj
     
 
 class RefundViewSet(viewsets.ModelViewSet):
@@ -284,23 +305,31 @@ class RefundViewSet(viewsets.ModelViewSet):
             return Response({"error": "Only admins can issue refunds."}, status=status.HTTP_403_FORBIDDEN)
 
         payment_id = request.data.get("payment_id")
+        payment_pk = request.data.get("payment")
         refund_amount = float(request.data.get("amount", 0))
 
         with transaction.atomic():
-            payment = get_object_or_404(OrderPayment.objects.select_for_update(), transaction_id=payment_id)
+            if payment_pk:
+                payment = get_object_or_404(OrderPayment.objects.select_for_update(), pk=payment_pk)
+            else:
+                payment = get_object_or_404(OrderPayment.objects.select_for_update(), transaction_id=payment_id)
 
             # Validate refund conditions
             total_refunded = Refund.objects.filter(payment=payment).aggregate(total=Sum("amount"))["total"] or 0
-            remaining_refundable = payment.amount_paid - total_refunded
+            remaining_refundable = (payment.discounted_amount or payment.amount or 0) - total_refunded
 
             if remaining_refundable <= 0:
                 return Response({"error": "This payment has already been fully refunded."}, status=status.HTTP_400_BAD_REQUEST)
 
-            if payment.status != "completed":
+            if payment.status not in ["completed", "refunded"]:
                 return Response({"error": "Only completed payments can be refunded."}, status=status.HTTP_400_BAD_REQUEST)
 
-            if payment.is_disputed:
-                return Response({"error": "Refund cannot be issued while payment is under dispute."}, status=status.HTTP_400_BAD_REQUEST)
+            # If disputes exist, block refunds (optional field)
+            try:
+                if payment.disputes.filter(status__in=["pending", "under_review"]).exists():
+                    return Response({"error": "Refund cannot be issued while payment is under dispute."}, status=status.HTTP_400_BAD_REQUEST)
+            except Exception:
+                pass
 
             if refund_amount > remaining_refundable:
                 return Response({"error": "Refund amount exceeds the remaining refundable amount."}, status=status.HTTP_400_BAD_REQUEST)
@@ -321,10 +350,11 @@ class RefundViewSet(viewsets.ModelViewSet):
             # Notify client
             PaymentNotification.objects.create(
                 user=payment.client,
+                payment=payment,
                 message=f"Your refund of {refund.amount} has been processed to your {refund_destination}."
             )
 
-            return Response({"message": "Refund processed successfully."}, status=status.HTTP_200_OK)
+            return Response({"message": "Refund processed successfully."}, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         """Disallow updating refunds manually to maintain integrity."""

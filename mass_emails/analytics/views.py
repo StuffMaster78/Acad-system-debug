@@ -1,7 +1,7 @@
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
-from mass_email.models import (
+from mass_emails.models import (
     EmailRecipient, EmailOpenTracker,
     EmailClickTracker, UnsubscribeLog
 )

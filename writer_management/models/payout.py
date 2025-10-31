@@ -88,6 +88,7 @@ class WriterPayment(models.Model):
     )
     tips = models.DecimalField(
         max_digits=12, decimal_places=2,
+        default=0.00,
         help_text="Tips received."
     )
     converted_amount = models.DecimalField(
@@ -123,6 +124,12 @@ class WriterPayment(models.Model):
     def save(self, *args, **kwargs):
         if not self.writer.user.is_staff and self.conversion_rate is not None:
             raise PermissionDenied("Only admins can set conversion rates.")
+        # Ensure website inferred
+        if not getattr(self, 'website_id', None):
+            try:
+                self.website_id = self.writer.website_id
+            except Exception:
+                pass
         super().save(*args, **kwargs)
 
 

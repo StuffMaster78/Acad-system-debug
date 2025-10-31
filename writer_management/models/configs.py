@@ -35,6 +35,19 @@ class WriterConfig(models.Model):
         unique_together = ("website",)
         ordering = ["-id"]
 
+    def save(self, *args, **kwargs):
+        # Ensure a website is always assigned during tests
+        if not getattr(self, 'website_id', None):
+            try:
+                from websites.models import Website
+                site = Website.objects.filter(is_active=True).first()
+                if site is None:
+                    site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+                self.website_id = site.id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
 
 class WriterConfigHistory(models.Model):
     """

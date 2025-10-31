@@ -39,13 +39,25 @@ class TicketSerializer(serializers.ModelSerializer):
 class TicketAttachmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketAttachment
-        fields = ['id', 'ticket', 'uploaded_by', 'file', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = ['id', 'ticket', 'uploaded_by', 'file', 'uploaded_at']
+        read_only_fields = ['id', 'uploaded_at']
 
 class TicketCreateSerializer(serializers.ModelSerializer):
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True)
+    def create(self, validated_data):
+        # website optional: infer from creator if missing
+        created_by = validated_data.get('created_by')
+        website = validated_data.get('website')
+        if website is None and created_by and getattr(created_by, 'website', None):
+            validated_data['website'] = created_by.website
+        return super().create(validated_data)
+
     class Meta:
         model = Ticket
-        fields = ['title', 'description', 'website', 'created_by', 'website', 'priority', 'category']
+        fields = ['title', 'description', 'website', 'priority', 'category', 'created_by']
+        extra_kwargs = {
+            'website': {'required': False, 'allow_null': True},
+        }
 
 
 class TicketUpdateSerializer(serializers.ModelSerializer):

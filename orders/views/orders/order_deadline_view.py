@@ -32,6 +32,9 @@ class ExtendOrderDeadlineView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
+        # Enforce object-level permission (owner/support)
+        self.check_object_permissions(request, order)
+
         serializer = DeadlineExtensionSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
@@ -41,7 +44,7 @@ class ExtendOrderDeadlineView(APIView):
             updated_order = OrderDeadlineService.update_deadline(
                 order=order,
                 new_deadline=new_deadline,
-                changed_by=request.user,
+                actor=request.user,
                 reason="Deadline extended by client or support"
             )
         except ValueError as ve:
@@ -57,5 +60,5 @@ class ExtendOrderDeadlineView(APIView):
         return Response({
             "status": "success",
             "order_id": updated_order.id,
-            "new_deadline": updated_order.deadline
+            "new_deadline": getattr(updated_order, "client_deadline", None)
         }, status=status.HTTP_200_OK)

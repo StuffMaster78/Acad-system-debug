@@ -141,7 +141,7 @@ def apply_default_notification_profile(
 
     # Global default
     default = (
-        NotificationProfile.objects.filter(is_default=True, is_active=True)
+        NotificationProfile.objects.filter(name="Default", is_active=True)
         .first()
     )
     if default:

@@ -22,5 +22,5 @@ router.register(r'payments', PaymentViewSet)
 
 # Include router-generated URLs
 urlpatterns = [
-    path('api/', include(router.urls)),
+    path('', include(router.urls)),
 ]

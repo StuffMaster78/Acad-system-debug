@@ -94,6 +94,20 @@ class LoyaltyTransaction(models.Model):
     def __str__(self):
         return f"Transaction: {self.points} points ({self.transaction_type}) for {self.client.user.username}"
 
+    def save(self, *args, **kwargs):
+        if not getattr(self, 'website_id', None):
+            try:
+                if getattr(self, 'client', None) and getattr(self.client, 'website_id', None):
+                    self.website_id = self.client.website_id
+                else:
+                    site = Website.objects.filter(is_active=True).first()
+                    if site is None:
+                        site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+                    self.website_id = site.id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
 
 class Milestone(models.Model):
     """

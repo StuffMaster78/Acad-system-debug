@@ -6,8 +6,13 @@ class IsSuperadminOrAdmin(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.role in ["admin", "superadmin"]
+        user = request.user
+        return user.is_authenticated and (
+            getattr(user, 'role', None) in ["admin", "superadmin"] or getattr(user, 'is_staff', False)
+        )
 
     def has_object_permission(self, request, view, obj):
-        # Ensures Admins and Superadmins can perform actions on specific objects
-        return request.user.is_authenticated and request.user.role in ["admin", "superadmin"]
+        user = request.user
+        return user.is_authenticated and (
+            getattr(user, 'role', None) in ["admin", "superadmin"] or getattr(user, 'is_staff', False)
+        )

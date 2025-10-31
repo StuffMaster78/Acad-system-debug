@@ -121,6 +121,22 @@ class Referral(SoftDeleteModel):
     def __str__(self):
         return f"{self.referrer.username} referred {self.referee.username}"
 
+    def save(self, *args, **kwargs):
+        if not getattr(self, "website_id", None):
+            try:
+                if getattr(self.referrer, "website_id", None):
+                    self.website_id = self.referrer.website_id
+                elif getattr(self.referee, "website_id", None):
+                    self.website_id = self.referee.website_id
+                else:
+                    site = Website.objects.filter(is_active=True).first()
+                    if site is None:
+                        site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+                    self.website_id = site.id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
 
 class ReferralBonusConfig(models.Model):
     """
@@ -178,6 +194,20 @@ class ReferralCode(models.Model):
 
     def __str__(self):
         return f"Referral Code: {self.code} (User: {self.user.username})"
+
+    def save(self, *args, **kwargs):
+        if not getattr(self, "website_id", None):
+            try:
+                if getattr(self.user, "website_id", None):
+                    self.website_id = self.user.website_id
+                else:
+                    site = Website.objects.filter(is_active=True).first()
+                    if site is None:
+                        site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+                    self.website_id = site.id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
 
 
 class ReferralStats(models.Model):

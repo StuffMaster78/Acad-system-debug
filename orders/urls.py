@@ -16,6 +16,7 @@ from orders.views.orders.webhook_delivery_log_view import WebhookDeliveryLogList
 from orders.views.writers.writer_requests_preview import WriterRequestPreviewView
 
 
+app_name = 'orders'
 router = DefaultRouter()
 router.register(r'orders', OrderBaseViewSet, basename='order')
 router.register(r'disputes', DisputeViewSet, basename='dispute')
@@ -32,6 +33,8 @@ urlpatterns = [
     path("logs/", OrderTransitionLogListView.as_view(), name="order-transition-log-list"),
     path("logs/<int:pk>/", OrderTransitionLogListView.as_view(), name="order-transition-log-detail"),
     path('orders/<int:pk>/extend-deadline/', ExtendOrderDeadlineView.as_view(), name='extend-order-deadline'),
+    # Back-compat name expected by tests
+    path('orders/<int:pk>/extend-deadline/', ExtendOrderDeadlineView.as_view(), name='extend-deadline'),
     path('orders/<int:pk>/actions/', OrderActionView.as_view(), name='order-actions'),
     path(
         'orders/<int:pk>/actions/<str:action_name>/',

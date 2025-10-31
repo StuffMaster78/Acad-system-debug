@@ -26,6 +26,20 @@ class CodeFormatValidator:
         """
         return self.is_valid_format(code)
 
+    def deconstruct(self):
+        """
+        Support Django migration serialization for custom validators.
+
+        Returns a 3-tuple of (import_path, args, kwargs) so the validator can
+        be reconstructed in migration files.
+        """
+        path = "discounts.validators.code_format_validator.CodeFormatValidator"
+        return (path, tuple(), {})
+
+    def __eq__(self, other):
+        """Enable comparisons for migration de-duplication."""
+        return isinstance(other, CodeFormatValidator)
+
     def is_valid_format(self, code):
         """
         Validate the given discount code.

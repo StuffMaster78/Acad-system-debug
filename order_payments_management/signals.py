@@ -32,7 +32,7 @@ def process_successful_payment(instance):
     """Handles order status update, logging, and notification for successful payments."""
     if instance.order:
         instance.order.mark_paid()
-    elif instance.special_order:
+    elif hasattr(instance, 'special_order') and instance.special_order:
         instance.special_order.update_payment_status()
     else:
         logger.error(f"Payment {instance.transaction_id} completed, but no order reference found.")
@@ -174,7 +174,7 @@ def validate_duplicate_payment(sender, instance, **kwargs):
         query = models.Q()
         if instance.order:
             query |= models.Q(order=instance.order)
-        if instance.special_order:
+        if hasattr(instance, 'special_order') and instance.special_order:
             query |= models.Q(special_order=instance.special_order)
 
         existing_payment = OrderPayment.objects.filter(query, status="completed").exclude(id=instance.id).exists()

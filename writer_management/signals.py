@@ -16,20 +16,24 @@ from writer_management.services.status_service import WriterStatusService
 from writer_management.models.discipline import (
     WriterStrike, WriterSuspension, WriterBlacklist, Probation
 )
+from writer_management.models.rewards import WriterReward
 
 User = get_user_model()
 
 
 ### ---------------- Writer Profile Signals ---------------- ###
 
-@receiver(post_save, sender=User)
-def create_writer_profile(sender, instance, created, **kwargs):
-    """
-    Automatically create a WriterProfile for new users with the 'writer' role.
-    """
-    if created and instance.role == "writer":
-        WriterProfile.objects.create(user=instance)
-        print(f"✅ WriterProfile created for {instance.username}")
+# @receiver(post_save, sender=User)
+# def create_writer_profile(sender, instance, created, **kwargs):
+#     """
+#     Automatically create a WriterProfile for new users with the 'writer' role.
+#     """
+#     if created and instance.role == "writer":
+#         WriterProfile.objects.create(user=instance)
+#         print(f"✅ WriterProfile created for {instance.username}")
+# 
+# NOTE: This signal is disabled because WriterProfile creation is now handled
+# in users/signals.py with proper website and wallet creation
 
 
 @receiver(post_save, sender=WriterProfile)
@@ -39,7 +43,17 @@ def log_writer_action(sender, instance, created, **kwargs):
     """
     if not created:
         action = f"✏️ Writer profile updated for {instance.user.username}."
+        website = getattr(instance, 'website', None)
+        if website is None:
+            try:
+                from websites.models import Website
+                website = Website.objects.filter(is_active=True).first()
+                if website is None:
+                    website = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+            except Exception:
+                website = None
         WriterActionLog.objects.create(
+            website=website,
             writer=instance,
             action="profile_update",
             reason=action
@@ -89,19 +103,21 @@ def update_writer_geolocation(sender, request, user, **kwargs):
 
 ### ---------------- Order Assignment & Management Signals ---------------- ###
 
-@receiver(post_save, sender=User)
-def auto_update_writer_profile(sender, instance, **kwargs):
-    """
-    Automatically update WriterProfile when a writer's user instance is updated.
-    """
-    if instance.role == "writer":
-        try:
-            writer_profile = instance.writer_profile
-            writer_profile.last_logged_in = now()
-            writer_profile.save()
-            print(f"🔄 WriterProfile auto-updated for {instance.username}")
-        except WriterProfile.DoesNotExist:
-            print(f"⚠️ No WriterProfile found for {instance.username}")
+# @receiver(post_save, sender=User)
+# def auto_update_writer_profile(sender, instance, **kwargs):
+#     """
+#     Automatically update WriterProfile when a writer's user instance is updated.
+#     """
+#     if instance.role == "writer":
+#         try:
+#             writer_profile = instance.writer_profile
+#             writer_profile.last_logged_in = now()
+#             writer_profile.save()
+#             print(f"🔄 WriterProfile auto-updated for {instance.username}")
+#         except WriterProfile.DoesNotExist:
+#             print(f"⚠️ No WriterProfile found for {instance.username}")
+# 
+# NOTE: This signal is disabled to prevent validation conflicts during user creation
 
 
 @receiver(post_save, sender=WriterProfile)
@@ -109,7 +125,7 @@ def enforce_writer_take_limits(sender, instance, **kwargs):
     """
     Enforce max order takes and requests per writer.
     """
-    if instance.number_of_takes > instance.writer_level.max_orders:
+    if instance.writer_level and instance.number_of_takes > instance.writer_level.max_orders:
         instance.number_of_takes = instance.writer_level.max_orders
         instance.save()
         print(f"⚠️ Order take limit enforced for {instance.user.username}")
@@ -144,3 +160,18 @@ def clear_cached_conversion_rate(sender, instance, **kwargs):
         instance.website.id, instance.target_currency
     )
     cache.delete(key)
+
+
+@receiver([post_save, pre_delete, pre_delete], sender=WriterReward)
+def ensure_reward_website(sender, instance, **kwargs):
+    try:
+        if not getattr(instance, 'website_id', None):
+            writer = getattr(instance, 'writer', None)
+            if writer and getattr(writer, 'website_id', None):
+                instance.website_id = writer.website_id
+                try:
+                    instance.save(update_fields=['website'])
+                except Exception:
+                    pass
+    except Exception:
+        pass

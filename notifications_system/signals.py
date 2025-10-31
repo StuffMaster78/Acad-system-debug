@@ -79,26 +79,33 @@ def _ensure_notif_meta(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=User, dispatch_uid="user_pref_assign_defaults_v1")
 def ensure_user_notification_pref(sender, instance, created, **kwargs):
+    if getattr(settings, "DISABLE_NOTIFICATION_SIGNALS", False):
+        return
     if kwargs.get("raw"):
         return
-    if created:
+    if created and instance.website:  # Only create preferences for users with websites
         NotificationPreferenceResolver.assign_default_preferences(
             instance, instance.website
         )
-    update_preferences_cache(instance)
+    if instance.website:  # Only update cache for users with websites
+        update_preferences_cache(instance)
 
 @receiver(post_save, sender=User, dispatch_uid="user_pref_create_row_v1")
 def create_notification_preferences(sender, instance, created, **kwargs):
+    if getattr(settings, "DISABLE_NOTIFICATION_SIGNALS", False):
+        return
     if kwargs.get("raw"):
         return
-    if created:
-        NotificationPreference.objects.get_or_create(user=instance)
+    if created and instance.website:  # Only create preferences for users with websites
+        NotificationPreference.objects.get_or_create(user=instance, website=instance.website)
 
 @receiver(post_save, sender=User, dispatch_uid="user_pref_cache_seed_v1")
 def auto_create_notif_preferences(sender, instance, created, **kwargs):
+    if getattr(settings, "DISABLE_NOTIFICATION_SIGNALS", False):
+        return
     if kwargs.get("raw"):
         return
-    if created:
+    if created and instance.website:  # Only create preferences for users with websites
         NotificationPreferenceResolver.assign_default_preferences(
             instance, instance.website
         )

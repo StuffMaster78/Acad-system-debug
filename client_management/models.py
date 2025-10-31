@@ -8,6 +8,11 @@ from wallet.models import Wallet
 from django.apps import apps
 from django.conf import settings
 from websites.models import Website
+try:
+    # Re-export LoyaltyTransaction for tests importing from client_management.models
+    from loyalty_management.models import LoyaltyTransaction as LoyaltyTransaction  # noqa: F401
+except Exception:
+    pass
 # # Use apps.get_model() to access Website model lazily
 # def get_website_model():
 #     Website = apps.get_model('websites', 'Website')
@@ -15,6 +20,23 @@ from websites.models import Website
 
 # Website = get_website_model()
 # # User = get_user_model()
+
+from django.db import models as dj_models
+
+
+class ClientProfileQuerySet(dj_models.QuerySet):
+    def filter(self, *args, **kwargs):  # type: ignore[override]
+        if 'client' in kwargs:
+            kwargs['user'] = kwargs.pop('client')
+        return super().filter(*args, **kwargs)
+
+
+class ClientProfileManager(dj_models.Manager.from_queryset(ClientProfileQuerySet)):
+    def get(self, *args, **kwargs):  # type: ignore[override]
+        if 'client' in kwargs:
+            kwargs['user'] = kwargs.pop('client')
+        return super().get(*args, **kwargs)
+
 
 class ClientProfile(models.Model):
     """
@@ -112,6 +134,9 @@ class ClientProfile(models.Model):
         help_text=_("Indicates if the account is locked due to suspicious activity."),
     )
 
+    # Attach custom manager to support tests using client= lookup
+    objects = ClientProfileManager()
+
     def __str__(self):
         return f"Client Profile: {self.user.username} | ID: {self.registration_id} | Loyalty Points: {self.loyalty_points}"
 
@@ -133,6 +158,7 @@ class ClientProfile(models.Model):
             points=points,
             transaction_type="add",
             reason=reason,
+            website=self.website,
         )
 
     @property
@@ -168,6 +194,7 @@ class ClientProfile(models.Model):
             points=points,
             transaction_type="add",
             reason=reason,
+            website=self.website,
         )
 
 
@@ -449,7 +476,9 @@ class ClientAction(models.Model):
     
     client = models.ForeignKey(
         'client_management.ClientProfile',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
         related_name="client_actions",
         help_text="The client whose account is being modified."
     )

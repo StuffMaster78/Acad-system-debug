@@ -55,3 +55,11 @@ class WriterSupportTicket(models.Model):
 
     def __str__(self):
         return f"Ticket {self.id} - {self.writer.user.username} ({self.status})"
+
+    def save(self, *args, **kwargs):
+        if not getattr(self, 'website_id', None) and getattr(self, 'writer', None):
+            try:
+                self.website_id = self.writer.website_id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)

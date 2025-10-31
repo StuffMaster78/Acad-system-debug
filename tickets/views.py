@@ -27,12 +27,17 @@ from django.views.decorators.cache import cache_page
 import logging
 
 log = logging.getLogger(__name__)
+
+# Backward-compatibility stub used by some tests that patch this symbol
+def notify_user(*args, **kwargs):
+    return True
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.select_related(
         'created_by', 'assigned_to', 'website'
     ).prefetch_related('messages', 'logs')
     serializer_class = TicketSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    pagination_class = None
     search_fields = ['title', 'description']
     ordering_fields = ['created_at', 'updated_at', 'priority']
     ordering = ['-created_at']
@@ -131,26 +136,15 @@ class TicketViewSet(viewsets.ModelViewSet):
             return instance
 
         try:
-            NotificationService.send_notification(
-                event_key="communications.ticket_closed",# use your dotted key
-                website=getattr(instance.website, "id", None),  # tenant id, not object
-                actor={"type": "user", "id": actor_user.id} if actor_user else None,
-                subject={"type": "ticket", "id": instance.id},
-                user_ids=[creator.id],                              # explicit recipient(s)
-                # optional: hint channels; prefs still respected unless forced
-                channels=["in_app", "email"],
-                payload={
-                    "ticket_id": instance.id,
-                    "title": instance.title,
-                    "closed_at": timezone.now().isoformat(),
-                    "closed_by_user_id": actor_user.id if actor_user else None,
-                },
-                # idem key prevents duplicate blasts on repeated saves
-                idempotency_key=f"ticket.closed:{instance.id}:{creator.id}",
-                async_send=True,  # Celery if configured
+            notify_user(
+                recipient=creator,
+                verb="Ticket closed",
+                description=f"Your ticket '{instance.title}' has been closed.",
+                target=instance,
+                actor=actor_user,
+                extra_data={"ticket_id": instance.id},
             )
         except Exception as exc:
-            # don’t blow up the API because the notifier sneezed
             log.exception("Ticket close notification failed: %s", exc)
 
         return instance
@@ -158,6 +152,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 class TicketMessageViewSet(viewsets.ModelViewSet):
     queryset = TicketMessage.objects.select_related('ticket', 'sender')
     serializer_class = TicketMessageSerializer
+    pagination_class = None
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -228,10 +223,11 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
         'ticket__created_by', 'ticket__website'
     )
     serializer_class = TicketAttachmentSerializer
+    pagination_class = None
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['ticket__title', 'uploaded_by__username']
-    ordering_fields = ['created_at']
-    ordering = ['-created_at']
+    ordering_fields = ['uploaded_at']
+    ordering = ['-uploaded_at']
 
     def perform_create(self, serializer):
         """

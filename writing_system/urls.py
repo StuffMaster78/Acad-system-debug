@@ -52,11 +52,14 @@ urlpatterns = [
     path('api/v1/client-management/', include('client_management.urls')),  # Client Management app
     path('api/v1/writer-management/', include('writer_management.urls')),  # Writer Management app
     path("api/v1/support-management/", include("support_management.urls")), # Support Management app
+    # Backward-compatible alias some tests may use
+    path("api/v1/support/", include("support_management.urls")),
     path("api/v1/editor-management/", include("editor_management.urls")), # Editor Management app
     path("api/v1/admin-management/", include("admin_management.urls")), # Admin Management app
     path("api/v1/superadmin-management/", include("superadmin_management.urls")), # Superadmin Management app
 
     path('api/v1/referrals/', include('referrals.urls')), # Referrals Management App
+    path('api/v1/refunds/', include('refunds.urls')),
     path('api/v1/order-configs/', include('order_configs.urls')), 
     path('api/v1/pricing-configs/', include('pricing_configs.urls')),
     path('api/v1/loyalty-management/', include('loyalty_management.urls')),
@@ -66,6 +69,7 @@ urlpatterns = [
     path('api/v1/special-orders/', include('special_orders.urls')),
     path('api/v1/tickets/', include('tickets.urls')),
     path('api/v1/wallet/', include('wallet.urls')),
+    path('api/v1/mass-emails/', include('mass_emails.urls')),
     path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
     path('api/v1/', include('service_pages_management.urls')),
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
@@ -75,6 +79,13 @@ urlpatterns = [
     # path('api/v1/admin/', include('notifications_system.admin_urls')), # Admin URLs for notifications
 
     path('api/v1/auth/', include('authentication.urls')),
+    # Backward-compatible top-level aliases expected by some tests
+    path('api/', include('discounts.urls')),
+    path('api/', include('mass_emails.urls')),
+    path('api/', include('order_payments_management.urls')),
+    path('api/', include('support_management.urls')),
+    path('api/', include('tickets.urls')),
+    path('api/', include('writer_management.urls')),
 ]
 
 # Serve media and static files during development

@@ -45,7 +45,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 # Application definition
@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     'discounts',
     'referrals',
     'fines',
+    'refunds',
     
     # Order Management
     'orders',
@@ -124,6 +125,7 @@ INSTALLED_APPS = [
     'admin_management',
     'client_management',
     'writer_management',
+    'writer_payments_management',
     'editor_management',
     'support_management',
     'loyalty_management',
@@ -260,7 +262,7 @@ SPECTACULAR_SETTINGS = {
 
 # Channels Settings
 # ASGI_APPLICATION = "writing_system.asgi.application"
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost").split(",")
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
 
 REDIS_HOST = os.getenv("REDIS_HOST", "redis")  # Default to localhost if not set
@@ -453,9 +455,9 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
 }
 
-SECURE_SSL_REDIRECT = True
-CSRF_COOKIE_SECURE = True
-SESSION_COOKIE_SECURE = True
+SECURE_SSL_REDIRECT = False  # Disabled for development
+CSRF_COOKIE_SECURE = False  # Disabled for development
+SESSION_COOKIE_SECURE = False  # Disabled for development
 
 
 AUTHENTICATION_BACKENDS = [

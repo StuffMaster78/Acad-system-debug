@@ -5,8 +5,8 @@ from .models import Referral, ReferralCode, ReferralBonusConfig
 
 class ReferralModelTest(TestCase):
     def setUp(self):
-        self.referrer = User.objects.create(username="referrer")
-        self.referee = User.objects.create(username="referee", referred_by=self.referrer)
+        self.referrer = User.objects.create_user(email="referrer@test.local", username="referrer")
+        self.referee = User.objects.create_user(email="referee@test.local", username="referee")
 
     def test_create_referral(self):
         referral = Referral.objects.create(referrer=self.referrer, referee=self.referee)

@@ -118,11 +118,15 @@ class PromotionalCampaign(models.Model):
         if self.start_date > self.end_date:
             raise ValidationError("End date must be after start date.")
 
+    @property
+    def name(self):
+        return self.campaign_name
+
     def save(self, *args, **kwargs):
         if self.end_date < timezone.now():
             self.is_active = False
         if not self.slug:
-            self.slug = slugify(f"{self.name}-{self.website_id}")
+            self.slug = slugify(f"{self.campaign_name}-{self.website_id}")
         super().save(*args, **kwargs)
 
     def activate(self):
@@ -156,7 +160,7 @@ class PromotionalCampaign(models.Model):
             raise ValidationError("This campaign is already soft-deleted.")
 
         self.status = 'deleted'
-        self.slug = slugify(f"{self.name}-{self.website_id}-deleted")
+        self.slug = slugify(f"{self.campaign_name}-{self.website_id}-deleted")
         self.is_active = False
         self.is_deleted = True
         self.deleted_at = timezone.now()
@@ -184,7 +188,7 @@ class PromotionalCampaign(models.Model):
         self.deleted_by = None
 
         # Regenerate slug cleanly, removing any trailing '-deleted'
-        base_slug = slugify(f"{self.name}-{self.website_id}")
+        base_slug = slugify(f"{self.campaign_name}-{self.website_id}")
         self.slug = self.generate_unique_slug(
             base_slug,
             self.website_id,
@@ -251,4 +255,4 @@ class PromotionalCampaign(models.Model):
         return timezone.now() > self.end_date
 
     def __str__(self):
-        return f"{self.name} ({self.start_date.date()} - {self.end_date.date()})"
+        return f"{self.campaign_name} ({self.start_date.date()} - {self.end_date.date()})"

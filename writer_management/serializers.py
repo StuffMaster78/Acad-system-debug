@@ -103,6 +103,9 @@ class WriterOrderRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterOrderRequest
         fields = '__all__'
+        extra_kwargs = {
+            'website': {'required': False, 'allow_null': True}
+        }
 
     def validate(self, data):
         """
@@ -125,6 +128,15 @@ class WriterOrderRequestSerializer(serializers.ModelSerializer):
 
         return data
 
+    def create(self, validated_data):
+        if not validated_data.get('website'):
+            writer = validated_data.get('writer')
+            order = validated_data.get('order')
+            website = getattr(writer, 'website', None) or getattr(order, 'website', None)
+            if website:
+                validated_data['website'] = website
+        return super().create(validated_data)
+
 
 class WriterOrderTakeSerializer(serializers.ModelSerializer):
     """
@@ -136,6 +148,9 @@ class WriterOrderTakeSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterOrderTake
         fields = '__all__'
+        extra_kwargs = {
+            'website': {'required': False, 'allow_null': True}
+        }
 
     def validate(self, data):
         """
@@ -154,6 +169,15 @@ class WriterOrderTakeSerializer(serializers.ModelSerializer):
             raise ValidationError(f"Writer {data['writer'].user.username} has reached their max take limit.")
 
         return data
+
+    def create(self, validated_data):
+        if not validated_data.get('website'):
+            writer = validated_data.get('writer')
+            order = validated_data.get('order')
+            website = getattr(writer, 'website', None) or getattr(order, 'website', None)
+            if website:
+                validated_data['website'] = website
+        return super().create(validated_data)
 
 
 class WriterConfigSerializer(serializers.ModelSerializer):
@@ -230,6 +254,18 @@ class WriterRewardSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterReward
         fields = '__all__'
+        extra_kwargs = {
+            'website': {'required': False, 'allow_null': True}
+        }
+
+    def create(self, validated_data):
+        if not validated_data.get('website'):
+            writer = validated_data.get('writer')
+            if writer is not None:
+                website = getattr(writer, 'website', None)
+                if website:
+                    validated_data['website'] = website
+        return super().create(validated_data)
 
 
 class WriterRewardCriteriaSerializer(serializers.ModelSerializer):
@@ -268,6 +304,17 @@ class WriterSuspensionSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterSuspension
         fields = '__all__'
+        extra_kwargs = {
+            'website': {'required': False, 'allow_null': True}
+        }
+
+    def create(self, validated_data):
+        if not validated_data.get('website'):
+            writer = validated_data.get('writer')
+            website = getattr(writer, 'website', None)
+            if website:
+                validated_data['website'] = website
+        return super().create(validated_data)
 
 
 class WriterActionLogSerializer(serializers.ModelSerializer):
@@ -288,6 +335,17 @@ class WriterSupportTicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterSupportTicket
         fields = '__all__'
+        extra_kwargs = {
+            'website': {'required': False, 'allow_null': True}
+        }
+
+    def create(self, validated_data):
+        if not validated_data.get('website'):
+            writer = validated_data.get('writer')
+            website = getattr(writer, 'website', None)
+            if website:
+                validated_data['website'] = website
+        return super().create(validated_data)
 
 
 class WriterDeadlineExtensionRequestSerializer(serializers.ModelSerializer):
@@ -297,6 +355,18 @@ class WriterDeadlineExtensionRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterDeadlineExtensionRequest
         fields = '__all__'
+        extra_kwargs = {
+            'website': {'required': False, 'allow_null': True}
+        }
+
+    def create(self, validated_data):
+        if not validated_data.get('website'):
+            writer = validated_data.get('writer')
+            order = validated_data.get('order')
+            website = getattr(writer, 'website', None) or getattr(order, 'website', None)
+            if website:
+                validated_data['website'] = website
+        return super().create(validated_data)
 
 
 class WriterOrderHoldRequestSerializer(serializers.ModelSerializer):

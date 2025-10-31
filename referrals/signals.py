@@ -6,6 +6,7 @@ from django.db import transaction
 from django.core.mail import send_mail
 from users.models import User
 from django.conf import settings
+from django.conf import settings as dj_settings
 from datetime import timedelta
 from orders.models import Order
 from order_payments_management.models import OrderPayment
@@ -13,13 +14,15 @@ from order_payments_management.models import OrderPayment
 
 @receiver(post_save, sender=Referral)
 def credit_referral_bonus_on_order_completion(sender, instance, created, **kwargs):
+    if getattr(dj_settings, "DISABLE_REFERRAL_SIGNALS", False):
+        return
     """
     Credit the referral bonus once the referred user places and pays for an order
     without refunds.
     """
     if created:
         # Check if the referral bonus has already been credited
-        if instance.first_order_referral_bonus_credited:
+        if getattr(instance, 'first_order_bonus_credited', False):
             return
 
         # Check if the referred user has placed and paid for an order without a refund
@@ -49,7 +52,7 @@ def credit_referral_bonus_on_order_completion(sender, instance, created, **kwarg
                 )
 
                 # Mark the referral as bonus credited
-                instance.first_order_referral_bonus_credited = True
+                instance.first_order_bonus_credited = True
                 instance.save()
 
                 # Send an email notification to the referrer
@@ -68,6 +71,8 @@ def send_referral_bonus_credited_email(referrer, bonus_amount):
 
 @receiver(post_save, sender=OrderPayment)
 def check_payment_and_credit_referral(sender, instance, created, **kwargs):
+    if getattr(dj_settings, "DISABLE_REFERRAL_SIGNALS", False):
+        return
     """
     Check if the order payment is completed and credit the referral bonus
     if the referred user has paid for the order without refunds.
@@ -76,7 +81,7 @@ def check_payment_and_credit_referral(sender, instance, created, **kwargs):
         order = instance.order
         referral = Referral.objects.filter(referred_user=order.client).first()
 
-        if referral and not referral.first_order_referral_bonus_credited:
+        if referral and not getattr(referral, 'first_order_bonus_credited', False):
             # Fetch referral bonus configuration
             bonus_config = ReferralBonusConfig.objects.filter(website=referral.website).first()
 
@@ -104,7 +109,7 @@ def check_payment_and_credit_referral(sender, instance, created, **kwargs):
                     )
 
                     # Mark the referral as bonus credited
-                    referral.first_order_referral_bonus_credited = True
+                    referral.first_order_bonus_credited = True
                     referral.save()
 
                     # Send an email notification to the referrer

@@ -75,6 +75,32 @@ class User(AbstractUser, PermissionsMixin,
     objects = CustomUserManager()
     active_users = ActiveManager()
 
+    # Compatibility shim: older code calls `_auto_detect_country_and_timezone`.
+    # Our GeoDetectionMixin exposes `auto_detect_country(request)` instead.
+    def _auto_detect_country_and_timezone(self, request=None):  # noqa: D401
+        try:
+            # Best effort; safe if content detection fails or no request provided
+            self.auto_detect_country(request)
+        except Exception:
+            # Never block user creation on geo-detection
+            pass
+
+    # Backwards-compat: some tests expect `user.last_active` on the User model.
+    @property
+    def last_active(self):
+        profile = getattr(self, 'user_main_profile', None)
+        return getattr(profile, 'last_active', None) if profile else None
+
+    @last_active.setter
+    def last_active(self, value):
+        # Ensure a profile exists
+        profile = getattr(self, 'user_main_profile', None)
+        if profile is None:
+            from .models import UserProfile
+            profile = UserProfile.objects.create(user=self, website=self.website)
+        profile.last_active = value
+        profile.save(update_fields=["last_active"])
+
     @property
     def display_avatar(self):
         """

@@ -37,7 +37,7 @@ class RefundLogAdmin(admin.ModelAdmin):
     list_filter = ('status', 'source')
     search_fields = ('order__id', 'refund__id', 'client__username')
     readonly_fields = (
-        'created_at', 'processed_by', 'action',
+        'created_at', 'processed_by',
         'metadata', 'client', 'refund', 'order',
         'amount', 'source', 'status'
     )

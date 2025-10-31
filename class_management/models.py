@@ -286,8 +286,11 @@ class WalletTransaction(models.Model):
 
     wallet = models.ForeignKey(
         Wallet,
-        on_delete=models.CASCADE,
-        help_text="User wallet"
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        help_text="User wallet",
+        related_name="class_management_wallet_transactions"
     )
     transaction_type = models.CharField(
         max_length=20,

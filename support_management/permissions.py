@@ -25,11 +25,15 @@ class CanManageOrders(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated
-            and request.user.role == "support"
-            and request.user.support_profile.permissions.can_manage_tickets
-        )
+        if not (request.user.is_authenticated and request.user.role == "support"):
+            return False
+        perms = getattr(getattr(request.user, 'support_profile', None), 'permissions', None)
+        can_manage = False
+        try:
+            can_manage = bool(getattr(perms, 'can_manage_tickets', False))
+        except Exception:
+            can_manage = False
+        return can_manage
 
 
 class CanHandleDisputes(permissions.BasePermission):
@@ -38,11 +42,13 @@ class CanHandleDisputes(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated
-            and request.user.role == "support"
-            and request.user.support_profile.permissions.can_handle_disputes
-        )
+        if not (request.user.is_authenticated and request.user.role == "support"):
+            return False
+        perms = getattr(getattr(request.user, 'support_profile', None), 'permissions', None)
+        try:
+            return bool(getattr(perms, 'can_handle_disputes', False))
+        except Exception:
+            return False
 
 
 class CanRecommendBlacklist(permissions.BasePermission):
@@ -51,11 +57,13 @@ class CanRecommendBlacklist(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated
-            and request.user.role == "support"
-            and request.user.support_profile.permissions.can_recommend_blacklist
-        )
+        if not (request.user.is_authenticated and request.user.role == "support"):
+            return False
+        perms = getattr(getattr(request.user, 'support_profile', None), 'permissions', None)
+        try:
+            return bool(getattr(perms, 'can_recommend_blacklist', False))
+        except Exception:
+            return False
 
 
 class CanModerateMessages(permissions.BasePermission):
@@ -64,11 +72,13 @@ class CanModerateMessages(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated
-            and request.user.role == "support"
-            and request.user.support_profile.message_access.can_moderate_messages
-        )
+        if not (request.user.is_authenticated and request.user.role == "support"):
+            return False
+        access = getattr(getattr(request.user, 'support_profile', None), 'message_access', None)
+        try:
+            return bool(getattr(access, 'can_moderate_messages', False))
+        except Exception:
+            return False
 
 
 class CanManageWriterPerformance(permissions.BasePermission):
@@ -77,11 +87,13 @@ class CanManageWriterPerformance(permissions.BasePermission):
     """
 
     def has_permission(self, request, view):
-        return (
-            request.user.is_authenticated
-            and request.user.role == "support"
-            and request.user.support_profile.permissions.can_put_writer_on_probation
-        )
+        if not (request.user.is_authenticated and request.user.role == "support"):
+            return False
+        perms = getattr(getattr(request.user, 'support_profile', None), 'permissions', None)
+        try:
+            return bool(getattr(perms, 'can_put_writer_on_probation', False))
+        except Exception:
+            return False
 
 
 class CanEscalateIssues(permissions.BasePermission):

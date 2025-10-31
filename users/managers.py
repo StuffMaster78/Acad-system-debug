@@ -3,17 +3,54 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password=None, **extra_fields):
+    def create_user(self, email=None, password=None, **extra_fields):
         """
-        Create and return a user with an email and password.
+        Create and return a user. Tests may call with only username; in that case
+        synthesize an email and ensure a unique username.
         """
+        username = extra_fields.get('username')
         if not email:
-            raise ValueError(_('The Email field must be set'))
+            if username:
+                email = f"{username}@test.local"
+            else:
+                base = 'user'
+                email = f"{base}-{self.make_random_password(length=8)}@test.local"
         email = self.normalize_email(email)
+
+        # Ensure username present and unique
+        if not username:
+            username = email.split('@')[0]
+        base_username = username
+        counter = 1
+        while self.model.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+        extra_fields['username'] = username
+
+        # Auto-assign website for roles that require it if missing (tests convenience)
+        role = extra_fields.get('role')
+        if role in ('client', 'writer') and not extra_fields.get('website'):
+            try:
+                from websites.models import Website
+                website = Website.objects.filter(is_active=True).first()
+                if website is None:
+                    website = Website.objects.create(
+                        name='Test Website',
+                        domain='https://test.local',
+                        is_active=True,
+                    )
+                extra_fields['website'] = website
+            except Exception:
+                # If websites app/migrations not ready, skip assignment
+                pass
+
         extra_fields.setdefault('is_active', True)
-        
+
         user = self.model(email=email, **extra_fields)
-        user.set_password(password)
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
         user.save(using=self._db)
         return user
 

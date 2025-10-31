@@ -23,8 +23,8 @@ services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_DB_NAME: ${POSTGRES_DB_NAME}  # Load database name
-      POSTGRES_USER_NAME: ${POSTGRES_USER_NAME}  # Load database user
+      POSTGRES_DB: ${POSTGRES_DB_NAME}  # Load database name
+      POSTGRES_USER: ${POSTGRES_USER_NAME}  # Load database user
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}  # Load database password
     volumes:
       - postgres_data:/var/lib/postgresql/data

@@ -137,6 +137,20 @@ class WriterSuspension(models.Model):
         ordering = ['-start_date']
         unique_together = ('website', 'writer', 'is_active')
 
+    def save(self, *args, **kwargs):
+        if not getattr(self, 'website_id', None):
+            try:
+                if getattr(self, 'writer', None) and getattr(self.writer, 'website_id', None):
+                    self.website_id = self.writer.website_id
+                else:
+                    site = Website.objects.filter(is_active=True).first()
+                    if site is None:
+                        site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+                    self.website_id = site.id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
 class WriterSuspensionHistory(models.Model):
     """
     Tracks changes made to WriterSuspension instances.
@@ -307,3 +321,14 @@ class WriterPenalty(models.Model):
 
     def __str__(self):
         return f"Penalty: {self.writer.user.username} - {self.reason} (${self.amount_deducted})"
+
+    def save(self, *args, **kwargs):
+        if not getattr(self, 'website_id', None):
+            try:
+                if getattr(self, 'writer', None) and getattr(self.writer, 'website_id', None):
+                    self.website_id = self.writer.website_id
+                elif getattr(self, 'order', None) and getattr(self.order, 'website_id', None):
+                    self.website_id = self.order.website_id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)

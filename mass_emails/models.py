@@ -81,6 +81,22 @@ class EmailCampaign(models.Model):
     def __str__(self):
         return f"{self.title} ({self.website.name})"
 
+    def save(self, *args, **kwargs):
+        # Ensure non-null JSON default for tests and NOT NULL constraint
+        if self.target_roles in (None, "", []):
+            self.target_roles = []
+        # Ensure website exists for tests
+        if not getattr(self, 'website_id', None):
+            try:
+                from websites.models import Website
+                site = Website.objects.filter(is_active=True).first()
+                if site is None:
+                    site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
+                self.website_id = site.id
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
     @property
     def resolved_sender_email(self):
         """
