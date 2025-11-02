@@ -227,7 +227,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
@@ -498,8 +499,6 @@ REST_FRAMEWORK = {
         # "notifications_system.authentication.WebhookAuthentication",
         # "notifications_system.authentication.InAppAuthentication",
         # "notifications_system.authentication.TokenQueryParamAuthentication",
-        "notifications_system.throttles.NotificationWriteBurstThrottle",
-        "notifications_system.throttles.NotificationWriteSustainedThrottle",
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
@@ -509,6 +508,8 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle',
         'authentication.throttling.LoginRateThrottle',
         'authentication.throttling.MagicLinkThrottle',
+        'notifications_system.throttles.NotificationWriteBurstThrottle',
+        'notifications_system.throttles.NotificationWriteSustainedThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'user': '10/hour',  # Normal authenticated users
@@ -549,9 +550,11 @@ SIMPLE_JWT = {
     "USER_ID_CLAIM": "user_id",
 }
 
-SECURE_SSL_REDIRECT = False  # Disabled for development
-CSRF_COOKIE_SECURE = False  # Disabled for development
-SESSION_COOKIE_SECURE = False  # Disabled for development
+# Security settings for development
+SECURE_SSL_REDIRECT = False  # Disabled for development - do not redirect to HTTPS
+SECURE_PROXY_SSL_HEADER = None  # Disabled for development
+SESSION_COOKIE_SECURE = False  # Allow cookies over HTTP in development
+CSRF_COOKIE_SECURE = False  # Allow CSRF cookies over HTTP in development
 
 
 AUTHENTICATION_BACKENDS = [

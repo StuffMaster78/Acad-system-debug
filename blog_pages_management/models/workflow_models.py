@@ -4,7 +4,7 @@ Enables draft → review → approved → published workflow.
 """
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.utils import timezone
 
 User = get_user_model()

@@ -2,9 +2,10 @@
 Content blocks for blogs - CTAs, Tables, Auto-inserted content sections.
 """
 from django.db import models
+from django.conf import settings
 from django.utils.text import slugify
 from websites.models import Website
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 
@@ -278,7 +279,7 @@ class BlogEditHistory(models.Model):
         related_name='edit_history'
     )
     edited_by = models.ForeignKey(
-        'authentication.User',
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         related_name='blog_edits'

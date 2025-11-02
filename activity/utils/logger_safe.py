@@ -15,8 +15,12 @@ def safe_log_activity(
     """Try sync log, fallback to Celery if failure occurs."""
     from activity.services.logger import ActivityLogger
 
+    # Get website from user if not provided
+    if not website and user:
+        website = getattr(user, "website", None)
+    
     try:
-        return ActivityLogger.log(
+        return ActivityLogger.log_activity(
             user=user,
             website=website,
             action_type=action_type,

@@ -2,7 +2,8 @@ from django.http import HttpResponse
 from django.template.loader import render_to_string
 from django.core.cache import cache
 from django.utils.timezone import now
-from .models import Website, BlogPost
+from .models import BlogPost
+from websites.models import Website
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Subquery, OuterRef
 

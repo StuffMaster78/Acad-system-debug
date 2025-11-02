@@ -163,7 +163,19 @@ def log_user_login(sender, request, user, **kwargs):
     ip_address = get_client_ip(request)
     if not ip_address or ip_address in {"Unknown IP", "Unknown", ""}:
         ip_address = '127.0.0.1'
-    UserAuditLog.objects.create(user=user, action="LOGIN", ip_address=ip_address, website=getattr(user, 'website', None))
+    # Get website from user, or try to get from request host, or skip if not available
+    website = getattr(user, 'website', None)
+    if not website and hasattr(request, 'get_host'):
+        from websites.models import Website
+        try:
+            host = request.get_host().replace("www.", "")
+            website = Website.objects.filter(domain=host, is_active=True).first() or \
+                     Website.objects.filter(domain__icontains=host, is_active=True).first() or \
+                     Website.objects.filter(is_active=True).first()
+        except Exception:
+            website = None
+    # Only create audit log if we have a website, or allow None (after making it nullable)
+    UserAuditLog.objects.create(user=user, action="LOGIN", ip_address=ip_address, website=website)
 
 @receiver(user_logged_out)
 def log_user_logout(sender, request, user, **kwargs):

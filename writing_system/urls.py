@@ -30,6 +30,7 @@ from drf_spectacular.views import (
 )
 from django.conf import settings
 from django.conf.urls.static import static
+from core.api_root import api_root
 
 def trigger_error(request):
     division_by_zero = 1 / 0
@@ -38,6 +39,9 @@ urlpatterns = [
     # Admin panel
     path('admin/', admin.site.urls, name='admin'),
     path('sentry-debug/', trigger_error),
+
+    # API root endpoint (public)
+    path('api/v1/', api_root, name='api-root'),
 
     # API schema and documentation
     path('api/v1/schema/', SpectacularAPIView.as_view(), name='api-schema'),
@@ -71,7 +75,7 @@ urlpatterns = [
     path('api/v1/wallet/', include('wallet.urls')),
     path('api/v1/mass-emails/', include('mass_emails.urls')),
     path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
-    path('api/v1/', include('service_pages_management.urls')),
+    path('api/v1/service-pages/', include('service_pages_management.urls')),
     path('api/v1/fines/', include('fines.urls')),
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
     # path('api/v1/analytics/', include('analytics.urls')),  # Analytics app

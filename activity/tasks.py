@@ -45,7 +45,7 @@ def async_log_activity(
     if triggered_by_id:
         triggered_by = User.objects.filter(id=triggered_by_id).first()
 
-    ActivityLogger.log(
+    ActivityLogger.log_activity(
         user=user,
         website=website,
         action_type=action_type,

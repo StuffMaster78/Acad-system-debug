@@ -533,7 +533,9 @@ class UserAuditLog(models.Model):
     )
     website = models.ForeignKey(
         'websites.Website',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='audit_logs',
         help_text=_("The website this audit log is associated with.")
     )

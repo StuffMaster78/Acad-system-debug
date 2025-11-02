@@ -9,9 +9,9 @@ from ..models.seo_models import BlogSEOMetadata, FAQSchema, AuthorSchema
 from ..models.pdf_samples import PDFSampleSection
 from ..serializers.pdf_serializers import PDFSampleSectionSerializer
 try:
-    from ..models import BlogPost, AuthorProfile
+    from ..models import BlogPost, AuthorProfile, BlogTag
 except ImportError:
-    from blog_pages_management.models import BlogPost, AuthorProfile
+    from blog_pages_management.models import BlogPost, AuthorProfile, BlogTag
 
 
 class CTABlockSerializer(serializers.ModelSerializer):
@@ -135,7 +135,7 @@ class EnhancedBlogPostSerializer(serializers.ModelSerializer):
         many=True, queryset=AuthorProfile.objects.all(), required=False
     )
     tags = serializers.PrimaryKeyRelatedField(
-        many=True, queryset=serializers.PrimaryKeyRelatedField(queryset=None), required=False
+        many=True, queryset=BlogTag.objects.all(), required=False
     )
     
     # New fields

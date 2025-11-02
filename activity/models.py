@@ -52,7 +52,9 @@ class ActivityLog(models.Model):
 
     website = models.ForeignKey(
         Website,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="activity_logs"
     )
     actor_type = models.CharField(
@@ -83,12 +85,8 @@ class ActivityLog(models.Model):
             models.Index(fields=["user", "timestamp"]),
             models.Index(fields=["action_type"]),
         ]
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user", "website", "action_type", "timestamp"],
-                name="unique_activity_log_per_user_website_action"
-            )
-        ]
+        # Note: Unique constraint removed because website can be null now
+        # This constraint would prevent multiple logs with null website
         ordering = ["-timestamp"]  # Newest first   
         verbose_name = "Activity Log"
         verbose_name_plural = "Activity Logs"

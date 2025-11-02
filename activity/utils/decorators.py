@@ -36,7 +36,7 @@ def auto_log_activity(
             result = func(*args, **kwargs)
 
             try:
-                ActivityLogger.log(
+                ActivityLogger.log_activity(
                     user=get_user(args, kwargs, result),
                     website=get_website(args, kwargs, result),
                     action_type=action_type,

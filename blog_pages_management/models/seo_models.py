@@ -3,7 +3,7 @@ Enhanced SEO models for Schema.org structured data,
 Open Graph, Twitter Cards, and Google visibility.
 """
 from django.db import models
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from websites.models import Website
 from django.utils import timezone
 

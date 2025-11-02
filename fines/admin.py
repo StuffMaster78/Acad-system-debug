@@ -108,19 +108,19 @@ class FineAdmin(admin.ModelAdmin):
 @admin.register(FineAppeal)
 class FineAppealAdmin(admin.ModelAdmin):
     list_display = (
-        'id', 'fine', 'appealed_by', 'created_at',
-        'reviewed_by', 'reviewed_at', 'accepted', 'escalated'
+        'id', 'fine', 'submitted_by', 'submitted_at',
+        'reviewed_by', 'reviewed_at', 'status', 'escalated'
     )
-    list_filter = ('accepted', 'escalated', 'created_at', 'reviewed_at')
+    list_filter = ('status', 'escalated', 'submitted_at', 'reviewed_at')
     search_fields = ('fine__order__id', 'fine__order__topic', 'reason')
-    readonly_fields = ('created_at', 'reviewed_at', 'escalated_at')
+    readonly_fields = ('submitted_at', 'reviewed_at', 'escalated_at')
     fieldsets = (
         ('Appeal Information', {
-            'fields': ('fine', 'reason', 'appealed_by', 'created_at')
+            'fields': ('fine', 'reason', 'submitted_by', 'submitted_at')
         }),
         ('Review', {
             'fields': (
-                'reviewed_by', 'reviewed_at', 'accepted',
+                'reviewed_by', 'reviewed_at', 'status',
                 'resolution_notes'
             )
         }),

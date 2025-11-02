@@ -26,6 +26,7 @@ def initialize_default_fine_types(website=None):
             'description': 'Automatic fine for submitting order after deadline',
             'is_system_defined': 'system',
             'calculation_type': 'progressive_hourly',
+            # No base_amount for progressive_hourly - uses order's writer_compensation at calculation time
         },
         {
             'code': 'quality_issue',
@@ -33,7 +34,7 @@ def initialize_default_fine_types(website=None):
             'description': 'Fine for poor quality work, grammatical errors, or failing to meet quality standards',
             'calculation_type': 'percentage',
             'percentage': 10.00,
-            'base_amount': 'writer_compensation',
+            # base_amount=None - will use writer_compensation from order at calculation time
             'min_amount': 5.00,
             'max_amount': 50.00,
         },
@@ -50,7 +51,7 @@ def initialize_default_fine_types(website=None):
             'description': 'Fine for requiring excessive revisions due to writer error',
             'calculation_type': 'percentage',
             'percentage': 5.00,
-            'base_amount': 'writer_compensation',
+            # base_amount=None - will use writer_compensation from order at calculation time
         },
         {
             'code': 'late_reassignment',
@@ -58,7 +59,7 @@ def initialize_default_fine_types(website=None):
             'description': 'Fine for requesting order reassignment late in the process',
             'calculation_type': 'percentage',
             'percentage': 15.00,
-            'base_amount': 'writer_compensation',
+            # base_amount=None - will use writer_compensation from order at calculation time
         },
         {
             'code': 'dropping_order_late',
@@ -66,7 +67,7 @@ def initialize_default_fine_types(website=None):
             'description': 'Fine for dropping an order after significant work has been done',
             'calculation_type': 'percentage',
             'percentage': 20.00,
-            'base_amount': 'writer_compensation',
+            # base_amount=None - will use writer_compensation from order at calculation time
             'min_amount': 10.00,
         },
         {
@@ -89,7 +90,7 @@ def initialize_default_fine_types(website=None):
             'description': 'Fine for abandoning order or prolonged inactivity',
             'calculation_type': 'percentage',
             'percentage': 25.00,
-            'base_amount': 'writer_compensation',
+            # base_amount=None - will use writer_compensation from order at calculation time
         },
         {
             'code': 'comm_breach',
@@ -110,10 +111,17 @@ def initialize_default_fine_types(website=None):
         ).first()
         
         if not existing:
+            # Prepare create data, excluding base_amount entirely (will be None by default)
+            create_data = {}
+            for k, v in type_data.items():
+                # Skip base_amount field entirely - it should be None for percentage types
+                if k != 'base_amount':
+                    create_data[k] = v
+            
             config = FineTypeConfig.objects.create(
                 website=website,
                 active=True,
-                **type_data
+                **create_data
             )
             created.append(config)
     

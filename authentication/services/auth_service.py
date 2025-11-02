@@ -73,12 +73,12 @@ class AuthenticationService:
         if not user.is_active:
             raise ValidationError("Account is disabled. Please contact support.")
         
-        # Check for account lockout
-        if FailedLoginAttempt.is_locked_out(user=user, website=website):
-            lockout_until = FailedLoginAttempt.get_lockout_until(user, website)
+        # Check for account lockout using FailedLoginService
+        failed_login_service = FailedLoginService(user=user, website=website)
+        if failed_login_service.is_locked_out():
             raise ValidationError(
-                f"Account locked due to too many failed login attempts. "
-                f"Try again after {lockout_until}."
+                "Account locked due to too many failed login attempts. "
+                "Please try again later or contact support."
             )
         
         # Check for impersonation (prevent impersonating while impersonating)

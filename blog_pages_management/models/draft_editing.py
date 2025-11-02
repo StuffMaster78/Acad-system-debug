@@ -4,7 +4,7 @@ Includes auto-save, revisions, preview, and collaborative editing features.
 """
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.contrib.postgres.fields import JSONField
+from django.db.models import JSONField
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 

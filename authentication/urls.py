@@ -44,7 +44,7 @@ router.register(r"otp", otp_viewset.OTPViewSet, basename="otp")
 router.register(r"backup-codes", backup_code_viewset.BackupCodeViewSet, basename="backup-code")
 router.register(r"mfa-settings", mfa.MFASettingsViewSet, basename="mfa-settings")
 router.register(r"totp", totp.TOTPViewSet, basename="totp")
-router.register(r"totp-login", totp_login_sfa.TOTPLogin2FAView, basename="totp-login")
+# Note: TOTPLogin2FAView is an APIView, not a ViewSet, so it's registered in custom_urlpatterns below
 
 # Registration & Token-based flows
 router.register(

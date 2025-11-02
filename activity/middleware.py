@@ -28,7 +28,11 @@ class ActivityAuditMiddleware(MiddlewareMixin):
                 if duration > 2.0:  # Slow request threshold
                     user = getattr(request, "user", None)
                     website = getattr(request, "website", None)
+                    # Try to get website from user if not in request
+                    if not website and user and user.is_authenticated:
+                        website = getattr(user, "website", None)
 
+                    # Only log if we have a website or user (website can be None now)
                     safe_log_activity(
                         user=user if user and user.is_authenticated else None,
                         website=website,
@@ -52,6 +56,9 @@ class ActivityAuditMiddleware(MiddlewareMixin):
         try:
             user = getattr(request, "user", None)
             website = getattr(request, "website", None)
+            # Try to get website from user if not in request
+            if not website and user and user.is_authenticated:
+                website = getattr(user, "website", None)
 
             safe_log_activity(
                 user=user if user and user.is_authenticated else None,
