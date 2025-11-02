@@ -16,10 +16,12 @@ STATUS_CHOICES = [
         ("pending", "Pending"),
         ("unpaid", "Unpaid"),
         ("succeeded", "Succeeded"),
+        ("completed", "Completed"),
         ("failed", "Failed"),
         ("cancelled", "Cancelled"),
         ("partially_refunded", "Partially Refunded"),
         ("fully_refunded", "Fully Refunded"),
+        ("refunded", "Refunded"),
         ("disputed", "Disputed"),
         ("under_review", "Under Review"),
     ]
@@ -28,8 +30,9 @@ PAYMENT_TYPE_CHOICES = [
         ("standard", "Standard Order"),
         ("predefined_special", "Predefined Special Order"),
         ("estimated_special", "Estimated Special Order"),
+        ("special_installment", "Special Order Installment"),
         ("class_payment", "Class Payment"),
-        ("wallet_payment", "Wallet Payment"),
+        ("wallet_loading", "Wallet Loading/Top-up"),
     ]
 
 def generate_reference_id():
@@ -39,11 +42,21 @@ def generate_reference_id():
 class PaymentRecord(models.Model):
     """
     Central record of all payment transactions across payment types.
+    
+    NOTE: This model is currently not actively used in the order payment flow.
+    OrderPayment is used instead for order-specific payments.
+    
+    PaymentRecord may be used for:
+    - Future unified payment tracking across all payment types
+    - Cross-app payment auditing
+    - Payment analytics and reporting
+    
+    For now, OrderPayment handles all order-related payments.
 
     Attributes:
         user: The user making the payment.
         amount: The total amount for the payment.
-        type: The payment type (order, special_order, wallet, bundle).
+        payment_type: The payment type (order, special_order, wallet, bundle).
         status: The current status of the payment.
         currency: The currency code used (e.g., 'usd').
         provider: The payment provider (e.g., 'stripe').
@@ -87,7 +100,7 @@ class PaymentRecord(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.type} | {self.amount} {self.currency} | {self.status}"
+        return f"{self.payment_type} | {self.amount} {self.currency} | {self.status}"
 
 # Back-compat alias that proxies the canonical DiscountUsage from discounts app
 from discounts.models.discount import DiscountUsage as _CoreDiscountUsage
@@ -132,11 +145,37 @@ class OrderPayment(models.Model):
         max_length=20,
         choices=PAYMENT_TYPE_CHOICES
     )
+    # Order relationships - only one should be set based on payment_type
     order = models.ForeignKey(
         "orders.Order",
         on_delete=models.CASCADE,
         related_name="payments",
-        null=True, blank=True
+        null=True, blank=True,
+        help_text="Standard order payment (for payment_type='standard')"
+    )
+    special_order = models.ForeignKey(
+        "special_orders.SpecialOrder",
+        on_delete=models.CASCADE,
+        related_name="payments",
+        null=True, blank=True,
+        help_text="Special order payment (for payment_type='predefined_special' or 'estimated_special')"
+    )
+    class_purchase = models.ForeignKey(
+        "class_management.ClassPurchase",
+        on_delete=models.CASCADE,
+        related_name="payments",
+        null=True, blank=True,
+        help_text="Class bundle purchase payment (for payment_type='class_payment')"
+    )
+    # Generic fields for installment payments and other related objects
+    related_object_type = models.CharField(
+        max_length=50,
+        null=True, blank=True,
+        help_text="Type of related object (e.g., 'installment_payment')"
+    )
+    related_object_id = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="ID of related object (e.g., InstallmentPayment.id for special order installments)"
     )
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     
@@ -249,7 +288,7 @@ class OrderPayment(models.Model):
         Verifies that the payment was successfully processed before completion.
         This is useful for external payment gateways like Stripe or PayPal.
         """
-        if self.status == "paid":
+        if self.status in ["completed", "succeeded"]:
             return True  # Already verified
         
         # # Logic to check payment provider's response
@@ -325,9 +364,9 @@ class OrderPayment(models.Model):
         """Updates the status of the associated order after payment completion."""
         if self.payment_type == "standard" and self.order:
             self.order.mark_paid()
-        elif (self.payment_type in ["predefined_special", "estimated_special"] and
-              self.special_order):
-            self.special_order.update_payment_status()
+        elif self.payment_type in ["predefined_special", "estimated_special"] and self.order:
+            # For special orders, the order itself handles the payment status update
+            self.order.mark_paid()
 
     
 
@@ -354,18 +393,49 @@ class OrderPayment(models.Model):
             )
 
     def process_wallet_payment(self):
-        """Deducts the amount from the client's wallet."""
-        wallet = Wallet.objects.select_for_update().get(user=self.client)
-        if wallet.balance < self.discounted_amount:
-            raise ValueError("Insufficient wallet balance.")
+        """Deducts the amount from the client's wallet using atomic transaction."""
+        from django.db import transaction
+        
+        with transaction.atomic():
+            # Lock the wallet row to prevent race conditions
+            wallet = Wallet.objects.select_for_update().get(user=self.client)
+            if wallet.balance < self.discounted_amount:
+                raise ValueError("Insufficient wallet balance.")
 
-        wallet.balance -= self.discounted_amount
-        wallet.save()
-        self.mark_completed()
+            wallet.balance -= self.discounted_amount
+            wallet.save()
+            # Mark payment as completed
+            self.status = 'completed'
+            self.save()
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['payment_type', 'order_id']),
+            models.Index(fields=['payment_type', 'special_order_id']),
+            models.Index(fields=['payment_type', 'class_purchase_id']),
+            models.Index(fields=['client', 'status']),
+            models.Index(fields=['related_object_type', 'related_object_id']),
+        ]
+    
     def clean(self):
-        """Enforce business rules for payment status transitions."""
-
+        """Enforce business rules for payment status transitions and payment_type relationships."""
+        from django.core.exceptions import ValidationError
+        
+        # Validate payment_type matches the relationship
+        if self.payment_type == 'standard' and not self.order_id:
+            raise ValidationError("Standard order payments must have an order.")
+        elif self.payment_type in ['predefined_special', 'estimated_special'] and not self.special_order_id:
+            raise ValidationError(f"{self.payment_type} payments must have a special_order.")
+        elif self.payment_type == 'special_installment' and not self.related_object_id:
+            raise ValidationError("Special installment payments must have related_object_id (installment_payment.id).")
+        elif self.payment_type == 'class_payment' and not self.class_purchase_id:
+            raise ValidationError("Class payments must have a class_purchase.")
+        elif self.payment_type == 'wallet_loading':
+            # Wallet loading doesn't need order relationships
+            if self.order_id or self.special_order_id or self.class_purchase_id:
+                raise ValidationError("Wallet loading payments should not have order relationships.")
+        
+        # Validate payment status transitions
         if self.status == "completed":
             # Prevent multiple completed payments for the same order
             if OrderPayment.objects.filter(order=self.order, status="completed").exclude(id=self.id).exists():
@@ -416,24 +486,9 @@ class OrderPayment(models.Model):
             self.transaction_id = generate_reference_id()
         self.clean()  # Ensure validation before saving
         super().save(*args, **kwargs)
-
-        # Automatically mark order as paid if a completed payment exists
-        if self.status == "completed" and getattr(self, 'order_id', None):
-            try:
-                if hasattr(self.order, 'mark_as_paid'):
-                    self.order.mark_as_paid()
-                elif hasattr(self.order, 'mark_paid'):
-                    self.order.mark_paid()
-            except Exception:
-                pass
-
-        # Automatically mark order as unpaid if all payments are refunded
-        elif self.status == "refunded" and getattr(self, 'order_id', None) and not OrderPayment.objects.filter(order=self.order, status="completed").exists():
-            try:
-                if hasattr(self.order, 'mark_as_unpaid'):
-                    self.order.mark_as_unpaid()
-            except Exception:
-                pass
+        
+        # Note: Order status updates are handled by signals (post_save receiver)
+        # This keeps the logic centralized and avoids duplicate processing
 
     def __str__(self):
         return f"Payment {self.transaction_id} - {self.status} - ${self.discounted_amount}"
@@ -584,20 +639,19 @@ class FailedPayment(models.Model):
             # Initiate a new payment attempt here
 
     @classmethod
-    def log_failed_payment(cls, order_id, client_id, payment_method, failure_reason):
+    def log_failed_payment(cls, payment_id, client_id, failure_reason):
         """Log a failed payment attempt"""
-        from orders.models import Order  # Avoid circular import
         from django.conf import settings
 
         User = settings.AUTH_USER_MODEL 
 
-        order = Order.objects.get(id=order_id)
+        payment = OrderPayment.objects.get(id=payment_id)
         client = User.objects.get(id=client_id)
         
         failed_payment = cls.objects.create(
-            order=order,
+            payment=payment,
             client=client,
-            payment_method=payment_method,
+            website=payment.website,
             failure_reason=failure_reason,
             retry_count=0
         )
@@ -607,14 +661,17 @@ class FailedPayment(models.Model):
         """
         Send an email to the client and admin when a payment fails.
         """
-        subject = f"Payment Failure for Order {self.order.id}"
+        order_id = self.payment.order.id if self.payment.order else "N/A"
+        subject = f"Payment Failure for Order {order_id}"
         message = (
             f"Dear {self.client.username},\n\n"
-            f"Your payment for order {self.order.id} has failed due to: {self.failure_reason}.\n\n"
+            f"Your payment for order {order_id} has failed due to: {self.failure_reason}.\n\n"
             f"Please try again or contact support."
         )
         from_email = settings.DEFAULT_FROM_EMAIL
-        recipient_list = [self.client.email, settings.ADMIN_EMAIL]
+        recipient_list = [self.client.email]
+        if hasattr(settings, 'ADMIN_EMAIL') and settings.ADMIN_EMAIL:
+            recipient_list.append(settings.ADMIN_EMAIL)
 
         send_mail(subject, message, from_email, recipient_list)
 
@@ -624,7 +681,8 @@ class FailedPayment(models.Model):
         ordering = ["-failed_at"]
     
     def __str__(self):
-        return f"Failed Payment for Order {self.order.id} by {self.client.username} on {self.failed_at}"
+        order_id = self.payment.order.id if self.payment.order else "N/A"
+        return f"Failed Payment for Order {order_id} by {self.client.username} on {self.failed_at}"
 
 
 class PaymentNotification(models.Model):
@@ -797,12 +855,12 @@ class Refund(models.Model):
     payment = models.ForeignKey(
         OrderPayment,
         on_delete=models.CASCADE,
-        related_name="refunds"
+        related_name="payment_refunds"
     )
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="refunds"
+        related_name="payment_management_refunds"
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     refund_method = models.CharField(
@@ -814,7 +872,7 @@ class Refund(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name="processed_refunds",
+        related_name="processed_payment_refunds",
         help_text="Admin who processed refund"
     )
     processed_at = models.DateTimeField(null=True, blank=True)
@@ -954,11 +1012,11 @@ class SplitPayment(models.Model):
         if total_paid != payment.discounted_amount:
             raise ValueError("Total split payments do not match order amount.")
 
-        split_payments = [cls(payment=payment, method=data['method'], amount=data['amount']) for data in split_data]
+        split_payments = [cls(payment=payment, website=payment.website, method=data['method'], amount=data['amount']) for data in split_data]
         cls.objects.bulk_create(split_payments)
 
         if total_paid == payment.discounted_amount:
-            payment.mark_completed()
+            payment.mark_paid()
 
 
 class Invoice(models.Model):

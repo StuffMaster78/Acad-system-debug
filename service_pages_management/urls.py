@@ -3,8 +3,15 @@ from rest_framework.routers import DefaultRouter
 from drf_spectacular.views import SpectacularAPIView # type: ignore
 from .swagger import SecureSwaggerView, SecureRedocView
 from .views import ServicePageViewSet
+from .views.pdf_views import (
+    ServicePagePDFSampleSectionViewSet,
+    ServicePagePDFSampleViewSet,
+)
+
 router = DefaultRouter()
 router.register(r'service-pages', ServicePageViewSet, basename='service-pages')
+router.register(r'service-page-pdf-sample-sections', ServicePagePDFSampleSectionViewSet, basename='service-page-pdf-sample-section')
+router.register(r'service-page-pdf-samples', ServicePagePDFSampleViewSet, basename='service-page-pdf-sample')
 
 urlpatterns = [
     # Core API

@@ -1,53 +1,70 @@
 from rest_framework import serializers
 from .models import (
-    PaperType, FormattingandCitationStyle,
-    Subject, TypeOfWork, EnglishType,
+    AcademicLevel,
+    PaperType,
+    FormattingandCitationStyle,
+    Subject,
+    TypeOfWork,
+    EnglishType,
     WriterDeadlineConfig,
-    RevisionPolicyConfig
+    RevisionPolicyConfig,
+    EditingRequirementConfig,
 )
+
+
+class AcademicLevelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AcademicLevel
+        fields = "__all__"
 
 
 class PaperTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaperType
-        fields = ['id', 'website', 'name']
+        fields = "__all__"
 
 
 class FormattingStyleSerializer(serializers.ModelSerializer):
     class Meta:
         model = FormattingandCitationStyle
-        fields = ['id', 'website', 'name']
+        fields = "__all__"
 
 
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
-        fields = ['id', 'website', 'name', 'is_technical']
+        fields = "__all__"
 
 
 class TypeOfWorkSerializer(serializers.ModelSerializer):
     class Meta:
         model = TypeOfWork
-        fields = ['id', 'website', 'name']
+        fields = "__all__"
 
 
 class EnglishTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = EnglishType
-        fields = ['id', 'website', 'name', 'code']
+        fields = "__all__"
 
 
 class WriterDeadlineConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = WriterDeadlineConfig
-        fields = ['id', 'website', 'writer_deadline_percentage']
+        fields = "__all__"
 
 
 class RevisionPolicyConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = RevisionPolicyConfig
-        fields = [
-            'id', 'name', 'free_revision_days',
-            'active', 'created_at', 'updated_at'
-        ]
-        read_only_fields = ['created_at', 'updated_at']
+        fields = "__all__"
+
+
+class EditingRequirementConfigSerializer(serializers.ModelSerializer):
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    created_by_username = serializers.CharField(source='created_by.username', read_only=True)
+    
+    class Meta:
+        model = EditingRequirementConfig
+        fields = "__all__"
+        read_only_fields = ('created_at', 'updated_at')

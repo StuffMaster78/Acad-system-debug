@@ -249,7 +249,8 @@ class WriterPayment(models.Model):
     """
     website = models.ForeignKey(
         Website,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="writer_wallet_payments"
     )
     batch = models.ForeignKey(
         WriterPaymentBatch,

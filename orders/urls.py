@@ -14,6 +14,7 @@ from orders.views.orders.webhook_preview_view import WebhookPreviewView
 from orders.views.orders.retry_webhook_view import RetryWebhookView
 from orders.views.orders.webhook_delivery_log_view import WebhookDeliveryLogListView
 from orders.views.writers.writer_requests_preview import WriterRequestPreviewView
+from orders.views.orders.editing_admin import OrderEditingAdminView
 
 
 app_name = 'orders'
@@ -71,5 +72,10 @@ urlpatterns = [
     path("admin/webhook-logs/<int:log_id>/retry/", RetryWebhookView.as_view()),
 
     path("writer-request/preview/", WriterRequestPreviewView.as_view(), name="writer-request-preview"),
+    path(
+        "admin/orders/<int:pk>/editing/",
+        OrderEditingAdminView.as_view(),
+        name="order-editing-admin"
+    ),
 
 ]

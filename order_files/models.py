@@ -25,9 +25,30 @@ class OrderFilesConfig(models.Model):
         return "Order Files Configuration"
 
     @classmethod
-    def get_config(cls):
-        """Ensures there's always one OrderFilesConfig instance available"""
-        config, created = cls.objects.get_or_create(id=1)
+    def get_config(cls, website=None):
+        """
+        Get or create OrderFilesConfig for a website.
+        If website is None, tries to get from current context or uses first active website.
+        """
+        if website is None:
+            # Try to get website from thread-local context if available
+            try:
+                from core.tenant_context import get_current_website
+                website = get_current_website()
+            except (ImportError, AttributeError):
+                pass
+            
+            # Fallback: get first active website
+            if not website:
+                website = Website.objects.filter(is_active=True).first()
+                if not website:
+                    # Create a default config if no website exists (shouldn't happen in production)
+                    website, _ = Website.objects.get_or_create(
+                        name="Default",
+                        defaults={'domain': 'default.local', 'is_active': True}
+                    )
+        
+        config, created = cls.objects.get_or_create(website=website)
         return config
 
 
@@ -81,20 +102,26 @@ class OrderFile(models.Model):
         """
         Ensures that Admins, Editors, and Support can access and download files.
         """
-        config = OrderFilesConfig.get_config()
-
         # Admins, Editors, and Support can always download
         if user.is_staff or user.groups.filter(name__in=["Support", "Editor"]).exists():
             return True
 
         # Clients can't download Final Drafts until payment is complete
-        if self.category.is_final_draft and self.order.payment_status != "paid":
-            return False  # Lock Final Drafts for unpaid orders
+        if self.category and self.category.is_final_draft:
+            # Check payment status via OrderPayment or is_paid field
+            from order_payments_management.models import OrderPayment
+            has_completed_payment = OrderPayment.objects.filter(
+                order=self.order,
+                status__in=['completed', 'succeeded']
+            ).exists()
+            if not has_completed_payment and not self.order.is_paid:
+                return False  # Lock Final Drafts for unpaid orders
 
         return self.is_downloadable  # Admin-controlled per file
 
     def __str__(self):
-        return f"{self.category.name} - Order {self.order.id}"
+        category_name = self.category.name if self.category else "Uncategorized"
+        return f"{category_name} - Order {self.order.id}"
 
 
 class FileDownloadLog(models.Model):
@@ -233,4 +260,5 @@ class ExtraServiceFile(models.Model):
         return self.is_downloadable  # Controlled by admin
 
     def __str__(self):
-        return f"Extra Service File - {self.service_name} (Order {self.order.id})"
+        category_name = self.category.name if self.category else "Unknown"
+        return f"Extra Service File - {category_name} (Order {self.order.id})"

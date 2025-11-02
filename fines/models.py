@@ -4,7 +4,10 @@ from django.utils import timezone
 
 
 class FineType(models.TextChoices):
-    """Enum of fine types writers can be charged for."""
+    """
+    Legacy enum of fine types - maintained for backward compatibility.
+    New system uses FineTypeConfig for admin-configurable fine types.
+    """
 
     LATE_SUBMISSION = "late_submission", "Late Submission"
     QUALITY = "quality", "Quality Penalty"
@@ -14,6 +17,10 @@ class FineType(models.TextChoices):
     EXCESSIVE_REVISIONS = "excessive_revisions", "Excessive Revisions"
     EXTENSION_OVERUSE = "extension_overuse", "Deadline Extension Overuse"
     MANUAL_VIOLATION = "manual_violation", "Manual Violation"
+    PRIVACY_VIOLATION = "privacy_violation", "Privacy Violation"
+    LATE_REASSIGNMENT = "late_reassignment", "Late Reassignment Request"
+    DROPPING_ORDER_LATE = "dropping_order_late", "Dropping Order Late"
+    WRONG_FILES = "wrong_files", "Uploaded Wrong Files"
 
 
 class FineStatus(models.TextChoices):
@@ -21,8 +28,11 @@ class FineStatus(models.TextChoices):
 
     ISSUED = "issued", "Issued"
     APPEALED = "appealed", "Appealed"
+    DISPUTED = "disputed", "Disputed"
+    ESCALATED = "escalated", "Escalated"
     RESOLVED = "resolved", "Resolved"
     WAIVED = "waived", "Waived"
+    VOIDED = "voided", "Voided"
 
 
 class FinePolicy(models.Model):
@@ -98,7 +108,8 @@ class Fine(models.Model):
 
     Attributes:
         order (ForeignKey): The order associated with the fine.
-        fine_type (str): The category of fine.
+        fine_type (str): The category of fine (legacy enum value).
+        fine_type_config (ForeignKey): Admin-configurable fine type (new system).
         amount (Decimal): The monetary value of the fine.
         reason (Text): Explanation for issuing the fine.
         issued_by (ForeignKey): The user who issued the fine.
@@ -117,8 +128,18 @@ class Fine(models.Model):
     fine_type = models.CharField(
         max_length=30,
         choices=FineType.choices,
-        default=FineType.LATE_SUBMISSION,
+        null=True,
+        blank=True,
         db_index=True,
+        help_text="Legacy fine type enum (for backward compatibility)"
+    )
+    fine_type_config = models.ForeignKey(
+        'fines.FineTypeConfig',
+        on_delete=models.PROTECT,
+        related_name='fines',
+        null=True,
+        blank=True,
+        help_text="Admin-configurable fine type (preferred)"
     )
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     reason = models.TextField()
@@ -138,6 +159,24 @@ class Fine(models.Model):
     resolved = models.BooleanField(default=False)
     resolved_at = models.DateTimeField(null=True, blank=True)
     resolved_reason = models.TextField(null=True, blank=True)
+    waived_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fines_waived_by",
+        help_text="User who waived the fine, if applicable."
+    )
+    waived_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when the fine was waived."
+    )
+    waiver_reason = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Reason given for waiving the fine."
+    )
 
     class Meta:
         ordering = ["-imposed_at"]
@@ -224,7 +263,7 @@ class Fine(models.Model):
 
 
 class FineAppeal(models.Model):
-    """Represents an appeal against a fine.
+    """Represents an appeal/dispute against a fine.
 
     Attributes:
         fine (OneToOne): The fine being appealed.
@@ -234,6 +273,10 @@ class FineAppeal(models.Model):
         reviewed_by (ForeignKey): The admin who reviewed the appeal.
         reviewed_at (DateTime): Timestamp when the appeal was reviewed.
         accepted (bool): Outcome of the appeal (True, False, or None).
+        escalated (bool): Whether dispute has been escalated.
+        escalated_at (DateTime): When dispute was escalated.
+        escalated_to (ForeignKey): Admin/superadmin who handles escalation.
+        resolution_notes (Text): Notes from reviewer about resolution.
     """
 
     fine = models.OneToOneField(
@@ -241,12 +284,15 @@ class FineAppeal(models.Model):
         on_delete=models.CASCADE,
         related_name="appeal",
     )
-    reason = models.TextField()
+    reason = models.TextField(
+        help_text="Writer's justification for disputing the fine"
+    )
     appealed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         related_name="fines_appealed",
+        limit_choices_to={'role': 'writer'},
     )
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed_by = models.ForeignKey(
@@ -255,9 +301,32 @@ class FineAppeal(models.Model):
         null=True,
         blank=True,
         related_name="fine_appeals_reviewed",
+        limit_choices_to={'role__in': ['admin', 'superadmin', 'support']},
     )
     reviewed_at = models.DateTimeField(null=True, blank=True)
     accepted = models.BooleanField(null=True, blank=True)
+    escalated = models.BooleanField(
+        default=False,
+        help_text="Whether this dispute has been escalated for resolution"
+    )
+    escalated_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the dispute was escalated"
+    )
+    escalated_to = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fine_appeals_escalated_to",
+        limit_choices_to={'role__in': ['admin', 'superadmin']},
+        help_text="Admin/superadmin handling escalated dispute"
+    )
+    resolution_notes = models.TextField(
+        blank=True,
+        help_text="Notes from reviewer about the resolution"
+    )
 
 
     def review(self, by_user, accept: bool, notes=None):

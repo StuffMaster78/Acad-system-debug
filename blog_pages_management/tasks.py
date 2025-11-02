@@ -269,6 +269,54 @@ def publish_scheduled_blogs():
     )
 
 @shared_task
+def cleanup_expired_edit_locks():
+    """Clean up expired edit locks."""
+    from .services.draft_editing_service import DraftEditingService
+    count = DraftEditingService.cleanup_expired_locks()
+    return f"Cleaned up {count} expired locks"
+
+
+@shared_task
+def cleanup_old_autosaves():
+    """Clean up old autosaves (older than 7 days)."""
+    from .services.draft_editing_service import DraftEditingService
+    count = DraftEditingService.cleanup_old_autosaves(days=7)
+    return f"Cleaned up {count} old autosaves"
+
+
+@shared_task
+def auto_publish_scheduled_blogs():
+    """Check and auto-publish scheduled blog posts."""
+    from django.utils import timezone
+    from .models import BlogPost
+    from .services.draft_editing_service import DraftEditingService
+    
+    now = timezone.now()
+    scheduled_blogs = BlogPost.objects.filter(
+        status="scheduled",
+        scheduled_publish_date__lte=now,
+        is_published=False
+    )
+    
+    published_count = 0
+    for blog in scheduled_blogs:
+        blog.status = "published"
+        blog.is_published = True
+        if not blog.publish_date:
+            blog.publish_date = now()
+        blog.save()
+        
+        # Create revision for published post
+        try:
+            DraftEditingService.create_revision(blog, blog.last_edited_by or blog.authors.first(), "Auto-published")
+        except Exception:
+            pass
+        
+        published_count += 1
+    
+    return f"Published {published_count} scheduled blog posts"
+
+
 def check_for_broken_links():
     """Scans blog content for broken links and alerts admins."""
     for blog in BlogPost.objects.filter(is_published=True):

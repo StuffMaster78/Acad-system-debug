@@ -3,7 +3,6 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 import uuid
 from django.core.exceptions import PermissionDenied
-from django.utils import timezone
 
 User = get_user_model()
 
@@ -40,7 +39,7 @@ class ImpersonationToken(models.Model):
         )
 
     @classmethod
-    def generate_token(cls, admin_user, target_user, website):
+    def generate_token(cls, admin_user, target_user, website, expires_hours: int = 1):
         """
         Creates and stores a new impersonation token.
 
@@ -48,12 +47,13 @@ class ImpersonationToken(models.Model):
             admin_user (User): Admin initiating impersonation.
             target_user (User): Target user to impersonate.
             website (Website): Current tenant context.
+            expires_hours (int): Token expiration in hours (default: 1).
 
         Returns:
             ImpersonationToken: The created token instance.
         """
         token = str(uuid.uuid4()).replace("-", "")[:32]
-        expires = timezone.now() + timezone.timedelta(hours=1)
+        expires = timezone.now() + timezone.timedelta(hours=expires_hours)
         return cls.objects.create(
             token=token,
             admin_user=admin_user,
@@ -158,7 +158,7 @@ class ImpersonationLog(models.Model):
         on_delete=models.CASCADE,
         related_name="impersonation_logs"
     )
-    token = models.ForeignKey(ImpersonationToken, on_delete=models.CASCADE)
+    token = models.ForeignKey(ImpersonationToken, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

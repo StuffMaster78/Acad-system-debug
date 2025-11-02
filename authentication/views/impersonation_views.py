@@ -12,7 +12,6 @@ from authentication.serializers import (
     CreateImpersonationTokenSerializer
 )
 from authentication.services.impersonation_service import ImpersonationService
-from authentication.utils.jwt import get_tokens_for_user
 
 
 class ImpersonationTokenThrottle(UserRateThrottle):
@@ -55,19 +54,33 @@ class ImpersonationTokenViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         target_user = serializer.validated_data["target_user"]
-        token_obj = ImpersonationToken.generate_token(
-            admin_user=request.user,
-            target_user=target_user
-        )
-        return Response(
-            {"token": token_obj.token, "expires_at": token_obj.expires_at},
-            status=status.HTTP_201_CREATED
-        )
+        
+        # Use ImpersonationService to generate token with permission checks
+        from websites.utils import get_current_website
+        website = get_current_website(request)
+        
+        try:
+            token_obj = ImpersonationService.generate_token(
+                admin_user=request.user,
+                target_user=target_user,
+                website=website,
+                expires_hours=1
+            )
+            return Response(
+                {"token": token_obj.token, "expires_at": token_obj.expires_at},
+                status=status.HTTP_201_CREATED
+            )
+        except (PermissionDenied, ValueError) as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
     @action(detail=False, methods=["post"])
     def start(self, request):
         """
         Impersonates the target user using a token.
+        Returns new JWT tokens for the target user.
         """
         token_str = request.data.get("token")
         if not token_str:
@@ -76,31 +89,54 @@ class ImpersonationTokenViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        service = ImpersonationService(request.user, request.user.website)
-        service.start_impersonation(token_str, request)
-        return Response(
-            get_tokens_for_user(request.user),
-            status=status.HTTP_200_OK
-        )
+        from websites.utils import get_current_website
+        website = get_current_website(request)
+        
+        service = ImpersonationService(request, website)
+        try:
+            result = service.impersonate_user(token_str)
+            return Response(result, status=status.HTTP_200_OK)
+        except (PermissionDenied, ValueError) as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
     @action(detail=False, methods=["post"])
     def end(self, request):
         """
-        Ends impersonation and logs back in as original user.
+        Ends impersonation and logs back in as original admin user.
+        Returns new JWT tokens for the admin.
         """
-        service = ImpersonationService(request.user, request.user.website)
-
+        from websites.utils import get_current_website
+        website = get_current_website(request)
+        
+        service = ImpersonationService(request, website)
         try:
-            service.end_impersonation(request)
-            return Response(
-                get_tokens_for_user(request.user),
-                status=status.HTTP_200_OK
-            )
+            result = service.end_impersonation()
+            return Response(result, status=status.HTTP_200_OK)
         except PermissionDenied as e:
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_403_FORBIDDEN
             )
+    
+    @action(detail=False, methods=["get"])
+    def status(self, request):
+        """
+        Get current impersonation status.
+        """
+        from websites.utils import get_current_website
+        website = get_current_website(request)
+        
+        service = ImpersonationService(request, website)
+        is_impersonating = service.is_impersonating()
+        impersonator_info = service.get_impersonator_info() if is_impersonating else None
+        
+        return Response({
+            "is_impersonating": is_impersonating,
+            "impersonator": impersonator_info
+        })
 
     @action(detail=False, methods=["get"])
     def expired(self, request):

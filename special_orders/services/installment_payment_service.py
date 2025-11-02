@@ -14,26 +14,67 @@ class InstallmentPaymentService:
     @staticmethod
     def generate_installments(order):
         """
-        Generates two installments: a 50% deposit and a 50% balance.
+        Generates installments based on order type and deposit requirements.
+        
+        - For predefined orders: Creates a single installment for full amount 
+          (since deposit_required = total_cost)
+        - For estimated orders: Creates two installments (deposit + balance)
+          based on deposit_required amount
         
         Args:
             order (SpecialOrder): The order for which to generate installments.
         """
-        if not order.total_cost:
+        if not order.total_cost or not order.deposit_required:
             return
 
-        InstallmentPayment.objects.bulk_create([
-            InstallmentPayment(
-                special_order=order,
-                amount_due=order.total_cost / 2,
-                due_date=order.created_at.date()
-            ),
-            InstallmentPayment(
-                special_order=order,
-                amount_due=order.total_cost / 2,
-                due_date=order.created_at.date() + timedelta(days=7)
-            ),
-        ])
+        # Check if installments already exist (avoid duplicates)
+        if order.installments.exists():
+            logger.warning(
+                f"Installments already exist for order #{order.id}. Skipping generation."
+            )
+            return
+
+        installments = []
+        
+        # For predefined orders: deposit_required equals total_cost (full payment upfront)
+        if order.order_type == 'predefined' and order.deposit_required == order.total_cost:
+            # Single installment for full amount
+            installments.append(
+                InstallmentPayment(
+                    special_order=order,
+                    amount_due=order.total_cost,
+                    due_date=order.created_at.date()
+                )
+            )
+        else:
+            # For estimated orders: deposit + balance split
+            deposit_amount = order.deposit_required
+            balance_amount = order.total_cost - deposit_amount
+            
+            # First installment: deposit (due immediately)
+            installments.append(
+                InstallmentPayment(
+                    special_order=order,
+                    amount_due=deposit_amount,
+                    due_date=order.created_at.date()
+                )
+            )
+            
+            # Second installment: balance (due in 7 days, if balance exists)
+            if balance_amount > 0:
+                installments.append(
+                    InstallmentPayment(
+                        special_order=order,
+                        amount_due=balance_amount,
+                        due_date=order.created_at.date() + timedelta(days=7)
+                    )
+                )
+        
+        if installments:
+            InstallmentPayment.objects.bulk_create(installments)
+            logger.info(
+                f"Generated {len(installments)} installment(s) for order #{order.id}"
+            )
 
     @staticmethod
     def create_installment(special_order, due_date, amount_due):

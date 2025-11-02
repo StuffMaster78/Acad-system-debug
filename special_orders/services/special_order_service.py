@@ -53,8 +53,14 @@ class SpecialOrderService:
         else:
             raise ValidationError("Invalid order type.")
 
-        deposit_percentage = get_deposit_percentage(website)
-        deposit_amount = total_cost * (deposit_percentage / 100)
+        # For predefined orders, deposit equals total_cost (handled in save method)
+        # For estimated orders, deposit will be calculated in save method based on settings
+        deposit_amount = None
+        if order_type == 'predefined':
+            deposit_amount = total_cost  # Full payment for predefined
+        elif order_type == 'estimated':
+            # Deposit will be calculated in save() method when total_cost is set
+            deposit_amount = 0
 
         special_order = SpecialOrder.objects.create(
             client=client,
@@ -62,8 +68,8 @@ class SpecialOrderService:
             order_type=order_type,
             predefined_type=predefined_type,
             duration_days=duration_days,
-            total_cost=total_cost,
-            deposit_required=deposit_amount,
+            total_cost=total_cost if order_type == 'predefined' else 0,
+            deposit_required=deposit_amount if order_type == 'predefined' else None,
             inquiry_details=inquiry_details
         )
 

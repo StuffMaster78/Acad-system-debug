@@ -160,7 +160,7 @@ class DiscountEngine:
         ]
         if not active_tiers:
             logger.debug(
-                f"No active tiers found for discount {discount.code} "
+                f"No active tiers found for discount {discount.discount_code} "
                 f"and order total {order_total}."
             )
             return None
@@ -187,27 +187,80 @@ class DiscountEngine:
         
         if user is None:
             user = getattr(order, "user", None)
+        
+        # Get discount configuration for limits
+        config = DiscountConfigService.get_config(website)
+        
         stacking_service = DiscountStackingService(user, website)
         stackable_discounts = stacking_service.resolve_stack_from_list(valid_discounts)
         if not stackable_discounts:
             logger.warning(f"Stacking failed: {valid_discounts}")
             raise ValidationError("No compatible discounts can be stacked together.")
 
-        final_price = order.total_price
+        original_price = order.total_price
+        final_price = original_price
         applied_discounts = []
+        total_discount_amount = Decimal("0.00")
+        first_discount_applied = False
 
         for discount in stackable_discounts:
-            order_total = final_price
+            # Enforce discount threshold after first discount
+            if first_discount_applied and config and config.discount_threshold:
+                if final_price < config.discount_threshold:
+                    logger.debug(
+                        f"Skipping {discount.discount_code} - order value ${final_price} below "
+                        f"threshold ${config.discount_threshold} after first discount"
+                    )
+                    continue
+            
             tier = cls.get_applicable_tier(discount, final_price)
             reduction = cls.calculate_discounted_amount(discount, tier, final_price)
             reduction = min(reduction, final_price)
+            
+            # Calculate total discount percentage after this discount
+            potential_total_discount = total_discount_amount + reduction
+            potential_discount_percent = (potential_total_discount / original_price * 100) if original_price > 0 else Decimal("0.00")
+            
+            # Enforce maximum discount percent cap
+            if config and config.max_discount_percent:
+                if potential_discount_percent > config.max_discount_percent:
+                    # Cap the reduction to stay within max discount percent
+                    max_allowed_total = (original_price * config.max_discount_percent / 100)
+                    max_reduction = max_allowed_total - total_discount_amount
+                    if max_reduction <= 0:
+                        logger.debug(
+                            f"Skipping {discount.discount_code} - would exceed maximum discount "
+                            f"percent ({config.max_discount_percent}%)"
+                        )
+                        continue
+                    reduction = min(reduction, max_reduction)
+                    logger.info(
+                        f"Capping discount {discount.discount_code} to {max_reduction} to stay "
+                        f"within {config.max_discount_percent}% limit"
+                    )
+            
             if reduction > 0:
                 applied_discounts.append({
-                    "code": discount.code,
+                    "code": discount.discount_code,  # Use discount_code field name
                     "amount": float(reduction),
                     "type": discount.discount_type,
                 })
                 final_price -= reduction
+                total_discount_amount += reduction
+                first_discount_applied = True
+        
+        # Validate final discount percentage doesn't exceed cap (safety check)
+        if config and config.max_discount_percent:
+            final_discount_percent = (total_discount_amount / original_price * 100) if original_price > 0 else Decimal("0.00")
+            if final_discount_percent > config.max_discount_percent:
+                # This shouldn't happen, but cap it as a safety measure
+                max_allowed_total = (original_price * config.max_discount_percent / 100)
+                total_discount_amount = max_allowed_total
+                final_price = original_price - total_discount_amount
+                logger.warning(
+                    f"Total discount {final_discount_percent}% exceeded max "
+                    f"{config.max_discount_percent}% - capped to maximum"
+                )
         
         DiscountUsageTracker.track_multiple(
                     discounts=stackable_discounts,
@@ -224,7 +277,10 @@ class DiscountEngine:
             metadata={"codes": codes, "applied": applied_discounts}
         )
 
-        return max(final_price, 0), applied_discounts
+        # Ensure final price is never negative
+        final_price = max(final_price, Decimal("0.00"))
+        
+        return final_price, applied_discounts
 
     def validate_clean(self, discount):
         """

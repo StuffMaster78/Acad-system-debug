@@ -1,4 +1,4 @@
-from rest_framework import viewsets, permissions, serializers  # Make sure serializers is imported here
+from rest_framework import viewsets, permissions, serializers, status  # Make sure serializers is imported here
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
@@ -24,16 +24,46 @@ class OrderFileViewSet(viewsets.ModelViewSet):
             return Response(OrderFileSerializer(file).data)
         return Response({"error": "Download not allowed"}, status=403)
 
+    def get_queryset(self):
+        """Filter files by current website if applicable."""
+        queryset = super().get_queryset()
+        # Try to filter by website from request if available
+        website_id = self.request.query_params.get('website_id')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset
+    
     def perform_create(self, serializer):
         """Ensures file upload is done by authorized users only."""
-        config = OrderFilesConfig.get_config()
+        # Get website from order or request context
+        order = serializer.validated_data.get('order')
+        website = order.website if order else None
+        
+        config = OrderFilesConfig.get_config(website=website)
+        
+        file_obj = self.request.FILES["file"]
         
         # Enforce file size limit
         max_size_mb = config.max_upload_size if config else 100
-        if self.request.FILES["file"].size > max_size_mb * 1024 * 1024:
-            raise serializers.ValidationError(f"File too large. Max size is {max_size_mb}MB.")
+        if file_obj.size > max_size_mb * 1024 * 1024:
+            raise serializers.ValidationError(
+                f"File too large. Max size is {max_size_mb}MB."
+            )
         
-        serializer.save(uploaded_by=self.request.user)
+        # Validate file extension if config has restrictions
+        if config.allowed_extensions:
+            file_ext = file_obj.name.split('.')[-1].lower() if '.' in file_obj.name else ''
+            if file_ext and file_ext not in [ext.lower().lstrip('.') for ext in config.allowed_extensions]:
+                raise serializers.ValidationError(
+                    f"File extension '{file_ext}' not allowed. "
+                    f"Allowed extensions: {', '.join(config.allowed_extensions)}"
+                )
+        
+        # Set website from order if not already set
+        if not website and order:
+            website = order.website
+        
+        serializer.save(uploaded_by=self.request.user, website=website)
 
     @action(detail=True, methods=["post"])
     def toggle_download(self, request, pk=None):

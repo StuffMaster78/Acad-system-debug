@@ -6,6 +6,7 @@ from django.utils.timezone import now
 from .models.promotions import PromotionalCampaign
 from .models.discount import Discount, DiscountUsage
 from .models.stacking import DiscountStackingRule
+from .models.discount_configs import DiscountConfig
 
 import random
 import string
@@ -126,3 +127,71 @@ class PromotionalCampaignAdmin(admin.ModelAdmin):
     search_fields = ('campaign_name',)
     date_hierarchy = 'start_date'
     inlines = [DiscountInline]
+
+
+@admin.register(DiscountConfig)
+class DiscountConfigAdmin(admin.ModelAdmin):
+    """
+    Admin interface for managing discount configuration settings per website.
+    Allows superadmin and admin to set maximum discount caps, stacking rules,
+    and other discount-related business rules.
+    """
+    list_display = (
+        'website', 'max_stackable_discounts', 'max_discount_percent',
+        'discount_threshold', 'enable_stacking', 'allow_stack_across_events',
+        'updated_at'
+    )
+    list_filter = (
+        'enable_stacking', 'allow_stack_across_events',
+        'promotional_campaign_discount_active', 'website'
+    )
+    search_fields = ('website__name', 'website__domain')
+    readonly_fields = ('created_at', 'updated_at', 'created_by', 'updated_by')
+    fieldsets = (
+        ('Website', {
+            'fields': ('website',)
+        }),
+        ('Stacking Configuration', {
+            'fields': (
+                'enable_stacking',
+                'max_stackable_discounts',
+                'allow_stack_across_events',
+            ),
+            'description': 'Control how many discounts can be stacked and whether cross-campaign stacking is allowed.'
+        }),
+        ('Discount Limits', {
+            'fields': (
+                'max_discount_percent',
+                'discount_threshold',
+            ),
+            'description': 'Set maximum discount percentage per order and minimum order value for stacking.'
+        }),
+        ('Promotional Settings', {
+            'fields': (
+                'promotional_campaign_discount_active',
+                'promotional_campaign_discount_value',
+                'promotional_campaign',
+            ),
+            'classes': ('collapse',)
+        }),
+        ('User Experience', {
+            'fields': ('enable_hints',),
+            'classes': ('collapse',)
+        }),
+        ('Audit Information', {
+            'fields': (
+                'created_at', 'updated_at', 'created_by', 'updated_by'
+            ),
+            'classes': ('collapse',)
+        }),
+    )
+    autocomplete_fields = ('website', 'promotional_campaign', 'created_by', 'updated_by')
+
+    def save_model(self, request, obj, form, change):
+        """
+        Track who created/updated the discount config.
+        """
+        if not change:  # Creating new
+            obj.created_by = request.user
+        obj.updated_by = request.user
+        super().save_model(request, obj, form, change)

@@ -1,8 +1,8 @@
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, status
 from .models import (
     PaperType, FormattingandCitationStyle, Subject,
     TypeOfWork, EnglishType, WriterDeadlineConfig,
-    RevisionPolicyConfig
+    RevisionPolicyConfig, EditingRequirementConfig
 )
 from .serializers import (
     PaperTypeSerializer,
@@ -11,10 +11,12 @@ from .serializers import (
     TypeOfWorkSerializer,
     EnglishTypeSerializer,
     WriterDeadlineConfigSerializer,
-    RevisionPolicyConfigSerializer
+    RevisionPolicyConfigSerializer,
+    EditingRequirementConfigSerializer
 )
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from authentication.permissions import IsAdminOrSuperAdmin
 
 class PaperTypeViewSet(viewsets.ModelViewSet):
     queryset = PaperType.objects.all()
@@ -82,3 +84,56 @@ class RevisionPolicyConfigViewSet(viewsets.ModelViewSet):
         if self.active:
             RevisionPolicyConfig.objects.filter(website=self.website, active=True).exclude(pk=self.pk).update(active=False)
         super().save(*args, **kwargs)
+
+
+class EditingRequirementConfigViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing editing requirement configurations.
+    Admin-only endpoint.
+    """
+    queryset = EditingRequirementConfig.objects.select_related('website', 'created_by')
+    serializer_class = EditingRequirementConfigSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    
+    def get_queryset(self):
+        """Filter by website if specified."""
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get('website_id')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset
+    
+    def perform_create(self, serializer):
+        """Set created_by to current user."""
+        serializer.save(created_by=self.request.user)
+    
+    @action(detail=False, methods=['get'])
+    def get_config(self, request):
+        """Get editing config for current website."""
+        from websites.utils import get_current_website
+        from editor_management.services.editing_decision_service import EditingDecisionService
+        
+        website = get_current_website(request)
+        if not website:
+            return Response(
+                {"detail": "Website context required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        config = EditingDecisionService.get_config(website)
+        if config:
+            serializer = self.get_serializer(config)
+            return Response(serializer.data)
+        else:
+            # Return default config structure
+            return Response({
+                "website": website.id,
+                "enable_editing_by_default": True,
+                "skip_editing_for_urgent": True,
+                "allow_editing_for_early_submissions": True,
+                "early_submission_hours_threshold": 24,
+                "editing_required_for_first_orders": True,
+                "editing_required_for_high_value": True,
+                "high_value_threshold": "300.00",
+                "message": "No custom configuration - using defaults"
+            })

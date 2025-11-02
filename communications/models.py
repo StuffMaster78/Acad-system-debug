@@ -9,6 +9,8 @@ from django.utils import timezone
 
 from orders.models import Order
 from django.contrib.auth import get_user_model
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 
 User = get_user_model()
 
@@ -81,7 +83,9 @@ class CommunicationThread(models.Model):
     )
     order = models.ForeignKey(
         Order, on_delete=models.CASCADE,
-        related_name="message_thread"
+        related_name="message_thread",
+        null=True, blank=True,
+        help_text="Order (not required for class_bundle threads)"
     )
     special_order = models.ForeignKey(
         'special_orders.SpecialOrder',
@@ -89,6 +93,16 @@ class CommunicationThread(models.Model):
         null=True, blank=True,
         related_name="message_threads"
     )
+    # Generic foreign key for linking to different object types (class bundles, etc.)
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        help_text="Content type for generic relation (e.g., ClassBundle)"
+    )
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    related_object = GenericForeignKey('content_type', 'object_id')
     subject = models.CharField(
         max_length=255,
         blank=True,
@@ -142,7 +156,11 @@ class CommunicationThread(models.Model):
             raise ValidationError(
                 "Special Order threads require a Special Order."
             )
-        if self.thread_type != "special" and not self.order:
+        # Class bundle threads don't require an order
+        if self.thread_type == "class_bundle":
+            # Valid, can exist without order
+            pass
+        elif self.thread_type != "special" and not self.order:
             raise ValidationError(
                 "Standard threads must have an associated Order."
             )

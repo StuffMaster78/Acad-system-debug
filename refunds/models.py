@@ -46,7 +46,7 @@ class Refund(models.Model):
     order_payment = models.ForeignKey(
         OrderPayment,
         on_delete=models.CASCADE,
-        related_name="refunds"
+        related_name="refund_app_refunds"
     )
     client = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -72,7 +72,7 @@ class Refund(models.Model):
         null=True,
         blank=True,
         on_delete=models.SET_NULL,
-        related_name="processed_refunds"
+        related_name="processed_refund_app_refunds"
     )
     processed_at = models.DateTimeField(null=True, blank=True)
     status = models.CharField(

@@ -27,14 +27,59 @@ class OrderAdmin(admin.ModelAdmin):
     list_display = (
         'id', 'client', 'assigned_writer', 'topic',
         'status', 'client_deadline', 'is_paid', 'total_price',
-        'writer_deadline', 'created_at', 'updated_at'
+        'writer_deadline', 'requires_editing', 'editing_skip_reason',
+        'created_at', 'updated_at'
     )
-    list_filter = ('status', 'is_paid', 'created_at', 'client_deadline')
+    list_filter = (
+        'status', 'is_paid', 'created_at', 'client_deadline',
+        'requires_editing', 'is_urgent'
+    )
     search_fields = ('id', 'client__username', 'writer__username', 'topic')
     ordering = ('-created_at',)
     date_hierarchy = 'created_at'
-    readonly_fields = ('created_at', 'updated_at')
-    actions = ['mark_as_completed', 'cancel_order']
+    readonly_fields = ('created_at', 'updated_at', 'editing_skip_reason')
+    fieldsets = (
+        ('Order Information', {
+            'fields': (
+                'client', 'assigned_writer', 'topic', 'status',
+                'order_instructions', 'website'
+            )
+        }),
+        ('Editing Settings', {
+            'fields': (
+                'requires_editing',
+                'editing_skip_reason',
+                'is_urgent',
+            ),
+            'description': (
+                'requires_editing: None = use config rules, True = force editing, '
+                'False = skip editing. Urgent orders automatically skip editing.'
+            )
+        }),
+        ('Financial', {
+            'fields': ('total_price', 'writer_compensation', 'is_paid')
+        }),
+        ('Deadlines', {
+            'fields': ('client_deadline', 'writer_deadline')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    actions = ['mark_as_completed', 'cancel_order', 'force_editing', 'skip_editing']
+    
+    def force_editing(self, request, queryset):
+        """Force editing for selected orders."""
+        count = queryset.update(requires_editing=True)
+        self.message_user(request, f"{count} order(s) will now undergo editing.")
+    force_editing.short_description = "Force editing for selected orders"
+    
+    def skip_editing(self, request, queryset):
+        """Skip editing for selected orders."""
+        count = queryset.update(requires_editing=False, editing_skip_reason="Admin disabled editing")
+        self.message_user(request, f"{count} order(s) will skip editing.")
+    skip_editing.short_description = "Skip editing for selected orders"
 
     def mark_as_completed(self, request, queryset):
         for order in queryset:

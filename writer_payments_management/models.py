@@ -26,12 +26,13 @@ class WriterPayment(models.Model):
     ]
     website = models.ForeignKey(
         Website,
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name="writer_payment_management_payments"
     )
     writer = models.ForeignKey(
         WriterProfile,
         on_delete=models.CASCADE,
-        related_name="payments",
+        related_name="payment_management_payments",
         help_text="Writer receiving the payment."
     )
     order = models.ForeignKey(
@@ -286,7 +287,7 @@ class SpecialOrderBonus(models.Model):
     special_order = models.ForeignKey(
         SpecialOrder,
         on_delete=models.CASCADE,
-        related_name="bonuses"
+        related_name="payment_management_bonuses"
     )
     bonus_amount = models.DecimalField(
         max_digits=12,

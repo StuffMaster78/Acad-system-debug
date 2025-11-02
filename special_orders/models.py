@@ -199,13 +199,19 @@ class SpecialOrder(models.Model):
         For predefined orders, price and deposit are fixed. For estimated
         orders, the deposit is calculated based on a configurable percentage.
         """
+        # Calculate estimated cost if needed (before other calculations)
+        if self.order_type == 'estimated' and self.duration_days and self.price_per_day:
+            if not self.total_cost:
+                self.total_cost = self.duration_days * self.price_per_day
+        
+        # Calculate pricing and deposit based on order type
         if self.order_type == 'predefined' and self.predefined_type:
             duration_price = self.predefined_type.durations.filter(
                 duration_days=self.duration_days
             ).first()
             if duration_price:
                 self.total_cost = duration_price.price
-                self.deposit_required = self.total_cost  # Full payment required
+                self.deposit_required = self.total_cost  # Full payment required for predefined
         elif self.order_type == 'estimated' and self.total_cost:
             # Lookup config deposit %
             config = getattr(self.website, 'estimated_order_settings', None)
@@ -216,7 +222,6 @@ class SpecialOrder(models.Model):
 
         super().save(*args, **kwargs)
 
-
     def __str__(self):
         """
         Returns a string representation of the special order, including
@@ -225,24 +230,15 @@ class SpecialOrder(models.Model):
         return f"Special Order #{self.id}"
 
     def approve_cost(self, approved_cost):
+        """Approve a specific cost for the order."""
         self.admin_approved_cost = approved_cost
         self.save()
-
-    def calculate_estimated_cost(self):
-        if self.order_type == 'estimated' and self.duration_days and self.price_per_day:
-            self.total_cost = self.duration_days * self.price_per_day
-        super().save()
-
-    def save(self, *args, **kwargs):
-        # Ensure the estimated cost is calculated
-        if self.order_type == 'estimated':
-            self.calculate_estimated_cost()
-        super().save(*args, **kwargs)
     
 
 class InstallmentPayment(models.Model):
     """
     Tracks installment payments for special orders.
+    Represents the schedule (what's due, when) and links to actual payment transactions.
     """
     special_order = models.ForeignKey(
         SpecialOrder,
@@ -265,11 +261,31 @@ class InstallmentPayment(models.Model):
         null=True, blank=True,
         help_text="Date when the installment was paid."
     )
+    payment_record = models.ForeignKey(
+        'order_payments_management.OrderPayment',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='installment_payments',
+        help_text="The actual payment transaction record for this installment"
+    )
 
-    def mark_paid(self):
+    def mark_paid(self, payment_record=None):
+        """
+        Mark installment as paid, optionally linking to OrderPayment record.
+        
+        Args:
+            payment_record: Optional OrderPayment instance to link
+        """
         self.is_paid = True
         self.paid_at = timezone.now()
+        if payment_record:
+            self.payment_record = payment_record
         self.save()
+    
+    @property
+    def has_payment_record(self):
+        """Check if installment has a linked payment transaction."""
+        return self.payment_record is not None
 
     def __str__(self):
         return f"Installment {self.id} for Order #{self.special_order.id} - Due: {self.due_date} - Paid: {self.is_paid}"
@@ -332,7 +348,7 @@ class WriterBonus(models.Model):
         SpecialOrder,
         on_delete=models.SET_NULL,
         null=True, blank=True,
-        related_name="bonuses"
+        related_name="special_order_bonuses"
     )
     amount = models.DecimalField(
         max_digits=10,

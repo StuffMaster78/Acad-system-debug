@@ -67,37 +67,47 @@ class DiscountStackingService:
         """
         if not self._can_stack(new_discount):
             blockers = self.get_blocking_discounts(new_discount)
-            codes = ", ".join(d.code for d in blockers)
+            codes = ", ".join(d.discount_code for d in blockers)
             logger.warning(
-                f"Stacking violation: {new_discount.code} blocked by {codes}"
+                f"Stacking violation: {new_discount.discount_code} blocked by {codes}"
             )
             raise ValidationError(
-                f"Discount {new_discount.code} cannot be stacked with: {codes}"
+                f"Discount {new_discount.discount_code} cannot be stacked with: {codes}"
             )
 
-    def _can_stack(self, new_discount, d1, d2):
+    def _can_stack(self, new_discount):
         """
         Internal validation of stacking logic.
 
         Args:
-            new_discount (Discount): Discount to check.
+            new_discount (Discount): Discount to check against active discounts.
 
         Returns:
             bool: True if stacking allowed.
         """
+        # If new discount doesn't allow stacking and there are active discounts, reject
         if not new_discount.allow_stacking and self.active_discounts.exists():
             return False
-        
-        if d1.promotional_campaign_id and d2.promotional_campaign_id:
-            if d1.promotional_campaign_id != d2.promotional_campaign_id:
-                raise ValidationError(
-                    "Cannot stack discounts from different campaigns."
-                )
 
+        # Check campaign restrictions - discounts from different campaigns cannot stack
+        # unless allow_stack_across_events is enabled in config
         for active in self.active_discounts:
+            if active.promotional_campaign_id and new_discount.promotional_campaign_id:
+                if active.promotional_campaign_id != new_discount.promotional_campaign_id:
+                    # Check if cross-campaign stacking is allowed
+                    if self.website:
+                        from discounts.models.discount_configs import DiscountConfig
+                        config = DiscountConfig.objects.filter(website=self.website).first()
+                        if not config or not config.allow_stack_across_events:
+                            return False
+
+        # Check each active discount for conflicts
+        for active in self.active_discounts:
+            # If any active discount doesn't allow stacking, reject
             if not active.allow_stacking:
                 return False
 
+            # Check stacking group conflicts (exclusive groups)
             if (
                 new_discount.stacking_group
                 and active.stacking_group
@@ -105,6 +115,7 @@ class DiscountStackingService:
             ):
                 return False
 
+            # Check explicit stacking rules
             if not self.are_discounts_stackable(active, new_discount):
                 return False
 
@@ -177,7 +188,7 @@ class DiscountStackingService:
     def resolve_stack_from_list(self, discounts):
         """
         Resolve stacking conflicts from a list of candidate discounts,
-        applying priority, stacking rules, and exclusivity.
+        applying priority, stacking rules, exclusivity, and maximum count limits.
 
         Args:
             discounts (list): List of Discount objects.
@@ -185,6 +196,14 @@ class DiscountStackingService:
         Returns:
             list: Stackable discounts after resolution.
         """
+        # Get config to check maximum discount count
+        from discounts.models.discount_configs import DiscountConfig
+        config = None
+        if self.website:
+            config = DiscountConfig.objects.filter(website=self.website).first()
+        
+        max_count = config.max_stackable_discounts if config else 1
+
         candidates = sorted(
             discounts, key=lambda d: d.stacking_priority or 0, reverse=True
         )
@@ -192,21 +211,28 @@ class DiscountStackingService:
         used_groups = set()
 
         for discount in candidates:
+            # Enforce maximum discount count
+            if len(final_stack) >= max_count:
+                logger.debug(
+                    f"Skipping {discount.discount_code} - maximum discount count ({max_count}) reached"
+                )
+                continue
+
             if not discount.allow_stacking and final_stack:
                 logger.debug(
-                    f"Skipping {discount.code} - disallows stacking"
+                    f"Skipping {discount.discount_code} - disallows stacking"
                 )
                 continue
 
             if any(not d.allow_stacking for d in final_stack):
                 logger.debug(
-                    f"Skipping {discount.code} - blocked by no-stack discount"
+                    f"Skipping {discount.discount_code} - blocked by no-stack discount"
                 )
                 continue
 
             if discount.stacking_group and discount.stacking_group in used_groups:
                 logger.debug(
-                    f"Skipping {discount.code} - stacking group conflict"
+                    f"Skipping {discount.discount_code} - stacking group conflict"
                 )
                 continue
 
@@ -216,7 +242,7 @@ class DiscountStackingService:
                 for existing in final_stack
             ):
                 logger.debug(
-                    f"Skipping {discount.code} - rule table conflict"
+                    f"Skipping {discount.discount_code} - rule table conflict"
                 )
                 continue
 

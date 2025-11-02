@@ -1,13 +1,16 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import (LoyaltyTierViewSet, LoyaltyTransactionViewSet,
-                    MilestoneViewSet, ClientBadgeViewSet,
-                    LoyaltyPointsConversionConfigViewSet,
-                    AdminForceConversionView, LoyaltySummaryView,
-                    LoyaltyConvertView, LoyaltyTransactionListView,
-                    AdminLoyaltyAwardView, AdminLoyaltyForceConvertView,
-                    AdminLoyaltyConversionConfigView, AdminLoyaltyTransferView,
-                    AdminLoyaltyDeductView,
+from .views import (
+    LoyaltyTierViewSet, LoyaltyTransactionViewSet,
+    MilestoneViewSet, ClientBadgeViewSet,
+    LoyaltyPointsConversionConfigViewSet,
+    AdminForceConversionView, LoyaltySummaryView,
+    LoyaltyConvertView, LoyaltyTransactionListView,
+    AdminLoyaltyAwardView, AdminLoyaltyForceConvertView,
+    AdminLoyaltyConversionConfigView, AdminLoyaltyTransferView,
+    AdminLoyaltyDeductView,
+    RedemptionCategoryViewSet, RedemptionItemViewSet, RedemptionRequestViewSet,
+    LoyaltyAnalyticsViewSet, DashboardWidgetViewSet,
 )
 
 router = DefaultRouter()
@@ -16,6 +19,13 @@ router.register(r'loyalty-transactions', LoyaltyTransactionViewSet)
 router.register(r'milestones', MilestoneViewSet)
 router.register(r'client-badges', ClientBadgeViewSet)
 router.register(r'loyalty-points-conversion-config', LoyaltyPointsConversionConfigViewSet)
+# Redemption system
+router.register(r'redemption-categories', RedemptionCategoryViewSet)
+router.register(r'redemption-items', RedemptionItemViewSet)
+router.register(r'redemption-requests', RedemptionRequestViewSet)
+# Analytics dashboard
+router.register(r'analytics', LoyaltyAnalyticsViewSet, basename='loyalty-analytics')
+router.register(r'dashboard-widgets', DashboardWidgetViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

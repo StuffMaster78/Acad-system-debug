@@ -29,6 +29,15 @@ class LoginSession(models.Model):
         blank=True
     )
     logged_in_at = models.DateTimeField(default=now)
+    last_activity = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    revoked_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='revoked_sessions'
+    )
     is_active = models.BooleanField(default=True)
     token = models.CharField(
         max_length=255,
@@ -37,6 +46,10 @@ class LoginSession(models.Model):
 
     class Meta:
         ordering = ['-logged_in_at']
+        indexes = [
+            models.Index(fields=['user', 'website', 'is_active']),
+            models.Index(fields=['token']),
+        ]
 
     def __str__(self):
         return f"{self.user} - {self.ip_address} - {self.device_name}"

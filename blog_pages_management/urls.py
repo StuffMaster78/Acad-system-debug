@@ -10,8 +10,42 @@ from .views import (
     BlogDarkModeImageViewSet, BlogABTestViewSet, 
     SocialPlatformViewSet, BlogShareViewSet
 )
+from .views.enhanced_views import (
+    CTABlockViewSet,
+    BlogCTAPlacementViewSet,
+    ContentBlockTemplateViewSet,
+    BlogContentBlockViewSet,
+    BlogEditHistoryViewSet,
+    BlogSEOMetadataViewSet,
+    FAQSchemaViewSet,
+    AuthorSchemaViewSet,
+)
+from .views.pdf_views import (
+    PDFSampleSectionViewSet,
+    PDFSampleViewSet,
+    PDFSampleDownloadViewSet,
+)
+from .views.draft_views import (
+    BlogPostRevisionViewSet,
+    BlogPostAutoSaveViewSet,
+    BlogPostEditLockViewSet,
+    BlogPostPreviewViewSet,
+)
+from .views.workflow_views import (
+    BlogPostWorkflowViewSet,
+    BlogPostReviewCommentViewSet,
+    WorkflowTransitionViewSet,
+    ContentTemplateViewSet,
+    ContentSnippetViewSet,
+)
+from .views.analytics_views import (
+    EditorAnalyticsViewSet,
+    BlogPostAnalyticsViewSet,
+    ContentPerformanceMetricsViewSet,
+)
 from .seo import robots_txt, sitemap_index, blog_sitemap
 from .views import blog_redirect
+from .views import preview_views
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework.permissions import AllowAny
@@ -48,6 +82,39 @@ router.register(r"conversions", BlogConversionViewSet, basename="conversions")
 router.register(r"social-platforms", SocialPlatformViewSet, basename="social-platforms")
 router.register(r"blog-shares", BlogShareViewSet, basename="blog-shares")
 
+# Enhanced CMS routes
+router.register(r"cta-blocks", CTABlockViewSet, basename="cta-block")
+router.register(r"cta-placements", BlogCTAPlacementViewSet, basename="cta-placement")
+router.register(r"content-block-templates", ContentBlockTemplateViewSet, basename="content-block-template")
+router.register(r"content-blocks", BlogContentBlockViewSet, basename="content-block")
+router.register(r"edit-history", BlogEditHistoryViewSet, basename="edit-history")
+router.register(r"seo-metadata", BlogSEOMetadataViewSet, basename="seo-metadata")
+router.register(r"faq-schemas", FAQSchemaViewSet, basename="faq-schema")
+router.register(r"author-schemas", AuthorSchemaViewSet, basename="author-schema")
+
+# PDF Sample routes
+router.register(r"pdf-sample-sections", PDFSampleSectionViewSet, basename="pdf-sample-section")
+router.register(r"pdf-samples", PDFSampleViewSet, basename="pdf-sample")
+router.register(r"pdf-sample-downloads", PDFSampleDownloadViewSet, basename="pdf-sample-download")
+
+# Draft & Editing routes
+router.register(r"blog-revisions", BlogPostRevisionViewSet, basename="blog-revision")
+router.register(r"blog-autosaves", BlogPostAutoSaveViewSet, basename="blog-autosave")
+router.register(r"blog-edit-locks", BlogPostEditLockViewSet, basename="blog-edit-lock")
+router.register(r"blog-previews", BlogPostPreviewViewSet, basename="blog-preview")
+
+# Workflow & Templates routes
+router.register(r"blog-workflows", BlogPostWorkflowViewSet, basename="blog-workflow")
+router.register(r"review-comments", BlogPostReviewCommentViewSet, basename="review-comment")
+router.register(r"workflow-transitions", WorkflowTransitionViewSet, basename="workflow-transition")
+router.register(r"content-templates", ContentTemplateViewSet, basename="content-template")
+router.register(r"content-snippets", ContentSnippetViewSet, basename="content-snippet")
+
+# Analytics routes
+router.register(r"editor-analytics", EditorAnalyticsViewSet, basename="editor-analytics")
+router.register(r"blog-analytics", BlogPostAnalyticsViewSet, basename="blog-analytics")
+router.register(r"content-metrics", ContentPerformanceMetricsViewSet, basename="content-metrics")
+
 # Combine urlpatterns properly to prevent overwrites
 urlpatterns = [
     # Swagger & API Docs
@@ -71,4 +138,7 @@ urlpatterns = [
 
     # Redirect old blog URLs to new slugs
     path("blogs/old/<slug:old_slug>/", blog_redirect, name="blog-redirect"),
+    
+    # Preview endpoint (public)
+    path("preview/<str:token>/", preview_views.preview_blog_post, name="blog-preview"),
 ]

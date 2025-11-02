@@ -99,7 +99,8 @@ class FineService:
         adjust_writer_compensation(fine.order, fine.amount)
 
         fine.save(update_fields=[
-            "status", "waived_by", "waived_at", "waiver_reason"
+            "status", "resolved", "resolved_at", "waived_by", "waived_at", 
+            "waiver_reason", "resolved_reason"
         ])
 
         AuditLogService.log(
@@ -118,7 +119,7 @@ class FineService:
 
     @staticmethod
     def void_fine(fine, voided_by, reason=None):
-        """Void a fine completely.
+        """Void a fine completely (revoke fine).
 
         Args:
             fine (Fine): The fine to void.
@@ -130,14 +131,21 @@ class FineService:
 
         Raises:
             ValidationError: If already voided.
+            PermissionDenied: If user is not admin/superadmin.
         """
+        if voided_by.role not in ['admin', 'superadmin']:
+            raise PermissionDenied("Only admins or superadmins can void fines.")
+        
         if fine.status == FineStatus.VOIDED:
             raise ValidationError("Fine is already voided.")
+
+        # Restore writer compensation if fine was applied
+        adjust_writer_compensation(fine.order, fine.amount)
 
         fine.status = FineStatus.VOIDED
         fine.resolved = True
         fine.resolved_at = timezone.now()
-        fine.resolved_reason = reason or "Fine voided."
+        fine.resolved_reason = reason or "Fine voided by admin."
 
         fine.save(update_fields=[
             "status", "resolved", "resolved_at", "resolved_reason"
@@ -154,10 +162,11 @@ class FineService:
             context={
                 "voided_by": voided_by.id,
                 "order_id": fine.order_id,
-                "fine_id": fine.id
+                "fine_id": fine.id,
+                "amount_restored": str(fine.amount)
             },
             issued_by=voided_by,
-            reason=reason or "No reason provided."
+            reason=reason or "No reason provided.",
             metadata={
                 "fine_id": fine.id,
                 "order_id": fine.order_id

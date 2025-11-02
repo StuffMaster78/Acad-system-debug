@@ -24,6 +24,14 @@ class CommunicationGuardService:
         Raises:
             PermissionDenied: If sending is disallowed.
         """
+        # Handle class bundle threads (thread_type='class_bundle')
+        if thread.thread_type == 'class_bundle':
+            # Class bundle threads are handled separately
+            # Check if thread is active
+            if not thread.is_active and not thread.admin_override:
+                raise PermissionDenied("This thread is locked.")
+            return  # Allow messaging for class bundles if thread is active
+        
         order = getattr(thread, "order", None)
 
         if not order:

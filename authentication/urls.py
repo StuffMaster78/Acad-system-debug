@@ -19,14 +19,19 @@ from authentication.views import (
     authentication,
     account_unlock_views,
     admin_account_unlock_view,
-    account_unlock_confirm_view
+    account_unlock_confirm_view,
+    auth_viewset
 )
 
 router = DefaultRouter()
 
-# Core authentication routes
-# router.register(r"login", login_session_viewset.LoginViewSet, basename="login")
+# Unified authentication routes (production-grade)
+router.register(r"auth", auth_viewset.AuthenticationViewSet, basename="auth")
+
+# Impersonation routes
 router.register(r"impersonate", impersonation_views.ImpersonationTokenViewSet, basename="impersonate")
+
+# Session and security management
 router.register(r"lockouts", account_lockout_viewset.AccountLockoutViewSet, basename="lockout")
 router.register(r"user-sessions", user_session.UserSessionViewSet, basename="user-session")
 router.register(r"logout-events", logout_event_viewset.LogoutEventViewSet, basename="logout-event")
@@ -121,11 +126,11 @@ custom_urlpatterns = [
 ]
 
 urlpatterns = [
-    # Main router
-    # path("auth/", include(router.urls)),
+    # Main router (includes unified auth endpoints)
+    path("", include(router.urls)),
 
     # Custom actions
-    path("auth/", include(custom_urlpatterns)),
+    path("", include(custom_urlpatterns)),
 
     # Optional future includes
     # path("auth/deletion/", include("authentication.urls.deletion")),

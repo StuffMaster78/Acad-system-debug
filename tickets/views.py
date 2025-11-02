@@ -177,22 +177,21 @@ class TicketMessageViewSet(viewsets.ModelViewSet):
             action="New message added",
             performed_by=self.request.user
         )
-        # Notify assigned admin/support if not the sender
-        if assigned_to and assigned_to != self.request.user:
-            NotificationService.send_notification(
-                recipient=assigned_to,
-                verb="New ticket message",
-                description=f"You have a new message on ticket '{ticket.title}'.",
-                target=ticket,
-                actor=self.request.user,
-                extra_data={
-                    "ticket_id": ticket.id,
-                    "message_id": message.id,
-                }
+        # Notify relevant users about the reply
+        try:
+            from notifications_system.services.notification_helper import NotificationHelper
+            NotificationHelper.notify_ticket_reply(
+                ticket=ticket,
+                message=message,
+                replier=self.request.user
             )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send ticket reply notification: {e}")
 
-        # Notify ticket creator if not the sender and not the assigned_to
-        if ticket.created_by and ticket.created_by not in [self.request.user, assigned_to]:
+        # Legacy notification code (can be removed once fully migrated)
+        # if assigned_to and assigned_to != self.request.user: ticket.created_by and ticket.created_by not in [self.request.user, assigned_to]:
             NotificationService.send_notification(
                 recipient=ticket.created_by,
                 verb="New ticket message",

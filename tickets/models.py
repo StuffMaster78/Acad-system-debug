@@ -1,6 +1,8 @@
         
 from django.db import models
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from websites.models import Website
 from tickets.utils import ticket_attachment_upload_path
 
@@ -73,6 +75,11 @@ class Ticket(models.Model):
     resolution_time = models.DateTimeField(null=True, blank=True, help_text="When the ticket was resolved.")
     created_at = models.DateTimeField(auto_now_add=True, help_text="When the ticket was created.")
     updated_at = models.DateTimeField(auto_now=True, help_text="When the ticket was last updated.")
+    
+    # Generic foreign key for linking to different object types (orders, class bundles, etc.)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    related_object = GenericForeignKey('content_type', 'object_id')
 
     def __str__(self):
         return f"{self.title} ({self.status}) - {self.priority}"

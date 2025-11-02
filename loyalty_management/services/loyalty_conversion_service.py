@@ -96,6 +96,20 @@ class LoyaltyConversionService:
             reason=f"Loyalty points for order #{order.id}",
         )
 
+        # Send notification
+        try:
+            from notifications_system.services.notification_helper import NotificationHelper
+            NotificationHelper.notify_loyalty_points_awarded(
+                client_profile=client_profile,
+                points=points,
+                reason=f"Order #{order.id} completed",
+                total_points=client_profile.loyalty_points
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send loyalty points notification: {e}")
+
         LoyaltyConversionService.update_loyalty_tier(client_profile)
         LoyaltyConversionService.check_and_award_milestones(client_profile)
 
@@ -113,7 +127,37 @@ class LoyaltyConversionService:
             reason=reason
         )
 
+        # Send notification
+        try:
+            from notifications_system.services.notification_helper import NotificationHelper
+            NotificationHelper.notify_loyalty_points_awarded(
+                client_profile=client_profile,
+                points=points,
+                reason=reason,
+                total_points=client_profile.loyalty_points
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send loyalty points notification: {e}")
+
+        old_tier = client_profile.tier
         LoyaltyConversionService.update_loyalty_tier(client_profile)
+        
+        # Check if tier was upgraded
+        if old_tier != client_profile.tier and client_profile.tier:
+            try:
+                from notifications_system.services.notification_helper import NotificationHelper
+                NotificationHelper.notify_tier_upgraded(
+                    client_profile=client_profile,
+                    tier_name=client_profile.tier.name,
+                    perks=client_profile.tier.perks or ""
+                )
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Failed to send tier upgrade notification: {e}")
+        
         LoyaltyConversionService.check_and_award_milestones(client_profile)
         LoyaltyConversionService.try_auto_convert(client_profile, website)
 

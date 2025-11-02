@@ -35,22 +35,113 @@ def generate_tracking_id():
         raise ValueError("Tracking ID must be a string")
     return value
 class BlogCategory(models.Model):
-    """Represents a category for blog posts."""
+    """
+    Represents a category for blog posts.
+    Enhanced with SEO metadata and analytics tracking.
+    """
     website = models.ForeignKey(
-        Website, on_delete=models.CASCADE, related_name="categories"
+        Website, on_delete=models.CASCADE, related_name="blog_categories"
     )
-    name = models.CharField(max_length=255, unique=True)
+    name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
-    slug = models.SlugField(unique=True, blank=True)
+    slug = models.SlugField(blank=True)
+    
+    # SEO fields
+    meta_title = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="SEO title for category page"
+    )
+    meta_description = models.TextField(
+        blank=True,
+        help_text="SEO description for category page"
+    )
+    category_image = models.ImageField(
+        upload_to="blog_categories/",
+        null=True,
+        blank=True,
+        help_text="Category featured image"
+    )
+    
+    # Analytics
+    post_count = models.PositiveIntegerField(
+        default=0,
+        help_text="Cached count of published posts in this category"
+    )
+    total_views = models.PositiveIntegerField(
+        default=0,
+        help_text="Total views across all posts in this category"
+    )
+    total_conversions = models.PositiveIntegerField(
+        default=0,
+        help_text="Total conversions from posts in this category"
+    )
+    
+    # Display
+    display_order = models.IntegerField(
+        default=0,
+        help_text="Order for displaying categories"
+    )
+    is_featured = models.BooleanField(
+        default=False,
+        help_text="Featured categories appear first"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Active categories are visible"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['website', 'slug']
+        ordering = ['is_featured', 'display_order', 'name']
+        verbose_name_plural = "Blog Categories"
+        indexes = [
+            models.Index(fields=['website', 'is_active']),
+            models.Index(fields=['slug']),
+        ]
 
     def save(self, *args, **kwargs):
         """Auto-generates slug if not provided."""
         if not self.slug:
             self.slug = slugify(self.name)
+        # Ensure slug uniqueness within website
+        if BlogCategory.objects.filter(website=self.website, slug=self.slug).exclude(pk=self.pk if self.pk else None).exists():
+            counter = 2
+            new_slug = f"{self.slug}-{counter}"
+            while BlogCategory.objects.filter(website=self.website, slug=new_slug).exclude(pk=self.pk if self.pk else None).exists():
+                counter += 1
+                new_slug = f"{self.slug}-{counter}"
+            self.slug = new_slug
         super().save(*args, **kwargs)
+    
+    def update_analytics(self):
+        """Update cached analytics for this category."""
+        from . import BlogPost, BlogClick, BlogConversion
+        
+        # Count published posts
+        self.post_count = BlogPost.objects.filter(
+            category=self,
+            is_published=True,
+            is_deleted=False
+        ).count()
+        
+        # Sum views
+        blog_ids = BlogPost.objects.filter(category=self).values_list('id', flat=True)
+        self.total_views = BlogClick.objects.filter(blog_id__in=blog_ids).count()
+        
+        # Sum conversions
+        self.total_conversions = BlogConversion.objects.filter(
+            blog_id__in=blog_ids,
+            order_placed=True
+        ).count()
+        
+        self.save(update_fields=['post_count', 'total_views', 'total_conversions'])
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.website.name})"
 
 
 class BlogTag(models.Model):
@@ -156,6 +247,7 @@ class BlogPost(models.Model):
         ("draft", "Draft"),
         ("scheduled", "Scheduled"),
         ("published", "Published"),
+        ("archived", "Archived"),
     ]
     website = models.ForeignKey(
         Website, on_delete=models.CASCADE, related_name="blogs",
@@ -187,6 +279,15 @@ class BlogPost(models.Model):
         help_text="Primary image (used in Open Graph and previews)"
     )
     is_featured = models.BooleanField(default=False)
+    
+    # Status management
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default="draft",
+        db_index=True,
+        help_text="Publication status"
+    )
     is_published = models.BooleanField(default=False, db_index=True)
     scheduled_publish_date = models.DateTimeField(null=True, blank=True)
     publish_date = models.DateTimeField(null=True, blank=True, db_index=True)
@@ -256,6 +357,24 @@ class BlogPost(models.Model):
 
     def save(self, *args, **kwargs):
         """Generates a strict slug, prevents duplicates, and ensures scheduled publishing."""
+        # Track changes for edit history
+        fields_changed = []
+        previous_content = None
+        if self.pk:
+            try:
+                old_instance = BlogPost.objects.get(pk=self.pk)
+                previous_content = old_instance.content
+                # Track changed fields
+                for field in ['title', 'content', 'meta_title', 'meta_description']:
+                    if getattr(old_instance, field) != getattr(self, field):
+                        fields_changed.append(field)
+                
+                # Track slug changes
+                if old_instance.slug != self.slug:
+                    BlogSlugHistory.objects.create(blog=self, old_slug=old_instance.slug)
+            except BlogPost.DoesNotExist:
+                pass
+        
         if not self.slug:
             base_slug = self.clean_slug(slugify(self.title))
         else:
@@ -265,31 +384,66 @@ class BlogPost(models.Model):
             raise ValueError(
                 f"The slug '{base_slug}' is reserved. Choose another."
             )
-        
-        if self.pk:  # Only track slug changes for existing blogs
-            old_slug = BlogPost.objects.get(pk=self.pk).slug
-            if old_slug != self.slug:
-                BlogSlugHistory.objects.create(blog=self, old_slug=old_slug)
 
         # Ensure slug uniqueness within the same website
-        if BlogPost.objects.filter(website=self.website, slug=base_slug).exists():
+        if BlogPost.objects.filter(website=self.website, slug=base_slug).exclude(pk=self.pk if self.pk else None).exists():
             counter = 2
             new_slug = f"{base_slug}-{counter}"
-            while BlogPost.objects.filter(website=self.website, slug=new_slug).exists():
+            while BlogPost.objects.filter(website=self.website, slug=new_slug).exclude(pk=self.pk if self.pk else None).exists():
                 counter += 1
                 new_slug = f"{base_slug}-{counter}"
             base_slug = new_slug
 
         self.slug = base_slug
 
+        # Sync status with is_published
+        if self.status == "published":
+            self.is_published = True
+            if not self.publish_date:
+                self.publish_date = now()
+        elif self.status == "draft":
+            # Drafts are not published, but keep existing publish_date if set
+            pass
+        elif self.status == "archived":
+            self.is_published = False
+        
         # Ensure scheduled blogs auto-publish
         if self.status == "scheduled" and self.scheduled_publish_date and self.scheduled_publish_date <= now():
             self.status = "published"
+            self.is_published = True
+            if not self.publish_date:
+                self.publish_date = now()
 
-        self.validate_internal_links()
+        # Validate internal links only for published/scheduled posts
+        if self.status in ["published", "scheduled"]:
+            try:
+                self.validate_internal_links()
+            except ValidationError as e:
+                # Allow saving even if links aren't perfect (for drafts)
+                # But log the validation error
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Internal links validation failed for blog {self.id}: {str(e)}")
+        
         self.generate_toc()
 
         super().save(*args, **kwargs)
+        
+        # Create edit history entry if content changed
+        if previous_content and previous_content != self.content and fields_changed:
+            try:
+                from .models.content_blocks import BlogEditHistory
+                BlogEditHistory.objects.create(
+                    blog=self,
+                    edited_by=self.last_edited_by,
+                    previous_content=previous_content,
+                    current_content=self.content,
+                    fields_changed=fields_changed,
+                    changes_summary=f"Updated: {', '.join(fields_changed)}"
+                )
+            except Exception:
+                # Silently fail if edit history model doesn't exist yet (migration pending)
+                pass
 
     def validate_internal_links(self):
         """Ensures all links are internal, belong to the same website, and count is within limits."""

@@ -259,19 +259,53 @@ class UserViewSet(viewsets.ModelViewSet):
     @method_decorator(ratelimit(key="user", rate="3/m", method="POST", block=True))
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def impersonate(self, request, pk=None):
-        """Allows Superadmins/Admins to impersonate another user."""
+        """
+        DEPRECATED: Use /api/v1/auth/impersonate/create_token/ instead.
+        
+        This method is kept for backward compatibility but creates a token
+        using the new token-based impersonation system.
+        """
         check_admin_access(request.user)
         target_user = get_object_or_404(User, id=pk)
-
-        if target_user.is_impersonated:
-            return Response({"error": "User is already being impersonated."}, status=status.HTTP_400_BAD_REQUEST)
-
-        target_user.impersonate(request.user)
-
-        # Log impersonation action
-        AuditLogService.log_auto(request.user, "USER_IMPERSONATION", request)
-
-        return Response(ImpersonateSerializer(target_user).data, status=status.HTTP_200_OK)
+        
+        # Use new token-based impersonation system
+        from websites.utils import get_current_website
+        from authentication.services.impersonation_service import ImpersonationService
+        
+        website = get_current_website(request)
+        
+        try:
+            # Check if admin can impersonate
+            can_impersonate, reason = ImpersonationService.can_impersonate(request.user, target_user)
+            if not can_impersonate:
+                return Response(
+                    {"error": reason},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            
+            # Generate impersonation token
+            token_obj = ImpersonationService.generate_token(
+                admin_user=request.user,
+                target_user=target_user,
+                website=website,
+                expires_hours=1
+            )
+            
+            # Log impersonation action
+            AuditLogService.log_auto(request.user, "USER_IMPERSONATION", request)
+            
+            return Response({
+                "token": token_obj.token,
+                "expires_at": token_obj.expires_at,
+                "message": "Use this token with /api/v1/auth/impersonate/start/ to begin impersonation.",
+                "impersonation_url": "/api/v1/auth/impersonate/start/"
+            }, status=status.HTTP_201_CREATED)
+            
+        except (PermissionDenied, ValueError) as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
     @action(detail=True, methods=['delete'], permission_classes=[permissions.IsAdminUser])
     def stop_impersonation(self, request, pk=None):

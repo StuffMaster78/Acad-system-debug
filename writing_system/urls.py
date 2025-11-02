@@ -72,6 +72,7 @@ urlpatterns = [
     path('api/v1/mass-emails/', include('mass_emails.urls')),
     path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
     path('api/v1/', include('service_pages_management.urls')),
+    path('api/v1/fines/', include('fines.urls')),
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
     # path('api/v1/analytics/', include('analytics.urls')),  # Analytics app
     # path('api/v1/badge_management/', include('badge_management.urls')),  # Badges app
@@ -79,13 +80,8 @@ urlpatterns = [
     # path('api/v1/admin/', include('notifications_system.admin_urls')), # Admin URLs for notifications
 
     path('api/v1/auth/', include('authentication.urls')),
-    # Backward-compatible top-level aliases expected by some tests
-    path('api/', include('discounts.urls')),
-    path('api/', include('mass_emails.urls')),
-    path('api/', include('order_payments_management.urls')),
-    path('api/', include('support_management.urls')),
-    path('api/', include('tickets.urls')),
-    path('api/', include('writer_management.urls')),
+    # Note: Backward-compatible aliases removed to avoid URL namespace conflicts
+    # Tests should use the /api/v1/ prefixed URLs instead
 ]
 
 # Serve media and static files during development

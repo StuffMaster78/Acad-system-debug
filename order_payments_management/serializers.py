@@ -197,7 +197,7 @@ class SplitPaymentSerializer(serializers.ModelSerializer):
         )["total"]
 
         if total_paid >= split_payment.payment.discounted_amount:
-            split_payment.payment.mark_completed()
+            split_payment.payment.mark_paid()
 
         return split_payment
 

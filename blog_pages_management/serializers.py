@@ -125,7 +125,7 @@ class BlogPostSerializer(serializers.ModelSerializer):
         fields = [
             "id", "website", "uuid", "meta_title", "meta_description",
             "title", "slug", "content", "toc", "authors", "category", "tags",
-            "featured_image", "is_featured", "is_published",
+            "featured_image", "is_featured", "status", "is_published",
             "scheduled_publish_date", "publish_date", "created_at",
             "updated_at", "last_edited_by", "is_deleted", "deleted_at",
             "click_count", "conversion_count", "word_count",

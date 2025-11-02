@@ -72,7 +72,7 @@ class WriterPayment(models.Model):
     )
     writer = models.ForeignKey(
         WriterProfile, on_delete=models.CASCADE,
-        related_name="payments"
+        related_name="writer_management_payments"
     )
     amount = models.DecimalField(
         max_digits=12, decimal_places=2,

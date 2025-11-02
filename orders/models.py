@@ -226,6 +226,21 @@ class Order(models.Model):
         help_text="Indicates if the order is paid."
     )
     is_urgent = models.BooleanField(default=False)
+    requires_editing = models.BooleanField(
+        default=None,
+        null=True,
+        blank=True,
+        help_text=(
+            "Admin-controlled: Whether this order must undergo editing. "
+            "None = use default/config rules, True = force editing, False = skip editing"
+        )
+    )
+    editing_skip_reason = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Reason why editing was skipped (e.g., 'Urgent order', 'Admin disabled')"
+    )
     created_by_admin = models.BooleanField(
         default=False,
         help_text="Indicates if the order was created by an admin."
@@ -251,6 +266,11 @@ class Order(models.Model):
         help_text="User who completed the order."
     )
     completion_notes = models.TextField(null=True, blank=True)
+    submitted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Date and time when the writer submitted/uploaded the order."
+    )
     reassigned_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(
         auto_now_add=True, 
@@ -387,14 +407,15 @@ class Order(models.Model):
         changes in orders_payments_management.
         """
         Payment = apps.get_model(
-            'orders_payments_management', 'OrderPayment'
+            'order_payments_management', 'OrderPayment'
         )
         payment = Payment.objects.filter(
             order=self
         ).order_by('-created_at').first()  # Ensure latest payment
 
         if payment:
-            if payment.status == 'paid' and self.status == 'unpaid':
+            # Fix: OrderPayment uses 'completed' not 'paid', and also check 'succeeded'
+            if payment.status in ['completed', 'succeeded'] and self.status == 'unpaid':
                 self.status = 'pending'
                 self.is_paid = True
             elif payment.status in ['failed', 'refunded']:
@@ -402,6 +423,27 @@ class Order(models.Model):
                 self.is_paid = False
 
             self.save()
+    
+    def mark_paid(self):
+        """
+        Mark order as paid and transition to in_progress.
+        This method is called by payment signals when payment is completed.
+        """
+        # Use the service for consistent behavior
+        from orders.services.mark_order_as_paid_service import MarkOrderPaidService
+        service = MarkOrderPaidService()
+        # Service expects order_id, but we can call it directly
+        if self.status == 'unpaid':
+            self.status = 'in_progress'
+            self.is_paid = True
+            self.save()
+        elif self.status not in ['unpaid']:
+            # Log but don't raise - payment signal should handle gracefully
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"Attempted to mark order {self.id} as paid from status {self.status}"
+            )
 
     
     def add_pages(self, additional_pages: int):

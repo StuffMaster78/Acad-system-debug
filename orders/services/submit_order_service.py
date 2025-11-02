@@ -31,13 +31,15 @@ class SubmitOrderService:
         if order.status != OrderStatus.IN_PROGRESS.value:
             raise ValueError("Order must be in progress to be submitted.")
 
+        from django.utils import timezone
         order.status = OrderStatus.SUBMITTED.value
-        order.save(update_fields=["status"])
+        order.submitted_at = timezone.now()  # Track submission time for fine calculation
+        order.save(update_fields=["status", "submitted_at"])
 
-        # Fire editing transition
-        MoveOrderToEditingService(user=user, order=order, params={}).execute()
-        
+        # Fire editing transition (checks if editing should occur)
+        MoveOrderToEditingService.execute(order=order, user=user)
 
+        # Auto-issue fine if late
         auto_issue_late_fine(order)
         
         return order

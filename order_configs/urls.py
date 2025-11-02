@@ -7,7 +7,8 @@ from .views import (
     TypeOfWorkViewSet,
     EnglishTypeViewSet,
     WriterDeadlineConfigViewSet,
-    RevisionPolicyConfigViewSet
+    RevisionPolicyConfigViewSet,
+    EditingRequirementConfigViewSet
 )
 
 router = DefaultRouter()
@@ -45,6 +46,11 @@ router.register(
     r'revision-policy',
     RevisionPolicyConfigViewSet,
     basename='revision-policy'
+)
+router.register(
+    r'editing-requirements',
+    EditingRequirementConfigViewSet,
+    basename='editing-requirement-config'
 )
 
 urlpatterns = [

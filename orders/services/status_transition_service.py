@@ -100,7 +100,8 @@ class StatusTransitionService:
         target_status: str,
         *,
         metadata: Optional[dict] = None,
-        log_action: bool = True
+        log_action: bool = True,
+        skip_payment_check: bool = False
     ) -> Order:
         """
         Transition an order to a new status if valid.
@@ -110,6 +111,7 @@ class StatusTransitionService:
             target_status (str): The new status to apply.
             metadata (dict, optional): Extra info for audit logging.
             log_action (bool): Whether to log the transition.
+            skip_payment_check (bool): Skip payment validation (for admin overrides).
 
         Returns:
             Order: The updated order instance.
@@ -117,6 +119,7 @@ class StatusTransitionService:
         Raises:
             AlreadyInTargetStatusError: If already in target state.
             InvalidTransitionError: If the transition is not allowed.
+            ValidationError: If payment is required but not completed.
         """
         current = order.status
 
@@ -130,6 +133,10 @@ class StatusTransitionService:
             raise InvalidTransitionError(
                 f"Cannot move from '{current}' to '{target_status}'."
             )
+
+        # Validate payment requirement for statuses that require payment
+        if not skip_payment_check and target_status in ['in_progress', 'available', 'pending_writer_assignment']:
+            self._validate_payment_completed(order, target_status)
 
         order.status = target_status
         save_order(order)
@@ -145,3 +152,31 @@ class StatusTransitionService:
             )
 
         return order
+
+    @staticmethod
+    def _validate_payment_completed(order: Order, target_status: str) -> None:
+        """
+        Validate that order has a completed payment before allowing transition.
+        
+        Args:
+            order: The order instance.
+            target_status: The target status being transitioned to.
+            
+        Raises:
+            ValidationError: If payment is required but not completed.
+        """
+        # Check if order has a completed payment
+        from django.apps import apps
+        OrderPayment = apps.get_model('order_payments_management', 'OrderPayment')
+        
+        has_completed_payment = OrderPayment.objects.filter(
+            order=order,
+            status__in=['completed', 'succeeded']
+        ).exists()
+        
+        if not has_completed_payment and not order.is_paid:
+            raise ValidationError(
+                f"Cannot transition order to '{target_status}': "
+                "Order must have a completed payment before moving to this status. "
+                "Please complete payment first."
+            )

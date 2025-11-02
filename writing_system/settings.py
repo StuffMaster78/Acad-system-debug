@@ -252,12 +252,65 @@ SESSION_CACHE_ALIAS = "default"
 
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Your Project API',
-    'DESCRIPTION': 'Order Management System API documentation',
+    'TITLE': 'Writing System Backend API',
+    'DESCRIPTION': """
+    Complete API documentation for the Writing System Backend.
+    
+    ## Features
+    - User authentication and management
+    - Order placement and management
+    - Payment processing (unified workflow)
+    - Discount management with stacking
+    - Special orders
+    - Class bundle management
+    - File management
+    - Communications and messaging
+    - Support tickets
+    - Writer and client management
+    
+    ## Authentication
+    Use JWT tokens for authenticated requests. Get tokens via `/api/v1/auth/login/`
+    
+    ## Impersonation
+    Admins and superadmins can impersonate users to help resolve issues.
+    Use `/api/v1/users/{id}/impersonate/` endpoint.
+    
+    ## Rate Limiting
+    API is rate-limited. Check response headers for rate limit information.
+    """,
     'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,  # Prevents duplicate schema listing
-    'SCHEMA_PATH_PREFIX': r'/api/',  # Ensures only `/api/` endpoints are documented
-    # 'SERVE_PERMISSIONS': ['rest_framework.permissions.IsAdminUser'], 
+    'SERVE_INCLUDE_SCHEMA': False,
+    'SCHEMA_PATH_PREFIX': r'/api/',
+    'COMPONENT_SPLIT_REQUEST': True,
+    'COMPONENT_NO_READ_ONLY_REQUIRED': True,
+    'SERVE_PERMISSIONS': ['rest_framework.permissions.AllowAny'],
+    'SERVE_AUTHENTICATION': None,
+    'SWAGGER_UI_SETTINGS': {
+        'deepLinking': True,
+        'displayOperationId': False,
+        'defaultModelsExpandDepth': 1,
+        'defaultModelExpandDepth': 1,
+        'displayRequestDuration': True,
+        'docExpansion': 'list',
+        'filter': True,
+        'showExtensions': True,
+        'showCommonExtensions': True,
+    },
+    'REDOC_UI_SETTINGS': {
+        'hideDownloadButton': False,
+        'expandResponses': '200,201',
+        'pathInMiddlePanel': True,
+    },
+    'APPEND_COMPONENTS': {
+        'securitySchemes': {
+            'JWT': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+            }
+        }
+    },
+    'SECURITY': [{'JWT': []}],
 }
 
 # Channels Settings
@@ -381,9 +434,57 @@ GEOLOCATION_API_KEY = os.getenv("GEOLOCATION_API_KEY")
 
 
 
-#  Media
-MEDIA_URL = "/media/"
-MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+#  Media & File Storage
+# Storage backend: 'do_spaces' (DigitalOcean Spaces), 's3' (AWS S3), or 'local'
+STORAGE_BACKEND = os.getenv('STORAGE_BACKEND', 'local')
+
+if STORAGE_BACKEND in ['do_spaces', 's3']:
+    # Cloud storage configuration (DigitalOcean Spaces or AWS S3)
+    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+    
+    if STORAGE_BACKEND == 'do_spaces':
+        # DigitalOcean Spaces (S3-compatible)
+        DO_SPACES_REGION = os.getenv('DO_SPACES_REGION', 'nyc3')
+        AWS_S3_ENDPOINT_URL = f'https://{DO_SPACES_REGION}.digitaloceanspaces.com'
+        AWS_S3_REGION_NAME = DO_SPACES_REGION
+        AWS_S3_CUSTOM_DOMAIN = os.getenv('DO_SPACES_CDN_ENDPOINT')  # Optional: CDN endpoint
+        
+        # Media URL for DO Spaces
+        if AWS_S3_CUSTOM_DOMAIN:
+            MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+        else:
+            MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.{DO_SPACES_REGION}.digitaloceanspaces.com/media/'
+    else:
+        # AWS S3
+        AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME', 'us-east-1')
+        AWS_S3_CUSTOM_DOMAIN = os.getenv('AWS_S3_CUSTOM_DOMAIN')  # Optional: CloudFront
+        
+        # Media URL for AWS S3
+        if AWS_S3_CUSTOM_DOMAIN:
+            MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/media/'
+        else:
+            MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.{AWS_S3_REGION_NAME}.amazonaws.com/media/'
+    
+    # Security settings (same for both DO Spaces and S3)
+    AWS_DEFAULT_ACL = 'private'  # Private files by default
+    AWS_S3_OBJECT_PARAMETERS = {
+        'CacheControl': 'max-age=86400',  # 1 day cache
+        'ServerSideEncryption': 'AES256',  # Enable encryption
+    }
+    AWS_S3_FILE_OVERWRITE = False  # Prevent accidental overwrites
+    AWS_QUERYSTRING_AUTH = True  # Use signed URLs for private files
+    
+    # Storage backends
+    DEFAULT_FILE_STORAGE = 'core.storage_backends.MediaStorage'
+    STATICFILES_STORAGE = 'core.storage_backends.StaticStorage'
+    
+    MEDIA_ROOT = ''  # Not used with cloud storage
+else:
+    # Local filesystem storage (development)
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = os.path.join(BASE_DIR, "media")
 
 
 # DRF Settings with JWT Authentication
@@ -429,14 +530,7 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend'
     ],
-    "SPECTACULAR_SETTINGS": {
-        "TITLE": "Writing System Management API",
-        "DESCRIPTION": "Internal API docs",
-        "VERSION": "1.0.0",
-        "SERVE_INCLUDE_SCHEMA": False,
-        "COMPONENT_SPLIT_REQUEST": True,
-        "SCHEMA_PATH_PREFIX": r"/api/v[0-9]+",
-    }
+    # SPECTACULAR_SETTINGS is defined globally above
 
 
 }

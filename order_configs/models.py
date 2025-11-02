@@ -18,6 +18,79 @@ class CriticalDeadlineSetting(models.Model):
 
     def __str__(self):
         return f"CriticalDeadlineSetting: {self.threshold_hours} hours"
+
+
+class EditingRequirementConfig(models.Model):
+    """
+    Configuration for when orders should undergo editing.
+    Admin can configure editing requirements per website.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='editing_requirements',
+        help_text="Website this configuration applies to"
+    )
+    
+    # Global settings
+    enable_editing_by_default = models.BooleanField(
+        default=True,
+        help_text="Enable editing for orders by default (unless urgent or explicitly disabled)"
+    )
+    
+    skip_editing_for_urgent = models.BooleanField(
+        default=True,
+        help_text="Skip editing for urgent orders (deadline < 24 hours or is_urgent=True)"
+    )
+    
+    allow_editing_for_early_submissions = models.BooleanField(
+        default=True,
+        help_text="Allow editing for orders submitted before deadline"
+    )
+    
+    early_submission_hours_threshold = models.PositiveIntegerField(
+        default=24,
+        help_text="Hours before deadline to consider submission 'early' (for editing eligibility)"
+    )
+    
+    # Order type specific settings
+    editing_required_for_first_orders = models.BooleanField(
+        default=True,
+        help_text="Require editing for client's first order"
+    )
+    
+    editing_required_for_high_value = models.BooleanField(
+        default=True,
+        help_text="Require editing for high-value orders"
+    )
+    
+    high_value_threshold = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=300.00,
+        help_text="Order value threshold (USD) to consider 'high value'"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='created_editing_configs',
+        help_text="Admin who created this configuration"
+    )
+    
+    class Meta:
+        verbose_name = "Editing Requirement Config"
+        verbose_name_plural = "Editing Requirement Configs"
+        unique_together = ('website',)
+    
+    def __str__(self):
+        return f"Editing Config for {self.website.domain}"
+
+
 class AcademicLevel(models.Model):
     """
     Represents types of Academic Levels, tied to specific Websites.
@@ -39,6 +112,8 @@ class AcademicLevel(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.website.domain})"
+
+
 class PaperType(models.Model):
     """
     Represents types of papers (e.g., Essay, Report).
@@ -61,6 +136,7 @@ class PaperType(models.Model):
         verbose_name = "Paper Type"
         verbose_name_plural = "Paper Types"
         unique_together = ('website', 'name')
+
 
 class FormattingandCitationStyle(models.Model):
     """
@@ -188,7 +264,6 @@ class WriterDeadlineConfig(models.Model):
         ordering = ['writer_deadline_percentage']
         verbose_name = "Writer Deadline Config"
         verbose_name_plural = "Writer Deadline Configs"
-
 
 
 class RevisionPolicyConfig(models.Model):

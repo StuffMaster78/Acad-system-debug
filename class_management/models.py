@@ -3,15 +3,14 @@ Models for managing class bundles, purchases, durations, and related
 client interactions such as messages, tickets, and wallet transactions.
 """
 import uuid
+from decimal import Decimal
 from django.db import models
 from django.contrib.contenttypes.fields import GenericRelation
 from django.conf import settings
-# from websites.models import Website
+from django.utils import timezone
 from communications.models import CommunicationThread
 from tickets.models import Ticket
 from wallet.models import Wallet
-from django.apps import apps
-
 from websites.models import Website
 
 # Use apps.get_model() to access Website model lazily
@@ -103,9 +102,61 @@ class ClassBundleConfig(models.Model):
         return self.bundle_size * self.price_per_class
 
 
+class ClassBundleFile(models.Model):
+    """
+    File attachments for class bundles.
+    Can be uploaded by clients, writers, admins, editors, superadmins.
+    """
+    class_bundle = models.ForeignKey(
+        'ClassBundle',
+        on_delete=models.CASCADE,
+        related_name='files',
+        help_text="Class bundle this file belongs to"
+    )
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='class_bundle_files',
+        help_text="User who uploaded the file"
+    )
+    file = models.FileField(
+        upload_to='class_bundles/files/',
+        help_text="Uploaded file"
+    )
+    file_name = models.CharField(
+        max_length=255,
+        help_text="Original filename"
+    )
+    file_size = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="File size in bytes"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Optional description of the file"
+    )
+    is_visible_to_client = models.BooleanField(
+        default=True,
+        help_text="Whether file is visible to client"
+    )
+    is_visible_to_writer = models.BooleanField(
+        default=True,
+        help_text="Whether file is visible to writer"
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['-uploaded_at']
+    
+    def __str__(self):
+        return f"{self.file_name} - {self.class_bundle} - {self.uploaded_by}"
+
+
 class ClassBundle(models.Model):
     """
     Represents a bundle of classes purchased by a client.
+    Can be created from a config bundle OR manually by admin with custom pricing.
     """
     NOT_STARTED = "not_started"
     IN_PROGRESS = "in_progress"
@@ -118,19 +169,50 @@ class ClassBundle(models.Model):
         (EXHAUSTED, "Exhausted"),
         (COMPLETED, "Completed"),
     ]
+    
+    PRICING_SOURCE_CHOICES = [
+        ('config', 'From Bundle Config'),
+        ('manual', 'Admin Manual Entry'),
+    ]
+    
     client = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         help_text="Client who bought the bundle"
     )
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="class_bundles",
+        help_text="Website this bundle belongs to"
+    )
+    assigned_writer = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_class_bundles',
+        limit_choices_to={'role': 'writer'},
+        help_text="Writer assigned to this class bundle"
+    )
     config = models.ForeignKey(
         ClassBundleConfig,
         on_delete=models.PROTECT,
-        help_text="Base pricing config used"
+        null=True,
+        blank=True,
+        help_text="Base pricing config used (if from config)"
+    )
+    pricing_source = models.CharField(
+        max_length=20,
+        choices=PRICING_SOURCE_CHOICES,
+        default='config',
+        help_text="Whether pricing came from config or manual admin entry"
     )
     duration = models.CharField(
         max_length=10,
-        help_text="Duration copied from config"
+        null=True,
+        blank=True,
+        help_text="Duration copied from config or manually set"
     )
     status = models.CharField(
         max_length=20, choices=STATUS_CHOICES,
@@ -139,28 +221,88 @@ class ClassBundle(models.Model):
     )
     level = models.CharField(
         max_length=10,
-        help_text="Level copied from config"
+        null=True,
+        blank=True,
+        help_text="Level copied from config or manually set"
     )
     bundle_size = models.PositiveIntegerField(
+        null=True,
+        blank=True,
         help_text="Number of classes in this bundle"
     )
     price_per_class = models.DecimalField(
         max_digits=10,
         decimal_places=2,
+        null=True,
+        blank=True,
         help_text="Price per class in this bundle"
     )
     number_of_classes = models.PositiveIntegerField(
         help_text="Actual number of classes client needs done"
     )
+    start_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Class start date (date A)"
+    )
+    end_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Class end date (date B)"
+    )
     total_price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Calculated full price of the bundle"
+        help_text="Total price of the bundle (from config or manually set, before discount)"
+    )
+    original_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Original price before discount (if discount applied)"
+    )
+    discount = models.ForeignKey(
+        'discounts.Discount',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='class_bundles',
+        help_text="Applied discount (set by admin)"
+    )
+    deposit_required = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Deposit amount required before starting classes (set by admin, after discount)"
+    )
+    deposit_paid = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text="Amount of deposit already paid"
     )
     balance_remaining = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Remaining balance after payments"
+        help_text="Remaining balance after payments (excluding deposit)"
+    )
+    installments_enabled = models.BooleanField(
+        default=False,
+        help_text="Whether installments are enabled for this bundle"
+    )
+    installment_count = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Number of installments (set by admin)"
+    )
+    created_by_admin = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="created_class_bundles",
+        help_text="Admin who created this bundle (if manual)"
     )
     message_threads = GenericRelation(CommunicationThread)
     support_tickets = GenericRelation(Ticket)
@@ -176,22 +318,56 @@ class ClassBundle(models.Model):
 
     def __str__(self):
         return (
-            f"{self.get_level_display()} | {self.duration} | "
-            f"{self.bundle_size} class bundle"
+            f"{self.get_level_display() if self.level else 'Class'} | {self.duration or 'N/A'} | "
+            f"{self.bundle_size or self.number_of_classes} class bundle"
         )
 
     def save(self, *args, **kwargs):
         """
-        Autofill class details from config during first save.
+        Autofill class details from config during first save, or use manual values.
         """
-        if not self.pk and self.config:
-            self.duration = self.config.duration.code
-            self.level = self.config.level
-            self.bundle_size = self.config.bundle_size
-            self.price_per_class = self.config.price_per_class
-            self.total_price = self.bundle_size * self.price_per_class
-            self.balance_remaining = self.total_price
+        if not self.pk:
+            if self.config and self.pricing_source == 'config':
+                # Fill from config
+                self.duration = self.config.duration.class_code
+                self.level = self.config.level
+                self.bundle_size = self.config.bundle_size
+                self.price_per_class = self.config.price_per_class
+                if not self.total_price:
+                    self.total_price = self.bundle_size * self.price_per_class
+            # Calculate balance remaining (total - deposit paid - payments made)
+            if not self.balance_remaining:
+                self.balance_remaining = self.total_price - self.deposit_required
+        
         super().save(*args, **kwargs)
+    
+    def update_balance(self):
+        """Update balance_remaining based on payments."""
+        total_paid = self.installments.filter(is_paid=True).aggregate(
+            total=models.Sum('amount')
+        )['total'] or 0
+        
+        # Balance = total_price - deposit_required - installments_paid
+        # (deposit is separate, not counted in balance)
+        self.balance_remaining = max(
+            Decimal('0'),
+            self.total_price - self.deposit_required - Decimal(str(total_paid))
+        )
+        self.save(update_fields=['balance_remaining'])
+    
+    @property
+    def has_deposit_paid(self):
+        """Check if deposit is fully paid."""
+        return self.deposit_paid >= self.deposit_required
+    
+    @property
+    def is_fully_paid(self):
+        """Check if bundle is fully paid (deposit + installments)."""
+        total_paid = self.installments.filter(is_paid=True).aggregate(
+            total=models.Sum('amount')
+        )['total'] or 0
+        return (self.has_deposit_paid and 
+                Decimal(str(total_paid)) >= (self.total_price - self.deposit_required))
 
     def mark_as_exhausted(self):
         """
@@ -218,7 +394,11 @@ class ClassBundle(models.Model):
 
 class ClassPurchase(models.Model):
     """
-    Represents a payment made for a class bundle.
+    Represents a payment record for a class bundle deposit.
+    NOTE: Installment payments are tracked via ClassInstallment.payment_record
+    linking to OrderPayment. This model is mainly for deposit payments.
+    
+    For unified payment workflow, use OrderPayment with payment_type='class_payment'.
     """
     STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -241,7 +421,32 @@ class ClassPurchase(models.Model):
     bundle = models.ForeignKey(
         ClassBundle,
         on_delete=models.PROTECT,
+        related_name="purchases",
         help_text="Target class bundle"
+    )
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="class_purchases",
+        help_text="Website this purchase belongs to"
+    )
+    payment_record = models.ForeignKey(
+        'order_payments_management.OrderPayment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='class_purchases',
+        help_text="The actual payment transaction record (for unified payment workflow)"
+    )
+    payment_type = models.CharField(
+        max_length=20,
+        default='deposit',
+        choices=[
+            ('deposit', 'Deposit Payment'),
+            ('full', 'Full Payment'),
+            ('installment', 'Installment Payment'),
+        ],
+        help_text="Type of payment"
     )
     status = models.CharField(
         max_length=20,
@@ -263,14 +468,17 @@ class ClassPurchase(models.Model):
     )
 
     def __str__(self):
-        return f"{self.client} - {self.bundle} - {self.status}"
+        return f"{self.client} - {self.bundle} - {self.payment_type} - {self.status}"
 
     def save(self, *args, **kwargs):
         """
         Lock the price at the time of payment.
         """
         if not self.price_locked:
-            self.price_locked = self.bundle.total_price
+            if self.payment_type == 'deposit':
+                self.price_locked = self.bundle.deposit_required
+            else:
+                self.price_locked = self.bundle.total_price
         super().save(*args, **kwargs)
 
 
@@ -316,6 +524,7 @@ class WalletTransaction(models.Model):
 class ClassInstallment(models.Model):
     """
     Represents a single installment toward a class bundle.
+    Supports scheduled installments with due dates and payment tracking.
     """
     class_bundle = models.ForeignKey(
         ClassBundle,
@@ -326,17 +535,62 @@ class ClassInstallment(models.Model):
     amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Amount paid"
+        help_text="Amount due for this installment"
     )
-    paid_at = models.DateTimeField(auto_now_add=True)
+    due_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Date when this installment is due"
+    )
+    is_paid = models.BooleanField(
+        default=False,
+        help_text="Whether this installment has been paid"
+    )
+    paid_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this installment was paid"
+    )
     paid_by = models.ForeignKey(
         User,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         help_text="User who made the payment"
     )
-
+    payment_record = models.ForeignKey(
+        'order_payments_management.OrderPayment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='class_installments',
+        help_text="The actual payment transaction record for this installment"
+    )
+    installment_number = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Sequence number of this installment (1, 2, 3, ...)"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['installment_number', 'due_date']
+    
     def __str__(self):
-        return f"Installment of ${self.amount} for {self.class_bundle}"
+        status = "Paid" if self.is_paid else "Pending"
+        return f"Installment #{self.installment_number} of ${self.amount} for {self.class_bundle} - {status}"
+    
+    def mark_paid(self, payment_record=None, paid_by=None):
+        """Mark installment as paid and link payment record."""
+        self.is_paid = True
+        self.paid_at = timezone.now()
+        if payment_record:
+            self.payment_record = payment_record
+        if paid_by:
+            self.paid_by = paid_by
+        self.save()
+        # Update bundle balance
+        self.class_bundle.update_balance()
 
 
 class ExpressClass(models.Model):

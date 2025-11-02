@@ -32,12 +32,12 @@ class OrderSerializer(serializers.ModelSerializer):
             'extra_services', 'subject', 'discount_code', 'is_paid', 
             'status', 'flag', 'created_at', 'updated_at', 
             'created_by_admin', 'is_special_order', 'is_follow_up',
-            'previous_order'
+            'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent'
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_cost', 
             'writer_compensation', 'is_paid', 'created_at', 'updated_at', 
-            'flag', 'writer_deadline'
+            'flag', 'writer_deadline', 'editing_skip_reason'
         ]
 
     def validate_academic_level(self, value):

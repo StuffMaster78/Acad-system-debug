@@ -1,77 +1,514 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
-from django.utils import timezone
-from django.utils.timezone import timedelta
 from rest_framework.response import Response
-from class_management.models import ClassPurchase, ClassInstallment, ClassBundleConfig
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from django.utils import timezone
+from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404
+from django.db import models
+import logging
+
+from class_management.models import (
+    ClassPurchase, ClassInstallment, ClassBundleConfig, ClassBundle, ClassBundleFile
+)
 from class_management.serializers import (
     ClassPurchaseSerializer, ClassInstallmentSerializer,
-    ClassBundleConfigSerializer
+    ClassBundleConfigSerializer, ClassBundleSerializer,
+    AdminCreateClassBundleSerializer, AdminConfigureInstallmentsSerializer
 )
 from class_management.services.class_purchases import handle_purchase_request
 from class_management.services.pricing import get_class_price, InvalidPricingError
+from class_management.services.class_bundle_admin import ClassBundleAdminService
+from class_management.services.class_payment_processor import ClassPaymentProcessor
+from class_management.services.class_communication import ClassBundleCommunicationService
+from class_management.services.class_tickets import ClassBundleTicketService
 from websites.models import Website
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
-class ClassPurchaseViewSet(viewsets.ModelViewSet):
-    queryset = ClassPurchase.objects.all()
-    serializer_class = ClassPurchaseSerializer
-    lookup_field = 'id'
+logger = logging.getLogger(__name__)
+
+
+class ClassBundleViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing class bundles.
+    Clients can view their bundles, admins can create and manage all bundles.
+    """
+    queryset = ClassBundle.objects.select_related('client', 'website', 'config', 'created_by_admin', 'assigned_writer').prefetch_related('installments', 'files')
+    serializer_class = ClassBundleSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter bundles based on user role."""
+        user = self.request.user
+        if user.is_staff:
+            return self.queryset.all()
+        # Clients see their bundles, writers see assigned bundles
+        return self.queryset.filter(
+            models.Q(client=user) | models.Q(assigned_writer=user)
+        ).distinct()
 
     def get_website(self):
+        """Get website from request."""
         domain = self.request.get_host()
-        return Website.objects.get(domain=domain)
+        try:
+            return Website.objects.get(domain=domain)
+        except Website.DoesNotExist:
+            return None
 
-    def perform_create(self, serializer):
-        website = self.get_website()
-        purchase = handle_purchase_request(
-            user=self.request.user,
-            data=self.request.data,
-            website=website
-        )
-        serializer.instance = purchase
-
-    @action(detail=True, methods=['post'])
-    def pay_installment(self, request, pk=None):
-        from class_management.services.installments import charge_installment
-        purchase = self.get_object()
-        installment = purchase.installments.filter(paid=False).first()
-
-        if not installment:
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def pay_deposit(self, request, pk=None):
+        """
+        Process deposit payment for a class bundle.
+        
+        Request body:
+        {
+            "payment_method": "wallet" | "stripe" | "manual",
+            "discount_code": "optional_discount_code"
+        }
+        """
+        bundle = self.get_object()
+        
+        # Validate client owns the bundle
+        if bundle.client != request.user and not request.user.is_staff:
             return Response(
-                {"detail": "All installments are already paid."},
+                {'error': 'You do not have permission to pay for this bundle.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        payment_method = request.data.get('payment_method', 'wallet')
+        discount_code = request.data.get('discount_code')
+        
+        try:
+            payment = ClassPaymentProcessor.process_deposit_payment(
+                bundle=bundle,
+                client=request.user,
+                payment_method=payment_method,
+                discount_code=discount_code
+            )
+            
+            return Response({
+                'status': 'success',
+                'payment_id': payment.id,
+                'payment_status': payment.status,
+                'bundle_id': bundle.id,
+                'deposit_paid': float(bundle.deposit_paid),
+                'message': 'Deposit payment processed successfully.'
+            }, status=status.HTTP_200_OK)
+            
+        except ValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.exception(f"Error processing deposit payment: {e}")
+            return Response(
+                {'error': 'An error occurred processing the payment.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAdminUser])
+    def create_manual(self, request):
+        """
+        Admin endpoint to create a class bundle with manual pricing.
+        
+        Request body: See AdminCreateClassBundleSerializer
+        """
+        website = self.get_website()
+        if not website:
+            return Response(
+                {'error': 'Website not found.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = AdminCreateClassBundleSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = serializer.validated_data
+        
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            client = User.objects.get(id=data['client_id'])
+        except Exception:
+            return Response(
+                {'error': 'Client not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        try:
+            bundle = ClassBundleAdminService.create_manual_bundle(
+                client=client,
+                website=website,
+                admin_user=request.user,
+                total_price=data['total_price'],
+                number_of_classes=data['number_of_classes'],
+                deposit_required=data.get('deposit_required', 0),
+                installments_enabled=data.get('installments_enabled', False),
+                installment_count=data.get('installment_count'),
+                duration=data.get('duration'),
+                level=data.get('level'),
+                bundle_size=data.get('bundle_size'),
+                start_date=data.get('start_date'),
+                end_date=data.get('end_date'),
+                discount_code=data.get('discount_code'),
+                discount_id=data.get('discount_id'),
+            )
+            
+            return Response(
+                ClassBundleSerializer(bundle).data,
+                status=status.HTTP_201_CREATED
+            )
+            
+        except ValidationError as e:
+            return Response(
+                {'error': str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        charge_installment(self.request.user, installment)
-        return Response({"detail": "Installment paid."})
-
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def configure_installments(self, request, pk=None):
+        """
+        Admin endpoint to configure installments for a bundle.
+        
+        Request body: See AdminConfigureInstallmentsSerializer
+        """
+        bundle = self.get_object()
+        
+        serializer = AdminConfigureInstallmentsSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = serializer.validated_data
+        
+        try:
+            bundle = ClassBundleAdminService.configure_installments(
+                bundle=bundle,
+                admin_user=request.user,
+                installment_count=data['installment_count'],
+                interval_weeks=data.get('interval_weeks', 2),
+                amounts=data.get('amounts'),
+            )
+            
+            return Response(
+                ClassBundleSerializer(bundle).data,
+                status=status.HTTP_200_OK
+            )
+            
+        except ValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
     
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def create_thread(self, request, pk=None):
+        """
+        Create a communication thread for this class bundle.
+        
+        Request body:
+        {
+            "recipient_id": 123,
+            "subject": "Optional subject",
+            "initial_message": "Optional initial message"
+        }
+        """
+        bundle = self.get_object()
+        
+        # Validate user has access
+        if not ClassBundleCommunicationService.can_access_bundle_communication(request.user, bundle):
+            return Response(
+                {'error': 'You do not have permission to create threads for this bundle.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        recipient_id = request.data.get('recipient_id')
+        if not recipient_id:
+            return Response(
+                {'error': 'recipient_id is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            recipient = User.objects.get(id=recipient_id)
+        except Exception:
+            return Response(
+                {'error': 'Recipient not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        try:
+            thread = ClassBundleCommunicationService.create_thread_for_bundle(
+                bundle=bundle,
+                created_by=request.user,
+                recipient=recipient,
+                subject=request.data.get('subject'),
+                initial_message=request.data.get('initial_message')
+            )
+            
+            from communications.serializers import CommunicationThreadSerializer
+            return Response(
+                CommunicationThreadSerializer(thread).data,
+                status=status.HTTP_201_CREATED
+            )
+        except PermissionDenied as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def create_ticket(self, request, pk=None):
+        """
+        Create a support ticket for this class bundle.
+        
+        Request body:
+        {
+            "title": "Ticket title",
+            "description": "Ticket description",
+            "priority": "low|medium|high|critical",
+            "category": "general|payment|technical|feedback|order|other"
+        }
+        """
+        bundle = self.get_object()
+        
+        # Validate user can create ticket
+        if bundle.client != request.user and not request.user.is_staff:
+            return Response(
+                {'error': 'Only the client or staff can create tickets.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            ticket = ClassBundleTicketService.create_ticket_for_bundle(
+                bundle=bundle,
+                created_by=request.user,
+                title=request.data.get('title'),
+                description=request.data.get('description'),
+                priority=request.data.get('priority', 'medium'),
+                category=request.data.get('category', 'general')
+            )
+            
+            from tickets.serializers import TicketSerializer
+            return Response(
+                TicketSerializer(ticket).data,
+                status=status.HTTP_201_CREATED
+            )
+        except PermissionDenied as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def upload_file(self, request, pk=None):
+        """
+        Upload a file for this class bundle.
+        
+        Request: multipart/form-data
+        {
+            "file": <file>,
+            "description": "Optional description"
+        }
+        """
+        bundle = self.get_object()
+        
+        # Validate user has access
+        if not ClassBundleCommunicationService.can_access_bundle_communication(request.user, bundle):
+            return Response(
+                {'error': 'You do not have permission to upload files for this bundle.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        if 'file' not in request.FILES:
+            return Response(
+                {'error': 'File is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        file = request.FILES['file']
+        description = request.data.get('description', '')
+        
+        # Create file record
+        bundle_file = ClassBundleFile.objects.create(
+            class_bundle=bundle,
+            uploaded_by=request.user,
+            file=file,
+            file_name=file.name,
+            file_size=file.size,
+            description=description,
+            is_visible_to_client=True,
+            is_visible_to_writer=True
+        )
+        
+        return Response({
+            'id': bundle_file.id,
+            'file_name': bundle_file.file_name,
+            'file_size': bundle_file.file_size,
+            'uploaded_by': bundle_file.uploaded_by.id,
+            'uploaded_at': bundle_file.uploaded_at,
+            'message': 'File uploaded successfully.'
+        }, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def threads(self, request, pk=None):
+        """Get all communication threads for this bundle."""
+        bundle = self.get_object()
+        
+        if not ClassBundleCommunicationService.can_access_bundle_communication(request.user, bundle):
+            return Response(
+                {'error': 'You do not have access to this bundle.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        threads = ClassBundleCommunicationService.get_threads_for_bundle(bundle, request.user)
+        from communications.serializers import CommunicationThreadSerializer
+        return Response(
+            CommunicationThreadSerializer(threads, many=True).data,
+            status=status.HTTP_200_OK
+        )
+    
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def tickets(self, request, pk=None):
+        """Get all support tickets for this bundle."""
+        bundle = self.get_object()
+        
+        if not ClassBundleCommunicationService.can_access_bundle_communication(request.user, bundle):
+            return Response(
+                {'error': 'You do not have access to this bundle.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        tickets = ClassBundleTicketService.get_tickets_for_bundle(bundle, request.user)
+        from tickets.serializers import TicketSerializer
+        return Response(
+            TicketSerializer(tickets, many=True).data,
+            status=status.HTTP_200_OK
+        )
+    
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def files(self, request, pk=None):
+        """Get all files for this bundle."""
+        bundle = self.get_object()
+        
+        if not ClassBundleCommunicationService.can_access_bundle_communication(request.user, bundle):
+            return Response(
+                {'error': 'You do not have access to this bundle.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Filter files based on visibility
+        files = bundle.files.all()
+        if request.user == bundle.client:
+            files = files.filter(is_visible_to_client=True)
+        elif request.user == bundle.assigned_writer:
+            files = files.filter(is_visible_to_writer=True)
+        elif not request.user.is_staff:
+            # Non-staff users only see files visible to them
+            files = files.none()
+        
+        return Response([
+            {
+                'id': f.id,
+                'file_name': f.file_name,
+                'file_size': f.file_size,
+                'description': f.description,
+                'uploaded_by': f.uploaded_by.id,
+                'uploaded_at': f.uploaded_at,
+                'file_url': f.file.url if f.file else None
+            }
+            for f in files
+        ], status=status.HTTP_200_OK)
+
+
+class ClassPurchaseViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing class purchase records.
+    """
+    queryset = ClassPurchase.objects.select_related('client', 'bundle', 'website', 'payment_record')
+    serializer_class = ClassPurchaseSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        """Filter purchases based on user role."""
+        user = self.request.user
+        if user.is_staff:
+            return self.queryset.all()
+        return self.queryset.filter(client=user)
+
+
 class ClassInstallmentViewSet(viewsets.ModelViewSet):
     """
     ViewSet for handling class installment records.
     """
-    queryset = ClassInstallment.objects.all()
+    queryset = ClassInstallment.objects.select_related('class_bundle', 'paid_by', 'payment_record')
     serializer_class = ClassInstallmentSerializer
     permission_classes = [IsAuthenticated]
 
-    def perform_create(self, serializer):
-        """
-        Custom logic during installment creation.
-        You can auto-set installment due date, charge wallet, etc.
-        """
-        if not serializer.validated_data.get('due_date'):
-            # Set due date 2 weeks from now
-            serializer.validated_data['due_date'] = timezone.now() + timedelta(weeks=2)
-        super().perform_create(serializer)
-    
     def get_queryset(self):
         """
-        Return only the installments for the currently authenticated user.
+        Return installments filtered by user role.
         """
-        return self.queryset.filter(purchase__client=self.request.user)
+        user = self.request.user
+        if user.is_staff:
+            return self.queryset.all()
+        return self.queryset.filter(class_bundle__client=user)
 
-    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def pay_installment(self, request, pk=None):
+        """
+        Process payment for a specific installment.
+        
+        Request body:
+        {
+            "payment_method": "wallet" | "stripe" | "manual",
+            "discount_code": "optional_discount_code"
+        }
+        """
+        installment = self.get_object()
+        
+        # Validate client owns the bundle
+        if installment.class_bundle.client != request.user and not request.user.is_staff:
+            return Response(
+                {'error': 'You do not have permission to pay for this installment.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        payment_method = request.data.get('payment_method', 'wallet')
+        discount_code = request.data.get('discount_code')
+        
+        try:
+            payment = ClassPaymentProcessor.process_installment_payment(
+                installment=installment,
+                client=request.user,
+                payment_method=payment_method,
+                discount_code=discount_code
+            )
+            
+            return Response({
+                'status': 'success',
+                'payment_id': payment.id,
+                'payment_status': payment.status,
+                'installment_id': installment.id,
+                'amount': float(payment.amount),
+                'message': 'Installment payment processed successfully.'
+            }, status=status.HTTP_200_OK)
+            
+        except ValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.exception(f"Error processing installment payment: {e}")
+            return Response(
+                {'error': 'An error occurred processing the payment.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
 class ClassBundleConfigViewSet(viewsets.ModelViewSet):
     """
     ViewSet for handling class bundle pricing configurations.
@@ -79,7 +516,7 @@ class ClassBundleConfigViewSet(viewsets.ModelViewSet):
     """
     queryset = ClassBundleConfig.objects.all()
     serializer_class = ClassBundleConfigSerializer
-    permission_classes = [IsAdminUser]  # Only admins can modify class bundle configurations
+    permission_classes = [IsAdminUser]
 
     def get_website(self):
         domain = self.request.get_host()
@@ -105,7 +542,8 @@ class ClassBundleConfigViewSet(viewsets.ModelViewSet):
             return Response({'detail': 'Program and duration are required.'}, status=400)
 
         try:
-            price = get_class_price(program, duration, bundle_size)
+            website = self.get_website()
+            price = get_class_price(program, duration, bundle_size, website)
             return Response({'price': str(price)}, status=200)
         except InvalidPricingError as e:
             return Response({'detail': str(e)}, status=404)

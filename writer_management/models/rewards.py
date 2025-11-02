@@ -14,17 +14,29 @@ class WriterRewardManager(models.Manager):
         return super().create(**kwargs)
 
 
+from django.utils.timezone import now
+
 class WriterReward(models.Model):
     """
-    Minimal reward model for tests: tracks a reward granted to a writer.
+    Tracks rewards given to writers, including criteria, performance metrics, and prizes.
     """
     website = models.ForeignKey(Website, on_delete=models.CASCADE, related_name="writer_rewards")
     writer = models.ForeignKey(WriterProfile, on_delete=models.CASCADE, related_name="rewards")
-    # Fields expected by tests
-    title = models.CharField(max_length=255, default="Reward")
-    prize = models.CharField(max_length=255, blank=True, null=True)
-    metadata = models.JSONField(default=dict, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    criteria = models.ForeignKey(
+        'WriterRewardCriteria', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="rewards_given"
+    )
+    title = models.CharField(max_length=200, help_text="Custom title for the reward (e.g., 'Top Performer').")
+    performance_metric = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Details of the performance metric used to determine the reward."
+    )
+    awarded_date = models.DateTimeField(default=now, help_text="Date the reward was given.")
+    prize = models.CharField(max_length=255, blank=True, null=True, help_text="Prize or benefit (e.g., 'Bonus $50').")
+    notes = models.TextField(blank=True, null=True, help_text="Additional notes about the reward.")
+    metadata = models.JSONField(default=dict, blank=True)  # For backward compatibility
+    created_at = models.DateTimeField(auto_now_add=True)  # For backward compatibility
 
     objects = WriterRewardManager()
 
@@ -44,16 +56,8 @@ class WriterReward(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        return f"{self.writer.user.username} - {self.title} - {self.prize or ''}"
+        return f"{self.title} - {self.writer.user.username} ({self.awarded_date or self.created_at})"
 
-from django.db import models
-from django.utils.timezone import now
-from websites.models import Website
-from writer_management.models.profile import WriterProfile
-from django.conf import settings
-from django.contrib.auth import get_user_model
-
-User = get_user_model()
 
 class WriterRewardCriteria(models.Model):
     """
@@ -85,65 +89,4 @@ class WriterRewardCriteria(models.Model):
 
     def __str__(self):
         return f"Reward Criteria: {self.name} (Auto: {self.auto_reward_enabled})"
-
-        
-class WriterReward(models.Model):
-    """
-    Tracks rewards given to writers, including criteria, performance metrics, and prizes.
-    """
-    website = models.ForeignKey(
-        Website,
-        on_delete=models.CASCADE,
-        related_name="writer_reward"
-    )
-    writer = models.ForeignKey(
-        WriterProfile,
-        on_delete=models.CASCADE,
-        related_name="rewards",
-        help_text="The writer receiving this reward."
-    )
-    criteria = models.ForeignKey(
-        WriterRewardCriteria, on_delete=models.SET_NULL,
-        null=True, blank=True, related_name="rewards_given"
-    )
-    title = models.CharField(
-        max_length=200,
-        help_text="Custom title for the reward (e.g., 'Top Performer')."
-    )
-    performance_metric = models.JSONField(
-        default=dict,
-        blank=True,
-        help_text="Details of the performance metric used to determine the reward (e.g., ratings, urgent orders)."
-    )
-    awarded_date = models.DateTimeField(
-        default=now, help_text="Date the reward was given."
-    )
-    prize = models.CharField(
-        max_length=255,
-        blank=True,
-        null=True,
-        help_text="Prize or benefit given to the writer (e.g., 'Bonus $50')."
-    )
-    notes = models.TextField(
-        blank=True, null=True, 
-        help_text="Additional notes about the reward."
-    )
-
-    def save(self, *args, **kwargs):
-        if not getattr(self, 'website_id', None):
-            try:
-                if getattr(self, 'writer', None) and getattr(self.writer, 'website_id', None):
-                    self.website_id = self.writer.website_id
-                else:
-                    from websites.models import Website
-                    site = Website.objects.filter(is_active=True).first()
-                    if site is None:
-                        site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
-                    self.website_id = site.id
-            except Exception:
-                pass
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.title} - {self.writer.user.username} ({self.awarded_date})"
     

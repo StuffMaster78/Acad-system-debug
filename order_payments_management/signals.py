@@ -37,11 +37,17 @@ def process_successful_payment(instance):
     else:
         logger.error(f"Payment {instance.transaction_id} completed, but no order reference found.")
 
-    # Notify client
-    Notification.create_notification(
-        user=instance.client,
-        message=f"Your payment of ${instance.discounted_amount} was successful!"
-    )
+    # Notify client (using NotificationHelper for better integration)
+    try:
+        from notifications_system.services.notification_helper import NotificationHelper
+        if instance.order and instance.order.client:
+            NotificationHelper.notify_order_paid(
+                order=instance.order,
+                payment_amount=instance.discounted_amount or instance.amount,
+                payment_method=instance.payment_method or "payment method"
+            )
+    except Exception as e:
+        logger.error(f"Failed to send payment notification: {e}")
 
     # Log successful payment
     PaymentLog.log_event(
@@ -62,30 +68,38 @@ def handle_failed_payment(instance):
         failed_payment.retry_count += 1
         failed_payment.save()
 
-     # A Safeguard: Ensure client exists before notifying
-    if instance.client:
-        # Notify client only on first failure
-        if created or failed_payment.retry_count == 1:
-            Notification.create_notification(
-                user=instance.client,
-                message="Your payment attempt failed. Please try again."
-            )
-
     # Notify client only on first failure
-    if created or failed_payment.retry_count == 1:
-        Notification.create_notification(
-            user=instance.client,
-            message="Your payment attempt failed. Please try again."
-        )
+    if instance.client and instance.order and (created or failed_payment.retry_count == 1):
+        try:
+            from notifications_system.services.notification_helper import NotificationHelper
+            NotificationHelper.notify_payment_failed(
+                order=instance.order,
+                amount=instance.amount,
+                reason=failed_payment.failure_reason or "Payment could not be processed"
+            )
+        except Exception as e:
+            logger.error(f"Failed to send payment failed notification: {e}")
 
     # If too many failures in 24 hours, alert admin
     if failed_payment.retry_count >= 3:
         last_failure = failed_payment.updated_at
         if last_failure and now() - last_failure < timedelta(hours=24):
-            Notification.create_notification(
-                user=instance.client,
-                message="Multiple failed payments detected. Contact support."
-            )
+            try:
+                from notifications_system.services.notification_helper import NotificationHelper
+                if instance.order:
+                    NotificationHelper.send_notification(
+                        user=instance.client,
+                        event="payment.multiple_failures",
+                        payload={
+                            "order_id": instance.order.id,
+                            "failure_count": failed_payment.retry_count,
+                            "website_id": instance.website_id
+                        },
+                        website=instance.website,
+                        is_critical=True
+                    )
+            except Exception as e:
+                logger.error(f"Failed to send multiple failures notification: {e}")
             AdminLog.log_action(
                 admin=None,
                 action="Repeated Payment Failure",
@@ -148,10 +162,22 @@ def log_dispute_action(sender, instance, created, **kwargs):
         )
 
         # Notify the client
-        Notification.create_notification(
-            user=instance.client,
-            message="Your payment dispute has been resolved."
-        )
+        try:
+            from notifications_system.services.notification_helper import NotificationHelper
+            if instance.payment and instance.payment.order:
+                NotificationHelper.send_notification(
+                    user=instance.client,
+                    event="payment.dispute.resolved",
+                    payload={
+                        "dispute_id": instance.id,
+                        "payment_id": instance.payment.id,
+                        "order_id": instance.payment.order.id,
+                        "website_id": instance.payment.website_id
+                    },
+                    website=instance.payment.website
+                )
+        except Exception as e:
+            logger.error(f"Failed to send dispute resolved notification: {e}")
 
     elif instance.status == "rejected":
         # Log dispute rejection
@@ -162,10 +188,22 @@ def log_dispute_action(sender, instance, created, **kwargs):
         )
 
         # Notify the client
-        Notification.create_notification(
-            user=instance.client,
-            message="Your payment dispute was rejected."
-        )
+        try:
+            from notifications_system.services.notification_helper import NotificationHelper
+            if instance.payment and instance.payment.order:
+                NotificationHelper.send_notification(
+                    user=instance.client,
+                    event="payment.dispute.rejected",
+                    payload={
+                        "dispute_id": instance.id,
+                        "payment_id": instance.payment.id,
+                        "order_id": instance.payment.order.id,
+                        "website_id": instance.payment.website_id
+                    },
+                    website=instance.payment.website
+                )
+        except Exception as e:
+            logger.error(f"Failed to send dispute rejected notification: {e}")
 
 
 @receiver(pre_save, sender=OrderPayment)

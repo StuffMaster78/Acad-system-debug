@@ -2,66 +2,72 @@ from django.utils import timezone
 from django.conf import settings
 from decimal import Decimal, ROUND_HALF_UP
 from orders.models import Order
-from fines.models import Fine, FinePolicy, FineType
+from fines.models import Fine, FinePolicy, FineType, FineStatus
+from fines.services.late_fine_calculation_service import LateFineCalculationService
+from fines.services.fine_type_service import FineTypeService
 
 
 def auto_issue_late_fine(order):
     """
-    Automatically issue a lateness fine based on the hours/days past deadline.
+    Automatically issue a lateness fine based on progressive hourly calculation.
+    Uses FineTypeService for scalable fine issuance.
     Returns the Fine instance if created, or None if not applicable.
     """
 
-    if not order.submitted_at or not order.deadline:
-        return None  # Can't evaluate lateness
-
-    if order.submitted_at <= order.deadline:
-        return None  # Submission was on time
-
     # Avoid duplicate fine
-    if order.fines.filter(fine_type=FineType.LATE_SUBMISSION).exists():
+    if order.fines.filter(
+        fine_type=FineType.LATE_SUBMISSION,
+        fine_type_config__code='late_submission'
+    ).exclude(
+        status__in=[FineStatus.VOIDED, FineStatus.WAIVED]
+    ).exists():
         return None  # Already fined for lateness
 
-    delay = order.submitted_at - order.deadline
-    hours_late = delay.total_seconds() / 3600
-    days_late = delay.days
-
-    # Fallback percentage logic
-    if 1 <= hours_late < 2:
-        percentage = 5
-    elif 2 <= hours_late < 3:
-        percentage = 10
-    elif 3 <= hours_late < 24:
-        percentage = 15 + int(hours_late - 3) * 2
-    else:
-        percentage = 50 + days_late * 10  # Escalates daily
-
+    # Calculate fine using progressive hourly service
+    fine_amount, reason, rule = LateFineCalculationService.calculate_late_fine(order)
     
-    # Try loading an active FinePolicy override
-    policy = FinePolicy.objects.filter(
-        fine_type=FineType.LATE_SUBMISSION,
-        active=True,
-        start_date__lte=timezone.now()
-    ).order_by("-start_date").first()
+    if fine_amount is None or fine_amount <= 0:
+        return None  # Not late or no fine applicable
 
-    if policy and policy.fixed_amount:
-        fine_amount = policy.fixed_amount
-    elif policy and policy.percentage:
-        percentage = Decimal(policy.percentage)
-        fine_amount = (percentage / 100) * order.price
+    # Calculate hours late for progressive calculation
+    deadline = order.client_deadline or order.writer_deadline
+    if order.submitted_at and deadline:
+        delay = order.submitted_at - deadline
+        hours_late = delay.total_seconds() / 3600
     else:
-        fine_amount = (Decimal(percentage) / 100) * order.price
-
-    fine_amount = fine_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-
-    fine = Fine.objects.create(
-        order=order,
-        fine_type=FineType.LATE_SUBMISSION,
-        amount=fine_amount,
-        reason=(
-            f"Auto-issued lateness fine: {round(hours_late, 2)}h "
-            f"({round(days_late, 1)}d) late"
-        ),
-        issued_by=settings.SYSTEM_USER,
-    )
-
-    return fine
+        hours_late = 0
+    
+    # Get system user for auto-issued fines
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    try:
+        system_user = User.objects.get(username='system') if hasattr(settings, 'SYSTEM_USER') else None
+    except:
+        system_user = None
+    
+    # Use FineTypeService to issue fine
+    try:
+        fine = FineTypeService.issue_fine(
+            order=order,
+            fine_type_code='late_submission',
+            reason=reason,
+            issued_by=system_user,
+            hours_late=hours_late
+        )
+        return fine
+    except ValueError:
+        # Fallback: Fine type config not found, create fine manually
+        fine = Fine.objects.create(
+            order=order,
+            fine_type=FineType.LATE_SUBMISSION,
+            amount=fine_amount,
+            reason=reason,
+            issued_by=system_user,
+            status=FineStatus.ISSUED,
+        )
+        
+        # Adjust writer compensation
+        from fines.services.compensation import adjust_writer_compensation
+        adjust_writer_compensation(order, -fine_amount)
+        
+        return fine

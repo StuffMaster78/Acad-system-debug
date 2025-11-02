@@ -15,6 +15,10 @@ class IsAdminOrSuperAdmin(BasePermission):
         )
 
 
+# Alias for backward compatibility
+IsSuperadminOrAdmin = IsAdminOrSuperAdmin
+
+
 class IsSuperadmin(BasePermission):
     """Allows access only to superadmin users."""
 

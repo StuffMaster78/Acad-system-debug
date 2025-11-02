@@ -143,48 +143,107 @@ class UserManagementView(viewsets.ViewSet):
 
 
 class AdminLoginView(views.APIView):
+    """
+    DEPRECATED: Use /api/v1/auth/auth/login/ instead.
+    Admin-specific login endpoint (kept for backward compatibility).
+    """
     permission_classes = [AllowAny]
 
     def post(self, request):
-        username = request.data.get("username")
+        # Use unified authentication service
+        from authentication.services.auth_service import AuthenticationService
+        
+        email = request.data.get("email") or request.data.get("username")
         password = request.data.get("password")
-        user = authenticate(username=username, password=password)
-
-        if user and user.role in ["admin", "superadmin"]:
-            refresh = RefreshToken.for_user(user)
-            update_last_login(None, user)
-
-            AdminActivityLog.objects.create(
-                admin=user,
-                action="Admin Login",
-                details=f"{user.username} logged in."
+        
+        if not email or not password:
+            return Response(
+                {"error": "Email/username and password are required."},
+                status=status.HTTP_400_BAD_REQUEST
             )
-
-            return Response({
-                "access_token": str(refresh.access_token),
-                "refresh_token": str(refresh),
-                "user": {"id": user.id, "username": user.username, "role": user.role}
-            })
-
-        return Response({"error": "Invalid credentials or unauthorized."}, status=401)
+        
+        try:
+            result = AuthenticationService.login(
+                request=request,
+                email=email,
+                password=password,
+                remember_me=request.data.get("remember_me", False)
+            )
+            
+            # Check if user is admin/superadmin
+            user_id = result.get("user", {}).get("id")
+            if user_id:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user = User.objects.get(id=user_id)
+                
+                if user.role not in ["admin", "superadmin"]:
+                    return Response(
+                        {"error": "This endpoint is for admin/superadmin users only."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                
+                # Log admin activity
+                AdminActivityLog.objects.create(
+                    admin=user,
+                    action="Admin Login",
+                    details=f"{user.username} logged in."
+                )
+            
+            return Response(result, status=status.HTTP_200_OK)
+            
+        except ValidationError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Admin login error: {e}", exc_info=True)
+            return Response(
+                {"error": "An error occurred during login."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class AdminLogoutView(views.APIView):
+    """
+    DEPRECATED: Use /api/v1/auth/auth/logout/ instead.
+    Admin-specific logout endpoint (kept for backward compatibility).
+    """
     permission_classes = [IsAuthenticated]
-
+    
     def post(self, request):
+        # Use unified authentication service
+        from authentication.services.auth_service import AuthenticationService
+        from django.core.exceptions import ValidationError
+        
+        logout_all = request.query_params.get('logout_all', 'false').lower() == 'true'
+        
         try:
-            token = RefreshToken(request.data["refresh_token"])
-            token.blacklist()
-
+            result = AuthenticationService.logout(
+                request=request,
+                user=request.user,
+                logout_all=logout_all
+            )
+            
+            # Log admin activity
             AdminActivityLog.objects.create(
                 admin=request.user,
                 action="Admin Logout",
                 details=f"{request.user.username} logged out."
             )
-            return Response({"message": "Successfully logged out."})
-        except Exception:
-            return Response({"error": "Invalid refresh token."}, status=400)
+            
+            return Response(result, status=status.HTTP_200_OK)
+        except (ValidationError, Exception) as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Admin logout error: {e}", exc_info=True)
+            return Response(
+                {"error": "An error occurred during logout."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 @api_view(["POST"])

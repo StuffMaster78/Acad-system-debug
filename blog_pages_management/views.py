@@ -215,13 +215,183 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     serializer_class = BlogPostSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["category", "tags", "authors", "is_published", 'website']
+    filterset_fields = ["category", "tags", "authors", "is_published", "status", 'website']
     search_fields = ["title", "meta_title", "meta_description"]
-    ordering_fields = ["publish_date", "click_count", "conversion_count"]
+    ordering_fields = ["publish_date", "click_count", "conversion_count", "status"]
 
     def perform_destroy(self, instance):
         """Soft delete instead of actual delete."""
         instance.soft_delete()
+    
+    @action(detail=True, methods=['post'])
+    def create_revision(self, request, pk=None):
+        """Create a revision of the current blog post."""
+        blog = self.get_object()
+        change_summary = request.data.get('change_summary', '')
+        
+        from ..services.draft_editing_service import DraftEditingService
+        revision = DraftEditingService.create_revision(blog, request.user, change_summary)
+        
+        from ..serializers.draft_serializers import BlogPostRevisionSerializer
+        serializer = BlogPostRevisionSerializer(revision)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['post'])
+    def publish(self, request, pk=None):
+        """Publish a blog post (change status to published)."""
+        blog = self.get_object()
+        blog.status = "published"
+        blog.is_published = True
+        if not blog.publish_date:
+            blog.publish_date = timezone.now()
+        
+        # Create revision before publishing
+        from ..services.draft_editing_service import DraftEditingService
+        DraftEditingService.create_revision(blog, request.user, "Published")
+        
+        blog.save()
+        
+        serializer = self.get_serializer(blog)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def unpublish(self, request, pk=None):
+        """Unpublish a blog post (change status to draft)."""
+        blog = self.get_object()
+        blog.status = "draft"
+        blog.is_published = False
+        
+        # Create revision
+        from ..services.draft_editing_service import DraftEditingService
+        DraftEditingService.create_revision(blog, request.user, "Unpublished")
+        
+        blog.save()
+        
+        serializer = self.get_serializer(blog)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def archive(self, request, pk=None):
+        """Archive a blog post."""
+        blog = self.get_object()
+        blog.status = "archived"
+        blog.is_published = False
+        
+        # Create revision
+        from ..services.draft_editing_service import DraftEditingService
+        DraftEditingService.create_revision(blog, request.user, "Archived")
+        
+        blog.save()
+        
+        serializer = self.get_serializer(blog)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'])
+    def bulk_publish(self, request):
+        """Bulk publish multiple blog posts."""
+        blog_ids = request.data.get('blog_ids', [])
+        if not blog_ids:
+            return Response(
+                {'error': 'blog_ids is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        blogs = BlogPost.objects.filter(id__in=blog_ids)
+        published_count = 0
+        
+        from ..services.draft_editing_service import DraftEditingService
+        
+        for blog in blogs:
+            blog.status = "published"
+            blog.is_published = True
+            if not blog.publish_date:
+                blog.publish_date = timezone.now()
+            blog.save()
+            DraftEditingService.create_revision(blog, request.user, "Bulk published")
+            published_count += 1
+        
+        return Response({
+            'message': f'Published {published_count} blog posts',
+            'published_count': published_count
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'])
+    def bulk_archive(self, request):
+        """Bulk archive multiple blog posts."""
+        blog_ids = request.data.get('blog_ids', [])
+        if not blog_ids:
+            return Response(
+                {'error': 'blog_ids is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        blogs = BlogPost.objects.filter(id__in=blog_ids)
+        archived_count = 0
+        
+        from ..services.draft_editing_service import DraftEditingService
+        
+        for blog in blogs:
+            blog.status = "archived"
+            blog.is_published = False
+            blog.save()
+            DraftEditingService.create_revision(blog, request.user, "Bulk archived")
+            archived_count += 1
+        
+        return Response({
+            'message': f'Archived {archived_count} blog posts',
+            'archived_count': archived_count
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'])
+    def bulk_delete(self, request):
+        """Bulk soft delete multiple blog posts."""
+        blog_ids = request.data.get('blog_ids', [])
+        if not blog_ids:
+            return Response(
+                {'error': 'blog_ids is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        blogs = BlogPost.objects.filter(id__in=blog_ids)
+        deleted_count = 0
+        
+        for blog in blogs:
+            blog.soft_delete()
+            deleted_count += 1
+        
+        return Response({
+            'message': f'Deleted {deleted_count} blog posts',
+            'deleted_count': deleted_count
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'])
+    def export(self, request, pk=None):
+        """Export blog post to various formats."""
+        blog = self.get_object()
+        format_type = request.query_params.get('format', 'json')
+        
+        from ..services.template_service import ExportService
+        
+        if format_type == 'markdown':
+            content = ExportService.export_to_markdown(blog)
+            from django.http import HttpResponse
+            response = HttpResponse(content, content_type='text/markdown')
+            response['Content-Disposition'] = f'attachment; filename="{blog.slug}.md"'
+            return response
+        elif format_type == 'html':
+            content = ExportService.export_to_html(blog)
+            from django.http import HttpResponse
+            response = HttpResponse(content, content_type='text/html')
+            response['Content-Disposition'] = f'attachment; filename="{blog.slug}.html"'
+            return response
+        elif format_type == 'json':
+            data = ExportService.export_to_json(blog)
+            return Response(data, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                {'error': f'Unsupported format: {format_type}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
     @action(detail=True, methods=["get"])
     def related_posts(self, request, pk=None):

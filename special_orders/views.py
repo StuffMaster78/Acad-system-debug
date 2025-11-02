@@ -21,6 +21,8 @@ from .serializers import (
 )
 from .services.special_order_service import SpecialOrderService
 from .services.installment_payment_service import InstallmentPaymentService
+from .services.order_approval import OrderApprovalService
+from .services.installment_payment_processor import SpecialOrderInstallmentPaymentService
 import logging
 
 logger = logging.getLogger("special_orders")
@@ -57,9 +59,13 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
         Admin endpoint to approve a special order.
         """
         order = self.get_object()
-        SpecialOrderService.approve_special_order(order)
-        logger.info(f"Order #{order.id} approved by admin.")
-        return Response({'status': 'approved'})
+        OrderApprovalService.approve_special_order(order, request.user)
+        logger.info(f"Order #{order.id} approved by admin {request.user.username}.")
+        return Response({
+            'status': 'approved',
+            'order_status': order.status,
+            'message': f"Order approved. Status: {order.status}"
+        })
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def override_payment(self, request, pk=None):
@@ -87,7 +93,7 @@ class InstallmentPaymentViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing installment payments.
     """
-    queryset = InstallmentPayment.objects.select_related('special_order')
+    queryset = InstallmentPayment.objects.select_related('special_order', 'payment_record')
     serializer_class = InstallmentPaymentSerializer
     permission_classes = [IsAuthenticated]
 
@@ -105,6 +111,7 @@ class InstallmentPaymentViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """
         Validate client ownership and save installment.
+        Note: Use pay_installment action to actually process payment.
         """
         user = self.request.user
         try:
@@ -112,6 +119,58 @@ class InstallmentPaymentViewSet(viewsets.ModelViewSet):
         except PermissionError as e:
             logger.warning(str(e))
             raise PermissionError(str(e))
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def pay_installment(self, request, pk=None):
+        """
+        Process payment for a specific installment.
+        
+        Request body:
+        {
+            "payment_method": "wallet" | "stripe" | "manual",
+            "discount_code": "optional_discount_code"
+        }
+        """
+        installment = self.get_object()
+        
+        # Validate client owns the order
+        if installment.special_order.client != request.user and not request.user.is_staff:
+            return Response(
+                {'error': 'You do not have permission to pay for this installment.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        payment_method = request.data.get('payment_method', 'wallet')
+        discount_code = request.data.get('discount_code')
+        
+        try:
+            payment = SpecialOrderInstallmentPaymentService.process_installment_payment(
+                installment=installment,
+                client=request.user,
+                payment_method=payment_method,
+                discount_code=discount_code
+            )
+            
+            return Response({
+                'status': 'success',
+                'payment_id': payment.id,
+                'payment_status': payment.status,
+                'installment_id': installment.id,
+                'amount': float(payment.amount),
+                'message': 'Installment payment processed successfully.'
+            }, status=status.HTTP_200_OK)
+            
+        except ValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.exception(f"Error processing installment payment: {e}")
+            return Response(
+                {'error': 'An error occurred processing the payment.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class PredefinedSpecialOrderConfigViewSet(viewsets.ModelViewSet):

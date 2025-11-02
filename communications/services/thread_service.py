@@ -22,10 +22,14 @@ class ThreadService:
         if order.status == "archived":
             raise PermissionDenied("Cannot create thread on archived orders.")
 
+        # Note: Special orders and class bundles use GenericRelation
+        # and are handled separately via their own thread creation methods
         if getattr(order, "is_special", False):
             raise PermissionDenied("Special orders do not support threads.")
 
-        if getattr(order, "is_class", False):
+        # Class bundles are handled via ClassBundleCommunicationService
+        # Skip this check if order is None (class bundle threads)
+        if order and getattr(order, "is_class", False):
             raise PermissionDenied("Class orders do not support threads.")
 
         thread = CommunicationThread.objects.create(
