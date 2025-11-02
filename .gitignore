@@ -150,4 +150,6 @@ dump.rdb
 
 # Local development
 local/
-dev/
+dev/.venv/
+.venv/
+test_db.sqlite3
