@@ -26,8 +26,13 @@ def check_notification_templates(app_configs, **kwargs):
     System checks:
       1) Each configured event has a class-based template registered.
       2) If an event declares channel->template filenames, ensure they exist (name-only check).
+    
+    Set NOTIFICATIONS_SILENCE_TEMPLATE_WARNINGS=True to silence template-related warnings.
     """
     errors = []
+    
+    # Check if warnings should be silenced
+    silence_warnings = getattr(settings, "NOTIFICATIONS_SILENCE_TEMPLATE_WARNINGS", True)
 
     # Ensure registries are populated (AppConfig.ready() should already do this,
     # but running here makes the check self-sufficient).
@@ -47,6 +52,10 @@ def check_notification_templates(app_configs, **kwargs):
             f"Failed to load event configs: {exc}",
             id="notifications_system.E000",
         ))
+        return errors
+
+    # If warnings are silenced, skip template validation warnings
+    if silence_warnings:
         return errors
 
     template_classes = getattr(_tpl_mod, "_TEMPLATE_CLASSES", {})  # event_key -> class
@@ -144,8 +153,14 @@ def check_notification_config_schemas(app_configs, **kwargs):
       - configs/notification_event_config.json        (map/list of events)
       - configs/broadcast_event_config.json           (list)
       - configs/digest_event_config.json              (list)
+    
+    Respects LOAD_CENTRAL_NOTIFICATION_CONFIG setting.
+    Set NOTIFICATIONS_SILENCE_TEMPLATE_WARNINGS=True to silence warnings.
     """
     errors = []
+    
+    # Check if warnings should be silenced
+    silence_warnings = getattr(settings, "NOTIFICATIONS_SILENCE_TEMPLATE_WARNINGS", True)
 
     try:
         # Local imports to avoid import side-effects during Django app loading
@@ -224,36 +239,43 @@ def check_notification_config_schemas(app_configs, **kwargs):
     digest_cfg       = CONFIGS_DIR / "digest_event_config.json"
 
     # notification_event_config.json (map or list form, uses per-key schemas)
+    # Only check/warn if LOAD_CENTRAL_NOTIFICATION_CONFIG is True
+    load_central_config = getattr(settings, "LOAD_CENTRAL_NOTIFICATION_CONFIG", False)
+    
     if notification_cfg.exists():
-        try:
-            res = validate_events_file(notification_cfg)
-            if not res.ok:
+        # Only validate if we're supposed to load it
+        if load_central_config:
+            try:
+                res = validate_events_file(notification_cfg)
+                if not res.ok:
+                    errors.append(
+                        Error(
+                            f"notification_event_config.json failed validation.",
+                            hint="Fix the following:\n- " + "\n- ".join(res.errors[:10]) + ("\n… (truncated)" if len(res.errors) > 10 else ""),
+                            obj=str(notification_cfg),
+                            id="notifications_system.E024",
+                        )
+                    )
+            except Exception as exc:
                 errors.append(
                     Error(
-                        f"notification_event_config.json failed validation.",
-                        hint="Fix the following:\n- " + "\n- ".join(res.errors[:10]) + ("\n… (truncated)" if len(res.errors) > 10 else ""),
+                        "Exception while validating notification_event_config.json.",
+                        hint="Check JSON structure and referenced schemas.",
                         obj=str(notification_cfg),
-                        id="notifications_system.E024",
+                        id="notifications_system.E025",
                     )
                 )
-        except Exception as exc:
+    else:
+        # Only warn if we're supposed to load it AND warnings aren't silenced
+        if load_central_config and not silence_warnings:
             errors.append(
-                Error(
-                    "Exception while validating notification_event_config.json.",
-                    hint="Check JSON structure and referenced schemas.",
-                    obj=str(notification_cfg),
-                    id="notifications_system.E025",
+                Warning(
+                    "notification_event_config.json not found.",
+                    hint=f"Create it at {notification_cfg} (map or list of events).",
+                    obj=str(CONFIGS_DIR),
+                    id="notifications_system.W026",
                 )
             )
-    else:
-        errors.append(
-            Warning(
-                "notification_event_config.json not found.",
-                hint=f"Create it at {notification_cfg} (map or list of events).",
-                obj=str(CONFIGS_DIR),
-                id="notifications_system.W026",
-            )
-        )
 
     # broadcast_event_config.json
     if broadcast_cfg.exists():

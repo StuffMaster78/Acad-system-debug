@@ -130,7 +130,13 @@ class LoginViewSet(viewsets.ViewSet):
         session = LoginSessionService.start_session(user, website, ip=ip, user_agent=user_agent)
 
         # Optional: Check if user needs 2FA challenge
-        if user.profile.is_2fa_enabled:
+        # Ensure user profile exists
+        if not hasattr(user, 'user_main_profile') or user.user_main_profile is None:
+            from users.models import UserProfile
+            UserProfile.objects.get_or_create(user=user, defaults={'avatar': 'avatars/universal.png'})
+        
+        profile = getattr(user, 'user_main_profile', None)
+        if profile and hasattr(profile, 'is_2fa_enabled') and profile.is_2fa_enabled:
             # Initiate 2FA challenge here (send OTP, mark session pending)
             return Response({
                 "detail": "2FA required.",

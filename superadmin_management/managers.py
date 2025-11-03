@@ -211,9 +211,26 @@ class SuperadminManager:
     @staticmethod
     def notify_admins(title, message):
         """Sends an in-app notification to all Superadmins."""
+        from websites.models import Website
+        
         admins = User.objects.filter(superadmin_profile__isnull=False)
+        # Get default website
+        website = Website.objects.filter(is_active=True).first()
+        
+        if not website:
+            return  # Cannot create notifications without a website
+        
         for admin in admins:
-            Notification.objects.create(user=admin, title=title, message=message)
+            # Use admin's website if available, otherwise use default
+            notification_website = getattr(admin, 'website', None) or website
+            Notification.objects.create(
+                user=admin,
+                website=notification_website,
+                title=title,
+                message=message,
+                event='system',
+                type='in_app'
+            )
 
     def log_action(admin, user, action, details=""):
         """Logs user actions (suspensions, reactivations, etc.)."""

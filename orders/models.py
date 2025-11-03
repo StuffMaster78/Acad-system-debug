@@ -313,14 +313,16 @@ class Order(models.Model):
             """
             Trigger price recalculation whenever the order is saved.
             """
-            self.total_price = PricingCalculatorService.calculate_total_price(self)
+            calculator = PricingCalculatorService(self)
+            self.total_price = calculator.calculate_total_price()
             super(Order, self).save(*args, **kwargs)
 
     def update_total_price(self):
         """
         Calculates and updates the total price of the order.
         """
-        self.total_price = PricingCalculatorService.calculate_total_price(self)
+        calculator = PricingCalculatorService(self)
+        self.total_price = calculator.calculate_total_price()
         self.save(update_fields=["total_price"])
 
     def calculate_writer_deadline(
@@ -453,9 +455,13 @@ class Order(models.Model):
         """
         self.number_of_pages += additional_pages
         # Recalculate the price with the new page count
-        base_price = PricingCalculatorService.calculate_base_price(self)
+        calculator = PricingCalculatorService(self)
+        base_price = calculator.calculate_base_price()
         # Calculate price for the new pages
-        new_page_price = additional_pages * PricingConfiguration.objects.first().base_price_per_page
+        pricing_config = PricingConfiguration.objects.filter(website=self.website).first()
+        if not pricing_config:
+            raise ValueError(f"No PricingConfiguration found for website {self.website}")
+        new_page_price = additional_pages * pricing_config.base_price_per_page
         self.total_price = base_price + new_page_price  # Update the total cost
         self.save()
 
@@ -466,9 +472,13 @@ class Order(models.Model):
         """
         self.number_of_slides += additional_slides
         # Recalculate price with new slide count
-        base_price = PricingCalculatorService.calculate_base_price(self)
+        calculator = PricingCalculatorService(self)
+        base_price = calculator.calculate_base_price()
         # Calculate price for the new slides
-        new_slide_price = additional_slides * PricingConfiguration.objects.first().base_price_per_slide
+        pricing_config = PricingConfiguration.objects.filter(website=self.website).first()
+        if not pricing_config:
+            raise ValueError(f"No PricingConfiguration found for website {self.website}")
+        new_slide_price = additional_slides * pricing_config.base_price_per_slide
         # Apply Discount that was already applied to the order
         if self.discount:
             discount_amount = self.discount.calculate_discount(self.total_price)
@@ -483,17 +493,20 @@ class Order(models.Model):
         Add extra service to the order, recalculate price, and prompt for payment.
         """
         self.extra_services.add(service)
-        self.total_price = PricingCalculatorService.calculate_total_price(self)  # Recalculate price with new service
+        calculator = PricingCalculatorService(self)
+        self.total_price = calculator.calculate_total_price()  # Recalculate price with new service
         self.save()
 
     def change_deadline(self, new_deadline):
         """
         Change the deadline, apply the necessary convenience fee if reduced.
         """
-        pricing_config = PricingConfiguration.objects.first(
-            website=self.website,
-            raise_exception=True
-        )
+        pricing_config = PricingConfiguration.objects.filter(
+            website=self.website
+        ).first()
+        
+        if not pricing_config:
+            raise ValueError(f"No PricingConfiguration found for website {self.website}")
         old_deadline = self.deadline
         self.deadline = new_deadline
 
@@ -501,7 +514,8 @@ class Order(models.Model):
             # Apply convenience fee if deadline is reduced
             self.total_price += pricing_config.convenience_fee
 
-        self.total_price = PricingCalculatorService.calculate_total_price(self)  # Recalculate after changing deadline
+        calculator = PricingCalculatorService(self)
+        self.total_price = calculator.calculate_total_price()  # Recalculate after changing deadline
         self.save()
 
     @property
@@ -514,7 +528,8 @@ class Order(models.Model):
         Add a discount to the order and recalculate the total price.
         """
         self.discount = discount
-        self.total_price = PricingCalculatorService.calculate_total_price(self)
+        calculator = PricingCalculatorService(self)
+        self.total_price = calculator.calculate_total_price()
         self.save()
 
     def __str__(self):
@@ -632,7 +647,25 @@ class Order(models.Model):
         # Trigger price recalculation unless disabled during tests
         from django.conf import settings as dj_settings
         if not getattr(dj_settings, "DISABLE_PRICE_RECALC_DURING_TESTS", False):
-            self.total_price = PricingCalculatorService.calculate_total_price(self)
+            # Only calculate price if we have a website (required for pricing config)
+            if self.website_id:
+                try:
+                    calculator = PricingCalculatorService(self)
+                    self.total_price = calculator.calculate_total_price()
+                except (ValueError, LookupError) as e:
+                    # If pricing config doesn't exist yet, set default price or skip
+                    # This allows orders to be created before pricing config is set up
+                    if not self.total_price:
+                        # Set a default price based on pages if available
+                        from pricing_configs.models import PricingConfiguration
+                        config = PricingConfiguration.objects.filter(
+                            website=self.website
+                        ).first()
+                        if config:
+                            self.total_price = config.base_price_per_page * (self.number_of_pages or 1)
+                        else:
+                            # No config available, set minimal default
+                            self.total_price = Decimal('0.00')
         super(Order, self).save(*args, **kwargs)
 
 class PreferredWriterResponse(models.Model):

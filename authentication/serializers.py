@@ -413,15 +413,49 @@ class RegisterSerializer(serializers.ModelSerializer):
         fields = ['username', 'email', 'password']
         extra_kwargs = {'password': {'write_only': True}}
 
+    def validate(self, attrs):
+        """Validate registration data."""
+        # Check if username already exists
+        if User.objects.filter(username=attrs.get('username')).exists():
+            raise serializers.ValidationError({'username': 'A user with this username already exists.'})
+        
+        # Check if email already exists
+        if User.objects.filter(email=attrs.get('email')).exists():
+            raise serializers.ValidationError({'email': 'A user with this email already exists.'})
+        
+        return attrs
+
     def create(self, validated_data):
         """
         Create and return a new user instance, securely hashing the password.
         """
+        from websites.models import Website
+        
+        # Get or create a default website for registration
+        website = Website.objects.filter(is_active=True).first()
+        if not website:
+            # Create a default website if none exists
+            website = Website.objects.create(
+                name="Default Website",
+                domain='http://localhost',
+                is_active=True,
+                slug='default'
+            )
+        
+        # Create user with default role 'client' and assign website
+        password = validated_data.pop('password')
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
-            password=validated_data['password']
+            password=password,
+            role='client',  # Default role for registration
+            website=website,  # Assign website
+            is_active=True,  # Activate immediately (can be changed later)
         )
+        
+        # Force save to ensure user is persisted
+        user.save()
+        
         return user
 
 

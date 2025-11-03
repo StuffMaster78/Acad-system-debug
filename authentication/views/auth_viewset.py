@@ -10,8 +10,11 @@ from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
 from django.core.exceptions import ValidationError
 
 from authentication.services.auth_service import AuthenticationService
-from authentication.serializers import LoginSerializer
+from authentication.serializers import LoginSerializer, RegisterSerializer
 from authentication.utils.ip import get_client_ip
+from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
+from django.conf import settings
 
 
 class LoginThrottle(AnonRateThrottle):
@@ -84,10 +87,19 @@ class AuthenticationViewSet(viewsets.ViewSet):
             )
         except Exception as e:
             import logging
+            import traceback
             logger = logging.getLogger(__name__)
-            logger.error(f"Login error: {e}", exc_info=True)
+            error_traceback = traceback.format_exc()
+            logger.error(f"Login error: {e}\n{error_traceback}")
+            # Return detailed error in development
+            error_detail = {
+                "error": "An error occurred during login.",
+                "detail": str(e) if settings.DEBUG else None,
+            }
+            if settings.DEBUG:
+                error_detail["traceback"] = error_traceback
             return Response(
-                {"error": "An error occurred during login."},
+                error_detail,
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -162,6 +174,74 @@ class AuthenticationViewSet(viewsets.ViewSet):
                 {"error": "An error occurred during logout."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=False, methods=['post'], url_path='register', permission_classes=[AllowAny])
+    def register(self, request):
+        """
+        Register a new user account.
+        
+        Request body:
+        {
+            "username": "johndoe",
+            "email": "user@example.com",
+            "password": "password123"
+        }
+        
+        Response:
+        {
+            "message": "Registration successful. Please check your email for activation."
+        }
+        """
+        serializer = RegisterSerializer(data=request.data)
+        if serializer.is_valid():
+            try:
+                user = serializer.save()
+                
+                # Ensure user is saved to database
+                if not user.pk:
+                    return Response(
+                        {"error": "Failed to create user account."},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
+                
+                # Create activation token
+                token = default_token_generator.make_token(user)
+                activation_url = f"{settings.FRONTEND_URL or 'http://localhost:5173'}/activate/{token}/?email={user.email}"
+                
+                # Send activation email (fail silently in development)
+                try:
+                    if settings.DEFAULT_FROM_EMAIL:
+                        send_mail(
+                            'Activate your account',
+                            f'Please click the link to activate your account: {activation_url}',
+                            settings.DEFAULT_FROM_EMAIL,
+                            [user.email],
+                            fail_silently=True,  # Changed to True to not block registration
+                        )
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Registration email error (non-blocking): {e}", exc_info=True)
+                    # Don't fail registration if email fails
+                
+                return Response(
+                    {
+                        "message": "Registration successful. Please check your email for activation." if settings.DEFAULT_FROM_EMAIL else "Registration successful. You can now log in.",
+                        "user_id": user.id,
+                        "email": user.email,
+                    },
+                    status=status.HTTP_201_CREATED
+                )
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Registration error: {e}", exc_info=True)
+                return Response(
+                    {"error": f"Registration failed: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['post'], url_path='refresh-token', permission_classes=[AllowAny])
     def refresh_token(self, request):

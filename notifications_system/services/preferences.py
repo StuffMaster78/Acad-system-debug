@@ -156,12 +156,63 @@ class NotificationPreferenceResolver:
             NotificationProfile,
         )
 
+        # First try to find existing default profile
         default_prof = (
-            NotificationProfile.objects.filter(name="Default").first()
+            NotificationProfile.objects.filter(name="Default", is_active=True).first()
             or NotificationProfile.objects.filter(is_active=True).first()
         )
+        
+        # If no default profile exists, create one
         if not default_prof:
-            raise ValueError("No default NotificationProfile found.")
+            from websites.models import Website
+            # Get the website or use first active website
+            if not website:
+                website = getattr(user, 'website', None) or Website.objects.filter(is_active=True).first()
+            
+            if website:
+                # Create a default profile for this website
+                # The user field is required, so we use the current user as the "owner"
+                # but the profile can be used for other users
+                try:
+                    default_prof = NotificationProfile.objects.create(
+                        name="Default",
+                        user=user,  # Required field - user who "owns" this default profile
+                        website=website,
+                        default_email=True,
+                        default_in_app=True,
+                        default_sms=False,
+                        default_push=False,
+                        is_active=True,
+                        description='Auto-generated default notification profile'
+                    )
+                except Exception as e:
+                    # If creation fails (e.g., unique constraint), try to get existing one
+                    default_prof = NotificationProfile.objects.filter(
+                        name="Default", 
+                        website=website,
+                        is_active=True
+                    ).first()
+                    
+                    if not default_prof:
+                        # Last resort: skip preference creation if we can't create profile
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(
+                            f"Failed to create default NotificationProfile for user {user.id}: {e}. "
+                            "Skipping notification preference assignment."
+                        )
+                        return None
+            else:
+                # If no website available, skip notification preference creation
+                return None
+
+        # Ensure we have website for preference creation
+        if not website:
+            website = getattr(user, 'website', None)
+        
+        if not website or not default_prof:
+            # Can't create preference without website and profile
+            return None
 
         pref, created = NotificationPreference.objects.get_or_create(
             user=user, website=website, defaults={"profile": default_prof}

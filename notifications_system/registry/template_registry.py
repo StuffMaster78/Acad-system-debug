@@ -88,7 +88,8 @@ def register_template_class(
         with _LOCK:
             existing = _TEMPLATE_CLASSES.get(event_key)
             if existing and existing is not cls:
-                logger.warning(
+                # Use debug level instead of warning for template overwrites
+                logger.debug(
                     "Template for '%s' already registered with %s; "
                     "overwriting with %s",
                     event_key,
@@ -203,7 +204,8 @@ def _autoload_central() -> None:
             importlib.import_module(full)
             logger.debug("Loaded central template module: %s", full)
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to import %s: %s", full, exc)
+            # Use debug level instead of warning - template imports are optional
+            logger.debug("Failed to import %s: %s", full, exc)
 
 
 def _autoload_per_app() -> None:
@@ -212,7 +214,8 @@ def _autoload_per_app() -> None:
         autodiscover_modules("notification_templates")
         logger.debug("Autodiscovered per-app notification_templates.")
     except Exception as exc:  # noqa: BLE001
-        logger.warning("autodiscover(notification_templates) failed: %s", exc)
+        # Use debug level instead of warning - autodiscovery failures are non-critical
+        logger.debug("autodiscover(notification_templates) failed: %s", exc)
 
     for app_cfg in apps.get_app_configs():
         mod = f"{app_cfg.name}.notification_templates"
@@ -222,7 +225,8 @@ def _autoload_per_app() -> None:
         except ModuleNotFoundError:
             continue
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Failed to import %s: %s", mod, exc)
+            # Use debug level instead of warning - template imports are optional
+            logger.debug("Failed to import %s: %s", mod, exc)
 
 
 def autoload_all_templates() -> None:

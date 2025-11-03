@@ -53,7 +53,8 @@ class ClientProfileAdmin(admin.ModelAdmin):
         """
         Display the loyalty transactions for the client in the admin panel.
         """
-        transactions = obj.get_loyalty_transactions()
+        # get_loyalty_transactions is a @property, so access it without parentheses
+        transactions = obj.get_loyalty_transactions
         if not transactions.exists():
             return "No transactions"
         return "\n".join([f"Transaction {transaction.id}: {transaction.points} points ({transaction.transaction_type})" for transaction in transactions])

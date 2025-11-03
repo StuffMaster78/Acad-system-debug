@@ -141,7 +141,7 @@ class Migration(migrations.Migration):
                 ('meta_description', models.TextField(blank=True, help_text='SEO-friendly description', null=True)),
                 ('title', models.CharField(max_length=255)),
                 ('slug', models.SlugField(blank=True, help_text='Custom blog URL (use hyphens)', unique=True)),
-                ('content', models.Field()),
+                ('content', models.TextField(blank=True, null=True)),
                 ('toc', models.JSONField(blank=True, default=dict)),
                 ('is_editorial', models.BooleanField(default=False)),
                 ('featured_image', models.ImageField(blank=True, help_text='Primary image (used in Open Graph and previews)', null=True, upload_to='blog_images/')),

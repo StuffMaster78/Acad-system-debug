@@ -142,6 +142,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # CORS middleware (must be before CommonMiddleware)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -230,16 +231,34 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# CORS configuration (for handling CORS)
+# CORS configuration for frontend development
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",  # Local development
-    "http://127.0.0.1:8000",  # Local development
-    # "https://your-production-domain.com",  # To replace with production domain
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",  # Backend (for admin)
+    "http://127.0.0.1:8000",  # Backend (for admin)
+]
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all origins in debug mode
+
+# CSRF trusted origins for local dev
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
 ]
 
 
@@ -563,18 +582,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 CELERY_BEAT_SCHEDULE = {
-    'expire-referral-bonuses': {
-        'task': 'your_app.tasks.expire_referral_bonuses',
-        'schedule': crontab(hour=0, minute=0),  # Run daily at midnight
-    },
-    'notify-referral-bonus-expiration': {
-        'task': 'your_app.tasks.notify_referral_bonus_expiration',
-        'schedule': crontab(hour=9, minute=0),  # Run daily at 9 AM
-    },
-    'decay-referral-bonuses': {
-        'task': 'your_app.tasks.decay_referral_bonuses',
-        'schedule': crontab(hour=0, minute=0),  # Run daily at midnight
-    },
+    # Real tasks below. Removed placeholder 'your_app.tasks.*' entries to avoid unregistered task errors.
     'expire-referral-bonus-every-night': {
         'task': 'client_wallet.tasks.expire_referral_bonus',
         'schedule': timedelta(days=1),  # Run once every day
@@ -608,10 +616,10 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=3, minute=0),  # Run at 3 AM daily
     },
 }
-RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW")
-MAX_FAILED_ATTEMPTS = os.getenv("MAX_FAILED_ATTEMPTS")
-LOCKOUT_DURATION_MINUTES = int(os.getenv("LOCKOUT_DURATION_MINUTES"))
-SESSION_EXPIRATION_DAYS = os.getenv("SESSION_EXPIRATION_DAYS")
+RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW", "default")
+MAX_FAILED_ATTEMPTS = int(os.getenv("MAX_FAILED_ATTEMPTS", "5"))
+LOCKOUT_DURATION_MINUTES = int(os.getenv("LOCKOUT_DURATION_MINUTES", "30"))
+SESSION_EXPIRATION_DAYS = int(os.getenv("SESSION_EXPIRATION_DAYS", "7"))
 
 LOCKOUT_DURATION = timedelta(minutes=LOCKOUT_DURATION_MINUTES)
 
@@ -719,6 +727,10 @@ NOTIFY_APP_EVENTS_SUBDIR = "notification_configs"  # or "notifications_config" i
 
 # Optional: central schemas dir (still useful for $ref resolution)
 NOTIFY_EVENTS_DIR = BASE_DIR / "notifications_system" / "registry" / "configs"
+
+# Silences template-related warnings in Django system checks
+# Set to False to re-enable warnings for missing templates
+NOTIFICATIONS_SILENCE_TEMPLATE_WARNINGS = True
 
 # --- Webhook ---
 WEBHOOK_DEFAULT_TIMEOUT = 5

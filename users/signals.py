@@ -34,7 +34,14 @@ def resize_profile_picture(sender, instance, **kwargs):
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:
-        UserProfile.objects.create(user=instance)
+        # Create UserProfile with default avatar if it doesn't exist
+        UserProfile.objects.get_or_create(
+            user=instance,
+            defaults={
+                'avatar': 'avatars/universal.png',
+                'website': getattr(instance, 'website', None)
+            }
+        )
     else:
         # Use the correct related_name on OneToOneField
         if hasattr(instance, 'user_main_profile') and instance.user_main_profile:

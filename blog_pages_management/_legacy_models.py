@@ -2,6 +2,7 @@ from django.db import transaction, models
 from django.contrib.auth import get_user_model
 from django.utils.text import slugify
 from django.utils.timezone import now
+from django.utils import timezone
 import requests
 from django.db.models import F
 import math
@@ -91,7 +92,7 @@ class BlogCategory(models.Model):
         help_text="Active categories are visible"
     )
     
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
@@ -266,7 +267,7 @@ class BlogPost(models.Model):
         unique=True, blank=True, db_index=True,
         help_text="Custom blog URL (use hyphens)"
     )
-    content = models.Field()
+    content = models.TextField()
     toc = models.JSONField(default=dict, blank=True) 
     authors = models.ManyToManyField("AuthorProfile", related_name="blog_posts")
     is_editorial = models.BooleanField(default=False)

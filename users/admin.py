@@ -84,10 +84,6 @@ class CustomUserAdmin(UserAdmin):
                 'username',
                 'password',
                 'role',
-                'profile_picture',
-                'avatar',
-                'bio',
-                'phone_number',
                 'is_available',
             )
         }),
@@ -115,7 +111,7 @@ class CustomUserAdmin(UserAdmin):
         }),
         ('Deletion Info', {
             'fields': (
-                'deletion_requested_at', 'deletion_date', 'deletion_status',
+                'deletion_requested_at', 'deletion_date',
             )
         }),
 
@@ -189,11 +185,14 @@ class CustomUserAdmin(UserAdmin):
         """
         Displays the user's profile picture or selected avatar in the admin panel.
         """
-        if obj.profile_picture:
-            return format_html('<img src="{}" width="50px" style="border-radius:5px;"/>', obj.profile_picture.url)
-        if obj.avatar.startswith('http'):
-            return format_html('<img src="{}" width="50px" style="border-radius:5px;"/>', obj.avatar)
-        return format_html('<img src="/media/{}" width="50px" style="border-radius:5px;"/>', obj.avatar)
+        profile = getattr(obj, 'user_main_profile', None)
+        if profile and profile.profile_picture:
+            return format_html('<img src="{}" width="50px" style="border-radius:5px;"/>', profile.profile_picture.url)
+        if profile and profile.avatar:
+            if profile.avatar.startswith('http'):
+                return format_html('<img src="{}" width="50px" style="border-radius:5px;"/>', profile.avatar)
+            return format_html('<img src="/media/{}" width="50px" style="border-radius:5px;"/>', profile.avatar)
+        return "No Avatar"
 
     profile_picture_preview.short_description = "Profile Picture Preview"
 
@@ -201,12 +200,13 @@ class CustomUserAdmin(UserAdmin):
         """
         Displays the user's avatar or profile picture in list display.
         """
-        if obj.profile_picture:
-            return format_html('<img src="{}" width="50px" style="border-radius:5px;"/>', obj.profile_picture.url)
-        elif obj.avatar:
-            if obj.avatar.startswith('http'):
-                return format_html('<img src="{}" width="50px" style="border-radius:5px;"/>', obj.avatar)
-            return format_html('<img src="/media/{}" width="50px" style="border-radius:5px;"/>', obj.avatar)
+        profile = getattr(obj, 'user_main_profile', None)
+        if profile and profile.profile_picture:
+            return format_html('<img src="{}" width="50px" style="border-radius:5px;"/>', profile.profile_picture.url)
+        elif profile and profile.avatar:
+            if profile.avatar.startswith('http'):
+                return format_html('<img src="{}" width="50px" style="border-radius:5px;"/>', profile.avatar)
+            return format_html('<img src="/media/{}" width="50px" style="border-radius:5px;"/>', profile.avatar)
         return "No Avatar"
 
     display_avatar.short_description = "Avatar"
@@ -237,7 +237,47 @@ class CustomUserAdmin(UserAdmin):
         Overriding save_model to:
         - Prevent Superadmin from demoting themselves
         - Ensure password hashing is handled correctly
+        - Assign website for clients/writers if not set
         """
+        # Assign website for clients/writers if not set
+        if (obj.is_client() or obj.is_writer()) and not obj.website:
+            from websites.models import Website
+            # Try to get website from request host first
+            if request:
+                host = request.get_host().replace("www.", "")
+                # Remove port number if present
+                host = host.split(':')[0]
+                obj.website = Website.objects.filter(
+                    domain__icontains=host, is_active=True
+                ).first()
+            
+            # Fallback to first active website
+            if not obj.website:
+                obj.website = Website.objects.filter(is_active=True).first()
+            
+            # If still no website, create a default one
+            if not obj.website:
+                obj.website, created = Website.objects.get_or_create(
+                    name="Default Website",
+                    defaults={
+                        'domain': 'http://localhost',
+                        'is_active': True,
+                        'slug': 'default'
+                    }
+                )
+                if created:
+                    self.message_user(
+                        request,
+                        f"Created default website '{obj.website.name}' and assigned it to this user.",
+                        level="info"
+                    )
+                else:
+                    self.message_user(
+                        request,
+                        f"Assigned existing default website '{obj.website.name}' to this user.",
+                        level="info"
+                    )
+        
         if change:
             if request.user == obj and obj.role != 'superadmin':
                 self.message_user(request, "Superadmin cannot demote themselves!", level="error")
@@ -249,6 +289,8 @@ class CustomUserAdmin(UserAdmin):
                     obj.set_password(password)
         if obj.is_deletion_requested and not obj.deletion_requested_at:
                 obj.deletion_requested_at = timezone.now()
+        
+        # Save the model (website is already assigned above if needed)
         super().save_model(request, obj, form, change)
 
 # Register the custom user admin

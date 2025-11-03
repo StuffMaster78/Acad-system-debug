@@ -3,6 +3,9 @@ from django.dispatch import receiver
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth import get_user_model
+import logging
+
+logger = logging.getLogger(__name__)
 
 from .models import SuperadminLog
 from .utils import SuperadminNotifier
@@ -19,6 +22,10 @@ User = get_user_model()
 @receiver(post_save, sender=User)
 def notify_superadmins_on_new_user(sender, instance, created, **kwargs):
     """Sends a notification when a new user is created."""
+    # Skip if signals are disabled (e.g., during testing)
+    if getattr(settings, "DISABLE_NOTIFICATION_SIGNALS", False):
+        return
+    
     if created:
         superadmins = User.objects.filter(role="superadmin")
         for superadmin in superadmins:
@@ -37,17 +44,35 @@ def notify_superadmins_on_new_user(sender, instance, created, **kwargs):
             )
 
         # Send in-app notification
-        SuperadminNotifier.notify_superadmins(
-            title="New User Registered",
-            message=f"A new user {instance.username} ({instance.role}) has registered.",
-            category="user"
-        )
+        # Get website from the new user instance
+        try:
+            website = getattr(instance, 'website', None)
+            if not website:
+                from websites.models import Website
+                website = Website.objects.filter(is_active=True).first()
+            
+            if website:
+                SuperadminNotifier.notify_superadmins(
+                    title="New User Registered",
+                    message=f"A new user {instance.username} ({instance.role}) has registered.",
+                    category="user",
+                    website=website
+                )
+        except (ConnectionRefusedError, OSError) as e:
+            # Non-critical: notification service unavailable
+            logger.debug(f"Could not send superadmin notification (service unavailable): {e}")
+        except Exception as e:
+            logger.warning(f"Failed to send superadmin notification: {e}", exc_info=True)
 
 
 ### 🔹 2️⃣ Notify Users When Suspended or Reactivated
 @receiver(post_save, sender=User)
 def notify_user_on_suspension(sender, instance, update_fields=None, **kwargs):
     """Sends a notification when a user is suspended or reactivated."""
+    # Skip if signals are disabled (e.g., during testing)
+    if getattr(settings, "DISABLE_NOTIFICATION_SIGNALS", False):
+        return
+    
     if update_fields and 'is_suspended' not in update_fields:
         return  # Skip if the suspension status didn't change
 
@@ -69,22 +94,39 @@ def notify_user_on_suspension(sender, instance, update_fields=None, **kwargs):
         )
 
     # Notify Superadmins
-    SuperadminNotifier.notify_superadmins(
-        title="User Suspended" if instance.is_suspended else "User Reactivated",
-        message=f"{instance.username} ({instance.role}) has been {'suspended' if instance.is_suspended else 'reactivated'}.",
-        category="security"
-    )
+    try:
+        website = getattr(instance, 'website', None)
+        if not website:
+            from websites.models import Website
+            website = Website.objects.filter(is_active=True).first()
+        
+        if website:
+            SuperadminNotifier.notify_superadmins(
+                title="User Suspended" if instance.is_suspended else "User Reactivated",
+                message=f"{instance.username} ({instance.role}) has been {'suspended' if instance.is_suspended else 'reactivated'}.",
+                category="security",
+                website=website
+            )
+    except (ConnectionRefusedError, OSError) as e:
+        logger.debug(f"Could not send superadmin notification (service unavailable): {e}")
+    except Exception as e:
+        logger.warning(f"Failed to send superadmin notification: {e}", exc_info=True)
 
 
 ### 🔹 3️⃣ Notify Superadmins When an Email is Blacklisted
 @receiver(post_save, sender=BlacklistedEmail)
 def notify_superadmins_on_blacklisted_email(sender, instance, **kwargs):
     """Notifies Superadmins when an email is blacklisted."""
-    SuperadminNotifier.notify_superadmins(
-        title="Blacklisted Email",
-        message=f"The email {instance.email} has been blacklisted.",
-        category="security"
-    )
+    from websites.models import Website
+    website = Website.objects.filter(is_active=True).first()
+    
+    if website:
+        SuperadminNotifier.notify_superadmins(
+            title="Blacklisted Email",
+            message=f"The email {instance.email} has been blacklisted.",
+            category="security",
+            website=website
+        )
 
 
 # ### 🔹 4️⃣ Notify Superadmins for High-Value Payments
@@ -104,11 +146,19 @@ def notify_superadmins_on_blacklisted_email(sender, instance, **kwargs):
 def notify_superadmins_on_dispute(sender, instance, created, **kwargs):
     """Notifies Superadmins when a new dispute is created."""
     if created:
-        SuperadminNotifier.notify_superadmins(
-            title="New Order Dispute",
-            message=f"A dispute has been opened for Order #{instance.order.id} by {instance.user.username}.",
-            category="dispute"
-        )
+        # Get website from order or user
+        website = getattr(instance.order, 'website', None) or getattr(instance.user, 'website', None)
+        if not website:
+            from websites.models import Website
+            website = Website.objects.filter(is_active=True).first()
+        
+        if website:
+            SuperadminNotifier.notify_superadmins(
+                title="New Order Dispute",
+                message=f"A dispute has been opened for Order #{instance.order.id} by {instance.user.username}.",
+                category="dispute",
+                website=website
+            )
 
 
 
@@ -128,8 +178,16 @@ def notify_superadmins_on_dispute(sender, instance, created, **kwargs):
 def notify_superadmins_on_admin_promotion_request(sender, instance, created, **kwargs):
     """Notifies Superadmins when an admin promotion request is submitted."""
     if created:
-        SuperadminNotifier.notify_superadmins(
-            title="Admin Promotion Request",
-            message=f"{instance.user.username} has requested a promotion to {instance.requested_role}.",
-            category="admin"
-        )
+        # Get website from user
+        website = getattr(instance.user, 'website', None)
+        if not website:
+            from websites.models import Website
+            website = Website.objects.filter(is_active=True).first()
+        
+        if website:
+            SuperadminNotifier.notify_superadmins(
+                title="Admin Promotion Request",
+                message=f"{instance.user.username} has requested a promotion to {instance.requested_role}.",
+                category="admin",
+                website=website
+            )

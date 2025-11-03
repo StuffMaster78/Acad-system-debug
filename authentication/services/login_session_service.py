@@ -23,14 +23,26 @@ class LoginSessionService:
         
         Args:
             user: User instance
-            website: Website instance
+            website: Website instance (required, cannot be None)
             ip: IP address (optional)
             user_agent: User agent string (optional)
             device_info: Device information dict (optional)
         
         Returns:
             LoginSession: Created session instance
+            
+        Raises:
+            ValueError: If website is None
         """
+        if website is None:
+            # Try to get website from user or use first active website
+            website = getattr(user, 'website', None)
+            if not website:
+                from websites.models import Website
+                website = Website.objects.filter(is_active=True).first()
+            if not website:
+                raise ValueError("Cannot create login session: No website available. User must be assigned to a website.")
+        
         token = str(uuid.uuid4())
         
         device_name = None

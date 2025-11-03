@@ -16,7 +16,7 @@ from django.contrib.admin import TabularInline
 
 class DiscountInline(admin.TabularInline):
     model = Discount
-    fields = ('code', 'discount_type', 'value', 'is_active')
+    fields = ('discount_code', 'discount_type', 'discount_value', 'is_active')
     extra = 1
     autocomplete_fields = ('assigned_to_client',)
 class DiscountStackingRuleInline(admin.TabularInline):
@@ -106,7 +106,7 @@ class DiscountUsageAdmin(admin.ModelAdmin):
     list_filter = ('website', 'discount')
     search_fields = (
         'user__email',
-        'discount__code'
+        'discount__discount_code'
     )
     autocomplete_fields = ('user', 'discount')
 
@@ -115,8 +115,8 @@ class DiscountUsageAdmin(admin.ModelAdmin):
 class DiscountStackingRuleAdmin(admin.ModelAdmin):
     list_display = ('base_discount', 'stackable_with')
     search_fields = (
-        'base_discount__code',
-        'stackable_with__code'
+        'base_discount__discount_code',
+        'stackable_with__discount_code'
     )
     autocomplete_fields = ('base_discount', 'stackable_with')
 

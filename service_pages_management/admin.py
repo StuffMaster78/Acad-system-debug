@@ -33,7 +33,7 @@ class ServicePagePDFSampleAdmin(admin.ModelAdmin):
     list_display = ("title", "section", "file_size_human", "download_count", "is_featured", "is_active", "uploaded_by")
     search_fields = ("title", "description", "section__title", "section__service_page__title")
     list_filter = ("is_active", "is_featured", "section__service_page__website", "created_at")
-    readonly_fields = ("file_size", "download_count", "uploaded_by", "created_at", "updated_at")
+    readonly_fields = ("file_size", "file_size_human", "download_count", "uploaded_by", "created_at", "updated_at")
     ordering = ("section", "is_featured", "display_order")
     
     fieldsets = (
@@ -52,7 +52,16 @@ class ServicePagePDFSampleAdmin(admin.ModelAdmin):
     )
     
     def file_size_human(self, obj):
-        return obj.file_size_human
+        """Display human-readable file size."""
+        if not obj or not obj.file_size:
+            return "Unknown"
+        
+        size = obj.file_size
+        for unit in ['B', 'KB', 'MB', 'GB']:
+            if size < 1024.0:
+                return f"{size:.1f} {unit}"
+            size /= 1024.0
+        return f"{size:.1f} TB"
     file_size_human.short_description = "File Size"
 
 

@@ -50,7 +50,7 @@ class ClassBundleViewSet(viewsets.ModelViewSet):
         """Get website from request."""
         domain = self.request.get_host()
         try:
-            return Website.objects.get(domain=domain)
+        return Website.objects.get(domain=domain)
         except Website.DoesNotExist:
             return None
 
@@ -327,7 +327,7 @@ class ClassBundleViewSet(viewsets.ModelViewSet):
                 {'error': 'File is required.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         file = request.FILES['file']
         description = request.data.get('description', '')
         
@@ -438,7 +438,7 @@ class ClassPurchaseViewSet(viewsets.ModelViewSet):
             return self.queryset.all()
         return self.queryset.filter(client=user)
 
-
+    
 class ClassInstallmentViewSet(viewsets.ModelViewSet):
     """
     ViewSet for handling class installment records.
@@ -508,7 +508,7 @@ class ClassInstallmentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
+    
 class ClassBundleConfigViewSet(viewsets.ModelViewSet):
     """
     ViewSet for handling class bundle pricing configurations.

@@ -82,7 +82,8 @@ class SmartTemplateResolver:
             return template_result
             
         except Exception as e:
-            logger.exception(f"Template resolution failed for {event_key}: {e}")
+            # Use debug level for template resolution failures unless it's critical
+            logger.debug(f"Template resolution failed for {event_key}: {e}")
             # Final emergency fallback
             return self._emergency_fallback(event_key, context)
     
@@ -144,7 +145,9 @@ class SmartTemplateResolver:
     
     def _emergency_fallback(self, event_key: str, context: Dict[str, Any]) -> Tuple[str, str, str]:
         """Emergency fallback when all other methods fail."""
-        logger.warning(f"Using emergency fallback for {event_key}")
+        # Use debug level instead of warning for emergency fallbacks
+        # These are expected when templates aren't configured yet
+        logger.debug(f"Using emergency fallback for {event_key}")
         
         # Extract basic info from context
         user = context.get('user', {})

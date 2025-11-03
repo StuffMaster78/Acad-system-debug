@@ -73,6 +73,18 @@ class AuthenticationService:
         if not user.is_active:
             raise ValidationError("Account is disabled. Please contact support.")
         
+        # Ensure website exists - use user's website or get first active website
+        if not website:
+            website = getattr(user, 'website', None)
+        if not website:
+            from websites.models import Website
+            website = Website.objects.filter(is_active=True).first()
+        
+        if not website:
+            raise ValidationError(
+                "No active website found. Please contact support to set up your account."
+            )
+        
         # Check for account lockout using FailedLoginService
         failed_login_service = FailedLoginService(user=user, website=website)
         if failed_login_service.is_locked_out():
@@ -88,7 +100,12 @@ class AuthenticationService:
                 "End impersonation first."
             )
         
-        # Create login session
+        # Ensure user profile exists
+        if not hasattr(user, 'user_main_profile') or user.user_main_profile is None:
+            from users.models import UserProfile
+            UserProfile.objects.get_or_create(user=user, defaults={'avatar': 'avatars/universal.png'})
+        
+        # Create login session (website is now guaranteed to exist)
         session = LoginSessionService.start_session(
             user=user,
             website=website,
@@ -98,7 +115,14 @@ class AuthenticationService:
         )
         
         # Check for 2FA requirement
-        if getattr(user, 'is_mfa_enabled', False):
+        # Try both methods of checking 2FA
+        is_2fa_enabled = False
+        if hasattr(user, 'user_main_profile') and user.user_main_profile:
+            is_2fa_enabled = getattr(user.user_main_profile, 'is_2fa_enabled', False)
+        if not is_2fa_enabled:
+            is_2fa_enabled = getattr(user, 'is_mfa_enabled', False)
+        
+        if is_2fa_enabled:
             return {
                 "requires_2fa": True,
                 "session_id": str(session.id),

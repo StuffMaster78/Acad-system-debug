@@ -22,7 +22,7 @@ class PricingCalculatorService:
         Retrieves and caches the pricing configuration to avoid repeated DB hits.
         """
         PricingConfiguration = apps.get_model(
-            "orders", "PricingConfiguration"
+            "pricing_configs", "PricingConfiguration"
         )
 
         config = PricingConfiguration.objects.filter(

@@ -106,9 +106,12 @@ class User(AbstractUser, PermissionsMixin,
         """
         Returns the user's profile picture if available, otherwise the selected avatar.
         """
-        if self.profile_picture:
-            return self.profile_picture.url
-        return f"/media/{self.avatar}"
+        profile = getattr(self, 'user_main_profile', None)
+        if profile:
+            if profile.profile_picture:
+                return profile.profile_picture.url
+            return f"/media/{profile.avatar}" if profile.avatar else "/media/avatars/universal.png"
+        return "/media/avatars/universal.png"
     
     def suspend(self, reason, start_date=None, end_date=None):
         """
@@ -170,13 +173,17 @@ class User(AbstractUser, PermissionsMixin,
         """
         Return structured profile details based on the user's role.
         """
+        # Get avatar from UserProfile
+        user_profile = getattr(self, 'user_main_profile', None)
+        avatar = user_profile.avatar if user_profile and user_profile.avatar else 'avatars/universal.png'
+        
         profile = {
             "id": self.id,
             "username": self.username,
             "email": self.email,
             "role": self.role,
-            "phone_number": self.phone_number,
-            "avatar": self.avatar,
+            "phone_number": getattr(user_profile, 'phone_number', None) if user_profile else None,
+            "avatar": avatar,
             "is_suspended": self.is_suspended,
             "is_on_probation": self.is_on_probation,
             "date_joined": self.date_joined,
@@ -330,10 +337,9 @@ class User(AbstractUser, PermissionsMixin,
                 "Suspended users cannot be marked as available."
             )
 
-        if not self.profile_picture and not self.avatar:
-            raise ValidationError(
-                "Either an avatar or profile picture must be selected."
-                )
+        # Note: profile_picture and avatar are on UserProfile, not User
+        # UserProfile is created automatically via post_save signal with default avatar
+        # So we don't need to validate here - it will be created with defaults
 
         # Ensure writer does not exceed max orders
         if self.is_writer():
@@ -349,11 +355,9 @@ class User(AbstractUser, PermissionsMixin,
                         "Writer cannot exceed their maximum allowed active orders."
                     )
 
-        if self.is_client() or self.is_writer():
-            if not self.website:
-                raise ValidationError(
-                    "Clients and writers must be assigned to a website."
-                )
+        # Note: Website assignment is handled in save() method
+        # Validation here would fail before save() can auto-assign website
+        # So we skip validation here and let save() handle it
 
         super().clean()
 
@@ -364,18 +368,29 @@ class User(AbstractUser, PermissionsMixin,
         Assign a website dynamically based on request host, or fallback to the
         first active website.
         """
-        if self.is_client() or self.is_writer():
-            if not self.website:
-                request = kwargs.pop('request', None)
-                if request:
-                    host = request.get_host().replace("www.", "")
-                    self.website = Website.objects.filter(
-                        domain=host, is_active=True
-                    ).first() or Website.objects.filter(
-                        domain__icontains=host, is_active=True
-                    ).first() or Website.objects.filter(
-                        is_active=True
-                    ).first()
+        # For clients and writers, ensure website is assigned
+        if (self.is_client() or self.is_writer()) and not self.website:
+            request = kwargs.pop('request', None)
+            if request:
+                host = request.get_host().replace("www.", "")
+                self.website = Website.objects.filter(
+                    domain=host, is_active=True
+                ).first() or Website.objects.filter(
+                    domain__icontains=host, is_active=True
+                ).first() or Website.objects.filter(
+                    is_active=True
+                ).first()
+            else:
+                # If no request available (e.g., admin or API), use first active website
+                self.website = Website.objects.filter(is_active=True).first()
+            
+            # If still no website and this is a client/writer, raise error
+            if not self.website and (self.is_client() or self.is_writer()):
+                from django.core.exceptions import ValidationError
+                raise ValidationError(
+                    "Clients and writers must be assigned to a website. "
+                    "Please ensure at least one active website exists in the system."
+                )
 
         # Auto-detect country if missing
         if not self.detected_country or not self.detected_timezone:
