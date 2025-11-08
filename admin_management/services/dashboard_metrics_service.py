@@ -1,0 +1,351 @@
+"""
+Service for generating dashboard metrics for admin dashboard.
+Provides role-aware, tenant-aware metrics with caching.
+"""
+from django.db.models import Sum, Count, Q, F, DecimalField
+from django.db.models.functions import TruncYear, TruncMonth, ExtractYear, ExtractMonth
+from django.utils import timezone
+from django.core.cache import cache
+from datetime import datetime, timedelta
+from typing import Dict, List, Any, Optional
+from decimal import Decimal
+
+from orders.models import Order
+from orders.order_enums import OrderStatus
+from users.models import User
+from tickets.models import Ticket
+from communications.models import Message
+from pricing_configs.models import AdditionalService
+
+
+class DashboardMetricsService:
+    """
+    Service for generating comprehensive dashboard metrics.
+    Role-aware and tenant-aware (website-scoped).
+    """
+    
+    CACHE_TIMEOUT = 300  # 5 minutes
+    
+    @staticmethod
+    def get_cache_key(user, key_suffix: str) -> str:
+        """Generate cache key for user-specific metrics."""
+        website_id = getattr(user, 'website_id', None) or 'all'
+        role = getattr(user, 'role', 'unknown')
+        return f"dashboard_metrics_{role}_{website_id}_{key_suffix}"
+    
+    @staticmethod
+    def get_summary(user) -> Dict[str, Any]:
+        """
+        Get summary metrics for dashboard.
+        Role-aware: Admin sees all, Client sees only their orders, etc.
+        """
+        cache_key = DashboardMetricsService.get_cache_key(user, "summary")
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+        
+        website = getattr(user, 'website', None)
+        role = getattr(user, 'role', 'client')
+        
+        # Base queryset filtered by website
+        order_qs = Order.objects.all()
+        if website:
+            order_qs = order_qs.filter(website=website)
+        
+        # Role-based filtering
+        if role == 'client':
+            order_qs = order_qs.filter(client=user)
+        elif role == 'writer':
+            order_qs = order_qs.filter(assigned_writer=user)
+        elif role == 'editor':
+            # Editors see orders they're reviewing
+            try:
+                from editor_management.models import EditorTaskAssignment
+                editor_tasks = EditorTaskAssignment.objects.filter(
+                    assigned_editor__user=user
+                ).values_list('order_id', flat=True)
+                if editor_tasks.exists():
+                    order_qs = order_qs.filter(id__in=list(editor_tasks))
+                else:
+                    order_qs = order_qs.none()
+            except Exception:
+                order_qs = order_qs.none()
+        # Admin/Superadmin see all orders for their website
+        
+        # Total orders
+        total_orders = order_qs.count()
+        
+        # Orders by status
+        orders_by_status = order_qs.values('status').annotate(
+            count=Count('id')
+        )
+        status_counts = {item['status']: item['count'] for item in orders_by_status}
+        
+        # Revenue metrics (only for paid orders)
+        revenue_data = order_qs.filter(is_paid=True).aggregate(
+            total_revenue=Sum('total_price', output_field=DecimalField()),
+            total_count=Count('id')
+        )
+        
+        total_revenue = revenue_data['total_revenue'] or Decimal('0.00')
+        paid_orders_count = revenue_data['total_count'] or 0
+        
+        # Unpaid orders
+        unpaid_orders = order_qs.filter(is_paid=False).count()
+        
+        # Recent orders (last 7 days)
+        recent_cutoff = timezone.now() - timedelta(days=7)
+        recent_orders = order_qs.filter(created_at__gte=recent_cutoff).count()
+        
+        # Tickets (if applicable)
+        ticket_qs = Ticket.objects.all()
+        if website:
+            ticket_qs = ticket_qs.filter(website=website)
+        if role == 'client':
+            ticket_qs = ticket_qs.filter(client=user)
+        
+        total_tickets = ticket_qs.count()
+        open_tickets = ticket_qs.filter(status__in=['open', 'pending']).count()
+        closed_tickets = ticket_qs.filter(status='closed').count()
+        
+        summary = {
+            'total_orders': total_orders,
+            'orders_by_status': status_counts,
+            'total_revenue': float(total_revenue),
+            'paid_orders_count': paid_orders_count,
+            'unpaid_orders_count': unpaid_orders,
+            'recent_orders_count': recent_orders,
+            'total_tickets': total_tickets,
+            'open_tickets_count': open_tickets,
+            'closed_tickets_count': closed_tickets,
+        }
+        
+        # Cache for 5 minutes
+        cache.set(cache_key, summary, DashboardMetricsService.CACHE_TIMEOUT)
+        return summary
+    
+    @staticmethod
+    def get_yearly_orders(user, year: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        Get yearly order counts and revenue.
+        Returns list of years with order counts and revenue.
+        """
+        if year is None:
+            year = timezone.now().year
+        
+        cache_key = DashboardMetricsService.get_cache_key(user, f"yearly_{year}")
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+        
+        website = getattr(user, 'website', None)
+        role = getattr(user, 'role', 'client')
+        
+        order_qs = Order.objects.filter(created_at__year=year)
+        if website:
+            order_qs = order_qs.filter(website=website)
+        
+        if role == 'client':
+            order_qs = order_qs.filter(client=user)
+        elif role == 'writer':
+            order_qs = order_qs.filter(assigned_writer=user)
+        
+        # Group by month
+        monthly_data = order_qs.annotate(
+            month=ExtractMonth('created_at')
+        ).values('month').annotate(
+            order_count=Count('id'),
+            revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField())
+        ).order_by('month')
+        
+        # Format for frontend (ensure all 12 months)
+        result = []
+        for month_num in range(1, 13):
+            month_data = next(
+                (item for item in monthly_data if item['month'] == month_num),
+                {'month': month_num, 'order_count': 0, 'revenue': Decimal('0.00')}
+            )
+            result.append({
+                'month': month_num,
+                'month_name': datetime(2000, month_num, 1).strftime('%B'),
+                'order_count': month_data.get('order_count', 0),
+                'revenue': float(month_data.get('revenue', Decimal('0.00'))),
+            })
+        
+        cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
+        return result
+    
+    @staticmethod
+    def get_yearly_earnings(user, year: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        Get yearly earnings breakdown.
+        Same as yearly orders but focused on revenue.
+        """
+        return DashboardMetricsService.get_yearly_orders(user, year)
+    
+    @staticmethod
+    def get_monthly_orders(user, year: Optional[int] = None, month: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        Get monthly order breakdown (daily).
+        """
+        if year is None:
+            year = timezone.now().year
+        if month is None:
+            month = timezone.now().month
+        
+        cache_key = DashboardMetricsService.get_cache_key(user, f"monthly_{year}_{month}")
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+        
+        website = getattr(user, 'website', None)
+        role = getattr(user, 'role', 'client')
+        
+        order_qs = Order.objects.filter(
+            created_at__year=year,
+            created_at__month=month
+        )
+        if website:
+            order_qs = order_qs.filter(website=website)
+        
+        if role == 'client':
+            order_qs = order_qs.filter(client=user)
+        elif role == 'writer':
+            order_qs = order_qs.filter(assigned_writer=user)
+        
+        # Group by day
+        daily_data = order_qs.extra(
+            select={'day': "EXTRACT(day FROM created_at)"}
+        ).values('day').annotate(
+            order_count=Count('id'),
+            revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField())
+        ).order_by('day')
+        
+        result = [
+            {
+                'day': item['day'],
+                'order_count': item.get('order_count', 0),
+                'revenue': float(item.get('revenue', Decimal('0.00'))),
+            }
+            for item in daily_data
+        ]
+        
+        cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
+        return result
+    
+    @staticmethod
+    def get_service_revenue(user, days: int = 30) -> List[Dict[str, Any]]:
+        """
+        Get revenue breakdown by service type.
+        """
+        cache_key = DashboardMetricsService.get_cache_key(user, f"service_revenue_{days}")
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+        
+        website = getattr(user, 'website', None)
+        role = getattr(user, 'role', 'client')
+        
+        cutoff = timezone.now() - timedelta(days=days)
+        
+        order_qs = Order.objects.filter(
+            created_at__gte=cutoff,
+            is_paid=True
+        )
+        if website:
+            order_qs = order_qs.filter(website=website)
+        
+        if role == 'client':
+            order_qs = order_qs.filter(client=user)
+        elif role == 'writer':
+            order_qs = order_qs.filter(assigned_writer=user)
+        
+        # Revenue by paper type
+        paper_type_revenue = order_qs.values('paper_type__name').annotate(
+            revenue=Sum('total_price', output_field=DecimalField()),
+            count=Count('id')
+        )
+        
+        # Revenue by additional services
+        service_revenue = order_qs.values('extra_services__name').annotate(
+            revenue=Sum('total_price', output_field=DecimalField()),
+            count=Count('id')
+        ).exclude(extra_services__isnull=True)
+        
+        result = {
+            'by_paper_type': [
+                {
+                    'name': item['paper_type__name'] or 'Unknown',
+                    'revenue': float(item.get('revenue', Decimal('0.00'))),
+                    'order_count': item.get('count', 0),
+                }
+                for item in paper_type_revenue
+            ],
+            'by_service': [
+                {
+                    'name': item['extra_services__name'] or 'Unknown',
+                    'revenue': float(item.get('revenue', Decimal('0.00'))),
+                    'order_count': item.get('count', 0),
+                }
+                for item in service_revenue
+            ],
+        }
+        
+        cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
+        return result
+    
+    @staticmethod
+    def get_payment_status_breakdown(user) -> Dict[str, Any]:
+        """
+        Get payment status breakdown.
+        """
+        cache_key = DashboardMetricsService.get_cache_key(user, "payment_status")
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+        
+        website = getattr(user, 'website', None)
+        role = getattr(user, 'role', 'client')
+        
+        order_qs = Order.objects.all()
+        if website:
+            order_qs = order_qs.filter(website=website)
+        
+        if role == 'client':
+            order_qs = order_qs.filter(client=user)
+        elif role == 'writer':
+            order_qs = order_qs.filter(assigned_writer=user)
+        
+        payment_data = order_qs.values('is_paid').annotate(
+            count=Count('id'),
+            total_revenue=Sum('total_price', output_field=DecimalField())
+        )
+        
+        paid_count = next(
+            (item['count'] for item in payment_data if item['is_paid']),
+            0
+        )
+        unpaid_count = next(
+            (item['count'] for item in payment_data if not item['is_paid']),
+            0
+        )
+        
+        paid_revenue = next(
+            (float(item['total_revenue']) for item in payment_data if item['is_paid']),
+            0.0
+        )
+        
+        result = {
+            'paid': {
+                'count': paid_count,
+                'revenue': paid_revenue,
+            },
+            'unpaid': {
+                'count': unpaid_count,
+                'revenue': 0.0,  # Unpaid orders don't contribute to revenue
+            },
+        }
+        
+        cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
+        return result
+

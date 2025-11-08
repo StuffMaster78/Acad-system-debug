@@ -55,27 +55,272 @@ from .permissions import IsAdmin, IsSuperAdmin
 User = get_user_model()
 
 
+class AdminActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for retrieving admin activity logs.
+    """
+    serializer_class = AdminLogSerializer
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_queryset(self):
+        """Filter logs by website if user has website context."""
+        queryset = AdminActivityLog.objects.select_related('admin').order_by('-timestamp')
+        website = getattr(self.request.user, 'website', None)
+        
+        # If user has a website, filter logs by admins from that website
+        if website:
+            queryset = queryset.filter(admin__website=website)
+        
+        return queryset
+
+
 class AdminDashboardView(viewsets.ViewSet):
     permission_classes = [IsAuthenticated, IsAdmin]
 
     def list(self, request):
         """Dashboard stats for admin panel"""
-        data = {
-            "total_writers": User.objects.filter(role="writer").count(),
-            "total_editors": User.objects.filter(role="editor").count(),
-            "total_support": User.objects.filter(role="support").count(),
-            "total_clients": User.objects.filter(role="client").count(),
-            "suspended_users": User.objects.filter(is_suspended=True).count(),
-            "total_orders": Order.objects.count(),
-            "orders_in_progress": Order.objects.filter(status="in_progress").count(),
-            "completed_orders": Order.objects.filter(status="completed").count(),
-            "disputed_orders": Order.objects.filter(status="disputed").count(),
-            "canceled_orders": Order.objects.filter(status="canceled").count(),
-            "total_disputes": Dispute.objects.count(),
-            "resolved_disputes": Dispute.objects.filter(status="resolved").count(),
-            "recent_logs": [log.action for log in AdminActivityLog.objects.order_by("-timestamp")[:10]],
+        from .services.dashboard_metrics_service import DashboardMetricsService
+        
+        summary = DashboardMetricsService.get_summary(request.user)
+        
+        # Get additional user stats
+        website = getattr(request.user, 'website', None)
+        user_qs = User.objects.all()
+        if website:
+            user_qs = user_qs.filter(website=website)
+        
+        total_writers = user_qs.filter(role="writer").count()
+        total_editors = user_qs.filter(role="editor").count()
+        total_support = user_qs.filter(role="support").count()
+        total_clients = user_qs.filter(role="client").count()
+        suspended_users = user_qs.filter(is_suspended=True).count()
+        total_users = total_writers + total_editors + total_support + total_clients
+        
+        # Get recent activity logs
+        recent_logs = AdminActivityLog.objects.order_by("-timestamp")[:10]
+        recent_activities = [
+            {
+                "action": log.action,
+                "timestamp": log.timestamp.isoformat() if log.timestamp else None,
+                "admin": log.admin.username if log.admin else None,
+            }
+            for log in recent_logs
+        ]
+        
+        # Build stats object matching DashboardStatsSerializer
+        stats_data = {
+            "total_users": total_users,
+            "active_users": total_users - suspended_users,
+            "suspended_users": suspended_users,
+            "total_orders": summary.get("total_orders", 0),
+            "completed_orders": summary.get("orders_by_status", {}).get("completed", 0),
+            "pending_orders": summary.get("orders_by_status", {}).get("pending", 0),
+            "total_revenue": summary.get("total_revenue", 0.0),
+            "total_disputes": 0,  # Add if you have disputes
+            "resolved_disputes": 0,  # Add if you have disputes
+            "open_tickets": summary.get("open_tickets_count", 0),
+            "closed_tickets": summary.get("closed_tickets_count", 0),
         }
-        return Response(DashboardSerializer(data).data)
+        
+        # Build response with both serializer format and flat format for compatibility
+        data = {
+            "stats": stats_data,
+            "recent_activities": recent_activities,
+            "pending_promotion_requests": [],  # Add if you have promotion requests
+            # Also include flat format for easy access
+            "total_writers": total_writers,
+            "total_editors": total_editors,
+            "total_support": total_support,
+            "total_clients": total_clients,
+            "suspended_users": suspended_users,
+            "total_orders": summary.get("total_orders", 0),
+            "orders_by_status": summary.get("orders_by_status", {}),
+            "total_revenue": summary.get("total_revenue", 0.0),
+            "paid_orders_count": summary.get("paid_orders_count", 0),
+            "unpaid_orders_count": summary.get("unpaid_orders_count", 0),
+            "recent_orders_count": summary.get("recent_orders_count", 0),
+            "total_tickets": summary.get("total_tickets", 0),
+            "open_tickets_count": summary.get("open_tickets_count", 0),
+            "closed_tickets_count": summary.get("closed_tickets_count", 0),
+            "recent_logs": [log.action for log in recent_logs],
+        }
+        
+        # Try to use serializer, but fallback to direct response if it fails
+        try:
+            return Response(DashboardSerializer(data).data)
+        except Exception as e:
+            # If serializer fails, return data directly
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"DashboardSerializer failed, returning raw data: {e}")
+            return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='metrics/summary')
+    def get_summary(self, request):
+        """Get summary metrics for dashboard."""
+        from .services.dashboard_metrics_service import DashboardMetricsService
+        summary = DashboardMetricsService.get_summary(request.user)
+        return Response(summary)
+    
+    @action(detail=False, methods=['get'], url_path='metrics/yearly-orders')
+    def get_yearly_orders(self, request):
+        """Get yearly order counts and revenue."""
+        from .services.dashboard_metrics_service import DashboardMetricsService
+        year = request.query_params.get('year')
+        year = int(year) if year else None
+        data = DashboardMetricsService.get_yearly_orders(request.user, year)
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='metrics/yearly-earnings')
+    def get_yearly_earnings(self, request):
+        """Get yearly earnings breakdown."""
+        from .services.dashboard_metrics_service import DashboardMetricsService
+        year = request.query_params.get('year')
+        year = int(year) if year else None
+        data = DashboardMetricsService.get_yearly_earnings(request.user, year)
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='metrics/monthly-orders')
+    def get_monthly_orders(self, request):
+        """Get monthly order breakdown (daily)."""
+        from .services.dashboard_metrics_service import DashboardMetricsService
+        year = request.query_params.get('year')
+        month = request.query_params.get('month')
+        year = int(year) if year else None
+        month = int(month) if month else None
+        data = DashboardMetricsService.get_monthly_orders(request.user, year, month)
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='metrics/service-revenue')
+    def get_service_revenue(self, request):
+        """Get revenue breakdown by service type."""
+        from .services.dashboard_metrics_service import DashboardMetricsService
+        days = request.query_params.get('days', 30)
+        days = int(days) if days else 30
+        data = DashboardMetricsService.get_service_revenue(request.user, days)
+        return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='metrics/payment-status')
+    def get_payment_status(self, request):
+        """Get payment status breakdown."""
+        from .services.dashboard_metrics_service import DashboardMetricsService
+        data = DashboardMetricsService.get_payment_status_breakdown(request.user)
+        return Response(data)
+    
+    @action(detail=False, methods=['post'], url_path='place-order')
+    def place_order(self, request):
+        """Admin endpoint to place an order with optional attribution."""
+        from .serializers import AdminPlaceOrderSerializer
+        from orders.models import Order
+        from orders.order_enums import OrderStatus
+        from django.db import transaction
+        
+        serializer = AdminPlaceOrderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        validated_data = serializer.validated_data
+        
+        # Get website from user
+        website = getattr(request.user, 'website', None)
+        if not website:
+            return Response(
+                {"error": "User must be associated with a website."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Extract client and external contact info
+        client_id = validated_data.get('client_id')
+        external_name = validated_data.get('external_contact_name')
+        external_email = validated_data.get('external_contact_email')
+        external_phone = validated_data.get('external_contact_phone')
+        
+        # Get order fields
+        order_data = {
+            'website': website,
+            'topic': validated_data['topic'],
+            'paper_type_id': validated_data['paper_type_id'],
+            'number_of_pages': validated_data['number_of_pages'],
+            'client_deadline': validated_data['client_deadline'],
+            'order_instructions': validated_data['order_instructions'],
+            'created_by_admin': True,
+            'status': OrderStatus.CREATED.value,
+            'is_paid': False,  # Orders created by admin start as unpaid
+            'allow_unpaid_access': validated_data.get('allow_unpaid_access', False),
+        }
+        
+        # Add optional fields
+        if validated_data.get('academic_level_id'):
+            order_data['academic_level_id'] = validated_data['academic_level_id']
+        if validated_data.get('formatting_style_id'):
+            order_data['formatting_style_id'] = validated_data['formatting_style_id']
+        if validated_data.get('subject_id'):
+            order_data['subject_id'] = validated_data['subject_id']
+        if validated_data.get('type_of_work_id'):
+            order_data['type_of_work_id'] = validated_data['type_of_work_id']
+        if validated_data.get('english_type_id'):
+            order_data['english_type_id'] = validated_data['english_type_id']
+        if validated_data.get('number_of_slides'):
+            order_data['number_of_slides'] = validated_data['number_of_slides']
+        if validated_data.get('number_of_refereces'):
+            order_data['number_of_refereces'] = validated_data['number_of_refereces']
+        if validated_data.get('spacing'):
+            order_data['spacing'] = validated_data['spacing']
+        if validated_data.get('preferred_writer_id'):
+            order_data['preferred_writer_id'] = validated_data['preferred_writer_id']
+        
+        # Add client if attributed
+        if client_id:
+            order_data['client_id'] = client_id
+        
+        # Add external contact if unattributed
+        if external_name:
+            order_data['external_contact_name'] = external_name
+        if external_email:
+            order_data['external_contact_email'] = external_email
+        if external_phone:
+            order_data['external_contact_phone'] = external_phone
+        
+        with transaction.atomic():
+            # Create order
+            order = Order.objects.create(**order_data)
+            
+            # Add extra services if provided
+            if validated_data.get('extra_services'):
+                order.extra_services.set(validated_data['extra_services'])
+            
+            # Apply discount code if provided
+            if validated_data.get('discount_code'):
+                from discounts.models import Discount
+                try:
+                    discount = Discount.objects.get(
+                        discount_code=validated_data['discount_code'],
+                        website=website,
+                        is_active=True
+                    )
+                    order.discount = discount
+                    order.discount_code_used = validated_data['discount_code']
+                    order.save()
+                except Discount.DoesNotExist:
+                    pass  # Ignore invalid discount codes
+            
+            # Auto-create chat thread for unattributed orders
+            if not client_id and (external_name or external_email):
+                try:
+                    from communications.models import Thread
+                    thread = Thread.objects.create(
+                        order=order,
+                        website=website,
+                        # Admin acts as client proxy for unattributed orders
+                        created_by=request.user,
+                    )
+                except Exception:
+                    pass  # Don't fail order creation if thread creation fails
+        
+        # Serialize response
+        from orders.serializers import OrderSerializer
+        order_serializer = OrderSerializer(order, context={'request': request})
+        
+        return Response(order_serializer.data, status=status.HTTP_201_CREATED)
 
 
 class UserManagementView(viewsets.ViewSet):
