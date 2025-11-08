@@ -269,6 +269,36 @@ class DeadlineMultiplier(models.Model):
 
     def __str__(self):
         return f"{self.hours}h => {self.multiplier}x ({self.website})"
+    
+    def clean(self):
+        """Validate the deadline multiplier configuration."""
+        from pricing_configs.services.deadline_multiplier_service import DeadlineMultiplierService
+        errors = DeadlineMultiplierService.validate_multiplier_config(
+            website=self.website,
+            hours=self.hours,
+            multiplier=self.multiplier,
+            exclude_id=self.id if self.pk else None
+        )
+        if errors:
+            from django.core.exceptions import ValidationError
+            raise ValidationError(errors)
+    
+    def save(self, *args, **kwargs):
+        """Override save to run validation."""
+        self.full_clean()
+        super().save(*args, **kwargs)
+    
+    def get_formatted_multiplier(self) -> str:
+        """Return formatted multiplier string (e.g., '1.5x')."""
+        return f"{self.multiplier}x"
+    
+    def get_days(self) -> float:
+        """Return hours converted to days."""
+        return self.hours / 24.0
+    
+    def is_urgent(self, threshold_hours: int = 24) -> bool:
+        """Check if this deadline is considered urgent."""
+        return self.hours <= threshold_hours
 
     class Meta:
         verbose_name = "Deadline Multiplier"

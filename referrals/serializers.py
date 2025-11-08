@@ -37,14 +37,18 @@ class ReferralSerializer(serializers.ModelSerializer):
 
 class ReferralBonusConfigSerializer(serializers.ModelSerializer):
     """Serializer for the ReferralBonusConfig model."""
-    website = WebsiteSerializer(read_only=True)
+    website = serializers.PrimaryKeyRelatedField(queryset=Website.objects.all(), required=False, allow_null=True)
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
 
     class Meta:
         model = ReferralBonusConfig
         fields = [
-            'id', 'website', 'first_order_bonus',
-            'max_referrals_per_month', 'max_referral_bonus_per_month'
+            'id', 'website', 'website_name', 'website_domain',
+            'first_order_bonus', 'first_order_discount_type', 'first_order_discount_amount',
+            'bonus_expiry_days', 'max_referrals_per_month', 'max_referral_bonus_per_month'
         ]
+        read_only_fields = ['website_name', 'website_domain']
 
 
 class ReferralCodeSerializer(serializers.ModelSerializer):

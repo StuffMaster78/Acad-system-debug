@@ -1,6 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from .models import (
     PricingConfiguration, AdditionalService, AcademicLevelPricing,
@@ -79,6 +80,52 @@ class DeadlineMultiplierViewSet(WebsiteScopedViewSetMixin, viewsets.ModelViewSet
 
     def perform_create(self, serializer):
         serializer.save(website=self.request.user.website)  # Assign website dynamically
+    
+    @action(detail=False, methods=['get'], permission_classes=[AllowAny])
+    def options(self, request):
+        """
+        Get available deadline multiplier options for the current website.
+        Useful for frontend deadline selection.
+        """
+        from pricing_configs.services.deadline_multiplier_service import DeadlineMultiplierService
+        from .utils import get_website_from_request
+        
+        website = get_website_from_request(request)
+        if not website:
+            return Response(
+                {"detail": "Website not recognized."},
+                status=400
+            )
+        
+        options = DeadlineMultiplierService.get_available_options(website)
+        return Response({
+            'options': options,
+            'website': {
+                'id': website.id,
+                'name': website.name,
+                'domain': website.domain
+            }
+        })
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def recommended(self, request):
+        """
+        Get recommended default deadline multiplier configurations.
+        Useful for initial setup.
+        """
+        from pricing_configs.services.deadline_multiplier_service import DeadlineMultiplierService
+        
+        recommended = DeadlineMultiplierService.get_recommended_multipliers()
+        return Response({
+            'recommended': [
+                {
+                    'label': r['label'],
+                    'hours': r['hours'],
+                    'multiplier': float(r['multiplier'])
+                }
+                for r in recommended
+            ]
+        })
 
 class PreferredWriterConfigViewSet(WebsiteScopedViewSetMixin, viewsets.ModelViewSet):
     """

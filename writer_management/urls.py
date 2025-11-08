@@ -6,6 +6,7 @@ from writer_management.views.badge_analytics import BadgeAnalyticsViewSet, Badge
 from writer_management.views import (
     WriterProfileViewSet,
     WriterConfigViewSet,
+    WriterLevelConfigViewSet,
     WriterOrderRequestViewSet,
     WriterOrderTakeViewSet,
     WriterSupportTicketViewSet,
@@ -23,6 +24,7 @@ router.register(r'badge-achievements', BadgeAchievementViewSet, basename='badge-
 router.register(r'badge-performance', BadgePerformanceViewSet, basename='badge-performance')
 router.register(r'writers', WriterProfileViewSet, basename='writers')
 router.register(r'writer-configs', WriterConfigViewSet, basename='writer-configs')
+router.register(r'writer-level-configs', WriterLevelConfigViewSet, basename='writer-level-configs')
 router.register(r'writer-order-requests', WriterOrderRequestViewSet, basename='writer-order-requests')
 router.register(r'writer-order-takes', WriterOrderTakeViewSet, basename='writer-order-takes')
 router.register(r'writer-support-tickets', WriterSupportTicketViewSet, basename='writer-support-tickets')

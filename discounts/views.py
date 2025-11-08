@@ -1,8 +1,9 @@
 from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.exceptions import ValidationError
+from authentication.permissions import IsSuperadminOrAdmin
 from django.utils.timezone import now
 from django.db.models import Q
 from .models.promotions import PromotionalCampaign
@@ -28,7 +29,7 @@ class PromotionalCampaignViewSet(viewsets.ModelViewSet):
     """
     queryset = PromotionalCampaign.objects.all()
     serializer_class = PromotionalCampaignSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
 
     def get_serializer_class(self):
         """
@@ -59,7 +60,7 @@ class DiscountViewSet(viewsets.ModelViewSet):
     """
     queryset = Discount.objects.all()
     serializer_class = DiscountSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
 
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = [
@@ -75,14 +76,19 @@ class DiscountViewSet(viewsets.ModelViewSet):
         - Filter active discounts
         - Exclude expired ones
         - Preload related data for promotional campaigns and assigned client
+        - For admin/superadmin, show all discounts including inactive/expired
         """
-        base_qs = Discount.objects.select_related("promotional_campaign", "assigned_to_client")
-        # For detail views, include all records (even expired) so tests can see inactive/expired states
-        if getattr(self, 'action', None) in {"retrieve", "partial_update", "update", "destroy"}:
-            return base_qs
-        # For list views, show only currently active and not expired
+        base_qs = Discount.objects.select_related("promotional_campaign", "assigned_to_client", "website")
+        # For admin/superadmin, show all discounts including inactive/expired
+        if self.request.user.is_staff:
+            # For detail views, include all records (even expired) so tests can see inactive/expired states
+            if getattr(self, 'action', None) in {"retrieve", "partial_update", "update", "destroy"}:
+                return base_qs
+            # For list views, allow filtering but show all by default
+            return base_qs.filter(is_deleted=False)
+        # For non-staff users, show only currently active and not expired
         return base_qs.filter(
-            Q(is_active=True) & (Q(end_date__gte=now()) | Q(end_date__isnull=True))
+            Q(is_active=True) & (Q(end_date__gte=now()) | Q(end_date__isnull=True)) & Q(is_deleted=False)
         )
 
     def perform_create(self, serializer):
@@ -155,7 +161,7 @@ class DiscountViewSet(viewsets.ModelViewSet):
         Validate discount properties like type and date consistency.
         """
         # Validate percentage range
-        if discount.discount_type == "percentage" and not (1 <= discount.value <= 100):
+        if discount.discount_type == "percent" and not (1 <= float(discount.discount_value) <= 100):
             raise ValidationError("Percentage discount must be between 1 and 100.")
 
         # Ensure end_date is after start_date
@@ -255,7 +261,7 @@ class DiscountUsageViewSet(viewsets.ModelViewSet):
     """
     queryset = DiscountUsage.objects.all()
     serializer_class = DiscountUsageSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
 
     def get_queryset(self):
         """
@@ -373,7 +379,7 @@ class DiscountStackingRuleViewSet(viewsets.ModelViewSet):
     """
     queryset = DiscountStackingRule.objects.all()
     serializer_class = DiscountStackingRuleSerializer
-    permission_classes = [AllowAny]
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
 
     def get_queryset(self):
         """
@@ -445,6 +451,7 @@ class DiscountAnalyticsView(APIView):
     """
     Provides analytics endpoints for discounts.
     """
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
 
     def get(self, request, *args, **kwargs):
         stats_type = request.query_params.get("type")

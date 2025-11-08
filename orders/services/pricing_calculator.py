@@ -2,7 +2,9 @@ from django.apps import apps
 from decimal import Decimal
 from functools import lru_cache
 from django.core.exceptions import ValidationError
-from discounts.services.discount_engine import DiscountEngine 
+from django.utils import timezone
+from discounts.services.discount_engine import DiscountEngine
+from pricing_configs.services.deadline_multiplier_service import DeadlineMultiplierService 
 
 class PricingCalculatorService:
     """
@@ -46,25 +48,41 @@ class PricingCalculatorService:
         """
         Calculates a multiplier based on the deadline proximity.
         This replaces the old urgent_fee logic.
+        Uses current time to calculate remaining hours, not order creation time.
         """
         if not self.order.deadline:
             return Decimal("1.0")
 
-        DeadlineMultiplier = apps.get_model(
-            "pricing_configs", "DeadlineMultiplier"
-        )
-
-        hours_left = (
-            (self.order.deadline - self.order.created_at)
-            .total_seconds() / 3600
-        )
-
-        match = DeadlineMultiplier.objects.filter(
+        return DeadlineMultiplierService.get_multiplier_for_deadline(
             website=self.website,
-            hours__lte=hours_left
-        ).order_by("-hours").first()
-
-        return match.multiplier if match else Decimal("1.0")
+            deadline=self.order.deadline
+        )
+    
+    def get_deadline_multiplier_info(self) -> dict:
+        """
+        Get detailed information about the deadline multiplier being applied.
+        
+        Returns:
+            Dict with multiplier details including label, hours, etc.
+        """
+        if not self.order.deadline:
+            return {
+                'multiplier': 1.0,
+                'label': 'No Deadline',
+                'hours': None,
+                'is_past_deadline': False
+            }
+        
+        now = timezone.now()
+        if self.order.deadline < now:
+            hours = (now - self.order.deadline).total_seconds() / 3600
+        else:
+            hours = (self.order.deadline - now).total_seconds() / 3600
+        
+        return DeadlineMultiplierService.get_multiplier_info(
+            website=self.website,
+            hours=hours if self.order.deadline >= now else -hours
+        )
 
     def calculate_base_price(self) -> Decimal:
         """
@@ -276,6 +294,7 @@ class PricingCalculatorService:
         preferred = self.calculate_preferred_writer_fee()
         discount = self.calculate_discount()
         multiplier = self.get_deadline_multiplier()
+        deadline_info = self.get_deadline_multiplier_info()
         total = base + services + writer_level + preferred - discount
         return {
             "base_price": float(base),
@@ -283,6 +302,7 @@ class PricingCalculatorService:
             "writer_level": float(writer_level),
             "preferred_writer": float(preferred),
             "deadline_multiplier": float(multiplier),
+            "deadline_info": deadline_info,
             "discount": float(discount),
             "final_total": float(total)
         }

@@ -184,9 +184,21 @@ class WriterConfigSerializer(serializers.ModelSerializer):
     """
     Serializer for Admin-Controlled Writer Settings
     """
+    website = serializers.SerializerMethodField()
+    
     class Meta:
         model = WriterConfig
         fields = '__all__'
+    
+    def get_website(self, obj):
+        """Get website information"""
+        if obj.website:
+            return {
+                'id': obj.website.id,
+                'name': obj.website.name,
+                'domain': obj.website.domain,
+            }
+        return None
 
 
 ### ---------------- Writer Payment & Earnings Serializers ---------------- ###
@@ -703,6 +715,18 @@ class WriterLevelSerializer(serializers.ModelSerializer):
             "level",
             "updated_at",
         ]
+
+class WriterLevelConfigSerializer(serializers.ModelSerializer):
+    """Serializer for WriterLevelConfig model."""
+    website = serializers.PrimaryKeyRelatedField(queryset=Website.objects.all(), required=False, allow_null=True)
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+
+    class Meta:
+        from writer_management.models.configs import WriterLevelConfig
+        model = WriterLevelConfig
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at', 'website_name', 'website_domain']
 
 class WriterLevelHistorySerializer(serializers.ModelSerializer):
     class Meta:

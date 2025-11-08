@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from django.core.exceptions import ValidationError
 
 from writer_management.models.profile import WriterProfile
-from writer_management.models.configs import WriterConfig
+from writer_management.models.configs import WriterConfig, WriterLevelConfig
 from writer_management.models.requests import (
     WriterOrderRequest, WriterOrderTake, WriterDeadlineExtensionRequest,
 )
@@ -14,7 +14,7 @@ from writer_management.serializers import (
     WriterProfileSerializer, WriterConfigSerializer,
     WriterOrderRequestSerializer, WriterOrderTakeSerializer,
     WriterSuspensionSerializer, WriterSupportTicketSerializer,
-    WriterDeadlineExtensionRequestSerializer,
+    WriterDeadlineExtensionRequestSerializer, WriterLevelConfigSerializer,
 )
 
 
@@ -27,6 +27,15 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
 class WriterConfigViewSet(viewsets.ModelViewSet):
     queryset = WriterConfig.objects.all()
     serializer_class = WriterConfigSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+class WriterLevelConfigViewSet(viewsets.ModelViewSet):
+    """
+    Manage Writer Level Configurations (criteria-based levels).
+    """
+    queryset = WriterLevelConfig.objects.all()
+    serializer_class = WriterLevelConfigSerializer
     permission_classes = [permissions.IsAdminUser]
 
 

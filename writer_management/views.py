@@ -69,7 +69,7 @@ from orders.models import Order
 from writer_management.models.order_dispute import OrderDispute
 from .serializers import (
     WebhookSettingsSerializer, WriterProfileSerializer, WriterLevelSerializer,
-    WriterConfigSerializer, WriterOrderRequestSerializer,
+    WriterConfigSerializer, WriterLevelConfigSerializer, WriterOrderRequestSerializer,
     WriterOrderTakeSerializer, WriterPayoutPreferenceSerializer,
     WriterPaymentSerializer, WriterEarningsHistorySerializer,
     WriterEarningsReviewRequestSerializer, WriterRewardSerializer,
@@ -164,6 +164,15 @@ class WriterConfigViewSet(viewsets.ModelViewSet):
     """
     queryset = WriterConfig.objects.all()
     serializer_class = WriterConfigSerializer
+    permission_classes = [permissions.IsAdminUser]
+
+
+class WriterLevelConfigViewSet(viewsets.ModelViewSet):
+    """
+    Manage Writer Level Configurations (criteria-based levels).
+    """
+    queryset = WriterLevelConfig.objects.all()
+    serializer_class = WriterLevelConfigSerializer
     permission_classes = [permissions.IsAdminUser]
 
 

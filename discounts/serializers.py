@@ -12,6 +12,11 @@ class DiscountSerializer(serializers.ModelSerializer):
     Serializer for Discount model
     """
     website = serializers.PrimaryKeyRelatedField(queryset=Website.objects.all(), required=False, allow_null=True)
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    assigned_to_client_email = serializers.CharField(source='assigned_to_client.email', read_only=True)
+    assigned_to_client_username = serializers.CharField(source='assigned_to_client.username', read_only=True)
+    promotional_campaign_name = serializers.CharField(source='promotional_campaign.campaign_name', read_only=True)
     # Map legacy/external field names to model fields
     code = serializers.CharField(source='discount_code')
     value = serializers.DecimalField(source='discount_value', max_digits=10, decimal_places=2)
@@ -27,15 +32,18 @@ class DiscountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Discount
         fields = [
-            'id', 'website', 'code', 'description', 'discount_type', 
+            'id', 'website', 'website_name', 'website_domain', 'code', 'description', 'discount_type', 
             'origin_type', 'value', 'max_uses', 'used_count', 
-            'start_date', 'end_date', 'min_order_value', 
+            'start_date', 'end_date', 'expiry_date', 'min_order_value', 
             'max_discount_value', 'applies_to_first_order_only', 
-            'is_general', 'assigned_to_client', 'promotional_campaign', 
+            'is_general', 'assigned_to_client', 'assigned_to_client_email', 'assigned_to_client_username',
+            'promotional_campaign', 'promotional_campaign_name',
             'stackable', 'stackable_with', 'max_discount_percent', 
-            'max_stackable_uses_per_customer', 'is_active', 'is_deleted'
+            'max_stackable_uses_per_customer', 'per_user_usage_limit', 'is_active', 'is_deleted',
+            'is_expired', 'is_archived'
         ]
-        read_only_fields = ['used_count', 'is_deleted']
+        read_only_fields = ['used_count', 'is_deleted', 'website_name', 'website_domain', 
+                          'assigned_to_client_email', 'assigned_to_client_username', 'promotional_campaign_name']
 
     def validate_code(self, value):
         """
