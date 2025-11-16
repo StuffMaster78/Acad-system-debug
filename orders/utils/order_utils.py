@@ -52,7 +52,13 @@ def save_order(order, user=None, event=None, notes=None):
         notes (str, optional): Additional notes for the audit log.
     """
     order.updated_at = timezone.now()
-    order.save(update_fields=["status", "status_changed_at", "updated_at"])
+    
+    # Check if status_changed_at field exists before including it
+    update_fields = ["status", "updated_at"]
+    if hasattr(order, 'status_changed_at'):
+        update_fields.append("status_changed_at")
+    
+    order.save(update_fields=update_fields)
 
     logger.info(f"Order #{order.id} saved. Status: {order.status}")
 

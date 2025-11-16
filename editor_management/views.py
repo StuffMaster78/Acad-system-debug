@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, Count, Avg
+from django.db.models.functions import TruncWeek
 from django.utils.timezone import now
 from datetime import timedelta
 
@@ -102,6 +103,264 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
         dashboard_data = EditorDashboardService.get_dashboard_data(profile, days=days)
         
         return Response(dashboard_data)
+    
+    @action(detail=False, methods=['get'], url_path='dashboard/tasks')
+    def dashboard_tasks(self, request):
+        """Get recent and active tasks for editor dashboard."""
+        if request.user.role != 'editor':
+            return Response(
+                {"detail": "Only editors can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            profile = request.user.editor_profile
+        except EditorProfile.DoesNotExist:
+            return Response(
+                {"detail": "Editor profile not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get query parameters
+        limit = int(request.query_params.get('limit', 20))
+        status_filter = request.query_params.get('status', None)
+        
+        # Get tasks
+        tasks = EditorTaskAssignment.objects.filter(
+            assigned_editor=profile
+        ).select_related('order', 'assigned_by').order_by('-assigned_at')
+        
+        # Filter by status if provided
+        if status_filter:
+            tasks = tasks.filter(review_status=status_filter)
+        
+        # Limit results
+        tasks = tasks[:limit]
+        
+        serializer = EditorTaskAssignmentSerializer(tasks, many=True)
+        return Response({
+            'tasks': serializer.data,
+            'count': len(serializer.data),
+            'total_active': EditorTaskAssignment.objects.filter(
+                assigned_editor=profile,
+                review_status__in=['pending', 'in_review']
+            ).count()
+        })
+    
+    @action(detail=False, methods=['get'], url_path='dashboard/performance')
+    def dashboard_performance(self, request):
+        """Get performance analytics for editor dashboard."""
+        if request.user.role != 'editor':
+            return Response(
+                {"detail": "Only editors can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            profile = request.user.editor_profile
+        except EditorProfile.DoesNotExist:
+            return Response(
+                {"detail": "Editor profile not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        date_from = now() - timedelta(days=days)
+        
+        # Get performance data
+        from editor_management.services.performance_calculation_service import (
+            EditorPerformanceCalculationService
+        )
+        
+        # Calculate/update performance
+        performance = EditorPerformanceCalculationService.calculate_performance(profile)
+        
+        # Get performance stats
+        stats = EditorPerformanceCalculationService.get_performance_stats(profile, days=days)
+        
+        # Get performance trends
+        tasks = EditorTaskAssignment.objects.filter(
+            assigned_editor=profile,
+            reviewed_at__gte=date_from
+        )
+        
+        # Calculate trends by week
+        trends = tasks.annotate(
+            week=TruncWeek('reviewed_at')
+        ).values('week').annotate(
+            completed=Count('id', filter=Q(review_status='completed')),
+            avg_quality=Avg('review_submission__quality_score')
+        ).order_by('week')
+        
+        return Response({
+            'performance': {
+                'total_orders_reviewed': performance.total_orders_reviewed,
+                'average_review_time_hours': (
+                    performance.average_review_time.total_seconds() / 3600
+                    if performance.average_review_time else None
+                ),
+                'late_reviews': performance.late_reviews,
+                'average_quality_score': float(performance.average_quality_score)
+                if performance.average_quality_score else None,
+                'revisions_requested_count': performance.revisions_requested_count,
+                'approvals_count': performance.approvals_count,
+            },
+            'stats': stats,
+            'trends': [
+                {
+                    'week': item['week'].isoformat() if item['week'] else None,
+                    'completed': item['completed'],
+                    'avg_quality_score': float(item['avg_quality']) if item['avg_quality'] else None,
+                }
+                for item in trends
+            ]
+        })
+    
+    @action(detail=False, methods=['get'], url_path='dashboard/analytics')
+    def dashboard_analytics(self, request):
+        """Get task analytics for editor dashboard."""
+        if request.user.role != 'editor':
+            return Response(
+                {"detail": "Only editors can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            profile = request.user.editor_profile
+        except EditorProfile.DoesNotExist:
+            return Response(
+                {"detail": "Editor profile not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        date_from = now() - timedelta(days=days)
+        
+        # Get all tasks
+        all_tasks = EditorTaskAssignment.objects.filter(
+            assigned_editor=profile,
+            assigned_at__gte=date_from
+        )
+        
+        # Task breakdown by status
+        status_breakdown = all_tasks.values('review_status').annotate(
+            count=Count('id')
+        )
+        
+        # Task breakdown by assignment type
+        assignment_breakdown = all_tasks.values('assignment_type').annotate(
+            count=Count('id')
+        )
+        
+        # Tasks by week
+        weekly_tasks = all_tasks.annotate(
+            week=TruncWeek('assigned_at')
+        ).values('week').annotate(
+            count=Count('id')
+        ).order_by('week')
+        
+        # Urgent and overdue counts
+        urgent_tasks = all_tasks.filter(
+            review_status__in=['pending', 'in_review'],
+            order__deadline__lte=now() + timedelta(days=7),
+            order__deadline__gte=now()
+        ).count()
+        
+        overdue_tasks = all_tasks.filter(
+            review_status__in=['pending', 'in_review'],
+            order__deadline__lt=now()
+        ).count()
+        
+        return Response({
+            'status_breakdown': {item['review_status']: item['count'] for item in status_breakdown},
+            'assignment_breakdown': {item['assignment_type']: item['count'] for item in assignment_breakdown},
+            'weekly_tasks': [
+                {
+                    'week': item['week'].isoformat() if item['week'] else None,
+                    'count': item['count']
+                }
+                for item in weekly_tasks
+            ],
+            'urgent_tasks_count': urgent_tasks,
+            'overdue_tasks_count': overdue_tasks,
+            'total_tasks': all_tasks.count(),
+        })
+    
+    @action(detail=False, methods=['get'], url_path='dashboard/activity')
+    def dashboard_activity(self, request):
+        """Get recent activity for editor dashboard."""
+        if request.user.role != 'editor':
+            return Response(
+                {"detail": "Only editors can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            profile = request.user.editor_profile
+        except EditorProfile.DoesNotExist:
+            return Response(
+                {"detail": "Editor profile not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        days = int(request.query_params.get('days', 7))
+        limit = int(request.query_params.get('limit', 20))
+        date_from = now() - timedelta(days=days)
+        
+        # Get recent activity logs
+        recent_activity = EditorActionLog.objects.filter(
+            editor=profile,
+            timestamp__gte=date_from
+        ).select_related('related_order').order_by('-timestamp')[:limit]
+        
+        # Get recent reviews
+        recent_reviews = EditorReviewSubmission.objects.filter(
+            editor=profile,
+            submitted_at__gte=date_from
+        ).select_related('order', 'task_assignment').order_by('-submitted_at')[:limit]
+        
+        # Get recent task assignments
+        recent_assignments = EditorTaskAssignment.objects.filter(
+            assigned_editor=profile,
+            assigned_at__gte=date_from
+        ).select_related('order', 'assigned_by').order_by('-assigned_at')[:limit]
+        
+        return Response({
+            'activity_logs': [
+                {
+                    'id': activity.id,
+                    'action_type': activity.action_type,
+                    'action': activity.action,
+                    'order_id': activity.related_order.id if activity.related_order else None,
+                    'order_topic': activity.related_order.topic if activity.related_order else None,
+                    'timestamp': activity.timestamp.isoformat() if activity.timestamp else None,
+                }
+                for activity in recent_activity
+            ],
+            'recent_reviews': [
+                {
+                    'id': review.id,
+                    'order_id': review.order.id if review.order else None,
+                    'order_topic': review.order.topic if review.order else None,
+                    'quality_score': float(review.quality_score) if review.quality_score else None,
+                    'is_approved': review.is_approved,
+                    'requires_revision': review.requires_revision,
+                    'submitted_at': review.submitted_at.isoformat() if review.submitted_at else None,
+                }
+                for review in recent_reviews
+            ],
+            'recent_assignments': [
+                {
+                    'id': assignment.id,
+                    'order_id': assignment.order.id if assignment.order else None,
+                    'order_topic': assignment.order.topic if assignment.order else None,
+                    'review_status': assignment.review_status,
+                    'assignment_type': assignment.assignment_type,
+                    'assigned_at': assignment.assigned_at.isoformat() if assignment.assigned_at else None,
+                }
+                for assignment in recent_assignments
+            ]
+        })
 
 
 class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):

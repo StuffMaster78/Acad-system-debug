@@ -2,6 +2,8 @@ from rest_framework import viewsets, mixins, status
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models import Count, Avg, Q, F
+from django.db.models.functions import TruncDate
 
 from reviews_system.models import WebsiteReview, WriterReview, OrderReview
 from reviews_system.serializers import (
@@ -66,6 +68,26 @@ class WriterReviewViewSet(viewsets.ModelViewSet):
     queryset = WriterReview.objects.all().select_related("reviewer", "writer")
     serializer_class = WriterReviewSerializer
     permission_classes = [IsAuthenticated, IsReviewOwnerOrAdmin]
+
+    def get_queryset(self):
+        """
+        Filter reviews based on user role:
+        - Writers see only their own reviews
+        - Admins see all reviews
+        """
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # If user is a writer, filter to show only their reviews
+        if hasattr(user, 'role') and user.role == 'writer':
+            queryset = queryset.filter(writer=user)
+        
+        # Also support filtering by writer query parameter
+        writer_id = self.request.query_params.get('writer', None)
+        if writer_id:
+            queryset = queryset.filter(writer_id=writer_id)
+        
+        return queryset
 
     def get_permissions(self):
         if self.action in ["moderate", "destroy"]:

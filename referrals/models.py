@@ -89,9 +89,14 @@ class Referral(SoftDeleteModel):
         This function is placed inside the Referral model.
         """
         # Check if it's client's first order
-        if order.user.orders.count() == 1:  # The referee is placing their first order
+        # Order model uses 'client' field for the client who placed the order
+        order_client = getattr(order, 'client', None) or getattr(order, 'user', None)
+        if not order_client:
+            return 0
+        
+        if order_client.orders_as_client.count() == 1:  # The referee is placing their first order
             # Check if the order is linked to the current referral
-            if self.referred_user == order.user:
+            if self.referee == order_client:
                 # Get referral bonus configuration for the current website
                 bonus_config = ReferralBonusConfig.objects.filter(website=self.website).first()
                 if bonus_config:
@@ -106,9 +111,6 @@ class Referral(SoftDeleteModel):
                     order.total -= discount_amount
                     order.save()
 
-                    # Optionally create a wallet transaction for the referrer
-                    self._create_wallet_transaction(order, discount_amount)
-                    
                     # Mark the referral as bonus credited
                     self.first_order_referral_bonus_credited = True
                     self.save()
@@ -194,6 +196,12 @@ class ReferralCode(models.Model):
 
     def __str__(self):
         return f"Referral Code: {self.code} (User: {self.user.username})"
+
+    def get_referral_link(self):
+        """Generate referral link for this code."""
+        # Link should point to signup/registration page with referral code
+        domain = self.website.domain.replace('https://', '').replace('http://', '')
+        return f"https://{domain}/signup?ref={self.code}"
 
     def save(self, *args, **kwargs):
         if not getattr(self, "website_id", None):
@@ -301,3 +309,54 @@ class ReferralBonusUsage(models.Model):
 
     def __str__(self):
         return f"Referral bonus of {self.discount_amount} applied to Order {self.order.id} (Payment {self.payment.transaction_id})"
+
+
+class PendingReferralInvitation(models.Model):
+    """
+    Tracks referral invitations sent to people who don't have accounts yet.
+    When they sign up using the referral code, this will be converted to a Referral.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='pending_referral_invitations'
+    )
+    referrer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="pending_referral_invitations",
+        help_text="The user who sent the referral invitation."
+    )
+    referee_email = models.EmailField(
+        help_text="Email address of the person being referred (they don't have an account yet)."
+    )
+    referral_code = models.CharField(
+        max_length=50,
+        help_text="Referral code to be used when they sign up."
+    )
+    referral_link = models.URLField(
+        help_text="Full referral link sent to the referee."
+    )
+    sent_at = models.DateTimeField(auto_now_add=True)
+    invitation_sent = models.BooleanField(default=False)
+    converted = models.BooleanField(
+        default=False,
+        help_text="True when the invitation has been converted to a Referral (user signed up)."
+    )
+    converted_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        unique_together = ['referrer', 'referee_email', 'website']
+        indexes = [
+            models.Index(fields=['referee_email', 'website']),
+            models.Index(fields=['referral_code']),
+        ]
+
+    def __str__(self):
+        return f"Invitation from {self.referrer.username} to {self.referee_email}"
+
+    def mark_as_converted(self):
+        """Mark this invitation as converted when the user signs up."""
+        self.converted = True
+        self.converted_at = now()
+        self.save()

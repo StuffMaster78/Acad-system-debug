@@ -164,6 +164,12 @@ class WriterProfile(models.Model):
     )
     last_active = models.DateTimeField(null=True, blank=True)
     last_logged_in = models.DateTimeField(null=True, blank=True)
+    pen_name = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Pen name visible to clients (instead of real name). If not set, registration_id will be used."
+    )
     location_verified = models.BooleanField(
         default=False,
         help_text="Indicates whether the writer's location has been verified."

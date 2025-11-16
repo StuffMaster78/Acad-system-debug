@@ -68,6 +68,48 @@ class RefundViewSet(viewsets.ModelViewSet):
         refund.save()
         return Response({"success": "Refund retried and processed."}, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'], url_path='process')
+    def process_refund(self, request, pk=None):
+        """
+        Process a pending refund using the RefundProcessorService.
+        Only staff can process refunds.
+        """
+        if not request.user.is_staff:
+            return Response(
+                {"error": "Only staff can process refunds."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        refund = self.get_object()
+        if refund.status != Refund.PENDING:
+            return Response(
+                {"error": "Only pending refunds can be processed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            reason = request.data.get('reason', 'Refund processed by admin')
+            RefundProcessorService.process_refund(
+                refund=refund,
+                processed_by=request.user,
+                reason=reason,
+                admin_user=request.user
+            )
+            return Response(
+                {"success": "Refund processed successfully."},
+                status=status.HTTP_200_OK
+            )
+        except ValidationError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to process refund: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
     @action(detail=True, methods=['post'], url_path='cancel')
     def cancel_refund(self, request, pk=None):
         refund = self.get_object()

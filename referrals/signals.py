@@ -25,8 +25,27 @@ def credit_referral_bonus_on_order_completion(sender, instance, created, **kwarg
         if getattr(instance, 'first_order_bonus_credited', False):
             return
 
-        # Check if the referred user has placed and paid for an order without a refund
-        if instance.referred_user.has_paid_order_without_refund():
+        # Check if the referred user (referee) has placed and paid for an order without a refund
+        # Check if referee has any paid orders without refunds
+        has_paid_order = False
+        if instance.referee:
+            # Check if referee has any orders that are paid and not refunded
+            from orders.models import Order
+            paid_orders = Order.objects.filter(
+                client=instance.referee,
+                is_paid=True
+            )
+            for order in paid_orders:
+                # Check if order has no refunds
+                has_refunds = False
+                if order.payments.exists():
+                    has_refunds = order.payments.filter(status='refunded').exists() or \
+                                 order.payments.filter(payment_refunds__status='processed').exists()
+                if not has_refunds:
+                    has_paid_order = True
+                    break
+        
+        if has_paid_order:
             # Fetch referral bonus configuration
             bonus_config = ReferralBonusConfig.objects.filter(website=instance.website).first()
 
@@ -45,7 +64,7 @@ def credit_referral_bonus_on_order_completion(sender, instance, created, **kwarg
                 WalletTransaction.objects.create(
                     wallet=wallet,
                     transaction_type='referral_bonus',
-                    amount=bonus_config.registration_referral_bonus,
+                    amount=bonus_config.first_order_bonus,
                     description="Referral Bonus: Successful Registration",
                     expires_at=expires_at,
                     website=instance.website,
@@ -56,7 +75,7 @@ def credit_referral_bonus_on_order_completion(sender, instance, created, **kwarg
                 instance.save()
 
                 # Send an email notification to the referrer
-                send_referral_bonus_credited_email(instance.referrer, bonus_config.registration_referral_bonus)
+                send_referral_bonus_credited_email(instance.referrer, bonus_config.first_order_bonus)
 
 
 def send_referral_bonus_credited_email(referrer, bonus_amount):
@@ -79,7 +98,13 @@ def check_payment_and_credit_referral(sender, instance, created, **kwargs):
     """
     if created and instance.status == 'completed' and instance.order:
         order = instance.order
-        referral = Referral.objects.filter(referred_user=order.client).first()
+        # Find referral where the order client is the referee
+        # Order model uses 'client' field for the client who placed the order
+        order_client = getattr(order, 'client', None)
+        if not order_client:
+            return
+        
+        referral = Referral.objects.filter(referee=order_client).first()
 
         if referral and not getattr(referral, 'first_order_bonus_credited', False):
             # Fetch referral bonus configuration
@@ -89,7 +114,16 @@ def check_payment_and_credit_referral(sender, instance, created, **kwargs):
                 return
 
             # Check if the order was paid and has no refunds
-            if order.is_paid() and not order.has_refunds():
+            # is_paid is a boolean field, not a method
+            is_paid = getattr(order, 'is_paid', False)
+            # Check for refunds by looking at payment refunds
+            has_refunds = False
+            if order.payments.exists():
+                # Check if any payment has been refunded
+                has_refunds = order.payments.filter(status='refunded').exists() or \
+                             order.payments.filter(payment_refunds__status='processed').exists()
+            
+            if is_paid and not has_refunds:
                 # Ensure transaction is atomic
                 with transaction.atomic():
                     # Create or fetch wallet for the referrer
@@ -102,7 +136,7 @@ def check_payment_and_credit_referral(sender, instance, created, **kwargs):
                     WalletTransaction.objects.create(
                         wallet=wallet,
                         transaction_type='referral_bonus',
-                        amount=bonus_config.registration_referral_bonus,
+                        amount=bonus_config.first_order_bonus,
                         description="Referral Bonus: Successful Registration",
                         expires_at=expires_at,
                         website=referral.website,
@@ -113,7 +147,7 @@ def check_payment_and_credit_referral(sender, instance, created, **kwargs):
                     referral.save()
 
                     # Send an email notification to the referrer
-                    send_referral_bonus_credited_email(referral.referrer, bonus_config.registration_referral_bonus)
+                    send_referral_bonus_credited_email(referral.referrer, bonus_config.first_order_bonus)
 
 
 @receiver(post_save, sender=WalletTransaction)

@@ -14,7 +14,7 @@ from orders.models import Order
 from orders.order_enums import OrderStatus
 from users.models import User
 from tickets.models import Ticket
-from communications.models import Message
+from communications.models import CommunicationMessage
 from pricing_configs.models import AdditionalService
 
 
@@ -47,10 +47,12 @@ class DashboardMetricsService:
         website = getattr(user, 'website', None)
         role = getattr(user, 'role', 'client')
         
-        # Base queryset filtered by website
+        # Base queryset - no website filtering for superadmin and admin
         order_qs = Order.objects.all()
-        if website:
-            order_qs = order_qs.filter(website=website)
+        # Both superadmin and admin see all orders (no website filtering)
+        if role not in ['superadmin', 'admin']:
+            if website:
+                order_qs = order_qs.filter(website=website)
         
         # Role-based filtering
         if role == 'client':
@@ -70,7 +72,7 @@ class DashboardMetricsService:
                     order_qs = order_qs.none()
             except Exception:
                 order_qs = order_qs.none()
-        # Admin/Superadmin see all orders for their website
+        # Admin/Superadmin see all orders (no additional filtering)
         
         # Total orders
         total_orders = order_qs.count()
@@ -99,8 +101,10 @@ class DashboardMetricsService:
         
         # Tickets (if applicable)
         ticket_qs = Ticket.objects.all()
-        if website:
-            ticket_qs = ticket_qs.filter(website=website)
+        # Both superadmin and admin see all tickets (no website filtering)
+        if role not in ['superadmin', 'admin']:
+            if website:
+                ticket_qs = ticket_qs.filter(website=website)
         if role == 'client':
             ticket_qs = ticket_qs.filter(client=user)
         
@@ -142,8 +146,10 @@ class DashboardMetricsService:
         role = getattr(user, 'role', 'client')
         
         order_qs = Order.objects.filter(created_at__year=year)
-        if website:
-            order_qs = order_qs.filter(website=website)
+        # Both superadmin and admin see all orders (no website filtering)
+        if role not in ['superadmin', 'admin']:
+            if website:
+                order_qs = order_qs.filter(website=website)
         
         if role == 'client':
             order_qs = order_qs.filter(client=user)
@@ -205,8 +211,10 @@ class DashboardMetricsService:
             created_at__year=year,
             created_at__month=month
         )
-        if website:
-            order_qs = order_qs.filter(website=website)
+        # Both superadmin and admin see all orders (no website filtering)
+        if role not in ['superadmin', 'admin']:
+            if website:
+                order_qs = order_qs.filter(website=website)
         
         if role == 'client':
             order_qs = order_qs.filter(client=user)
@@ -252,8 +260,10 @@ class DashboardMetricsService:
             created_at__gte=cutoff,
             is_paid=True
         )
-        if website:
-            order_qs = order_qs.filter(website=website)
+        # Both superadmin and admin see all orders (no website filtering)
+        if role not in ['superadmin', 'admin']:
+            if website:
+                order_qs = order_qs.filter(website=website)
         
         if role == 'client':
             order_qs = order_qs.filter(client=user)
@@ -267,10 +277,24 @@ class DashboardMetricsService:
         )
         
         # Revenue by additional services
-        service_revenue = order_qs.values('extra_services__name').annotate(
-            revenue=Sum('total_price', output_field=DecimalField()),
-            count=Count('id')
-        ).exclude(extra_services__isnull=True)
+        # For ManyToMany relationships, we need to query from the service side
+        # Get the order IDs that match our filters
+        order_ids = list(order_qs.values_list('id', flat=True))
+        
+        if not order_ids:
+            # No orders match, return empty service revenue
+            service_revenue = []
+        else:
+            # Query services that are related to these orders
+            # Filter by website if not superadmin/admin
+            service_qs = AdditionalService.objects.filter(orders__id__in=order_ids)
+            if role not in ['superadmin', 'admin'] and website:
+                service_qs = service_qs.filter(website=website)
+            
+            service_revenue = service_qs.annotate(
+                revenue=Sum('orders__total_price', output_field=DecimalField()),
+                count=Count('orders__id', distinct=True)
+            ).values('service_name', 'revenue', 'count')
         
         result = {
             'by_paper_type': [
@@ -283,7 +307,7 @@ class DashboardMetricsService:
             ],
             'by_service': [
                 {
-                    'name': item['extra_services__name'] or 'Unknown',
+                    'name': item['service_name'] or 'Unknown',
                     'revenue': float(item.get('revenue', Decimal('0.00'))),
                     'order_count': item.get('count', 0),
                 }
@@ -308,8 +332,10 @@ class DashboardMetricsService:
         role = getattr(user, 'role', 'client')
         
         order_qs = Order.objects.all()
-        if website:
-            order_qs = order_qs.filter(website=website)
+        # Both superadmin and admin see all orders (no website filtering)
+        if role not in ['superadmin', 'admin']:
+            if website:
+                order_qs = order_qs.filter(website=website)
         
         if role == 'client':
             order_qs = order_qs.filter(client=user)

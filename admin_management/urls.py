@@ -8,6 +8,13 @@ from .views import (
     AdminLogoutView, 
     BlacklistedUserViewSet,
     AdminActivityLogViewSet,
+    AdminDisputeManagementViewSet,
+    AdminRefundManagementViewSet,
+    AdminReviewModerationViewSet,
+    AdminOrderManagementViewSet,
+    AdminSpecialOrdersManagementViewSet,
+    AdminClassBundlesManagementViewSet,
+    AdminTipManagementViewSet,
 )
 from .views.user_management import ComprehensiveUserManagementViewSet
 from .views.config_management import (
@@ -22,9 +29,13 @@ from .views.email_management import (
     EmailDigestManagementViewSet,
     BroadcastMessageManagementViewSet,
 )
+from .views.financial_overview import FinancialOverviewViewSet
+from .views.unified_search import UnifiedSearchViewSet
+from .views.exports import ExportViewSet
 
 # DRF Router for ViewSets
 router = DefaultRouter()
+router.register(r'dashboard', AdminDashboardView, basename="admin_dashboard")
 router.register(r'users', UserManagementView, basename="users")
 router.register(r'blacklisted-users', BlacklistedUserViewSet, basename="blacklisted_users")
 router.register(r'activity-logs', AdminActivityLogViewSet, basename="activity_logs")
@@ -44,15 +55,40 @@ router.register(r'emails/mass-emails', MassEmailManagementViewSet, basename="mas
 router.register(r'emails/digests', EmailDigestManagementViewSet, basename="email_digests")
 router.register(r'emails/broadcasts', BroadcastMessageManagementViewSet, basename="broadcast_messages")
 
-urlpatterns = [
-    # Admin Dashboard
-    path("dashboard/", AdminDashboardView.as_view({"get": "list"}), name="admin_dashboard"),
+# Dispute and Refund management
+router.register(r'disputes', AdminDisputeManagementViewSet, basename="admin_disputes")
+router.register(r'refunds', AdminRefundManagementViewSet, basename="admin_refunds")
 
+# Review Moderation management
+router.register(r'reviews', AdminReviewModerationViewSet, basename="admin_reviews")
+
+# Order Management
+router.register(r'orders', AdminOrderManagementViewSet, basename="admin_orders")
+
+# Special Orders Management
+router.register(r'special-orders', AdminSpecialOrdersManagementViewSet, basename="admin_special_orders")
+
+# Class Bundles Management
+router.register(r'class-bundles', AdminClassBundlesManagementViewSet, basename="admin_class_bundles")
+
+# Tip Management
+router.register(r'tips', AdminTipManagementViewSet, basename="admin_tips")
+
+# Financial Overview
+router.register(r'financial-overview', FinancialOverviewViewSet, basename="financial_overview")
+
+# Unified Search
+router.register(r'unified-search', UnifiedSearchViewSet, basename="unified_search")
+
+# Exports
+router.register(r'exports', ExportViewSet, basename="exports")
+
+urlpatterns = [
     # Authentication APIs (JWT-Based)
     path("auth/login/", AdminLoginView.as_view(), name="admin_login"),
     path("auth/logout/", AdminLogoutView.as_view(), name="admin_logout"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="refresh_token"),
 
-    # Include all registered ViewSets
+    # Include all registered ViewSets (includes dashboard with all actions)
     path("", include(router.urls)),
 ]

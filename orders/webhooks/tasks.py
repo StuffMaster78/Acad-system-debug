@@ -2,21 +2,11 @@ from celery import shared_task
 import requests
 import logging
 from orders.webhooks.payloads import build_webhook_payload
-from orders.models import Order
-from users.models import User  # adjust path if different
+from orders.models import Order, WebhookDeliveryLog
 from writer_management.models.webhook_settings import WebhookSettings
 from audit_logging.services.audit_log_service import WebhookAuditLogger
-from orders.webhooks.payloads import build_webhook_payload
-from orders.models import WebhookDeliveryLog
 
 logger = logging.getLogger(__name__)
-
-@shared_task(bind=True, max_retries=3)
-def send_webhook_task(self, webhook_url, payload):
-    try:
-        requests.post(webhook_url, json=payload, timeout=5)
-    except Exception as exc:
-        self.retry(exc=exc, countdown=5)
 
 @shared_task(bind=True, max_retries=3, default_retry_delay=10)
 def send_webhook_task(self, webhook_url: str, payload: dict, headers: dict = None):
@@ -145,6 +135,8 @@ def deliver_webhook_task(
     from django.contrib.auth import get_user_model
     from orders.models import Order
 
+    User = get_user_model()
+    
     try:
         user = User.objects.get(pk=user_id)
         order = Order.objects.get(pk=order_id)

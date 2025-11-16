@@ -29,6 +29,13 @@ class DiscountSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     
+    assigned_to_users = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
+        many=True,
+        required=False,
+        help_text="Users this discount is specifically assigned to"
+    )
+    
     class Meta:
         model = Discount
         fields = [
@@ -37,7 +44,7 @@ class DiscountSerializer(serializers.ModelSerializer):
             'start_date', 'end_date', 'expiry_date', 'min_order_value', 
             'max_discount_value', 'applies_to_first_order_only', 
             'is_general', 'assigned_to_client', 'assigned_to_client_email', 'assigned_to_client_username',
-            'promotional_campaign', 'promotional_campaign_name',
+            'assigned_to_users', 'promotional_campaign', 'promotional_campaign_name',
             'stackable', 'stackable_with', 'max_discount_percent', 
             'max_stackable_uses_per_customer', 'per_user_usage_limit', 'is_active', 'is_deleted',
             'is_expired', 'is_archived'
@@ -61,16 +68,33 @@ class DiscountSerializer(serializers.ModelSerializer):
         """
         Custom create logic to handle code generation or other logic
         """
+        # Extract ManyToMany fields
+        assigned_to_users = validated_data.pop('assigned_to_users', [])
+        
         discount = Discount.objects.create(**validated_data)
+        
+        # Set ManyToMany relationships
+        if assigned_to_users:
+            discount.assigned_to_users.set(assigned_to_users)
+        
         return discount
     
     def update(self, instance, validated_data):
         """
         Handle updates of the discount
         """
+        # Extract ManyToMany fields
+        assigned_to_users = validated_data.pop('assigned_to_users', None)
+        
+        # Update regular fields
         for field, value in validated_data.items():
             setattr(instance, field, value)
         instance.save()
+        
+        # Update ManyToMany relationships if provided
+        if assigned_to_users is not None:
+            instance.assigned_to_users.set(assigned_to_users)
+        
         return instance
 
 class DiscountUsageSerializer(serializers.ModelSerializer):

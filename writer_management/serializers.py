@@ -490,24 +490,70 @@ class WebhookSettingsSerializer(serializers.ModelSerializer):
 class TipCreateSerializer(serializers.ModelSerializer):
     """
     Serializer for creating a tip for a writer.
-    This serializer handles the creation of a tip, including validation
-    of the tip amount and linking it to the writer and order.
+    Supports direct tips, order-based tips, and class/task-based tips.
     """
     writer_id = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.filter(role="writer"), source="writer"
     )
     order_id = serializers.PrimaryKeyRelatedField(
-        queryset=Order.objects.all(), source="order"
+        queryset=Order.objects.all(),
+        source="order",
+        required=False,
+        allow_null=True,
+        help_text="Order ID (for order-based tips)"
+    )
+    related_entity_type = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Type of related entity (e.g., 'class_bundle', 'express_class')"
+    )
+    related_entity_id = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text="ID of related entity (for class/task-based tips)"
     )
     tip_amount = serializers.DecimalField(max_digits=10, decimal_places=2)
     tip_reason = serializers.CharField(required=False, allow_blank=True)
+    payment_method = serializers.CharField(
+        default='wallet',
+        help_text="Payment method: 'wallet', 'stripe', or 'manual'"
+    )
+    discount_code = serializers.CharField(
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Optional discount code"
+    )
 
     class Meta:
         model = Tip
         fields = [
-            "writer_id", "order_id", "tip_amount",
-            "tip_reason"
+            "writer_id", "order_id", "related_entity_type", "related_entity_id",
+            "tip_amount", "tip_reason", "payment_method", "discount_code"
         ]
+
+    def validate(self, data):
+        """
+        Validate that either order_id or related_entity info is provided for non-direct tips.
+        """
+        order = data.get('order')
+        related_entity_type = data.get('related_entity_type')
+        related_entity_id = data.get('related_entity_id')
+        
+        # If order is provided, it's order-based
+        if order:
+            return data
+        
+        # If related entity info is provided, validate both are present
+        if related_entity_type or related_entity_id:
+            if not (related_entity_type and related_entity_id):
+                raise serializers.ValidationError(
+                    "Both related_entity_type and related_entity_id are required for class/task-based tips."
+                )
+        
+        # If neither is provided, it's a direct tip (allowed)
+        return data
 
     def validate_tip_amount(self, value):
         """
@@ -522,32 +568,159 @@ class TipCreateSerializer(serializers.ModelSerializer):
         Create a new tip instance using the validated data.
         This method uses the TipService to handle the business logic
         of creating a tip, including calculating the split between
-        the writer and the platform.
+        the writer and the platform, and processing payment.
         """
         from writer_management.services.tip_service import TipService
         request = self.context["request"]
         user = request.user
-        website = request.website  # if using custom middleware
-
-        return TipService.create_tip(
+        website = getattr(request, 'website', None)
+        
+        # Extract payment-related fields
+        payment_method = validated_data.pop('payment_method', 'wallet')
+        discount_code = validated_data.pop('discount_code', None)
+        
+        # Create tip
+        tip = TipService.create_tip(
             client=user,
             website=website,
             **validated_data
         )
+        
+        # Process payment
+        if payment_method != 'manual':
+            TipService.process_tip_payment(
+                tip=tip,
+                payment_method=payment_method,
+                discount_code=discount_code
+            )
+        
+        return tip
     
 
 class TipListSerializer(serializers.ModelSerializer):
+    """
+    Serializer for listing tips.
+    Writers only see their share, not platform profit or full tip amount.
+    """
     writer_name = serializers.CharField(source="writer.get_full_name", read_only=True)
+    writer_username = serializers.CharField(source="writer.username", read_only=True)
     client_name = serializers.CharField(source="client.get_full_name", read_only=True)
-    order_title = serializers.CharField(source="order.title", read_only=True)
-
+    client_username = serializers.CharField(source="client.username", read_only=True)
+    order_title = serializers.SerializerMethodField()
+    related_entity_info = serializers.SerializerMethodField()
+    tip_type_display = serializers.CharField(source="get_tip_type_display", read_only=True)
+    
+    # Writer-safe fields (writers only see their share)
+    amount_received = serializers.SerializerMethodField()
+    
     class Meta:
         model = Tip
         fields = [
-            "id", "tip_amount", "tip_reason", "sent_at",
-            "writer_name", "client_name", "order_title",
-            "writer_earning", "platform_profit"
+            "id", "tip_type", "tip_type_display", "tip_reason", "sent_at",
+            "writer_name", "writer_username", "client_name", "client_username",
+            "order_title", "related_entity_info",
+            "amount_received",  # Writer sees only their share
+            "payment_status",
         ]
+    
+    def get_order_title(self, obj):
+        """Get order title if order-based tip."""
+        if obj.order:
+            return obj.order.topic or f"Order #{obj.order.id}"
+        return None
+    
+    def get_related_entity_info(self, obj):
+        """Get related entity info for class/task-based tips."""
+        if obj.related_entity_type and obj.related_entity_id:
+            return {
+                "type": obj.related_entity_type,
+                "id": obj.related_entity_id
+            }
+        return None
+    
+    def get_amount_received(self, obj):
+        """
+        Writers only see their share, not the full tip amount or platform profit.
+        Clients and admins see the full tip amount.
+        """
+        request = self.context.get('request')
+        if request and request.user:
+            user = request.user
+            # Writers only see their share
+            if user.role == 'writer' and user == obj.writer:
+                return str(obj.writer_earning)
+            # Clients and admins see full amount
+            elif user.role in ['client', 'admin', 'superadmin']:
+                return str(obj.tip_amount)
+        # Default: show writer earning (safe default)
+        return str(obj.writer_earning)
+
+
+class TipDetailSerializer(serializers.ModelSerializer):
+    """
+    Detailed serializer for tip view.
+    Writers see only their share; clients/admins see full details.
+    """
+    writer_name = serializers.CharField(source="writer.get_full_name", read_only=True)
+    writer_username = serializers.CharField(source="writer.username", read_only=True)
+    client_name = serializers.CharField(source="client.get_full_name", read_only=True)
+    client_username = serializers.CharField(source="client.username", read_only=True)
+    order_title = serializers.SerializerMethodField()
+    related_entity_info = serializers.SerializerMethodField()
+    tip_type_display = serializers.CharField(source="get_tip_type_display", read_only=True)
+    
+    # Conditional fields based on user role
+    amount_received = serializers.SerializerMethodField()
+    full_tip_amount = serializers.SerializerMethodField()
+    writer_percentage_display = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Tip
+        fields = [
+            "id", "tip_type", "tip_type_display", "tip_reason", "sent_at",
+            "writer_name", "writer_username", "client_name", "client_username",
+            "order_title", "related_entity_info",
+            "amount_received", "full_tip_amount", "writer_percentage_display",
+            "payment_status", "payment",
+        ]
+    
+    def get_order_title(self, obj):
+        if obj.order:
+            return obj.order.topic or f"Order #{obj.order.id}"
+        return None
+    
+    def get_related_entity_info(self, obj):
+        if obj.related_entity_type and obj.related_entity_id:
+            return {
+                "type": obj.related_entity_type,
+                "id": obj.related_entity_id
+            }
+        return None
+    
+    def get_amount_received(self, obj):
+        """Writer's share (what they receive)."""
+        return str(obj.writer_earning)
+    
+    def get_full_tip_amount(self, obj):
+        """Full tip amount (only visible to clients and admins)."""
+        request = self.context.get('request')
+        if request and request.user:
+            user = request.user
+            # Writers don't see full amount
+            if user.role == 'writer' and user == obj.writer:
+                return None
+            # Clients and admins see full amount
+            elif user.role in ['client', 'admin', 'superadmin']:
+                return str(obj.tip_amount)
+        return None
+    
+    def get_writer_percentage_display(self, obj):
+        """Writer percentage (only visible to admins)."""
+        request = self.context.get('request')
+        if request and request.user:
+            if request.user.role in ['admin', 'superadmin']:
+                return f"{obj.writer_percentage}%"
+        return None
 
 class CurrencyConversionRateSerializer(serializers.ModelSerializer):
     website_id = serializers.PrimaryKeyRelatedField(

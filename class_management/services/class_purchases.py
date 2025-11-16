@@ -1,12 +1,12 @@
 from django.utils import timezone
-from orders.services.wallet import charge_wallet, InsufficientBalanceError
 from django.db import transaction
-from orders.models import WalletTransaction
-from class_management.models import ClassPurchase, Class
+from class_management.models import ClassPurchase
+from wallet.models import WalletTransaction
+from wallet.exceptions import InsufficientWalletBalance as InsufficientBalanceError
 
 # services/class_purchases.py
 from .pricing import get_class_price  # your pricing table logic
-from wallet.services import charge_wallet
+from wallet.services.wallet_transaction_service import WalletTransactionService
 
 def handle_purchase_request(user, data, website):
     program = data['program']

@@ -110,7 +110,7 @@ class LoyaltyConversionSerializer(serializers.Serializer):
 class LoyaltyTransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = LoyaltyTransaction
-        fields = ['id', 'points', 'transaction_type', 'reason', 'created_at']
+        fields = ['id', 'points', 'transaction_type', 'reason', 'timestamp']
 
 
 class LoyaltyTransactionListSerializer(serializers.ModelSerializer):
@@ -118,8 +118,8 @@ class LoyaltyTransactionListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LoyaltyTransaction
-        fields = ['id', 'client', 'client_username', 'points', 'transaction_type', 'reason', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = ['id', 'client', 'client_username', 'points', 'transaction_type', 'reason', 'timestamp']
+        read_only_fields = ['id', 'timestamp']
 
 
 class AdminLoyaltyAwardSerializer(serializers.Serializer):
@@ -179,8 +179,8 @@ class AdminLoyaltyTransactionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = LoyaltyTransaction
-        fields = ['id', 'client', 'client_username', 'points', 'transaction_type', 'reason', 'created_at']
-        read_only_fields = ['id', 'created_at']
+        fields = ['id', 'client', 'client_username', 'points', 'transaction_type', 'reason', 'timestamp']
+        read_only_fields = ['id', 'timestamp']
 
 
 # ============================================================================

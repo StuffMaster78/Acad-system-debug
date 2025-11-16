@@ -6,6 +6,11 @@ from .models import (
     ServicePageClick,
     ServicePageConversion
 )
+try:
+    from .models.enhanced_models import ServicePageFAQ, ServicePageResource
+except ImportError:
+    ServicePageFAQ = None
+    ServicePageResource = None
 
 
 class FAQItemSerializer(serializers.Serializer):
@@ -16,11 +21,28 @@ class FAQItemSerializer(serializers.Serializer):
     answer = serializers.CharField()
 
 
+class ServicePageFAQWriteSerializer(serializers.Serializer):
+    """Serializer for writing FAQs."""
+    question = serializers.CharField(max_length=500)
+    answer = serializers.CharField()
+
+
+class ServicePageResourceWriteSerializer(serializers.Serializer):
+    """Serializer for writing Resources."""
+    title = serializers.CharField(max_length=255)
+    url = serializers.URLField()
+    description = serializers.CharField(required=False, allow_blank=True)
+    resource_type = serializers.CharField(max_length=50, required=False, default='link')
+
+
 class ServicePageSerializer(serializers.ModelSerializer):
     """
     Serializer for managing service pages with SEO and FAQ data.
     """
     faq_json = FAQItemSerializer(many=True, required=False)
+    faqs_data = ServicePageFAQWriteSerializer(many=True, write_only=True, required=False)
+    resources_data = ServicePageResourceWriteSerializer(many=True, write_only=True, required=False)
+    website = serializers.SerializerMethodField()
 
     class Meta:
         model = ServicePage
@@ -36,6 +58,8 @@ class ServicePageSerializer(serializers.ModelSerializer):
             'image',
             'og_image',
             'faq_json',
+            'faqs_data',
+            'resources_data',
             'is_published',
             'publish_date',
             'is_deleted',
@@ -50,6 +74,16 @@ class ServicePageSerializer(serializers.ModelSerializer):
             'created_at',
             'updated_at'
         ]
+    
+    def get_website(self, obj):
+        """Get website information"""
+        if obj.website:
+            return {
+                'id': obj.website.id,
+                'name': obj.website.name,
+                'domain': obj.website.domain,
+            }
+        return None
 
     def validate_faq_json(self, value):
         """
@@ -67,6 +101,70 @@ class ServicePageSerializer(serializers.ModelSerializer):
                     "Each FAQ must include 'question' and 'answer'."
                 )
         return value
+    
+    def create(self, validated_data):
+        """Create service page with FAQs and resources."""
+        faqs_data = validated_data.pop('faqs_data', [])
+        resources_data = validated_data.pop('resources_data', [])
+        
+        service_page = super().create(validated_data)
+        
+        # Create FAQs if ServicePageFAQ model exists
+        if ServicePageFAQ and faqs_data:
+            for faq_data in faqs_data:
+                ServicePageFAQ.objects.create(
+                    service_page=service_page,
+                    question=faq_data.get('question'),
+                    answer=faq_data.get('answer')
+                )
+        
+        # Create Resources if ServicePageResource model exists
+        if ServicePageResource and resources_data:
+            for resource_data in resources_data:
+                ServicePageResource.objects.create(
+                    service_page=service_page,
+                    title=resource_data.get('title'),
+                    url=resource_data.get('url'),
+                    description=resource_data.get('description', ''),
+                    resource_type=resource_data.get('resource_type', 'link')
+                )
+        
+        return service_page
+    
+    def update(self, instance, validated_data):
+        """Update service page with FAQs and resources."""
+        faqs_data = validated_data.pop('faqs_data', None)
+        resources_data = validated_data.pop('resources_data', None)
+        
+        service_page = super().update(instance, validated_data)
+        
+        # Update FAQs if provided and ServicePageFAQ model exists
+        if ServicePageFAQ and faqs_data is not None:
+            # Delete existing FAQs
+            ServicePageFAQ.objects.filter(service_page=service_page).delete()
+            # Create new FAQs
+            for faq_data in faqs_data:
+                ServicePageFAQ.objects.create(
+                    service_page=service_page,
+                    question=faq_data.get('question'),
+                    answer=faq_data.get('answer')
+                )
+        
+        # Update Resources if provided and ServicePageResource model exists
+        if ServicePageResource and resources_data is not None:
+            # Delete existing resources
+            ServicePageResource.objects.filter(service_page=service_page).delete()
+            # Create new resources
+            for resource_data in resources_data:
+                ServicePageResource.objects.create(
+                    service_page=service_page,
+                    title=resource_data.get('title'),
+                    url=resource_data.get('url'),
+                    description=resource_data.get('description', ''),
+                    resource_type=resource_data.get('resource_type', 'link')
+                )
+        
+        return service_page
 
 
 class ServicePageAnalyticsSerializer(serializers.ModelSerializer):

@@ -9,12 +9,14 @@ from django.db import models
 import logging
 
 from class_management.models import (
-    ClassPurchase, ClassInstallment, ClassBundleConfig, ClassBundle, ClassBundleFile
+    ClassPurchase, ClassInstallment, ClassBundleConfig, ClassBundle, ClassBundleFile, ExpressClass
 )
 from class_management.serializers import (
     ClassPurchaseSerializer, ClassInstallmentSerializer,
     ClassBundleConfigSerializer, ClassBundleSerializer,
-    AdminCreateClassBundleSerializer, AdminConfigureInstallmentsSerializer
+    AdminCreateClassBundleSerializer, AdminConfigureInstallmentsSerializer,
+    ExpressClassSerializer, ExpressClassCreateSerializer,
+    ExpressClassScopeReviewSerializer, ExpressClassAssignWriterSerializer
 )
 from class_management.services.class_purchases import handle_purchase_request
 from class_management.services.pricing import get_class_price, InvalidPricingError
@@ -23,6 +25,7 @@ from class_management.services.class_payment_processor import ClassPaymentProces
 from class_management.services.class_communication import ClassBundleCommunicationService
 from class_management.services.class_tickets import ClassBundleTicketService
 from websites.models import Website
+from communications.models import CommRole
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +53,7 @@ class ClassBundleViewSet(viewsets.ModelViewSet):
         """Get website from request."""
         domain = self.request.get_host()
         try:
-        return Website.objects.get(domain=domain)
+            return Website.objects.get(domain=domain)
         except Website.DoesNotExist:
             return None
 
@@ -547,3 +550,299 @@ class ClassBundleConfigViewSet(viewsets.ModelViewSet):
             return Response({'price': str(price)}, status=200)
         except InvalidPricingError as e:
             return Response({'detail': str(e)}, status=404)
+
+
+class ExpressClassViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing express classes (single class requests).
+    Clients can create inquiries, admins review scope, set price, assign writers.
+    """
+    queryset = ExpressClass.objects.select_related('client', 'website', 'assigned_writer', 'reviewed_by').all()
+    serializer_class = ExpressClassSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter express classes based on user role."""
+        user = self.request.user
+        if user.is_staff:
+            return self.queryset.all()
+        # Clients see their own express classes
+        return self.queryset.filter(client=user)
+    
+    def get_serializer_class(self):
+        """Return appropriate serializer based on action."""
+        if self.action == 'create':
+            return ExpressClassCreateSerializer
+        return ExpressClassSerializer
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def review_scope(self, request, pk=None):
+        """
+        Admin reviews the scope and sets the price.
+        
+        Request body:
+        {
+            "scope_review_notes": "Notes from scope review",
+            "price": 500.00,
+            "installments_needed": 3,
+            "admin_notes": "Optional admin notes"
+        }
+        """
+        express_class = self.get_object()
+        
+        if express_class.status != ExpressClass.INQUIRY and express_class.status != ExpressClass.SCOPE_REVIEW:
+            return Response(
+                {'error': 'Can only review scope for inquiry or scope_review status.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = ExpressClassScopeReviewSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = serializer.validated_data
+        
+        try:
+            express_class.scope_review_notes = data['scope_review_notes']
+            express_class.price = data['price']
+            express_class.installments_needed = data.get('installments_needed', 0)
+            express_class.admin_notes = data.get('admin_notes', '')
+            express_class.reviewed_by = request.user
+            express_class.reviewed_at = timezone.now()
+            express_class.status = ExpressClass.PRICED
+            express_class.price_approved = True
+            express_class.save()
+            
+            return Response(
+                ExpressClassSerializer(express_class).data,
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            logger.exception(f"Error reviewing scope: {e}")
+            return Response(
+                {'error': 'An error occurred reviewing the scope.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def assign_writer(self, request, pk=None):
+        """
+        Admin assigns a writer to the express class.
+        
+        Request body:
+        {
+            "writer_id": 123,
+            "admin_notes": "Optional notes"
+        }
+        """
+        express_class = self.get_object()
+        
+        if express_class.status != ExpressClass.PRICED:
+            return Response(
+                {'error': 'Can only assign writer after price has been set.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        serializer = ExpressClassAssignWriterSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = serializer.validated_data
+        
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            writer = User.objects.get(id=data['writer_id'], role='writer')
+            
+            express_class.assigned_writer = writer
+            express_class.status = ExpressClass.ASSIGNED
+            if data.get('admin_notes'):
+                express_class.admin_notes = (express_class.admin_notes or '') + '\n' + data['admin_notes']
+            express_class.save()
+            
+            return Response(
+                ExpressClassSerializer(express_class).data,
+                status=status.HTTP_200_OK
+            )
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Writer not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.exception(f"Error assigning writer: {e}")
+            return Response(
+                {'error': 'An error occurred assigning the writer.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def start_progress(self, request, pk=None):
+        """Mark express class as in progress."""
+        express_class = self.get_object()
+        
+        if express_class.status != ExpressClass.ASSIGNED:
+            return Response(
+                {'error': 'Can only start progress for assigned classes.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        express_class.status = ExpressClass.IN_PROGRESS
+        express_class.save()
+        
+        return Response(
+            ExpressClassSerializer(express_class).data,
+            status=status.HTTP_200_OK
+        )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def complete(self, request, pk=None):
+        """Mark express class as completed."""
+        express_class = self.get_object()
+        
+        express_class.status = ExpressClass.COMPLETED
+        express_class.is_complete = True
+        express_class.save()
+        
+        return Response(
+            ExpressClassSerializer(express_class).data,
+            status=status.HTTP_200_OK
+        )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def create_thread(self, request, pk=None):
+        """
+        Create a communication thread for this express class.
+        
+        Request body:
+        {
+            "recipient_id": 123,
+            "subject": "Optional subject",
+            "initial_message": "Optional initial message"
+        }
+        """
+        express_class = self.get_object()
+        
+        # Validate user has access
+        user = request.user
+        can_create = (
+            express_class.client == user or
+            express_class.assigned_writer == user or
+            user.is_staff
+        )
+        
+        if not can_create:
+            return Response(
+                {'error': 'You do not have permission to create threads for this express class.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        recipient_id = request.data.get('recipient_id')
+        if not recipient_id:
+            return Response(
+                {'error': 'recipient_id is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            recipient = User.objects.get(id=recipient_id)
+            
+            from django.contrib.contenttypes.models import ContentType
+            from communications.models import CommunicationThread, CommunicationMessage
+            
+            content_type = ContentType.objects.get_for_model(ExpressClass)
+            
+            # Determine sender and recipient roles
+            sender_role = CommRole.CLIENT if user.role == 'client' else CommRole.ADMIN
+            if user.role == 'writer':
+                sender_role = CommRole.WRITER
+            elif user.role == 'support':
+                sender_role = CommRole.SUPPORT
+            elif user.role == 'editor':
+                sender_role = CommRole.EDITOR
+            elif user.is_superuser:
+                sender_role = CommRole.SUPERADMIN
+            
+            recipient_role = CommRole.CLIENT if recipient.role == 'client' else CommRole.ADMIN
+            if recipient.role == 'writer':
+                recipient_role = CommRole.WRITER
+            elif recipient.role == 'support':
+                recipient_role = CommRole.SUPPORT
+            elif recipient.role == 'editor':
+                recipient_role = CommRole.EDITOR
+            elif recipient.is_superuser:
+                recipient_role = CommRole.SUPERADMIN
+            
+            # Create thread - use 'class_bundle' or 'custom' for express classes
+            thread = CommunicationThread.objects.create(
+                website=express_class.website,
+                thread_type='class_bundle',  # Use existing thread type for class-related threads
+                order=None,
+                special_order=None,
+                content_type=content_type,
+                object_id=express_class.id,
+                subject=request.data.get('subject') or f"Express Class #{express_class.id} Communication",
+                sender_role=sender_role,
+                recipient_role=recipient_role,
+                is_active=True,
+            )
+            
+            # Add participants
+            participants = [user, recipient, express_class.client]
+            if express_class.assigned_writer:
+                participants.append(express_class.assigned_writer)
+            thread.participants.add(*set(participants))
+            
+            # Add initial message if provided
+            if request.data.get('initial_message'):
+                CommunicationMessage.objects.create(
+                    thread=thread,
+                    sender=user,
+                    recipient=recipient,
+                    sender_role=sender_role,
+                    message=request.data.get('initial_message'),
+                    message_type='text'
+                )
+            
+            return Response(
+                {'thread_id': thread.id, 'message': 'Thread created successfully.'},
+                status=status.HTTP_201_CREATED
+            )
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Recipient not found.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.exception(f"Error creating thread: {e}")
+            return Response(
+                {'error': 'An error occurred creating the thread.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def threads(self, request, pk=None):
+        """Get all communication threads for this express class."""
+        express_class = self.get_object()
+        
+        # Validate user has access
+        user = request.user
+        can_view = (
+            express_class.client == user or
+            express_class.assigned_writer == user or
+            user.is_staff
+        )
+        
+        if not can_view:
+            return Response(
+                {'error': 'You do not have permission to view threads for this express class.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        threads = express_class.message_threads.all()
+        from communications.serializers import CommunicationThreadSerializer
+        serializer = CommunicationThreadSerializer(threads, many=True, context={'request': request})
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -21,6 +21,13 @@ if os.path.exists(views_py_path):
         BlacklistedUserViewSet = views_main.BlacklistedUserViewSet
         AdminActivityLogViewSet = views_main.AdminActivityLogViewSet
         AdminPromotionRequestViewSet = getattr(views_main, 'AdminPromotionRequestViewSet', None)
+        AdminDisputeManagementViewSet = getattr(views_main, 'AdminDisputeManagementViewSet', None)
+        AdminRefundManagementViewSet = getattr(views_main, 'AdminRefundManagementViewSet', None)
+        AdminReviewModerationViewSet = getattr(views_main, 'AdminReviewModerationViewSet', None)
+        AdminOrderManagementViewSet = getattr(views_main, 'AdminOrderManagementViewSet', None)
+        AdminSpecialOrdersManagementViewSet = getattr(views_main, 'AdminSpecialOrdersManagementViewSet', None)
+        AdminClassBundlesManagementViewSet = getattr(views_main, 'AdminClassBundlesManagementViewSet', None)
+        AdminTipManagementViewSet = getattr(views_main, 'AdminTipManagementViewSet', None)
     else:
         raise ImportError("Could not load views.py")
 else:
@@ -44,6 +51,13 @@ __all__ = [
     'BlacklistedUserViewSet',
     'AdminActivityLogViewSet',
     'AdminPromotionRequestViewSet',
+    'AdminDisputeManagementViewSet',
+    'AdminRefundManagementViewSet',
+    'AdminReviewModerationViewSet',
+    'AdminOrderManagementViewSet',
+    'AdminSpecialOrdersManagementViewSet',
+    'AdminClassBundlesManagementViewSet',
+    'AdminTipManagementViewSet',
     'ComprehensiveUserManagementViewSet',
     'PricingConfigManagementViewSet',
     'WriterConfigManagementViewSet',

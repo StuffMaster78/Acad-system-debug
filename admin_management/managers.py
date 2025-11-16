@@ -51,13 +51,22 @@ class AdminManager:
             )
 
             # Send notification
-            NotificationService.send_notification(
-                recipient=admin,
-                title="New User Created",
-                message=f"User {username} ({role}) was created successfully.",
-                category="user",
-                timestamp=now()
-            )
+            website = getattr(admin, 'website', None)
+            if not website:
+                from websites.models import Website
+                website = Website.objects.filter(is_active=True).first()
+            if website:
+                NotificationService.send_notification(
+                    user=admin,
+                    event="user.created",
+                    payload={
+                        "username": username,
+                        "role": role,
+                        "message": f"User {username} ({role}) was created successfully.",
+                    },
+                    website=website,
+                    category="user"
+                )
 
             # Email notification
             send_mail(
@@ -93,13 +102,21 @@ class AdminManager:
         )
 
         # Send notification
-        NotificationService.send_notification(
-            recipient=user,
-            title="Account Suspended",
-            message=f"Your account has been suspended. Reason: {reason}.",
-            category="security",
-            timestamp=now()
-        )
+        website = getattr(user, 'website', None)
+        if not website:
+            from websites.models import Website
+            website = Website.objects.filter(is_active=True).first()
+        if website:
+            NotificationService.send_notification(
+                user=user,
+                event="user.account_suspended",
+                payload={
+                    "reason": reason,
+                    "message": f"Your account has been suspended. Reason: {reason}.",
+                },
+                website=website,
+                category="security"
+            )
 
         return {"message": f"User {user.username} has been suspended."}
 
@@ -144,12 +161,22 @@ class AdminManager:
         )
 
         # Send notification
-        NotificationService.send_notification(
-            recipient=user,
-            title="Probation Notice",
-            message=f"You have been placed on probation for {duration_in_days} days. Reason: {reason}.",
-            category="account"
-        )
+        website = getattr(user, 'website', None)
+        if not website:
+            from websites.models import Website
+            website = Website.objects.filter(is_active=True).first()
+        if website:
+            NotificationService.send_notification(
+                user=user,
+                event="user.probation_started",
+                payload={
+                    "duration_in_days": duration_in_days,
+                    "reason": reason,
+                    "message": f"You have been placed on probation for {duration_in_days} days. Reason: {reason}.",
+                },
+                website=website,
+                category="account"
+            )
 
         return {"message": f"User {user.username} is now on probation."}
 
@@ -173,12 +200,20 @@ class AdminManager:
         )
 
         # Send notification
-        NotificationService.send_notification(
-            recipient=user,
-            title="Probation Removed",
-            message="Your probation has been removed. You are now in good standing.",
-            category="account"
-        )
+        website = getattr(user, 'website', None)
+        if not website:
+            from websites.models import Website
+            website = Website.objects.filter(is_active=True).first()
+        if website:
+            NotificationService.send_notification(
+                user=user,
+                event="user.probation_removed",
+                payload={
+                    "message": "Your probation has been removed. You are now in good standing.",
+                },
+                website=website,
+                category="account"
+            )
 
         return {"message": f"User {user.username} is no longer on probation."}
 

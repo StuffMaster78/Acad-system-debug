@@ -13,9 +13,14 @@ from writer_management.views import (
     WriterSuspensionViewSet,
     WriterDeadlineExtensionRequestViewSet,
 )
+# Import performance views from views package
+from writer_management.views import WriterPerformanceSnapshotViewSet, WriterPerformanceDashboardView
+from writer_management.views_dashboard import WriterDashboardViewSet
+# Import Tip views from views.tips module
+from writer_management.views.tips import TipViewSet, TipListView
 
-# Namespace for writer_management URLs
-app_name = "writer_management"
+# app_name removed to allow explicit namespaces in main urls.py
+# app_name = "writer_management"
 
 # Create router for badge analytics
 router = DefaultRouter()
@@ -30,7 +35,13 @@ router.register(r'writer-order-takes', WriterOrderTakeViewSet, basename='writer-
 router.register(r'writer-support-tickets', WriterSupportTicketViewSet, basename='writer-support-tickets')
 router.register(r'writer-suspensions', WriterSuspensionViewSet, basename='writer-suspensions')
 router.register(r'writer-deadline-extension-requests', WriterDeadlineExtensionRequestViewSet, basename='writer-deadline-extension-requests')
+router.register(r'writer-performance-snapshots', WriterPerformanceSnapshotViewSet, basename='writer-performance-snapshots')
+router.register(r'dashboard', WriterDashboardViewSet, basename='writer-dashboard')
+router.register(r'tips', TipViewSet, basename='tips')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('writer-performance-dashboard/<int:pk>/', WriterPerformanceDashboardView.as_view(), name='writer-performance-dashboard'),
+    # Legacy endpoint for backward compatibility
+    path('tips/list/', TipListView.as_view(), name='tip-list'),
 ]

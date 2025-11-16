@@ -1,10 +1,9 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from decimal import Decimal
 from orders.models import Order
 from client_management.models import ClientProfile
 from .models import Milestone, ClientBadge, LoyaltyTransaction, LoyaltyTier
-from client_management.models import ClientProfile
-from orders.models import Order
 
 
 @receiver(post_save, sender=Order)
@@ -21,7 +20,9 @@ def add_loyalty_points_on_order(sender, instance, created, **kwargs):
         return
 
     # Calculate points (e.g., 1 point for every $10 spent)
-    points = int(instance.total_cost // 10)
+    # Order model uses total_price, but some code may reference total_cost
+    total_cost = getattr(instance, 'total_cost', None) or getattr(instance, 'total_price', Decimal('0.00'))
+    points = int(total_cost // 10)
 
     # Update the client's loyalty points and create a transaction
     client_profile.loyalty_points += points

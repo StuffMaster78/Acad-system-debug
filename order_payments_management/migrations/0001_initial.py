@@ -3,6 +3,7 @@
 import django.utils.timezone
 import order_payments_management.models
 from django.db import migrations, models
+from order_payments_management.models import generate_reference_id
 
 
 class Migration(migrations.Migration):
@@ -53,7 +54,7 @@ class Migration(migrations.Migration):
                 ('amount', models.DecimalField(decimal_places=2, max_digits=12)),
                 ('due_date', models.DateField()),
                 ('is_paid', models.BooleanField(default=False)),
-                ('reference_id', models.CharField(default=order_payments_management.models.generate_reference_id, max_length=64, unique=True)),
+                ('reference_id', models.CharField(default=generate_reference_id, max_length=64, unique=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('paid_at', models.DateTimeField(blank=True, null=True)),
             ],
@@ -74,7 +75,7 @@ class Migration(migrations.Migration):
                 ('refunded_at', models.DateTimeField(blank=True, null=True)),
                 ('status', models.CharField(choices=[('pending', 'Pending'), ('unpaid', 'Unpaid'), ('succeeded', 'Succeeded'), ('failed', 'Failed'), ('cancelled', 'Cancelled'), ('partially_refunded', 'Partially Refunded'), ('fully_refunded', 'Fully Refunded'), ('disputed', 'Disputed'), ('under_review', 'Under Review')], default='pending', help_text='Current payment status', max_length=20)),
                 ('stripe_payment_intent_id', models.CharField(blank=True, max_length=100, null=True)),
-                ('reference_id', models.CharField(default=order_payments_management.models.generate_reference_id, max_length=64, unique=True)),
+                ('reference_id', models.CharField(default=generate_reference_id, max_length=64, unique=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('confirmed_at', models.DateTimeField(blank=True, null=True)),
             ],
@@ -140,7 +141,7 @@ class Migration(migrations.Migration):
                 ('provider', models.CharField(default='stripe', max_length=20)),
                 ('external_id', models.CharField(blank=True, max_length=100, null=True)),
                 ('raw_response', models.JSONField(blank=True, null=True)),
-                ('reference_id', models.CharField(default=order_payments_management.models.generate_reference_id, max_length=64, unique=True)),
+                ('reference_id', models.CharField(default=generate_reference_id, max_length=64, unique=True)),
                 ('refund_status', models.CharField(choices=[('none', 'None'), ('partial', 'Partial'), ('full', 'Full')], default='none', max_length=20)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('confirmed_at', models.DateTimeField(blank=True, null=True)),
@@ -211,7 +212,7 @@ class Migration(migrations.Migration):
                 ('amount', models.DecimalField(decimal_places=2, max_digits=12)),
                 ('status', models.CharField(choices=[('pending', 'Pending'), ('unpaid', 'Unpaid'), ('succeeded', 'Succeeded'), ('failed', 'Failed'), ('cancelled', 'Cancelled'), ('partially_refunded', 'Partially Refunded'), ('fully_refunded', 'Fully Refunded'), ('disputed', 'Disputed'), ('under_review', 'Under Review')], max_length=20)),
                 ('stripe_payment_intent_id', models.CharField(blank=True, max_length=100, null=True)),
-                ('reference_id', models.CharField(default=order_payments_management.models.generate_reference_id, max_length=64, unique=True)),
+                ('reference_id', models.CharField(default=generate_reference_id, max_length=64, unique=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
                 ('confirmed_at', models.DateTimeField(blank=True, null=True)),
             ],
@@ -234,7 +235,7 @@ class Migration(migrations.Migration):
                 ('purpose', models.CharField(choices=[('funding', 'Funding'), ('payment', 'Payment'), ('adjustment', 'Adjustment')], max_length=30)),
                 ('status', models.CharField(choices=[('pending', 'Pending'), ('unpaid', 'Unpaid'), ('succeeded', 'Succeeded'), ('failed', 'Failed'), ('cancelled', 'Cancelled'), ('partially_refunded', 'Partially Refunded'), ('fully_refunded', 'Fully Refunded'), ('disputed', 'Disputed'), ('under_review', 'Under Review')], max_length=20)),
                 ('stripe_payment_intent_id', models.CharField(blank=True, max_length=100, null=True)),
-                ('reference_id', models.CharField(default=order_payments_management.models.generate_reference_id, max_length=64, unique=True)),
+                ('reference_id', models.CharField(default=generate_reference_id, max_length=64, unique=True)),
                 ('created_at', models.DateTimeField(auto_now_add=True)),
             ],
         ),

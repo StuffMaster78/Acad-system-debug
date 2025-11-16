@@ -19,7 +19,7 @@ from .compat import normalize_digest
 from .validator import validate_config_file  # use generic validator with schema_name
 
 try:
-    from .forced_channels import ForcedChannelRegistry  # optional
+    from .forced_channels import forced_channel_registry  # optional
 except Exception:  # pragma: no cover
     ForcedChannelRegistry = None  # type: ignore
 
@@ -126,10 +126,10 @@ def autoload_digest_events(path: Optional[Path] = None) -> int:
 
         # Optional forced channels
         forced = cfg.get("forced_channels") or []
-        if ForcedChannelRegistry and isinstance(forced, list) and forced:
+        if forced_channel_registry and isinstance(forced, list) and forced:
             try:
                 for ch in forced:
-                    ForcedChannelRegistry.add(ek, ch)  # type: ignore[attr-defined]
+                    forced_channel_registry.add(ek, ch)  # type: ignore[attr-defined]
             except Exception:
                 logger.debug("Forced channel registration skipped for %s", ek)
 

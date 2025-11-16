@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from class_management.models import (
-    ClassPurchase, ClassInstallment, ClassBundleConfig, ClassBundle
+    ClassPurchase, ClassInstallment, ClassBundleConfig, ClassBundle, ClassBundleFile, ExpressClass
 )
 from websites.models import Website
 
@@ -238,3 +238,76 @@ class AdminConfigureInstallmentsSerializer(serializers.Serializer):
                     "All installment amounts must be greater than zero."
                 )
         return data
+
+
+class ExpressClassSerializer(serializers.ModelSerializer):
+    """Serializer for ExpressClass model."""
+    client_username = serializers.CharField(source='client.username', read_only=True)
+    client_email = serializers.CharField(source='client.email', read_only=True)
+    assigned_writer_username = serializers.CharField(source='assigned_writer.username', read_only=True)
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    reviewed_by_username = serializers.CharField(source='reviewed_by.username', read_only=True)
+    threads_count = serializers.SerializerMethodField()
+    tickets_count = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = ExpressClass
+        fields = (
+            'id', 'client', 'client_username', 'client_email',
+            'website', 'website_name',
+            'assigned_writer', 'assigned_writer_username',
+            'status', 'status_display',
+            'start_date', 'end_date',
+            'discipline', 'institution', 'course', 'academic_level',
+            'number_of_discussion_posts', 'number_of_discussion_posts_replies',
+            'number_of_assignments', 'number_of_exams', 'number_of_quizzes',
+            'number_of_projects', 'number_of_presentations', 'number_of_papers',
+            'total_workload_in_pages',
+            'price', 'price_approved', 'installments_needed',
+            'instructions',
+            'school_login_link', 'school_login_username', 'school_login_password',
+            'scope_review_notes', 'admin_notes',
+            'reviewed_by', 'reviewed_by_username', 'reviewed_at',
+            'threads_count', 'tickets_count',
+            'is_complete', 'created_at', 'updated_at'
+        )
+        read_only_fields = ('created_at', 'updated_at', 'reviewed_at')
+    
+    def get_threads_count(self, obj):
+        """Get count of communication threads."""
+        return obj.message_threads.count()
+    
+    def get_tickets_count(self, obj):
+        """Get count of support tickets."""
+        return obj.support_tickets.count()
+
+
+class ExpressClassCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating express class (client inquiry)."""
+    
+    class Meta:
+        model = ExpressClass
+        fields = (
+            'client', 'website', 'start_date', 'end_date',
+            'discipline', 'institution', 'course', 'academic_level',
+            'number_of_discussion_posts', 'number_of_discussion_posts_replies',
+            'number_of_assignments', 'number_of_exams', 'number_of_quizzes',
+            'number_of_projects', 'number_of_presentations', 'number_of_papers',
+            'total_workload_in_pages', 'instructions',
+            'school_login_link', 'school_login_username', 'school_login_password'
+        )
+
+
+class ExpressClassScopeReviewSerializer(serializers.Serializer):
+    """Serializer for admin scope review."""
+    scope_review_notes = serializers.CharField(required=True)
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, required=True)
+    installments_needed = serializers.IntegerField(min_value=0, required=False, default=0)
+    admin_notes = serializers.CharField(required=False, allow_blank=True)
+
+
+class ExpressClassAssignWriterSerializer(serializers.Serializer):
+    """Serializer for assigning writer to express class."""
+    writer_id = serializers.IntegerField(required=True)
+    admin_notes = serializers.CharField(required=False, allow_blank=True)

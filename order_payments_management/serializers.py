@@ -6,6 +6,11 @@ from .models import (
     PaymentDispute, DiscountUsage, SplitPayment, AdminLog,
     PaymentReminderSettings
 )
+from .models.payment_reminders import (
+    PaymentReminderConfig,
+    PaymentReminderSent,
+    PaymentReminderDeletionMessage
+)
 from discounts.models import Discount
 from .models import RequestPayment
 
@@ -237,7 +242,97 @@ class PaymentReminderSettingsSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         admin_user = request.user if request and request.user.is_staff else None
         instance.admin = admin_user
-        return super().update(instance, validated_data)
+
+
+class PaymentReminderConfigSerializer(serializers.ModelSerializer):
+    """
+    Serializer for payment reminder configurations (deadline percentage-based).
+    """
+    website_name = serializers.SerializerMethodField()
+    website_domain = serializers.SerializerMethodField()
+    created_by_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PaymentReminderConfig
+        fields = [
+            'id', 'website', 'website_name', 'website_domain',
+            'name', 'deadline_percentage', 'message',
+            'send_as_notification', 'send_as_email', 'email_subject',
+            'is_active', 'display_order',
+            'created_by', 'created_by_username',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at', 'created_by']
+
+    def get_website_name(self, obj):
+        return obj.website.name if obj.website else None
+
+    def get_website_domain(self, obj):
+        return obj.website.domain if obj.website else None
+
+    def get_created_by_username(self, obj):
+        return obj.created_by.username if obj.created_by else None
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class PaymentReminderDeletionMessageSerializer(serializers.ModelSerializer):
+    """
+    Serializer for payment deletion messages.
+    """
+    website_name = serializers.SerializerMethodField()
+    website_domain = serializers.SerializerMethodField()
+    created_by_username = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PaymentReminderDeletionMessage
+        fields = [
+            'id', 'website', 'website_name', 'website_domain',
+            'message', 'send_as_notification', 'send_as_email',
+            'email_subject', 'is_active',
+            'created_by', 'created_by_username',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['created_at', 'updated_at', 'created_by']
+
+    def get_website_name(self, obj):
+        return obj.website.name if obj.website else None
+
+    def get_website_domain(self, obj):
+        return obj.website.domain if obj.website else None
+
+    def get_created_by_username(self, obj):
+        return obj.created_by.username if obj.created_by else None
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            validated_data['created_by'] = request.user
+        return super().create(validated_data)
+
+
+class PaymentReminderSentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for tracking sent reminders (read-only for viewing history).
+    """
+    reminder_config_name = serializers.CharField(source='reminder_config.name', read_only=True)
+    order_id = serializers.IntegerField(source='order.id', read_only=True)
+    payment_id = serializers.IntegerField(source='payment.id', read_only=True)
+    client_username = serializers.CharField(source='client.username', read_only=True)
+
+    class Meta:
+        model = PaymentReminderSent
+        fields = [
+            'id', 'reminder_config', 'reminder_config_name',
+            'order', 'order_id', 'payment', 'payment_id',
+            'client', 'client_username',
+            'sent_at', 'sent_as_notification', 'sent_as_email'
+        ]
+        read_only_fields = '__all__'
     
 class RefundSerializer(serializers.ModelSerializer):
     payment_id = serializers.CharField(source="payment.transaction_id", read_only=True)

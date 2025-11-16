@@ -33,6 +33,7 @@ PAYMENT_TYPE_CHOICES = [
         ("special_installment", "Special Order Installment"),
         ("class_payment", "Class Payment"),
         ("wallet_loading", "Wallet Loading/Top-up"),
+        ("tip", "Tip Payment"),
     ]
 
 def generate_reference_id():
@@ -1338,3 +1339,15 @@ class RequestPayment(models.Model):
             str: A summary of the payment for the request.
         """
         return f"Request Payment for Order {self.order.id} ({self.payment_for})"
+
+
+# Import payment reminder models to make them available from this module
+try:
+    from .models.payment_reminders import (
+        PaymentReminderConfig,
+        PaymentReminderSent,
+        PaymentReminderDeletionMessage
+    )
+except ImportError:
+    # If models directory doesn't exist yet, define empty classes
+    pass

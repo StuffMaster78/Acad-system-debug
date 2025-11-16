@@ -18,21 +18,41 @@ from django.utils.timezone import now
 
 class BlogCategorySerializer(serializers.ModelSerializer):
     """Serializer for blog categories."""
+    website_name = serializers.SerializerMethodField()
+    website_domain = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogCategory
-        fields = ["id", "website", "name", "slug"]
-        read_only_fields = ["slug"]
+        fields = ["id", "website", "website_name", "website_domain", "name", "slug", "description", 
+                  "meta_title", "meta_description", "display_order", "is_featured", "is_active", 
+                  "post_count", "total_views", "total_conversions", "created_at", "updated_at"]
+        read_only_fields = ["slug", "post_count", "total_views", "total_conversions", "created_at", "updated_at"]
+
+    def get_website_name(self, obj):
+        """Get website name for display."""
+        return obj.website.name if obj.website else None
+
+    def get_website_domain(self, obj):
+        """Get website domain for display."""
+        return obj.website.domain if obj.website else None
 
     def validate_name(self, value):
         """Ensures unique category name per website."""
-        website = self.context["request"].data.get("website")
-        if BlogCategory.objects.filter(
-            website=website, name=value
-        ).exists():
-            raise serializers.ValidationError(
-                "Category already exists for this website."
-            )
+        website_id = self.initial_data.get("website") or (self.instance.website_id if self.instance else None)
+        if not website_id:
+            # Try to get from request context
+            request = self.context.get("request")
+            if request and hasattr(request, "data"):
+                website_id = request.data.get("website")
+        
+        if website_id:
+            existing = BlogCategory.objects.filter(website_id=website_id, name=value)
+            if self.instance:
+                existing = existing.exclude(pk=self.instance.pk)
+            if existing.exists():
+                raise serializers.ValidationError(
+                    "Category already exists for this website."
+                )
         return value
 
 
@@ -40,10 +60,27 @@ class BlogCategorySerializer(serializers.ModelSerializer):
 
 class BlogTagSerializer(serializers.ModelSerializer):
     """Serializer for blog tags."""
+    website_name = serializers.SerializerMethodField()
+    website_domain = serializers.SerializerMethodField()
+    post_count = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogTag
-        fields = ["id", "website", "name"]
+        fields = ["id", "website", "website_name", "website_domain", "name", "post_count"]
+        read_only_fields = ["post_count"]
+
+    def get_website_name(self, obj):
+        """Get website name for display."""
+        return obj.website.name if obj.website else None
+
+    def get_website_domain(self, obj):
+        """Get website domain for display."""
+        return obj.website.domain if obj.website else None
+
+    def get_post_count(self, obj):
+        """Get count of published posts using this tag."""
+        from .models import BlogPost
+        return BlogPost.objects.filter(tags=obj, is_published=True, is_deleted=False).count()
 
 
 # ------------------ BLOG RESOURCE SERIALIZER ------------------
@@ -64,6 +101,7 @@ class BlogFAQSerializer(serializers.ModelSerializer):
     class Meta:
         model = BlogFAQ
         fields = ["id", "blog", "question", "answer"]
+        read_only_fields = ["id", "blog"]
 
 
 # ------------------ AUTHOR PROFILE SERIALIZER ------------------
@@ -113,25 +151,119 @@ class BlogPostSerializer(serializers.ModelSerializer):
     """Serializer for blog posts with related fields."""
     authors = AuthorProfileSerializer(many=True, read_only=True)
     category = BlogCategorySerializer(read_only=True)
+    category_id = serializers.PrimaryKeyRelatedField(
+        queryset=BlogCategory.objects.all(),
+        source='category',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
     tags = BlogTagSerializer(many=True, read_only=True)
+    tag_ids = serializers.PrimaryKeyRelatedField(
+        queryset=BlogTag.objects.all(),
+        source='tags',
+        write_only=True,
+        many=True,
+        required=False
+    )
     resources = BlogResourceSerializer(many=True, read_only=True)
     faqs = BlogFAQSerializer(many=True, read_only=True)
+    faqs_data = BlogFAQSerializer(many=True, write_only=True, required=False)
+    resources_data = BlogResourceSerializer(many=True, write_only=True, required=False)
     word_count = serializers.ReadOnlyField()
     estimated_read_time = serializers.ReadOnlyField()
     media_files = BlogMediaFileSerializer(many=True, read_only=True)
+    website = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
         fields = [
             "id", "website", "uuid", "meta_title", "meta_description",
-            "title", "slug", "content", "toc", "authors", "category", "tags",
+            "title", "slug", "content", "toc", "authors", "category", "category_id",
+            "tags", "tag_ids", "resources", "resources_data", "faqs", "faqs_data",
             "featured_image", "is_featured", "status", "is_published",
             "scheduled_publish_date", "publish_date", "created_at",
             "updated_at", "last_edited_by", "is_deleted", "deleted_at",
             "click_count", "conversion_count", "word_count",
-            "estimated_read_time"
+            "estimated_read_time", "media_files"
         ]
-        read_only_fields = ["slug", "click_count", "conversion_count"]
+        read_only_fields = ["slug", "click_count", "conversion_count", "uuid"]
+    
+    def create(self, validated_data):
+        """Create blog post with FAQs and resources."""
+        faqs_data = validated_data.pop('faqs_data', [])
+        resources_data = validated_data.pop('resources_data', [])
+        website = validated_data.get('website')
+        
+        blog_post = super().create(validated_data)
+        
+        # Create FAQs
+        for faq_data in faqs_data:
+            BlogFAQ.objects.create(
+                blog=blog_post,
+                website=website,
+                question=faq_data.get('question'),
+                answer=faq_data.get('answer')
+            )
+        
+        # Note: BlogResource doesn't have a direct blog FK, so we'll just create them for the website
+        # If you need blog-specific resources, you'd need to add a blog FK to BlogResource model
+        for resource_data in resources_data:
+            BlogResource.objects.create(
+                website=website,
+                title=resource_data.get('title'),
+                url=resource_data.get('url'),
+                description=resource_data.get('description', '')
+            )
+        
+        return blog_post
+    
+    def update(self, instance, validated_data):
+        """Update blog post with FAQs and resources."""
+        faqs_data = validated_data.pop('faqs_data', None)
+        resources_data = validated_data.pop('resources_data', None)
+        website = validated_data.get('website') or instance.website
+        
+        blog_post = super().update(instance, validated_data)
+        
+        # Update FAQs if provided
+        if faqs_data is not None:
+            # Delete existing FAQs
+            BlogFAQ.objects.filter(blog=blog_post).delete()
+            # Create new FAQs
+            for faq_data in faqs_data:
+                BlogFAQ.objects.create(
+                    blog=blog_post,
+                    website=website,
+                    question=faq_data.get('question'),
+                    answer=faq_data.get('answer')
+                )
+        
+        # Update Resources if provided
+        if resources_data is not None:
+            # Delete existing resources (or you might want to keep them and just update)
+            # For now, we'll replace them
+            BlogResource.objects.filter(website=website).delete()
+            # Create new resources
+            for resource_data in resources_data:
+                BlogResource.objects.create(
+                    website=website,
+                    title=resource_data.get('title'),
+                    url=resource_data.get('url'),
+                    description=resource_data.get('description', '')
+                )
+        
+        return blog_post
+    
+    def get_website(self, obj):
+        """Get website information"""
+        if obj.website:
+            return {
+                'id': obj.website.id,
+                'name': obj.website.name,
+                'domain': obj.website.domain,
+            }
+        return None
 
     def validate_title(self, value):
         """Ensures unique title per website."""

@@ -58,8 +58,10 @@ class MassEmailManagementViewSet(viewsets.ModelViewSet):
             EmailCampaignDetailSerializer,
             EmailCampaignCreateSerializer
         )
+        from admin_management.serializers.email_serializers import MassEmailListSerializer
+        
         if self.action == 'list':
-            return EmailCampaignListSerializer
+            return MassEmailListSerializer
         elif self.action == 'retrieve':
             return EmailCampaignDetailSerializer
         return EmailCampaignCreateSerializer
@@ -171,14 +173,17 @@ class EmailDigestManagementViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def configs(self, request):
         """Get available digest configurations."""
-        from notifications_system.registry import get_digest_config
-        # Return list of available digest event keys
+        from notifications_system.registry import get_digest_config, list_all_event_keys
+        
+        # Get all event keys and filter for those with digest configs
+        all_events = list_all_event_keys()
+        digestable_events = [
+            event_key for event_key in all_events
+            if get_digest_config(event_key) is not None
+        ]
+        
         return Response({
-            'available_events': [
-                'order_updates',
-                'payment_notifications',
-                'system_announcements',
-            ]
+            'available_events': digestable_events
         })
     
     @action(detail=True, methods=['post'])

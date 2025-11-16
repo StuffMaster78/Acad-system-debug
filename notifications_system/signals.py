@@ -83,10 +83,14 @@ def ensure_user_notification_pref(sender, instance, created, **kwargs):
         return
     if kwargs.get("raw"):
         return
+    # Only create preferences on user creation, not on every save (like login updates)
     if created and instance.website:  # Only create preferences for users with websites
-        NotificationPreferenceResolver.assign_default_preferences(
-            instance, instance.website
-        )
+        # Check if preference already exists to avoid duplicates
+        from notifications_system.models.notification_preferences import NotificationPreference
+        if not NotificationPreference.objects.filter(user=instance).exists():
+            NotificationPreferenceResolver.assign_default_preferences(
+                instance, instance.website
+            )
     if instance.website:  # Only update cache for users with websites
         update_preferences_cache(instance)
 
@@ -96,8 +100,15 @@ def create_notification_preferences(sender, instance, created, **kwargs):
         return
     if kwargs.get("raw"):
         return
+    # Only create preferences on user creation, not on every save (like login updates)
     if created and instance.website:  # Only create preferences for users with websites
-        NotificationPreference.objects.get_or_create(user=instance, website=instance.website)
+        # Check if preference already exists to avoid duplicates
+        from notifications_system.models.notification_preferences import NotificationPreference
+        NotificationPreference.objects.get_or_create(
+            user=instance, 
+            website=instance.website,
+            defaults={}  # Will be populated by assign_default_preferences
+        )
 
 @receiver(post_save, sender=User, dispatch_uid="user_pref_cache_seed_v1")
 def auto_create_notif_preferences(sender, instance, created, **kwargs):
@@ -105,15 +116,19 @@ def auto_create_notif_preferences(sender, instance, created, **kwargs):
         return
     if kwargs.get("raw"):
         return
+    # Only create preferences on user creation, not on every save (like login updates)
     if created and instance.website:  # Only create preferences for users with websites
-        NotificationPreferenceResolver.assign_default_preferences(
-            instance, instance.website
-        )
-        cache.set(
-            f"notif_prefs:{instance.id}",
-            instance.notification_preferences,
-            timeout=3600,
-        )
+        # Check if preference already exists to avoid duplicates
+        from notifications_system.models.notification_preferences import NotificationPreference
+        if not NotificationPreference.objects.filter(user=instance).exists():
+            NotificationPreferenceResolver.assign_default_preferences(
+                instance, instance.website
+            )
+            cache.set(
+                f"notif_prefs:{instance.id}",
+                instance.notification_preferences,
+                timeout=3600,
+            )
 
 # ---------------------------------------------------------------------
 # Wallet transactions

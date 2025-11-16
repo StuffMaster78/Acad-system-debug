@@ -33,7 +33,7 @@ from notifications_system.registry.role_bindings import (
     get_channels_for_role,
 )
 from notifications_system.registry.forced_channels import (
-    ForcedChannelRegistry,
+    forced_channel_registry,
 )
 from notifications_system.services.preferences import (
     NotificationPreferenceResolver,
@@ -250,7 +250,7 @@ class NotificationService:
                     priority = ev.priority
 
         # ----- Resolve channels (forced > explicit > role > prefs)
-        forced = ForcedChannelRegistry.get(event, set())
+        forced = forced_channel_registry.get(event)
         if forced:
             resolved_channels = list(forced)
         elif channels:
@@ -263,11 +263,12 @@ class NotificationService:
             if role_channels:
                 resolved_channels = list(role_channels)
             else:
-                resolved_channels = (
-                    NotificationPreferenceResolver.get_effective_preferences(
-                        user=user,
-                        website=website,
-                    )
+                # get_effective_preferences returns a dict, not a list
+                # Use resolve() instead which returns a list of channels
+                resolved_channels = NotificationPreferenceResolver.resolve(
+                    user=user,
+                    event=event,
+                    website=website,
                 )
 
         if not resolved_channels:
@@ -328,7 +329,7 @@ class NotificationService:
         # ----- Broadcast override
         override = BroadcastOverride.objects.filter(
             event_type=event,
-            active=True,
+            is_active=True,
         ).first()
         if override:
             if override.title:

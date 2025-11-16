@@ -74,50 +74,269 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for Client profiles.
     Retrieves additional client-specific information from `ClientProfile`.
+    Includes User and UserProfile fields for complete profile data.
     """
     user = UserDetailSerializer(read_only=True)
+    # Include UserProfile fields directly
+    phone_number = serializers.SerializerMethodField()
+    bio = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
+    country = serializers.SerializerMethodField()
+    state = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    username = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
+    registration_id = serializers.CharField(read_only=True)
 
     class Meta:
         model = ClientProfile
         fields = [
-            'user', 'loyalty_points', 'membership_tier', 'notes', 'tasks'
+            'user', 'loyalty_points', 'membership_tier', 'notes', 'tasks',
+            'phone_number', 'bio', 'avatar', 'avatar_url', 'country', 'state',
+            'email', 'username', 'first_name', 'last_name', 'full_name',
+            'registration_id'
         ]
+
+    def get_phone_number(self, obj):
+        """Get phone number from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return str(obj.user.user_main_profile.phone_number) if obj.user.user_main_profile.phone_number else None
+        return None
+    
+    def get_bio(self, obj):
+        """Get bio from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return obj.user.user_main_profile.bio
+        return None
+    
+    def get_avatar(self, obj):
+        """Get avatar from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return obj.user.user_main_profile.avatar
+        return None
+    
+    def get_avatar_url(self, obj):
+        """Get avatar URL from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return obj.user.user_main_profile.get_avatar_url()
+        return None
+    
+    def get_country(self, obj):
+        """Get country from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return str(obj.user.user_main_profile.country) if obj.user.user_main_profile.country else None
+        return None
+    
+    def get_state(self, obj):
+        """Get state from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return obj.user.user_main_profile.state
+        return None
+    
+    def get_email(self, obj):
+        return obj.user.email
+    
+    def get_username(self, obj):
+        return obj.user.username
+    
+    def get_first_name(self, obj):
+        return obj.user.first_name
+    
+    def get_last_name(self, obj):
+        return obj.user.last_name
+    
+    def get_full_name(self, obj):
+        """Get full name from first_name and last_name."""
+        if obj.user.first_name and obj.user.last_name:
+            return f"{obj.user.first_name} {obj.user.last_name}"
+        elif obj.user.first_name:
+            return obj.user.first_name
+        elif obj.user.last_name:
+            return obj.user.last_name
+        return obj.user.username
 
     def to_representation(self, instance):
         """Override to optimize database query by using select_related."""
-        instance = instance.select_related('user__profile_picture')
+        # Ensure UserProfile is loaded
+        if not hasattr(instance.user, 'user_main_profile'):
+            from users.models import UserProfile
+            try:
+                instance.user.user_main_profile = UserProfile.objects.get(user=instance.user)
+            except UserProfile.DoesNotExist:
+                pass
         return super().to_representation(instance)
 
 class WriterProfileSerializer(serializers.ModelSerializer):
     user = serializers.PrimaryKeyRelatedField(read_only=True)
+    # Include User and UserProfile fields directly
+    phone_number = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
+    country = serializers.SerializerMethodField()
+    state = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    username = serializers.SerializerMethodField()
+    first_name = serializers.SerializerMethodField()
+    last_name = serializers.SerializerMethodField()
+    full_name = serializers.SerializerMethodField()
+    pen_name = serializers.CharField(read_only=True)
+    registration_id = serializers.CharField(read_only=True)
 
     class Meta:
         model = WriterProfile
         fields = [
             'user', 'bio', 'writer_level', 'rating', 'average_rating', 
             'total_ratings', 'completed_orders', 'active_orders', 
-            'verification_documents', 'total_earnings', 'last_payment_date'
+            'verification_documents', 'total_earnings', 'last_payment_date',
+            'phone_number', 'avatar', 'avatar_url', 'country', 'state',
+            'email', 'username', 'first_name', 'last_name', 'full_name',
+            'pen_name', 'registration_id'
         ]
+
+    def get_phone_number(self, obj):
+        """Get phone number from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return str(obj.user.user_main_profile.phone_number) if obj.user.user_main_profile.phone_number else None
+        return None
+    
+    def get_avatar(self, obj):
+        """Get avatar from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return obj.user.user_main_profile.avatar
+        return None
+    
+    def get_avatar_url(self, obj):
+        """Get avatar URL from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return obj.user.user_main_profile.get_avatar_url()
+        return None
+    
+    def get_country(self, obj):
+        """Get country from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return str(obj.user.user_main_profile.country) if obj.user.user_main_profile.country else None
+        return None
+    
+    def get_state(self, obj):
+        """Get state from UserProfile if available."""
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return obj.user.user_main_profile.state
+        return None
+    
+    def get_email(self, obj):
+        return obj.user.email
+    
+    def get_username(self, obj):
+        return obj.user.username
+    
+    def get_first_name(self, obj):
+        return obj.user.first_name
+    
+    def get_last_name(self, obj):
+        return obj.user.last_name
+    
+    def get_full_name(self, obj):
+        """Get full name from first_name and last_name."""
+        if obj.user.first_name and obj.user.last_name:
+            return f"{obj.user.first_name} {obj.user.last_name}"
+        elif obj.user.first_name:
+            return obj.user.first_name
+        elif obj.user.last_name:
+            return obj.user.last_name
+        return obj.user.username
 
     def to_representation(self, instance):
         """Override to optimize database query by using select_related."""
-        instance = instance.select_related('user__profile_picture')
+        # Ensure UserProfile is loaded
+        if not hasattr(instance.user, 'user_main_profile'):
+            from users.models import UserProfile
+            try:
+                instance.user.user_main_profile = UserProfile.objects.get(user=instance.user)
+            except UserProfile.DoesNotExist:
+                pass
         return super().to_representation(instance)
 
 class AdminProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for Admin profiles (Uses base `User` model).
+    Includes UserProfile fields for complete profile data.
     """
+    phone_number = serializers.SerializerMethodField()
+    bio = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField()
+    country = serializers.SerializerMethodField()
+    state = serializers.SerializerMethodField()
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    full_name = serializers.SerializerMethodField()
+    
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'username', 'phone_number', 'role', 
-            'is_suspended', 'is_on_probation', 'date_joined'
+            'id', 'email', 'username', 'first_name', 'last_name', 'full_name',
+            'phone_number', 'bio', 'avatar', 'avatar_url', 'country', 'state',
+            'role', 'is_suspended', 'is_on_probation', 'date_joined'
         ]
+
+    def get_phone_number(self, obj):
+        """Get phone number from UserProfile if available."""
+        if hasattr(obj, 'user_main_profile') and obj.user_main_profile:
+            return str(obj.user_main_profile.phone_number) if obj.user_main_profile.phone_number else None
+        return None
+    
+    def get_bio(self, obj):
+        """Get bio from UserProfile if available."""
+        if hasattr(obj, 'user_main_profile') and obj.user_main_profile:
+            return obj.user_main_profile.bio
+        return None
+    
+    def get_avatar(self, obj):
+        """Get avatar from UserProfile if available."""
+        if hasattr(obj, 'user_main_profile') and obj.user_main_profile:
+            return obj.user_main_profile.avatar
+        return None
+    
+    def get_avatar_url(self, obj):
+        """Get avatar URL from UserProfile if available."""
+        if hasattr(obj, 'user_main_profile') and obj.user_main_profile:
+            return obj.user_main_profile.get_avatar_url()
+        return None
+    
+    def get_country(self, obj):
+        """Get country from UserProfile if available."""
+        if hasattr(obj, 'user_main_profile') and obj.user_main_profile:
+            return str(obj.user_main_profile.country) if obj.user_main_profile.country else None
+        return None
+    
+    def get_state(self, obj):
+        """Get state from UserProfile if available."""
+        if hasattr(obj, 'user_main_profile') and obj.user_main_profile:
+            return obj.user_main_profile.state
+        return None
+    
+    def get_full_name(self, obj):
+        """Get full name from first_name and last_name."""
+        if obj.first_name and obj.last_name:
+            return f"{obj.first_name} {obj.last_name}"
+        elif obj.first_name:
+            return obj.first_name
+        elif obj.last_name:
+            return obj.last_name
+        return obj.username
 
     def to_representation(self, instance):
         """Override to optimize database query by using select_related."""
-        instance = instance.select_related('profile_picture', 'avatar')
+        # Ensure UserProfile is loaded
+        if not hasattr(instance, 'user_main_profile'):
+            from users.models import UserProfile
+            try:
+                instance.user_main_profile = UserProfile.objects.get(user=instance)
+            except UserProfile.DoesNotExist:
+                pass
         return super().to_representation(instance)
 
 
@@ -149,7 +368,14 @@ class SupportProfileSerializer(serializers.ModelSerializer):
 class SuperadminProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = SuperadminProfile
-        fields = ['id', 'created_at', 'permissions', 'status']
+        fields = [
+            'id', 'user', 'created_at', 'updated_at',
+            'can_manage_users', 'can_manage_payments', 'can_view_reports',
+            'can_modify_settings', 'can_promote_users', 'can_suspend_users',
+            'can_blacklist_users', 'can_resolve_disputes', 'can_override_payments',
+            'can_track_admins'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 class AvatarUpdateSerializer(serializers.ModelSerializer):
     """
@@ -269,9 +495,13 @@ class UserActivitySerializer(serializers.ModelSerializer):
 
 
 class AccountDeletionRequestSerializer(serializers.ModelSerializer):
-    user = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all()
-    )
+    user_id = serializers.IntegerField(source='user.id', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    user_role = serializers.CharField(source='user.role', read_only=True)
+    user_full_name = serializers.SerializerMethodField()
+    request_time = serializers.DateTimeField(read_only=True)
+    scheduled_deletion_time = serializers.DateTimeField(read_only=True)
     status = serializers.ChoiceField(
         choices=AccountDeletionRequest.STATUS_CHOICES,
         default='pending'
@@ -280,10 +510,25 @@ class AccountDeletionRequestSerializer(serializers.ModelSerializer):
     class Meta:
         model = AccountDeletionRequest
         fields = [
-            'user',
+            'id',
+            'user_id',
+            'user_email',
+            'user_username',
+            'user_role',
+            'user_full_name',
             'reason',
             'status',
             'admin_response',
-            'created_at'
+            'request_time',
+            'scheduled_deletion_time',
+            'confirmation_time',
+            'rejection_time',
+            'website'
         ]
-        read_only_fields = ['created_at']
+        read_only_fields = ['id', 'request_time', 'confirmation_time', 'rejection_time', 'scheduled_deletion_time']
+
+    def get_user_full_name(self, obj):
+        user = obj.user
+        if user.first_name and user.last_name:
+            return f"{user.first_name} {user.last_name}"
+        return user.username

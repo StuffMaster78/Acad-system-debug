@@ -146,6 +146,11 @@ class UnifiedPaymentService:
             # Wallet loading doesn't require order relationships
             if order or special_order or class_purchase:
                 raise ValidationError("Wallet loading payments should not have order relationships.")
+        
+        elif payment_type == 'tip':
+            # Tip payments don't require order relationships (tips can be direct, order-based, or class-based)
+            # Tip relationship is handled via related_object fields
+            pass
     
     @staticmethod
     @transaction.atomic
@@ -233,6 +238,57 @@ class UnifiedPaymentService:
         logger.info(
             f"Wallet loading payment {payment.id} confirmed. "
             f"Credited ${payment.discounted_amount} to wallet."
+        )
+        
+        return payment
+    
+    @staticmethod
+    @transaction.atomic
+    def create_tip_payment(
+        tip,
+        client,
+        website,
+        amount: Decimal,
+        payment_method: str = 'wallet',
+        discount_code: str = None
+    ) -> OrderPayment:
+        """
+        Create a payment record for a tip.
+        
+        Args:
+            tip: Tip instance
+            client: Client making the tip payment
+            website: Website context
+            amount: Tip amount
+            payment_method: Payment method ('wallet', 'stripe', 'manual')
+            discount_code: Optional discount code
+            
+        Returns:
+            OrderPayment: Created payment record
+        """
+        # Set related_object fields for tip
+        related_object_id = tip.id
+        related_object_type = 'tip'
+        
+        payment = UnifiedPaymentService.create_payment(
+            payment_type='tip',
+            client=client,
+            website=website,
+            amount=amount,
+            original_amount=amount,
+            discounted_amount=amount,  # Discounts handled separately if needed
+            payment_method=payment_method,
+            order=None,
+            special_order=None,
+            class_purchase=None,
+            installment_payment=None,
+            related_object_id=related_object_id,
+            related_object_type=related_object_type,
+        )
+        
+        logger.info(
+            f"Created tip payment {payment.id} for tip {tip.id} "
+            f"(amount: ${amount}, writer: {tip.writer.username})"
         )
         
         return payment

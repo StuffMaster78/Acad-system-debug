@@ -17,6 +17,10 @@ from writer_management.serializers import (
     WriterDeadlineExtensionRequestSerializer, WriterLevelConfigSerializer,
 )
 
+# Note: WriterPerformanceSnapshotViewSet and WriterPerformanceDashboardView
+# are defined in writer_management/views.py (not in this __init__.py file)
+# They are imported directly in urls.py to avoid circular imports
+
 
 class WriterProfileViewSet(viewsets.ModelViewSet):
     queryset = WriterProfile.objects.all()
@@ -96,3 +100,9 @@ class WriterDeadlineExtensionRequestViewSet(viewsets.ModelViewSet):
     serializer_class = WriterDeadlineExtensionRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+
+# Import performance views from the performance module
+from writer_management.views.performance import (
+    WriterPerformanceSnapshotViewSet,
+    WriterPerformanceDashboardView,
+)

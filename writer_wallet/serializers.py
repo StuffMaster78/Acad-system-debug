@@ -6,10 +6,34 @@ from .models import (
 
 class WriterWalletSerializer(serializers.ModelSerializer):
     writer_username = serializers.CharField(source="writer.username", read_only=True)
+    writer = serializers.SerializerMethodField()
+    website = serializers.SerializerMethodField()
 
     class Meta:
         model = WriterWallet
         fields = "__all__"
+    
+    def get_writer(self, obj):
+        """Get writer information"""
+        if obj.writer:
+            return {
+                'id': obj.writer.id,
+                'username': obj.writer.username,
+                'email': obj.writer.email,
+                'first_name': obj.writer.first_name,
+                'last_name': obj.writer.last_name,
+            }
+        return None
+    
+    def get_website(self, obj):
+        """Get website information"""
+        if obj.website:
+            return {
+                'id': obj.website.id,
+                'name': obj.website.name,
+                'domain': obj.website.domain,
+            }
+        return None
 
 class WalletTransactionSerializer(serializers.ModelSerializer):
     writer = serializers.CharField(source="writer_wallet.writer.username", read_only=True)

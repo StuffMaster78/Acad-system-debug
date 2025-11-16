@@ -1,4 +1,5 @@
 import logging
+import requests
 from django.contrib.auth import authenticate, login, logout
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
@@ -91,11 +92,127 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     pagination_class = CustomUserPagination  # Enable pagination
     serializer_class = UserProfileSerializer  # Default serializer
-
     
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
+    def update_online_status(self, request):
+        """Update the current user's online status."""
+        from django.utils.timezone import now
+        user = request.user
+        current_time = now()
+        
+        if hasattr(user, 'writer_profile'):
+            user.writer_profile.last_active = current_time
+            user.writer_profile.save(update_fields=['last_active'])
+        elif hasattr(user, 'client_profile'):
+            user.client_profile.last_online = current_time
+            user.client_profile.save(update_fields=['last_online'])
+        
+        if hasattr(user, 'user_main_profile'):
+            user.user_main_profile.last_active = current_time
+            user.user_main_profile.save(update_fields=['last_active'])
+        
+        return Response({
+            "status": "online",
+            "last_active": current_time.isoformat()
+        })
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def get_online_statuses(self, request):
+        """Get online status for multiple users."""
+        from django.utils.timezone import now
+        from datetime import timedelta
+        
+        user_ids = request.query_params.get('user_ids', '').split(',')
+        user_ids = [int(uid) for uid in user_ids if uid.strip().isdigit()]
+        
+        if not user_ids:
+            return Response({"error": "user_ids parameter required"}, status=400)
+        
+        online_threshold = now() - timedelta(minutes=5)
+        statuses = {}
+        users = User.objects.filter(id__in=user_ids).select_related(
+            'writer_profile', 'client_profile', 'user_main_profile'
+        )
+        
+        for user in users:
+            last_active = None
+            is_online = False
+            
+            if hasattr(user, 'writer_profile') and user.writer_profile.last_active:
+                last_active = user.writer_profile.last_active
+                is_online = last_active >= online_threshold
+            elif hasattr(user, 'client_profile') and user.client_profile.last_online:
+                last_active = user.client_profile.last_online
+                is_online = last_active >= online_threshold
+            elif hasattr(user, 'user_main_profile') and user.user_main_profile.last_active:
+                last_active = user.user_main_profile.last_active
+                is_online = last_active >= online_threshold
+            
+            statuses[user.id] = {
+                "is_online": is_online,
+                "last_active": last_active.isoformat() if last_active else None
+            }
+        
+        return Response(statuses)
+    
+    @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
+    def get_user_online_status(self, request, pk=None):
+        """Get online status and timezone info for a specific user."""
+        from django.utils.timezone import now
+        from datetime import timedelta
+        import pytz
+        
+        try:
+            target_user = User.objects.select_related(
+                'writer_profile', 'client_profile', 'user_main_profile'
+            ).get(id=pk)
+        except User.DoesNotExist:
+            return Response({"error": "User not found"}, status=404)
+        
+        timezone_str = "UTC"
+        if hasattr(target_user, 'writer_profile'):
+            timezone_str = target_user.writer_profile.timezone or "UTC"
+        elif hasattr(target_user, 'client_profile'):
+            timezone_str = target_user.client_profile.timezone or "UTC"
+        elif hasattr(target_user, 'detected_timezone'):
+            timezone_str = target_user.detected_timezone or "UTC"
+        
+        last_active = None
+        is_online = False
+        online_threshold = now() - timedelta(minutes=5)
+        
+        if hasattr(target_user, 'writer_profile') and target_user.writer_profile.last_active:
+            last_active = target_user.writer_profile.last_active
+            is_online = last_active >= online_threshold
+        elif hasattr(target_user, 'client_profile') and target_user.client_profile.last_online:
+            last_active = target_user.client_profile.last_online
+            is_online = last_active >= online_threshold
+        elif hasattr(target_user, 'user_main_profile') and target_user.user_main_profile.last_active:
+            last_active = target_user.user_main_profile.last_active
+            is_online = last_active >= online_threshold
+        
+        try:
+            tz = pytz.timezone(timezone_str)
+            local_time = now().astimezone(tz)
+            hour = local_time.hour
+            is_daytime = 6 <= hour < 20
+        except Exception:
+            is_daytime = True
+            local_time = None
+        
+        return Response({
+            "user_id": target_user.id,
+            "is_online": is_online,
+            "last_active": last_active.isoformat() if last_active else None,
+            "timezone": timezone_str,
+            "is_daytime": is_daytime,
+            "local_time": local_time.isoformat() if local_time else None
+        })
 
     def get_serializer_class(self):
         """Dynamically return the correct serializer based on the user role."""
+        from users.serializers.privacy import get_privacy_aware_serializer
+        
         role_serializers = {
             "client": ClientProfileSerializer,
             "writer": WriterProfileSerializer,
@@ -106,10 +223,27 @@ class UserViewSet(viewsets.ModelViewSet):
         }
         role = self.request.user.role
         if role not in role_serializers:
-            # Log a warning or raise an exception here if the role is unexpected
             raise ValueError(f"Unknown role: {role}")
-    
-        return role_serializers.get(role, UserProfileSerializer)  # Fallback if the role is valid but not mapped
+        
+        base_serializer = role_serializers.get(role, UserProfileSerializer)
+        
+        # Apply privacy masking for detail views
+        if self.action == 'retrieve' and self.request.user:
+            # Get the target user being viewed
+            if hasattr(self, 'get_object'):
+                try:
+                    target_user = self.get_object()
+                    privacy_serializer = get_privacy_aware_serializer(
+                        target_user.role,
+                        self.request.user.role,
+                        self.request.user
+                    )
+                    if privacy_serializer:
+                        return privacy_serializer
+                except Exception:
+                    pass
+        
+        return base_serializer
 
     # user = User.objects.select_related("writer_profile", "client_profile").get(id=request.user.id)
 
@@ -134,7 +268,6 @@ class UserViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         """List users with filtering, search, sorting, and pagination."""
         
-    
         check_admin_access(request.user)
 
         # Filters
@@ -148,36 +281,90 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response({"error": "Invalid role"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Get queryset based on role
-
-        # Get queryset based on role
         users = User.objects.filter(role=role) if role else User.objects.all()
+        
+        # Track if similarity has been annotated
+        has_similarity = False
 
         # Apply search filter if provided
-        direct_matches = users.filter(
-            Q(username__icontains=search_query) |
-            Q(email__icontains=search_query)
-        )
+        if search_query:
+            direct_matches = users.filter(
+                Q(username__icontains=search_query) |
+                Q(email__icontains=search_query)
+            )
 
-        if not direct_matches.exists():
-            users = users.annotate(similarity=TrigramSimilarity("username", search_query)).filter(similarity__gt=0.3)
+            if direct_matches.exists():
+                users = direct_matches
+            else:
+                # Use fuzzy search with trigram similarity
+                users = users.annotate(similarity=TrigramSimilarity("username", search_query)).filter(similarity__gt=0.3)
+                has_similarity = True
+        else:
+            # No search query, use base queryset
+            pass
 
-        users = users.order_by("-similarity")
-
-        # Sorting
-        sorting_options = {
-            "newest": "-date_joined",
-            "oldest": "date_joined",
-            "alphabetical": "username",
-            "reverse-alphabetical": "-username",
-            "last-active": "-last_active",
-        }
-        if sort_by in sorting_options:
-            users = users.order_by(sorting_options[sort_by])
+        # Sorting - only order by similarity if it was annotated
+        if has_similarity:
+            users = users.order_by("-similarity")
+        elif sort_by:
+            sorting_options = {
+                "newest": "-date_joined",
+                "oldest": "date_joined",
+                "alphabetical": "username",
+                "reverse-alphabetical": "-username",
+                "last-active": "-last_active",
+            }
+            if sort_by in sorting_options:
+                users = users.order_by(sorting_options[sort_by])
+        else:
+            # Default sorting when no search and no sort_by
+            users = users.order_by("-date_joined")
 
         # Paginate results
         paginator = self.pagination_class()
         paginated_users = paginator.paginate_queryset(users, request, view=self)
+        
+        # Apply privacy-aware serialization
+        from users.serializers.privacy import get_privacy_aware_serializer
+        serializer_class = self.get_serializer_class()
+        
+        # For list view, apply privacy masking based on viewer role
+        if request.user.role not in ['admin', 'superadmin']:
+            serialized_data = []
+            for user in paginated_users:
+                privacy_serializer = get_privacy_aware_serializer(
+                    user.role,
+                    request.user.role,
+                    request.user
+                )
+                if privacy_serializer:
+                    serialized_data.append(privacy_serializer(user).data)
+                else:
+                    serialized_data.append(serializer_class(user).data)
+            return paginator.get_paginated_response(serialized_data)
+        
         return paginator.get_paginated_response(serializer_class(paginated_users, many=True).data)
+    
+    def retrieve(self, request, *args, **kwargs):
+        """Retrieve a specific user's profile with privacy masking."""
+        from users.serializers.privacy import get_privacy_aware_serializer
+        
+        instance = self.get_object()
+        serializer_class = self.get_serializer_class()
+        
+        # Apply privacy masking if needed
+        if request.user.role not in ['admin', 'superadmin']:
+            privacy_serializer = get_privacy_aware_serializer(
+                instance.role,
+                request.user.role,
+                request.user
+            )
+            if privacy_serializer:
+                serializer = privacy_serializer(instance)
+                return Response(serializer.data)
+        
+        serializer = serializer_class(instance)
+        return Response(serializer.data)
     
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def active_tokens(self, request):
@@ -255,6 +442,86 @@ class UserViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
 
         raise PermissionDenied("Invalid role or unauthorized access.")
+
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
+    def location_info(self, request):
+        """
+        Get user's location information including country.
+        Returns:
+        - User-selected country (from UserProfile)
+        - Detected country (from User.detected_country or real-time detection)
+        - Current session country (from UserSession if available)
+        - Current IP address
+        """
+        user = request.user
+        ip_address = get_client_ip(request)
+        
+        # Get user-selected country from UserProfile
+        user_profile = getattr(user, 'user_main_profile', None)
+        user_selected_country = None
+        if user_profile:
+            user_selected_country = str(user_profile.country) if user_profile.country else None
+        
+        # Get detected country from User model (GeoDetectionMixin)
+        detected_country = user.detected_country
+        
+        # Try to detect country from current IP if not already detected
+        current_country = None
+        current_timezone = None
+        if ip_address:
+            try:
+                # Use the existing auto_detect_country method
+                # This will update user.detected_country if not set
+                if not detected_country:
+                    user.auto_detect_country(request)
+                    user.refresh_from_db()
+                    detected_country = user.detected_country
+                    current_timezone = user.detected_timezone
+                
+                # Also get real-time country from IP for current session
+                try:
+                    response = requests.get(f"https://ipinfo.io/{ip_address}/json", timeout=2)
+                    if response.status_code == 200:
+                        data = response.json()
+                        current_country = data.get("country", None)
+                        if not current_timezone:
+                            current_timezone = data.get("timezone", None)
+                except requests.RequestException:
+                    pass
+            except Exception as e:
+                logger.warning(f"Failed to detect country from IP: {e}")
+        
+        # Get country from current session if available
+        session_country = None
+        try:
+            from authentication.models import UserSession
+            session_key = request.session.session_key
+            if session_key:
+                user_session = UserSession.objects.filter(
+                    user=user,
+                    session_key=session_key,
+                    is_active=True
+                ).first()
+                if user_session:
+                    session_country = user_session.country
+        except Exception as e:
+            logger.warning(f"Failed to get session country: {e}")
+        
+        return Response({
+            "ip_address": ip_address,
+            "user_selected_country": user_selected_country,
+            "detected_country": detected_country,
+            "current_country": current_country or detected_country,
+            "session_country": session_country,
+            "timezone": current_timezone or user.detected_timezone,
+            "country_source": (
+                "user_selected" if user_selected_country else
+                "session" if session_country else
+                "detected" if detected_country else
+                "current_ip" if current_country else
+                "unknown"
+            )
+        })
 
     @method_decorator(ratelimit(key="user", rate="3/m", method="POST", block=True))
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
@@ -432,15 +699,53 @@ class AccountDeletionRequestViewSet(viewsets.ViewSet):
 
     permission_classes = [permissions.IsAuthenticated]
 
+    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAdminUser], url_path='list')
+    def list_requests(self, request):
+        """Admin/Superadmin can view all account deletion requests."""
+        from users.serializers import AccountDeletionRequestSerializer
+        
+        status_filter = request.query_params.get('status', None)
+        queryset = AccountDeletionRequest.objects.all().select_related('user', 'website').order_by('-request_time')
+        
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        serializer = AccountDeletionRequestSerializer(queryset, many=True)
+        return Response({
+            "count": queryset.count(),
+            "requests": serializer.data
+        }, status=status.HTTP_200_OK)
+
     @action(detail=False, methods=['post'])
     def request_deletion(self, request):
-        """Clients & Writers request account deletion."""
+        """Clients, Writers, Support, and Editors can request account deletion.
+        Admin and Superadmin accounts cannot be deleted."""
         user = request.user
+        
+        # Prevent admin and superadmin from requesting deletion
+        if user.role in ['admin', 'superadmin']:
+            return Response({
+                "error": "Admin and Superadmin accounts cannot be deleted. Please contact system administrator."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Only allow clients, writers, support, and editors
+        if user.role not in ['client', 'writer', 'support', 'editor']:
+            return Response({
+                "error": "Account deletion is not available for your role."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
         if user.is_frozen:
             return Response({"error": "Your account is already scheduled for deletion."}, status=status.HTTP_400_BAD_REQUEST)
 
         reason = request.data.get("reason", "No reason provided")
-        AccountDeletionRequest.objects.create(user=user, reason=reason)
+        website = getattr(user, 'website', None) or Website.objects.first()
+        
+        if not website:
+            return Response({
+                "error": "Unable to process deletion request. Please contact support."
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        AccountDeletionRequest.objects.create(user=user, website=website, reason=reason)
         user.freeze_account()
 
         return Response({"message": "Your account is now frozen and scheduled for deletion in 3 months."}, status=status.HTTP_201_CREATED)
@@ -461,25 +766,26 @@ class AccountDeletionRequestViewSet(viewsets.ViewSet):
 
         return Response({"message": "Account deletion confirmed. Your account is now frozen for 3 months."}, status=status.HTTP_200_OK)
     
-    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def approve_deletion(self, request, pk=None):
-        """Admin approves account deletion request."""
+        """Admin/Superadmin approves account deletion request."""
         deletion_request = get_object_or_404(AccountDeletionRequest, id=pk, status="pending")
 
         # Log admin action
         logger.info(f"Admin {request.user.email} approved deletion for {deletion_request.user.email}")
 
-        deletion_request.status = "approved"
+        deletion_request.status = "confirmed"
+        deletion_request.confirmation_time = now()
         deletion_request.save()
 
-         # Freeze the user
+        # Freeze the user
         deletion_request.user.freeze_account()
 
         return Response({"message": "Account deletion request approved. Account is now frozen."}, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def reject_deletion(self, request, pk=None):
-        """Admin rejects account deletion request."""
+        """Admin/Superadmin rejects account deletion request."""
         deletion_request = get_object_or_404(
             AccountDeletionRequest,
             id=pk,
@@ -488,16 +794,31 @@ class AccountDeletionRequestViewSet(viewsets.ViewSet):
         reason = request.data.get("reason", "No reason provided")
         deletion_request.status = "rejected"
         deletion_request.admin_response = reason
+        deletion_request.rejection_time = now()
         deletion_request.save()
+
+        # Unfreeze the user if they were frozen
+        if deletion_request.user.is_frozen:
+            deletion_request.user.cancel_deletion()
 
         return Response({"message": "Account deletion request rejected."}, status=status.HTTP_200_OK)
 
-    @action(detail=False, methods=['post'], permission_classes=[permissions.IsAdminUser])
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])
     def reinstate_account(self, request, pk=None):
-        """Admin reinstates a frozen account."""
-        user = get_object_or_404(User, id=pk, is_frozen=True)
-        user.reinstate_account()
+        """Admin/Superadmin reinstates a frozen account."""
+        deletion_request = get_object_or_404(AccountDeletionRequest, id=pk)
+        user = deletion_request.user
+        
+        if not user.is_frozen:
+            return Response({"error": "Account is not frozen."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.cancel_deletion()
+        deletion_request.status = "rejected"
+        deletion_request.admin_response = "Account reinstated by admin"
+        deletion_request.rejection_time = now()
+        deletion_request.save()
 
+        logger.info(f"Admin {request.user.email} reinstated account for {user.email}")
         return Response({"message": "User account has been reinstated."}, status=status.HTTP_200_OK)
 
 class AdminProfileRequestViewSet(viewsets.ViewSet):
@@ -573,7 +894,23 @@ class AdminProfileRequestViewSet(viewsets.ViewSet):
 
         # Store admin approval request if necessary
         if admin_approval_updates:
-            ProfileUpdateRequest.objects.create(user=user, requested_data=admin_approval_updates)
+            # Get user's website or use a default
+            user_website = getattr(user, 'website', None)
+            if not user_website:
+                # Try to get website from user's profile or use first available
+                from websites.models import Website
+                try:
+                    user_website = Website.objects.first()
+                except:
+                    pass
+            
+            if user_website:
+                ProfileUpdateRequest.objects.create(user=user, website=user_website, requested_data=admin_approval_updates)
+            else:
+                # If no website available, just log a warning
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Cannot create ProfileUpdateRequest for user {user.id}: no website available")
             return Response({"message": "Profile updated. Some changes require admin approval."})
 
         return Response({"message": "Profile updated successfully."})
@@ -583,8 +920,19 @@ class AdminProfileRequestViewSet(viewsets.ViewSet):
         """
         Allows users to view their pending profile update requests.
         """
-        requests = request.user.update_requests.filter(status="pending").values()
-        return Response({"pending_requests": list(requests)})
+        try:
+            # Use the correct related_name: update_requests_users
+            from users.models import ProfileUpdateRequest
+            requests = ProfileUpdateRequest.objects.filter(
+                user=request.user,
+                status="pending"
+            ).values('id', 'requested_data', 'status', 'admin_response', 'created_at', 'updated_at')
+            return Response({"pending_requests": list(requests)})
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error fetching profile update requests: {e}", exc_info=True)
+            return Response({"pending_requests": [], "error": "Failed to fetch update requests"})
 class AdminUserManagementViewSet(viewsets.ViewSet):
     """Allows admins to manage user accounts."""
 

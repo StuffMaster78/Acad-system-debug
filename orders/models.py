@@ -280,6 +280,29 @@ class Order(models.Model):
         auto_now=True,
         help_text="Date and time when the order was last updated."
     )
+    # External contact fields for unattributed orders
+    external_contact_name = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Name of external contact for unattributed orders (e.g., from chat, WhatsApp)."
+    )
+    external_contact_email = models.EmailField(
+        null=True,
+        blank=True,
+        help_text="Email of external contact for unattributed orders."
+    )
+    external_contact_phone = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        help_text="Phone number of external contact for unattributed orders."
+    )
+    # Unpaid visibility override
+    allow_unpaid_access = models.BooleanField(
+        default=False,
+        help_text="If True, allows access to this order even if unpaid. Admin can override default unpaid access restrictions."
+    )
 
     # Include existing methods: calculate_total_cost,
     # calculate_writer_compensation, assign_flags, etc.
@@ -855,6 +878,7 @@ class WriterRequest(models.Model):
 class WriterProgress(models.Model):
     """
     Tracks progress logs for writers working on orders.
+    Includes notes, screened word checking, and admin moderation.
     """
     website = models.ForeignKey(
         'websites.Website',
@@ -875,34 +899,90 @@ class WriterProgress(models.Model):
         help_text="The order associated with this progress log."
     )
     progress_percentage = models.PositiveIntegerField(
-        validators=[MaxValueValidator(100)]
+        validators=[MaxValueValidator(100)],
+        help_text="Percentage of work completed (0-100)."
     )
-    text_description = models.TextField(
+    notes = models.TextField(
         null=True,
         blank=True,
-        help_text="Optional update details."
+        help_text="Optional notes about the progress update."
+    )
+    # Moderation fields
+    is_withdrawn = models.BooleanField(
+        default=False,
+        help_text="Whether this progress report has been withdrawn by admin due to policy violations."
+    )
+    withdrawn_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="withdrawn_progress_reports",
+        help_text="Admin/superadmin who withdrew this report."
+    )
+    withdrawn_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this report was withdrawn."
+    )
+    withdrawal_reason = models.TextField(
+        null=True,
+        blank=True,
+        help_text="Reason for withdrawal (e.g., screened words detected)."
+    )
+    # Flag for screened words
+    contains_screened_words = models.BooleanField(
+        default=False,
+        help_text="Whether this report contains screened words."
     )
     timestamp = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
-    @property
-    def progress(self):
-        return f"{self.completed_tasks}/{self.total_tasks}"
+    def check_screened_words(self):
+        """Check if notes contain screened words."""
+        if not self.notes:
+            return False
+        
+        from communications.models import ScreenedWord
+        screened_words = ScreenedWord.objects.values_list('word', flat=True)
+        
+        notes_lower = self.notes.lower()
+        for word in screened_words:
+            if word.lower() in notes_lower:
+                self.contains_screened_words = True
+                return True
+        
+        self.contains_screened_words = False
+        return False
     
-
-    def update_progress(self, completed_tasks):
-        """Update the progress based on completed tasks."""
-        self.completed_tasks = completed_tasks
-        self.progress_percentage = (completed_tasks / self.total_tasks) * 100
+    def withdraw(self, withdrawn_by, reason=None):
+        """Withdraw this progress report."""
+        self.is_withdrawn = True
+        self.withdrawn_by = withdrawn_by
+        self.withdrawn_at = timezone.now()
+        if reason:
+            self.withdrawal_reason = reason
         self.save()
     
+    def save(self, *args, **kwargs):
+        """Override save to check for screened words."""
+        if self.notes:
+            self.check_screened_words()
+        super().save(*args, **kwargs)
+    
     class Meta:
-            unique_together = ('writer', 'order', 'timestamp')
-            ordering = ['-timestamp']
+        ordering = ['-timestamp']
+        indexes = [
+            models.Index(fields=['order', '-timestamp']),
+            models.Index(fields=['writer', '-timestamp']),
+            models.Index(fields=['is_withdrawn']),
+        ]
 
     def __str__(self):
+        status = " (Withdrawn)" if self.is_withdrawn else ""
         return (
             f"Progress {self.progress_percentage}% for Order {self.order.id} "
-            f"by {self.writer.username}"
+            f"by {self.writer.username}{status}"
         )
 
 

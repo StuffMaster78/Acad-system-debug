@@ -1,10 +1,15 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from . import views
 from client_management.views import (
     BlacklistEmailListView,
     BlacklistEmailAddView,
     BlacklistEmailRemoveView
 )
+from client_management.views_dashboard import ClientDashboardViewSet
+
+router = DefaultRouter()
+router.register(r'dashboard', ClientDashboardViewSet, basename='client-dashboard')
 
 urlpatterns = [
     # Client Profiles
@@ -27,6 +32,8 @@ urlpatterns = [
     path("loyalty/tiers/<int:pk>/", views.LoyaltyTierDetailView.as_view(), name="loyalty-tier-detail"),
     path("loyalty/transactions/<int:client_id>/", views.LoyaltyTransactionListView.as_view(), name="loyalty-transaction-list"),
 
+    # Client Dashboard
+    path("", include(router.urls)),
 
     path("blacklist/", BlacklistEmailListView.as_view(), name="blacklist-list"),
     path("blacklist/add/", BlacklistEmailAddView.as_view(), name="blacklist-add"),

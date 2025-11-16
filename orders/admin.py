@@ -95,10 +95,11 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(WriterProgress)
 class WriterProgressAdmin(admin.ModelAdmin):
-    list_display = ['order', 'writer', 'progress', 'timestamp']
-    list_filter = ['timestamp']
-    search_fields = ('order__id', 'writer__username')
+    list_display = ['order', 'writer', 'progress_percentage', 'is_withdrawn', 'contains_screened_words', 'timestamp']
+    list_filter = ['timestamp', 'is_withdrawn', 'contains_screened_words']
+    search_fields = ('order__id', 'writer__username', 'notes')
     ordering = ('-timestamp',)
+    readonly_fields = ['timestamp', 'updated_at', 'withdrawn_at', 'withdrawn_by']
 
 
 @admin.register(Dispute)

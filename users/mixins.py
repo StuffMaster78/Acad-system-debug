@@ -424,6 +424,9 @@ class GeoDetectionMixin(models.Model):
         if self.detected_country and self.detected_timezone:
             return
         
+        from users.utils import get_client_ip
+        import requests
+        
         ip_address = get_client_ip(request) if request else "8.8.8.8"
         try:
             response = requests.get(f"https://ipinfo.io/{ip_address}/json", timeout=2)
@@ -431,6 +434,7 @@ class GeoDetectionMixin(models.Model):
             self.detected_country = data.get("country", "Unknown")
             self.detected_timezone = data.get("timezone", "Unknown")
             self.detected_ip = ip_address
+            self.save(update_fields=['detected_country', 'detected_timezone', 'detected_ip'])
         except requests.RequestException:
             self.detected_country = "Unknown"
             self.detected_timezone = "Unknown"

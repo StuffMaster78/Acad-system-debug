@@ -1,5 +1,5 @@
 from django.utils import timezone
-from reviews_system.models.order_review import WebsiteReview
+from reviews_system.models.website_review import WebsiteReview
 from reviews_system.models.writer_review import WriterReview
 from reviews_system.models.order_review import OrderReview
 from notifications_system.services.core import NotificationService

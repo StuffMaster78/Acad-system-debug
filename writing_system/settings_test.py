@@ -33,6 +33,11 @@ else:
             "NAME": BASE_DIR / "test_db.sqlite3",
         }
     }
+    # For SQLite, temporarily exclude notifications_system from migrations
+    # to avoid PostgreSQL-specific ArrayField issues
+    MIGRATION_MODULES = {
+        'notifications_system': None,  # Skip migrations for this app with SQLite
+    }
 
 # Use in-memory cache to avoid Redis during tests
 CACHES = {

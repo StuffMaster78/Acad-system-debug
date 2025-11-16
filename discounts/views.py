@@ -65,7 +65,7 @@ class DiscountViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = [
         'is_active', 'discount_type', 'assigned_to_client',
-        'start_date', 'end_date'
+        'start_date', 'end_date', 'promotional_campaign'
     ]
     search_fields = ['discount_code', 'description']
     ordering_fields = ['start_date', 'end_date', 'discount_value', 'created_at']
@@ -209,6 +209,74 @@ class DiscountViewSet(viewsets.ModelViewSet):
             {"detail": f"Discount is now {'active' if discount.is_active else 'inactive'}."}
         )
 
+    @action(detail=False, methods=['post'], url_path='bulk-generate')
+    def bulk_generate(self, request):
+        """
+        Bulk generate discount codes for a promotional campaign.
+        """
+        from discounts.services.discount_generator import DiscountCodeGenerator
+        from websites.models import Website
+        from django.core.exceptions import ValidationError
+        from datetime import datetime
+        
+        campaign_id = request.data.get('campaign_id')
+        campaign_slug = request.data.get('campaign_slug')
+        total = request.data.get('total', 10)
+        prefix = request.data.get('prefix', '')
+        code_length = request.data.get('code_length', 6)
+        discount_type = request.data.get('discount_type', 'percent')
+        discount_value = request.data.get('discount_value')
+        usage_limit = request.data.get('usage_limit')
+        start_date_str = request.data.get('start_date')
+        end_date_str = request.data.get('end_date')
+        is_active = request.data.get('is_active', True)
+        
+        if not campaign_id and not campaign_slug:
+            return Response(
+                {"error": "campaign_id or campaign_slug is required"},
+                status=400
+            )
+        
+        try:
+            if campaign_id:
+                campaign = PromotionalCampaign.objects.get(id=campaign_id)
+            else:
+                campaign = PromotionalCampaign.objects.get(slug=campaign_slug)
+        except PromotionalCampaign.DoesNotExist:
+            return Response({"error": "Campaign not found"}, status=404)
+        
+        # Get website from campaign
+        website = campaign.website
+        
+        # Parse dates
+        start_date = datetime.fromisoformat(start_date_str.replace('Z', '+00:00')) if start_date_str else campaign.start_date
+        end_date = datetime.fromisoformat(end_date_str.replace('Z', '+00:00')) if end_date_str else campaign.end_date
+        
+        try:
+            discounts = DiscountCodeGenerator.bulk_create_discounts(
+                prefix=prefix,
+                total=total,
+                discount_type=discount_type,
+                discount_value=discount_value,
+                start_date=start_date,
+                end_date=end_date,
+                usage_limit=usage_limit,
+                website=website,
+                promotional_campaign=campaign,
+                is_active=is_active,
+                code_length=code_length
+            )
+            
+            return Response({
+                "message": f"Successfully generated {len(discounts)} discount codes",
+                "count": len(discounts),
+                "discounts": [{"id": d.id, "code": d.discount_code} for d in discounts]
+            })
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=400)
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)
+    
     @action(detail=True, methods=["post"])
     def apply_discount(self, request, pk=None):
         order = self.get_object()
@@ -455,8 +523,11 @@ class DiscountAnalyticsView(APIView):
 
     def get(self, request, *args, **kwargs):
         stats_type = request.query_params.get("type")
+        campaign_id = kwargs.get('campaign_id')
 
-        if stats_type == "stats":
+        if campaign_id:
+            return self.get_campaign_analytics(request, campaign_id)
+        elif stats_type == "stats":
             return self.get_overall_stats()
         elif stats_type == "top-used":
             return self.get_top_used()
@@ -466,6 +537,81 @@ class DiscountAnalyticsView(APIView):
             return Response(
                 {"error": "Invalid type parameter."}, status=400
             )
+    
+    def get_campaign_analytics(self, request, campaign_id):
+        """
+        Get detailed analytics for a specific promotional campaign.
+        """
+        from django.db.models import Sum, Count, Avg, Q
+        from orders.models import Order
+        
+        try:
+            campaign = PromotionalCampaign.objects.get(id=campaign_id)
+        except PromotionalCampaign.DoesNotExist:
+            return Response({"error": "Campaign not found"}, status=404)
+        
+        # Get all discounts for this campaign
+        campaign_discounts = Discount.objects.filter(promotional_campaign=campaign)
+        discount_ids = list(campaign_discounts.values_list('id', flat=True))
+        
+        # Get usage statistics
+        usages = DiscountUsage.objects.filter(discount_id__in=discount_ids)
+        
+        # Calculate metrics
+        total_uses = usages.count()
+        unique_users = usages.values('user').distinct().count()
+        
+        # Revenue calculations
+        orders_with_discounts = Order.objects.filter(
+            discount_usages__discount_id__in=discount_ids
+        ).distinct()
+        
+        total_revenue = orders_with_discounts.aggregate(
+            total=Sum('total')
+        )['total'] or 0
+        
+        total_discount_amount = usages.aggregate(
+            total=Sum('applied_amount')
+        )['total'] or 0
+        
+        net_revenue = total_revenue - total_discount_amount
+        
+        # Average order value
+        avg_order_value = orders_with_discounts.aggregate(
+            avg=Avg('total')
+        )['avg'] or 0
+        
+        data = {
+            "campaign_id": campaign.id,
+            "campaign_name": campaign.campaign_name,
+            "status": campaign.status,
+            "start_date": campaign.start_date,
+            "end_date": campaign.end_date,
+            "is_active": campaign.is_active,
+            "discounts": {
+                "total": campaign_discounts.count(),
+                "active": campaign_discounts.filter(is_active=True).count(),
+            },
+            "usage": {
+                "total_uses": total_uses,
+                "unique_users": unique_users,
+                "avg_uses_per_user": total_uses / unique_users if unique_users > 0 else 0,
+            },
+            "revenue": {
+                "total_revenue": float(total_revenue),
+                "total_discount_amount": float(total_discount_amount),
+                "net_revenue": float(net_revenue),
+                "avg_order_value": float(avg_order_value),
+                "roi": float((net_revenue / total_discount_amount * 100)) if total_discount_amount > 0 else 0,
+            },
+            "top_discounts": list(
+                usages.values('discount__discount_code')
+                .annotate(usage_count=Count('id'))
+                .order_by('-usage_count')[:10]
+            ),
+        }
+        
+        return Response(data)
 
     def get_overall_stats(self):
         total_discounts = Discount.objects.count()
@@ -505,3 +651,4 @@ class DiscountAnalyticsView(APIView):
         data = [{"event": e["promotional_campaign__campaign_name"], "discount_count": e["count"]}
                 for e in event_data]
         return Response(data)
+    

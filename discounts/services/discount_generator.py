@@ -49,7 +49,7 @@ class DiscountCodeGenerator:
             suffix = ''.join(random.choices(cls.CHARSET, k=length))
             prefix = prefix[:max_prefix_len]    
             candidate = f"{prefix}_{suffix}" if prefix else suffix.upper()
-            if not Discount.objects.filter(code=candidate).exists():
+            if not Discount.objects.filter(discount_code=candidate).exists():
                 return candidate
 
         logger.error(
@@ -132,7 +132,7 @@ class DiscountCodeGenerator:
         with transaction.atomic():
             for code in codes:
                 discount = Discount.objects.create(
-                    code=code,
+                    discount_code=code,
                     discount_type=discount_type,
                     discount_value=discount_value,
                     start_date=start_date,
@@ -141,8 +141,8 @@ class DiscountCodeGenerator:
                     website=website,
                     promotional_campaign=promotional_campaign,
                     assigned_to_client=client,
-                    client=client,
                     is_active=is_active,
+                    origin_type='promo' if promotional_campaign else 'manual',
                     used_count=0
                 )
                 discounts.append(discount)

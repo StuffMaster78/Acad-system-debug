@@ -10,6 +10,7 @@ from .views import (
     WriterLevelOptionConfigViewSet,
     EstimatePriceView
 )
+from .views_analytics import PricingAnalyticsViewSet
 
 router = DefaultRouter()
 router.register(r'pricing-configurations', PricingConfigurationViewSet)
@@ -19,6 +20,7 @@ router.register(r'type-of-work-multipliers', TypeOfWorkMultiplierViewSet)
 router.register(r'deadline-multipliers', DeadlineMultiplierViewSet)
 router.register(r'preferred-writer-configs', PreferredWriterConfigViewSet)
 router.register(r'writer-level-options', WriterLevelOptionConfigViewSet)
+router.register(r'analytics', PricingAnalyticsViewSet, basename='pricing-analytics')
 
 urlpatterns = [
     path('estimate/', EstimatePriceView.as_view(), name='estimate-price'),

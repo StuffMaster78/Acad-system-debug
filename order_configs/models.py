@@ -124,7 +124,7 @@ class PaperType(models.Model):
         related_name='paper_type'
     )
     name = models.CharField(
-        max_length=100, unique=True,
+        max_length=100,
         help_text="Type of paper (e.g., Essay, Report)."
     )
 
@@ -148,7 +148,7 @@ class FormattingandCitationStyle(models.Model):
         related_name='formatting'
     )
     name = models.CharField(
-        max_length=50, unique=True,
+        max_length=50,
         help_text="Formatting style (e.g., APA, MLA)."
     )
 
@@ -172,7 +172,7 @@ class Subject(models.Model):
         related_name='subject'
     )
     name = models.CharField(
-        max_length=100, unique=True,
+        max_length=100,
         help_text="Subject (e.g., Nursing, Physics)."
     )
     is_technical = models.BooleanField(
@@ -200,7 +200,7 @@ class TypeOfWork(models.Model):
         related_name='type_of_work'
     )
     name = models.CharField(
-        max_length=50, unique=True,
+        max_length=50,
         help_text="Type of work (e.g., Writing, Editing)."
     )
 
@@ -224,11 +224,11 @@ class EnglishType(models.Model):
         related_name='english_type'
     )
     name = models.CharField(
-        max_length=50, unique=True,
+        max_length=50,
         help_text="English type (e.g., US English, UK English)."
     )
     code = models.CharField(
-        max_length=10, unique=True,
+        max_length=10,
         help_text="Short code (e.g., US, UK)."
     )
 

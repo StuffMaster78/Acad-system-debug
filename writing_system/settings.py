@@ -47,6 +47,9 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
 
+# Frontend URL for email links (activation, password reset)
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
 
 # Application definition
 
@@ -184,9 +187,9 @@ AUTH_USER_MODEL = 'users.User'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB_NAME'),  #Database Name
-        'USER': os.getenv('POSTGRES_USER_NAME'),  #Database username
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),  #Database password
+        'NAME': os.getenv('POSTGRES_DB_NAME') or 'writingsondo',  #Database Name with fallback
+        'USER': os.getenv('POSTGRES_USER_NAME') or 'awinorick',  #Database username with fallback
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD') or '',  #Database password
         "HOST": os.getenv("DB_HOST", "db"),  # Hostname
         "PORT": os.getenv("DB_PORT", 5432),  # Port
     }
@@ -525,21 +528,24 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.UserRateThrottle',
         'rest_framework.throttling.AnonRateThrottle',
-        'authentication.throttling.LoginRateThrottle',
-        'authentication.throttling.MagicLinkThrottle',
-        'notifications_system.throttles.NotificationWriteBurstThrottle',
-        'notifications_system.throttles.NotificationWriteSustainedThrottle',
+        # Removed LoginRateThrottle and MagicLinkThrottle from default - they should only apply to auth endpoints
+        # 'authentication.throttling.LoginRateThrottle',
+        # 'authentication.throttling.MagicLinkThrottle',
+        # Removed notification throttles from default - they should only apply to notification endpoints
+        # 'notifications_system.throttles.NotificationWriteBurstThrottle',
+        # 'notifications_system.throttles.NotificationWriteSustainedThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'user': '10/hour',  # Normal authenticated users
-        'anon': '5/hour',  # Unauthenticated users
-        'login': '5/minute',  # Limit login attempts to 5 per minute
-        'login_sustained': '100/day',  # Limit sustained login attempts to 100 per day
-        'password_reset': '3/hour', #Limit login attempts to 3 in every hour
-        'magic_link': '3/minute',  # Limit magic link requests to 3 per minute
-        'mfa_challenge': '5/hour',
-        'notifications_write_burst': '20/min',  # e.g. 20 writes per minute
-        'notifications_write_sustained': '200/day',  # e.g. 200
+        # Development-friendly rates (increase for production)
+        'user': '1000/hour',  # Authenticated users - increased from 10/hour for development
+        'anon': '500/hour',  # Unauthenticated users - increased from 5/hour for development
+        'login': '10/minute',  # Limit login attempts to 10 per minute (increased from 5)
+        'login_sustained': '200/day',  # Limit sustained login attempts to 200 per day (increased from 100)
+        'password_reset': '10/hour',  # Limit password reset to 10 per hour (increased from 3)
+        'magic_link': '5/minute',  # Limit magic link requests to 5 per minute (increased from 1)
+        'mfa_challenge': '20/hour',  # Limit MFA challenges (increased from 5)
+        'notifications_write_burst': '100/min',  # Notification writes per minute (increased from 20)
+        'notifications_write_sustained': '1000/day',  # Notification writes per day (increased from 200)
     },
     'EXCEPTION_HANDLER': 'authentication.exceptions.custom_exception_handler',
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
@@ -608,7 +614,7 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(hour=1, minute=0),  # every 1 am daily
     },
     'send-daily-digests': {
-        'task': 'notifications_system.tasks.send_daily_digest',
+        'task': 'notifications_system.tasks.send_daily_digests',
         'schedule': crontab(hour=8, minute=0),
     },
         'backfill-group-notification-profiles-every-night': {

@@ -1,5 +1,5 @@
 {% extends "admin/change_list.html" %}
-{% load i18n admin_urls static %}
+{% load i18n admin_urls static humanize %}
 
 {% block content_title %}
     {{ block.super }}
@@ -26,7 +26,7 @@
             <div style="background: white; padding: 15px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
                 <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">Total Loyalty Points</div>
                 <div style="font-size: 1.8em; font-weight: bold; color: #417690;">
-                    {{ summary.total_loyalty_points|intcomma }}
+                    {{ summary.total_loyalty_points|floatformat:0 }}
                 </div>
             </div>
         </div>

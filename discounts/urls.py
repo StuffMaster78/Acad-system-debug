@@ -23,4 +23,9 @@ urlpatterns = [
         DiscountAnalyticsView.as_view(),
         name="discount-analytics"
     ),
+    path(
+        "discounts/analytics/campaign-analytics/<int:campaign_id>/",
+        DiscountAnalyticsView.as_view(),
+        name="campaign-analytics"
+    ),
 ]

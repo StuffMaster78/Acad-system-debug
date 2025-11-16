@@ -11,20 +11,22 @@ def custom_exception_handler(exc, context):
 
     if isinstance(exc, Throttled):
         scope = getattr(context['request'], 'throttled_scope', 'default')
+        wait_time = int(exc.wait) if exc.wait else 0
+        
         custom_messages = {
-            'user': "Too many requests. Chill for a bit.",
-            'anon': "You're hitting this too hard. Try again later.",
-            'login': "Login attempts exceeded. Wait a minute before trying again.",
-            'magic_link': "Too many magic link requests. Give your inbox a break.",
-            'default': "Too many requests. Please slow down.",
+            'user': f"Too many requests. Please wait {wait_time} seconds.",
+            'anon': f"You're hitting this too hard. Try again in {wait_time} seconds.",
+            'login': f"Login attempts exceeded. Wait {wait_time} seconds before trying again.",
+            'magic_link': f"Too many magic link requests. Please wait {wait_time} seconds before requesting another link.",
+            'default': f"Too many requests. Please wait {wait_time} seconds.",
         }
         message = custom_messages.get(scope, custom_messages['default'])
 
+        logger.warning(f"[THROTTLED] Scope: {scope} | Path: {context['request'].path} | IP: {context['request'].META.get('REMOTE_ADDR')} | Wait: {wait_time}s")
+
         return Response(
-            data={"detail": message, "wait": exc.wait},
+            data={"detail": message, "wait": wait_time},
             status=status.HTTP_429_TOO_MANY_REQUESTS
         )
-    
-        logger.warning(f"[THROTTLED] Scope: {scope} | Path: {context['request'].path} | IP: {context['request'].META.get('REMOTE_ADDR')}")
 
     return response

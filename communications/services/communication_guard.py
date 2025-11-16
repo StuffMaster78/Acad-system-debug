@@ -16,6 +16,7 @@ class CommunicationGuardService:
     def assert_can_send_message(user, thread):
         """
         Enforce messaging restrictions based on thread and order rules.
+        Allows all users with access to the order to send messages.
 
         Args:
             user (User): The user trying to send a message.
@@ -35,17 +36,42 @@ class CommunicationGuardService:
         order = getattr(thread, "order", None)
 
         if not order:
-            raise PermissionDenied("This thread is not tied to an order.")
+            # If no order, check if user is a participant
+            if user not in thread.participants.all():
+                raise PermissionDenied("You do not have access to this thread.")
+            if not thread.is_active and not thread.admin_override:
+                raise PermissionDenied("This thread is locked.")
+            return
 
-        # Disallow communication on archived orders
-        if order.status == "archived":
+        # Check if user has access to the order
+        role = getattr(user, "role", None)
+        has_order_access = False
+        
+        # Client who placed the order
+        if order.client == user:
+            has_order_access = True
+        # Writer assigned to the order
+        elif order.assigned_writer == user:
+            has_order_access = True
+        # Staff roles (admin, superadmin, editor, support) have access
+        elif role in {"admin", "superadmin", "editor", "support"}:
+            has_order_access = True
+        # User is already a participant
+        elif user in thread.participants.all():
+            has_order_access = True
+
+        if not has_order_access:
+            raise PermissionDenied("You do not have access to this order.")
+
+        # Disallow communication on archived orders (unless admin override)
+        if order.status == "archived" and not thread.admin_override:
             raise PermissionDenied("Cannot message on archived orders.")
 
-        # Block special/private class orders if needed
-        if getattr(order, "is_special", False):
+        # Block special/private class orders if needed (unless admin override)
+        if getattr(order, "is_special", False) and not thread.admin_override:
             raise PermissionDenied("Messaging is blocked for special orders.")
 
-        if getattr(order, "is_class", False):
+        if getattr(order, "is_class", False) and not thread.admin_override:
             raise PermissionDenied("Messaging is blocked for classes.")
 
         if not thread.is_active and not thread.admin_override:

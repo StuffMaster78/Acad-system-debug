@@ -20,7 +20,8 @@ from authentication.views import (
     account_unlock_views,
     admin_account_unlock_view,
     account_unlock_confirm_view,
-    auth_viewset
+    auth_viewset,
+    password_reset_views
 )
 
 router = DefaultRouter()
@@ -122,6 +123,17 @@ custom_urlpatterns = [
         "auth/account-unlock/confirm/",
         account_unlock_confirm_view.AccountUnlockConfirmView.as_view(),
         name="account-unlock-confirm"
+    ),
+    # Password reset endpoints
+    path(
+        "auth/password-reset/",
+        password_reset_views.RequestPasswordResetView.as_view(),
+        name="password-reset"
+    ),
+    path(
+        "auth/password-reset/confirm/",
+        password_reset_views.PasswordResetConfirmView.as_view(),
+        name="password-reset-confirm"
     ),
 ]
 

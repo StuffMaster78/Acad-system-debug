@@ -57,6 +57,10 @@ try:
     from .tickets import WriterSupportTicket
 except Exception:
     WriterSupportTicket = None
+try:
+    from .tipping import Tip
+except Exception:
+    Tip = None
 
 __all__ = [
     "WriterProfile",
@@ -79,5 +83,6 @@ __all__ = [
     "WriterSuspension",
     "WriterStrike",
     "WriterSupportTicket",
+    "Tip",
 ]
 

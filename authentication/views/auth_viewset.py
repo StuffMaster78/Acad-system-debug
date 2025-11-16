@@ -204,9 +204,28 @@ class AuthenticationViewSet(viewsets.ViewSet):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
                 
+                # Handle referral code from request data or query parameters
+                referral_code = request.data.get("referral_code") or request.query_params.get("ref")
+                if referral_code:
+                    # Store in session for later use (when user activates account)
+                    request.session['referral_code'] = referral_code
+                    request.session.save()
+                
+                # Record referral if code is provided (for immediate activation)
+                if referral_code and user.is_active:
+                    try:
+                        from referrals.services.referral_service import ReferralService
+                        ReferralService.record_referral_for_user(user, request)
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(f"Referral recording error (non-blocking): {e}", exc_info=True)
+                
                 # Create activation token
                 token = default_token_generator.make_token(user)
                 activation_url = f"{settings.FRONTEND_URL or 'http://localhost:5173'}/activate/{token}/?email={user.email}"
+                if referral_code:
+                    activation_url += f"&ref={referral_code}"
                 
                 # Send activation email (fail silently in development)
                 try:
@@ -269,4 +288,331 @@ class AuthenticationViewSet(viewsets.ViewSet):
                 {"error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
             )
+    
+    @action(detail=False, methods=['post'], url_path='change-password', permission_classes=[IsAuthenticated])
+    def change_password(self, request):
+        """
+        Change password for authenticated user.
+        
+        Request body:
+        {
+            "current_password": "oldpassword123",
+            "new_password": "newpassword123",
+            "confirm_password": "newpassword123"
+        }
+        
+        Response:
+        {
+            "message": "Password changed successfully."
+        }
+        """
+        from django.contrib.auth import update_session_auth_hash
+        from django.contrib.auth.password_validation import validate_password
+        from django.core.exceptions import ValidationError as DjangoValidationError
+        
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+        confirm_password = request.data.get('confirm_password')
+        
+        if not all([current_password, new_password, confirm_password]):
+            return Response(
+                {"error": "current_password, new_password, and confirm_password are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Verify current password
+        if not request.user.check_password(current_password):
+            return Response(
+                {"error": "Current password is incorrect."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if new password matches confirmation
+        if new_password != confirm_password:
+            return Response(
+                {"error": "New password and confirmation do not match."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if new password is same as current
+        if request.user.check_password(new_password):
+            return Response(
+                {"error": "New password must be different from current password."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validate new password strength
+        try:
+            validate_password(new_password, user=request.user)
+        except DjangoValidationError as e:
+            return Response(
+                {"error": "Password validation failed.", "details": list(e.messages)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update password
+        try:
+            request.user.set_password(new_password)
+            request.user.save()
+            
+            # Update session to prevent logout
+            update_session_auth_hash(request, request.user)
+            
+            # Log password change
+            from authentication.models.audit import AuditLog
+            from authentication.utils.ip import get_client_ip
+            AuditLog.objects.create(
+                user=request.user,
+                website=getattr(request, 'website', None),
+                event="password_changed",
+                ip_address=get_client_ip(request),
+                device=request.headers.get('User-Agent', '')
+            )
+            
+            # Send notification if enabled
+            try:
+                from notifications_system.services.core import NotificationService
+                from websites.models import Website
+                
+                # Get user's website or use a default
+                user_website = getattr(request.user, 'website', None)
+                if not user_website:
+                    try:
+                        user_website = Website.objects.first()
+                    except:
+                        pass
+                
+                if user_website:
+                    NotificationService.send_notification(
+                        user=request.user,
+                        event="password.changed",
+                        payload={
+                            "title": "Password Changed",
+                            "message": "Your password has been successfully changed. If this wasn't you, please contact support immediately."
+                        },
+                        website=user_website,
+                        category="security",
+                        priority_label="normal"
+                    )
+            except Exception as e:
+                # Log but don't fail if notification fails
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to send password change notification: {e}", exc_info=True)
+            
+            return Response(
+                {"message": "Password changed successfully."},
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Password change error: {e}", exc_info=True)
+            return Response(
+                {"error": "An error occurred while changing password."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'], url_path='user', permission_classes=[IsAuthenticated])
+    def get_user(self, request):
+        """
+        Get current authenticated user profile from database.
+        
+        Response:
+        {
+            "id": 1,
+            "email": "user@example.com",
+            "username": "username",
+            "full_name": "John Doe",
+            "role": "client",
+            ...
+        }
+        """
+        from users.views import UserViewSet
+        from users.serializers import (
+            ClientProfileSerializer, WriterProfileSerializer,
+            EditorProfileSerializer, SupportProfileSerializer,
+            AdminProfileSerializer, SuperadminProfileSerializer
+        )
+        from users.models import (
+            ClientProfile, WriterProfile, EditorProfile, SupportProfile
+        )
+        from django.shortcuts import get_object_or_404
+        from rest_framework.exceptions import PermissionDenied
+        
+        user = request.user
+        profile_map = {
+            "client": (ClientProfile, ClientProfileSerializer),
+            "writer": (WriterProfile, WriterProfileSerializer),
+            "editor": (EditorProfile, EditorProfileSerializer),
+            "support": (SupportProfile, SupportProfileSerializer),
+            "admin": (user.__class__, AdminProfileSerializer),
+            "superadmin": (user.__class__, SuperadminProfileSerializer),
+        }
+
+        profile_model, serializer_class = profile_map.get(user.role, (None, None))
+        if profile_model:
+            if user.role in ["admin", "superadmin"]:
+                # For admin/superadmin, serialize the user directly
+                serializer = serializer_class(user)
+            else:
+                # For other roles, get the profile instance
+                profile_instance = get_object_or_404(profile_model, user=user)
+                serializer = serializer_class(profile_instance)
+            return Response(serializer.data)
+
+        raise PermissionDenied("Invalid role or unauthorized access.")
+    
+    @action(detail=False, methods=['patch', 'put'], url_path='user', permission_classes=[IsAuthenticated])
+    def update_user(self, request):
+        """
+        Update current authenticated user profile.
+        Updates are saved to the database.
+        
+        Request body:
+        {
+            "username": "newusername",
+            "first_name": "John",
+            "last_name": "Doe",
+            ...
+        }
+        
+        Response:
+        {
+            "message": "Profile updated successfully.",
+            "user": {...}
+        }
+        """
+        from users.models import ProfileUpdateRequest
+        
+        user = request.user
+        update_fields = request.data
+
+        # Fields that require admin approval
+        admin_approval_fields = ["email", "role", "website"]
+
+        # Separate updates
+        auto_approve_updates = {}
+        admin_approval_updates = {}
+
+        for field, value in update_fields.items():
+            if field in admin_approval_fields:
+                admin_approval_updates[field] = value
+            else:
+                auto_approve_updates[field] = value
+
+        # Auto-approve basic updates - save to database
+        # Separate User fields from UserProfile fields
+        from users.models import UserProfile
+        
+        user_updates = {}
+        profile_updates = {}
+        
+        # UserProfile fields that can be updated
+        profile_fields = ['phone_number', 'bio', 'avatar', 'country', 'state', 'profile_picture']
+        
+        if auto_approve_updates:
+            for field, value in auto_approve_updates.items():
+                if field in profile_fields:
+                    profile_updates[field] = value
+                elif hasattr(user, field):
+                    user_updates[field] = value
+            
+            # Update User model fields
+            if user_updates:
+                for field, value in user_updates.items():
+                    setattr(user, field, value)
+                user.save(update_fields=list(user_updates.keys()))
+            
+            # Update UserProfile fields
+            if profile_updates:
+                profile, created = UserProfile.objects.get_or_create(
+                    user=user,
+                    defaults={}
+                )
+                for field, value in profile_updates.items():
+                    if hasattr(profile, field):
+                        setattr(profile, field, value)
+                profile.save(update_fields=list(profile_updates.keys()))
+
+        # Store admin approval request if necessary
+        if admin_approval_updates:
+            # Get user's website or use a default
+            user_website = getattr(user, 'website', None)
+            if not user_website:
+                # Try to get website from user's profile or use first available
+                from websites.models import Website
+                try:
+                    user_website = Website.objects.first()
+                except:
+                    pass
+            
+            if user_website:
+                ProfileUpdateRequest.objects.create(
+                    user=user,
+                    website=user_website,
+                    requested_data=admin_approval_updates
+                )
+            else:
+                # If no website available, just log a warning
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Cannot create ProfileUpdateRequest for user {user.id}: no website available")
+            return Response({
+                "message": "Profile updated. Some changes require admin approval.",
+                "user": self._get_user_data(user)
+            })
+
+        # Return updated user data from database
+        return Response({
+            "message": "Profile updated successfully.",
+            "user": self._get_user_data(user)
+        })
+    
+    def _get_user_data(self, user):
+        """Helper method to get user data for response."""
+        from users.views import UserViewSet
+        from users.serializers import (
+            ClientProfileSerializer, WriterProfileSerializer,
+            EditorProfileSerializer, SupportProfileSerializer,
+            AdminProfileSerializer, SuperadminProfileSerializer
+        )
+        from users.models import (
+            ClientProfile, WriterProfile, EditorProfile, SupportProfile
+        )
+        from django.shortcuts import get_object_or_404
+        
+        profile_map = {
+            "client": (ClientProfile, ClientProfileSerializer),
+            "writer": (WriterProfile, WriterProfileSerializer),
+            "editor": (EditorProfile, EditorProfileSerializer),
+            "support": (SupportProfile, SupportProfileSerializer),
+            "admin": (user.__class__, AdminProfileSerializer),
+            "superadmin": (user.__class__, SuperadminProfileSerializer),
+        }
+
+        profile_model, serializer_class = profile_map.get(user.role, (None, None))
+        if profile_model:
+            if user.role in ["admin", "superadmin"]:
+                serializer = serializer_class(user)
+            else:
+                try:
+                    profile_instance = profile_model.objects.get(user=user)
+                    serializer = serializer_class(profile_instance)
+                except profile_model.DoesNotExist:
+                    # Return basic user data if profile doesn't exist
+                    return {
+                        "id": user.id,
+                        "email": user.email,
+                        "username": user.username,
+                        "role": user.role,
+                    }
+            return serializer.data
+        
+        return {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "role": user.role,
+        }
 

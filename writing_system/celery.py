@@ -175,6 +175,18 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
         "schedule": crontab(minute=15, hour=3, day_of_week="sunday"),
         "kwargs": {"older_than_days": 90, "dry_run": False},
     },
+    "send-deadline-percentage-reminders": {
+        "task": "order_payments_management.tasks.send_deadline_percentage_reminders",
+        "schedule": crontab(minute="*/15"),  # Every 15 minutes
+    },
+    "send-deletion-messages-expired-orders": {
+        "task": "order_payments_management.tasks.send_deletion_messages_for_expired_orders",
+        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+    },
+    "send-progress-reminders": {
+        "task": "orders.tasks.progress_reminders.send_progress_reminders",
+        "schedule": crontab(minute="*/60"),  # Every hour
+    },
 }
 
 # ---------- Dynamic schedule via django-celery-beat (guarded) ---------------

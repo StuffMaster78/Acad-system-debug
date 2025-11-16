@@ -178,7 +178,7 @@ class BlogCategoryViewSet(viewsets.ModelViewSet):
 
 class BlogTagViewSet(viewsets.ModelViewSet):
     """ViewSet for managing blog tags."""
-    queryset = BlogTag.objects.all()
+    queryset = BlogTag.objects.all().order_by('name')
     serializer_class = BlogTagSerializer
     permission_classes = [IsAdminUser]
 
@@ -197,20 +197,20 @@ class AuthorProfileViewSet(viewsets.ModelViewSet):
 class BlogPostViewSet(viewsets.ModelViewSet):
     """ViewSet for managing blog posts."""
     pagination_class = BlogPagination
-    queryset = BlogPost.objects.filter(
-        is_deleted=False
-    ).select_related(
-        "category"
-    ).prefetch_related(
-        "authors", "tags", "media_files"
-    ).only(
-        "id", "website", "title", "slug", "click_count", "conversion_count",
-        "is_published", "created_at", "updated_at"
-    ).defer(
-        "content" # Content is a large field, it's loaded only when needed
-    ).order_by(
-        "-created_at"  # Optimized sorting for latest blogs first
-    )
+    
+    def get_queryset(self):
+        """Optimized queryset with proper field selection."""
+        return BlogPost.objects.filter(
+            is_deleted=False
+        ).select_related(
+            "category"
+        ).prefetch_related(
+            "authors", "tags", "media_files"
+        ).defer(
+            "content" # Content is a large field, it's loaded only when needed
+        ).order_by(
+            "-created_at"  # Optimized sorting for latest blogs first
+        )
 
     serializer_class = BlogPostSerializer
     permission_classes = [IsAuthenticated]

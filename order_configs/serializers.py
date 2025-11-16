@@ -13,45 +13,67 @@ from .models import (
 
 
 class AcademicLevelSerializer(serializers.ModelSerializer):
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    
     class Meta:
         model = AcademicLevel
         fields = "__all__"
 
 
 class PaperTypeSerializer(serializers.ModelSerializer):
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    
     class Meta:
         model = PaperType
         fields = "__all__"
 
 
 class FormattingStyleSerializer(serializers.ModelSerializer):
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    
     class Meta:
         model = FormattingandCitationStyle
         fields = "__all__"
 
 
 class SubjectSerializer(serializers.ModelSerializer):
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    
     class Meta:
         model = Subject
         fields = "__all__"
 
 
 class TypeOfWorkSerializer(serializers.ModelSerializer):
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    
     class Meta:
         model = TypeOfWork
         fields = "__all__"
 
 
 class EnglishTypeSerializer(serializers.ModelSerializer):
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    
     class Meta:
         model = EnglishType
         fields = "__all__"
 
 
 class WriterDeadlineConfigSerializer(serializers.ModelSerializer):
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    
     class Meta:
         model = WriterDeadlineConfig
         fields = "__all__"
+        read_only_fields = ['website_name', 'website_domain']
 
 
 class RevisionPolicyConfigSerializer(serializers.ModelSerializer):

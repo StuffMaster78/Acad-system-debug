@@ -9,6 +9,7 @@ from pricing_configs.models import (
     AdditionalService,
     TypeOfWorkMultiplier
 )
+from pricing_configs.services.deadline_multiplier_service import DeadlineMultiplierService
 
 
 class PricingEstimationService:
@@ -116,14 +117,19 @@ class PricingEstimationService:
 
         # Deadline Multiplier
         deadline_hours = order_input.get("deadline_hours", 24)
-        deadline = DeadlineMultiplier.objects.filter(
-            website=website, hours__lte=deadline_hours
-        ).order_by("-hours").first()
-        if deadline:
-            base_price *= deadline.multiplier
-            breakdown["multipliers"]["deadline"] = float(
-                deadline.multiplier
-            )
+        deadline_multiplier = DeadlineMultiplierService.get_multiplier_for_hours(
+            website=website,
+            hours=deadline_hours
+        )
+        base_price *= deadline_multiplier
+        breakdown["multipliers"]["deadline"] = float(deadline_multiplier)
+        
+        # Add deadline info to breakdown
+        deadline_info = DeadlineMultiplierService.get_multiplier_info(
+            website=website,
+            hours=deadline_hours
+        )
+        breakdown["deadline_info"] = deadline_info
 
         return base_price
 

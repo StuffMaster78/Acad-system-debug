@@ -7,6 +7,8 @@ from orders.models import Order
 from wallet.models import Wallet
 from django.apps import apps
 from django.conf import settings
+import secrets
+import string
 from websites.models import Website
 try:
     # Re-export LoyaltyTransaction for tests importing from client_management.models
@@ -36,6 +38,11 @@ class ClientProfileManager(dj_models.Manager.from_queryset(ClientProfileQuerySet
         if 'client' in kwargs:
             kwargs['user'] = kwargs.pop('client')
         return super().get(*args, **kwargs)
+
+
+def generate_registration_id() -> str:
+    alphabet = string.ascii_uppercase + string.digits
+    return "CL-" + "".join(secrets.choice(alphabet) for _ in range(10))
 
 
 class ClientProfile(models.Model):
@@ -85,6 +92,7 @@ class ClientProfile(models.Model):
     registration_id = models.CharField(
         max_length=50,
         unique=True,
+        default=generate_registration_id,
         help_text=_("Unique client registration ID (e.g., Client #12345).")
     )
     loyalty_points = models.PositiveIntegerField(

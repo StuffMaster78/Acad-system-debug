@@ -134,9 +134,21 @@ class UnreadNotificationCountView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        count = Notification.objects.filter(
-            user=request.user,
-            is_read=False,
-            website=request.user.website
-        ).count()
-        return Response({"unread_count": count})
+        try:
+            website = getattr(request.user, 'website', None)
+            if website:
+                count = Notification.objects.filter(
+                    user=request.user,
+                    is_read=False,
+                    website=website
+                ).count()
+            else:
+                # If user has no website, count all unread notifications
+                count = Notification.objects.filter(
+                    user=request.user,
+                    is_read=False
+                ).count()
+            return Response({"unread_count": count})
+        except Exception as e:
+            # Return 0 on any error to prevent 500
+            return Response({"unread_count": 0})

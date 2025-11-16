@@ -60,7 +60,21 @@ class TicketViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Auto-assign ticket creator and save."""
-        serializer.save(created_by=self.request.user)
+        user = self.request.user
+        # If support/admin is creating a ticket, they can specify created_by (recipient)
+        # Otherwise, set created_by to the request user
+        if user.role in ['support', 'admin', 'superadmin']:
+            # Support/admin can specify created_by in the request data
+            created_by = serializer.validated_data.get('created_by')
+            if not created_by:
+                # If not specified, default to request user
+                serializer.save(created_by=user)
+            else:
+                # Save with the specified recipient
+                serializer.save()
+        else:
+            # For other roles, always set created_by to request user
+            serializer.save(created_by=user)
 
     @action(detail=True, methods=['post'])
     def escalate(self, request, pk=None):

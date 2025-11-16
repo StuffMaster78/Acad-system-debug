@@ -50,11 +50,23 @@ def assign_admin_permissions(user, admin_profile=None):
 
 def notify_superadmins_new_admin(user):
     if user.role == "admin":
+        website = getattr(user, 'website', None)
+        if not website:
+            from websites.models import Website
+            website = Website.objects.filter(is_active=True).first()
+        if not website:
+            return  # Cannot send notification without website
+        
         for superadmin in User.objects.filter(role="superadmin"):
             NotificationService.send_notification(
-                recipient=superadmin,
-                title="New Admin Added",
-                message=f"{user.username} has been assigned as an Admin.",
+                user=superadmin,
+                event="admin.created",
+                payload={
+                    "admin_username": user.username,
+                    "admin_email": user.email,
+                    "message": f"{user.username} has been assigned as an Admin.",
+                },
+                website=website,
                 category="user"
             )
 
@@ -73,23 +85,48 @@ def log_user_suspension_if_changed(user, previous_state):
         )
 
 def notify_superadmins_blacklist(blacklisted_user):
+    website = getattr(blacklisted_user, 'website', None)
+    if not website:
+        from websites.models import Website
+        website = Website.objects.filter(is_active=True).first()
+    if not website:
+        return  # Cannot send notification without website
+    
     for superadmin in User.objects.filter(role="superadmin"):
         NotificationService.send_notification(
-            recipient=superadmin,
-            title="User Blacklisted",
-            message=f"{blacklisted_user.email} was blacklisted by {blacklisted_user.blacklisted_by.username}.",
+            user=superadmin,
+            event="user.blacklisted",
+            payload={
+                "blacklisted_email": blacklisted_user.email,
+                "blacklisted_by": blacklisted_user.blacklisted_by.username if hasattr(blacklisted_user, 'blacklisted_by') else None,
+                "message": f"{blacklisted_user.email} was blacklisted by {blacklisted_user.blacklisted_by.username if hasattr(blacklisted_user, 'blacklisted_by') else 'system'}.",
+            },
+            website=website,
             category="security"
         )
 
 def notify_admins_new_dispute(dispute):
     if not dispute.user or not dispute.order:
         return
+    
+    website = getattr(dispute.order, 'website', None)
+    if not website:
+        from websites.models import Website
+        website = Website.objects.filter(is_active=True).first()
+    if not website:
+        return  # Cannot send notification without website
+    
     created_by = dispute.user.username
     for admin in User.objects.filter(role="admin"):
         NotificationService.send_notification(
-            recipient=admin,
-            title="New Dispute Opened",
-            message=f"A dispute for Order #{dispute.order.id} was opened by {created_by}.",
+            user=admin,
+            event="dispute.created",
+            payload={
+                "order_id": dispute.order.id,
+                "created_by": created_by,
+                "message": f"A dispute for Order #{dispute.order.id} was opened by {created_by}.",
+            },
+            website=website,
             category="dispute"
         )
 

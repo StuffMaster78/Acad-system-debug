@@ -11,7 +11,8 @@ from rest_framework.views import APIView
 from .models import Referral, ReferralBonusConfig, ReferralCode, ReferralStats
 from .serializers import ReferralSerializer, ReferralBonusConfigSerializer, ReferralCodeSerializer
 from wallet.models import Wallet, WalletTransaction
-from authentication.permissions import IsAdminOrSuperAdmin 
+from authentication.permissions import IsAdminOrSuperAdmin
+User = settings.AUTH_USER_MODEL 
 
 
 # Constants for transaction types
@@ -40,27 +41,54 @@ class ReferralViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='generate-code')
     def generate_code(self, request):
-        """Generate a referral code for the authenticated user."""
+        """Generate a referral code for the authenticated user. Only clients can generate codes."""
         user = request.user
-        website = request.data.get("website")  # Website must be provided
+        
+        # Only clients can generate referral codes
+        if user.role != 'client':
+            return Response({
+                "error": "Only clients can generate referral codes. Your role is not authorized for this action.",
+                "user_role": user.role
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        website_id = request.data.get("website")  # Website ID must be provided
 
-        if not website:
+        if not website_id:
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if user already has a referral code for the website
-        referral_code, created = ReferralCode.objects.get_or_create(user=user, website=website)
+        try:
+            from websites.models import Website
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response({"error": "Website not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if not created:
-            return Response(
-                {"message": f"Referral code already exists: {referral_code.code}"},
-                status=status.HTTP_200_OK
-            )
+        # Check if user already has a referral code (OneToOneField means only one per user)
+        try:
+            existing_code = ReferralCode.objects.get(user=user, website=website)
+            return Response({
+                "message": f"Referral code already exists: {existing_code.code}",
+                "code": existing_code.code,
+                "already_exists": True
+            }, status=status.HTTP_200_OK)
+        except ReferralCode.DoesNotExist:
+            pass
 
-        # Generate a unique code
-        referral_code.code = ReferralCode.generate_unique_code(user, website)
-        referral_code.save()
+        # Generate a unique code using the service
+        from referrals.services.referral_service import ReferralService
+        code = ReferralService.generate_unique_code(user, website)
+        
+        # Create referral code
+        referral_code = ReferralCode.objects.create(
+            user=user,
+            website=website,
+            code=code
+        )
 
-        return Response({"message": f"Referral code generated: {referral_code.code}"}, status=status.HTTP_201_CREATED)
+        return Response({
+            "message": f"Referral code generated successfully: {referral_code.code}",
+            "code": referral_code.code,
+            "already_exists": False
+        }, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'], url_path='credit-bonus')
     def credit_referral_bonus(self, request):
@@ -81,13 +109,13 @@ class ReferralViewSet(viewsets.ModelViewSet):
         WalletTransaction.objects.create(
             wallet=wallet,
             transaction_type=TRANSACTION_TYPE_REFERRAL_BONUS,
-            amount=bonus_config.registration_referral_bonus,
+            amount=bonus_config.first_order_bonus,
             description="Referral Bonus: Successful Registration",
             expires_at=expires_at,
             website=referral.website,
         )
 
-        referral.registration_referral_bonus_credited = True
+        referral.first_order_bonus_credited = True
         referral.save()
         return Response({"message": "Referral bonus credited successfully!"}, status=status.HTTP_200_OK)
 
@@ -100,10 +128,16 @@ class ReferralViewSet(viewsets.ModelViewSet):
         if not website:
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        referral_code = ReferralCode.objects.filter(user=user, website=website).first()
+        try:
+            from websites.models import Website
+            website_obj = Website.objects.get(id=website)
+        except (Website.DoesNotExist, ValueError):
+            return Response({"error": "Website not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        referral_code = ReferralCode.objects.filter(user=user, website=website_obj).first()
         referral_link = referral_code.get_referral_link() if referral_code else None
 
-        referrals = Referral.objects.filter(referrer=user, website=website)
+        referrals = Referral.objects.filter(referrer=user, website=website_obj)
         referred_count = referrals.count()
         ordered_count = referrals.filter(first_order_referral_bonus_credited=True).count()
 
@@ -113,6 +147,140 @@ class ReferralViewSet(viewsets.ModelViewSet):
             "referral_code": referral_code.code if referral_code else None,
             "referral_link": referral_link,
         })
+
+    @action(detail=False, methods=['post'], url_path='refer-by-email')
+    def refer_by_email(self, request):
+        """Send a referral invitation to someone who doesn't have an account yet."""
+        user = request.user
+        
+        # Only clients can create referrals
+        if user.role != 'client':
+            return Response({
+                "error": "Only clients can create referrals. Your role is not authorized for this action.",
+                "user_role": user.role
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        email = request.data.get("email")
+        website_id = request.data.get("website")
+
+        if not email:
+            return Response({"error": "Email is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not website_id:
+            return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from websites.models import Website
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response({"error": "Website not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Check if user already exists - if they do, they should use the referral link directly
+        try:
+            existing_user = User.objects.get(email=email)
+            return Response({
+                "error": f"User with email {email} already has an account. Please share your referral link with them instead.",
+                "email": email,
+                "referral_link": None  # Will be populated below if they have a code
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except User.DoesNotExist:
+            pass  # Good, they don't have an account yet
+        except User.MultipleObjectsReturned:
+            return Response({
+                "error": f"Multiple accounts found for {email}. Please contact support.",
+                "email": email
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Don't allow self-referral
+        if user.email.lower() == email.lower():
+            return Response({
+                "error": "You cannot refer yourself."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check if invitation already exists
+        from .models import PendingReferralInvitation
+        existing_invitation = PendingReferralInvitation.objects.filter(
+            referrer=user,
+            referee_email=email.lower(),
+            website=website,
+            converted=False
+        ).first()
+
+        if existing_invitation:
+            return Response({
+                "error": f"An invitation has already been sent to {email}.",
+                "invitation_id": existing_invitation.id,
+                "sent_at": existing_invitation.sent_at
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Get or create referral code
+        referral_code_obj = ReferralCode.objects.filter(user=user, website=website).first()
+        if not referral_code_obj:
+            # Generate referral code if it doesn't exist
+            from referrals.services.referral_service import ReferralService
+            code = ReferralService.generate_unique_code(user, website)
+            referral_code_obj = ReferralCode.objects.create(
+                user=user,
+                website=website,
+                code=code
+            )
+        
+        referral_code = referral_code_obj.code
+        referral_link = referral_code_obj.get_referral_link()
+
+        # Create pending invitation
+        invitation = PendingReferralInvitation.objects.create(
+            referrer=user,
+            referee_email=email.lower(),
+            website=website,
+            referral_code=referral_code,
+            referral_link=referral_link,
+            invitation_sent=False
+        )
+
+        # Send invitation email
+        try:
+            from django.core.mail import send_mail
+            from django.conf import settings
+            
+            subject = f"{user.username} invited you to join {website.name}"
+            message = f"""
+Hello!
+
+{user.username} has invited you to join {website.name}!
+
+Sign up using this special referral link to get started:
+{referral_link}
+
+When you sign up and place your first order, both you and {user.username} will receive rewards!
+
+Best regards,
+The {website.name} Team
+"""
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [email],
+                fail_silently=False,
+            )
+            invitation.invitation_sent = True
+            invitation.save()
+        except Exception as e:
+            # Log error but don't fail the request
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send referral invitation email to {email}: {str(e)}")
+
+        return Response({
+            "message": f"Referral invitation sent to {email}! They will receive an email with your referral link.",
+            "invitation": {
+                "id": invitation.id,
+                "email": invitation.referee_email,
+                "referral_link": referral_link,
+                "sent_at": invitation.sent_at
+            }
+        }, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=["POST"], url_path="apply-bonus")
     def apply_referral_bonus(self, request):
@@ -262,27 +430,54 @@ class ReferralViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='generate-code')
     def generate_code(self, request):
-        """Generate a referral code for the authenticated user."""
+        """Generate a referral code for the authenticated user. Only clients can generate codes."""
         user = request.user
-        website = request.data.get("website")  # Website must be provided
+        
+        # Only clients can generate referral codes
+        if user.role != 'client':
+            return Response({
+                "error": "Only clients can generate referral codes. Your role is not authorized for this action.",
+                "user_role": user.role
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        website_id = request.data.get("website")  # Website ID must be provided
 
-        if not website:
+        if not website_id:
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check if user already has a referral code for the website
-        referral_code, created = ReferralCode.objects.get_or_create(user=user, website=website)
+        try:
+            from websites.models import Website
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response({"error": "Website not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        if not created:
-            return Response(
-                {"message": f"Referral code already exists: {referral_code.code}"},
-                status=status.HTTP_200_OK
-            )
+        # Check if user already has a referral code (OneToOneField means only one per user)
+        try:
+            existing_code = ReferralCode.objects.get(user=user, website=website)
+            return Response({
+                "message": f"Referral code already exists: {existing_code.code}",
+                "code": existing_code.code,
+                "already_exists": True
+            }, status=status.HTTP_200_OK)
+        except ReferralCode.DoesNotExist:
+            pass
 
-        # Generate a unique code
-        referral_code.code = ReferralCode.generate_unique_code(user, website)
-        referral_code.save()
+        # Generate a unique code using the service
+        from referrals.services.referral_service import ReferralService
+        code = ReferralService.generate_unique_code(user, website)
+        
+        # Create referral code
+        referral_code = ReferralCode.objects.create(
+            user=user,
+            website=website,
+            code=code
+        )
 
-        return Response({"message": f"Referral code generated: {referral_code.code}"}, status=status.HTTP_201_CREATED)
+        return Response({
+            "message": f"Referral code generated successfully: {referral_code.code}",
+            "code": referral_code.code,
+            "already_exists": False
+        }, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'], url_path='credit-bonus')
     def credit_referral_bonus(self, request):
@@ -309,13 +504,13 @@ class ReferralViewSet(viewsets.ModelViewSet):
         WalletTransaction.objects.create(
             wallet=wallet,
             transaction_type='referral_bonus',
-            amount=bonus_config.registration_referral_bonus,
+            amount=bonus_config.first_order_bonus,
             description="Referral Bonus: Successful Registration",
             expires_at=expires_at,
             website=referral.website,
         )
 
-        referral.registration_referral_bonus_credited = True
+        referral.first_order_bonus_credited = True
         referral.save()
         return Response({"message": "Referral bonus credited successfully!"}, status=status.HTTP_200_OK)
 
@@ -328,10 +523,16 @@ class ReferralViewSet(viewsets.ModelViewSet):
         if not website:
             return Response({"error": "Website is required"}, status=status.HTTP_400_BAD_REQUEST)
 
-        referral_code = ReferralCode.objects.filter(user=user, website=website).first()
+        try:
+            from websites.models import Website
+            website_obj = Website.objects.get(id=website)
+        except (Website.DoesNotExist, ValueError):
+            return Response({"error": "Website not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        referral_code = ReferralCode.objects.filter(user=user, website=website_obj).first()
         referral_link = referral_code.get_referral_link() if referral_code else None
 
-        referrals = Referral.objects.filter(referrer=user, website=website)
+        referrals = Referral.objects.filter(referrer=user, website=website_obj)
         referred_count = referrals.count()
         ordered_count = referrals.filter(first_order_referral_bonus_credited=True).count()
 

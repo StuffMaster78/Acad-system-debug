@@ -73,9 +73,25 @@ class NotificationPreferenceResolver:
                 pref = NotificationPreference.objects.get(
                     user=user, website=website
                 )
-                chans = pref.get_channels_for_event(event)  # your model helper
-                if chans:
-                    return list(chans)
+                # Check if method exists, otherwise use default channels from profile
+                if hasattr(pref, 'get_channels_for_event'):
+                    chans = pref.get_channels_for_event(event)
+                    if chans:
+                        return list(chans)
+                # Fallback: use profile channels if available
+                profile = getattr(pref, 'profile', None)
+                if profile:
+                    channels = []
+                    if getattr(profile, 'default_email', False):
+                        channels.append(NotificationType.EMAIL)
+                    if getattr(profile, 'default_in_app', False):
+                        channels.append(NotificationType.IN_APP)
+                    if getattr(profile, 'default_sms', False):
+                        channels.append(NotificationType.SMS)
+                    if getattr(profile, 'default_push', False):
+                        channels.append(NotificationType.PUSH)
+                    if channels:
+                        return channels
             except NotificationPreference.DoesNotExist:
                 pass
 
@@ -214,14 +230,35 @@ class NotificationPreferenceResolver:
             # Can't create preference without website and profile
             return None
 
-        pref, created = NotificationPreference.objects.get_or_create(
-            user=user, website=website, defaults={"profile": default_prof}
-        )
-        if created:
-            NotificationPreferenceResolver.seed_user_event_preferences(
-                user, website
-            )
-        return pref
+        # Check if preference already exists to avoid duplicate key errors
+        try:
+            pref = NotificationPreference.objects.get(user=user)
+            # If it exists but doesn't have a profile, update it
+            if not getattr(pref, 'profile', None):
+                pref.profile = default_prof
+                pref.save(update_fields=['profile'])
+            return pref
+        except NotificationPreference.DoesNotExist:
+            # Create new preference
+            try:
+                pref, created = NotificationPreference.objects.get_or_create(
+                    user=user, website=website, defaults={"profile": default_prof}
+                )
+                if created:
+                    NotificationPreferenceResolver.seed_user_event_preferences(
+                        user, website
+                    )
+                return pref
+            except Exception as e:
+                # Handle race condition where another process created it
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to create notification preference for user {user.id}: {e}")
+                # Try to get existing one
+                try:
+                    return NotificationPreference.objects.get(user=user)
+                except NotificationPreference.DoesNotExist:
+                    return None
 
     @staticmethod
     def update_user_preferences(

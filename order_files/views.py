@@ -2,11 +2,12 @@ from rest_framework import viewsets, permissions, serializers, status  # Make su
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.http import FileResponse, Http404
 from .models import (
-    OrderFile, FileDeletionRequest, ExternalFileLink, ExtraServiceFile, OrderFilesConfig
+    OrderFile, FileDeletionRequest, ExternalFileLink, ExtraServiceFile, OrderFilesConfig, OrderFileCategory
 )
 from .serializers import (
-    OrderFileSerializer, FileDeletionRequestSerializer, ExternalFileLinkSerializer, ExtraServiceFileSerializer, OrderFilesConfigSerializer
+    OrderFileSerializer, FileDeletionRequestSerializer, ExternalFileLinkSerializer, ExtraServiceFileSerializer, OrderFilesConfigSerializer, OrderFileCategorySerializer
 )
 from .permissions import (
     CanDownloadFile, IsAdminOrSupport, IsEditorOrSupport, CanUploadFile
@@ -65,12 +66,31 @@ class OrderFileViewSet(viewsets.ModelViewSet):
         
         serializer.save(uploaded_by=self.request.user, website=website)
 
+    @action(detail=True, methods=["get"])
+    def download(self, request, pk=None):
+        """Download a file if user has access."""
+        file = get_object_or_404(OrderFile, pk=pk)
+        
+        if not file.check_download_access(request.user):
+            return Response({"error": "Download not allowed"}, status=403)
+        
+        if not file.file:
+            raise Http404("File not found")
+        
+        try:
+            response = FileResponse(file.file.open(), content_type='application/octet-stream')
+            file_name = file.file.name.split('/')[-1] if '/' in file.file.name else file.file.name
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+        except Exception as e:
+            return Response({"error": f"Failed to download file: {str(e)}"}, status=500)
+    
     @action(detail=True, methods=["post"])
     def toggle_download(self, request, pk=None):
         """Allows Admins & Support to enable/disable file downloads."""
         file = get_object_or_404(OrderFile, pk=pk)
         
-        if request.user.is_staff or request.user.groups.filter(name__in=["Support", "Editor"]).exists():
+        if request.user.role in ['admin', 'superadmin'] or request.user.is_staff:
             file.is_downloadable = not file.is_downloadable
             file.save()
             return Response({"message": "File download status updated!"})
@@ -100,21 +120,43 @@ class FileDeletionRequestViewSet(viewsets.ModelViewSet):
 class ExternalFileLinkViewSet(viewsets.ModelViewSet):
     queryset = ExternalFileLink.objects.all()
     serializer_class = ExternalFileLinkSerializer
-    permission_classes = [permissions.IsAuthenticated, IsAdminOrSupport]
+    permission_classes = [permissions.IsAuthenticated]  # All authenticated users can create links
 
     def perform_create(self, serializer):
-        """Allows clients and writers to submit external file links."""
+        """Allows all authenticated users to submit external file links."""
         serializer.save(uploaded_by=self.request.user)
+    
+    def get_queryset(self):
+        """Filter links by order if provided."""
+        queryset = super().get_queryset()
+        order_id = self.request.query_params.get('order')
+        if order_id:
+            queryset = queryset.filter(order_id=order_id)
+        return queryset
 
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         """Allows Admin or Support to approve external file links."""
         link = get_object_or_404(ExternalFileLink, pk=pk)
-        if request.user.is_staff or request.user.groups.filter(name="Support").exists():
+        # Check if user is admin or superadmin
+        if request.user.role in ['admin', 'superadmin'] or request.user.is_staff:
             link.status = "approved"
             link.reviewed_by = request.user
             link.save()
             return Response({"message": "External link approved!"})
+        
+        return Response({"error": "Unauthorized"}, status=403)
+    
+    @action(detail=True, methods=["post"])
+    def reject(self, request, pk=None):
+        """Allows Admin or Support to reject external file links."""
+        link = get_object_or_404(ExternalFileLink, pk=pk)
+        # Check if user is admin or superadmin
+        if request.user.role in ['admin', 'superadmin'] or request.user.is_staff:
+            link.status = "rejected"
+            link.reviewed_by = request.user
+            link.save()
+            return Response({"message": "External link rejected!"})
         
         return Response({"error": "Unauthorized"}, status=403)
 
@@ -147,3 +189,17 @@ class OrderFilesConfigViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Allow Admins to create or update order files config."""
         serializer.save()
+
+class OrderFileCategoryViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for listing file categories (read-only for all authenticated users)."""
+    queryset = OrderFileCategory.objects.all()
+    serializer_class = OrderFileCategorySerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter categories by website if available."""
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get('website_id')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset

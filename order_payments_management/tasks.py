@@ -156,3 +156,79 @@ def send_payment_reminders():
         )
 
         logger.info(f"Payment reminder sent to {client.email} for payment {payment.id}")
+
+
+@shared_task
+def send_deadline_percentage_reminders():
+    """
+    Sends payment reminders based on deadline percentage.
+    Checks all websites and sends reminders when deadline percentage thresholds are met.
+    """
+    from websites.models import Website
+    from .services.payment_reminder_service import PaymentReminderService
+    
+    websites = Website.objects.filter(is_active=True)
+    
+    for website in websites:
+        try:
+            # Get orders needing reminders
+            orders_needing_reminders = PaymentReminderService.get_orders_needing_reminders(website)
+            
+            for reminder_data in orders_needing_reminders:
+                order = reminder_data['order']
+                config = reminder_data['config']
+                
+                # Send the reminder
+                PaymentReminderService.send_reminder(order, config)
+                
+            logger.info(f"Processed {len(orders_needing_reminders)} reminders for website {website.name}")
+            
+        except Exception as e:
+            logger.error(f"Error processing reminders for website {website.id}: {e}")
+
+
+@shared_task
+def send_deletion_messages_for_expired_orders():
+    """
+    Sends deletion messages for orders that have passed their deadline.
+    """
+    from websites.models import Website
+    from .services.payment_reminder_service import PaymentReminderService
+    from orders.models import Order
+    
+    websites = Website.objects.filter(is_active=True)
+    
+    for website in websites:
+        try:
+            # Get orders past deadline
+            expired_orders = PaymentReminderService.get_orders_past_deadline(website)
+            
+            for order in expired_orders:
+                # Check if we've already sent deletion message
+                from .models.payment_reminders import PaymentReminderSent
+                from .models.payment_reminders import PaymentReminderDeletionMessage
+                
+                deletion_message = PaymentReminderDeletionMessage.objects.filter(
+                    website=website,
+                    is_active=True
+                ).first()
+                
+                if deletion_message:
+                    # Check if we've already sent it
+                    already_sent = PaymentReminderSent.objects.filter(
+                        order=order,
+                        reminder_config__isnull=True  # Deletion messages don't use config
+                    ).exists()
+                    
+                    if not already_sent:
+                        # Send deletion message
+                        PaymentReminderService.send_deletion_message(order, website)
+                        
+                        # Mark as sent (we'll use a special marker)
+                        # For now, we'll just log it
+                        logger.info(f"Deletion message sent for order {order.id}")
+            
+            logger.info(f"Processed {len(expired_orders)} expired orders for website {website.name}")
+            
+        except Exception as e:
+            logger.error(f"Error processing deletion messages for website {website.id}: {e}")

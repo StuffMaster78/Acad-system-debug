@@ -595,12 +595,53 @@ class ClassInstallment(models.Model):
 
 class ExpressClass(models.Model):
     """
-    Represents a class that does not fit into the bundle model.
+    Represents a single express class request (different from class bundles).
+    Client submits inquiry, admin reviews scope, sets price, assigns writer.
     """
+    INQUIRY = "inquiry"
+    SCOPE_REVIEW = "scope_review"
+    PRICED = "priced"
+    ASSIGNED = "assigned"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    
+    STATUS_CHOICES = [
+        (INQUIRY, "Inquiry"),
+        (SCOPE_REVIEW, "Scope Review"),
+        (PRICED, "Priced"),
+        (ASSIGNED, "Assigned"),
+        (IN_PROGRESS, "In Progress"),
+        (COMPLETED, "Completed"),
+        (CANCELLED, "Cancelled"),
+    ]
+    
     client = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
+        related_name="express_classes",
         help_text="Client booking the express class"
+    )
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="express_classes",
+        help_text="Website this express class belongs to"
+    )
+    assigned_writer = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assigned_express_classes",
+        limit_choices_to={'role': 'writer'},
+        help_text="Writer assigned to this express class"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=INQUIRY,
+        help_text="Current status of the express class"
     )
     start_date = models.DateField(
         help_text="Start date for the express class"
@@ -613,42 +654,59 @@ class ExpressClass(models.Model):
         help_text="Discipline of the express class e.g., Math, Nursing"
     )
     number_of_discussion_posts = models.PositiveIntegerField(
+        default=0,
         help_text="Number of discussion posts required"
     )
     number_of_discussion_posts_replies = models.PositiveIntegerField(
+        default=0,
         help_text="Number of discussion post replies required"
     )
     number_of_assignments = models.PositiveIntegerField(
+        default=0,
         help_text="Number of assignments required"
     )
     number_of_exams = models.PositiveIntegerField(
+        default=0,
         help_text="Number of exams required"
     )
     number_of_quizzes = models.PositiveIntegerField(
+        default=0,
         help_text="Number of quizzes required"
     )
     number_of_projects = models.PositiveIntegerField(
+        default=0,
         help_text="Number of projects required"
     )
     number_of_presentations = models.PositiveIntegerField(
+        default=0,
         help_text="Number of presentations required"
     )
     number_of_papers = models.PositiveIntegerField(
+        default=0,
         help_text="Number of papers required"
     )
     total_workload_in_pages = models.CharField(
         max_length=100,
+        blank=True,
         help_text="Workload e.g., 'number of pages total'"
     )
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Price for the express class"
+        null=True,
+        blank=True,
+        help_text="Price for the express class (set by admin after scope review)"
+    )
+    price_approved = models.BooleanField(
+        default=False,
+        help_text="Whether the price has been approved by admin"
     )
     installments_needed = models.PositiveIntegerField(
-        help_text="Number of installments needed"
+        default=0,
+        help_text="Number of installments needed (0 = full payment)"
     )
     instructions = models.TextField(
+        blank=True,
         help_text="Special instructions for the express class"
     )
     institution = models.CharField(
@@ -662,6 +720,44 @@ class ExpressClass(models.Model):
     academic_level = models.CharField(
         max_length=50,
         help_text="Academic level e.g., Undergraduate, Graduate"
+    )
+    # School login credentials
+    school_login_link = models.URLField(
+        blank=True,
+        help_text="Link to school login portal"
+    )
+    school_login_username = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="School login username"
+    )
+    school_login_password = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="School login password (encrypted/stored securely)"
+    )
+    # Admin review fields
+    scope_review_notes = models.TextField(
+        blank=True,
+        help_text="Admin notes from scope review"
+    )
+    admin_notes = models.TextField(
+        blank=True,
+        help_text="General admin notes"
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reviewed_express_classes",
+        limit_choices_to={'role__in': ['admin', 'superadmin', 'support']},
+        help_text="Admin who reviewed the scope"
+    )
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the scope was reviewed"
     )
     message_threads = GenericRelation(CommunicationThread)
     support_tickets = GenericRelation(Ticket)

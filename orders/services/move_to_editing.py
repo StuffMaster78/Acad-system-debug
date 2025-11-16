@@ -46,11 +46,12 @@ class MoveOrderToEditingService:
             
             AuditLogService.log_auto(
                 actor=user,
-                action="Order submitted - editing skipped",
+                action="EDIT_SKIP",  # Shortened to fit max_length
                 target=order,
-                changes={
+                metadata={
                     "status": OrderStatus.REVIEWED.value,
                     "editing_skip_reason": reason,
+                    "message": "Order submitted - editing skipped",
                 },
             )
             
@@ -63,9 +64,12 @@ class MoveOrderToEditingService:
 
         AuditLogService.log_auto(
             actor=user,
-            action="Moved order to under_editing",
+            action="MOVE_EDIT",  # Shortened to fit max_length
             target=order,
-            changes={"status": OrderStatus.UNDER_EDITING.value},
+            metadata={
+                "status": OrderStatus.UNDER_EDITING.value,
+                "message": "Moved order to under_editing",
+            },
         )
 
         # Auto-assign to editor if possible

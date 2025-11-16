@@ -25,6 +25,36 @@ class WebsiteViewSet(viewsets.ModelViewSet):
     queryset = Website.objects.all()
     serializer_class = WebsiteSerializer
     permission_classes = [IsAdminOrSuperadmin]  # 🔥 Restrict all actions to superadmins/admins
+    
+    def get_queryset(self):
+        """Filter websites based on user's role and website assignment."""
+        queryset = Website.objects.all()
+        
+        # Superadmins see all websites
+        if self.request.user.role == 'superadmin':
+            return queryset
+        
+        # Regular admins see only their assigned website
+        user_website = getattr(self.request.user, 'website', None)
+        if user_website:
+            queryset = queryset.filter(id=user_website.id)
+        
+        return queryset
+    
+    def list(self, request, *args, **kwargs):
+        """List websites with error handling."""
+        try:
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            from rest_framework import status
+            from rest_framework.response import Response
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error listing websites: {e}", exc_info=True)
+            return Response(
+                {"error": "Failed to retrieve websites", "detail": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def get_serializer_class(self):
         if self.action == "update_seo_settings":

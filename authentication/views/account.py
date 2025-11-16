@@ -51,6 +51,19 @@ class FinalizeAccountView(APIView):
             user.is_active = True
             user.save()
 
+            # Record referral if code is provided in query params or session
+            referral_code = request.query_params.get("ref") or request.data.get("referral_code")
+            if referral_code:
+                request.data = request.data.copy() if hasattr(request, 'data') else {}
+                request.data['referral_code'] = referral_code
+                try:
+                    from referrals.services.referral_service import ReferralService
+                    ReferralService.record_referral_for_user(user, request)
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Referral recording error during activation (non-blocking): {e}", exc_info=True)
+
             return Response(
                 {"message": "Account activated successfully."},
                 status=status.HTTP_200_OK
@@ -109,6 +122,20 @@ class ActivationView(APIView):
             if default_token_generator.check_token(user, token):
                 user.is_active = True
                 user.save()
+                
+                # Record referral if code is provided in query params
+                referral_code = request.query_params.get("ref")
+                if referral_code:
+                    request.data = request.data.copy() if hasattr(request, 'data') else {}
+                    request.data['referral_code'] = referral_code
+                    try:
+                        from referrals.services.referral_service import ReferralService
+                        ReferralService.record_referral_for_user(user, request)
+                    except Exception as e:
+                        import logging
+                        logger = logging.getLogger(__name__)
+                        logger.warning(f"Referral recording error during activation (non-blocking): {e}", exc_info=True)
+                
                 return Response({"message": "Account activated successfully!"}, status=status.HTTP_200_OK)
 
             return Response({"error": "Invalid or expired token."}, status=status.HTTP_400_BAD_REQUEST)

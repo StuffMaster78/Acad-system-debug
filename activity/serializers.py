@@ -7,10 +7,7 @@ class ActivityLogSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField()
     triggered_by = serializers.StringRelatedField()
     user_role = serializers.SerializerMethodField()
-    website = serializers.SlugRelatedField(
-        slug_field="slug",
-        read_only=True
-    )
+    website = serializers.SerializerMethodField()
     timestamp = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S")
 
     class Meta:
@@ -21,7 +18,9 @@ class ActivityLogSerializer(serializers.ModelSerializer):
             "user_role",
             "triggered_by",
             "website",
+            "actor_type",
             "action_type",
+            "action_subtype",
             "description",
             "timestamp",
             "metadata",
@@ -30,10 +29,29 @@ class ActivityLogSerializer(serializers.ModelSerializer):
 
     def get_user_role(self, obj):
         """Get the role of the user associated with the activity log."""
-        # Assuming user has a profile with a role attribute
-        # or a user_type attribute directly on the user model
-        if not obj.user:
-            return None # Handle case where user is None    
-        if hasattr(obj.user, "profile"):
-            return getattr(obj.user.profile, "role", None)
-        return getattr(obj.user, "user_type", None)  # fallback
+        try:
+            if not obj.user:
+                return None
+            # Check if user has a role attribute directly
+            if hasattr(obj.user, "role"):
+                return obj.user.role
+            # Check if user has a profile with role
+            if hasattr(obj.user, "profile"):
+                return getattr(obj.user.profile, "role", None)
+            return getattr(obj.user, "user_type", None)
+        except Exception:
+            return None
+    
+    def get_website(self, obj):
+        """Get website information."""
+        try:
+            if obj.website:
+                return {
+                    "id": obj.website.id,
+                    "name": obj.website.name,
+                    "domain": obj.website.domain,
+                    "slug": obj.website.slug if hasattr(obj.website, "slug") else None,
+                }
+        except Exception:
+            pass
+        return None

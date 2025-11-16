@@ -1,4 +1,5 @@
 from rest_framework.throttling import SimpleRateThrottle
+from django.core.cache import cache
 
 class LoginRateThrottle(SimpleRateThrottle):
     scope = 'login'
@@ -21,6 +22,16 @@ class MagicLinkThrottle(SimpleRateThrottle):
         if email:
             return f'magic-link-{email}'
         return self.get_ident(request)
+    
+    @staticmethod
+    def clear_rate_limit(email):
+        """
+        Clear rate limit cache for a specific email.
+        Useful for admin/testing purposes.
+        """
+        cache_key = f'throttle_magic-link-{email}'
+        cache.delete(cache_key)
+        return True
 
 
 class PasswordResetRateThrottle(SimpleRateThrottle):

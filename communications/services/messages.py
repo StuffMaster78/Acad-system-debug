@@ -38,7 +38,8 @@ class MessageService:
         message_type: str = "text",
         *,
         reply_to: CommunicationMessage = None,
-        enforce_visibility: bool=True
+        enforce_visibility: bool=True,
+        attachment_file=None
     ) -> CommunicationMessage:
         """
         Creates a message in a thread, applying sanitization, visibility rules,
@@ -58,8 +59,23 @@ class MessageService:
         Raises:
             ValueError: If messaging is disabled or message is empty.
         """
+        # Auto-add sender to participants if they have order access but aren't a participant yet
         if sender not in thread.participants.all():
-            raise ValueError("Sender is not a participant of this thread.")
+            order = getattr(thread, "order", None)
+            if order:
+                role = getattr(sender, "role", None)
+                # Check if user has access to the order
+                has_order_access = (
+                    order.client == sender or
+                    order.assigned_writer == sender or
+                    role in {"admin", "superadmin", "editor", "support"}
+                )
+                if has_order_access:
+                    thread.participants.add(sender)
+                else:
+                    raise ValueError("Sender does not have access to this order.")
+            else:
+                raise ValueError("Sender is not a participant of this thread.")
         
         # Enforce order restrictions, including special, archived, etc.
         CommunicationGuardService.assert_can_send_message(sender, thread)
@@ -76,7 +92,7 @@ class MessageService:
         if reply_to and not MessageService.can_reply(sender, reply_to):
             raise PermissionError("You are not allowed to reply to this message.")
 
-        recipient_role = getattr(recipient.profile, "role", None)
+        recipient_role = getattr(recipient, "role", None)
         if recipient_role is None:
             raise ValueError("Recipient must have a valid profile with role.")
 
@@ -117,8 +133,9 @@ class MessageService:
             link_domain=link_domain or domain,
             is_link_approved=False if inferred_type == "link" else True,
             reply_to=reply_to,
-            visible_to_roles=[sender_role, recipient_role],
-            sent_at=timezone.now()
+            visible_to_roles=sorted(list(set([sender_role, recipient_role]))),  # Ensure unique and sorted to avoid constraint violations
+            sent_at=timezone.now(),
+            attachment=attachment_file
         )
 
         # Admin gets notified on flagged messages
@@ -136,11 +153,11 @@ class MessageService:
         # Notify recipient normally
         NotificationService.notify_user_on_message(comm_msg)
 
-        # Log it
+        # Log it - use shorter action name to fit max_length=20
         CommunicationLog.objects.create(
             user=sender,
             order=thread.order,
-            action="communication_message_created",
+            action="sent",  # Use existing action choice
             details=sanitized_message[:200]
         )
 
@@ -168,7 +185,7 @@ class MessageService:
         Returns:
             QuerySet: Filtered messages.
         """
-        role = getattr(user.profile, "role", None)
+        role = getattr(user, "role", None)
 
         if role is None:
             return CommunicationMessage.objects.none()
@@ -197,7 +214,8 @@ class MessageService:
         Returns:
             bool: True if user can edit, False otherwise.
         """
-        return user.profile.role in ["admin", "superadmin"]
+        role = getattr(user, "role", None)
+        return role in ["admin", "superadmin"]
     
 
     @staticmethod
@@ -210,7 +228,8 @@ class MessageService:
         Returns:
             bool: True if user can delete, False otherwise.
         """
-        return user.profile.role in ["admin", "superadmin"]
+        role = getattr(user, "role", None)
+        return role in ["admin", "superadmin"]
 
     @staticmethod
     def join_thread(user, thread: CommunicationThread) -> None:
@@ -225,7 +244,7 @@ class MessageService:
             PermissionError: If the user's role is not allowed.
         """
         allowed_roles = {"admin", "superadmin", "support"}
-        role = getattr(user.profile, "role", None)
+        role = getattr(user, "role", None)
 
         if role not in allowed_roles:
             raise PermissionError("User is not authorized to join this thread.")
@@ -237,6 +256,7 @@ class MessageService:
     def can_reply(user, message_obj: CommunicationMessage) -> bool:
         """
         Determines whether the user can reply to a given message.
+        Allows all users with access to the order to reply.
 
         Args:
             user (User): The user attempting to reply.
@@ -245,13 +265,33 @@ class MessageService:
         Returns:
             bool: True if the user can reply, False otherwise.
         """
-        role = getattr(user.profile, "role", None)
+        role = getattr(user, "role", None) or getattr(user, "role", None)
 
         if message_obj.is_deleted:
             return False
 
-        # Message must be in a thread the user is part of
-        if user not in message_obj.thread.participants.all():
+        thread = message_obj.thread
+        order = getattr(thread, "order", None)
+        
+        # Check if user has access to the order
+        has_order_access = False
+        
+        # User is a participant
+        if user in thread.participants.all():
+            has_order_access = True
+        # Check order access
+        elif order:
+            # Client who placed the order
+            if order.client == user:
+                has_order_access = True
+            # Writer assigned to the order
+            elif order.assigned_writer == user:
+                has_order_access = True
+            # Staff roles have access
+            elif role in {"admin", "superadmin", "editor", "support"}:
+                has_order_access = True
+
+        if not has_order_access:
             return False
 
         # Visibility rules

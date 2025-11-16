@@ -1,10 +1,11 @@
 from rest_framework import viewsets, permissions, status
 from .models import (
-    PaperType, FormattingandCitationStyle, Subject,
+    AcademicLevel, PaperType, FormattingandCitationStyle, Subject,
     TypeOfWork, EnglishType, WriterDeadlineConfig,
     RevisionPolicyConfig, EditingRequirementConfig
 )
 from .serializers import (
+    AcademicLevelSerializer,
     PaperTypeSerializer,
     FormattingStyleSerializer,
     SubjectSerializer,
@@ -17,30 +18,90 @@ from .serializers import (
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from authentication.permissions import IsAdminOrSuperAdmin
+from websites.models import Website
+
+class AcademicLevelViewSet(viewsets.ModelViewSet):
+    queryset = AcademicLevel.objects.all()
+    serializer_class = AcademicLevelSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    
+    def get_queryset(self):
+        """Filter by website if specified."""
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get('website_id')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset.select_related('website')
+
 
 class PaperTypeViewSet(viewsets.ModelViewSet):
     queryset = PaperType.objects.all()
     serializer_class = PaperTypeSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    
+    def get_queryset(self):
+        """Filter by website if specified."""
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get('website_id')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset.select_related('website')
 
 
 class FormattingStyleViewSet(viewsets.ModelViewSet):
     queryset = FormattingandCitationStyle.objects.all()
     serializer_class = FormattingStyleSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    
+    def get_queryset(self):
+        """Filter by website if specified."""
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get('website_id')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset.select_related('website')
 
 
 class SubjectViewSet(viewsets.ModelViewSet):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    
+    def get_queryset(self):
+        """Filter by website if specified."""
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get('website_id')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset.select_related('website')
 
 
 class TypeOfWorkViewSet(viewsets.ModelViewSet):
     queryset = TypeOfWork.objects.all()
     serializer_class = TypeOfWorkSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    
+    def get_queryset(self):
+        """Filter by website if specified."""
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get('website_id')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset.select_related('website')
 
 
 class EnglishTypeViewSet(viewsets.ModelViewSet):
     queryset = EnglishType.objects.all()
     serializer_class = EnglishTypeSerializer
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    
+    def get_queryset(self):
+        """Filter by website if specified."""
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get('website_id')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset.select_related('website')
 
 
 class WriterDeadlineConfigViewSet(viewsets.ModelViewSet):
@@ -137,3 +198,177 @@ class EditingRequirementConfigViewSet(viewsets.ModelViewSet):
                 "high_value_threshold": "300.00",
                 "message": "No custom configuration - using defaults"
             })
+
+
+class OrderConfigManagementViewSet(viewsets.ViewSet):
+    """
+    ViewSet for managing order configurations (populate defaults, etc.)
+    Admin-only endpoint.
+    """
+    permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    
+    @action(detail=False, methods=['post'], url_path='populate-defaults')
+    def populate_defaults(self, request):
+        """
+        Populate default configurations for a website.
+        Requires website_id in request data.
+        """
+        website_id = request.data.get('website_id')
+        if not website_id:
+            return Response(
+                {"detail": "website_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        from order_configs.services.default_configs import populate_default_configs_for_website
+        
+        try:
+            counts = populate_default_configs_for_website(website, skip_existing=True)
+            return Response({
+                "message": "Default configurations populated successfully",
+                "website": {
+                    "id": website.id,
+                    "name": website.name,
+                    "domain": website.domain
+                },
+                "created": counts,
+                "summary": {
+                    "total_created": sum(counts.values()),
+                    "paper_types": counts['paper_types'],
+                    "formatting_styles": counts['formatting_styles'],
+                    "academic_levels": counts['academic_levels'],
+                    "subjects": counts['subjects'],
+                    "types_of_work": counts['types_of_work'],
+                    "english_types": counts['english_types'],
+                }
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response(
+                {"detail": f"Error populating defaults: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'], url_path='check-defaults')
+    def check_defaults(self, request):
+        """
+        Check which configurations are defaults vs custom for a website.
+        Requires website_id query parameter.
+        """
+        website_id = request.query_params.get('website_id')
+        if not website_id:
+            return Response(
+                {"detail": "website_id query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        from order_configs.services.default_configs import (
+            is_default_paper_type, is_default_formatting_style,
+            is_default_academic_level, is_default_subject,
+            is_default_type_of_work, is_default_english_type
+        )
+        
+        # Check paper types
+        paper_types = PaperType.objects.filter(website=website)
+        paper_types_data = [
+            {"id": pt.id, "name": pt.name, "is_default": is_default_paper_type(pt.name)}
+            for pt in paper_types
+        ]
+        
+        # Check formatting styles
+        formatting_styles = FormattingandCitationStyle.objects.filter(website=website)
+        formatting_styles_data = [
+            {"id": fs.id, "name": fs.name, "is_default": is_default_formatting_style(fs.name)}
+            for fs in formatting_styles
+        ]
+        
+        # Check academic levels
+        academic_levels = AcademicLevel.objects.filter(website=website)
+        academic_levels_data = [
+            {"id": al.id, "name": al.name, "is_default": is_default_academic_level(al.name)}
+            for al in academic_levels
+        ]
+        
+        # Check subjects
+        subjects = Subject.objects.filter(website=website)
+        subjects_data = [
+            {"id": s.id, "name": s.name, "is_technical": s.is_technical, "is_default": is_default_subject(s.name)}
+            for s in subjects
+        ]
+        
+        # Check types of work
+        types_of_work = TypeOfWork.objects.filter(website=website)
+        types_of_work_data = [
+            {"id": tow.id, "name": tow.name, "is_default": is_default_type_of_work(tow.name)}
+            for tow in types_of_work
+        ]
+        
+        # Check English types
+        english_types = EnglishType.objects.filter(website=website)
+        english_types_data = [
+            {"id": et.id, "name": et.name, "code": et.code, "is_default": is_default_english_type(et.name)}
+            for et in english_types
+        ]
+        
+        return Response({
+            "website": {
+                "id": website.id,
+                "name": website.name,
+                "domain": website.domain
+            },
+            "configurations": {
+                "paper_types": paper_types_data,
+                "formatting_styles": formatting_styles_data,
+                "academic_levels": academic_levels_data,
+                "subjects": subjects_data,
+                "types_of_work": types_of_work_data,
+                "english_types": english_types_data,
+            },
+            "summary": {
+                "paper_types": {
+                    "total": len(paper_types_data),
+                    "defaults": sum(1 for pt in paper_types_data if pt["is_default"]),
+                    "custom": sum(1 for pt in paper_types_data if not pt["is_default"])
+                },
+                "formatting_styles": {
+                    "total": len(formatting_styles_data),
+                    "defaults": sum(1 for fs in formatting_styles_data if fs["is_default"]),
+                    "custom": sum(1 for fs in formatting_styles_data if not fs["is_default"])
+                },
+                "academic_levels": {
+                    "total": len(academic_levels_data),
+                    "defaults": sum(1 for al in academic_levels_data if al["is_default"]),
+                    "custom": sum(1 for al in academic_levels_data if not al["is_default"])
+                },
+                "subjects": {
+                    "total": len(subjects_data),
+                    "defaults": sum(1 for s in subjects_data if s["is_default"]),
+                    "custom": sum(1 for s in subjects_data if not s["is_default"])
+                },
+                "types_of_work": {
+                    "total": len(types_of_work_data),
+                    "defaults": sum(1 for tow in types_of_work_data if tow["is_default"]),
+                    "custom": sum(1 for tow in types_of_work_data if not tow["is_default"])
+                },
+                "english_types": {
+                    "total": len(english_types_data),
+                    "defaults": sum(1 for et in english_types_data if et["is_default"]),
+                    "custom": sum(1 for et in english_types_data if not et["is_default"])
+                },
+            }
+        }, status=status.HTTP_200_OK)

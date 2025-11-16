@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
+    AcademicLevelViewSet,
     PaperTypeViewSet,
     FormattingStyleViewSet,
     SubjectViewSet,
@@ -8,10 +9,16 @@ from .views import (
     EnglishTypeViewSet,
     WriterDeadlineConfigViewSet,
     RevisionPolicyConfigViewSet,
-    EditingRequirementConfigViewSet
+    EditingRequirementConfigViewSet,
+    OrderConfigManagementViewSet,
 )
 
 router = DefaultRouter()
+router.register(
+    'academic-levels',
+    AcademicLevelViewSet,
+    basename='academic-level'
+)
 router.register(
     'paper-types',
     PaperTypeViewSet,
@@ -51,6 +58,11 @@ router.register(
     r'editing-requirements',
     EditingRequirementConfigViewSet,
     basename='editing-requirement-config'
+)
+router.register(
+    r'management',
+    OrderConfigManagementViewSet,
+    basename='order-config-management'
 )
 
 urlpatterns = [

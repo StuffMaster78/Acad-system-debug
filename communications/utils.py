@@ -38,8 +38,8 @@ def contains_restricted_content(message: str) -> tuple[str, bool]:
 
     # File-like URL detection
     FILE_LINK_REGEX = r"https?://[^\s]+\.(pdf|docx|xlsx|zip|rar|pptx?)"
-    if re.search(FILE_LINK_REGEX, text, re.IGNORECASE):
-        text = re.sub(FILE_LINK_REGEX, "*****", text)
+    if re.search(FILE_LINK_REGEX, message, re.IGNORECASE):
+        message = re.sub(FILE_LINK_REGEX, "*****", message)
         flagged = True
 
     return message, flagged

@@ -54,12 +54,13 @@ urlpatterns = [
     path('api/v1/websites/', include('websites.urls')),      # Websites app
     path('api/v1/users/', include('users.urls')),            # Users app
     path('api/v1/client-management/', include('client_management.urls')),  # Client Management app
-    path('api/v1/writer-management/', include('writer_management.urls')),  # Writer Management app
-    path("api/v1/support-management/", include("support_management.urls")), # Support Management app
+    path('api/v1/writer-management/', include(('writer_management.urls', 'writer_management'), namespace='writer_management')),  # Writer Management app
+    path("api/v1/support-management/", include(('support_management.urls', 'support_management'), namespace='support_management')), # Support Management app
     # Backward-compatible alias some tests may use
-    path("api/v1/support/", include("support_management.urls")),
+    path("api/v1/support/", include(('support_management.urls', 'support_management'), namespace='support')),  # Alias with unique namespace
     path("api/v1/editor-management/", include("editor_management.urls")), # Editor Management app
-    path("api/v1/admin-management/", include("admin_management.urls")), # Admin Management app
+    path("api/v1/admin-management/", include(('admin_management.urls', 'admin_management'), namespace='admin_management')), # Admin Management app
+    path("api/v1/activity/", include('activity.urls')),  # Activity app URLs for general activity logs
     path("api/v1/superadmin-management/", include("superadmin_management.urls")), # Superadmin Management app
 
     path('api/v1/referrals/', include('referrals.urls')), # Referrals Management App
@@ -67,16 +68,23 @@ urlpatterns = [
     path('api/v1/order-configs/', include('order_configs.urls')), 
     path('api/v1/pricing-configs/', include('pricing_configs.urls')),
     path('api/v1/loyalty-management/', include('loyalty_management.urls')),
-    path('api/v1/notifications/', include('notifications_system.urls')),
+    path('api/v1/loyalty_management/', include('loyalty_management.urls')),  # Alias for frontend compatibility
+    path('api/v1/notifications/', include(('notifications_system.urls', 'notifications_system'), namespace='notifications')),
+    path('api/v1/notifications_system/', include(('notifications_system.urls', 'notifications_system'), namespace='notifications_system')),  # Alias for frontend compatibility
     path('api/v1/order-communications/', include('communications.urls')),
     path('api/v1/order-files/', include('order_files.urls')),
+    path('api/v1/order-payments/', include('order_payments_management.urls')),  # Order Payments Management
     path('api/v1/special-orders/', include('special_orders.urls')),
     path('api/v1/tickets/', include('tickets.urls')),
     path('api/v1/wallet/', include('wallet.urls')),
+    path('api/v1/wallet/', include('client_wallet.urls')),  # Client Wallet Management
+    path('api/v1/writer-wallet/', include('writer_wallet.urls')),  # Writer Wallet Management
     path('api/v1/mass-emails/', include('mass_emails.urls')),
     path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
     path('api/v1/service-pages/', include('service_pages_management.urls')),
     path('api/v1/fines/', include('fines.urls')),
+    path('api/v1/reviews/', include('reviews_system.urls')),  # Reviews System
+    path('api/v1/class-management/', include('class_management.urls')),  # Class Management (bundles & express classes)
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
     # path('api/v1/analytics/', include('analytics.urls')),  # Analytics app
     # path('api/v1/badge_management/', include('badge_management.urls')),  # Badges app

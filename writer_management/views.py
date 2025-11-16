@@ -144,6 +144,51 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
     queryset = WriterProfile.objects.all()
     serializer_class = WriterProfileSerializer
     permission_classes = [permissions.IsAdminUser]
+    
+    def get_permissions(self):
+        """
+        Allow writers to update their own profile (specifically pen_name).
+        """
+        if self.action in ['update', 'partial_update']:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAdminUser()]
+    
+    def get_queryset(self):
+        """
+        Writers can only access their own profile.
+        """
+        if self.request.user.role == 'writer':
+            return WriterProfile.objects.filter(user=self.request.user)
+        return WriterProfile.objects.all()
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Allow writers to update their pen_name.
+        """
+        instance = self.get_object()
+        
+        # Writers can only update their own profile
+        if request.user.role == 'writer' and instance.user != request.user:
+            return Response(
+                {"error": "You can only update your own profile."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # For writers, only allow updating pen_name
+        if request.user.role == 'writer':
+            pen_name = request.data.get('pen_name')
+            if pen_name is not None:
+                instance.pen_name = pen_name
+                instance.save(update_fields=['pen_name'])
+                serializer = self.get_serializer(instance)
+                return Response(serializer.data)
+            return Response(
+                {"error": "Only pen_name can be updated."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Admins can update everything
+        return super().update(request, *args, **kwargs)
 
     @action(detail=True, methods=['GET'], permission_classes=[permissions.IsAdminUser])
     def earnings(self, request, pk=None):

@@ -96,13 +96,38 @@ def can_start_thread(user, order) -> bool:
 def can_send_message(user, thread) -> bool:
     """
     Check whether a user can send a message in a given thread.
+    Allows all users with access to the order to send messages.
     """
     order = getattr(thread, "order", None)
-    role = getattr(user.profile, "role", None)
+    role = getattr(user.profile, "role", None) or getattr(user, "role", None)
 
     if not thread.is_active and not thread.admin_override:
         return False
 
+    # If no order, check if user is a participant
+    if not order:
+        return user in thread.participants.all()
+
+    # Check if user has access to the order
+    has_order_access = False
+    
+    # Client who placed the order
+    if order.client == user:
+        has_order_access = True
+    # Writer assigned to the order
+    elif order.assigned_writer == user:
+        has_order_access = True
+    # Staff roles (admin, superadmin, editor, support) have access
+    elif role in {"admin", "superadmin", "editor", "support"}:
+        has_order_access = True
+    # User is already a participant
+    elif user in thread.participants.all():
+        has_order_access = True
+
+    if not has_order_access:
+        return False
+
+    # Check order status restrictions
     if order.status in {"archived", "cancelled"}:
         return thread.admin_override
 
@@ -118,17 +143,32 @@ def can_send_message(user, thread) -> bool:
 def can_view_thread(user, thread) -> bool:
     """
     Check whether a user can view a given thread.
+    Allows all users with access to the order to view threads.
     """
     if user.is_staff:
         return True  # Admins can always view
 
+    # Check if user is a participant
     if user in thread.participants.all():
-        return True  # Participants can view
-
-    # Additional checks for special cases
-    order = getattr(thread, "order", None)
-    if order and order.is_special and user.profile.role in {"admin", "support"}:
         return True
+
+    # Check if user has access to the order
+    order = getattr(thread, "order", None)
+    if order:
+        role = getattr(user.profile, "role", None) or getattr(user, "role", None)
+        
+        # Client who placed the order
+        if order.client == user:
+            return True
+        # Writer assigned to the order
+        if order.assigned_writer == user:
+            return True
+        # Staff roles have access
+        if role in {"admin", "superadmin", "editor", "support"}:
+            return True
+        # Special orders - only admin/support
+        if order.is_special and role in {"admin", "support"}:
+            return True
 
     return False  # Default deny
 
@@ -153,34 +193,47 @@ def can_edit_message(user, message) -> bool:
 def can_delete_message(user, message) -> bool:
     """
     Check whether a user can delete a given message.
+    Only admin/superadmin can delete messages. Clients and writers cannot delete.
     """
-    if user.is_staff:
-        return True  # Admins can delete any message
-
-    if message.sender == user:
-        return True  # Owners can delete their own messages
-
-    # Additional checks for special cases
-    if getattr(message, "order", None) and message.order.is_special and user.profile.role in {"admin", "support"}:
+    role = getattr(user, "role", None)
+    
+    # Only admin and superadmin can delete messages
+    if role in {"admin", "superadmin"}:
         return True
-
-    return False  # Default deny
+    
+    # Clients and writers cannot delete messages (even their own)
+    return False
 
 
 def can_reply_to_thread(user, thread) -> bool:
     """
     Check whether a user can reply to a given thread.
+    Allows all users with access to the order to reply.
     """
     if user.is_staff:
         return True  # Admins can reply to any thread
 
+    # Check if user is a participant
     if user in thread.participants.all():
-        return True  # Participants can reply
-
-    # Additional checks for special cases
-    order = getattr(thread, "order", None)
-    if order and order.is_special and user.profile.role in {"admin", "support"}:
         return True
+
+    # Check if user has access to the order
+    order = getattr(thread, "order", None)
+    if order:
+        role = getattr(user.profile, "role", None) or getattr(user, "role", None)
+        
+        # Client who placed the order
+        if order.client == user:
+            return True
+        # Writer assigned to the order
+        if order.assigned_writer == user:
+            return True
+        # Staff roles have access
+        if role in {"admin", "superadmin", "editor", "support"}:
+            return True
+        # Special orders - only admin/support
+        if order.is_special and role in {"admin", "support"}:
+            return True
 
     return False  # Default deny
 

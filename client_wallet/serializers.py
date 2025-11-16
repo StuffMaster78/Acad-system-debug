@@ -1,34 +1,84 @@
 from rest_framework import serializers
 from .models import (
     ClientWallet, ClientWalletTransaction, LoyaltyTransaction,
-    ReferralBonusConfig, LoyaltyPointsConversionConfig,
-    AdminNotification
+    LoyaltyPointsConversionConfig
 )
+from referrals.models import ReferralBonusConfig
 from django.utils import timezone
 
 # Serializer for Client Wallet
 class ClientWalletSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    website = serializers.SerializerMethodField()
+    
+    def get_user(self, obj):
+        """Get user information"""
+        if obj.user:
+            return {
+                'id': obj.user.id,
+                'email': obj.user.email,
+                'username': obj.user.username,
+                'first_name': obj.user.first_name or '',
+                'last_name': obj.user.last_name or '',
+            }
+        return None
+    
+    def get_website(self, obj):
+        """Get website information"""
+        if obj.website:
+            return {
+                'id': obj.website.id,
+                'name': obj.website.name,
+                'domain': obj.website.domain,
+            }
+        return None
+    
     class Meta:
         model = ClientWallet
-        fields = ['id', 'client', 'balance', 'loyalty_points', 'referral_balance', 'created_at', 'updated_at']
+        fields = [
+            'id', 'user', 'website', 'balance', 'currency', 
+            'loyalty_points', 
+            'last_updated', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at', 'last_updated']
 
     def update(self, instance, validated_data):
-        # Update the wallet fields (balance, loyalty_points, referral_balance)
+        # Update the wallet fields (balance, loyalty_points)
         instance.balance = validated_data.get('balance', instance.balance)
         instance.loyalty_points = validated_data.get('loyalty_points', instance.loyalty_points)
-        instance.referral_balance = validated_data.get('referral_balance', instance.referral_balance)
         instance.save()
         return instance
 
 # Serializer for Client Wallet Transactions (Debit/Credit)
 class ClientWalletTransactionSerializer(serializers.ModelSerializer):
+    source = serializers.SerializerMethodField()
+    is_credit = serializers.SerializerMethodField()
+    
     class Meta:
         model = ClientWalletTransaction
-        fields = ['id', 'client_wallet', 'amount', 'transaction_type', 'description', 'created_at']
+        fields = ['id', 'wallet', 'amount', 'transaction_type', 'description', 'created_at', 'reference_id', 'source', 'is_credit']
+
+    def get_source(self, obj):
+        """Determine the source of funds based on transaction type"""
+        # Client-initiated payments
+        if obj.transaction_type in ['top-up']:
+            return 'client_payment'
+        # Company/admin credits
+        elif obj.transaction_type in ['adjustment', 'bonus', 'refund', 'referral_bonus', 'loyalty_conversion']:
+            return 'company_credit'
+        # Wallet usage (payments)
+        elif obj.transaction_type == 'payment':
+            return 'wallet_usage'
+        else:
+            return 'other'
+    
+    def get_is_credit(self, obj):
+        """Check if transaction is a credit (adds to balance)"""
+        return obj.amount > 0
 
     def validate(self, data):
         # Custom validation for amount or any other field
-        if data['amount'] <= 0:
+        if data.get('amount', 0) <= 0:
             raise serializers.ValidationError("Amount must be greater than 0")
         return data
 
@@ -68,16 +118,46 @@ class LoyaltyPointsConversionConfigSerializer(serializers.ModelSerializer):
 
 # Serializer for the Referral Bonus
 class ReferralBonusSerializer(serializers.ModelSerializer):
+    client = serializers.SerializerMethodField()
+    referral_balance = serializers.SerializerMethodField()
+    referral_bonus_expiration = serializers.SerializerMethodField()
+    referral_bonus_percentage = serializers.SerializerMethodField()
+    
     class Meta:
         model = ClientWallet
         fields = ['id', 'client', 'referral_balance', 'referral_bonus_expiration', 'referral_bonus_percentage']
-
+    
+    def get_client(self, obj):
+        # Return user information as client
+        if obj.user:
+            return {
+                'id': obj.user.id,
+                'email': obj.user.email,
+                'username': obj.user.username,
+            }
+        return None
+    
+    def get_referral_balance(self, obj):
+        # Calculate referral balance from transactions
+        # This is a computed field since referral_balance doesn't exist on the model
+        from django.db.models import Sum
+        referral_transactions = obj.transactions.filter(transaction_type='referral_bonus')
+        total = referral_transactions.aggregate(Sum('amount'))['amount__sum'] or 0
+        return total
+    
     def get_referral_bonus_expiration(self, obj):
         # Returning the expiration time in a readable format
-        expiration = obj.referral_bonus_expiration
-        if expiration:
-            return expiration.strftime('%Y-%m-%d %H:%M:%S')
+        # This field doesn't exist on the model, return None or compute from config
         return None
+    
+    def get_referral_bonus_percentage(self, obj):
+        # This field doesn't exist on the model, return None or get from config
+        try:
+            from referrals.models import ReferralBonusConfig
+            config = ReferralBonusConfig.objects.filter(website=obj.website).first()
+            return config.bonus_percentage if config else None
+        except:
+            return None
 
 # Serializer for Referral Stats
 class ReferralStatsSerializer(serializers.ModelSerializer):
@@ -93,20 +173,9 @@ class ReferralStatsSerializer(serializers.ModelSerializer):
         return obj.referrals.count()
 
     def get_total_earned_bonus(self, obj):
-        # Custom logic to calculate total earned bonus
-        return obj.referral_balance
+        # Custom logic to calculate total earned bonus from transactions
+        from django.db.models import Sum
+        referral_transactions = obj.transactions.filter(transaction_type='referral_bonus')
+        total = referral_transactions.aggregate(Sum('amount'))['amount__sum'] or 0
+        return total
     
-class AdminNotificationSerializer(serializers.ModelSerializer):
-    """Serializer for admin notifications."""
-    
-    class Meta:
-        model = AdminNotification
-        fields = ["id", "message", "created_at", "is_read"]
-
-    def update(self, instance, validated_data):
-        """
-        Allows marking a notification as read.
-        """
-        instance.is_read = validated_data.get("is_read", instance.is_read)
-        instance.save()
-        return instance

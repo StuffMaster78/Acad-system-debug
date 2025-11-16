@@ -83,14 +83,15 @@ class OrderAssignmentService:
         NotificationService.send_notification(
             user=writer,
             event="New Order Assigned",
-            context={"order_id": self.order.id}
+            payload={"order_id": self.order.id},
+            website=self.order.website
         )
 
         NotificationService.send_notification(
             user=self.order.client,
             event="Writer Assigned",
-            context={"order_id": self.order.id},
-            message=f"A writer has been assigned to your Order #{self.order.id}."
+            payload={"order_id": self.order.id},
+            website=self.order.website
         )
 
         return self.order
@@ -134,13 +135,15 @@ class OrderAssignmentService:
         NotificationService.send_notification(
             user=writer,
             event="New Order Assigned",
-            context={"order_id": self.order.id}
+            payload={"order_id": self.order.id},
+            website=self.order.website
         )
 
         NotificationService.send_notification(
             user=self.order.client,
             event="Writer Assigned",
-            context={"order_id": self.order.id}
+            payload={"order_id": self.order.id},
+            website=self.order.website
         )
 
     def _notify_reassignment(self, old_writer, new_writer, reason):

@@ -5,7 +5,7 @@ from ..models import (
     AdminActivityLog
 )
 from .user_serializers import (
-    UserSerializer,
+    UserSerializer,  # Use the comprehensive UserSerializer from user_serializers.py
     UserDetailSerializer,
     CreateUserSerializer,
     UserUpdateSerializer,
@@ -28,16 +28,29 @@ class AdminProfileSerializer(serializers.ModelSerializer):
 class AdminLogSerializer(serializers.ModelSerializer):
     admin = serializers.StringRelatedField(read_only=True)
     admin_username = serializers.SerializerMethodField()
+    admin_id = serializers.SerializerMethodField()
 
     class Meta:
         model = AdminActivityLog
-        fields = ["id", "admin", "admin_username", "action", "timestamp"]
-        read_only_fields = ["id", "timestamp", "admin", "admin_username"]
+        fields = ["id", "admin", "admin_id", "admin_username", "action", "timestamp"]
+        read_only_fields = ["id", "timestamp", "admin", "admin_id", "admin_username"]
     
     def get_admin_username(self, obj):
         """Safely get admin username."""
-        if obj.admin:
-            return obj.admin.username
+        try:
+            if obj.admin:
+                return obj.admin.username
+        except Exception:
+            pass
+        return None
+    
+    def get_admin_id(self, obj):
+        """Get admin ID."""
+        try:
+            if obj.admin:
+                return obj.admin.id
+        except Exception:
+            pass
         return None
 
 class AdminProfileCreateSerializer(serializers.ModelSerializer):
@@ -211,17 +224,9 @@ class UserActivitySerializer(serializers.Serializer):
         ]
 
 
-class UserSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(read_only=True)
-    username = serializers.CharField(required=True)
-    email = serializers.EmailField(required=True)
-    first_name = serializers.CharField(required=False, allow_blank=True)
-    last_name = serializers.CharField(required=False, allow_blank=True)
-
-    class Meta:
-        model = User
-        fields = ["id", "username", "email", "first_name", "last_name"]
-        read_only_fields = fields
+# OLD UserSerializer removed - now using UserSerializer from user_serializers.py
+# This old serializer only had basic fields and was overriding the comprehensive one
+# If you need the old basic serializer, use UserListSerializer from user_serializers.py
 
 
 class CreateUserSerializer(serializers.ModelSerializer):
@@ -361,13 +366,7 @@ class LiftSuspensionSerializer(serializers.Serializer):
         ]
 
 
-class AdminLogSerializer(serializers.ModelSerializer):
-    admin = serializers.StringRelatedField(read_only=True)
-
-    class Meta:
-        model = AdminActivityLog
-        fields = "__all__"
-        read_only_fields = ["id", "timestamp", "admin"]
+# Duplicate AdminLogSerializer removed - using the one above with admin_username field
 
 
 class AdminProfileCreateSerializer(serializers.ModelSerializer):

@@ -15,6 +15,7 @@ from orders.views.orders.retry_webhook_view import RetryWebhookView
 from orders.views.orders.webhook_delivery_log_view import WebhookDeliveryLogListView
 from orders.views.writers.writer_requests_preview import WriterRequestPreviewView
 from orders.views.orders.editing_admin import OrderEditingAdminView
+from orders.views.progress import WriterProgressViewSet
 
 
 app_name = 'orders'
@@ -26,6 +27,7 @@ router.register(r'order-requests', OrderRequestViewSet, basename='order-request'
 router.register(
     r"reassignment-logs", WriterReassignmentLogViewSet, basename="reassignment-log"
 )
+router.register(r'progress', WriterProgressViewSet, basename='writer-progress')
 
 
 urlpatterns = [

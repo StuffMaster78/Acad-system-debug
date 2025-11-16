@@ -19,25 +19,35 @@ User = get_user_model()
 
 class OrderSerializer(serializers.ModelSerializer):
     client_username = serializers.CharField(source='client.username', read_only=True)
-    writer_username = serializers.CharField(source='writer.username', read_only=True)
+    writer_username = serializers.CharField(source='assigned_writer.username', read_only=True)
+    is_unattributed = serializers.SerializerMethodField(read_only=True)
+    # Fake client ID for writers viewing unattributed orders
+    fake_client_id = serializers.SerializerMethodField(read_only=True)
+    # Expose external contact fields and unpaid override to admins only (gate in to_representation)
+    external_contact_name = serializers.CharField(read_only=True)
+    external_contact_email = serializers.EmailField(read_only=True)
+    external_contact_phone = serializers.CharField(read_only=True)
+    allow_unpaid_access = serializers.BooleanField(read_only=True)
     
     class Meta:
         model = Order
         fields = [
-            'id', 'topic', 'instructions', 'paper_type', 'academic_level', 
-            'formatting_style', 'type_of_work', 'english_type', 'pages', 
-            'slides', 'resources', 'spacing', 'deadline', 'writer_deadline', 
-            'client', 'client_username', 'writer', 'writer_username', 
-            'preferred_writer', 'total_cost', 'writer_compensation', 
-            'extra_services', 'subject', 'discount_code', 'is_paid', 
-            'status', 'flag', 'created_at', 'updated_at', 
+            'id', 'topic', 'order_instructions', 'paper_type', 'academic_level', 
+            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages', 
+            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'writer_deadline', 
+            'client', 'client_username', 'assigned_writer', 'writer_username', 
+            'preferred_writer', 'total_price', 'writer_compensation', 
+            'extra_services', 'subject', 'discount_code_used', 'is_paid', 
+            'status', 'flags', 'created_at', 'updated_at', 
             'created_by_admin', 'is_special_order', 'is_follow_up',
-            'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent'
+            'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent',
+            'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',
+            'allow_unpaid_access'
         ]
         read_only_fields = [
-            'id', 'client_username', 'writer_username', 'total_cost', 
+            'id', 'client_username', 'writer_username', 'total_price', 
             'writer_compensation', 'is_paid', 'created_at', 'updated_at', 
-            'flag', 'writer_deadline', 'editing_skip_reason'
+            'flags', 'writer_deadline', 'editing_skip_reason'
         ]
 
     def validate_academic_level(self, value):
@@ -48,6 +58,61 @@ class OrderSerializer(serializers.ModelSerializer):
         if value.website != request.website:
             raise serializers.ValidationError("Invalid academic level for this website.")
         return value
+
+    def get_is_unattributed(self, obj):
+        return obj.client_id is None and (
+            bool(getattr(obj, 'external_contact_name', None)) or
+            bool(getattr(obj, 'external_contact_email', None))
+        )
+    
+    def get_fake_client_id(self, obj):
+        """
+        Returns a fake client ID for writers viewing unattributed orders.
+        This ensures writers see a client ID even when the order is unattributed.
+        """
+        is_unattributed = obj.client_id is None and (
+            bool(getattr(obj, 'external_contact_name', None)) or
+            bool(getattr(obj, 'external_contact_email', None))
+        )
+        
+        if is_unattributed:
+            # Generate a consistent fake ID based on order ID
+            # This ensures the same fake ID is shown for the same order
+            return f"EXT-{obj.id:06d}"
+        return None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        # Hide external contact details from non-admin roles
+        request = self.context.get('request')
+        role = getattr(getattr(request, 'user', None), 'role', None)
+        user = getattr(request, 'user', None)
+        
+        is_unattributed = instance.client_id is None and (
+            bool(getattr(instance, 'external_contact_name', None)) or
+            bool(getattr(instance, 'external_contact_email', None))
+        )
+        
+        if role not in ['admin', 'superadmin', 'support']:
+            data.pop('external_contact_name', None)
+            data.pop('external_contact_email', None)
+            data.pop('external_contact_phone', None)
+            # keep allow_unpaid_access visible only if owner/admin
+            if role not in ['admin', 'superadmin'] and user != instance.client:
+                data.pop('allow_unpaid_access', None)
+        
+        # For writers viewing unattributed orders, show fake client ID instead of null
+        if role == 'writer' and is_unattributed and not data.get('client'):
+            # Keep fake_client_id visible to writers
+            # Optionally, set client_username to the fake ID for display
+            if data.get('fake_client_id'):
+                data['client_username'] = data['fake_client_id']
+        elif role not in ['admin', 'superadmin', 'support']:
+            # Hide fake_client_id from non-admin roles (except writers who need it)
+            if role != 'writer':
+                data.pop('fake_client_id', None)
+        
+        return data
     
     def perform_create(self, serializer):
         is_follow_up = self.request.data.get('is_follow_up', False)
@@ -69,10 +134,10 @@ class OrderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
         fields = [
-            'topic', 'instructions', 'paper_type', 'academic_level', 
-            'formatting_style', 'type_of_work', 'english_type', 'pages', 
-            'slides', 'resources', 'spacing', 'deadline', 'extra_services', 
-            'discount_code', 'client', 'preferred_writer'
+            'topic', 'order_instructions', 'paper_type', 'academic_level', 
+            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages', 
+            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'extra_services', 
+            'discount_code_used', 'client', 'preferred_writer'
         ]
 
     def validate_deadline(self, value):

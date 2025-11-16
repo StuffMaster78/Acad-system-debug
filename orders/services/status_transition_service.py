@@ -145,10 +145,11 @@ class StatusTransitionService:
             AuditLogService.log_auto(
                 actor=self.user,
                 action="STATUS_TRANSITION",
-                target="orders.Order",
-                target_id=order.id,
-                changes={"status": [current, target_status]},
-                metadata=metadata or {},
+                target=order,
+                metadata={
+                    "status": [current, target_status],
+                    **(metadata or {})
+                },
             )
 
         return order

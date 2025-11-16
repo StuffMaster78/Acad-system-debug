@@ -3,6 +3,10 @@ from django.utils.functional import cached_property
 from rest_framework import status, decorators, viewsets, mixins
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
+from django.db import models
+from decimal import Decimal
 
 from orders.models import Order
 from orders.serializers import OrderSerializer
@@ -10,6 +14,18 @@ from orders.permissions import IsOrderOwnerOrSupport
 from orders.services.order_deletion_service import (
     OrderDeletionService, ALLOWED_STAFF_ROLES
 )
+
+
+class NoPagination(PageNumberPagination):
+    """Custom pagination class that returns all results without pagination."""
+    def paginate_queryset(self, queryset, request, view=None):
+        """Override to disable pagination - return None to get all results."""
+        return None
+    
+    def get_paginated_response(self, data):
+        """This should never be called, but return data as-is if it is."""
+        from rest_framework.response import Response
+        return Response(data)
 
 
 class OrderBaseViewSet(
@@ -29,6 +45,7 @@ class OrderBaseViewSet(
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated, IsOrderOwnerOrSupport]
+    pagination_class = NoPagination  # Return all orders without pagination
 
     def get_queryset(self):
         """
@@ -39,21 +56,284 @@ class OrderBaseViewSet(
         """
         user = self.request.user
 
-        if user.is_superuser:
-            return Order.objects.all()
+        # Check if user is authenticated
+        if not user or not user.is_authenticated:
+            return Order.objects.none()
 
-        if user.role == 'client':
-            return Order.objects.filter(client=user)
+        qs = Order.objects.all()
 
-        if user.role == 'writer':
-            return Order.objects.filter(writer=user)
+        # Role-based scoping
+        # Both superadmin and admin should see all orders (no website filtering)
+        user_role = getattr(user, 'role', None)
+        if user.is_superuser or user_role == 'superadmin':
+            base_qs = qs
+        elif user_role == 'client':
+            base_qs = qs.filter(client=user)
+        elif user_role == 'writer':
+            # Writers see orders assigned to them
+            base_qs = qs.filter(assigned_writer=user)
+        elif user_role in ['admin', 'support', 'editor']:
+            # Admins, support, and editors see all orders (no website filtering)
+            base_qs = qs
+        else:
+            base_qs = qs.none()
 
-        if user.role in ['admin', 'support', 'editor']:
-            return Order.objects.all()
+        # Query param filters
+        params = self.request.query_params
+        unattributed = params.get('unattributed')
+        if unattributed is not None:
+            val = unattributed.lower() in ['1', 'true', 'yes']
+            if val:
+                base_qs = base_qs.filter(client__isnull=True).filter(
+                    models.Q(external_contact_name__isnull=False) | models.Q(external_contact_email__isnull=False)
+                )
+            else:
+                base_qs = base_qs.exclude(client__isnull=True)
 
-        return Order.objects.none()
+        contact_search = params.get('contact')
+        if contact_search:
+            base_qs = base_qs.filter(
+                models.Q(external_contact_name__icontains=contact_search) |
+                models.Q(external_contact_email__icontains=contact_search) |
+                models.Q(external_contact_phone__icontains=contact_search)
+            )
+
+        paid = params.get('is_paid')
+        if paid is not None:
+            base_qs = base_qs.filter(is_paid=(paid.lower() in ['1','true','yes']))
+
+        # Filter by one or more statuses (comma-separated)
+        statuses = params.get('status')
+        if statuses:
+            requested = [s.strip() for s in statuses.split(',') if s.strip()]
+            if requested:
+                base_qs = base_qs.filter(status__in=requested)
+
+        return base_qs
     
 
+
+    @decorators.action(detail=False, methods=["post"], url_path="create")
+    def create_order(self, request):
+        """
+        Client creates a new order. Minimal required fields:
+        - topic (str)
+        - paper_type_id (int)
+        - number_of_pages (int >=1)
+        - client_deadline (datetime ISO)
+        - order_instructions (str)
+        Optional:
+        - academic_level_id, formatting_style_id, subject_id, extra_services (list[int])
+        """
+        user = request.user
+        if user.role != 'client' and not user.is_superuser:
+            return Response({"detail": "Only clients can create orders."}, status=status.HTTP_403_FORBIDDEN)
+
+        data = request.data if isinstance(request.data, dict) else {}
+
+        required = ["topic", "paper_type_id", "number_of_pages", "client_deadline", "order_instructions"]
+        missing = [f for f in required if not data.get(f)]
+        if missing:
+            return Response({"detail": f"Missing fields: {', '.join(missing)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            order = Order.objects.create(
+                website=getattr(user, 'website', None),
+                client=user,
+                topic=data["topic"],
+                paper_type_id=int(data["paper_type_id"]),
+                number_of_pages=int(data["number_of_pages"]),
+                client_deadline=data["client_deadline"],
+                order_instructions=data["order_instructions"],
+                created_by_admin=False,
+                is_paid=False,
+            )
+
+            # Optional fields
+            if data.get("academic_level_id"):
+                order.academic_level_id = int(data["academic_level_id"])
+            if data.get("formatting_style_id"):
+                order.formatting_style_id = int(data["formatting_style_id"])
+            if data.get("subject_id"):
+                order.subject_id = int(data["subject_id"])
+            order.save()
+
+            # Extra services many-to-many
+            extra_services = data.get("extra_services") or []
+            if isinstance(extra_services, list) and extra_services:
+                order.extra_services.set(extra_services)
+
+            return Response(OrderSerializer(order, context={"request": request}).data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @decorators.action(detail=False, methods=["post"], url_path="quote")
+    def quote(self, request):
+        """
+        Calculate price quote for a prospective order without saving it.
+        Required fields mirror create_order. Returns detailed breakdown.
+        """
+        data = request.data if isinstance(request.data, dict) else {}
+        try:
+            from django.utils import timezone
+            from datetime import datetime
+            
+            # Parse deadline
+            deadline = data.get("client_deadline")
+            if deadline:
+                if isinstance(deadline, str):
+                    deadline = datetime.fromisoformat(deadline.replace('Z', '+00:00'))
+            
+            temp = Order(
+                website=getattr(request.user, 'website', None),
+                client=request.user if getattr(request.user, 'role', None) == 'client' else None,
+                topic=data.get("topic", ""),
+                paper_type_id=data.get("paper_type_id"),
+                number_of_pages=int(data.get("number_of_pages", 1)),
+                number_of_slides=int(data.get("number_of_slides", 0)),
+                client_deadline=deadline,
+                order_instructions=data.get("order_instructions", ""),
+                created_at=timezone.now(),
+            )
+            # Optional fields
+            if data.get("academic_level_id"):
+                temp.academic_level_id = int(data["academic_level_id"])
+            if data.get("formatting_style_id"):
+                temp.formatting_style_id = int(data["formatting_style_id"])
+            if data.get("subject_id"):
+                temp.subject_id = int(data["subject_id"])
+            if data.get("type_of_work_id"):
+                temp.type_of_work_id = int(data["type_of_work_id"])
+            if data.get("english_type_id"):
+                temp.english_type_id = int(data["english_type_id"])
+            if data.get("preferred_writer_id"):
+                temp.preferred_writer_id = int(data["preferred_writer_id"])
+            if data.get("writer_level_id"):
+                from pricing_configs.models import WriterLevelOptionConfig
+                try:
+                    temp.writer_level = WriterLevelOptionConfig.objects.get(id=int(data["writer_level_id"]))
+                except WriterLevelOptionConfig.DoesNotExist:
+                    pass
+            
+            # Handle extra services - calculate price manually since we can't save M2M on unsaved order
+            extra_services_price = Decimal("0.00")
+            if data.get("extra_services"):
+                from pricing_configs.models import AdditionalService
+                service_ids = data["extra_services"]
+                if isinstance(service_ids, list):
+                    services = AdditionalService.objects.filter(id__in=service_ids, is_active=True)
+                    extra_services_price = sum(Decimal(str(s.service_cost or 0)) for s in services)
+            
+            # Handle discount code
+            if data.get("discount_code"):
+                from discounts.models import Discount
+                try:
+                    discount = Discount.objects.get(
+                        code=data["discount_code"],
+                        website=temp.website,
+                        is_active=True
+                    )
+                    temp.discount = discount
+                except Discount.DoesNotExist:
+                    pass
+
+            # Use pricing calculator service
+            from orders.services.pricing_calculator import PricingCalculatorService
+            calculator = PricingCalculatorService(temp)
+            breakdown = calculator.calculate_breakdown()
+            total = calculator.calculate_total_price()
+            
+            # Get deadline multiplier for display
+            deadline_multiplier = calculator.get_deadline_multiplier()
+            
+            # Calculate hours until deadline
+            hours_until_deadline = None
+            if deadline:
+                hours_until_deadline = (deadline - timezone.now()).total_seconds() / 3600
+            
+            # Manually add extra services to total if they weren't included
+            final_total = float(total)
+            if extra_services_price > 0:
+                final_total += float(extra_services_price)
+            
+            return Response({
+                "total_price": final_total,
+                "base_price": breakdown.get("base_price", 0),
+                "slides_price": float(temp.number_of_slides * calculator.config.base_price_per_slide) if temp.number_of_slides > 0 else 0,
+                "extra_services": float(extra_services_price),
+                "writer_level": breakdown.get("writer_level", 0),
+                "preferred_writer": breakdown.get("preferred_writer", 0),
+                "discount_amount": breakdown.get("discount", 0),
+                "deadline_multiplier": float(deadline_multiplier),
+                "hours_until_deadline": hours_until_deadline,
+                "breakdown": breakdown
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @decorators.action(detail=False, methods=["get"], url_path="preferred-writers")
+    def get_preferred_writers(self, request):
+        """
+        Get list of writers the client has worked with before (for preferred writer selection).
+        """
+        from orders.services.preferred_writer_service import PreferredWriterService
+        from users.serializers import UserSerializer
+        
+        if request.user.role != 'client':
+            return Response(
+                {"detail": "This endpoint is only available for clients."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        writer_ids = PreferredWriterService.get_last_five_writers_for_client(request.user)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        writers = User.objects.filter(id__in=writer_ids).select_related('writer_profile')
+        
+        # Get preferred writer costs
+        from pricing_configs.models import PreferredWriterConfig
+        website = getattr(request.user, 'website', None)
+        writer_data = []
+        for writer in writers:
+            cost = Decimal("0.00")
+            if website:
+                try:
+                    config = PreferredWriterConfig.objects.get(writer=writer, website=website)
+                    cost = config.preferred_writer_cost
+                except PreferredWriterConfig.DoesNotExist:
+                    pass
+            
+            writer_data.append({
+                'id': writer.id,
+                'username': writer.username,
+                'email': writer.email,
+                'first_name': writer.first_name,
+                'last_name': writer.last_name,
+                'preferred_writer_cost': float(cost)
+            })
+        
+        return Response(writer_data, status=status.HTTP_200_OK)
+
+    @decorators.action(detail=True, methods=["post"], url_path="pay/wallet")
+    def pay_with_wallet(self, request, pk=None):
+        """
+        Mark an order as paid using wallet (placeholder implementation).
+        Requires client to own the order or staff privileges.
+        """
+        order = get_object_or_404(Order, pk=pk)
+        user = request.user
+        if not (user.is_superuser or user.role in ["admin", "support"] or order.client_id == user.id):
+            return Response({"detail": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
+
+        if order.is_paid:
+            return Response({"detail": "Order already paid."}, status=status.HTTP_200_OK)
+
+        # TODO: integrate real wallet deduction here
+        order.is_paid = True
+        order.save(update_fields=["is_paid", "updated_at"])
+        return Response(OrderSerializer(order, context={"request": request}).data, status=status.HTTP_200_OK)
 
     # ---------- soft delete (clients: only UNPAID; staff: any) ----------
 

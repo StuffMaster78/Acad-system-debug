@@ -5,7 +5,6 @@ Dispatcher to find and execute registered order actions.
 from orders.registry.decorator import (
     get_registered_action, get_all_registered_actions
 )
-from orders.webhooks.tasks import deliver_webhook_task
 
 
 class OrderActionDispatcher:
@@ -84,6 +83,9 @@ class OrderActionDispatcher:
         return result
     
     def _trigger_webhooks_if_needed(self, action):
+        # Lazy import to avoid circular import issues
+        from orders.webhooks.tasks import deliver_webhook_task
+        
         writer = self.order.assigned_writer
         if not writer:
             return

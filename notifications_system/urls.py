@@ -51,7 +51,8 @@ from notifications_system.dashboard.views import (
     SystemHealthView,
 )
 
-app_name = "notifications_system"
+# app_name removed to allow explicit namespaces in main urls.py
+# app_name = "notifications_system"
 
 router = DefaultRouter()
 router.register(

@@ -36,7 +36,8 @@ class ReferralService:
         return bool(first_order)
 
     def _get_qualifying_order(self):
-        return self.referral.referee.orders.filter(status='completed', payment_status='paid').first()
+        # Order model uses 'client' field and 'is_paid' boolean field
+        return self.referral.referee.orders_as_client.filter(status='completed', is_paid=True).first()
     
     def get_referral_link(self):
         """Dynamically generates a referral link."""
@@ -85,10 +86,12 @@ class ReferralService:
         if not self.config or self.referral.first_order_bonus_credited:
             return Decimal('0.00')
 
-        if order.user != self.referral.referee:
+        # Order model uses 'client' field
+        order_client = getattr(order, 'client', None) or getattr(order, 'user', None)
+        if not order_client or order_client != self.referral.referee:
             return Decimal('0.00')
 
-        previous_orders = order.user.orders.exclude(id=order.id).filter(status='completed')
+        previous_orders = order_client.orders_as_client.exclude(id=order.id).filter(status='completed')
         if previous_orders.exists():
             return Decimal('0.00')
 
@@ -105,7 +108,7 @@ class ReferralService:
             wallet=wallet,
             transaction_type='referral_bonus',
             amount=discount,
-            description=f"Referral Discount Applied for {order.user.username}",
+            description=f"Referral Discount Applied for {order_client.username}",
             website=self.referral.website,
         )
 
@@ -135,10 +138,12 @@ class ReferralService:
         if not self.config or self.referral.first_order_bonus_credited:
             return Decimal('0.00')
 
-        if order.user != self.referral.referee:
+        # Order model uses 'client' field
+        order_client = getattr(order, 'client', None) or getattr(order, 'user', None)
+        if not order_client or order_client != self.referral.referee:
             return Decimal('0.00')
 
-        previous_orders = order.user.orders.exclude(id=order.id).filter(status='completed')
+        previous_orders = order_client.orders_as_client.exclude(id=order.id).filter(status='completed')
         if previous_orders.exists():
             return Decimal('0.00')
 
@@ -188,11 +193,34 @@ class ReferralService:
     @staticmethod 
     def record_referral_for_user(user, request):
         """
-        Record a referral for the user based on the referral code stored in the session.
-        This method checks if a referral code exists in the session, validates it,
-        and creates a Referral object if the code is valid and not a self-referral.
+        Record a referral for the user based on the referral code.
+        Checks in this order:
+        1. Request data (referral_code parameter)
+        2. Query parameters (ref parameter)
+        3. Session (referral_code)
+        4. Pending invitations (by email)
+        
+        This method validates the code and creates a Referral object if valid and not a self-referral.
         """
-        code = request.session.pop("referral_code", None)
+        # Try to get code from multiple sources
+        code = None
+        if hasattr(request, 'data') and request.data:
+            code = request.data.get("referral_code")
+        if not code and hasattr(request, 'query_params') and request.query_params:
+            code = request.query_params.get("ref")
+        if not code and hasattr(request, 'session'):
+            code = request.session.pop("referral_code", None)
+        
+        if not code:
+            # Check if there's a pending invitation for this user's email
+            from .models import PendingReferralInvitation
+            pending_invitation = PendingReferralInvitation.objects.filter(
+                referee_email=user.email.lower(),
+                converted=False
+            ).first()
+            if pending_invitation:
+                code = pending_invitation.referral_code
+
         if not code:
             return
 
@@ -201,16 +229,39 @@ class ReferralService:
         except ReferralCode.DoesNotExist:
             return
 
-        # Don’t allow self-referral
+        # Don't allow self-referral
         if ref_code.user == user:
             return
 
-        Referral.objects.create(
+        # Check if referral already exists
+        existing_referral = Referral.objects.filter(
+            referrer=ref_code.user,
+            referee=user,
+            website=ref_code.website,
+            is_deleted=False
+        ).first()
+        
+        if existing_referral:
+            return  # Already referred
+
+        # Create the referral
+        referral = Referral.objects.create(
             website=ref_code.website,
             referrer=ref_code.user,
             referee=user,
             referral_code=code
         )
+
+        # Check if there's a pending invitation for this email and mark it as converted
+        from .models import PendingReferralInvitation
+        pending_invitation = PendingReferralInvitation.objects.filter(
+            referee_email=user.email.lower(),
+            referral_code=code,
+            converted=False
+        ).first()
+        
+        if pending_invitation:
+            pending_invitation.mark_as_converted()
 
 
     def update_stats(self, bonus_amount, successful):

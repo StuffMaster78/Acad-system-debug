@@ -32,9 +32,10 @@ class CommunicationThreadSerializer(serializers.ModelSerializer):
             "participants",
             "created_at",
             "updated_at",
-            "last_message"
+            "last_message",
+            "unread_count"
         ]
-        read_only_fields = fields
+        read_only_fields = ["id", "is_active", "admin_override", "participants", "created_at", "updated_at", "last_message", "unread_count"]
 
     def get_last_message(self, obj):
         """
@@ -43,15 +44,79 @@ class CommunicationThreadSerializer(serializers.ModelSerializer):
         """
         last = obj.messages.filter(is_deleted=False).order_by("-sent_at").first()
         if last:
-            return CommunicationMessageSerializer(last).data
+            return CommunicationMessageSerializer(last, context=self.context).data
         return None
     
     def get_unread_count(self, obj):
         """
         Get the count of unread messages for the current user in this thread.
         """
-        user = self.context["request"].user
+        request = self.context.get("request")
+        if not request or not request.user:
+            return 0
+        user = request.user
         return obj.messages.exclude(read_by=user).count()
+
+
+class CreateCommunicationThreadSerializer(serializers.Serializer):
+    """Serializer for creating a new communication thread."""
+    order = serializers.IntegerField(
+        required=True,
+        help_text="Order ID for this thread"
+    )
+    website = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text="Website ID (optional, will be derived from order if not provided)"
+    )
+    participants = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_empty=True,
+        help_text="List of participant user IDs"
+    )
+    thread_type = serializers.ChoiceField(
+        choices=CommunicationThread.THREAD_TYPE_CHOICES,
+        default="order",
+        required=False
+    )
+
+    def validate_order(self, value):
+        """Validate order exists and is accessible."""
+        from orders.models import Order
+        try:
+            order = Order.objects.get(id=value)
+            return order
+        except Order.DoesNotExist:
+            raise serializers.ValidationError("Order does not exist.")
+    
+    def validate_website(self, value):
+        """Validate website exists if provided."""
+        if value is None:
+            return None
+        from websites.models import Website
+        try:
+            website = Website.objects.get(id=value)
+            return website
+        except Website.DoesNotExist:
+            raise serializers.ValidationError("Website does not exist.")
+    
+    def validate_participants(self, value):
+        """Validate participants exist."""
+        if not value:
+            return []
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        validated_participants = []
+        for user_id in value:
+            try:
+                user = User.objects.get(id=user_id)
+                validated_participants.append(user)
+            except User.DoesNotExist:
+                raise serializers.ValidationError(f"User with ID {user_id} does not exist.")
+        
+        return validated_participants
 
 
 class MessageAttachmentSerializer(serializers.Serializer):
@@ -87,16 +152,18 @@ class MessageAttachmentSerializer(serializers.Serializer):
         return None
     
 class CommunicationMessageSerializer(serializers.ModelSerializer):
-    sender = SimpleUserSerializer(read_only=True)
+    sender = serializers.SerializerMethodField()
     sender_role = serializers.CharField(read_only=True)
-    recipient = SimpleUserSerializer(read_only=True)
+    recipient = serializers.SerializerMethodField()
+    sender_display_name = serializers.SerializerMethodField()
+    recipient_display_name = serializers.SerializerMethodField()
     reply_to_id = serializers.PrimaryKeyRelatedField(
         queryset=CommunicationMessage.objects.all(),
         source="reply_to",
         required=False,
         allow_null=True
     )
-    attachment = MessageAttachmentSerializer(source="attachment_file", read_only=True)
+    attachment = MessageAttachmentSerializer(read_only=True)
 
     is_sender = serializers.SerializerMethodField()
     is_system = serializers.SerializerMethodField()
@@ -121,21 +188,153 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
         model = CommunicationMessage
         fields = [
             "id", "thread", "sender", "sender_role", "recipient", "message",
+            "sender_display_name", "recipient_display_name",
             "reply_to_id", "message_type", "link_url", "link_domain",
             "is_flagged", "is_hidden", "contains_link", "is_link_approved",
             "is_read", "sent_at", "flagged_message", "read_receipts", "attachment",
-            "unread_count", "is_system"
+            "unread_count", "is_system", "is_sender", "link_preview", "link_preview_json"
         ]
         read_only_fields = [
             "id", "thread", "sender",
             "sender_role", "recipient", "sent_at"
         ]
 
+    def get_sender(self, obj):
+        """Return anonymized sender info based on viewer's role."""
+        request = self.context.get("request")
+        if not request or not request.user:
+            return SimpleUserSerializer(obj.sender).data
+        
+        viewer = request.user
+        viewer_role = getattr(viewer, "role", None)
+        sender_role = obj.sender_role
+        
+        # Staff (admin, superadmin, support, editor) can see all names
+        if viewer_role in {"admin", "superadmin", "support", "editor"}:
+            return SimpleUserSerializer(obj.sender).data
+        
+        # Clients see anonymized writer info
+        if viewer_role == "client":
+            if sender_role == "writer":
+                return {
+                    "id": obj.sender.id,
+                    "username": f"Writer #{obj.sender.id}",
+                    "email": None
+                }
+            elif sender_role in {"admin", "superadmin", "support"}:
+                return {
+                    "id": obj.sender.id,
+                    "username": "Support",
+                    "email": None
+                }
+            elif sender_role == "editor":
+                return {
+                    "id": obj.sender.id,
+                    "username": "Editor",
+                    "email": None
+                }
+        
+        # Writers see anonymized client info
+        if viewer_role == "writer":
+            if sender_role == "client":
+                return {
+                    "id": obj.sender.id,
+                    "username": "Client",
+                    "email": None
+                }
+            elif sender_role in {"admin", "superadmin", "support"}:
+                return {
+                    "id": obj.sender.id,
+                    "username": "Support",
+                    "email": None
+                }
+            elif sender_role == "editor":
+                return {
+                    "id": obj.sender.id,
+                    "username": "Editor",
+                    "email": None
+                }
+        
+        # Default: return full info
+        return SimpleUserSerializer(obj.sender).data
+    
+    def get_recipient(self, obj):
+        """Return anonymized recipient info based on viewer's role."""
+        request = self.context.get("request")
+        if not request or not request.user:
+            return SimpleUserSerializer(obj.recipient).data
+        
+        viewer = request.user
+        viewer_role = getattr(viewer, "role", None)
+        recipient_role = getattr(obj.recipient, "role", None)
+        
+        # Staff can see all names
+        if viewer_role in {"admin", "superadmin", "support", "editor"}:
+            return SimpleUserSerializer(obj.recipient).data
+        
+        # Clients see anonymized writer info
+        if viewer_role == "client":
+            if recipient_role == "writer":
+                return {
+                    "id": obj.recipient.id,
+                    "username": f"Writer #{obj.recipient.id}",
+                    "email": None
+                }
+            elif recipient_role in {"admin", "superadmin", "support"}:
+                return {
+                    "id": obj.recipient.id,
+                    "username": "Support",
+                    "email": None
+                }
+            elif recipient_role == "editor":
+                return {
+                    "id": obj.recipient.id,
+                    "username": "Editor",
+                    "email": None
+                }
+        
+        # Writers see anonymized client info
+        if viewer_role == "writer":
+            if recipient_role == "client":
+                return {
+                    "id": obj.recipient.id,
+                    "username": "Client",
+                    "email": None
+                }
+            elif recipient_role in {"admin", "superadmin", "support"}:
+                return {
+                    "id": obj.recipient.id,
+                    "username": "Support",
+                    "email": None
+                }
+            elif recipient_role == "editor":
+                return {
+                    "id": obj.recipient.id,
+                    "username": "Editor",
+                    "email": None
+                }
+        
+        # Default: return full info
+        return SimpleUserSerializer(obj.recipient).data
+    
+    def get_sender_display_name(self, obj):
+        """Get display name for sender (anonymized if needed)."""
+        sender_data = self.get_sender(obj)
+        return sender_data.get("username", "Unknown")
+    
+    def get_recipient_display_name(self, obj):
+        """Get display name for recipient (anonymized if needed)."""
+        recipient_data = self.get_recipient(obj)
+        return recipient_data.get("username", "Unknown")
+    
     def get_is_read(self, obj):
         """
         Check if the message has been read by the current user.
         """
-        user = self.context["request"].user
+        request = self.context.get("request")
+        if not request or not request.user or not request.user.is_authenticated:
+            return False
+        user = request.user
         return obj.read_by.filter(id=user.id).exists()
 
     def get_flagged_message(self, obj):
@@ -146,7 +345,10 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
         return obj.message_type == MessageType.SYSTEM
     
     def get_unread_count(self, obj):
-        user = self.context["request"].user
+        request = self.context.get("request")
+        if not request or not request.user or not request.user.is_authenticated:
+            return 1  # Default to unread if no user context
+        user = request.user
         return 0 if user in obj.read_by.all() else 1
     
     def get_is_sender(self, obj):
@@ -173,7 +375,7 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
         return [
             {
                 "username": receipt.user.username,
-                "role": receipt.user.profile.role,
+                "role": getattr(receipt.user, "role", None),
                 "self": receipt.user == request.user,
                 "read_at": receipt.read_at.strftime("%Y-%m-%d %H:%M:%S"),
             }
@@ -186,10 +388,20 @@ class CreateCommunicationMessageSerializer(serializers.Serializer):
     Serializer for creating a new communication message.
     This is used for sending messages in a thread.
     """
-    thread = serializers.UUIDField()
-    recipient_id = serializers.UUIDField()
-    message = serializers.CharField()
-    reply_to_id = serializers.UUIDField(required=False, allow_null=True)
+    recipient = serializers.IntegerField(
+        required=True,
+        help_text="Recipient user ID - must be selected by the sender"
+    )
+    message = serializers.CharField(required=True)
+    reply_to = serializers.IntegerField(
+        required=False,
+        allow_null=True
+    )
+    message_type = serializers.ChoiceField(
+        choices=MessageType.choices,
+        default=MessageType.TEXT,
+        required=False
+    )
 
 
     def validate_message(self, value):
@@ -199,48 +411,83 @@ class CreateCommunicationMessageSerializer(serializers.Serializer):
     
 
 
+    def validate_recipient(self, value):
+        """Validate recipient exists and is not the sender."""
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        try:
+            recipient = User.objects.get(id=value)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Recipient user does not exist.")
+        
+        # Get sender from context
+        request = self.context.get('request')
+        if request and request.user:
+            if recipient.id == request.user.id:
+                raise serializers.ValidationError("You cannot send a message to yourself.")
+        
+        return recipient
+    
+    def validate_reply_to(self, value):
+        """Validate reply_to message exists if provided."""
+        if value is None:
+            return None
+        
+        try:
+            reply_message = CommunicationMessage.objects.get(id=value)
+            return reply_message
+        except CommunicationMessage.DoesNotExist:
+            raise serializers.ValidationError("Reply-to message does not exist.")
+
     def validate(self, data):
         """ Validate the entire message data.
         - Ensure the thread exists and is active.
-        - Ensure the recipient is not the sender.
-        - Autodetect links in the message.
+        - Ensure the recipient has access to the order.
         """
-        thread = CommunicationThread.objects.filter(id=data["thread"]).first()
-        if thread and not thread.is_active:
-            raise serializers.ValidationError(
-                "Thread is no longer active."
-            )
+        thread = self.context.get('thread')
+        if not thread:
+            raise serializers.ValidationError("Thread is required.")
+        
+        if not thread.is_active and not thread.admin_override:
+            raise serializers.ValidationError("Thread is no longer active.")
         
         request = self.context.get("request")
         if data.get("message_type") == MessageType.SYSTEM:
             raise serializers.ValidationError(
                 "System messages cannot be created manually."
             )
-        if not thread:
-            raise serializers.ValidationError("Thread does not exist.")
-        if not thread.participants.filter(id=data["recipient_id"]).exists():
-            raise serializers.ValidationError(
-                "Recipient is not a participant in this thread."
-            )
-        if not thread.participants.filter(id=request.user.id).exists():
-            raise serializers.ValidationError(
-                "You are not a participant in this thread."
-            )
-        if "reply_to_id" in data and data["reply_to_id"]:
-            reply_to = CommunicationMessage.objects.filter(id=data["reply_to_id"]).first()
-            if not reply_to or reply_to.thread != thread:
-                raise serializers.ValidationError(
-                    "Reply-to message does not belong to this thread."
+        
+        # Validate recipient has access to the thread/order
+        recipient = data.get('recipient')
+        if recipient:
+            # For threads with orders, check order access
+            if thread.order:
+                order = thread.order
+                role = getattr(recipient, "role", None)
+                has_access = (
+                    order.client == recipient or
+                    order.assigned_writer == recipient or
+                    role in {"admin", "superadmin", "editor", "support"} or
+                    recipient in thread.participants.all()
                 )
-            data["reply_to"] = reply_to
-        else:
-            data["reply_to"] = None
-        # Validate recipient ID
-        data["recipient_id"] = self.validate_recipient_id(data["recipient_id"])
-        # Ensure recipient is not the sender
-        user = request.user
-        if str(data["recipient_id"]) == str(user.id):
-            raise serializers.ValidationError("Cannot send message to yourself.")
+                if not has_access:
+                    raise serializers.ValidationError({
+                        "recipient": "Selected recipient does not have access to this order."
+                    })
+            else:
+                # For threads without orders, check if recipient is a participant
+                if recipient not in thread.participants.all():
+                    raise serializers.ValidationError({
+                        "recipient": "Recipient is not a participant in this thread."
+                    })
+        
+        # Validate reply_to belongs to the thread
+        reply_to = data.get('reply_to')
+        if reply_to and reply_to.thread != thread:
+            raise serializers.ValidationError({
+                "reply_to": "Reply-to message does not belong to this thread."
+            })
         
         # Autodetect links
         link = extract_first_link(data["message"])
@@ -251,16 +498,8 @@ class CreateCommunicationMessageSerializer(serializers.Serializer):
                 data["link_domain"] = domain if domain else None
             except IndexError:
                 data["link_domain"] = None
+        
         return data
-    
-    def validate_recipient_id(self, value):
-        """ 
-        Ensure the recipient is not the sender.
-        """
-        user = self.context["request"].user
-        if str(value) == str(user.id):
-            raise serializers.ValidationError("Cannot send message to yourself.")
-        return value
 
 
     
