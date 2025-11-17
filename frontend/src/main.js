@@ -10,8 +10,8 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
-// Import global styles (if you have them)
-// import './assets/styles/main.css'
+// Import global styles
+import './styles/dashboard.css'
 
 // Create Vue app
 const app = createApp(App)

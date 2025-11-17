@@ -27,52 +27,56 @@
     <div v-if="activeTab === 'dashboard'" class="tab-content">
       <div v-if="loading" class="loading">Loading dashboard...</div>
       <div v-else-if="error" class="error">{{ error }}</div>
-      <div v-else class="dashboard">
+      <div v-else class="dashboard-container">
         <!-- Summary Cards -->
-        <div class="summary-cards">
-          <div class="card">
-            <h3>Total Tips</h3>
-            <p class="value">{{ formatNumber(dashboardData.summary?.total_tips || 0) }}</p>
+        <div class="stats-grid">
+          <div class="dashboard-card card-blue">
+            <div class="card-icon">💰</div>
+            <div class="card-label">Total Tips</div>
+            <div class="card-value">{{ formatNumber(dashboardData.summary?.total_tips || 0) }}</div>
           </div>
-          <div class="card">
-            <h3>Total Tip Amount</h3>
-            <p class="value">${{ formatCurrency(dashboardData.summary?.total_tip_amount || 0) }}</p>
+          <div class="dashboard-card card-green">
+            <div class="card-icon">💵</div>
+            <div class="card-label">Total Tip Amount</div>
+            <div class="card-value money-value">${{ formatCurrency(dashboardData.summary?.total_tip_amount || 0) }}</div>
           </div>
-          <div class="card">
-            <h3>Writer Earnings</h3>
-            <p class="value">${{ formatCurrency(dashboardData.summary?.total_writer_earnings || 0) }}</p>
+          <div class="dashboard-card card-purple">
+            <div class="card-icon">✍️</div>
+            <div class="card-label">Writer Earnings</div>
+            <div class="card-value money-value">${{ formatCurrency(dashboardData.summary?.total_writer_earnings || 0) }}</div>
           </div>
-          <div class="card">
-            <h3>Platform Profit</h3>
-            <p class="value">${{ formatCurrency(dashboardData.summary?.total_platform_profit || 0) }}</p>
+          <div class="dashboard-card card-orange">
+            <div class="card-icon">🏢</div>
+            <div class="card-label">Platform Profit</div>
+            <div class="card-value money-value">${{ formatCurrency(dashboardData.summary?.total_platform_profit || 0) }}</div>
           </div>
         </div>
 
         <!-- Recent Summary -->
-        <div class="section">
+        <div class="dashboard-section">
           <h2>Recent Summary (Last {{ dashboardData.recent_summary?.days || 30 }} Days)</h2>
-          <div class="recent-stats">
-            <div class="stat">
-              <label>Total Tips</label>
-              <span>{{ formatNumber(dashboardData.recent_summary?.total_tips || 0) }}</span>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-label">Total Tips</div>
+              <div class="stat-value">{{ formatNumber(dashboardData.recent_summary?.total_tips || 0) }}</div>
             </div>
-            <div class="stat">
-              <label>Total Amount</label>
-              <span>${{ formatCurrency(dashboardData.recent_summary?.total_tip_amount || 0) }}</span>
+            <div class="stat-item">
+              <div class="stat-label">Total Amount</div>
+              <div class="stat-value money-value">${{ formatCurrency(dashboardData.recent_summary?.total_tip_amount || 0) }}</div>
             </div>
-            <div class="stat">
-              <label>Writer Earnings</label>
-              <span>${{ formatCurrency(dashboardData.recent_summary?.total_writer_earnings || 0) }}</span>
+            <div class="stat-item">
+              <div class="stat-label">Writer Earnings</div>
+              <div class="stat-value money-value">${{ formatCurrency(dashboardData.recent_summary?.total_writer_earnings || 0) }}</div>
             </div>
-            <div class="stat">
-              <label>Platform Profit</label>
-              <span>${{ formatCurrency(dashboardData.recent_summary?.total_platform_profit || 0) }}</span>
+            <div class="stat-item">
+              <div class="stat-label">Platform Profit</div>
+              <div class="stat-value money-value">${{ formatCurrency(dashboardData.recent_summary?.total_platform_profit || 0) }}</div>
             </div>
           </div>
         </div>
 
         <!-- Payment Status -->
-        <div class="section">
+        <div class="dashboard-section">
           <h2>Payment Status</h2>
           <div class="payment-status">
             <div class="status-item">
@@ -95,7 +99,7 @@
         </div>
 
         <!-- Type Breakdown -->
-        <div class="section">
+        <div class="dashboard-section">
           <h2>Breakdown by Type</h2>
           <div class="breakdown">
             <div
@@ -279,22 +283,22 @@
       <div v-else class="earnings">
         <div class="section">
           <h2>Overall Earnings</h2>
-          <div class="earnings-stats">
-            <div class="stat">
-              <label>Total Tips</label>
-              <span>{{ formatNumber(earningsData.overall?.total_tips || 0) }}</span>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <div class="stat-label">Total Tips</div>
+              <div class="stat-value">{{ formatNumber(earningsData.overall?.total_tips || 0) }}</div>
             </div>
-            <div class="stat">
-              <label>Total Amount</label>
-              <span>${{ formatCurrency(earningsData.overall?.total_tip_amount || 0) }}</span>
+            <div class="stat-item">
+              <div class="stat-label">Total Amount</div>
+              <div class="stat-value money-value">${{ formatCurrency(earningsData.overall?.total_tip_amount || 0) }}</div>
             </div>
-            <div class="stat">
-              <label>Writer Earnings</label>
-              <span>${{ formatCurrency(earningsData.overall?.total_writer_earnings || 0) }}</span>
+            <div class="stat-item">
+              <div class="stat-label">Writer Earnings</div>
+              <div class="stat-value money-value">${{ formatCurrency(earningsData.overall?.total_writer_earnings || 0) }}</div>
             </div>
-            <div class="stat">
-              <label>Platform Profit</label>
-              <span>${{ formatCurrency(earningsData.overall?.total_platform_profit || 0) }}</span>
+            <div class="stat-item">
+              <div class="stat-label">Platform Profit</div>
+              <div class="stat-value money-value">${{ formatCurrency(earningsData.overall?.total_platform_profit || 0) }}</div>
             </div>
           </div>
         </div>
@@ -472,7 +476,12 @@ export default {
       }
     },
     formatCurrency(value) {
-      return parseFloat(value || 0).toFixed(2)
+      const num = parseFloat(value || 0)
+      // Format with thousand separators and 2 decimal places
+      return num.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })
     },
     formatNumber(value) {
       return parseInt(value || 0).toLocaleString()
@@ -488,7 +497,7 @@ export default {
 
 <style scoped>
 .tip-management {
-  padding: 20px;
+  /* Uses shared dashboard-container from dashboard.css */
 }
 
 .header {
@@ -532,38 +541,7 @@ export default {
   color: #dc3545;
 }
 
-.summary-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-.card {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 8px;
-}
-
-.card h3 {
-  margin: 0 0 10px 0;
-  font-size: 14px;
-  color: #666;
-}
-
-.card .value {
-  font-size: 24px;
-  font-weight: bold;
-  margin: 0;
-}
-
-.section {
-  margin-bottom: 30px;
-}
-
-.section h2 {
-  margin-bottom: 15px;
-}
+/* Styles now use shared dashboard.css */
 
 .filters {
   display: flex;
@@ -653,6 +631,132 @@ export default {
 .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Breakdown and other sections */
+.breakdown {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.breakdown-item {
+  padding: 16px;
+  background: white;
+  border-radius: 10px;
+  border-left: 3px solid #667eea;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.breakdown-item h4 {
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.breakdown-item p {
+  margin: 8px 0;
+  font-size: 14px;
+  color: #4b5563;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Style paragraphs that contain money values (they start with $ or contain currency) */
+.breakdown-item p:first-of-type + p,
+.breakdown-item p:nth-of-type(3),
+.breakdown-item p:nth-of-type(4) {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: clamp(13px, 1.5vw, 15px);
+}
+
+.payment-status {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.status-item span:last-child {
+  font-weight: 600;
+  font-size: 18px;
+  color: #1f2937;
+}
+
+.trends,
+.top-performers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.trend-item,
+.performer-item {
+  padding: 16px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.trend-item h4,
+.performer-item h4 {
+  margin: 0 0 12px 0;
+  font-size: 15px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.trend-item p,
+.performer-item p {
+  margin: 6px 0;
+  font-size: 14px;
+  color: #4b5563;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Style money values (typically the last or second-to-last paragraph) */
+.trend-item p:last-child,
+.performer-item p:last-child {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: clamp(13px, 1.5vw, 15px);
+}
+
+/* Mobile optimizations for breakdown and other sections */
+@media (max-width: 768px) {
+  .breakdown {
+    grid-template-columns: 1fr;
+  }
+
+  .payment-status {
+    flex-direction: column;
+  }
+
+  .trends,
+  .top-performers {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
 
