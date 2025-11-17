@@ -1,6 +1,7 @@
 from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.db import models
 from activity.models import ActivityLog
 from activity.serializers import ActivityLogSerializer
 from activity.filters import ActivityLogFilter
@@ -26,34 +27,74 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
         "user__username", "triggered_by__username"
     ]
     ordering = ["-timestamp"]  # Default ordering by timestamp descending
-    pagination_class = None  # Disable pagination to return all logs
 
     def get_queryset(self):
-        """Filter queryset based on user permissions."""
+        """Filter queryset based on user role permissions."""
         qs = super().get_queryset()
         user = self.request.user
+        user_role = getattr(user, 'role', None)
 
-        # Non-staff users only see their own logs
-        if not user.is_staff:
+        # Admin and Superadmin can see all activities
+        if user_role in ['admin', 'superadmin']:
+            # No filtering - show all activities
+            pass
+        
+        # Support can see activities for writers, editors, clients, and themselves
+        elif user_role == 'support':
+            qs = qs.filter(
+                models.Q(user=user) |  # Their own activities
+                models.Q(user__role='writer') |  # Writers
+                models.Q(user__role='editor') |  # Editors
+                models.Q(user__role='client')  # Clients
+            )
+        
+        # Writers and clients can only see their own activities
+        elif user_role in ['writer', 'client']:
+            qs = qs.filter(user=user)
+        
+        # Default: users can only see their own activities
+        else:
             qs = qs.filter(user=user)
 
         # Optional filters
         website_id = self.request.query_params.get("website_id")
         if website_id:
             qs = qs.filter(website_id=website_id)
+        
+        # Filter by actor type if provided
+        actor_type = self.request.query_params.get("actor_type")
+        if actor_type:
+            qs = qs.filter(actor_type=actor_type)
+        
+        # Filter by action type if provided
+        action_type = self.request.query_params.get("action_type")
+        if action_type:
+            qs = qs.filter(action_type=action_type)
 
         return qs
     
     def list(self, request, *args, **kwargs):
-        """Override list to ensure all logs are returned."""
+        """List activity logs with optional limit."""
         queryset = self.filter_queryset(self.get_queryset())
         
-        # If pagination is disabled, return all results
+        # Support limit parameter for frontend
+        limit = request.query_params.get('limit')
+        if limit:
+            try:
+                limit = int(limit)
+                queryset = queryset[:limit]
+            except (ValueError, TypeError):
+                pass
+        
+        # Use pagination if available, otherwise return all
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         
-        # No pagination - return all logs
+        # No pagination - return all logs (or limited if limit was specified)
         serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return Response({
+            'results': serializer.data,
+            'count': len(serializer.data)
+        })
