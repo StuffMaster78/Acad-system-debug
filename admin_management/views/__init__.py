@@ -41,6 +41,8 @@ from .config_management import (
     DiscountConfigManagementViewSet,
     NotificationConfigManagementViewSet,
     SystemConfigManagementViewSet,
+    ScreenedWordManagementViewSet,
+    BlogAuthorPersonaManagementViewSet,
 )
 
 __all__ = [
@@ -64,5 +66,7 @@ __all__ = [
     'DiscountConfigManagementViewSet',
     'NotificationConfigManagementViewSet',
     'SystemConfigManagementViewSet',
+    'ScreenedWordManagementViewSet',
+    'BlogAuthorPersonaManagementViewSet',
 ]
 

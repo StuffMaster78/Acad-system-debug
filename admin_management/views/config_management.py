@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.utils import timezone
 
 from admin_management.permissions import IsAdmin, IsSuperAdmin
 from admin_management.models import AdminActivityLog
@@ -240,4 +241,322 @@ class SystemConfigManagementViewSet(viewsets.ViewSet):
         ]
         
         return Response(configs)
+
+
+class ScreenedWordManagementViewSet(viewsets.ModelViewSet):
+    """Manage global screened words for content filtering."""
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_queryset(self):
+        from communications.models import ScreenedWord
+        return ScreenedWord.objects.all().order_by('word')
+    
+    def get_serializer_class(self):
+        from communications.serializers import ScreenedWordSerializer
+        return ScreenedWordSerializer
+    
+    def perform_create(self, serializer):
+        """Create a new screened word."""
+        word = serializer.validated_data.get('word', '').strip().lower()
+        
+        # Check if word already exists (case-insensitive)
+        from communications.models import ScreenedWord
+        if ScreenedWord.objects.filter(word__iexact=word).exists():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"word": f"Word '{word}' already exists in the screened words list."})
+        
+        serializer.save(word=word)
+        
+        AdminActivityLog.objects.create(
+            admin=self.request.user,
+            action="Added screened word",
+            details=f"Added word: {word}"
+        )
+    
+    def perform_update(self, serializer):
+        """Update a screened word."""
+        old_word = serializer.instance.word
+        new_word = serializer.validated_data.get('word', '').strip().lower()
+        
+        # Check if new word already exists (excluding current instance)
+        from communications.models import ScreenedWord
+        if ScreenedWord.objects.filter(word__iexact=new_word).exclude(id=serializer.instance.id).exists():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError({"word": f"Word '{new_word}' already exists in the screened words list."})
+        
+        serializer.save(word=new_word)
+        
+        AdminActivityLog.objects.create(
+            admin=self.request.user,
+            action="Updated screened word",
+            details=f"Updated word: {old_word} → {new_word}"
+        )
+    
+    def perform_destroy(self, instance):
+        """Delete a screened word."""
+        word = instance.word
+        instance.delete()
+        
+        AdminActivityLog.objects.create(
+            admin=self.request.user,
+            action="Removed screened word",
+            details=f"Removed word: {word}"
+        )
+    
+    @action(detail=False, methods=['post'])
+    def bulk_create(self, request):
+        """Bulk create screened words from a list."""
+        words = request.data.get('words', [])
+        if not isinstance(words, list):
+            return Response(
+                {"error": "Words must be a list of strings."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        created = []
+        errors = []
+        
+        from communications.models import ScreenedWord
+        from communications.serializers import ScreenedWordSerializer
+        
+        for word in words:
+            if not isinstance(word, str) or not word.strip():
+                errors.append(f"Invalid word: {word}")
+                continue
+            
+            word = word.strip().lower()
+            
+            # Check if word already exists
+            if ScreenedWord.objects.filter(word__iexact=word).exists():
+                errors.append(f"Word '{word}' already exists")
+                continue
+            
+            try:
+                screened_word = ScreenedWord.objects.create(word=word)
+                created.append(ScreenedWordSerializer(screened_word).data)
+            except Exception as e:
+                errors.append(f"Error creating word '{word}': {str(e)}")
+        
+        AdminActivityLog.objects.create(
+            admin=request.user,
+            action="Bulk added screened words",
+            details=f"Added {len(created)} words, {len(errors)} errors"
+        )
+        
+        return Response({
+            "created": created,
+            "errors": errors,
+            "created_count": len(created),
+            "error_count": len(errors)
+        })
+    
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get statistics about screened words."""
+        from communications.models import ScreenedWord, FlaggedMessage
+        
+        total_words = ScreenedWord.objects.count()
+        flagged_messages_count = FlaggedMessage.objects.count()
+        
+        return Response({
+            "total_screened_words": total_words,
+            "total_flagged_messages": flagged_messages_count,
+            "recent_flagged_count": FlaggedMessage.objects.filter(
+                flagged_at__gte=timezone.now() - timezone.timedelta(days=7)
+            ).count()
+        })
+
+
+class BlogAuthorPersonaManagementViewSet(viewsets.ModelViewSet):
+    """Manage blog author personas/profiles for post attribution."""
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    def get_queryset(self):
+        from blog_pages_management._legacy_models import AuthorProfile
+        queryset = AuthorProfile.objects.all().select_related('website').order_by('display_order', 'name')
+        
+        # Filter by website if not superadmin
+        if self.request.user.role != 'superadmin':
+            website = getattr(self.request.user, 'website', None)
+            if website:
+                queryset = queryset.filter(website=website)
+        
+        return queryset
+    
+    def get_serializer_class(self):
+        from blog_pages_management._legacy_serializers import AuthorProfileSerializer
+        return AuthorProfileSerializer
+    
+    def perform_create(self, serializer):
+        """Create a new author persona."""
+        from rest_framework import serializers as drf_serializers
+        from blog_pages_management._legacy_models import AuthorProfile
+        website = getattr(self.request.user, 'website', None)
+        
+        if not website and self.request.user.role != 'superadmin':
+            raise drf_serializers.ValidationError("Website is required.")
+        
+        # Check if name already exists for this website
+        name = serializer.validated_data.get('name', '').strip()
+        if AuthorProfile.objects.filter(website=website, name__iexact=name).exists():
+            raise drf_serializers.ValidationError(
+                {"name": f"Author '{name}' already exists for this website."}
+            )
+        
+        serializer.save(website=website)
+        
+        AdminActivityLog.objects.create(
+            admin=self.request.user,
+            action="Created blog author persona",
+            details=f"Created author: {name} for {website.name if website else 'all websites'}"
+        )
+    
+    def perform_update(self, serializer):
+        """Update an author persona."""
+        from blog_pages_management._legacy_models import AuthorProfile
+        old_name = serializer.instance.name
+        new_name = serializer.validated_data.get('name', '').strip()
+        
+        # Check if new name already exists (excluding current instance)
+        website = serializer.instance.website
+        if AuthorProfile.objects.filter(website=website, name__iexact=new_name).exclude(id=serializer.instance.id).exists():
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError(
+                {"name": f"Author '{new_name}' already exists for this website."}
+            )
+        
+        serializer.save()
+        
+        AdminActivityLog.objects.create(
+            admin=self.request.user,
+            action="Updated blog author persona",
+            details=f"Updated author: {old_name} → {new_name}"
+        )
+    
+    def perform_destroy(self, instance):
+        """Delete an author persona."""
+        name = instance.name
+        website_name = instance.website.name if instance.website else 'Unknown'
+        instance.delete()
+        
+        AdminActivityLog.objects.create(
+            admin=self.request.user,
+            action="Removed blog author persona",
+            details=f"Removed author: {name} from {website_name}"
+        )
+    
+    @action(detail=False, methods=['get'])
+    def stats(self, request):
+        """Get statistics about blog authors."""
+        from blog_pages_management._legacy_models import AuthorProfile, BlogPost
+        
+        website = getattr(request.user, 'website', None)
+        queryset = AuthorProfile.objects.all()
+        
+        if website and request.user.role != 'superadmin':
+            queryset = queryset.filter(website=website)
+        
+        total_authors = queryset.count()
+        active_authors = queryset.filter(is_active=True).count()
+        fake_authors = queryset.filter(is_fake=True).count()
+        
+        # Get post counts
+        blog_queryset = BlogPost.objects.filter(is_deleted=False)
+        if website and request.user.role != 'superadmin':
+            blog_queryset = blog_queryset.filter(website=website)
+        
+        total_posts_with_authors = blog_queryset.filter(authors__isnull=False).distinct().count()
+        
+        return Response({
+            "total_authors": total_authors,
+            "active_authors": active_authors,
+            "fake_authors": fake_authors,
+            "total_posts_with_authors": total_posts_with_authors,
+            "authors_with_posts": queryset.filter(blog_posts__isnull=False).distinct().count()
+        })
+    
+    @action(detail=True, methods=['get'])
+    def posts(self, request, pk=None):
+        """Get all posts attributed to this author."""
+        author = self.get_object()
+        from blog_pages_management._legacy_models import BlogPost
+        from blog_pages_management._legacy_serializers import BlogPostSerializer
+        
+        posts = BlogPost.objects.filter(
+            authors=author,
+            is_deleted=False
+        ).order_by('-created_at')
+        
+        serializer = BlogPostSerializer(posts, many=True, context={'request': request})
+        return Response({
+            "author": {
+                "id": author.id,
+                "name": author.name,
+                "website": author.website.name if author.website else None
+            },
+            "posts": serializer.data,
+            "total_posts": posts.count()
+        })
+    
+    @action(detail=False, methods=['post'])
+    def bulk_create(self, request):
+        """Bulk create author personas."""
+        authors_data = request.data.get('authors', [])
+        if not isinstance(authors_data, list):
+            return Response(
+                {"error": "Authors must be a list of objects."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        website = getattr(request.user, 'website', None)
+        if not website and request.user.role != 'superadmin':
+            return Response(
+                {"error": "Website is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        created = []
+        errors = []
+        
+        from blog_pages_management._legacy_models import AuthorProfile
+        from blog_pages_management._legacy_serializers import AuthorProfileSerializer
+        
+        for author_data in authors_data:
+            if not isinstance(author_data, dict):
+                errors.append(f"Invalid author data: {author_data}")
+                continue
+            
+            name = author_data.get('name', '').strip()
+            if not name:
+                errors.append("Author name is required")
+                continue
+            
+            # Check if author already exists
+            if AuthorProfile.objects.filter(website=website, name__iexact=name).exists():
+                errors.append(f"Author '{name}' already exists")
+                continue
+            
+            try:
+                author_data['website'] = website.id
+                serializer = AuthorProfileSerializer(data=author_data, context={'request': request})
+                if serializer.is_valid():
+                    author = serializer.save()
+                    created.append(AuthorProfileSerializer(author, context={'request': request}).data)
+                else:
+                    errors.append(f"Validation error for '{name}': {serializer.errors}")
+            except Exception as e:
+                errors.append(f"Error creating author '{name}': {str(e)}")
+        
+        AdminActivityLog.objects.create(
+            admin=request.user,
+            action="Bulk created blog authors",
+            details=f"Created {len(created)} authors, {len(errors)} errors"
+        )
+        
+        return Response({
+            "created": created,
+            "errors": errors,
+            "created_count": len(created),
+            "error_count": len(errors)
+        })
 

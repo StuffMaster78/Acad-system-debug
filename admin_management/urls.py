@@ -23,6 +23,8 @@ from .views.config_management import (
     DiscountConfigManagementViewSet,
     NotificationConfigManagementViewSet,
     SystemConfigManagementViewSet,
+    ScreenedWordManagementViewSet,
+    BlogAuthorPersonaManagementViewSet,
 )
 from .views.email_management import (
     MassEmailManagementViewSet,
@@ -48,6 +50,8 @@ router.register(r'configs/pricing', PricingConfigManagementViewSet, basename="pr
 router.register(r'configs/writer', WriterConfigManagementViewSet, basename="writer_configs")
 router.register(r'configs/discount', DiscountConfigManagementViewSet, basename="discount_configs")
 router.register(r'configs/notifications', NotificationConfigManagementViewSet, basename="notification_configs")
+router.register(r'configs/screened-words', ScreenedWordManagementViewSet, basename="screened_words_configs")
+router.register(r'configs/blog-authors', BlogAuthorPersonaManagementViewSet, basename="blog_authors_configs")
 router.register(r'configs', SystemConfigManagementViewSet, basename="system_configs")
 
 # Email management

@@ -74,32 +74,28 @@ class DashboardMetricsService:
                 order_qs = order_qs.none()
         # Admin/Superadmin see all orders (no additional filtering)
         
-        # Total orders
-        total_orders = order_qs.count()
-        
-        # Orders by status
+        # Orders by status - combined query
         orders_by_status = order_qs.values('status').annotate(
             count=Count('id')
         )
         status_counts = {item['status']: item['count'] for item in orders_by_status}
+        total_orders = sum(item['count'] for item in orders_by_status)
         
-        # Revenue metrics (only for paid orders)
-        revenue_data = order_qs.filter(is_paid=True).aggregate(
-            total_revenue=Sum('total_price', output_field=DecimalField()),
-            total_count=Count('id')
+        # Revenue metrics and order counts - combined into single aggregation
+        recent_cutoff = timezone.now() - timedelta(days=7)
+        order_stats = order_qs.aggregate(
+            total_revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField()),
+            paid_orders_count=Count('id', filter=Q(is_paid=True)),
+            unpaid_orders_count=Count('id', filter=Q(is_paid=False)),
+            recent_orders_count=Count('id', filter=Q(created_at__gte=recent_cutoff))
         )
         
-        total_revenue = revenue_data['total_revenue'] or Decimal('0.00')
-        paid_orders_count = revenue_data['total_count'] or 0
+        total_revenue = order_stats['total_revenue'] or Decimal('0.00')
+        paid_orders_count = order_stats['paid_orders_count'] or 0
+        unpaid_orders = order_stats['unpaid_orders_count'] or 0
+        recent_orders = order_stats['recent_orders_count'] or 0
         
-        # Unpaid orders
-        unpaid_orders = order_qs.filter(is_paid=False).count()
-        
-        # Recent orders (last 7 days)
-        recent_cutoff = timezone.now() - timedelta(days=7)
-        recent_orders = order_qs.filter(created_at__gte=recent_cutoff).count()
-        
-        # Tickets (if applicable)
+        # Tickets (if applicable) - combined queries
         ticket_qs = Ticket.objects.all()
         # Both superadmin and admin see all tickets (no website filtering)
         if role not in ['superadmin', 'admin']:
@@ -108,9 +104,15 @@ class DashboardMetricsService:
         if role == 'client':
             ticket_qs = ticket_qs.filter(client=user)
         
-        total_tickets = ticket_qs.count()
-        open_tickets = ticket_qs.filter(status__in=['open', 'pending']).count()
-        closed_tickets = ticket_qs.filter(status='closed').count()
+        # Combined ticket statistics
+        ticket_stats = ticket_qs.aggregate(
+            total_tickets=Count('id'),
+            open_tickets=Count('id', filter=Q(status__in=['open', 'pending'])),
+            closed_tickets=Count('id', filter=Q(status='closed'))
+        )
+        total_tickets = ticket_stats['total_tickets'] or 0
+        open_tickets = ticket_stats['open_tickets'] or 0
+        closed_tickets = ticket_stats['closed_tickets'] or 0
         
         summary = {
             'total_orders': total_orders,

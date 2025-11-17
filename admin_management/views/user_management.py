@@ -26,16 +26,23 @@ from admin_management.managers import AdminManager
 User = get_user_model()
 
 
-class NoPagination(PageNumberPagination):
-    """Custom pagination class that returns all results without pagination."""
-    def paginate_queryset(self, queryset, request, view=None):
-        """Override to disable pagination - return None to get all results."""
-        return None
+class LimitedPagination(PageNumberPagination):
+    """Custom pagination class with safety limits to prevent performance issues."""
+    page_size = 100
+    page_size_query_param = 'page_size'
+    max_page_size = 500  # Safety limit to prevent excessive data transfer
     
     def get_paginated_response(self, data):
-        """This should never be called, but return data as-is if it is."""
+        """Return paginated response with metadata."""
         from rest_framework.response import Response
-        return Response(data)
+        return Response({
+            'count': self.page.paginator.count,
+            'next': self.get_next_link(),
+            'previous': self.get_previous_link(),
+            'results': data,
+            'current_page': self.page.number,
+            'total_pages': self.page.paginator.num_pages,
+        })
 
 
 class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
@@ -49,11 +56,17 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
     search_fields = ['username', 'email', 'first_name', 'last_name']
     ordering_fields = ['date_joined', 'last_login', 'username', 'email']
     ordering = ['-date_joined']
-    pagination_class = NoPagination  # Return all users without pagination
+    pagination_class = LimitedPagination  # Paginated with safety limits
 
     def get_queryset(self):
         """Filter users based on admin's website if not superadmin."""
-        queryset = User.objects.all()
+        # Optimize queryset with select_related to prevent N+1 queries
+        queryset = User.objects.all().select_related(
+            'website',              # Frequently accessed in serializers
+            'notification_profile', # Used in serializers
+        ).prefetch_related(
+            'user_main_profile',    # OneToOne relationship
+        )
         
         # Superadmins and admins can see all users
         # (Both should see all users - superadmin sees all, admin sees all from their website or all if no website filter needed)
@@ -93,9 +106,8 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
         try:
             queryset = self.filter_queryset(self.get_queryset())
             
-            # Use select_related to optimize queries (works for ForeignKey and OneToOne)
-            # Don't use .only() as it can cause issues with serializer method fields
-            queryset = queryset.select_related('website', 'user_main_profile')
+            # Queryset is already optimized in get_queryset() with select_related/prefetch_related
+            # No need to add it again here
             
             # Role filter
             role = request.query_params.get('role')
