@@ -27,8 +27,10 @@ class KickoutService:
         count = sessions.count()
 
         for session in sessions:
-            LogoutEvent.objects.create(
+            from authentication.services.logout_event_service import LogoutEventService
+            LogoutEventService.log_event(
                 user=user,
+                website=self.website,
                 ip_address=session.ip_address,
                 user_agent=session.user_agent,
                 session_key=session.token,

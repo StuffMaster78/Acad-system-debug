@@ -113,8 +113,17 @@ class LoginViewSet(viewsets.ViewSet):
         user = authenticate(request=request, username=email, password=password)
 
         if not user:
-            # Log failed attempt
-            FailedLoginService.log(user=None, website=website, ip=ip, user_agent=user_agent)
+            # Try to find user by email to log failed attempt (even if password is wrong)
+            try:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                user_for_logging = User.objects.get(email=email)
+                # Log failed attempt only if user exists
+                if user_for_logging and website:
+                    FailedLoginService.log(user=user_for_logging, website=website, ip=ip, user_agent=user_agent)
+            except User.DoesNotExist:
+                # User doesn't exist, skip logging failed attempt
+                pass
             return Response({"detail": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
         # If account is locked, suspended, etc.

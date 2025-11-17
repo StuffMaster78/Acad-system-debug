@@ -798,8 +798,10 @@ class SessionManagementViewSet(viewsets.ViewSet):
         ).exclude(token=current_token)
 
         for session in sessions:
-            LogoutEvent.objects.create(
+            from authentication.services.logout_event_service import LogoutEventService
+            LogoutEventService.log_event(
                 user=user,
+                website=user.website,
                 ip_address=session.ip_address,
                 user_agent=session.user_agent,
                 session_key=session.token,

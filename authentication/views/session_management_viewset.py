@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from rest_framework.throttling import UserRateThrottle
 from django.shortcuts import get_object_or_404
 
 from authentication.models.sessions import UserSession
@@ -17,9 +18,17 @@ from authentication.serializers import UserSessionSerializer
 from authentication.serializers import LoginSessionSerializer
 
 
+class SessionManagementThrottle(UserRateThrottle):
+    """
+    Custom throttle for session management endpoints.
+    Allows more frequent requests for status/extend endpoints.
+    """
+    rate = '200/hour'  # 200 requests per hour = ~3 per minute
+
 
 class SessionManagementViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    throttle_classes = [SessionManagementThrottle]
 
     @action(detail=False, methods=["post"])
     def kick_others(self, request):
@@ -36,8 +45,10 @@ class SessionManagementViewSet(viewsets.ViewSet):
         ).exclude(token=current_token)
 
         for session in sessions:
-            LogoutEvent.objects.create(
+            from authentication.services.logout_event_service import LogoutEventService
+            LogoutEventService.log_event(
                 user=user,
+                website=user.website,
                 ip_address=session.ip_address,
                 user_agent=session.user_agent,
                 session_key=session.token,
@@ -64,6 +75,116 @@ class SessionManagementViewSet(viewsets.ViewSet):
         )
         serializer = LoginSessionSerializer(sessions, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], throttle_classes=[SessionManagementThrottle])
+    def status(self, request):
+        """
+        Get current session status including remaining time and warning status.
+        Used for idle timeout detection.
+        Optimized for frequent polling - lightweight and fast.
+        
+        Returns:
+        {
+            "is_active": true,
+            "remaining_seconds": 1800,
+            "idle_seconds": 0,
+            "warning_threshold": 300,
+            "should_warn": false,
+            "timeout_seconds": 1800
+        }
+        """
+        from django.conf import settings
+        from django.utils import timezone
+        from django.core.cache import cache
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        try:
+            user = request.user
+            
+            # Get timeout settings
+            idle_timeout = getattr(settings, 'SESSION_IDLE_TIMEOUT', 30 * 60)  # 30 minutes
+            warning_time = getattr(settings, 'SESSION_WARNING_TIME', 5 * 60)  # 5 minutes
+            
+            # Try to get from cache first (cache for 10 seconds to reduce DB load and rate limit hits)
+            cache_key = f'session_status_{user.id}'
+            cached_status = cache.get(cache_key)
+            if cached_status:
+                return Response(cached_status, status=status.HTTP_200_OK)
+            
+            # Get last activity from session
+            last_activity_key = f'last_activity_{user.id}'
+            last_activity = request.session.get(last_activity_key, timezone.now().timestamp())
+            
+            # Calculate times
+            now = timezone.now().timestamp()
+            idle_seconds = int(now - last_activity)
+            remaining_seconds = max(0, idle_timeout - idle_seconds)
+            should_warn = remaining_seconds <= warning_time and remaining_seconds > 0
+            
+            response_data = {
+                "is_active": True,
+                "remaining_seconds": remaining_seconds,
+                "idle_seconds": idle_seconds,
+                "warning_threshold": warning_time,
+                "should_warn": should_warn,
+                "timeout_seconds": idle_timeout,
+                "last_activity": last_activity,
+            }
+            
+            # Cache for 10 seconds to reduce load on frequent polling and prevent rate limiting
+            cache.set(cache_key, response_data, 10)
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error getting session status: {e}", exc_info=True)
+            # Return safe default on error
+            return Response({
+                "is_active": True,
+                "remaining_seconds": 1800,
+                "idle_seconds": 0,
+                "warning_threshold": 300,
+                "should_warn": False,
+                "timeout_seconds": 1800,
+            }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], throttle_classes=[SessionManagementThrottle])
+    def extend(self, request):
+        """
+        Extend session by updating last activity timestamp.
+        This resets the idle timer.
+        
+        Returns:
+        {
+            "message": "Session extended",
+            "remaining_seconds": 1800
+        }
+        """
+        from django.conf import settings
+        from django.utils import timezone
+        from django.core.cache import cache
+        
+        user = request.user
+        
+        # Update last activity
+        now = timezone.now().timestamp()
+        last_activity_key = f'last_activity_{user.id}'
+        request.session[last_activity_key] = now
+        request.session.modified = True
+        
+        # Clear status cache so next status check gets fresh data
+        cache_key = f'session_status_{user.id}'
+        cache.delete(cache_key)
+        
+        # Get timeout settings
+        idle_timeout = getattr(settings, 'SESSION_IDLE_TIMEOUT', 30 * 60)
+        
+        return Response({
+            "message": "Session extended successfully",
+            "remaining_seconds": idle_timeout,
+            "extended_at": now,
+        }, status=status.HTTP_200_OK)
 
     
 

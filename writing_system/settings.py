@@ -150,6 +150,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'authentication.middleware.session_timeout.SessionTimeoutMiddleware',  # Session idle timeout
     'audit_logging.middleware.AuditUserMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -271,6 +272,10 @@ PASSKEY_REDIS_PREFIX = "passkey"
 
 SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
+
+# Session idle timeout settings (in seconds)
+SESSION_IDLE_TIMEOUT = int(os.getenv("SESSION_IDLE_TIMEOUT", 30 * 60))  # Default: 30 minutes
+SESSION_WARNING_TIME = int(os.getenv("SESSION_WARNING_TIME", 5 * 60))   # Default: 5 minutes before timeout
 
 
 

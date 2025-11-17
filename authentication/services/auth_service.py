@@ -60,13 +60,20 @@ class AuthenticationService:
         user = authenticate(request=request, username=email, password=password)
         
         if not user:
-            # Log failed attempt
-            FailedLoginService.log(
-                user=None,
-                website=website,
-                ip=ip_address,
-                user_agent=user_agent
-            )
+            # Try to find user by email to log failed attempt (even if password is wrong)
+            try:
+                user_for_logging = User.objects.get(email=email)
+                # Log failed attempt only if user exists and website exists
+                if user_for_logging and website:
+                    FailedLoginService.log(
+                        user=user_for_logging,
+                        website=website,
+                        ip=ip_address,
+                        user_agent=user_agent
+                    )
+            except User.DoesNotExist:
+                # User doesn't exist, skip logging failed attempt
+                pass
             raise ValidationError("Invalid credentials.")
         
         # Check if account is active

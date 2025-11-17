@@ -332,14 +332,22 @@ def is_device_rate_limited(user, action, ip, device_id, max_attempts=5, window=3
 
 
 def log_logout_event(request, user, reason="user_initiated"):
+    from authentication.services.logout_event_service import LogoutEventService
+    
     ip, _ = get_client_ip(request)
     user_agent = request.META.get("HTTP_USER_AGENT", "Unknown")
-
-    LogoutEvent.objects.create(
+    
+    # Get website from request or user
+    website = getattr(request, "website", None)
+    if not website and hasattr(user, 'website'):
+        website = user.website
+    
+    LogoutEventService.log_event(
         user=user,
+        website=website,
         ip_address=ip,
         user_agent=user_agent,
-        session_key=request.session.session_key,
+        session_key=request.session.session_key if hasattr(request, 'session') else None,
         reason=reason
     )
 
