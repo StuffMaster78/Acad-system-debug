@@ -92,6 +92,10 @@ urlpatterns = [
     # path('api/v1/admin/', include('notifications_system.admin_urls')), # Admin URLs for notifications
 
     path('api/v1/auth/', include('authentication.urls')),
+    # Dropdown options endpoint (unified API for all dropdowns)
+    path('api/v1/dropdown-options/', include('core.urls')),
+    # Dashboard configuration endpoint
+    path('api/v1/dashboard-config/', include('core.urls_dashboard')),
     # Note: Backward-compatible aliases removed to avoid URL namespace conflicts
     # Tests should use the /api/v1/ prefixed URLs instead
 ]

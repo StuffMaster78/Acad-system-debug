@@ -161,6 +161,38 @@ class MessageService:
             details=sanitized_message[:200]
         )
 
+        # Log to ActivityLog for activity page
+        try:
+            from activity.services.logger import ActivityLogger
+            order = getattr(thread, 'order', None)
+            website = getattr(order, 'website', None) if order else getattr(thread, 'website', None)
+            
+            if website:
+                # Determine description based on context
+                if order:
+                    description = f"sent a message about order #{order.id}"
+                else:
+                    description = f"sent a message to {recipient.email if recipient else 'recipient'}"
+                
+                ActivityLogger.log_activity(
+                    user=sender,
+                    website=website,
+                    action_type="COMMUNICATION",
+                    description=description,
+                    metadata={
+                        "message_id": comm_msg.id,
+                        "thread_id": thread.id,
+                        "order_id": order.id if order else None,
+                        "recipient_id": recipient.id if recipient else None,
+                        "message_type": inferred_type,
+                    },
+                    triggered_by=sender,
+                )
+        except Exception as e:
+            # Don't break message creation if activity logging fails
+            import logging
+            logging.getLogger("activity").warning(f"Failed to log message activity: {e}")
+
         # Spam control
         recent_count = CommunicationMessage.objects.filter(
             sender=sender,

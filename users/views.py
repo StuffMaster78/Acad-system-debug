@@ -252,16 +252,24 @@ class UserViewSet(viewsets.ModelViewSet):
         """Restrict access based on user roles."""
         user = self.request.user
 
+        # Optimize queryset with select_related to prevent N+1 queries
+        base_queryset = User.objects.all().select_related(
+            'website',
+            'notification_profile',
+        ).prefetch_related(
+            'user_main_profile',
+        )
+
         if user.role in ["client", "writer"]:
-            return User.objects.filter(id=user.id)  # Clients & Writers only see themselves
+            return base_queryset.filter(id=user.id)  # Clients & Writers only see themselves
 
         elif user.role == "editor":
-            return User.objects.filter(role="writer")  # Editors only see writers
+            return base_queryset.filter(role="writer")  # Editors only see writers
 
         elif user.role == "support":
-            return User.objects.filter(role="client")  # Support staff only see clients
+            return base_queryset.filter(role="client")  # Support staff only see clients
 
-        return User.objects.all()  # Admins & Superadmins see all users
+        return base_queryset  # Admins & Superadmins see all users
 
 
 

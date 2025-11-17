@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from datetime import timedelta
 from django.utils.timezone import now
+from websites.models import Website
 from .models import (
     ServicePage,
     ServicePageClick,
@@ -42,6 +43,13 @@ class ServicePageSerializer(serializers.ModelSerializer):
     faq_json = FAQItemSerializer(many=True, required=False)
     faqs_data = ServicePageFAQWriteSerializer(many=True, write_only=True, required=False)
     resources_data = ServicePageResourceWriteSerializer(many=True, write_only=True, required=False)
+    website_id = serializers.PrimaryKeyRelatedField(
+        queryset=Website.objects.filter(is_active=True, is_deleted=False),  # Default queryset, can be overridden in __init__
+        source='website',
+        write_only=True,
+        required=False,
+        allow_null=False
+    )
     website = serializers.SerializerMethodField()
 
     class Meta:
@@ -49,6 +57,7 @@ class ServicePageSerializer(serializers.ModelSerializer):
         fields = [
             'id',
             'website',
+            'website_id',
             'title',
             'slug',
             'header',
@@ -72,8 +81,27 @@ class ServicePageSerializer(serializers.ModelSerializer):
             'created_by',
             'updated_by',
             'created_at',
-            'updated_at'
+            'updated_at',
+            'website'
         ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set queryset for website_id based on request user
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            if user.role == 'superadmin':
+                from websites.models import Website
+                self.fields['website_id'].queryset = Website.objects.filter(is_active=True, is_deleted=False)
+            else:
+                user_website = getattr(user, 'website', None)
+                if user_website:
+                    from websites.models import Website
+                    self.fields['website_id'].queryset = Website.objects.filter(id=user_website.id, is_active=True, is_deleted=False)
+                else:
+                    from websites.models import Website
+                    self.fields['website_id'].queryset = Website.objects.none()
     
     def get_website(self, obj):
         """Get website information"""

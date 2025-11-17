@@ -402,6 +402,28 @@ class User(AbstractUser, PermissionsMixin,
 
     def __str__(self):
         return f"{self.username} ({self.role})"
+    
+    class Meta:
+        """Meta options for User model."""
+        ordering = ['-date_joined']
+        indexes = [
+            # Single field indexes for common filters
+            models.Index(fields=['role']),
+            models.Index(fields=['website']),
+            models.Index(fields=['email']),
+            models.Index(fields=['is_active']),
+            models.Index(fields=['is_suspended']),
+            models.Index(fields=['is_blacklisted']),
+            models.Index(fields=['is_on_probation']),
+            models.Index(fields=['date_joined']),
+            models.Index(fields=['last_login']),
+            # Composite indexes for common query patterns
+            models.Index(fields=['role', 'is_active']),
+            models.Index(fields=['website', 'role']),
+            models.Index(fields=['role', 'is_suspended']),
+            models.Index(fields=['website', 'is_active']),
+            models.Index(fields=['role', 'date_joined']),
+        ]
 
 class UserProfile(models.Model):
     """

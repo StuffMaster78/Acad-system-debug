@@ -58,49 +58,75 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             status='completed'
         )
         
-        # Order statistics
-        total_orders = orders.count()
+        # Order statistics - combined query
         orders_by_status = orders.values('status').annotate(count=Count('id'))
         status_breakdown = {item['status']: item['count'] for item in orders_by_status}
+        total_orders = sum(item['count'] for item in orders_by_status)
         
-        # Revenue statistics
-        total_spend = payments.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-        avg_order_value = payments.aggregate(Avg('amount'))['amount__avg'] or Decimal('0.00')
-        paid_orders_count = payments.count()
+        # Revenue statistics - combined into single aggregation
+        payment_stats = payments.aggregate(
+            total_spend=Sum('amount'),
+            avg_order_value=Avg('amount'),
+            paid_orders_count=Count('id')
+        )
+        total_spend = payment_stats['total_spend'] or Decimal('0.00')
+        avg_order_value = payment_stats['avg_order_value'] or Decimal('0.00')
+        paid_orders_count = payment_stats['paid_orders_count'] or 0
         
-        # All-time statistics
-        all_time_orders = Order.objects.filter(client=request.user).count()
-        all_time_payments = OrderPayment.objects.filter(
+        # All-time statistics - combined queries
+        all_time_orders_qs = Order.objects.filter(client=request.user)
+        all_time_payments_qs = OrderPayment.objects.filter(
             order__client=request.user,
             status='completed'
         )
-        all_time_spend = all_time_payments.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        all_time_stats = all_time_orders_qs.aggregate(
+            total_orders=Count('id')
+        )
+        all_time_payment_stats = all_time_payments_qs.aggregate(
+            total_spend=Sum('amount')
+        )
+        all_time_orders = all_time_stats['total_orders'] or 0
+        all_time_spend = all_time_payment_stats['total_spend'] or Decimal('0.00')
         
-        # This month statistics
+        # This month statistics - combined queries
         month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        month_orders = Order.objects.filter(
+        month_orders_qs = Order.objects.filter(
             client=request.user,
             created_at__gte=month_start
-        ).count()
-        month_payments = OrderPayment.objects.filter(
+        )
+        month_payments_qs = OrderPayment.objects.filter(
             order__client=request.user,
             created_at__gte=month_start,
             status='completed'
         )
-        month_spend = month_payments.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        month_stats = month_orders_qs.aggregate(
+            total_orders=Count('id')
+        )
+        month_payment_stats = month_payments_qs.aggregate(
+            total_spend=Sum('amount')
+        )
+        month_orders = month_stats['total_orders'] or 0
+        month_spend = month_payment_stats['total_spend'] or Decimal('0.00')
         
-        # This year statistics
+        # This year statistics - combined queries
         year_start = timezone.now().replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
-        year_orders = Order.objects.filter(
+        year_orders_qs = Order.objects.filter(
             client=request.user,
             created_at__gte=year_start
-        ).count()
-        year_payments = OrderPayment.objects.filter(
+        )
+        year_payments_qs = OrderPayment.objects.filter(
             order__client=request.user,
             created_at__gte=year_start,
             status='completed'
         )
-        year_spend = year_payments.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        year_stats = year_orders_qs.aggregate(
+            total_orders=Count('id')
+        )
+        year_payment_stats = year_payments_qs.aggregate(
+            total_spend=Sum('amount')
+        )
+        year_orders = year_stats['total_orders'] or 0
+        year_spend = year_payment_stats['total_spend'] or Decimal('0.00')
         
         return Response({
             'total_orders': total_orders,

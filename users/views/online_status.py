@@ -21,27 +21,58 @@ class OnlineStatusMixin:
         """
         Update the current user's online status.
         Called periodically by the frontend to keep status current.
+        Optimized with caching to reduce database writes.
         """
-        user = request.user
-        current_time = now()
+        from django.core.cache import cache
+        import logging
         
-        # Update last_active based on role
-        if hasattr(user, 'writer_profile'):
-            user.writer_profile.last_active = current_time
-            user.writer_profile.save(update_fields=['last_active'])
-        elif hasattr(user, 'client_profile'):
-            user.client_profile.last_online = current_time
-            user.client_profile.save(update_fields=['last_online'])
+        logger = logging.getLogger(__name__)
         
-        # Also update UserProfile if it exists
-        if hasattr(user, 'user_main_profile'):
-            user.user_main_profile.last_active = current_time
-            user.user_main_profile.save(update_fields=['last_active'])
-        
-        return Response({
-            "status": "online",
-            "last_active": current_time.isoformat()
-        })
+        try:
+            user = request.user
+            current_time = now()
+            
+            # Cache check - only update DB if last update was > 30 seconds ago
+            cache_key = f'online_status_update_{user.id}'
+            last_update = cache.get(cache_key)
+            
+            if last_update:
+                # Skip if updated recently (within 30 seconds)
+                return Response({
+                    "status": "online",
+                    "last_active": current_time.isoformat(),
+                    "cached": True
+                })
+            
+            # Update last_active based on role
+            try:
+                if hasattr(user, 'writer_profile'):
+                    user.writer_profile.last_active = current_time
+                    user.writer_profile.save(update_fields=['last_active'])
+                elif hasattr(user, 'client_profile'):
+                    user.client_profile.last_online = current_time
+                    user.client_profile.save(update_fields=['last_online'])
+                
+                # Also update UserProfile if it exists
+                if hasattr(user, 'user_main_profile'):
+                    user.user_main_profile.last_active = current_time
+                    user.user_main_profile.save(update_fields=['last_active'])
+                
+                # Cache for 30 seconds to prevent excessive DB writes
+                cache.set(cache_key, current_time.isoformat(), 30)
+            except Exception as e:
+                logger.error(f"Error updating online status: {e}", exc_info=True)
+            
+            return Response({
+                "status": "online",
+                "last_active": current_time.isoformat()
+            })
+        except Exception as e:
+            logger.error(f"Unexpected error in update_online_status: {e}", exc_info=True)
+            return Response({
+                "status": "online",
+                "last_active": now().isoformat()
+            }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def get_online_statuses(self, request):

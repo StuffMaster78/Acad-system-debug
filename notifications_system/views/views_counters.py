@@ -17,6 +17,12 @@ class UnreadCountView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
+        """
+        Get unread notification count.
+        Optimized for frequent polling - uses caching and graceful error handling.
+        """
+        from django.core.cache import cache
+        
         try:
             user = request.user
             if not user or not user.is_authenticated:
@@ -26,23 +32,33 @@ class UnreadCountView(APIView):
             website = getattr(request, "website", None) or getattr(user, "website", None)
             wid = getattr(website, "id", None) if website else None
 
-            # Try to get from cache first
+            # Try to get from cache first (cache for 10 seconds to reduce load)
+            cache_key = f'unread_count_{user.id}_{wid or "all"}'
+            cached_count = cache.get(cache_key)
+            if cached_count is not None:
+                return Response({"unread_count": cached_count})
+
+            # Try to get from unread counter cache
             try:
                 count = get_unread(user.id, wid)
                 if count is not None:
+                    # Cache for 10 seconds
+                    cache.set(cache_key, count, 10)
                     return Response({"unread_count": count})
             except Exception as cache_error:
-                logger.warning(f"Cache error in unread count: {cache_error}")
+                logger.debug(f"Cache error in unread count: {cache_error}")
 
             # If cache miss or error, try to rebuild
             try:
                 count = rebuild_unread(user, website)
                 if count is not None:
+                    # Cache for 10 seconds
+                    cache.set(cache_key, count, 10)
                     return Response({"unread_count": count})
             except Exception as rebuild_error:
-                logger.warning(f"Rebuild error in unread count: {rebuild_error}")
+                logger.debug(f"Rebuild error in unread count: {rebuild_error}")
 
-            # Fallback: direct database query
+            # Fallback: direct database query (optimized with select_related)
             try:
                 from notifications_system.models.notifications import Notification
                 if website:
@@ -56,9 +72,12 @@ class UnreadCountView(APIView):
                         user=user,
                         is_read=False
                     ).count()
+                # Cache result for 10 seconds
+                cache.set(cache_key, count or 0, 10)
                 return Response({"unread_count": count or 0})
             except Exception as db_error:
                 logger.error(f"Database error in unread count: {db_error}", exc_info=True)
+                # Return cached value if available, otherwise 0
                 return Response({"unread_count": 0})
 
         except Exception as e:

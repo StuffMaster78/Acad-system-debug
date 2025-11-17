@@ -1,4 +1,5 @@
 from rest_framework import viewsets, permissions, status
+from django.db.models import Q
 from .models import (
     AcademicLevel, PaperType, FormattingandCitationStyle, Subject,
     TypeOfWork, EnglishType, WriterDeadlineConfig,
@@ -206,6 +207,54 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
     Admin-only endpoint.
     """
     permission_classes = [permissions.IsAuthenticated, IsAdminOrSuperAdmin]
+    
+    @action(detail=False, methods=['get'], url_path='dropdown-options')
+    def dropdown_options(self, request):
+        """
+        Get all order configuration options for dropdowns.
+        Filtered by website_id query parameter or user's website.
+        """
+        website_id = request.query_params.get('website_id')
+        user_website = None
+        
+        # Get user's website if not superadmin
+        if request.user.role != 'superadmin':
+            user_website = getattr(request.user, 'website', None)
+            if user_website:
+                website_id = str(user_website.id)
+        
+        website_filter = Q()
+        if website_id:
+            website_filter = Q(website_id=website_id)
+        elif user_website:
+            website_filter = Q(website=user_website)
+        
+        return Response({
+            'paper_types': [
+                {'id': pt.id, 'name': pt.name, 'website_id': pt.website_id}
+                for pt in PaperType.objects.filter(website_filter).select_related('website').order_by('name')
+            ],
+            'formatting_styles': [
+                {'id': fs.id, 'name': fs.name, 'website_id': fs.website_id}
+                for fs in FormattingandCitationStyle.objects.filter(website_filter).select_related('website').order_by('name')
+            ],
+            'subjects': [
+                {'id': s.id, 'name': s.name, 'is_technical': s.is_technical, 'website_id': s.website_id}
+                for s in Subject.objects.filter(website_filter).select_related('website').order_by('name')
+            ],
+            'academic_levels': [
+                {'id': al.id, 'name': al.name, 'website_id': al.website_id}
+                for al in AcademicLevel.objects.filter(website_filter).select_related('website').order_by('name')
+            ],
+            'types_of_work': [
+                {'id': tow.id, 'name': tow.name, 'website_id': tow.website_id}
+                for tow in TypeOfWork.objects.filter(website_filter).select_related('website').order_by('name')
+            ],
+            'english_types': [
+                {'id': et.id, 'name': et.name, 'code': et.code, 'website_id': et.website_id}
+                for et in EnglishType.objects.filter(website_filter).select_related('website').order_by('name')
+            ],
+        })
     
     @action(detail=False, methods=['post'], url_path='populate-defaults')
     def populate_defaults(self, request):

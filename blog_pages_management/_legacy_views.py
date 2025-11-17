@@ -198,19 +198,6 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     """ViewSet for managing blog posts."""
     pagination_class = BlogPagination
     
-    def get_queryset(self):
-        """Optimized queryset with proper field selection."""
-        return BlogPost.objects.filter(
-            is_deleted=False
-        ).select_related(
-            "category"
-        ).prefetch_related(
-            "authors", "tags", "media_files"
-        ).defer(
-            "content" # Content is a large field, it's loaded only when needed
-        ).order_by(
-            "-created_at"  # Optimized sorting for latest blogs first
-        )
 
     serializer_class = BlogPostSerializer
     permission_classes = [IsAuthenticated]
@@ -219,9 +206,183 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     search_fields = ["title", "meta_title", "meta_description"]
     ordering_fields = ["publish_date", "click_count", "conversion_count", "status"]
 
+    def get_queryset(self):
+        """Optimized queryset with proper field selection and website filtering."""
+        queryset = BlogPost.objects.filter(
+            is_deleted=False
+        ).select_related(
+            "category", "website"
+        ).prefetch_related(
+            "authors", "tags", "media_files"
+        ).defer(
+            "content" # Content is a large field, it's loaded only when needed
+        ).order_by(
+            "-created_at"  # Optimized sorting for latest blogs first
+        )
+        
+        # Filter by website if not superadmin or admin
+        if self.request.user.role not in ['superadmin', 'admin']:
+            website = getattr(self.request.user, 'website', None)
+            if website:
+                queryset = queryset.filter(website=website)
+        
+        return queryset
+
+    def perform_create(self, serializer):
+        """Create blog post with website selection and permission validation."""
+        user = self.request.user
+        website_id = self.request.data.get('website_id') or self.request.data.get('website')
+        
+        # Get website
+        if website_id:
+            try:
+                website = Website.objects.get(id=website_id)
+            except Website.DoesNotExist:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({"website_id": "Invalid website ID."})
+        else:
+            # Auto-assign website based on user
+            website = getattr(user, 'website', None)
+            if not website:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({
+                    "website_id": "Website is required. Please select a website."
+                })
+        
+        # Validate permissions - admins and superadmins can create for any website
+        # Other roles are restricted to their assigned website
+        if user.role not in ['superadmin', 'admin']:
+            user_website = getattr(user, 'website', None)
+            if user_website and website != user_website:
+                from rest_framework.exceptions import PermissionDenied
+                raise PermissionDenied("You can only create blog posts for your assigned website.")
+        
+        # Validate authors belong to the selected website
+        author_ids = self.request.data.get('author_ids', [])
+        if author_ids:
+            from .models import AuthorProfile
+            authors = AuthorProfile.objects.filter(id__in=author_ids, is_active=True)
+            invalid_authors = authors.exclude(website=website)
+            if invalid_authors.exists():
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({
+                    "author_ids": f"Some selected authors do not belong to the selected website."
+                })
+        
+        # Set website and last_edited_by
+        serializer.save(website=website, last_edited_by=user)
+
+    def perform_update(self, serializer):
+        """Update blog post with website validation."""
+        user = self.request.user
+        instance = serializer.instance
+        
+        # Determine the website to use (new or existing)
+        website_id = self.request.data.get('website_id') or self.request.data.get('website')
+        website = instance.website  # Default to existing website
+        
+        if website_id:
+            try:
+                website = Website.objects.get(id=website_id)
+            except Website.DoesNotExist:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({"website_id": "Invalid website ID."})
+            
+            # Validate permissions for website change - admins and superadmins can change to any website
+            if user.role not in ['superadmin', 'admin']:
+                user_website = getattr(user, 'website', None)
+                if user_website and website != user_website:
+                    from rest_framework.exceptions import PermissionDenied
+                    raise PermissionDenied("You can only assign blog posts to your assigned website.")
+        
+        # Validate authors belong to the website (new or existing)
+        author_ids = self.request.data.get('author_ids')
+        if author_ids is not None:  # Check if author_ids was provided in request
+            from .models import AuthorProfile
+            authors = AuthorProfile.objects.filter(id__in=author_ids, is_active=True)
+            invalid_authors = authors.exclude(website=website)
+            if invalid_authors.exists():
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({
+                    "author_ids": f"Some selected authors do not belong to the selected website."
+                })
+        
+        if website_id:
+            serializer.save(website=website, last_edited_by=user)
+        else:
+            serializer.save(last_edited_by=user)
+
     def perform_destroy(self, instance):
         """Soft delete instead of actual delete."""
         instance.soft_delete()
+    
+    @action(detail=False, methods=['get'])
+    def available_websites(self, request):
+        """Get list of websites available for blog post creation."""
+        from websites.serializers import WebsiteSerializer
+        
+        user = request.user
+        
+        if user.role in ['superadmin', 'admin']:
+            # Superadmins and admins can see all active websites
+            websites = Website.objects.filter(is_active=True, is_deleted=False).order_by('name')
+            can_select = True
+        else:
+            # Other roles see only their assigned website (if any)
+            user_website = getattr(user, 'website', None)
+            if user_website:
+                websites = Website.objects.filter(id=user_website.id, is_active=True, is_deleted=False)
+                can_select = True
+            else:
+                websites = Website.objects.none()
+                can_select = False
+        
+        serializer = WebsiteSerializer(websites, many=True)
+        return Response({
+            "websites": serializer.data,
+            "can_select_website": can_select
+        })
+    
+    @action(detail=False, methods=['get'])
+    def available_authors(self, request):
+        """Get list of authors available for blog post attribution."""
+        from .serializers import AuthorProfileSerializer
+        from .models import AuthorProfile
+        
+        user = request.user
+        website_id = request.query_params.get('website_id')
+        
+        # Build queryset
+        queryset = AuthorProfile.objects.filter(is_active=True)
+        
+        # Filter by website
+        if website_id:
+            try:
+                website = Website.objects.get(id=website_id, is_active=True, is_deleted=False)
+                queryset = queryset.filter(website=website)
+            except Website.DoesNotExist:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({"website_id": "Invalid website ID."})
+        else:
+            # If no website_id, use user's website
+            if user.role == 'superadmin':
+                # Superadmins see all authors if no website specified
+                pass
+            else:
+                user_website = getattr(user, 'website', None)
+                if user_website:
+                    queryset = queryset.filter(website=user_website)
+                else:
+                    queryset = AuthorProfile.objects.none()
+        
+        # Order by display_order, then name
+        queryset = queryset.order_by('display_order', 'name')
+        
+        serializer = AuthorProfileSerializer(queryset, many=True, context={'request': request})
+        return Response({
+            "authors": serializer.data,
+            "count": queryset.count()
+        })
     
     @action(detail=True, methods=['post'])
     def create_revision(self, request, pk=None):

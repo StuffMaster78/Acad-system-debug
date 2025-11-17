@@ -44,6 +44,7 @@ def api_root(request):
             'fines': '/api/v1/fines/',
             'blog_pages': '/api/v1/blog_pages_management/',
             'service_pages': '/api/v1/service-pages/',
+            'dropdown_options': '/api/v1/dropdown-options/',
         },
         'status': 'operational'
     })

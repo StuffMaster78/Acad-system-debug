@@ -7,6 +7,7 @@ from .models import (
     BlogABTest, SocialPlatform, BlogShare,
     AdminNotification
 )
+from websites.models import Website
 from django.utils.text import slugify
 import re
 from datetime import timedelta
@@ -108,13 +109,29 @@ class BlogFAQSerializer(serializers.ModelSerializer):
 
 class AuthorProfileSerializer(serializers.ModelSerializer):
     """Serializer for author profiles."""
+    website_name = serializers.SerializerMethodField()
+    post_count = serializers.SerializerMethodField()
 
     class Meta:
         model = AuthorProfile
         fields = [
-            "id", "website", "name", "bio", "profile_picture",
-            "designation", "social_links", "is_fake"
+            "id", "website", "website_name", "name", "bio", "profile_picture",
+            "designation", "social_links", "is_fake", "is_active", "display_order",
+            "expertise", "contact_email", "twitter_handle", "linkedin_profile",
+            "personal_website", "facebook_profile", "instagram_profile",
+            "pinterest_profile", "medium_profile", "github_profile",
+            "youtube_channel", "specialties", "awards", "notable_works",
+            "created_at", "updated_at", "post_count"
         ]
+        read_only_fields = ["created_at", "updated_at", "post_count"]
+    
+    def get_website_name(self, obj):
+        """Get website name for display."""
+        return obj.website.name if obj.website else None
+    
+    def get_post_count(self, obj):
+        """Get count of posts attributed to this author."""
+        return obj.blog_posts.filter(is_deleted=False).count()
 
 
 # ------------------ BLOG POST SERIALIZER ------------------
@@ -150,6 +167,13 @@ class BlogMediaFileSerializer(serializers.ModelSerializer):
 class BlogPostSerializer(serializers.ModelSerializer):
     """Serializer for blog posts with related fields."""
     authors = AuthorProfileSerializer(many=True, read_only=True)
+    author_ids = serializers.PrimaryKeyRelatedField(
+        queryset=AuthorProfile.objects.filter(is_active=True),  # Default queryset, can be overridden in __init__
+        source='authors',
+        write_only=True,
+        many=True,
+        required=False
+    )
     category = BlogCategorySerializer(read_only=True)
     category_id = serializers.PrimaryKeyRelatedField(
         queryset=BlogCategory.objects.all(),
@@ -173,13 +197,20 @@ class BlogPostSerializer(serializers.ModelSerializer):
     word_count = serializers.ReadOnlyField()
     estimated_read_time = serializers.ReadOnlyField()
     media_files = BlogMediaFileSerializer(many=True, read_only=True)
+    website_id = serializers.PrimaryKeyRelatedField(
+        queryset=Website.objects.all(),
+        source='website',
+        write_only=True,
+        required=False,
+        allow_null=False
+    )
     website = serializers.SerializerMethodField()
 
     class Meta:
         model = BlogPost
         fields = [
-            "id", "website", "uuid", "meta_title", "meta_description",
-            "title", "slug", "content", "toc", "authors", "category", "category_id",
+            "id", "website", "website_id", "uuid", "meta_title", "meta_description",
+            "title", "slug", "content", "toc", "authors", "author_ids", "category", "category_id",
             "tags", "tag_ids", "resources", "resources_data", "faqs", "faqs_data",
             "featured_image", "is_featured", "status", "is_published",
             "scheduled_publish_date", "publish_date", "created_at",
@@ -187,13 +218,54 @@ class BlogPostSerializer(serializers.ModelSerializer):
             "click_count", "conversion_count", "word_count",
             "estimated_read_time", "media_files"
         ]
-        read_only_fields = ["slug", "click_count", "conversion_count", "uuid"]
+        read_only_fields = ["slug", "click_count", "conversion_count", "uuid", "website"]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set queryset for author_ids based on request user and website
+        request = self.context.get('request')
+        if request and hasattr(request, 'user'):
+            user = request.user
+            # Get website from request data or instance
+            website_id = None
+            if hasattr(request, 'data') and request.data:
+                website_id = request.data.get('website_id') or request.data.get('website')
+            elif self.instance:
+                website_id = self.instance.website_id if hasattr(self.instance, 'website_id') else None
+            
+            # If no website_id in request, try to get from user
+            if not website_id:
+                website_id = getattr(user, 'website_id', None)
+            
+            # Build queryset for authors
+            from .models import AuthorProfile
+            queryset = AuthorProfile.objects.filter(is_active=True)
+            
+            if website_id:
+                queryset = queryset.filter(website_id=website_id)
+            elif user.role != 'superadmin':
+                # For non-superadmins, filter by their website
+                user_website = getattr(user, 'website', None)
+                if user_website:
+                    queryset = queryset.filter(website=user_website)
+            
+            self.fields['author_ids'].queryset = queryset.order_by('display_order', 'name')
+    
+    def get_website(self, obj):
+        """Get website information for display."""
+        if obj.website:
+            return {
+                'id': obj.website.id,
+                'name': obj.website.name,
+                'domain': obj.website.domain,
+            }
+        return None
     
     def create(self, validated_data):
         """Create blog post with FAQs and resources."""
         faqs_data = validated_data.pop('faqs_data', [])
         resources_data = validated_data.pop('resources_data', [])
-        website = validated_data.get('website')
+        website = validated_data.get('website')  # Website is set in perform_create
         
         blog_post = super().create(validated_data)
         
