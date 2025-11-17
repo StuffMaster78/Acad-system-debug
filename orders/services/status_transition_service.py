@@ -15,22 +15,49 @@ from orders.exceptions import (
 )
 
 VALID_TRANSITIONS: Dict[str, List[str]] = {
+    # Initial states
     "pending": ["unpaid", "cancelled", "deleted"],
-    "unpaid": ["paid", "cancelled", "deleted", "on_hold"],
-    "paid": ["available","pending_writer_assignment", "in_progress", "on_hold", "cancelled"],
-    "pending_writer_assignment": ["available", "cancelled", "on_hold"],
-    "available": ["in_progress", "cancelled", "on_hold"],
-    "in_progress": ["on_hold", "cancelled", "submitted", "reassigned"],
-    "on_hold": ["in_progress", "cancelled", "available"],
-    "submitted": ["reviewed", "rated", "revision_requested", "disputed", "cancelled"],
-    "reviewed": ["rated", "revision_requested"],
-    "rated": ["approved", "revision_requested"],
-    "approved": ["archived"],
-    "cancelled": [],
-    "revision_requested": ["revision_in_progress", "reassigned"],
-    "revision_in_progress": ["revised", "submitted", "cancelled", "reassigned", "closed"],
-    "revised": ["reviewed", "rated", "approved", "revision_requested", "cancelled", "closed"],
-    "reassigned": ["in_progress"],
+    "created": ["pending", "unpaid", "cancelled"],
+    
+    # Payment states
+    "unpaid": ["paid", "cancelled", "deleted", "on_hold", "pending"],
+    "paid": ["available", "pending_writer_assignment", "in_progress", "on_hold", "cancelled"],
+    
+    # Assignment states
+    "pending_writer_assignment": ["available", "cancelled", "on_hold", "in_progress"],
+    "available": ["in_progress", "cancelled", "on_hold", "reassigned"],
+    
+    # Active work states
+    "in_progress": ["on_hold", "cancelled", "submitted", "reassigned", "under_editing"],
+    "on_hold": ["in_progress", "cancelled", "available", "reassigned"],
+    "reassigned": ["in_progress", "available", "on_hold"],
+    
+    # Submission and review states
+    "submitted": ["reviewed", "rated", "revision_requested", "disputed", "cancelled", "under_editing"],
+    "reviewed": ["rated", "revision_requested", "approved"],
+    "rated": ["approved", "revision_requested", "completed"],
+    "approved": ["archived", "completed"],
+    "completed": ["approved", "archived", "closed"],
+    
+    # Revision states
+    "revision_requested": ["revision_in_progress", "reassigned", "on_hold", "cancelled"],
+    "revision_in_progress": ["revised", "submitted", "cancelled", "reassigned", "closed", "on_hold"],
+    "revised": ["reviewed", "rated", "approved", "revision_requested", "cancelled", "closed", "under_editing"],
+    "on_revision": ["revised", "revision_in_progress", "cancelled"],
+    
+    # Editing states
+    "under_editing": ["submitted", "in_progress", "revised", "cancelled", "on_hold"],
+    
+    # Dispute states
+    "disputed": ["in_progress", "revision_requested", "cancelled", "closed", "refunded"],
+    
+    # Final states
+    "cancelled": ["reopened", "unpaid", "refunded"],
+    "reopened": ["unpaid", "pending", "available"],
+    "refunded": ["closed", "cancelled"],
+    "archived": ["closed"],
+    "closed": [],
+    "deleted": [],
 }
 
 
@@ -101,7 +128,8 @@ class StatusTransitionService:
         *,
         metadata: Optional[dict] = None,
         log_action: bool = True,
-        skip_payment_check: bool = False
+        skip_payment_check: bool = False,
+        reason: Optional[str] = None
     ) -> Order:
         """
         Transition an order to a new status if valid.
@@ -112,6 +140,7 @@ class StatusTransitionService:
             metadata (dict, optional): Extra info for audit logging.
             log_action (bool): Whether to log the transition.
             skip_payment_check (bool): Skip payment validation (for admin overrides).
+            reason (str, optional): Reason for the transition.
 
         Returns:
             Order: The updated order instance.
@@ -131,13 +160,24 @@ class StatusTransitionService:
         allowed = VALID_TRANSITIONS.get(current, [])
         if target_status not in allowed:
             raise InvalidTransitionError(
-                f"Cannot move from '{current}' to '{target_status}'."
+                f"Cannot move from '{current}' to '{target_status}'. "
+                f"Allowed transitions: {', '.join(allowed)}"
             )
 
         # Validate payment requirement for statuses that require payment
-        if not skip_payment_check and target_status in ['in_progress', 'available', 'pending_writer_assignment']:
+        payment_required_statuses = ['in_progress', 'available', 'pending_writer_assignment', 'submitted']
+        if not skip_payment_check and target_status in payment_required_statuses:
             self._validate_payment_completed(order, target_status)
+        
+        # Validate writer assignment for statuses that require it
+        writer_required_statuses = ['in_progress', 'submitted', 'revision_in_progress', 'revised']
+        if target_status in writer_required_statuses and not order.assigned_writer:
+            raise ValidationError(
+                f"Cannot transition order to '{target_status}': "
+                "Order must have an assigned writer."
+            )
 
+        # Perform transition
         order.status = target_status
         save_order(order)
 
@@ -147,12 +187,27 @@ class StatusTransitionService:
                 action="STATUS_TRANSITION",
                 target=order,
                 metadata={
-                    "status": [current, target_status],
+                    "old_status": current,
+                    "new_status": target_status,
+                    "reason": reason,
                     **(metadata or {})
                 },
             )
 
         return order
+    
+    def get_available_transitions(self, order: Order) -> List[str]:
+        """
+        Get list of available transitions for an order.
+        
+        Args:
+            order: The order instance
+            
+        Returns:
+            List of available target statuses
+        """
+        current_status = order.status
+        return VALID_TRANSITIONS.get(current_status, [])
 
     @staticmethod
     def _validate_payment_completed(order: Order, target_status: str) -> None:

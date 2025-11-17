@@ -14,7 +14,7 @@ class CreateOrderService:
     action_type="ORDER",
     get_user=lambda a, k, r: r.client,
     get_website=lambda a, k, r: r.website,
-    get_description=lambda a, k, r: f"Order #{r.id} created.",
+    get_description=lambda a, k, r: f"placed an order #{r.id}",
     get_metadata=lambda a, k, r: {"order_id": r.id, "status": r.status}
     )
     def create_order(self, user, **order_data) -> Order:

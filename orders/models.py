@@ -560,6 +560,22 @@ class Order(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            # Single field indexes for common filters
+            models.Index(fields=['status']),
+            models.Index(fields=['is_paid']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['client']),
+            models.Index(fields=['assigned_writer']),
+            models.Index(fields=['website']),
+            # Composite indexes for common query patterns
+            models.Index(fields=['status', 'is_paid']),
+            models.Index(fields=['client', 'status']),
+            models.Index(fields=['assigned_writer', 'status']),
+            models.Index(fields=['website', 'status']),
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['is_paid', 'created_at']),
+        ]
 
     # Backward-compat deadline alias for tests
     @property

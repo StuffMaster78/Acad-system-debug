@@ -14,18 +14,26 @@ from orders.permissions import IsOrderOwnerOrSupport
 from orders.services.order_deletion_service import (
     OrderDeletionService, ALLOWED_STAFF_ROLES
 )
+from orders.exceptions import InvalidTransitionError
 
 
-class NoPagination(PageNumberPagination):
-    """Custom pagination class that returns all results without pagination."""
-    def paginate_queryset(self, queryset, request, view=None):
-        """Override to disable pagination - return None to get all results."""
-        return None
+class LimitedPagination(PageNumberPagination):
+    """Custom pagination class with safety limits to prevent performance issues."""
+    page_size = 100
+    page_size_query_param = 'page_size'
+    max_page_size = 500  # Safety limit to prevent excessive data transfer
     
     def get_paginated_response(self, data):
-        """This should never be called, but return data as-is if it is."""
+        """Return paginated response with metadata."""
         from rest_framework.response import Response
-        return Response(data)
+        return Response({
+            'count': self.page.paginator.count,
+            'next': self.get_next_link(),
+            'previous': self.get_previous_link(),
+            'results': data,
+            'current_page': self.page.number,
+            'total_pages': self.page.paginator.num_pages,
+        })
 
 
 class OrderBaseViewSet(
@@ -45,7 +53,7 @@ class OrderBaseViewSet(
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated, IsOrderOwnerOrSupport]
-    pagination_class = NoPagination  # Return all orders without pagination
+    pagination_class = LimitedPagination  # Paginated with safety limits
 
     def get_queryset(self):
         """
@@ -60,7 +68,23 @@ class OrderBaseViewSet(
         if not user or not user.is_authenticated:
             return Order.objects.none()
 
-        qs = Order.objects.all()
+        # Optimize queryset with select_related and prefetch_related to prevent N+1 queries
+        qs = Order.objects.all().select_related(
+            'client',           # Used in serializer
+            'website',          # Used in serializer
+            'assigned_writer',  # Used in serializer (writer_username)
+            'preferred_writer', # Used in serializer
+            'paper_type',       # Used in serializer
+            'academic_level',   # Used in serializer
+            'formatting_style', # Used in serializer
+            'type_of_work',     # Used in serializer
+            'english_type',     # Used in serializer
+            'subject',          # Used in serializer
+            'previous_order',   # Used in serializer
+            'discount',         # Used in serializer
+        ).prefetch_related(
+            'extra_services',   # ManyToMany field used in serializer
+        )
 
         # Role-based scoping
         # Both superadmin and admin should see all orders (no website filtering)
@@ -109,6 +133,9 @@ class OrderBaseViewSet(
             if requested:
                 base_qs = base_qs.filter(status__in=requested)
 
+        # Order by most recent first
+        base_qs = base_qs.order_by('-created_at', '-id')
+        
         return base_qs
     
 
@@ -394,3 +421,84 @@ class OrderBaseViewSet(
         code = status.HTTP_204_NO_CONTENT if result.was_deleted \
             else status.HTTP_200_OK
         return Response(status=code)
+    
+    @decorators.action(detail=True, methods=["post"], url_path="transition")
+    def transition_status(self, request, pk=None):
+        """
+        Transition order to a new status.
+        
+        Body:
+        {
+            "target_status": "in_progress",
+            "reason": "Optional reason for transition",
+            "skip_payment_check": false
+        }
+        """
+        order = get_object_or_404(Order, pk=pk)
+        target_status = request.data.get("target_status")
+        reason = request.data.get("reason")
+        skip_payment_check = request.data.get("skip_payment_check", False)
+        
+        if not target_status:
+            return Response(
+                {"detail": "target_status is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if user has permission (admin/superadmin can skip checks)
+        user_role = getattr(request.user, 'role', None)
+        if user_role not in ['admin', 'superadmin']:
+            skip_payment_check = False
+        
+        try:
+            from orders.services.status_transition_service import StatusTransitionService
+            service = StatusTransitionService(user=request.user)
+            service.transition_order_to_status(
+                order,
+                target_status,
+                reason=reason,
+                skip_payment_check=skip_payment_check
+            )
+            
+            return Response(
+                {
+                    "message": f"Order transitioned to {target_status}",
+                    "order": OrderSerializer(order, context={"request": request}).data
+                },
+                status=status.HTTP_200_OK
+            )
+        except InvalidTransitionError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except ValidationError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"detail": f"Transition failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @decorators.action(detail=True, methods=["get"], url_path="available-transitions")
+    def get_available_transitions(self, request, pk=None):
+        """
+        Get list of available status transitions for an order.
+        """
+        order = get_object_or_404(Order, pk=pk)
+        
+        from orders.services.status_transition_service import StatusTransitionService
+        service = StatusTransitionService(user=request.user)
+        available = service.get_available_transitions(order)
+        
+        return Response(
+            {
+                "current_status": order.status,
+                "available_transitions": available,
+                "order_id": order.id
+            },
+            status=status.HTTP_200_OK
+        )
