@@ -41,16 +41,19 @@ def check_sla_status():
     """
     breached_tasks = OrderDisputeSLA.objects.filter(
         sla_breached=False, expected_resolution_time__lte=now(), actual_resolution_time__isnull=True
-    )
+    ).select_related('assigned_to')
 
     for task in breached_tasks:
         task.sla_breached = True
         task.save()
-        send_support_notification(
-            task.assigned_to, 
-            f"SLA Breach Alert: {task.sla_type} - ID {task.id}", 
-            priority="high"
-        )
+        
+        # Send notification if assigned to a support agent
+        if task.assigned_to and hasattr(task.assigned_to, 'support_profile'):
+            send_support_notification(
+                task.assigned_to.support_profile, 
+                f"⚠️ SLA Breach Alert: {task.sla_type} - {'Order' if task.order else 'Dispute'} {task.order.id if task.order else task.dispute.id}", 
+                priority="high"
+            )
 
 
 # 🚀 **4️⃣ Update Support Workload**

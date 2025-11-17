@@ -350,3 +350,159 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
                 'last_activity': workload_tracker.last_activity.isoformat() if workload_tracker.last_activity else None,
             }
         })
+    
+    @action(detail=False, methods=["get"], url_path="analytics/performance")
+    def analytics_performance(self, request):
+        """Get performance analytics for support team or individual agent."""
+        from .services.analytics_service import SupportAnalyticsService
+        
+        if request.user.role not in ["support", "admin", "superadmin"]:
+            return Response(
+                {"detail": "Only support staff can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        support_user = request.user if request.user.role == "support" else None
+        
+        service = SupportAnalyticsService(support_user=support_user, days=days)
+        analytics = service.get_performance_analytics()
+        
+        return Response(analytics)
+    
+    @action(detail=False, methods=["get"], url_path="analytics/trends")
+    def analytics_trends(self, request):
+        """Get trend analytics (weekly breakdown)."""
+        from .services.analytics_service import SupportAnalyticsService
+        
+        if request.user.role not in ["support", "admin", "superadmin"]:
+            return Response(
+                {"detail": "Only support staff can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        support_user = request.user if request.user.role == "support" else None
+        
+        service = SupportAnalyticsService(support_user=support_user, days=days)
+        trends = service.get_trend_analytics()
+        
+        return Response({'trends': trends})
+    
+    @action(detail=False, methods=["get"], url_path="analytics/comparison")
+    def analytics_comparison(self, request):
+        """Compare performance across all support agents."""
+        from .services.analytics_service import SupportAnalyticsService
+        
+        if request.user.role not in ["admin", "superadmin"]:
+            return Response(
+                {"detail": "Only admins can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        service = SupportAnalyticsService(days=days)
+        comparison = service.get_agent_comparison()
+        
+        return Response({'comparison': comparison})
+    
+    @action(detail=False, methods=["get"], url_path="analytics/sla")
+    def analytics_sla(self, request):
+        """Get SLA compliance analytics."""
+        from .services.analytics_service import SupportAnalyticsService
+        
+        if request.user.role not in ["support", "admin", "superadmin"]:
+            return Response(
+                {"detail": "Only support staff can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        support_user = request.user if request.user.role == "support" else None
+        
+        service = SupportAnalyticsService(support_user=support_user, days=days)
+        sla_analytics = service.get_sla_analytics()
+        
+        return Response(sla_analytics)
+    
+    @action(detail=False, methods=["get"], url_path="analytics/workload")
+    def analytics_workload(self, request):
+        """Get workload distribution across support team."""
+        from .services.analytics_service import SupportAnalyticsService
+        
+        if request.user.role not in ["admin", "superadmin"]:
+            return Response(
+                {"detail": "Only admins can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        service = SupportAnalyticsService(days=days)
+        distribution = service.get_workload_distribution()
+        
+        return Response({'distribution': distribution})
+    
+    @action(detail=False, methods=["get"], url_path="performance/metrics")
+    def performance_metrics(self, request):
+        """Get performance metrics for current support agent."""
+        from .services.performance_service import SupportPerformanceService
+        
+        if request.user.role != "support":
+            return Response(
+                {"detail": "Only support agents can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        service = SupportPerformanceService(support_user=request.user, days=days)
+        metrics = service.get_performance_metrics()
+        
+        return Response(metrics)
+    
+    @action(detail=False, methods=["get"], url_path="performance/trends")
+    def performance_trends(self, request):
+        """Get performance trends for current support agent."""
+        from .services.performance_service import SupportPerformanceService
+        
+        if request.user.role != "support":
+            return Response(
+                {"detail": "Only support agents can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        service = SupportPerformanceService(support_user=request.user, days=days)
+        trends = service.get_performance_trends()
+        
+        return Response({'trends': trends})
+    
+    @action(detail=False, methods=["get"], url_path="sla/breaches")
+    def sla_breaches(self, request):
+        """Get all SLA breaches."""
+        from .models import OrderDisputeSLA
+        from .serializers import OrderDisputeSLASerializer
+        
+        if request.user.role not in ["support", "admin", "superadmin"]:
+            return Response(
+                {"detail": "Only support staff can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Filter by assigned agent if support, show all if admin
+        if request.user.role == "support":
+            breaches = OrderDisputeSLA.objects.filter(
+                assigned_to=request.user,
+                sla_breached=True,
+                actual_resolution_time__isnull=True
+            )
+        else:
+            breaches = OrderDisputeSLA.objects.filter(
+                sla_breached=True,
+                actual_resolution_time__isnull=True
+            )
+        
+        serializer = OrderDisputeSLASerializer(breaches, many=True)
+        return Response({
+            'breaches': serializer.data,
+            'count': breaches.count()
+        })

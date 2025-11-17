@@ -4,9 +4,12 @@ from django.contrib.auth.signals import user_logged_in
 from django.utils.timezone import now
 from .models import (
     SupportProfile, SupportActivityLog, SupportNotification, EscalationLog, 
-    SupportOrderManagement, SupportWorkloadTracker, PaymentIssueLog, SupportActionLog
+    SupportOrderManagement, SupportWorkloadTracker, PaymentIssueLog, SupportActionLog,
+    SupportDashboard
 )
 from websites.models import Website
+from tickets.models import Ticket
+from orders.models import Dispute, Order
 from .utils import send_support_notification, update_support_workload
 from django.contrib.auth import get_user_model
 from django.conf import settings
@@ -139,3 +142,59 @@ def cleanup_support_workload(sender, instance, **kwargs):
     Remove workload tracker data when a support profile is deleted.
     """
     SupportWorkloadTracker.objects.filter(support_staff=instance.user).delete()
+
+
+# 🚀 **9️⃣ Auto-Update Dashboard on Ticket Changes**
+@receiver(post_save, sender=Ticket)
+def update_dashboard_on_ticket_change(sender, instance, created, **kwargs):
+    if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
+        return
+    """
+    Update support dashboard when tickets are created or updated.
+    """
+    if instance.assigned_to and hasattr(instance.assigned_to, 'support_dashboard'):
+        try:
+            dashboard = instance.assigned_to.support_dashboard
+            dashboard.update_dashboard()
+        except SupportDashboard.DoesNotExist:
+            # Create dashboard if it doesn't exist
+            dashboard = SupportDashboard.objects.create(support_staff=instance.assigned_to)
+            dashboard.update_dashboard()
+
+
+# 🚀 **🔟 Auto-Update Dashboard on Dispute Changes**
+@receiver(post_save, sender=Dispute)
+def update_dashboard_on_dispute_change(sender, instance, created, **kwargs):
+    if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
+        return
+    """
+    Update support dashboard when disputes are created or updated.
+    """
+    # Update dashboard for assigned support agent if exists
+    if hasattr(instance, 'assigned_to') and instance.assigned_to:
+        if hasattr(instance.assigned_to, 'support_dashboard'):
+            try:
+                dashboard = instance.assigned_to.support_dashboard
+                dashboard.update_dashboard()
+            except SupportDashboard.DoesNotExist:
+                dashboard = SupportDashboard.objects.create(support_staff=instance.assigned_to)
+                dashboard.update_dashboard()
+
+
+# 🚀 **1️⃣1️⃣ Auto-Update Dashboard on Order Changes**
+@receiver(post_save, sender=Order)
+def update_dashboard_on_order_change(sender, instance, created, **kwargs):
+    if getattr(settings, "DISABLE_SUPPORT_SIGNALS", False):
+        return
+    """
+    Update support dashboard when orders are updated by support.
+    """
+    # Check if order was updated by support staff
+    if hasattr(instance, 'updated_by') and instance.updated_by:
+        if instance.updated_by.role == 'support' and hasattr(instance.updated_by, 'support_dashboard'):
+            try:
+                dashboard = instance.updated_by.support_dashboard
+                dashboard.update_dashboard()
+            except SupportDashboard.DoesNotExist:
+                dashboard = SupportDashboard.objects.create(support_staff=instance.updated_by)
+                dashboard.update_dashboard()

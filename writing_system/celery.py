@@ -187,6 +187,31 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
         "task": "orders.tasks.progress_reminders.send_progress_reminders",
         "schedule": crontab(minute="*/60"),  # Every hour
     },
+    # Support Management Tasks
+    "refresh-support-dashboards": {
+        "task": "support_management.tasks.refresh_all_support_dashboards",
+        "schedule": crontab(minute="*/15"),  # Every 15 minutes
+    },
+    "check-sla-breaches": {
+        "task": "support_management.tasks.check_sla_breaches",
+        "schedule": crontab(minute="*/5"),  # Every 5 minutes
+    },
+    "send-sla-breach-alerts": {
+        "task": "support_management.tasks.send_sla_breach_alerts",
+        "schedule": crontab(minute="*/15"),  # Every 15 minutes
+    },
+    "auto-reassign-unresolved-tasks": {
+        "task": "support_management.tasks.auto_reassign_unresolved_tasks",
+        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+    },
+    "update-support-workload-trackers": {
+        "task": "support_management.tasks.update_support_workload_trackers",
+        "schedule": crontab(minute="*/10"),  # Every 10 minutes
+    },
+    "calculate-support-performance-metrics": {
+        "task": "support_management.tasks.calculate_support_performance_metrics",
+        "schedule": crontab(minute=0, hour=2),  # Daily at 2 AM
+    },
 }
 
 # ---------- Dynamic schedule via django-celery-beat (guarded) ---------------
