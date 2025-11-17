@@ -4,7 +4,7 @@ from django.utils import timezone
 from .models import (
     OrderPayment, Refund, PaymentNotification, PaymentLog,
     PaymentDispute, DiscountUsage, SplitPayment, AdminLog,
-    PaymentReminderSettings
+    PaymentReminderSettings, Invoice
 )
 from .models.payment_reminders import (
     PaymentReminderConfig,
@@ -13,6 +13,13 @@ from .models.payment_reminders import (
 )
 from discounts.models import Discount
 from .models import RequestPayment
+
+# Import models for default querysets in Invoice serializers
+from websites.models import Website
+from users.models import User
+from orders.models import Order
+from special_orders.models import SpecialOrder
+from class_management.models import ClassPurchase
 
 class OrderPaymentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -372,3 +379,211 @@ class RequestPaymentSerializer(serializers.ModelSerializer):
         model = RequestPayment
         fields = ['id', 'order', 'website', 'payment_method', 'additional_cost',
                   'payment_date', 'payment_for']
+
+
+class InvoiceSerializer(serializers.ModelSerializer):
+    """Serializer for Invoice model."""
+    recipient_email_display = serializers.SerializerMethodField()
+    recipient_name_display = serializers.SerializerMethodField()
+    website_name = serializers.SerializerMethodField()
+    issued_by_username = serializers.SerializerMethodField()
+    payment_link = serializers.SerializerMethodField()
+    is_overdue = serializers.SerializerMethodField()
+    is_token_valid = serializers.SerializerMethodField()
+    
+    # Use SerializerMethodField with a property to avoid queryset requirement at class definition
+    client_id = serializers.SerializerMethodField()
+    website_id = serializers.SerializerMethodField()
+    order_id = serializers.SerializerMethodField()
+    special_order_id = serializers.SerializerMethodField()
+    class_purchase_id = serializers.SerializerMethodField()
+    
+    # Write-only fields for creating/updating (with default querysets)
+    _client_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role__in=['client', 'writer', 'editor']),
+        source='client',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    _website_id = serializers.PrimaryKeyRelatedField(
+        queryset=Website.objects.filter(is_active=True, is_deleted=False),
+        source='website',
+        write_only=True,
+        required=True
+    )
+    _order_id = serializers.PrimaryKeyRelatedField(
+        queryset=Order.objects.all(),
+        source='order',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    _special_order_id = serializers.PrimaryKeyRelatedField(
+        queryset=SpecialOrder.objects.all(),
+        source='special_order',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    _class_purchase_id = serializers.PrimaryKeyRelatedField(
+        queryset=ClassPurchase.objects.all(),
+        source='class_purchase',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+
+    class Meta:
+        model = Invoice
+        fields = [
+            'id', 'reference_id', 'client', 'client_id', '_client_id', 'recipient_email', 'recipient_email_display',
+            'recipient_name', 'recipient_name_display', 'website', 'website_id', '_website_id', 'website_name',
+            'issued_by', 'issued_by_username', 'title', 'purpose', 'description', 'order_number',
+            'amount', 'due_date', 'is_paid', 'payment', 'payment_token', 'token_expires_at',
+            'email_sent', 'email_sent_at', 'email_sent_count', 'order', 'order_id', '_order_id',
+            'special_order', 'special_order_id', '_special_order_id', 'class_purchase', 'class_purchase_id', '_class_purchase_id',
+            'created_at', 'paid_at', 'updated_at', 'payment_link', 'is_overdue', 'is_token_valid'
+        ]
+        read_only_fields = [
+            'id', 'reference_id', 'payment_token', 'token_expires_at', 'email_sent',
+            'email_sent_at', 'email_sent_count', 'is_paid', 'paid_at', 'created_at',
+            'updated_at', 'payment', 'payment_link', 'is_overdue', 'is_token_valid',
+            'recipient_email_display', 'recipient_name_display', 'website_name', 'issued_by_username',
+            'client_id', 'website_id', 'order_id', 'special_order_id', 'class_purchase_id'
+        ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set querysets dynamically based on request user
+        request = self.context.get('request')
+        
+        if request and hasattr(request, 'user'):
+            user = request.user
+            
+            # Website queryset
+            if user.role in ['superadmin', 'admin']:
+                self.fields['_website_id'].queryset = Website.objects.filter(is_active=True, is_deleted=False)
+            else:
+                user_website = getattr(user, 'website', None)
+                if user_website:
+                    self.fields['_website_id'].queryset = Website.objects.filter(id=user_website.id)
+                else:
+                    self.fields['_website_id'].queryset = Website.objects.none()
+            
+            # Client queryset (for admins, can select any client)
+            if user.role in ['superadmin', 'admin']:
+                self.fields['_client_id'].queryset = User.objects.filter(role__in=['client', 'writer', 'editor'])
+            else:
+                self.fields['_client_id'].queryset = User.objects.none()
+    
+    def get_client_id(self, obj):
+        """Get client ID for read operations."""
+        return obj.client.id if obj.client else None
+    
+    def get_website_id(self, obj):
+        """Get website ID for read operations."""
+        return obj.website.id if obj.website else None
+    
+    def get_order_id(self, obj):
+        """Get order ID for read operations."""
+        return obj.order.id if obj.order else None
+    
+    def get_special_order_id(self, obj):
+        """Get special order ID for read operations."""
+        return obj.special_order.id if obj.special_order else None
+    
+    def get_class_purchase_id(self, obj):
+        """Get class purchase ID for read operations."""
+        return obj.class_purchase.id if obj.class_purchase else None
+    
+    def get_recipient_email_display(self, obj):
+        """Get recipient email for display."""
+        return obj.get_recipient_email()
+    
+    def get_recipient_name_display(self, obj):
+        """Get recipient name for display."""
+        return obj.get_recipient_name()
+    
+    def get_website_name(self, obj):
+        """Get website name."""
+        return obj.website.name if obj.website else None
+    
+    def get_issued_by_username(self, obj):
+        """Get issuer username."""
+        return obj.issued_by.username if obj.issued_by else None
+    
+    def get_payment_link(self, obj):
+        """Get payment link (only if not paid)."""
+        if obj.is_paid or not obj.payment_token:
+            return None
+        from .services.invoice_service import InvoiceService
+        return InvoiceService.get_payment_link(obj)
+    
+    def get_is_overdue(self, obj):
+        """Check if invoice is overdue."""
+        return obj.is_overdue()
+    
+    def get_is_token_valid(self, obj):
+        """Check if payment token is valid."""
+        return obj.is_token_valid()
+    
+    def validate(self, data):
+        """Validate invoice data."""
+        # Ensure either client or recipient_email is provided
+        if not data.get('client') and not data.get('recipient_email'):
+            raise serializers.ValidationError({
+                'recipient_email': 'Either client or recipient_email must be provided.'
+            })
+        
+        # If client is provided, use client's email
+        if data.get('client'):
+            data['recipient_email'] = data['client'].email
+        
+        return data
+
+
+class InvoiceCreateSerializer(serializers.ModelSerializer):
+    """Serializer for creating invoices (simplified fields)."""
+    website_id = serializers.PrimaryKeyRelatedField(
+        queryset=Website.objects.filter(is_active=True, is_deleted=False),
+        source='website',
+        write_only=True,
+        required=True
+    )
+    client_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role__in=['client', 'writer', 'editor']),
+        source='client',
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+    send_email = serializers.BooleanField(write_only=True, default=True, required=False)
+
+    class Meta:
+        model = Invoice
+        fields = [
+            'recipient_email', 'recipient_name', 'website_id', 'client_id',
+            'title', 'purpose', 'description', 'order_number', 'amount', 'due_date',
+            'order', 'special_order', 'class_purchase', 'send_email'
+        ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        
+        # Import models - must be done here to avoid circular imports
+        from websites.models import Website
+        from users.models import User
+        
+        if request and hasattr(request, 'user'):
+            user = request.user
+            
+            if user.role not in ['superadmin', 'admin']:
+                # Restrict to user's website for non-admins
+                user_website = getattr(user, 'website', None)
+                if user_website:
+                    self.fields['website_id'].queryset = Website.objects.filter(id=user_website.id)
+                else:
+                    self.fields['website_id'].queryset = Website.objects.none()
+                self.fields['client_id'].queryset = User.objects.none()

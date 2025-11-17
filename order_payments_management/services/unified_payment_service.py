@@ -142,6 +142,11 @@ class UnifiedPaymentService:
         elif payment_type == 'class_payment' and (order or special_order):
             raise ValidationError("Class payments cannot have order or special_order.")
         
+        elif payment_type == 'invoice':
+            # Invoice payments are standalone - no required relationships
+            # Optional relationships (order, special_order, class_purchase) are allowed for tracking
+            pass
+        
         elif payment_type == 'wallet_loading':
             # Wallet loading doesn't require order relationships
             if order or special_order or class_purchase:
