@@ -128,27 +128,67 @@ class MessageAttachmentSerializer(serializers.Serializer):
     extension = serializers.SerializerMethodField()
     preview_url = serializers.SerializerMethodField()
 
+    def _has_file(self, obj):
+        """Check if the attachment field has a file associated with it."""
+        if not obj:
+            return False
+        try:
+            # Check if file exists and has a name
+            return bool(obj.name) and obj.storage.exists(obj.name)
+        except (AttributeError, ValueError):
+            return False
+
     def get_filename(self, obj):
-        return os.path.basename(obj.name) if obj else None
+        if not self._has_file(obj):
+            return None
+        try:
+            return os.path.basename(obj.name)
+        except (AttributeError, ValueError):
+            return None
 
     def get_filetype(self, obj):
-        mime_type, _ = mimetypes.guess_type(obj.name)
-        return mime_type or "application/octet-stream"
+        if not self._has_file(obj):
+            return None
+        try:
+            mime_type, _ = mimetypes.guess_type(obj.name)
+            return mime_type or "application/octet-stream"
+        except (AttributeError, ValueError):
+            return None
 
     def get_extension(self, obj):
-        return os.path.splitext(obj.name)[1].lower().strip(".") if obj else None
+        if not self._has_file(obj):
+            return None
+        try:
+            return os.path.splitext(obj.name)[1].lower().strip(".") if obj.name else None
+        except (AttributeError, ValueError):
+            return None
 
     def get_filesize(self, obj):
-        return obj.size if obj else 0
+        if not self._has_file(obj):
+            return 0
+        try:
+            return obj.size if obj else 0
+        except (AttributeError, ValueError):
+            return 0
 
     def get_is_image(self, obj):
-        mime_type = self.get_filetype(obj)
-        return mime_type.startswith("image/")
+        if not self._has_file(obj):
+            return False
+        try:
+            mime_type = self.get_filetype(obj)
+            return mime_type and mime_type.startswith("image/")
+        except (AttributeError, ValueError):
+            return False
 
     def get_preview_url(self, obj):
+        if not self._has_file(obj):
+            return None
         request = self.context.get("request")
-        if obj and request:
-            return request.build_absolute_uri(obj.url)
+        try:
+            if obj and request:
+                return request.build_absolute_uri(obj.url)
+        except (AttributeError, ValueError):
+            pass
         return None
     
 class CommunicationMessageSerializer(serializers.ModelSerializer):
@@ -163,7 +203,7 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
         required=False,
         allow_null=True
     )
-    attachment = MessageAttachmentSerializer(read_only=True)
+    attachment = serializers.SerializerMethodField()
 
     is_sender = serializers.SerializerMethodField()
     is_system = serializers.SerializerMethodField()
@@ -355,6 +395,21 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
         """ Check if the current user is the sender of the message. """
         request_user = self.context.get("request", {}).user
         return bool(request_user and obj.sender and obj.sender == request_user)
+    
+    def get_attachment(self, obj):
+        """Safely serialize attachment, returning None if file doesn't exist."""
+        if not obj.attachment:
+            return None
+        
+        # Check if the file actually exists
+        try:
+            if not obj.attachment.name or not obj.attachment.storage.exists(obj.attachment.name):
+                return None
+        except (AttributeError, ValueError):
+            return None
+        
+        # Serialize the attachment
+        return MessageAttachmentSerializer(obj.attachment, context=self.context).data
     
     def get_link_preview(self, obj):
         return obj.link_preview_json if obj.link_preview_json else None
