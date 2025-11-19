@@ -89,8 +89,8 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         
         order_threads = queryset.filter(order_access_filter)
         
-        # Combine both
-        return (participant_threads | order_threads).distinct()
+        # Combine both and order by most recent first
+        return (participant_threads | order_threads).distinct().order_by('-updated_at', '-id')
 
     def create(self, request, *args, **kwargs):
         """Override create to handle thread creation properly."""
