@@ -28,6 +28,13 @@ class OrderSerializer(serializers.ModelSerializer):
     external_contact_email = serializers.EmailField(read_only=True)
     external_contact_phone = serializers.CharField(read_only=True)
     allow_unpaid_access = serializers.BooleanField(read_only=True)
+    # Client information (role-based visibility in to_representation)
+    client_email = serializers.SerializerMethodField(read_only=True)
+    client_registration_id = serializers.SerializerMethodField(read_only=True)
+    # Subject specialty information
+    subject_is_technical = serializers.SerializerMethodField(read_only=True)
+    # Writer deadline percentage config
+    writer_deadline_percentage = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Order
@@ -35,14 +42,14 @@ class OrderSerializer(serializers.ModelSerializer):
             'id', 'topic', 'order_instructions', 'paper_type', 'academic_level', 
             'formatting_style', 'type_of_work', 'english_type', 'number_of_pages', 
             'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'writer_deadline', 
-            'client', 'client_username', 'assigned_writer', 'writer_username', 
+            'client', 'client_username', 'client_email', 'client_registration_id', 'assigned_writer', 'writer_username', 
             'preferred_writer', 'total_price', 'writer_compensation', 
-            'extra_services', 'subject', 'discount_code_used', 'is_paid', 
+            'extra_services', 'subject', 'subject_is_technical', 'discount_code_used', 'is_paid', 
             'status', 'flags', 'created_at', 'updated_at', 
             'created_by_admin', 'is_special_order', 'is_follow_up',
             'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent',
             'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',
-            'allow_unpaid_access'
+            'allow_unpaid_access', 'writer_deadline_percentage'
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_price', 
@@ -80,6 +87,36 @@ class OrderSerializer(serializers.ModelSerializer):
             # This ensures the same fake ID is shown for the same order
             return f"EXT-{obj.id:06d}"
         return None
+    
+    def get_client_email(self, obj):
+        """Get client email (admin/superadmin only, filtered in to_representation)"""
+        if obj.client:
+            return obj.client.email
+        return None
+    
+    def get_client_registration_id(self, obj):
+        """Get client registration ID"""
+        if obj.client and hasattr(obj.client, 'client_profile'):
+            return obj.client.client_profile.registration_id
+        return None
+    
+    def get_subject_is_technical(self, obj):
+        """Get whether subject is technical"""
+        if obj.subject:
+            return getattr(obj.subject, 'is_technical', False)
+        return None
+    
+    def get_writer_deadline_percentage(self, obj):
+        """Get writer deadline percentage config"""
+        if obj.writer_deadline_percentage:
+            config = obj.writer_deadline_percentage
+            label = getattr(config, 'label', None)
+            return {
+                'id': config.id,
+                'writer_deadline_percentage': config.writer_deadline_percentage,
+                'label': label or f"{config.writer_deadline_percentage}%"
+            }
+        return None
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -93,10 +130,16 @@ class OrderSerializer(serializers.ModelSerializer):
             bool(getattr(instance, 'external_contact_email', None))
         )
         
+        # Role-based field visibility
         if role not in ['admin', 'superadmin', 'support']:
             data.pop('external_contact_name', None)
             data.pop('external_contact_email', None)
             data.pop('external_contact_phone', None)
+            # Hide client email and registration_id from non-admin roles
+            data.pop('client_email', None)
+            # Keep client_registration_id visible to writers (they need client ID)
+            if role != 'writer':
+                data.pop('client_registration_id', None)
             # keep allow_unpaid_access visible only if owner/admin
             if role not in ['admin', 'superadmin'] and user != instance.client:
                 data.pop('allow_unpaid_access', None)
@@ -107,6 +150,8 @@ class OrderSerializer(serializers.ModelSerializer):
             # Optionally, set client_username to the fake ID for display
             if data.get('fake_client_id'):
                 data['client_username'] = data['fake_client_id']
+                # Also set client_registration_id to fake_client_id for consistency
+                data['client_registration_id'] = data['fake_client_id']
         elif role not in ['admin', 'superadmin', 'support']:
             # Hide fake_client_id from non-admin roles (except writers who need it)
             if role != 'writer':
