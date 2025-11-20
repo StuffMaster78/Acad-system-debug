@@ -14,7 +14,7 @@ from writer_management.views import (
     WriterDeadlineExtensionRequestViewSet,
 )
 # Import performance views from views package
-from writer_management.views import WriterPerformanceSnapshotViewSet, WriterPerformanceDashboardView
+from writer_management.views import WriterPerformanceSnapshotViewSet, WriterPerformanceDashboardView, WriterLevelViewSet
 from writer_management.views_dashboard import WriterDashboardViewSet
 # Import Tip views from views.tips module
 from writer_management.views.tips import TipViewSet, TipListView
@@ -30,6 +30,7 @@ router.register(r'badge-performance', BadgePerformanceViewSet, basename='badge-p
 router.register(r'writers', WriterProfileViewSet, basename='writers')
 router.register(r'writer-configs', WriterConfigViewSet, basename='writer-configs')
 router.register(r'writer-level-configs', WriterLevelConfigViewSet, basename='writer-level-configs')
+router.register(r'writer-levels', WriterLevelViewSet, basename='writer-levels')
 router.register(r'writer-order-requests', WriterOrderRequestViewSet, basename='writer-order-requests')
 router.register(r'writer-order-takes', WriterOrderTakeViewSet, basename='writer-order-takes')
 router.register(r'writer-support-tickets', WriterSupportTicketViewSet, basename='writer-support-tickets')

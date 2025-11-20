@@ -93,7 +93,7 @@ class WriterLevelConfig(models.Model):
     """
     website = models.ForeignKey(
         Website, on_delete=models.CASCADE,
-        related_name="writer_levels"
+        related_name="writer_level_configs"
     )
     name = models.CharField(max_length=50, unique=True)
     description = models.TextField(blank=True)

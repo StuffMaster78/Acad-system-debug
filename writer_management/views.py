@@ -147,9 +147,9 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         """
-        Allow writers to update their own profile (specifically pen_name).
+        Allow writers to update their own profile (specifically pen_name) and view their own profile.
         """
-        if self.action in ['update', 'partial_update']:
+        if self.action in ['update', 'partial_update', 'my_profile']:
             return [permissions.IsAuthenticated()]
         return [permissions.IsAdminUser()]
     
@@ -190,6 +190,64 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
         # Admins can update everything
         return super().update(request, *args, **kwargs)
 
+    @action(detail=False, methods=['GET'], permission_classes=[permissions.IsAuthenticated])
+    def my_profile(self, request):
+        """
+        Get the current writer's own profile with hierarchy details.
+        """
+        if request.user.role != 'writer':
+            return Response(
+                {"detail": "This endpoint is only available for writers."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            profile = request.user.writer_profile
+        except WriterProfile.DoesNotExist:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        serializer = self.get_serializer(profile)
+        data = serializer.data
+        
+        # Add hierarchy details
+        if profile.writer_level:
+            from writer_management.services.level_progression import WriterLevelProgressionService
+            from writer_management.models.levels import WriterLevel
+            
+            level = profile.writer_level
+            level_data = {
+                'id': level.id,
+                'name': level.name,
+                'description': level.description or '',
+                'earning_mode': level.earning_mode,
+                'base_pay_per_page': float(level.base_pay_per_page),
+                'base_pay_per_slide': float(level.base_pay_per_slide),
+                'earnings_percentage_of_cost': float(level.earnings_percentage_of_cost) if level.earnings_percentage_of_cost else None,
+                'earnings_percentage_of_total': float(level.earnings_percentage_of_total) if level.earnings_percentage_of_total else None,
+                'urgency_percentage_increase': float(level.urgency_percentage_increase),
+                'urgency_additional_per_page': float(level.urgency_additional_per_page),
+                'urgent_order_deadline_hours': level.urgent_order_deadline_hours,
+                'technical_order_adjustment_per_page': float(level.technical_order_adjustment_per_page),
+                'technical_order_adjustment_per_slide': float(level.technical_order_adjustment_per_slide),
+                'deadline_percentage': float(level.deadline_percentage),
+                'tips_percentage': float(level.tips_percentage),
+                'max_orders': level.max_orders,
+                'bonus_per_order_completed': float(level.bonus_per_order_completed),
+                'bonus_per_rating_above_threshold': float(level.bonus_per_rating_above_threshold),
+                'rating_threshold_for_bonus': float(level.rating_threshold_for_bonus),
+            }
+            data['writer_level_details'] = level_data
+            
+            # Get next level requirements
+            next_level_info = WriterLevelProgressionService.get_next_level_requirements(profile)
+            if next_level_info:
+                data['next_level_info'] = next_level_info
+        
+        return Response(data)
+    
     @action(detail=True, methods=['GET'], permission_classes=[permissions.IsAdminUser])
     def earnings(self, request, pk=None):
         """
@@ -236,12 +294,18 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
         Validate and save writer order requests.
         """
         writer = self.request.user.writer_profile
-        config = WriterConfig.objects.first()
-        max_requests = config.max_requests_per_writer
+        # Get max requests from writer's level, fallback to WriterConfig if no level
+        if writer.writer_level:
+            max_requests = writer.writer_level.max_requests_per_writer
+        else:
+            # Fallback to WriterConfig for writers without a level
+            config = WriterConfig.objects.filter(website=writer.website).first()
+            max_requests = config.max_requests_per_writer if config else 5
+        
         active_requests = WriterOrderRequest.objects.filter(writer=writer, approved=False).count()
 
         if active_requests >= max_requests:
-            raise ValidationError("Max request limit reached.")
+            raise ValidationError(f"Max request limit reached ({max_requests}).")
 
         serializer.save(writer=writer)
 
@@ -267,10 +331,14 @@ class WriterOrderTakeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """
         Validate and allow a writer to take an order.
+        Automatically assigns the order to the writer when taken.
         """
+        from django.db import transaction
+        from orders.order_enums import OrderStatus
+        
         writer = self.request.user.writer_profile
         config = WriterConfig.objects.first()
-        if not config.takes_enabled:
+        if not config or not config.takes_enabled:
             raise ValidationError("Taking orders is disabled.")
 
         max_allowed_orders = writer.writer_level.max_orders if writer.writer_level else 0
@@ -279,7 +347,28 @@ class WriterOrderTakeViewSet(viewsets.ModelViewSet):
         if current_taken_orders >= max_allowed_orders:
             raise ValidationError("You have reached your max take limit.")
 
-        serializer.save(writer=writer)
+        order = serializer.validated_data.get('order')
+        
+        # Validate order is available and not assigned
+        if order.status != OrderStatus.AVAILABLE.value:
+            raise ValidationError(f"Order is not available. Current status: {order.status}")
+        
+        if order.assigned_writer is not None:
+            raise ValidationError("Order is already assigned to another writer.")
+        
+        with transaction.atomic():
+            # Create the take record
+            take_instance = serializer.save(writer=writer)
+            
+            # Assign the order to the writer
+            order.assigned_writer = writer.user
+            order.status = OrderStatus.IN_PROGRESS.value
+            if hasattr(order, 'assigned_at'):
+                from django.utils import timezone
+                order.assigned_at = timezone.now()
+            order.save()
+            
+            return take_instance
 
 
 ### ---------------- Payment & Earnings Views ---------------- ###
@@ -857,39 +946,106 @@ class WriterPerformanceDashboardView(generics.RetrieveAPIView):
         )
     
 class WriterLevelViewSet(viewsets.ModelViewSet):
-    queryset = WriterLevel.objects.select_related("writer__user")
+    """
+    Manage WriterLevel definitions (templates/configurations).
+    Admin-only endpoint for managing level configurations.
+    """
+    queryset = WriterLevel.objects.select_related("website").prefetch_related("writers")
     serializer_class = WriterLevelSerializer
-
-    def get_permissions(self):
-        if self.action in ["me", "history"]:
-            return [IsAuthenticated()]
-        return [IsAdminUser()]
-
+    permission_classes = [permissions.IsAdminUser]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['website', 'is_active', 'earning_mode']
+    search_fields = ['name', 'description']
+    ordering_fields = ['display_order', 'name', 'created_at']
+    ordering = ['display_order', 'name']
+    
     def get_queryset(self):
         qs = super().get_queryset()
-        writer_id = self.request.query_params.get("writer_id")
-        if writer_id:
-            qs = qs.filter(writer_id=writer_id)
+        # Filter by website if not superadmin
+        if self.request.user.role != 'superadmin':
+            website = getattr(self.request.user, 'website', None)
+            if website:
+                qs = qs.filter(website=website)
         return qs
-
-    @action(detail=False, methods=["get"])
-    def me(self, request):
-        writer = request.user.writer_profile
-        level = WriterLevel.objects.filter(writer=writer).first()
-        if not level:
-            return Response(
-                {"detail": "No level assigned yet."},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        return Response(WriterLevelSerializer(level).data)
-
-    @action(detail=False, methods=["get"])
-    def history(self, request):
-        writer = request.user.writer_profile
-        history = WriterLevelHistory.objects.filter(writer=writer)
-        return Response(
-            WriterLevelHistorySerializer(history, many=True).data
+    
+    @action(detail=True, methods=['post'])
+    def calculate_sample_earnings(self, request, pk=None):
+        """
+        Calculate sample earnings for a level with example order.
+        Helps admins understand earnings before saving.
+        """
+        from writer_management.services.earnings_calculator import WriterEarningsCalculator
+        from decimal import Decimal
+        
+        level = self.get_object()
+        pages = int(request.data.get('pages', 10))
+        slides = int(request.data.get('slides', 0))
+        order_total = request.data.get('order_total')
+        order_cost = request.data.get('order_cost')
+        is_urgent = request.data.get('is_urgent', False)
+        is_technical = request.data.get('is_technical', False)
+        
+        order_total_decimal = Decimal(str(order_total)) if order_total else None
+        order_cost_decimal = Decimal(str(order_cost)) if order_cost else None
+        
+        breakdown = WriterEarningsCalculator.calculate_estimated_earnings(
+            level,
+            pages=pages,
+            slides=slides,
+            order_total=order_total_decimal,
+            order_cost=order_cost_decimal,
+            is_urgent=is_urgent,
+            is_technical=is_technical
         )
+        
+        return Response({
+            'earnings': breakdown,
+            'level_name': level.name,
+            'earning_mode': level.earning_mode,
+        })
+    
+    @action(detail=True, methods=['get'])
+    def progression_stats(self, request, pk=None):
+        """
+        Get statistics on how many writers are eligible for this level.
+        """
+        from writer_management.services.level_progression import WriterLevelProgressionService
+        
+        level = self.get_object()
+        from writer_management.models.profile import WriterProfile
+        
+        # Get all writers for this website
+        writers = WriterProfile.objects.filter(website=level.website)
+        
+        eligible_count = 0
+        ineligible_count = 0
+        sample_failures = []
+        
+        for writer in writers[:100]:  # Limit to first 100 for performance
+            is_eligible, failed = WriterLevelProgressionService.check_level_eligibility(writer, level)
+            if is_eligible:
+                eligible_count += 1
+            else:
+                ineligible_count += 1
+                if len(sample_failures) < 5:  # Store first 5 failure examples
+                    sample_failures.append({
+                        'writer_id': writer.id,
+                        'writer_username': writer.user.username,
+                        'failed_requirements': failed[:3],  # First 3 failures
+                    })
+        
+        return Response({
+            'level': {
+                'id': level.id,
+                'name': level.name,
+            },
+            'statistics': {
+                'eligible_writers': eligible_count,
+                'ineligible_writers': ineligible_count,
+                'total_checked': eligible_count + ineligible_count,
+            },
+            'sample_failures': sample_failures,
+        })
     
 
 class WriterWarningViewSet(viewsets.ModelViewSet):

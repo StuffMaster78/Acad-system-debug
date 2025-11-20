@@ -85,21 +85,50 @@ class WriterPayment(models.Model):
         """
         Calculates the final payment, applies bonuses, fines, updates wallet, 
         and logs the transaction.
+        Uses the new WriterEarningsCalculator for flexible earning models.
         """
         if not self.writer.writer_level:
             raise ValueError("Writer level is not set.")
 
-        # Fetch writer's level-based pay rate
-        pages_payment = self.writer.writer_level.base_pay_per_page
-        slides_payment = self.writer.writer_level.base_pay_per_slide
-
-        # Calculate base payment if an order exists
-        base_payment = (self.order.number_of_pages * pages_payment if self.order else 0.00) + \
-                       (self.order.number_of_slides * slides_payment if self.order else 0.00)
+        # Use new earnings calculator
+        from writer_management.services.earnings_calculator import WriterEarningsCalculator
+        
+        if self.order:
+            # Determine if order is urgent
+            is_urgent = False
+            if self.order.writer_deadline or self.order.client_deadline:
+                deadline = self.order.writer_deadline or self.order.client_deadline
+                hours_until_deadline = (deadline - now()).total_seconds() / 3600
+                is_urgent = hours_until_deadline <= self.writer.writer_level.urgent_order_deadline_hours
+            
+            # Determine if order is technical
+            is_technical = getattr(self.order, 'is_technical', False) or \
+                          (hasattr(self.order, 'subject') and getattr(self.order.subject, 'is_technical', False))
+            
+            # Calculate base payment using new calculator
+            base_payment = WriterEarningsCalculator.calculate_earnings(
+                self.writer.writer_level,
+                self.order,
+                is_urgent=is_urgent,
+                is_technical=is_technical
+            )
+        else:
+            base_payment = Decimal('0.00')
 
         # Apply bonuses from Special Orders
         if self.special_order:
             self.bonuses += self.special_order.bonus_amount
+        
+        # Apply level-based bonuses
+        if self.order and self.writer.writer_level:
+            # Bonus per order completed
+            if self.writer.writer_level.bonus_per_order_completed > 0:
+                self.bonuses += self.writer.writer_level.bonus_per_order_completed
+            
+            # Rating-based bonus (if order has rating above threshold)
+            if hasattr(self.order, 'client_rating') and self.order.client_rating:
+                if self.order.client_rating >= self.writer.writer_level.rating_threshold_for_bonus:
+                    self.bonuses += self.writer.writer_level.bonus_per_rating_above_threshold
 
         # Calculate total deductions (penalties)
         total_fines = sum(p.amount_deducted for p in self.writer.penalties.all())
@@ -107,7 +136,7 @@ class WriterPayment(models.Model):
 
         # Calculate final payment
         final_payment = base_payment + self.bonuses + self.tips - self.fines
-        self.amount = max(final_payment, 0)  # Ensure non-negative payment
+        self.amount = max(final_payment, Decimal('0.00'))  # Ensure non-negative payment
 
         # Update Wallet
         wallet, created = Wallet.objects.get_or_create(user=self.writer.user)

@@ -110,20 +110,27 @@ class WriterOrderRequestSerializer(serializers.ModelSerializer):
     def validate(self, data):
         """
         Validate max requests per writer before allowing a new request.
+        Uses writer's level configuration instead of global config.
         """
-        config = WriterConfig.objects.first()
-        if not config:
-            raise ValidationError("WriterConfig settings are missing.")
-
-        max_requests = config.max_requests_per_writer
+        # Get max requests from writer's level, fallback to WriterConfig if no level
+        writer = data['writer']
+        if writer.writer_level:
+            max_requests = writer.writer_level.max_requests_per_writer
+        else:
+            # Fallback to WriterConfig for writers without a level
+            config = WriterConfig.objects.filter(website=writer.website).first()
+            if not config:
+                raise ValidationError("WriterConfig settings are missing and writer has no level assigned.")
+            max_requests = config.max_requests_per_writer
+        
         active_requests = WriterOrderRequest.objects.filter(
-            writer=data['writer'],
+            writer=writer,
             approved=False
         ).count()
 
         if active_requests >= max_requests:
             raise ValidationError(
-                f"Writer {data['writer'].user.username} has reached their max request limit."
+                f"Writer {writer.user.username} has reached their max request limit ({max_requests})."
             )
 
         return data
@@ -183,12 +190,16 @@ class WriterOrderTakeSerializer(serializers.ModelSerializer):
 class WriterConfigSerializer(serializers.ModelSerializer):
     """
     Serializer for Admin-Controlled Writer Settings
+    
+    Note: max_requests_per_writer and max_takes_per_writer are now managed
+    through WriterLevel (Writer Hierarchy) and are read-only here.
     """
     website = serializers.SerializerMethodField()
     
     class Meta:
         model = WriterConfig
         fields = '__all__'
+        read_only_fields = ['max_requests_per_writer', 'max_takes_per_writer']
     
     def get_website(self, obj):
         """Get website information"""
@@ -872,22 +883,21 @@ class WriterPerformanceSummarySerializer(serializers.ModelSerializer):
 
 
 class WriterLevelSerializer(serializers.ModelSerializer):
-    writer_id = serializers.IntegerField(
-        source="writer.id", read_only=True
-    )
-    writer_username = serializers.CharField(
-        source="writer.user.username", read_only=True
-    )
-
+    """
+    Serializer for WriterLevel (level definitions/templates).
+    """
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    writers_count = serializers.SerializerMethodField()
+    
+    def get_writers_count(self, obj):
+        """Get count of writers at this level."""
+        return obj.writers.count()
+    
     class Meta:
         model = WriterLevel
-        fields = [
-            "id",
-            "writer_id",
-            "writer_username",
-            "level",
-            "updated_at",
-        ]
+        fields = '__all__'
+        read_only_fields = ['created_at', 'updated_at', 'website_name', 'website_domain', 'writers_count']
 
 class WriterLevelConfigSerializer(serializers.ModelSerializer):
     """Serializer for WriterLevelConfig model."""

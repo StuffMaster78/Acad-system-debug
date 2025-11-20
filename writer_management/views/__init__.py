@@ -15,6 +15,7 @@ from writer_management.serializers import (
     WriterOrderRequestSerializer, WriterOrderTakeSerializer,
     WriterSuspensionSerializer, WriterSupportTicketSerializer,
     WriterDeadlineExtensionRequestSerializer, WriterLevelConfigSerializer,
+    WriterLevelSerializer,
 )
 
 # Note: WriterPerformanceSnapshotViewSet and WriterPerformanceDashboardView
@@ -50,12 +51,17 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         writer = self.request.user.writer_profile
-        config = WriterConfig.objects.first()
-        if config:
-            max_requests = config.max_requests_per_writer
-            active_requests = WriterOrderRequest.objects.filter(writer=writer, approved=False).count()
-            if active_requests >= max_requests:
-                raise ValidationError("Max request limit reached.")
+        # Get max requests from writer's level, fallback to WriterConfig if no level
+        if writer.writer_level:
+            max_requests = writer.writer_level.max_requests_per_writer
+        else:
+            # Fallback to WriterConfig for writers without a level
+            config = WriterConfig.objects.filter(website=writer.website).first()
+            max_requests = config.max_requests_per_writer if config else 5
+        
+        active_requests = WriterOrderRequest.objects.filter(writer=writer, approved=False).count()
+        if active_requests >= max_requests:
+            raise ValidationError(f"Max request limit reached ({max_requests}).")
         serializer.save(writer=writer)
 
     @action(detail=True, methods=['POST'], permission_classes=[permissions.IsAdminUser])
@@ -106,3 +112,6 @@ from writer_management.views.performance import (
     WriterPerformanceSnapshotViewSet,
     WriterPerformanceDashboardView,
 )
+
+# Import WriterLevelViewSet from level_management module
+from writer_management.views.level_management import WriterLevelViewSet

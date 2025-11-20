@@ -47,14 +47,20 @@ class WriterOrderRequest(models.Model):
     def clean(self):
         """
         Enforce max request limit before saving.
+        Uses writer's level configuration instead of global config.
         """
-        config = WriterConfig.objects.first()
-        if config:
-            max_requests = config.max_requests_per_writer
-            active_requests = WriterOrderRequest.objects.filter(writer=self.writer, approved=False).count()
+        # Get max requests from writer's level, fallback to WriterConfig if no level
+        if self.writer.writer_level:
+            max_requests = self.writer.writer_level.max_requests_per_writer
+        else:
+            # Fallback to WriterConfig for writers without a level
+            config = WriterConfig.objects.filter(website=self.writer.website).first()
+            max_requests = config.max_requests_per_writer if config else 5
+        
+        active_requests = WriterOrderRequest.objects.filter(writer=self.writer, approved=False).count()
 
-            if active_requests >= max_requests:
-                raise ValidationError(f"Writer {self.writer.user.username} has reached their max request limit.")
+        if active_requests >= max_requests:
+            raise ValidationError(f"Writer {self.writer.user.username} has reached their max request limit ({max_requests}).")
 
     def save(self, *args, **kwargs):
         # Ensure website inferred
