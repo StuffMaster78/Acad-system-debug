@@ -22,8 +22,9 @@ class SessionManagementThrottle(UserRateThrottle):
     """
     Custom throttle for session management endpoints.
     Allows more frequent requests for status/extend endpoints.
+    Increased significantly to handle activity tracking scripts.
     """
-    rate = '200/hour'  # 200 requests per hour = ~3 per minute
+    rate = '5000/hour'  # 5000 requests per hour = ~83 per minute (significantly increased for activity tracking)
 
 
 class SessionManagementViewSet(viewsets.ViewSet):
@@ -107,7 +108,7 @@ class SessionManagementViewSet(viewsets.ViewSet):
             idle_timeout = getattr(settings, 'SESSION_IDLE_TIMEOUT', 30 * 60)  # 30 minutes
             warning_time = getattr(settings, 'SESSION_WARNING_TIME', 5 * 60)  # 5 minutes
             
-            # Try to get from cache first (cache for 10 seconds to reduce DB load and rate limit hits)
+            # Try to get from cache first (cache for 30 seconds to reduce DB load and rate limit hits)
             cache_key = f'session_status_{user.id}'
             cached_status = cache.get(cache_key)
             if cached_status:
@@ -133,8 +134,8 @@ class SessionManagementViewSet(viewsets.ViewSet):
                 "last_activity": last_activity,
             }
             
-            # Cache for 10 seconds to reduce load on frequent polling and prevent rate limiting
-            cache.set(cache_key, response_data, 10)
+            # Cache for 30 seconds to reduce load on frequent polling and prevent rate limiting
+            cache.set(cache_key, response_data, 30)
             
             return Response(response_data, status=status.HTTP_200_OK)
         except Exception as e:

@@ -10,17 +10,23 @@
 </template>
 
 <script>
-import { useSessionManagement } from '@/composables/useSessionManagement'
+// import { useSessionManagement } from '@/composables/useSessionManagement'
+import { ref } from 'vue'
 
 export default {
   name: 'App',
   setup() {
     // Initialize session management globally
-    // This will automatically poll the status endpoint with rate limiting
-    const { sessionStatus, extendSession } = useSessionManagement({
-      checkInterval: 60000, // Check every 60 seconds
-      autoExtend: true // Automatically extend when needed
-    })
+    // TEMPORARILY DISABLED to prevent rate limiting issues
+    // Uncomment when sessionManager.js rate limiting is fixed
+    // const { sessionStatus, extendSession } = useSessionManagement({
+    //   checkInterval: 120000, // Check every 120 seconds (2 minutes) - reduced frequency to prevent rate limiting
+    //   autoExtend: false // Disable auto-extend to prevent rate limiting - user can manually extend
+    // })
+    
+    // Temporary: Return empty session management to prevent errors
+    const sessionStatus = ref(null)
+    const extendSession = () => Promise.resolve(false)
     
     return {
       sessionStatus,

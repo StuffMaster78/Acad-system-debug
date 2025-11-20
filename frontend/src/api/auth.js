@@ -20,7 +20,7 @@ export const authApi = {
    * @returns {Promise} Response with access_token, refresh_token, and user data
    */
   login: (email, password, rememberMe = false) => {
-    return apiClient.post('/auth/login/', {
+    return apiClient.post('/auth/auth/login/', {
       email,
       password,
       remember_me: rememberMe
@@ -33,7 +33,7 @@ export const authApi = {
    * @returns {Promise} Success message
    */
   logout: (logoutAll = false) => {
-    return apiClient.post('/auth/logout/', {
+    return apiClient.post('/auth/auth/logout/', {
       logout_all: logoutAll
     })
   },
@@ -44,7 +44,7 @@ export const authApi = {
    * @returns {Promise} New access_token and refresh_token
    */
   refreshToken: (refreshToken) => {
-    return apiClient.post('/auth/refresh-token/', {
+    return apiClient.post('/auth/auth/refresh-token/', {
       refresh_token: refreshToken
     })
   },

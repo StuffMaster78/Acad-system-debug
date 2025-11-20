@@ -13,8 +13,8 @@ let lastExtendRequest = 0
 let cachedStatus = null
 let statusInterval = null
 
-const STATUS_CACHE_TIME = 10000 // 10 seconds - status can be cached
-const EXTEND_MIN_INTERVAL = 30000 // 30 seconds - extend only once per 30 seconds
+const STATUS_CACHE_TIME = 30000 // 30 seconds - status can be cached (increased to reduce requests)
+const EXTEND_MIN_INTERVAL = 120000 // 2 minutes - extend only once per 2 minutes (increased to prevent rate limiting)
 
 /**
  * Get session status with rate limiting
@@ -27,9 +27,10 @@ export async function getSessionStatus() {
       return null
     }
     
-    // Rate limiting: don't request more than once every 10 seconds
+    // Rate limiting: don't request more than once every 30 seconds
     const now = Date.now()
     if (now - lastStatusRequest < STATUS_CACHE_TIME && cachedStatus) {
+      // Silently return cached status - don't log
       return cachedStatus
     }
     
@@ -46,18 +47,22 @@ export async function getSessionStatus() {
     return response.data
   } catch (error) {
     if (error.response?.status === 429) {
-      // Return cached status if available
+      // Rate limited - this is expected, use cached status
       if (cachedStatus) {
-        console.warn('Rate limited, returning cached session status')
+        // Silently return cached status - don't log as error
         return cachedStatus
       }
+      // No cached status available, return null silently
       return null
     }
     if (error.response?.status === 401) {
       // Session expired
       return null
     }
+    // Only log non-rate-limit errors
+    if (error.response?.status !== 429) {
     console.error('Failed to get session status:', error)
+    }
     return null
   }
 }
@@ -73,10 +78,10 @@ export async function extendSession() {
       return false
     }
     
-    // Rate limiting: don't extend more than once every 30 seconds
+    // Rate limiting: don't extend more than once every 2 minutes
     const now = Date.now()
     if (now - lastExtendRequest < EXTEND_MIN_INTERVAL) {
-      console.warn('Session extend throttled - too soon since last extend')
+      console.warn(`Session extend throttled - too soon since last extend. Wait ${Math.ceil((EXTEND_MIN_INTERVAL - (now - lastExtendRequest)) / 1000)} seconds`)
       return false
     }
     
@@ -94,14 +99,18 @@ export async function extendSession() {
     return response.data
   } catch (error) {
     if (error.response?.status === 429) {
-      console.warn('Rate limited: Too many extend requests')
+      // Rate limited - this is expected, don't log as error
+      // The throttling should prevent this, but if it happens, fail silently
       return false
     }
     if (error.response?.status === 401) {
       // Session expired
       return false
     }
+    // Only log non-rate-limit errors
+    if (error.response?.status !== 429) {
     console.error('Failed to extend session:', error)
+    }
     return false
   }
 }
@@ -112,9 +121,9 @@ export async function extendSession() {
  */
 export function useSessionManagement(options = {}) {
   const {
-    checkInterval = 60000, // Check every 60 seconds (1 minute)
+    checkInterval = 120000, // Check every 120 seconds (2 minutes) - increased to prevent rate limiting
     extendBeforeWarning = true, // Extend session before warning
-    autoExtend = true // Automatically extend session
+    autoExtend = false // Disable auto-extend by default to prevent rate limiting
   } = options
   
   const sessionStatus = ref(null)
