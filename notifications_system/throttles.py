@@ -4,8 +4,9 @@ from rest_framework.throttling import UserRateThrottle
 class NotificationThrottle(UserRateThrottle):
     """
     Prevents users from hammering notification endpoints.
+    Increased to handle activity tracking scripts.
     """
-    rate = "60/min"
+    rate = "1000/hour"  # ~16 per minute - increased to handle frequent polling
 
 
 class NotificationWriteBurstThrottle(UserRateThrottle):

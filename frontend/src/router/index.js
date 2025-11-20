@@ -134,6 +134,37 @@ const routes = [
       title: 'Class Bundles'
     }
   },
+  {
+    path: '/admin/configs',
+    name: 'NotificationProfiles',
+    component: () => import('@/views/admin/NotificationProfiles.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Notification Profiles'
+    }
+  },
+  {
+    path: '/admin/notification-profiles',
+    name: 'NotificationProfilesAlt',
+    component: () => import('@/views/admin/NotificationProfiles.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Notification Profiles'
+    }
+  },
+  // Alternative route for configs
+  {
+    path: '/admin/configs/notifications',
+    name: 'NotificationProfilesConfigs',
+    component: () => import('@/views/admin/NotificationProfiles.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Notification Profiles'
+    }
+  },
 
   // Superadmin routes - require superadmin role
   {
@@ -151,11 +182,13 @@ const routes = [
     }
   },
 
-  // 404 catch-all
+  // 404 catch-all - must be last
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: () => import('@/views/NotFound.vue'), // Create this component
+    component: {
+      template: '<div><h1>404 - Page Not Found</h1><p>The page you are looking for does not exist.</p><router-link to="/dashboard">Go to Dashboard</router-link></div>'
+    },
     meta: {
       title: 'Page Not Found'
     }
@@ -178,6 +211,9 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
+  // Debug logging for route navigation
+  console.log('Navigating to:', to.path, 'Route name:', to.name, 'Meta:', to.meta)
+
   // Load user from localStorage if not already loaded
   if (!authStore.user && !authStore.isAuthenticated) {
     authStore.loadFromStorage()
@@ -192,6 +228,7 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.requiresAuth) {
     if (!authStore.isAuthenticated) {
       // Not authenticated, redirect to login with return URL
+      console.log('Not authenticated, redirecting to login')
       next({
         name: 'Login',
         query: { redirect: to.fullPath }
@@ -202,6 +239,7 @@ router.beforeEach(async (to, from, next) => {
     // Check if route requires admin role
     if (to.meta.requiresAdmin && !authStore.isAdmin) {
       // Not admin, redirect to dashboard
+      console.log('Not admin, redirecting to dashboard. isAdmin:', authStore.isAdmin, 'User role:', authStore.user?.role)
       next({ name: 'Dashboard' })
       return
     }

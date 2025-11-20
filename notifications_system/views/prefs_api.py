@@ -26,6 +26,8 @@ class PreferencesViewSet(
         user = self.request.user
         pref = getattr(user, "notification_preferences", None)
         if not pref:
-            NotificationPreferenceResolver.assign_default_preferences(user)
+            website = getattr(user, 'website', None)
+            if website:
+                NotificationPreferenceResolver.assign_default_preferences(user, website)
             pref = user.notification_preferences
         return pref

@@ -172,19 +172,306 @@ class NotificationConfigManagementViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         from notifications_system.models.notification_preferences import NotificationPreferenceProfile
-        return NotificationPreferenceProfile.objects.all()
+        queryset = NotificationPreferenceProfile.objects.select_related('website').all()
+        
+        # Filter by website if not superadmin
+        if self.request.user.role != 'superadmin':
+            website = getattr(self.request.user, 'website', None)
+            if website:
+                queryset = queryset.filter(website=website)
+        
+        # Search by name
+        search = self.request.query_params.get('search', None)
+        if search:
+            queryset = queryset.filter(name__icontains=search)
+        
+        return queryset.order_by('-is_default', 'name')
     
     def get_serializer_class(self):
-        # Create a simple serializer for notification profiles
-        from rest_framework import serializers
+        from notifications_system.profile_serializers.notification_profile_serializer import (
+            NotificationProfileSerializer,
+            NotificationProfileCreateSerializer,
+            ApplyProfileSerializer,
+            DuplicateProfileSerializer,
+        )
+        
+        if self.action == 'create':
+            return NotificationProfileCreateSerializer
+        return NotificationProfileSerializer
+    
+    def perform_create(self, serializer):
+        """Create notification profile."""
+        from rest_framework import serializers as drf_serializers
+        from notifications_system.services.notification_profile_service import (
+            NotificationProfileService
+        )
+        
+        website = getattr(self.request.user, 'website', None)
+        if not website and self.request.user.role != 'superadmin':
+            website = serializer.validated_data.get('website')
+            if not website:
+                raise drf_serializers.ValidationError("Website is required.")
+        
+        # Use service to create profile
+        profile = NotificationProfileService.create_profile(
+            name=serializer.validated_data['name'],
+            description=serializer.validated_data.get('description', ''),
+            website=website or serializer.validated_data.get('website'),
+            default_email=serializer.validated_data.get('default_email', True),
+            default_sms=serializer.validated_data.get('default_sms', False),
+            default_push=serializer.validated_data.get('default_push', False),
+            default_in_app=serializer.validated_data.get('default_in_app', True),
+            email_enabled=serializer.validated_data.get('email_enabled', True),
+            sms_enabled=serializer.validated_data.get('sms_enabled', False),
+            push_enabled=serializer.validated_data.get('push_enabled', False),
+            in_app_enabled=serializer.validated_data.get('in_app_enabled', True),
+            dnd_enabled=serializer.validated_data.get('dnd_enabled', False),
+            dnd_start_hour=serializer.validated_data.get('dnd_start_hour', 22),
+            dnd_end_hour=serializer.validated_data.get('dnd_end_hour', 6),
+            is_default=serializer.validated_data.get('is_default', False),
+        )
+        
+        AdminActivityLog.objects.create(
+            admin=self.request.user,
+            action="Created notification profile",
+            details=f"Created profile: {profile.name}"
+        )
+        
+        # Set the instance for serializer
+        serializer.instance = profile
+    
+    def perform_update(self, serializer):
+        """Update notification profile."""
+        from notifications_system.services.notification_profile_service import (
+            NotificationProfileService
+        )
+        
+        old_name = serializer.instance.name
+        updated_profile = NotificationProfileService.update_profile(
+            profile=serializer.instance,
+            **serializer.validated_data
+        )
+        
+        AdminActivityLog.objects.create(
+            admin=self.request.user,
+            action="Updated notification profile",
+            details=f"Updated profile: {old_name}"
+        )
+        
+        serializer.instance = updated_profile
+    
+    def perform_destroy(self, instance):
+        """Delete notification profile."""
+        name = instance.name
+        instance.delete()
+        
+        AdminActivityLog.objects.create(
+            admin=self.request.user,
+            action="Deleted notification profile",
+            details=f"Deleted profile: {name}"
+        )
+    
+    @action(detail=True, methods=['post'])
+    def apply_to_user(self, request, pk=None):
+        """Apply this profile to a specific user."""
+        from notifications_system.services.notification_profile_service import (
+            NotificationProfileService
+        )
+        from notifications_system.profile_serializers.notification_profile_serializer import (
+            ApplyProfileSerializer
+        )
+        from django.contrib.auth import get_user_model
+        
+        User = get_user_model()
+        profile = self.get_object()
+        
+        serializer = ApplyProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user_id = serializer.validated_data.get('user_ids', [None])[0] if serializer.validated_data.get('user_ids') else request.data.get('user_id')
+        
+        if not user_id:
+            return Response(
+                {"error": "user_id is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {"error": "User not found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        override_existing = serializer.validated_data.get('override_existing', False)
+        
+        result = NotificationProfileService.apply_profile_to_user(
+            profile=profile,
+            user=user,
+            website=profile.website or getattr(request.user, 'website', None),
+            override_existing=override_existing
+        )
+        
+        AdminActivityLog.objects.create(
+            admin=request.user,
+            action="Applied notification profile to user",
+            details=f"Applied profile '{profile.name}' to user {user.email}"
+        )
+        
+        return Response(result, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def apply_to_users(self, request, pk=None):
+        """Apply this profile to multiple users."""
+        from notifications_system.services.notification_profile_service import (
+            NotificationProfileService
+        )
+        from notifications_system.profile_serializers.notification_profile_serializer import (
+            ApplyProfileSerializer
+        )
+        
+        profile = self.get_object()
+        
+        serializer = ApplyProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        user_ids = serializer.validated_data.get('user_ids', [])
+        if not user_ids:
+            return Response(
+                {"error": "user_ids is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        override_existing = serializer.validated_data.get('override_existing', False)
+        
+        result = NotificationProfileService.apply_profile_to_users(
+            profile=profile,
+            user_ids=user_ids,
+            website=profile.website or getattr(request.user, 'website', None),
+            override_existing=override_existing
+        )
+        
+        AdminActivityLog.objects.create(
+            admin=request.user,
+            action="Applied notification profile to multiple users",
+            details=f"Applied profile '{profile.name}' to {len(user_ids)} users"
+        )
+        
+        return Response(result, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['get'])
+    def statistics(self, request, pk=None):
+        """Get statistics for a notification profile."""
+        from notifications_system.services.notification_profile_service import (
+            NotificationProfileService
+        )
+        
+        profile = self.get_object()
+        stats = NotificationProfileService.get_profile_statistics(profile)
+        
+        return Response(stats, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def duplicate(self, request, pk=None):
+        """Duplicate a notification profile."""
+        from notifications_system.services.notification_profile_service import (
+            NotificationProfileService
+        )
+        from notifications_system.profile_serializers.notification_profile_serializer import (
+            DuplicateProfileSerializer,
+            NotificationProfileSerializer,
+        )
+        
+        profile = self.get_object()
+        
+        serializer = DuplicateProfileSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        new_profile = NotificationProfileService.duplicate_profile(
+            source_profile=profile,
+            new_name=serializer.validated_data['new_name'],
+            website=serializer.validated_data.get('website')
+        )
+        
+        AdminActivityLog.objects.create(
+            admin=request.user,
+            action="Duplicated notification profile",
+            details=f"Duplicated profile '{profile.name}' to '{new_profile.name}'"
+        )
+        
+        return Response(
+            NotificationProfileSerializer(new_profile).data,
+            status=status.HTTP_201_CREATED
+        )
+    
+    @action(detail=False, methods=['get'])
+    def default(self, request):
+        """Get the default notification profile."""
+        from notifications_system.models.notification_preferences import NotificationPreferenceProfile
+        from notifications_system.profile_serializers.notification_profile_serializer import (
+            NotificationProfileSerializer
+        )
+        
+        website = getattr(request.user, 'website', None)
+        
+        try:
+            if website:
+                default_profile = NotificationPreferenceProfile.objects.get(
+                    is_default=True,
+                    website=website
+                )
+            else:
+                default_profile = NotificationPreferenceProfile.objects.filter(
+                    is_default=True
+                ).first()
+            
+            if not default_profile:
+                return Response(
+                    {"error": "No default profile found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            return Response(
+                NotificationProfileSerializer(default_profile).data,
+                status=status.HTTP_200_OK
+            )
+        except NotificationPreferenceProfile.DoesNotExist:
+            return Response(
+                {"error": "No default profile found"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    @action(detail=False, methods=['get'])
+    def summary(self, request):
+        """Get summary of all notification profiles."""
         from notifications_system.models.notification_preferences import NotificationPreferenceProfile
         
-        class NotificationProfileSerializer(serializers.ModelSerializer):
-            class Meta:
-                model = NotificationPreferenceProfile
-                fields = '__all__'
+        queryset = self.get_queryset()
         
-        return NotificationProfileSerializer
+        total_profiles = queryset.count()
+        default_profiles = queryset.filter(is_default=True).count()
+        
+        # Count by channel
+        email_enabled_count = queryset.filter(email_enabled=True).count()
+        sms_enabled_count = queryset.filter(sms_enabled=True).count()
+        push_enabled_count = queryset.filter(push_enabled=True).count()
+        in_app_enabled_count = queryset.filter(in_app_enabled=True).count()
+        
+        # Count by DND
+        dnd_enabled_count = queryset.filter(dnd_enabled=True).count()
+        
+        return Response({
+            'total_profiles': total_profiles,
+            'default_profiles': default_profiles,
+            'channels': {
+                'email_enabled': email_enabled_count,
+                'sms_enabled': sms_enabled_count,
+                'push_enabled': push_enabled_count,
+                'in_app_enabled': in_app_enabled_count,
+            },
+            'dnd_enabled': dnd_enabled_count,
+        }, status=status.HTTP_200_OK)
 
 
 class SystemConfigManagementViewSet(viewsets.ViewSet):

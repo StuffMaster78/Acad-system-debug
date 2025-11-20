@@ -213,7 +213,10 @@ class NotificationService:
                 "defaults.",
                 user,
             )
-            NotificationPreferenceResolver.assign_default_preferences(user)
+            # Use website parameter or fallback to user's website
+            user_website = website or getattr(user, 'website', None)
+            if user_website:
+                NotificationPreferenceResolver.assign_default_preferences(user, user_website)
 
         # Respect mute unless critical
         is_muted = getattr(getattr(user, "pref", None), "is_muted", lambda:
