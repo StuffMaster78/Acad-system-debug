@@ -542,7 +542,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': {
         # Development-friendly rates (increase for production)
-        'user': '1000/hour',  # Authenticated users - increased from 10/hour for development
+        'user': '5000/hour',  # Authenticated users - significantly increased to handle activity tracking scripts (~83/min)
         'anon': '500/hour',  # Unauthenticated users - increased from 5/hour for development
         'login': '10/minute',  # Limit login attempts to 10 per minute (increased from 5)
         'login_sustained': '200/day',  # Limit sustained login attempts to 200 per day (increased from 100)

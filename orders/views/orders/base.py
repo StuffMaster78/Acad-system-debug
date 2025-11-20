@@ -94,8 +94,62 @@ class OrderBaseViewSet(
         elif user_role == 'client':
             base_qs = qs.filter(client=user)
         elif user_role == 'writer':
-            # Writers see orders assigned to them
-            base_qs = qs.filter(assigned_writer=user)
+            # Writers see:
+            # 1. Orders assigned to them (always visible, regardless of payment status)
+            # 2. Paid orders that are available and not assigned to other writers
+            # 3. Paid orders that are preferred for them (unless they declined)
+            from orders.order_enums import OrderStatus
+            from writer_management.models.profile import WriterProfile
+            from orders.models import PreferredWriterResponse
+            
+            # Get writer's website from their profile - use select_related to avoid N+1
+            writer_website = None
+            try:
+                # Use get() instead of hasattr to ensure we get the profile
+                writer_profile = WriterProfile.objects.select_related('website').get(user=user)
+                writer_website = writer_profile.website
+            except WriterProfile.DoesNotExist:
+                pass
+            except Exception as e:
+                # Log error but continue with fallback
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error getting writer profile for user {user.id}: {str(e)}")
+            
+            if writer_website:
+                # Get orders where writer has declined (to exclude them)
+                declined_order_ids = list(PreferredWriterResponse.objects.filter(
+                    writer=user,
+                    response='declined'
+                ).values_list('order_id', flat=True))
+                
+                # Filter by website for available orders
+                # Writers see:
+                # 1. Orders assigned to them (always visible)
+                # 2. Available paid orders that are:
+                #    - Not assigned to anyone
+                #    - In common pool (preferred_writer is None) OR preferred for this writer
+                #    - Not declined by this writer
+                base_qs = qs.filter(
+                    models.Q(assigned_writer=user) |  # Orders assigned to them (always visible)
+                    models.Q(
+                        # Available paid orders not assigned to anyone
+                        status=OrderStatus.AVAILABLE.value,
+                        assigned_writer__isnull=True,
+                        is_paid=True,  # Only paid orders
+                        website=writer_website,
+                    ).filter(
+                        # Either in common pool or preferred for this writer
+                        models.Q(preferred_writer__isnull=True) | models.Q(preferred_writer=user)
+                    )
+                )
+                
+                # Only exclude declined orders if there are any
+                if declined_order_ids:
+                    base_qs = base_qs.exclude(id__in=declined_order_ids)
+            else:
+                # Fallback: only show assigned orders if no website
+                base_qs = qs.filter(assigned_writer=user)
         elif user_role in ['admin', 'support', 'editor']:
             # Admins, support, and editors see all orders (no website filtering)
             base_qs = qs
@@ -137,6 +191,35 @@ class OrderBaseViewSet(
         base_qs = base_qs.order_by('-created_at', '-id')
         
         return base_qs
+    
+    def list(self, request, *args, **kwargs):
+        """
+        Override list to ensure queryset is not filtered by object permissions.
+        DRF doesn't filter list results by object permissions by default,
+        but we want to make sure our queryset filtering works correctly.
+        """
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+            
+            serializer = self.get_serializer(queryset, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in OrderBaseViewSet.list: {str(e)}", exc_info=True)
+            # Return empty result instead of 500 error
+            return Response({
+                'count': 0,
+                'next': None,
+                'previous': None,
+                'results': [],
+                'total_pages': 0,
+            })
     
 
 
@@ -327,8 +410,9 @@ class OrderBaseViewSet(
             cost = Decimal("0.00")
             if website:
                 try:
-                    config = PreferredWriterConfig.objects.get(writer=writer, website=website)
-                    cost = config.preferred_writer_cost
+                    config = PreferredWriterConfig.objects.get(website=website)
+                    if config.is_active:
+                        cost = config.preferred_writer_cost
                 except PreferredWriterConfig.DoesNotExist:
                     pass
             

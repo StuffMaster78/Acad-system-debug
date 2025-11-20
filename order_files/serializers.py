@@ -7,6 +7,8 @@ class OrderFileSerializer(serializers.ModelSerializer):
     uploaded_by = serializers.StringRelatedField()
     uploaded_by_username = serializers.SerializerMethodField()
     uploaded_by_email = serializers.SerializerMethodField()
+    uploaded_by_role = serializers.SerializerMethodField()
+    uploaded_by_id = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField()
     is_final_file = serializers.SerializerMethodField()
     file_name = serializers.SerializerMethodField()
@@ -21,6 +23,12 @@ class OrderFileSerializer(serializers.ModelSerializer):
     
     def get_uploaded_by_email(self, obj):
         return obj.uploaded_by.email if obj.uploaded_by else None
+    
+    def get_uploaded_by_role(self, obj):
+        return obj.uploaded_by.role if obj.uploaded_by else None
+    
+    def get_uploaded_by_id(self, obj):
+        return obj.uploaded_by.id if obj.uploaded_by else None
     
     def get_category_name(self, obj):
         return obj.category.name if obj.category else "Uncategorized"
