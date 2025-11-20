@@ -3,10 +3,11 @@ Service for generating dashboard metrics for admin dashboard.
 Provides role-aware, tenant-aware metrics with caching.
 """
 from django.db.models import Sum, Count, Q, F, DecimalField
-from django.db.models.functions import TruncYear, TruncMonth, ExtractYear, ExtractMonth
+from django.db.models.functions import TruncMonth, TruncDay
 from django.utils import timezone
 from django.core.cache import cache
 from datetime import datetime, timedelta
+import calendar
 from typing import Dict, List, Any, Optional
 from decimal import Decimal
 
@@ -160,24 +161,29 @@ class DashboardMetricsService:
         
         # Group by month
         monthly_data = order_qs.annotate(
-            month=ExtractMonth('created_at')
-        ).values('month').annotate(
+            month_start=TruncMonth('created_at')
+        ).values('month_start').annotate(
             order_count=Count('id'),
             revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField())
-        ).order_by('month')
+        ).order_by('month_start')
+        
+        month_lookup = {}
+        for item in monthly_data:
+            month_dt = item.get('month_start')
+            if month_dt:
+                month_lookup[month_dt.month] = item
         
         # Format for frontend (ensure all 12 months)
         result = []
         for month_num in range(1, 13):
-            month_data = next(
-                (item for item in monthly_data if item['month'] == month_num),
-                {'month': month_num, 'order_count': 0, 'revenue': Decimal('0.00')}
-            )
+            month_data = month_lookup.get(month_num)
+            order_count = month_data.get('order_count', 0) if month_data else 0
+            revenue_value = month_data.get('revenue', Decimal('0.00')) if month_data else Decimal('0.00')
             result.append({
                 'month': month_num,
                 'month_name': datetime(2000, month_num, 1).strftime('%B'),
-                'order_count': month_data.get('order_count', 0),
-                'revenue': float(month_data.get('revenue', Decimal('0.00'))),
+                'order_count': order_count,
+                'revenue': float(revenue_value or Decimal('0.00')),
             })
         
         cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
@@ -224,21 +230,29 @@ class DashboardMetricsService:
             order_qs = order_qs.filter(assigned_writer=user)
         
         # Group by day
-        daily_data = order_qs.extra(
-            select={'day': "EXTRACT(day FROM created_at)"}
-        ).values('day').annotate(
+        daily_data = order_qs.annotate(
+            day_start=TruncDay('created_at')
+        ).values('day_start').annotate(
             order_count=Count('id'),
             revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField())
-        ).order_by('day')
+        ).order_by('day_start')
         
-        result = [
-            {
-                'day': item['day'],
-                'order_count': item.get('order_count', 0),
-                'revenue': float(item.get('revenue', Decimal('0.00'))),
-            }
-            for item in daily_data
-        ]
+        day_lookup = {}
+        for item in daily_data:
+            day_dt = item.get('day_start')
+            if day_dt:
+                day_lookup[day_dt.day] = item
+        
+        days_in_month = calendar.monthrange(year, month)[1]
+        result = []
+        for day in range(1, days_in_month + 1):
+            day_data = day_lookup.get(day)
+            revenue_value = day_data.get('revenue', Decimal('0.00')) if day_data else Decimal('0.00')
+            result.append({
+                'day': day,
+                'order_count': day_data.get('order_count', 0) if day_data else 0,
+                'revenue': float(revenue_value or Decimal('0.00')),
+            })
         
         cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
         return result

@@ -160,6 +160,18 @@
           </div>
         </div>
       </div>
+
+      <!-- Quick Actions Section -->
+      <div class="dashboard-section">
+        <h2>Configuration & Management</h2>
+        <div class="quick-actions-grid">
+          <button type="button" class="quick-action-card quick-action-card--button" @click="goToNotificationProfiles">
+            <div class="quick-action-icon">🔔</div>
+            <div class="quick-action-title">Notification Profiles</div>
+            <div class="quick-action-description">Manage notification preferences and profiles</div>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -214,6 +226,9 @@ export default {
     },
     formatNumber(value) {
       return parseInt(value || 0).toLocaleString()
+    },
+    goToNotificationProfiles() {
+      this.$router.push('/admin/notification-profiles')
     }
   }
 }
@@ -234,11 +249,80 @@ export default {
   margin: 0;
 }
 
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.quick-action-card {
+  background: white;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 24px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+  cursor: pointer;
+  display: block;
+}
+
+.quick-action-card--button {
+  width: 100%;
+  text-align: left;
+  border: 2px solid #e5e7eb;
+}
+
+.quick-action-card--button:focus-visible {
+  outline: 3px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.quick-action-card:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+}
+
+.quick-action-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.quick-action-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 8px;
+}
+
+.quick-action-description {
+  font-size: 14px;
+  color: var(--gray-600);
+  line-height: 1.5;
+}
+
+.dashboard-section {
+  margin-top: 40px;
+}
+
+.dashboard-section h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 20px;
+}
+
 @media (max-width: 768px) {
   .dashboard-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

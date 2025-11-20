@@ -13,7 +13,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 3000,
+    port: 5173,
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
@@ -21,15 +21,29 @@ export default defineConfig({
         secure: false,
         timeout: 30000, // 30 seconds timeout
         proxyTimeout: 30000,
+        // Handle connection errors gracefully
         configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
+          proxy.on('error', (err, req, res) => {
+            // Suppress ECONNRESET errors from excessive session management requests
+            if (err.code === 'ECONNRESET' && req.url?.includes('session-management')) {
+              // Silently ignore - these are from the external sessionManager.js
+              return;
+            }
+            // Only log non-ECONNRESET errors
+            if (err.code !== 'ECONNRESET') {
+              console.error('Proxy error:', err.code, req.url);
+            }
           });
+          // Suppress verbose logging for session management endpoints
           proxy.on('proxyReq', (proxyReq, req, _res) => {
+            if (!req.url?.includes('session-management')) {
             console.log('Sending Request to the Target:', req.method, req.url);
+            }
           });
           proxy.on('proxyRes', (proxyRes, req, _res) => {
+            if (!req.url?.includes('session-management')) {
             console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
+            }
           });
         },
         // Handle connection resets gracefully
