@@ -77,13 +77,11 @@ class PreferredWriterConfigSerializer(serializers.ModelSerializer):
     website = serializers.PrimaryKeyRelatedField(queryset=Website.objects.all(), required=False, allow_null=True)
     website_name = serializers.CharField(source='website.name', read_only=True)
     website_domain = serializers.CharField(source='website.domain', read_only=True)
-    writer_email = serializers.CharField(source='writer.email', read_only=True)
-    writer_username = serializers.CharField(source='writer.username', read_only=True)
 
     class Meta:
         model = PreferredWriterConfig
         fields = '__all__'
-        read_only_fields = ['website', 'created_at', 'updated_at', 'website_name', 'website_domain', 'writer_email', 'writer_username']
+        read_only_fields = ['website', 'created_at', 'updated_at', 'website_name', 'website_domain']
 
 
 class WriterLevelOptionConfigSerializer(serializers.ModelSerializer):

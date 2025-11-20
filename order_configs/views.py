@@ -1,5 +1,6 @@
 from rest_framework import viewsets, permissions, status
 from django.db.models import Q
+from django.utils import timezone
 from .models import (
     AcademicLevel, PaperType, FormattingandCitationStyle, Subject,
     TypeOfWork, EnglishType, WriterDeadlineConfig,
@@ -256,13 +257,24 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
             ],
         })
     
+    @action(detail=False, methods=['get'], url_path='available-default-sets')
+    def available_default_sets(self, request):
+        """
+        Get list of available default sets that can be cloned.
+        """
+        from order_configs.services.default_configs import get_available_default_sets
+        return Response(get_available_default_sets(), status=status.HTTP_200_OK)
+    
     @action(detail=False, methods=['post'], url_path='populate-defaults')
     def populate_defaults(self, request):
         """
         Populate default configurations for a website.
         Requires website_id in request data.
+        Optional: default_set ('general', 'nursing', 'technical')
         """
         website_id = request.data.get('website_id')
+        default_set = request.data.get('default_set', 'general')
+        
         if not website_id:
             return Response(
                 {"detail": "website_id is required."},
@@ -280,14 +292,15 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
         from order_configs.services.default_configs import populate_default_configs_for_website
         
         try:
-            counts = populate_default_configs_for_website(website, skip_existing=True)
+            counts = populate_default_configs_for_website(website, skip_existing=True, default_set=default_set)
             return Response({
-                "message": "Default configurations populated successfully",
+                "message": f"Default configurations ({default_set}) populated successfully",
                 "website": {
                     "id": website.id,
                     "name": website.name,
                     "domain": website.domain
                 },
+                "default_set": default_set,
                 "created": counts,
                 "summary": {
                     "total_created": sum(counts.values()),
@@ -304,6 +317,856 @@ class OrderConfigManagementViewSet(viewsets.ViewSet):
                 {"detail": f"Error populating defaults: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+    
+    @action(detail=False, methods=['post'], url_path='clone-from-defaults')
+    def clone_from_defaults(self, request):
+        """
+        Clone configurations from a default set to a website.
+        Allows admins to select which default set to use and optionally
+        clear existing configs before cloning.
+        
+        Requires:
+        - website_id: The target website
+        - default_set: Which default set to clone ('general', 'nursing', 'technical')
+        
+        Optional:
+        - clear_existing: If True, delete existing configs before cloning (default: False)
+        """
+        website_id = request.data.get('website_id')
+        default_set = request.data.get('default_set', 'general')
+        clear_existing = request.data.get('clear_existing', False)
+        
+        if not website_id:
+            return Response(
+                {"detail": "website_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if default_set not in ['general', 'nursing', 'technical']:
+            return Response(
+                {"detail": "default_set must be one of: 'general', 'nursing', 'technical'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        from order_configs.services.default_configs import populate_default_configs_for_website
+        
+        try:
+            # Clear existing configs if requested
+            if clear_existing:
+                PaperType.objects.filter(website=website).delete()
+                FormattingandCitationStyle.objects.filter(website=website).delete()
+                AcademicLevel.objects.filter(website=website).delete()
+                Subject.objects.filter(website=website).delete()
+                TypeOfWork.objects.filter(website=website).delete()
+                EnglishType.objects.filter(website=website).delete()
+            
+            # Populate with selected default set
+            counts = populate_default_configs_for_website(
+                website,
+                skip_existing=not clear_existing,
+                default_set=default_set
+            )
+            
+            return Response({
+                "message": f"Configurations cloned from '{default_set}' default set successfully",
+                "website": {
+                    "id": website.id,
+                    "name": website.name,
+                    "domain": website.domain
+                },
+                "default_set": default_set,
+                "clear_existing": clear_existing,
+                "created": counts,
+                "summary": {
+                    "total_created": sum(counts.values()),
+                    "paper_types": counts['paper_types'],
+                    "formatting_styles": counts['formatting_styles'],
+                    "academic_levels": counts['academic_levels'],
+                    "subjects": counts['subjects'],
+                    "types_of_work": counts['types_of_work'],
+                    "english_types": counts['english_types'],
+                }
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            import traceback
+            return Response(
+                {
+                    "detail": f"Error cloning defaults: {str(e)}",
+                    "error_details": traceback.format_exc() if hasattr(e, '__traceback__') else None
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=False, methods=['get'], url_path='usage-analytics')
+    def usage_analytics(self, request):
+        """
+        Get usage analytics for order configurations.
+        Shows how many orders use each configuration item.
+        Requires website_id query parameter.
+        """
+        website_id = request.query_params.get('website_id')
+        if not website_id:
+            return Response(
+                {"detail": "website_id query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        from orders.models import Order
+        from django.db.models import Count, Q
+        
+        # Get usage counts for each config type
+        analytics = {
+            'paper_types': [],
+            'formatting_styles': [],
+            'academic_levels': [],
+            'subjects': [],
+            'types_of_work': [],
+            'english_types': [],
+        }
+        
+        # Paper Types
+        paper_types = PaperType.objects.filter(website=website).annotate(
+            usage_count=Count('order', filter=Q(order__website=website))
+        ).order_by('-usage_count', 'name')
+        analytics['paper_types'] = [
+            {
+                'id': pt.id,
+                'name': pt.name,
+                'usage_count': pt.usage_count,
+                'is_used': pt.usage_count > 0
+            }
+            for pt in paper_types
+        ]
+        
+        # Formatting Styles
+        formatting_styles = FormattingandCitationStyle.objects.filter(website=website).annotate(
+            usage_count=Count('order', filter=Q(order__website=website))
+        ).order_by('-usage_count', 'name')
+        analytics['formatting_styles'] = [
+            {
+                'id': fs.id,
+                'name': fs.name,
+                'usage_count': fs.usage_count,
+                'is_used': fs.usage_count > 0
+            }
+            for fs in formatting_styles
+        ]
+        
+        # Academic Levels
+        academic_levels = AcademicLevel.objects.filter(website=website).annotate(
+            usage_count=Count('order', filter=Q(order__website=website))
+        ).order_by('-usage_count', 'name')
+        analytics['academic_levels'] = [
+            {
+                'id': al.id,
+                'name': al.name,
+                'usage_count': al.usage_count,
+                'is_used': al.usage_count > 0
+            }
+            for al in academic_levels
+        ]
+        
+        # Subjects
+        subjects = Subject.objects.filter(website=website).annotate(
+            usage_count=Count('order', filter=Q(order__website=website))
+        ).order_by('-usage_count', 'name')
+        analytics['subjects'] = [
+            {
+                'id': s.id,
+                'name': s.name,
+                'is_technical': s.is_technical,
+                'usage_count': s.usage_count,
+                'is_used': s.usage_count > 0
+            }
+            for s in subjects
+        ]
+        
+        # Types of Work
+        types_of_work = TypeOfWork.objects.filter(website=website).annotate(
+            usage_count=Count('order', filter=Q(order__website=website))
+        ).order_by('-usage_count', 'name')
+        analytics['types_of_work'] = [
+            {
+                'id': tow.id,
+                'name': tow.name,
+                'usage_count': tow.usage_count,
+                'is_used': tow.usage_count > 0
+            }
+            for tow in types_of_work
+        ]
+        
+        # English Types
+        english_types = EnglishType.objects.filter(website=website).annotate(
+            usage_count=Count('order', filter=Q(order__website=website))
+        ).order_by('-usage_count', 'name')
+        analytics['english_types'] = [
+            {
+                'id': et.id,
+                'name': et.name,
+                'code': et.code,
+                'usage_count': et.usage_count,
+                'is_used': et.usage_count > 0
+            }
+            for et in english_types
+        ]
+        
+        # Summary statistics
+        total_configs = sum(len(v) for v in analytics.values())
+        unused_configs = sum(sum(1 for item in v if not item['is_used']) for v in analytics.values())
+        used_configs = total_configs - unused_configs
+        
+        return Response({
+            'website': {
+                'id': website.id,
+                'name': website.name,
+                'domain': website.domain
+            },
+            'analytics': analytics,
+            'summary': {
+                'total_configs': total_configs,
+                'used_configs': used_configs,
+                'unused_configs': unused_configs,
+                'usage_percentage': round((used_configs / total_configs * 100) if total_configs > 0 else 0, 2)
+            }
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], url_path='bulk-delete')
+    def bulk_delete(self, request):
+        """
+        Bulk delete order configurations.
+        Requires:
+        - config_type: Type of config ('paper-types', 'subjects', etc.)
+        - ids: List of config IDs to delete
+        - website_id: Website ID (optional, for validation)
+        """
+        config_type = request.data.get('config_type')
+        ids = request.data.get('ids', [])
+        website_id = request.data.get('website_id')
+        
+        if not config_type or not ids:
+            return Response(
+                {"detail": "config_type and ids are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Map config types to models
+        model_map = {
+            'paper-types': PaperType,
+            'formatting-styles': FormattingandCitationStyle,
+            'academic-levels': AcademicLevel,
+            'subjects': Subject,
+            'types-of-work': TypeOfWork,
+            'english-types': EnglishType,
+        }
+        
+        if config_type not in model_map:
+            return Response(
+                {"detail": f"Invalid config_type. Must be one of: {', '.join(model_map.keys())}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        Model = model_map[config_type]
+        
+        # Check for usage before deletion
+        from orders.models import Order
+        from django.db.models import Q
+        
+        queryset = Model.objects.filter(id__in=ids)
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        
+        # Check which configs are in use
+        # Map config types to Order model field names
+        field_map = {
+            'paper-types': 'paper_type',
+            'formatting-styles': 'formatting_style',
+            'academic-levels': 'academic_level',
+            'subjects': 'subject',
+            'types-of-work': 'type_of_work',
+            'english-types': 'english_type',
+        }
+        
+        field_name = field_map.get(config_type)
+        if not field_name:
+            return Response(
+                {"detail": "Invalid config_type."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        used_configs = []
+        for config in queryset:
+            usage_count = Order.objects.filter(**{field_name: config}).count()
+            if usage_count > 0:
+                used_configs.append({
+                    'id': config.id,
+                    'name': getattr(config, 'name', str(config)),
+                    'usage_count': usage_count
+                })
+        
+        # If any configs are in use, return error with details
+        if used_configs:
+            return Response(
+                {
+                    "detail": f"Cannot delete {len(used_configs)} configuration(s) that are in use.",
+                    "used_configs": used_configs,
+                    "message": f"{len(used_configs)} of {len(ids)} configuration(s) cannot be deleted because they are used in existing orders."
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Delete configs
+        deleted_count = queryset.delete()[0]
+        
+        return Response({
+            "message": f"Successfully deleted {deleted_count} configuration(s).",
+            "deleted_count": deleted_count
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], url_path='preview-clone')
+    def preview_clone(self, request):
+        """
+        Preview what will be added/removed when cloning from defaults.
+        Requires:
+        - website_id: Target website
+        - default_set: Which default set to clone ('general', 'nursing', 'technical')
+        - clear_existing: Whether to clear existing configs first
+        """
+        website_id = request.data.get('website_id')
+        default_set = request.data.get('default_set', 'general')
+        clear_existing = request.data.get('clear_existing', False)
+        
+        if not website_id:
+            return Response(
+                {"detail": "website_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if default_set not in ['general', 'nursing', 'technical']:
+            return Response(
+                {"detail": "default_set must be one of: 'general', 'nursing', 'technical'."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        from order_configs.services.default_configs import DEFAULT_SETS
+        
+        if default_set not in DEFAULT_SETS:
+            return Response(
+                {"detail": "Invalid default set."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        config_set = DEFAULT_SETS[default_set]
+        preview = {
+            'paper_types': {'to_add': [], 'to_remove': [], 'to_keep': []},
+            'formatting_styles': {'to_add': [], 'to_remove': [], 'to_keep': []},
+            'academic_levels': {'to_add': [], 'to_remove': [], 'to_keep': []},
+            'subjects': {'to_add': [], 'to_remove': [], 'to_keep': []},
+            'types_of_work': {'to_add': [], 'to_remove': [], 'to_keep': []},
+            'english_types': {'to_add': [], 'to_remove': [], 'to_keep': []},
+        }
+        
+        # Helper function to check what will be added/removed
+        def analyze_configs(model_class, default_list, existing_queryset):
+            existing_names = set(existing_queryset.values_list('name', flat=True))
+            default_names = set(default_list)
+            
+            to_add = list(default_names - existing_names)
+            to_remove = list(existing_names - default_names) if clear_existing else []
+            to_keep = list(existing_names & default_names)
+            
+            return {
+                'to_add': sorted(to_add),
+                'to_remove': sorted(to_remove),
+                'to_keep': sorted(to_keep)
+            }
+        
+        # Analyze each config type
+        preview['paper_types'] = analyze_configs(
+            PaperType,
+            config_set['paper_types'],
+            PaperType.objects.filter(website=website)
+        )
+        
+        preview['formatting_styles'] = analyze_configs(
+            FormattingandCitationStyle,
+            config_set['formatting_styles'],
+            FormattingandCitationStyle.objects.filter(website=website)
+        )
+        
+        preview['academic_levels'] = analyze_configs(
+            AcademicLevel,
+            config_set['academic_levels'],
+            AcademicLevel.objects.filter(website=website)
+        )
+        
+        # Subjects need special handling (tuples)
+        existing_subjects = set(Subject.objects.filter(website=website).values_list('name', flat=True))
+        default_subjects = set(name for name, _ in config_set['subjects'])
+        preview['subjects'] = {
+            'to_add': sorted(default_subjects - existing_subjects),
+            'to_remove': sorted(existing_subjects - default_subjects) if clear_existing else [],
+            'to_keep': sorted(existing_subjects & default_subjects)
+        }
+        
+        preview['types_of_work'] = analyze_configs(
+            TypeOfWork,
+            config_set['types_of_work'],
+            TypeOfWork.objects.filter(website=website)
+        )
+        
+        # English types need special handling (tuples)
+        existing_english = set(EnglishType.objects.filter(website=website).values_list('name', flat=True))
+        default_english = set(name for name, _ in config_set['english_types'])
+        preview['english_types'] = {
+            'to_add': sorted(default_english - existing_english),
+            'to_remove': sorted(existing_english - default_english) if clear_existing else [],
+            'to_keep': sorted(existing_english & default_english)
+        }
+        
+        # Calculate totals
+        total_to_add = sum(len(v['to_add']) for v in preview.values())
+        total_to_remove = sum(len(v['to_remove']) for v in preview.values())
+        total_to_keep = sum(len(v['to_keep']) for v in preview.values())
+        
+        return Response({
+            'website': {
+                'id': website.id,
+                'name': website.name,
+                'domain': website.domain
+            },
+            'default_set': default_set,
+            'clear_existing': clear_existing,
+            'preview': preview,
+            'summary': {
+                'total_to_add': total_to_add,
+                'total_to_remove': total_to_remove,
+                'total_to_keep': total_to_keep,
+                'total_changes': total_to_add + total_to_remove
+            }
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path='export')
+    def export_configs(self, request):
+        """
+        Export order configurations to JSON.
+        Requires website_id query parameter.
+        """
+        website_id = request.query_params.get('website_id')
+        if not website_id:
+            return Response(
+                {"detail": "website_id query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        from django.utils import timezone
+        
+        export_data = {
+            'website': {
+                'id': website.id,
+                'name': website.name,
+                'domain': website.domain
+            },
+            'exported_at': timezone.now().isoformat(),
+            'configs': {
+                'paper_types': [
+                    {'name': pt.name} for pt in PaperType.objects.filter(website=website).order_by('name')
+                ],
+                'formatting_styles': [
+                    {'name': fs.name} for fs in FormattingandCitationStyle.objects.filter(website=website).order_by('name')
+                ],
+                'academic_levels': [
+                    {'name': al.name} for al in AcademicLevel.objects.filter(website=website).order_by('name')
+                ],
+                'subjects': [
+                    {'name': s.name, 'is_technical': s.is_technical}
+                    for s in Subject.objects.filter(website=website).order_by('name')
+                ],
+                'types_of_work': [
+                    {'name': tow.name} for tow in TypeOfWork.objects.filter(website=website).order_by('name')
+                ],
+                'english_types': [
+                    {'name': et.name, 'code': et.code}
+                    for et in EnglishType.objects.filter(website=website).order_by('name')
+                ],
+            }
+        }
+        
+        return Response(export_data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], url_path='import')
+    def import_configs(self, request):
+        """
+        Import order configurations from JSON.
+        Requires:
+        - website_id: Target website
+        - configs: JSON object with config arrays
+        - skip_existing: Whether to skip existing configs (default: True)
+        """
+        website_id = request.data.get('website_id')
+        configs = request.data.get('configs', {})
+        skip_existing = request.data.get('skip_existing', True)
+        
+        if not website_id:
+            return Response(
+                {"detail": "website_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        from django.utils import timezone
+        
+        results = {
+            'paper_types': {'created': 0, 'skipped': 0, 'errors': []},
+            'formatting_styles': {'created': 0, 'skipped': 0, 'errors': []},
+            'academic_levels': {'created': 0, 'skipped': 0, 'errors': []},
+            'subjects': {'created': 0, 'skipped': 0, 'errors': []},
+            'types_of_work': {'created': 0, 'skipped': 0, 'errors': []},
+            'english_types': {'created': 0, 'skipped': 0, 'errors': []},
+        }
+        
+        # Import Paper Types
+        for item in configs.get('paper_types', []):
+            name = item.get('name', '').strip()
+            if not name:
+                continue
+            if skip_existing and PaperType.objects.filter(website=website, name=name).exists():
+                results['paper_types']['skipped'] += 1
+                continue
+            try:
+                PaperType.objects.get_or_create(website=website, name=name)
+                results['paper_types']['created'] += 1
+            except Exception as e:
+                results['paper_types']['errors'].append(f"{name}: {str(e)}")
+        
+        # Import Formatting Styles
+        for item in configs.get('formatting_styles', []):
+            name = item.get('name', '').strip()
+            if not name:
+                continue
+            if skip_existing and FormattingandCitationStyle.objects.filter(website=website, name=name).exists():
+                results['formatting_styles']['skipped'] += 1
+                continue
+            try:
+                FormattingandCitationStyle.objects.get_or_create(website=website, name=name)
+                results['formatting_styles']['created'] += 1
+            except Exception as e:
+                results['formatting_styles']['errors'].append(f"{name}: {str(e)}")
+        
+        # Import Academic Levels
+        for item in configs.get('academic_levels', []):
+            name = item.get('name', '').strip()
+            if not name:
+                continue
+            if skip_existing and AcademicLevel.objects.filter(website=website, name=name).exists():
+                results['academic_levels']['skipped'] += 1
+                continue
+            try:
+                AcademicLevel.objects.get_or_create(website=website, name=name)
+                results['academic_levels']['created'] += 1
+            except Exception as e:
+                results['academic_levels']['errors'].append(f"{name}: {str(e)}")
+        
+        # Import Subjects
+        for item in configs.get('subjects', []):
+            name = item.get('name', '').strip()
+            if not name:
+                continue
+            is_technical = item.get('is_technical', False)
+            if skip_existing and Subject.objects.filter(website=website, name=name).exists():
+                results['subjects']['skipped'] += 1
+                continue
+            try:
+                Subject.objects.get_or_create(
+                    website=website,
+                    name=name,
+                    defaults={'is_technical': is_technical}
+                )
+                results['subjects']['created'] += 1
+            except Exception as e:
+                results['subjects']['errors'].append(f"{name}: {str(e)}")
+        
+        # Import Types of Work
+        for item in configs.get('types_of_work', []):
+            name = item.get('name', '').strip()
+            if not name:
+                continue
+            if skip_existing and TypeOfWork.objects.filter(website=website, name=name).exists():
+                results['types_of_work']['skipped'] += 1
+                continue
+            try:
+                TypeOfWork.objects.get_or_create(website=website, name=name)
+                results['types_of_work']['created'] += 1
+            except Exception as e:
+                results['types_of_work']['errors'].append(f"{name}: {str(e)}")
+        
+        # Import English Types
+        for item in configs.get('english_types', []):
+            name = item.get('name', '').strip()
+            code = item.get('code', '').strip()
+            if not name:
+                continue
+            if skip_existing and EnglishType.objects.filter(website=website, name=name).exists():
+                results['english_types']['skipped'] += 1
+                continue
+            try:
+                EnglishType.objects.get_or_create(
+                    website=website,
+                    name=name,
+                    defaults={'code': code} if code else {}
+                )
+                results['english_types']['created'] += 1
+            except Exception as e:
+                results['english_types']['errors'].append(f"{name}: {str(e)}")
+        
+        total_created = sum(r['created'] for r in results.values())
+        total_skipped = sum(r['skipped'] for r in results.values())
+        total_errors = sum(len(r['errors']) for r in results.values())
+        
+        return Response({
+            'website': {
+                'id': website.id,
+                'name': website.name,
+                'domain': website.domain
+            },
+            'results': results,
+            'summary': {
+                'total_created': total_created,
+                'total_skipped': total_skipped,
+                'total_errors': total_errors
+            }
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path='export')
+    def export_configs(self, request):
+        """
+        Export order configurations to JSON.
+        Requires website_id query parameter.
+        """
+        website_id = request.query_params.get('website_id')
+        if not website_id:
+            return Response(
+                {"detail": "website_id query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Collect all configs
+        export_data = {
+            'website': {
+                'id': website.id,
+                'name': website.name,
+                'domain': website.domain
+            },
+            'exported_at': timezone.now().isoformat() if hasattr(timezone, 'now') else str(timezone.now()),
+            'configurations': {
+                'paper_types': [
+                    {'name': pt.name} for pt in PaperType.objects.filter(website=website).order_by('name')
+                ],
+                'formatting_styles': [
+                    {'name': fs.name} for fs in FormattingandCitationStyle.objects.filter(website=website).order_by('name')
+                ],
+                'academic_levels': [
+                    {'name': al.name} for al in AcademicLevel.objects.filter(website=website).order_by('name')
+                ],
+                'subjects': [
+                    {'name': s.name, 'is_technical': s.is_technical} 
+                    for s in Subject.objects.filter(website=website).order_by('name')
+                ],
+                'types_of_work': [
+                    {'name': tow.name} for tow in TypeOfWork.objects.filter(website=website).order_by('name')
+                ],
+                'english_types': [
+                    {'name': et.name, 'code': et.code} 
+                    for et in EnglishType.objects.filter(website=website).order_by('name')
+                ],
+            }
+        }
+        
+        return Response(export_data, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['post'], url_path='import')
+    def import_configs(self, request):
+        """
+        Import order configurations from JSON.
+        Requires website_id and configurations data.
+        """
+        website_id = request.data.get('website_id')
+        configurations = request.data.get('configurations', {})
+        skip_existing = request.data.get('skip_existing', True)
+        
+        if not website_id:
+            return Response(
+                {"detail": "website_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        results = {
+            'paper_types': {'created': 0, 'skipped': 0, 'errors': []},
+            'formatting_styles': {'created': 0, 'skipped': 0, 'errors': []},
+            'academic_levels': {'created': 0, 'skipped': 0, 'errors': []},
+            'subjects': {'created': 0, 'skipped': 0, 'errors': []},
+            'types_of_work': {'created': 0, 'skipped': 0, 'errors': []},
+            'english_types': {'created': 0, 'skipped': 0, 'errors': []},
+        }
+        
+        # Import Paper Types
+        for item in configurations.get('paper_types', []):
+            name = item.get('name')
+            if not name:
+                continue
+            if skip_existing and PaperType.objects.filter(website=website, name=name).exists():
+                results['paper_types']['skipped'] += 1
+                continue
+            try:
+                PaperType.objects.get_or_create(website=website, name=name)
+                results['paper_types']['created'] += 1
+            except Exception as e:
+                results['paper_types']['errors'].append(f"{name}: {str(e)}")
+        
+        # Import Formatting Styles
+        for item in configurations.get('formatting_styles', []):
+            name = item.get('name')
+            if not name:
+                continue
+            if skip_existing and FormattingandCitationStyle.objects.filter(website=website, name=name).exists():
+                results['formatting_styles']['skipped'] += 1
+                continue
+            try:
+                FormattingandCitationStyle.objects.get_or_create(website=website, name=name)
+                results['formatting_styles']['created'] += 1
+            except Exception as e:
+                results['formatting_styles']['errors'].append(f"{name}: {str(e)}")
+        
+        # Import Academic Levels
+        for item in configurations.get('academic_levels', []):
+            name = item.get('name')
+            if not name:
+                continue
+            if skip_existing and AcademicLevel.objects.filter(website=website, name=name).exists():
+                results['academic_levels']['skipped'] += 1
+                continue
+            try:
+                AcademicLevel.objects.get_or_create(website=website, name=name)
+                results['academic_levels']['created'] += 1
+            except Exception as e:
+                results['academic_levels']['errors'].append(f"{name}: {str(e)}")
+        
+        # Import Subjects
+        for item in configurations.get('subjects', []):
+            name = item.get('name')
+            if not name:
+                continue
+            is_technical = item.get('is_technical', False)
+            if skip_existing and Subject.objects.filter(website=website, name=name).exists():
+                results['subjects']['skipped'] += 1
+                continue
+            try:
+                Subject.objects.get_or_create(website=website, name=name, defaults={'is_technical': is_technical})
+                results['subjects']['created'] += 1
+            except Exception as e:
+                results['subjects']['errors'].append(f"{name}: {str(e)}")
+        
+        # Import Types of Work
+        for item in configurations.get('types_of_work', []):
+            name = item.get('name')
+            if not name:
+                continue
+            if skip_existing and TypeOfWork.objects.filter(website=website, name=name).exists():
+                results['types_of_work']['skipped'] += 1
+                continue
+            try:
+                TypeOfWork.objects.get_or_create(website=website, name=name)
+                results['types_of_work']['created'] += 1
+            except Exception as e:
+                results['types_of_work']['errors'].append(f"{name}: {str(e)}")
+        
+        # Import English Types
+        for item in configurations.get('english_types', []):
+            name = item.get('name')
+            code = item.get('code', '')
+            if not name:
+                continue
+            if skip_existing and EnglishType.objects.filter(website=website, name=name).exists():
+                results['english_types']['skipped'] += 1
+                continue
+            try:
+                EnglishType.objects.get_or_create(website=website, name=name, defaults={'code': code})
+                results['english_types']['created'] += 1
+            except Exception as e:
+                results['english_types']['errors'].append(f"{name}: {str(e)}")
+        
+        total_created = sum(r['created'] for r in results.values())
+        total_skipped = sum(r['skipped'] for r in results.values())
+        total_errors = sum(len(r['errors']) for r in results.values())
+        
+        return Response({
+            'message': f'Import completed: {total_created} created, {total_skipped} skipped, {total_errors} errors',
+            'website': {
+                'id': website.id,
+                'name': website.name,
+                'domain': website.domain
+            },
+            'results': results,
+            'summary': {
+                'total_created': total_created,
+                'total_skipped': total_skipped,
+                'total_errors': total_errors
+            }
+        }, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'], url_path='check-defaults')
     def check_defaults(self, request):

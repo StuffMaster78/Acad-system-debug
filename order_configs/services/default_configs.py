@@ -2,6 +2,11 @@
 Service for managing default/common order configurations.
 These are the standard configurations that get populated for every website.
 Admins can add custom configurations on top of these defaults.
+
+Supports different default sets:
+- 'general': General purpose defaults (all subjects, all paper types)
+- 'nursing': Nursing-specific defaults (health sciences focus)
+- 'technical': Technical defaults (programming, math, engineering focus)
 """
 from order_configs.models import (
     PaperType, FormattingandCitationStyle, Subject, AcademicLevel,
@@ -10,6 +15,7 @@ from order_configs.models import (
 from websites.models import Website
 
 
+# ==================== GENERAL DEFAULTS ====================
 # Default configurations that should be available for all websites
 DEFAULT_PAPER_TYPES = [
     'Essay', 'Research Paper', 'Term Paper', 'Dissertation', 'Thesis',
@@ -137,6 +143,153 @@ DEFAULT_ENGLISH_TYPES = [
     ('International English', 'INT'),
 ]
 
+# ==================== NURSING-SPECIFIC DEFAULTS ====================
+NURSING_PAPER_TYPES = [
+    'Essay', 'Research Paper', 'Term Paper', 'Dissertation', 'Thesis',
+    'Case Study', 'Article Review', 'Literature Review',
+    'Annotated Bibliography', 'Coursework', 'Lab Report', 'Presentation',
+    'PowerPoint Presentation', 'Reflection Paper', 'Position Paper',
+    'Nursing Care Plan', 'Clinical Case Study', 'Evidence-Based Practice Paper',
+    'Nursing Research Proposal', 'Capstone Project', 'Discussion Post',
+    'Response Paper', 'Summary', 'Outline', 'Q&A', 'Worksheet',
+    'Nursing Assessment', 'Patient Care Plan', 'Nursing Diagnosis',
+    'Nursing Intervention', 'Quality Improvement Project',
+]
+
+NURSING_FORMATTING_STYLES = [
+    'APA', 'APA 6th Edition', 'APA 7th Edition', 'MLA', 'Chicago',
+    'Turabian', 'Harvard', 'Vancouver', 'AMA', 'NLM',
+]
+
+NURSING_ACADEMIC_LEVELS = [
+    'High School', 'College', 'Undergraduate', 'Bachelor\'s', 'BSN',
+    'Master\'s', 'MSN', 'Graduate', 'DNP', 'PhD', 'Doctorate',
+    'Post-Doctorate', 'Professional', 'Certificate Program',
+    'Diploma', 'Associate Degree', 'RN to BSN',
+]
+
+NURSING_SUBJECTS = [
+    # Health Sciences (Nursing Focus)
+    ('Nursing', False), ('Nursing Practice', False), ('Nursing Theory', False),
+    ('Medical-Surgical Nursing', False), ('Pediatric Nursing', False),
+    ('Maternal-Child Nursing', False), ('Psychiatric Nursing', False),
+    ('Community Health Nursing', False), ('Public Health', False),
+    ('Healthcare', False), ('Health Administration', False),
+    ('Health Policy', False), ('Health Promotion', False),
+    ('Epidemiology', False), ('Health Education', False),
+    
+    # Related Health Fields
+    ('Medicine', True), ('Pharmacy', True), ('Physical Therapy', False),
+    ('Occupational Therapy', False), ('Nutrition', False),
+    ('Dietetics', False), ('Kinesiology', False),
+    ('Exercise Science', False), ('Sports Medicine', False),
+    ('Respiratory Therapy', False), ('Radiology', True),
+    ('Medical Laboratory Science', True),
+    
+    # Supporting Subjects
+    ('Biology', True), ('Chemistry', True), ('Psychology', False),
+    ('Sociology', False), ('Statistics', True),
+]
+
+# ==================== TECHNICAL DEFAULTS ====================
+TECHNICAL_PAPER_TYPES = [
+    'Essay', 'Research Paper', 'Term Paper', 'Dissertation', 'Thesis',
+    'Case Study', 'Article Review', 'Literature Review',
+    'Annotated Bibliography', 'Coursework', 'Lab Report', 'Presentation',
+    'PowerPoint Presentation', 'Proposal', 'Research Proposal',
+    'Capstone Project', 'Discussion Post', 'Response Paper', 'Summary',
+    'Outline', 'Q&A', 'Worksheet',
+    'Math Problem', 'Statistics Problem', 'Programming Assignment',
+    'Code Review', 'Technical Writing', 'Algorithm Design',
+    'System Design', 'Database Design', 'Software Architecture',
+    'Technical Documentation', 'API Documentation', 'Code Documentation',
+    'Project Report', 'Technical Report', 'System Analysis',
+]
+
+TECHNICAL_FORMATTING_STYLES = [
+    'APA', 'APA 6th Edition', 'APA 7th Edition', 'MLA', 'Chicago',
+    'Turabian', 'Harvard', 'IEEE', 'Vancouver', 'CSE', 'ACS',
+    'ACM', 'OSCOLA',
+]
+
+TECHNICAL_ACADEMIC_LEVELS = [
+    'High School', 'College', 'Undergraduate', 'Bachelor\'s', 'Master\'s',
+    'Graduate', 'PhD', 'Doctorate', 'Post-Doctorate', 'Professional',
+    'Certificate Program', 'Diploma', 'Associate Degree',
+    'Bootcamp', 'Professional Certification',
+]
+
+TECHNICAL_SUBJECTS = [
+    # Computer Science & Programming
+    ('Computer Science', True), ('Information Technology', True),
+    ('Software Engineering', True), ('Programming', True),
+    ('Web Development', True), ('Mobile Development', True),
+    ('Game Development', True), ('Database Management', True),
+    ('Network Administration', True), ('Cloud Computing', True),
+    ('Cybersecurity', True), ('Information Systems', True),
+    ('Data Science', True), ('Artificial Intelligence', True),
+    ('Machine Learning', True), ('Data Analytics', True),
+    ('Big Data', True), ('Blockchain', True), ('DevOps', True),
+    
+    # Mathematics & Statistics
+    ('Mathematics', True), ('Statistics', True), ('Applied Mathematics', True),
+    ('Discrete Mathematics', True), ('Linear Algebra', True),
+    ('Calculus', True), ('Probability', True), ('Numerical Analysis', True),
+    
+    # Engineering
+    ('Engineering', True), ('Mechanical Engineering', True),
+    ('Electrical Engineering', True), ('Civil Engineering', True),
+    ('Chemical Engineering', True), ('Biomedical Engineering', True),
+    ('Computer Engineering', True), ('Aerospace Engineering', True),
+    ('Industrial Engineering', True), ('Environmental Engineering', True),
+    
+    # Technical Sciences
+    ('Physics', True), ('Chemistry', True), ('Biology', True),
+    ('Biochemistry', True), ('Organic Chemistry', True),
+    ('Inorganic Chemistry', True), ('Physical Chemistry', True),
+    ('Quantum Physics', True), ('Astrophysics', True),
+    ('Neuroscience', True), ('Genetics', True),
+    
+    # Technical Business
+    ('Information Systems', True), ('Business Analytics', True),
+    ('Operations Research', True), ('Supply Chain Management', False),
+    ('Project Management', False),
+]
+
+# ==================== DEFAULT SET DEFINITIONS ====================
+DEFAULT_SETS = {
+    'general': {
+        'paper_types': DEFAULT_PAPER_TYPES,
+        'formatting_styles': DEFAULT_FORMATTING_STYLES,
+        'academic_levels': DEFAULT_ACADEMIC_LEVELS,
+        'subjects': DEFAULT_SUBJECTS,
+        'types_of_work': DEFAULT_TYPES_OF_WORK,
+        'english_types': DEFAULT_ENGLISH_TYPES,
+        'name': 'General',
+        'description': 'Comprehensive defaults for general-purpose websites',
+    },
+    'nursing': {
+        'paper_types': NURSING_PAPER_TYPES,
+        'formatting_styles': NURSING_FORMATTING_STYLES,
+        'academic_levels': NURSING_ACADEMIC_LEVELS,
+        'subjects': NURSING_SUBJECTS,
+        'types_of_work': DEFAULT_TYPES_OF_WORK,
+        'english_types': DEFAULT_ENGLISH_TYPES,
+        'name': 'Nursing',
+        'description': 'Defaults optimized for nursing and health sciences websites',
+    },
+    'technical': {
+        'paper_types': TECHNICAL_PAPER_TYPES,
+        'formatting_styles': TECHNICAL_FORMATTING_STYLES,
+        'academic_levels': TECHNICAL_ACADEMIC_LEVELS,
+        'subjects': TECHNICAL_SUBJECTS,
+        'types_of_work': DEFAULT_TYPES_OF_WORK,
+        'english_types': DEFAULT_ENGLISH_TYPES,
+        'name': 'Technical',
+        'description': 'Defaults for technical websites (programming, math, engineering)',
+    },
+}
+
 
 def is_default_paper_type(name: str) -> bool:
     """Check if a paper type name is in the default list."""
@@ -168,7 +321,7 @@ def is_default_english_type(name: str) -> bool:
     return any(eng[0] == name for eng in DEFAULT_ENGLISH_TYPES)
 
 
-def populate_default_configs_for_website(website: Website, skip_existing: bool = True):
+def populate_default_configs_for_website(website: Website, skip_existing: bool = True, default_set: str = 'general'):
     """
     Populate default configurations for a website.
     Uses get_or_create so it won't duplicate existing entries.
@@ -176,10 +329,16 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
     Args:
         website: The website to populate configurations for
         skip_existing: If True, skip entries that already exist (default: True)
+        default_set: Which default set to use ('general', 'nursing', 'technical')
     
     Returns:
         dict with counts of created items for each config type
     """
+    if default_set not in DEFAULT_SETS:
+        default_set = 'general'
+    
+    config_set = DEFAULT_SETS[default_set]
+    
     counts = {
         'paper_types': 0,
         'formatting_styles': 0,
@@ -190,7 +349,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
     }
     
     # Paper Types
-    for paper_type_name in DEFAULT_PAPER_TYPES:
+    for paper_type_name in config_set['paper_types']:
         if skip_existing and PaperType.objects.filter(website=website, name=paper_type_name).exists():
             continue
         _, created = PaperType.objects.get_or_create(
@@ -202,7 +361,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
             counts['paper_types'] += 1
     
     # Formatting Styles
-    for style_name in DEFAULT_FORMATTING_STYLES:
+    for style_name in config_set['formatting_styles']:
         if skip_existing and FormattingandCitationStyle.objects.filter(website=website, name=style_name).exists():
             continue
         _, created = FormattingandCitationStyle.objects.get_or_create(
@@ -214,7 +373,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
             counts['formatting_styles'] += 1
     
     # Academic Levels
-    for level_name in DEFAULT_ACADEMIC_LEVELS:
+    for level_name in config_set['academic_levels']:
         if skip_existing and AcademicLevel.objects.filter(website=website, name=level_name).exists():
             continue
         _, created = AcademicLevel.objects.get_or_create(
@@ -226,7 +385,13 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
             counts['academic_levels'] += 1
     
     # Subjects
-    for subject_name, is_technical in DEFAULT_SUBJECTS:
+    for subject_data in config_set['subjects']:
+        if isinstance(subject_data, tuple):
+            subject_name, is_technical = subject_data
+        else:
+            subject_name = subject_data
+            is_technical = False
+        
         if skip_existing and Subject.objects.filter(website=website, name=subject_name).exists():
             continue
         _, created = Subject.objects.get_or_create(
@@ -238,7 +403,7 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
             counts['subjects'] += 1
     
     # Types of Work
-    for work_type_name in DEFAULT_TYPES_OF_WORK:
+    for work_type_name in config_set['types_of_work']:
         if skip_existing and TypeOfWork.objects.filter(website=website, name=work_type_name).exists():
             continue
         _, created = TypeOfWork.objects.get_or_create(
@@ -250,22 +415,46 @@ def populate_default_configs_for_website(website: Website, skip_existing: bool =
             counts['types_of_work'] += 1
     
     # English Types
-    for english_type_name, code in DEFAULT_ENGLISH_TYPES:
+    for english_type_data in config_set['english_types']:
+        if isinstance(english_type_data, tuple):
+            english_type_name, code = english_type_data
+        else:
+            english_type_name = english_type_data
+            code = ''
+        
         if skip_existing and EnglishType.objects.filter(website=website, name=english_type_name).exists():
             continue
         # Check for code conflicts across websites
-        existing = EnglishType.objects.filter(code=code, website=website).first()
-        if existing and existing.name != english_type_name:
-            # Code already exists for this website with different name, skip
-            continue
+        if code:
+            existing = EnglishType.objects.filter(code=code, website=website).first()
+            if existing and existing.name != english_type_name:
+                # Code already exists for this website with different name, skip
+                continue
         
         _, created = EnglishType.objects.get_or_create(
             name=english_type_name,
             website=website,
-            defaults={'code': code}
+            defaults={'code': code} if code else {}
         )
         if created:
             counts['english_types'] += 1
     
     return counts
+
+
+def get_available_default_sets():
+    """
+    Get list of available default sets with their metadata.
+    
+    Returns:
+        list of dicts with 'id', 'name', 'description' for each default set
+    """
+    return [
+        {
+            'id': key,
+            'name': value['name'],
+            'description': value['description'],
+        }
+        for key, value in DEFAULT_SETS.items()
+    ]
 

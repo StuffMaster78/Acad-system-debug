@@ -145,14 +145,15 @@ class PricingEstimationService:
         # Preferred Writer Cost
         preferred_writer = order_input.get("preferred_writer")
         if preferred_writer:
-            preferred_writer_config = PreferredWriterConfig.objects.filter(
-                website=website, name__iexact=preferred_writer
-            ).first()
-            if preferred_writer_config:
-                base_price += preferred_writer_config.preferred_writer_cost
-                breakdown["add_ons"]["preferred_writer"] = float(
-                    preferred_writer_config.preferred_writer_cost
-                )
+            try:
+                preferred_writer_config = PreferredWriterConfig.objects.get(website=website)
+                if preferred_writer_config.is_active:
+                    base_price += preferred_writer_config.preferred_writer_cost
+                    breakdown["add_ons"]["preferred_writer"] = float(
+                        preferred_writer_config.preferred_writer_cost
+                    )
+            except PreferredWriterConfig.DoesNotExist:
+                pass
 
         writer_level = order_input.get("writer_level")
         if writer_level:

@@ -56,31 +56,31 @@ class PreferredWriterConfig(models.Model):
     """
     Admin-defined setting for a client choosing to work
     with a preferred writer they worked with before.
+    This is a website-level configuration that applies to all writers.
     """
-    website = models.ForeignKey(
+    website = models.OneToOneField(
         Website,
         on_delete=models.CASCADE,
-        related_name="preferred_writer_configs"
-    )
-    writer = models.ForeignKey(
-        "users.User",
-        on_delete=models.CASCADE,
-        related_name="preferred_writer_configs"
+        related_name="preferred_writer_config",
+        unique=True,
+        help_text="Website this configuration applies to"
     )
     preferred_writer_cost = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Extra cost (in USD) for selecting this preferred writer"
+        help_text="Extra cost (in USD) for selecting a preferred writer (applies to all writers)"
     )
-    is_active = models.BooleanField(default=True)
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether preferred writer option is enabled for this website"
+    )
 
     class Meta:
-        unique_together = ["website", "writer"]
-        ordering = ["website", "writer"]
+        ordering = ["website"]
 
     def __str__(self):
         return (
-            f"Preferred Writer: {self.writer} - "
+            f"Preferred Writer Config - "
             f"({self.website.domain})"
         )
 

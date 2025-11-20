@@ -150,7 +150,6 @@ class PricingCalculatorService:
             from pricing_configs.models import PreferredWriterConfig
             try:
                 pref = PreferredWriterConfig.objects.get(
-                    writer=self.order.preferred_writer,
                     website=self.website
                 )
                 return pref.preferred_writer_cost
