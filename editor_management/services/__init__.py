@@ -1,2 +1,0 @@
-# Editor Management Services
-

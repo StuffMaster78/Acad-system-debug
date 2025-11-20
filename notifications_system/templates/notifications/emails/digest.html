@@ -1,9 +1,0 @@
-{% extends "notifications/emails/base.html" %}
-{% block content %}
-  <h2>Your {{ digest_group|default:"Daily" }} Digest</h2>
-  <ul>
-    {% for item in digest_items %}
-      <li><strong>{{ item.subject }}:</strong> {{ item.message }}</li>
-    {% endfor %}
-  </ul>
-{% endblock %}
