@@ -1,0 +1,37 @@
+{
+  "$id": "https://example.com/schemas/digest_event.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Digest Events (array root)",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "required": ["event_key", "channels", "interval", "group_by", "digest"],
+    "properties": {
+      "event_key": { "type": "string" },
+      "channels": {
+        "type": "array",
+        "items": { "type": "string", "enum": ["email","sms","in_app","push","webhook","telegram","whatsapp","sse","ws","slack","discord"] },
+        "minItems": 1,
+        "uniqueItems": true
+      },
+      "forced_channels": {
+        "type": "array",
+        "items": { "type": "string", "enum": ["email","sms","in_app","push","webhook","telegram","whatsapp","sse","ws","slack","discord"] },
+        "uniqueItems": true
+      },
+      "interval": { "type": "string", "enum": ["daily","weekly","monthly"] },
+      "group_by": { "type": "string", "minLength": 1 },
+      "digest": {
+        "type": "object",
+        "required": ["merge_strategy","max_items"],
+        "properties": {
+          "merge_strategy": { "type": "string", "enum": ["list_append","aggregate_counts"] },
+          "max_items": { "type": "integer", "minimum": 1 }
+        },
+        "additionalProperties": true
+      },
+      "description": { "type": "string" }
+    },
+    "additionalProperties": true
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "$id": "https://your.app/schemas/order_event.schema.json",
+  "title": "Order Notification Event",
+  "allOf": [
+    { "$ref": "./base_event.schema.json" },
+    {
+      "type": "object",
+      "properties": {
+        "order_status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "unpaid",
+            "paid",
+            "available",
+            "in_progress",
+            "on_hold",
+            "submitted",
+            "reviewed",
+            "revision_requested",
+            "revision_in_progress",
+            "revised",
+            "returned",
+            "rated",
+            "approved",
+            "refunded",
+            "reopened",
+            "disputed",
+            "off-hold",
+            "updated",
+            "cancelled",
+            "archived",
+            "completed",
+            "reassigned",
+            "expired"
+          ]
+        }
+      },
+      "additionalProperties": true
+    }
+  ]
+}

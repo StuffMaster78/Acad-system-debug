@@ -1,0 +1,50 @@
+[
+  {
+    "event_key": "user.activity_digest",
+    "channels": [
+      "email"
+    ],
+    "interval": "weekly",
+    "group_by": "user_id",
+    "digest": {
+      "merge_strategy": "list_append",
+      "max_items": 20
+    }
+  },
+  {
+    "event_key": "user.comment_digest",
+    "channels": [
+      "email"
+    ],
+    "interval": "weekly",
+    "group_by": "user_id",
+    "digest": {
+      "merge_strategy": "list_append",
+      "max_items": 20
+    }
+  },
+  {
+    "event_key": "user.orders_digest",
+    "channels": [
+      "email"
+    ],
+    "interval": "weekly",
+    "group_by": "user_id",
+    "digest": {
+      "merge_strategy": "list_append",
+      "max_items": 20
+    }
+  },
+  {
+    "event_key": "user.revisions_digest",
+    "channels": [
+      "email"
+    ],
+    "interval": "weekly",
+    "group_by": "user_id",
+    "digest": {
+      "merge_strategy": "list_append",
+      "max_items": 20
+    }
+  }
+]

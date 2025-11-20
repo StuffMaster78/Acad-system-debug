@@ -1,0 +1,137 @@
+{
+  "events": {
+    "wallet.balance_low": {
+      "key": "wallet.balance_low",
+      "event_key": "wallet.balance_low",
+      "label": "Wallet balance low",
+      "description": "User wallet balance dropped below threshold.",
+      "enabled": true,
+      "roles": ["client"],
+      "channels": ["in_app", "email"],
+      "priority": 7,
+      "templates": {}
+    },
+    "wallet.balance_critical": {
+      "key": "wallet.balance_critical",
+      "event_key": "wallet.balance_critical",
+      "label": "Wallet balance critical",
+      "description": "Balance critically low; action is recommended.",
+      "enabled": true,
+      "roles": ["client", "admin", "support"],
+      "channels": ["in_app", "email", "sms"],
+      "forced_channels": ["email", "sms"],
+      "priority": 9,
+      "templates": {}
+    },
+    "wallet.funded": {
+      "key": "wallet.funded",
+      "event_key": "wallet.funded",
+      "label": "Wallet funded",
+      "description": "A deposit was credited to the wallet.",
+      "enabled": true,
+      "roles": ["client"],
+      "channels": ["in_app", "email"],
+      "priority": 7,
+      "templates": {}
+    },
+    "wallet.deposit_pending": {
+      "key": "wallet.deposit_pending",
+      "event_key": "wallet.deposit_pending",
+      "label": "Deposit pending",
+      "description": "A deposit was initiated and is pending settlement.",
+      "enabled": true,
+      "roles": ["client"],
+      "channels": ["in_app", "email"],
+      "priority": 5,
+      "templates": {}
+    },
+    "wallet.deposit_failed": {
+      "key": "wallet.deposit_failed",
+      "event_key": "wallet.deposit_failed",
+      "label": "Deposit failed",
+      "description": "A wallet funding attempt failed.",
+      "enabled": true,
+      "roles": ["client", "support"],
+      "channels": ["in_app", "email"],
+      "priority": 8,
+      "templates": {}
+    },
+    "wallet.withdrawal_requested": {
+      "key": "wallet.withdrawal_requested",
+      "event_key": "wallet.withdrawal_requested",
+      "label": "Withdrawal requested",
+      "description": "User requested a wallet withdrawal.",
+      "enabled": true,
+      "roles": ["client", "admin", "support"],
+      "channels": ["in_app", "email"],
+      "priority": 6,
+      "templates": {}
+    },
+    "wallet.withdrawal_approved": {
+      "key": "wallet.withdrawal_approved",
+      "event_key": "wallet.withdrawal_approved",
+      "label": "Withdrawal approved",
+      "description": "A pending withdrawal was approved.",
+      "enabled": true,
+      "roles": ["client"],
+      "channels": ["in_app", "email"],
+      "priority": 6,
+      "templates": {}
+    },
+    "wallet.withdrawal_rejected": {
+      "key": "wallet.withdrawal_rejected",
+      "event_key": "wallet.withdrawal_rejected",
+      "label": "Withdrawal rejected",
+      "description": "A withdrawal request was rejected.",
+      "enabled": true,
+      "roles": ["client", "support"],
+      "channels": ["in_app", "email"],
+      "priority": 7,
+      "templates": {}
+    },
+    "wallet.withdrawal_paid": {
+      "key": "wallet.withdrawal_paid",
+      "event_key": "wallet.withdrawal_paid",
+      "label": "Withdrawal paid",
+      "description": "Withdrawal was sent to the payout destination.",
+      "enabled": true,
+      "roles": ["client"],
+      "channels": ["in_app", "email"],
+      "priority": 7,
+      "templates": {}
+    },
+    "wallet.transfer_sent": {
+      "key": "wallet.transfer_sent",
+      "event_key": "wallet.transfer_sent",
+      "label": "Transfer sent",
+      "description": "An outgoing wallet transfer was sent.",
+      "enabled": true,
+      "roles": ["client"],
+      "channels": ["in_app", "email"],
+      "priority": 5,
+      "templates": {}
+    },
+    "wallet.transfer_received": {
+      "key": "wallet.transfer_received",
+      "event_key": "wallet.transfer_received",
+      "label": "Transfer received",
+      "description": "An incoming wallet transfer was received.",
+      "enabled": true,
+      "roles": ["client"],
+      "channels": ["in_app", "email"],
+      "priority": 6,
+      "templates": {}
+    },
+    "wallet.refund_issued": {
+      "key": "wallet.refund_issued",
+      "event_key": "wallet.refund_issued",
+      "label": "Refund issued",
+      "description": "A refund was credited to the wallet.",
+      "enabled": true,
+      "roles": ["client", "support"],
+      "channels": ["in_app", "email"],
+      "priority": 7,
+      "templates": {}
+    }
+  }
+}

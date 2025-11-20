@@ -1,0 +1,661 @@
+"""
+Views for order payment management.
+"""
+from rest_framework import viewsets, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError
+from django.db.models import Q, Sum, Count
+from django.db import models
+from django.utils import timezone
+from datetime import timedelta
+import logging
+
+from .models import OrderPayment, FailedPayment
+from .serializers import TransactionSerializer
+from .services.payment_service import OrderPaymentService
+from .services.receipt_service import ReceiptService
+from orders.models import Order
+from authentication.permissions import IsSuperadminOrAdmin
+from rest_framework.permissions import IsAuthenticated
+from client_wallet.models import ClientWalletTransaction
+from writer_wallet.models import WalletTransaction
+
+logger = logging.getLogger(__name__)
+
+class OrderPaymentViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for handling order payments, including refunds.
+    Supports all payment types: standard orders, special orders, installments, classes, wallet loading.
+    """
+    queryset = OrderPayment.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+    http_method_names = ["get", "post", "patch", "delete"]  # Limit methods if needed
+
+    def get_queryset(self):
+        """
+        Filter payments based on payment_type and user role.
+        
+        Query params:
+        - payment_type: Filter by payment type (standard, predefined_special, etc.)
+        - order_id: Filter by order ID (for standard payments)
+        - special_order_id: Filter by special order ID
+        - class_purchase_id: Filter by class purchase ID
+        - installment_id: Filter by installment ID (via related_object_id)
+        """
+        queryset = OrderPayment.objects.all()
+        
+        # Non-staff users only see their own payments
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(client=self.request.user)
+        
+        # Filter by payment type
+        payment_type = self.request.query_params.get('payment_type')
+        if payment_type:
+            queryset = queryset.filter(payment_type=payment_type)
+        
+        # Filter by order relationships
+        order_id = self.request.query_params.get('order_id')
+        if order_id:
+            queryset = queryset.filter(order_id=order_id, payment_type='standard')
+        
+        special_order_id = self.request.query_params.get('special_order_id')
+        if special_order_id:
+            queryset = queryset.filter(
+                special_order_id=special_order_id,
+                payment_type__in=['predefined_special', 'estimated_special', 'special_installment']
+            )
+        
+        class_purchase_id = self.request.query_params.get('class_purchase_id')
+        if class_purchase_id:
+            queryset = queryset.filter(class_purchase_id=class_purchase_id, payment_type='class_payment')
+        
+        installment_id = self.request.query_params.get('installment_id')
+        if installment_id:
+            queryset = queryset.filter(
+                related_object_id=installment_id,
+                related_object_type='installment_payment',
+                payment_type='special_installment'
+            )
+        
+        return queryset.select_related('order', 'special_order', 'class_purchase', 'client', 'website')
+
+    @action(detail=False, methods=['get'], url_path='all-transactions')
+    def all_transactions(self, request):
+        """
+        Get all payment transactions including wallet transactions.
+        Returns a unified list of all payments and wallet transactions.
+        """
+        from rest_framework.pagination import PageNumberPagination
+        
+        class PaymentLogPagination(PageNumberPagination):
+            page_size = 50
+            page_size_query_param = 'page_size'
+            max_page_size = 200
+        
+        # Get query parameters
+        website_id = request.query_params.get('website_id')
+        payment_type = request.query_params.get('payment_type')
+        status_filter = request.query_params.get('status')
+        search = request.query_params.get('search')
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        
+        # Build combined transactions list
+        transactions = []
+        
+        # Get OrderPayments
+        order_payments = OrderPayment.objects.all()
+        if website_id:
+            order_payments = order_payments.filter(website_id=website_id)
+        if payment_type:
+            order_payments = order_payments.filter(payment_type=payment_type)
+        if status_filter:
+            order_payments = order_payments.filter(status=status_filter)
+        if date_from:
+            order_payments = order_payments.filter(created_at__gte=date_from)
+        if date_to:
+            order_payments = order_payments.filter(created_at__lte=date_to)
+        if search:
+            order_payments = order_payments.filter(
+                Q(transaction_id__icontains=search) |
+                Q(reference_id__icontains=search) |
+                Q(client__email__icontains=search) |
+                Q(client__username__icontains=search)
+            )
+        
+        for payment in order_payments.select_related('client', 'website', 'order'):
+            transactions.append({
+                'id': f'order_payment_{payment.id}',
+                'type': 'order_payment',
+                'payment_type': payment.payment_type,
+                'amount': float(payment.amount),
+                'status': payment.status,
+                'payment_method': payment.payment_method or 'N/A',
+                'client': {
+                    'id': payment.client.id,
+                    'email': payment.client.email,
+                    'username': payment.client.username
+                },
+                'website': {
+                    'id': payment.website.id,
+                    'name': payment.website.name,
+                    'domain': payment.website.domain
+                },
+                'order_id': payment.order.id if payment.order else None,
+                'reference_id': payment.reference_id,
+                'transaction_id': payment.transaction_id,
+                'created_at': payment.created_at,
+                'confirmed_at': payment.confirmed_at,
+            })
+        
+        # Get Client Wallet Transactions
+        client_wallet_transactions = ClientWalletTransaction.objects.all()
+        if website_id:
+            client_wallet_transactions = client_wallet_transactions.filter(wallet__website_id=website_id)
+        if date_from:
+            client_wallet_transactions = client_wallet_transactions.filter(created_at__gte=date_from)
+        if date_to:
+            client_wallet_transactions = client_wallet_transactions.filter(created_at__lte=date_to)
+        if search:
+            client_wallet_transactions = client_wallet_transactions.filter(
+                Q(wallet__user__email__icontains=search) |
+                Q(wallet__user__username__icontains=search) |
+                Q(transaction_reference__icontains=search)
+            )
+        
+        for transaction in client_wallet_transactions.select_related('wallet__user', 'wallet__website'):
+            transactions.append({
+                'id': f'client_wallet_{transaction.id}',
+                'type': 'client_wallet',
+                'payment_type': 'wallet_transaction',
+                'amount': float(transaction.amount),
+                'status': 'completed' if transaction.is_credit else 'completed',
+                'payment_method': 'wallet',
+                'client': {
+                    'id': transaction.wallet.user.id,
+                    'email': transaction.wallet.user.email,
+                    'username': transaction.wallet.user.username
+                },
+                'website': {
+                    'id': transaction.wallet.website.id,
+                    'name': transaction.wallet.website.name,
+                    'domain': transaction.wallet.website.domain
+                } if transaction.wallet.website else None,
+                'order_id': None,
+                'reference_id': transaction.transaction_reference or f'wallet_{transaction.id}',
+                'transaction_id': f'wallet_{transaction.id}',
+                'created_at': transaction.created_at,
+                'confirmed_at': transaction.created_at,
+                'is_credit': transaction.is_credit,
+                'source': transaction.source,
+            })
+        
+        # Get Writer Wallet Transactions
+        writer_wallet_transactions = WalletTransaction.objects.all()
+        if website_id:
+            writer_wallet_transactions = writer_wallet_transactions.filter(writer_wallet__website_id=website_id)
+        if date_from:
+            writer_wallet_transactions = writer_wallet_transactions.filter(created_at__gte=date_from)
+        if date_to:
+            writer_wallet_transactions = writer_wallet_transactions.filter(created_at__lte=date_to)
+        if search:
+            writer_wallet_transactions = writer_wallet_transactions.filter(
+                Q(writer_wallet__writer__email__icontains=search) |
+                Q(writer_wallet__writer__username__icontains=search) |
+                Q(reference_code__icontains=search)
+            )
+        
+        for transaction in writer_wallet_transactions.select_related('writer_wallet__writer', 'writer_wallet__website'):
+            transactions.append({
+                'id': f'writer_wallet_{transaction.id}',
+                'type': 'writer_wallet',
+                'payment_type': transaction.transaction_type,
+                'amount': float(transaction.amount),
+                'status': 'completed',
+                'payment_method': 'wallet',
+                'writer': {
+                    'id': transaction.writer_wallet.writer.id,
+                    'email': transaction.writer_wallet.writer.email,
+                    'username': transaction.writer_wallet.writer.username
+                },
+                'website': {
+                    'id': transaction.writer_wallet.website.id,
+                    'name': transaction.writer_wallet.website.name,
+                    'domain': transaction.writer_wallet.website.domain
+                } if transaction.writer_wallet.website else None,
+                'order_id': None,
+                'reference_id': transaction.reference_code or f'writer_wallet_{transaction.id}',
+                'transaction_id': f'writer_wallet_{transaction.id}',
+                'created_at': transaction.created_at,
+                'confirmed_at': transaction.created_at,
+            })
+        
+        # Sort by created_at descending
+        transactions.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        # Paginate
+        paginator = PaymentLogPagination()
+        page = paginator.paginate_queryset(transactions, request)
+        
+        if page is not None:
+            return paginator.get_paginated_response(page)
+        
+        return Response({
+            'results': transactions,
+            'count': len(transactions),
+            'next': None,
+            'previous': None
+        })
+    
+    @action(detail=False, methods=['get'], url_path='receipt/(?P<transaction_id>[^/.]+)')
+    def download_receipt(self, request, transaction_id=None):
+        """
+        Download a PDF receipt for a transaction.
+        
+        Transaction ID format:
+        - order_payment_{id} - For order payments
+        - client_wallet_{id} - For client wallet transactions
+        - writer_wallet_{id} - For writer wallet transactions
+        """
+        try:
+            # Parse transaction ID
+            if transaction_id.startswith('order_payment_'):
+                payment_id = int(transaction_id.replace('order_payment_', ''))
+                payment = OrderPayment.objects.select_related('client', 'website', 'order').get(id=payment_id)
+                
+                # Check permissions - users can only download their own receipts unless staff
+                if not request.user.is_staff and payment.client != request.user:
+                    return Response(
+                        {"error": "You don't have permission to download this receipt."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                
+                transaction_data = {
+                    'id': f'order_payment_{payment.id}',
+                    'type': 'order_payment',
+                    'payment_type': payment.payment_type,
+                    'amount': float(payment.amount),
+                    'status': payment.status,
+                    'payment_method': payment.payment_method or 'N/A',
+                    'client': {
+                        'id': payment.client.id,
+                        'email': payment.client.email,
+                        'username': payment.client.username
+                    },
+                    'website': {
+                        'id': payment.website.id,
+                        'name': payment.website.name,
+                        'domain': payment.website.domain
+                    },
+                    'order_id': payment.order.id if payment.order else None,
+                    'reference_id': payment.reference_id,
+                    'transaction_id': payment.transaction_id,
+                    'created_at': payment.created_at,
+                    'confirmed_at': payment.confirmed_at,
+                }
+                website_name = payment.website.name if payment.website else "Writing System"
+                
+            elif transaction_id.startswith('client_wallet_'):
+                wallet_id = int(transaction_id.replace('client_wallet_', ''))
+                transaction = ClientWalletTransaction.objects.select_related('wallet__user', 'wallet__website').get(id=wallet_id)
+                
+                # Check permissions
+                if not request.user.is_staff and transaction.wallet.user != request.user:
+                    return Response(
+                        {"error": "You don't have permission to download this receipt."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+                
+                transaction_data = {
+                    'id': f'client_wallet_{transaction.id}',
+                    'type': 'client_wallet',
+                    'payment_type': 'wallet_transaction',
+                    'amount': float(transaction.amount),
+                    'status': 'completed',
+                    'payment_method': 'wallet',
+                    'client': {
+                        'id': transaction.wallet.user.id,
+                        'email': transaction.wallet.user.email,
+                        'username': transaction.wallet.user.username
+                    },
+                    'website': {
+                        'id': transaction.wallet.website.id,
+                        'name': transaction.wallet.website.name,
+                        'domain': transaction.wallet.website.domain
+                    } if transaction.wallet.website else None,
+                    'order_id': None,
+                    'reference_id': transaction.transaction_reference or f'wallet_{transaction.id}',
+                    'transaction_id': f'wallet_{transaction.id}',
+                    'created_at': transaction.created_at,
+                    'confirmed_at': transaction.created_at,
+                    'is_credit': transaction.is_credit,
+                    'source': transaction.source,
+                }
+                website_name = transaction.wallet.website.name if transaction.wallet.website else "Writing System"
+                
+            elif transaction_id.startswith('writer_wallet_'):
+                wallet_id = int(transaction_id.replace('writer_wallet_', ''))
+                transaction = WalletTransaction.objects.select_related('writer_wallet__writer', 'writer_wallet__website').get(id=wallet_id)
+                
+                # Check permissions - writers can download their own receipts, staff can download any
+                if not request.user.is_staff:
+                    writer_user = getattr(transaction.writer_wallet.writer, 'user', None)
+                    if not writer_user or writer_user != request.user:
+                        return Response(
+                            {"error": "You don't have permission to download this receipt."},
+                            status=status.HTTP_403_FORBIDDEN
+                        )
+                
+                transaction_data = {
+                    'id': f'writer_wallet_{transaction.id}',
+                    'type': 'writer_wallet',
+                    'payment_type': transaction.transaction_type,
+                    'amount': float(transaction.amount),
+                    'status': 'completed',
+                    'payment_method': 'wallet',
+                    'writer': {
+                        'id': transaction.writer_wallet.writer.id,
+                        'email': getattr(transaction.writer_wallet.writer, 'email', 'N/A'),
+                        'username': getattr(transaction.writer_wallet.writer, 'username', 'N/A')
+                    },
+                    'website': {
+                        'id': transaction.writer_wallet.website.id,
+                        'name': transaction.writer_wallet.website.name,
+                        'domain': transaction.writer_wallet.website.domain
+                    } if transaction.writer_wallet.website else None,
+                    'order_id': None,
+                    'reference_id': transaction.reference_code or f'writer_wallet_{transaction.id}',
+                    'transaction_id': f'writer_wallet_{transaction.id}',
+                    'created_at': transaction.created_at,
+                    'confirmed_at': transaction.created_at,
+                }
+                website_name = transaction.writer_wallet.website.name if transaction.writer_wallet.website else "Writing System"
+                
+            else:
+                return Response(
+                    {"error": "Invalid transaction ID format."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Generate PDF receipt
+            try:
+                pdf_buffer = ReceiptService.generate_receipt_pdf(transaction_data, website_name)
+                filename = f"receipt_{transaction_data.get('reference_id', transaction_id)}_{timezone.now().strftime('%Y%m%d')}.pdf"
+                return ReceiptService.create_pdf_response(pdf_buffer, filename)
+            except ImportError as e:
+                logger.error(f"PDF generation failed: {str(e)}")
+                return Response(
+                    {"error": "PDF generation is not available. Please install reportlab: pip install reportlab"},
+                    status=status.HTTP_503_SERVICE_UNAVAILABLE
+                )
+            except Exception as e:
+                logger.error(f"Error generating receipt: {str(e)}")
+                return Response(
+                    {"error": f"Failed to generate receipt: {str(e)}"},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+                
+        except (OrderPayment.DoesNotExist, ClientWalletTransaction.DoesNotExist, WalletTransaction.DoesNotExist):
+            return Response(
+                {"error": "Transaction not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except ValueError:
+            return Response(
+                {"error": "Invalid transaction ID."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+    @action(detail=False, methods=['post'], url_path='orders/(?P<order_id>[^/.]+)/initiate')
+    def initiate_payment(self, request, order_id=None):
+        """
+        Initiate payment for a standard order.
+        
+        Creates a payment record. Gateway integration will be added later.
+        For now supports:
+        - wallet: Processes immediately
+        - manual: Creates pending record for admin processing
+        
+        Request body:
+        {
+            "payment_method": "wallet" | "manual" | "stripe" (future),
+            "discount_code": "optional_discount_code"
+        }
+        """
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response(
+                {"error": "Order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check if order already has completed payment
+        if order.payments.filter(status='completed').exists():
+            return Response(
+                {"error": "Order already has a completed payment."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        payment_method = request.data.get('payment_method', 'manual')
+        discount_code = request.data.get('discount_code')
+        
+        try:
+            payment = OrderPaymentService.create_payment(
+                order=order,
+                payment_method=payment_method,
+                discount_code=discount_code
+            )
+            
+            # Process wallet payment immediately
+            if payment_method == 'wallet':
+                try:
+                    payment = OrderPaymentService.process_wallet_payment(payment)
+                    return Response(
+                        {
+                            "message": "Payment processed successfully.",
+                            "payment": TransactionSerializer(payment).data,
+                            "payment_identifier": OrderPaymentService.get_payment_identifier(payment)
+                        },
+                        status=status.HTTP_201_CREATED
+                    )
+                except Exception as e:
+                    logger.error(f"Wallet payment processing failed: {e}")
+                    return Response(
+                        {"error": f"Payment processing failed: {str(e)}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                # Manual or gateway payment - return pending payment info
+                return Response(
+                    {
+                        "message": "Payment initiated. Awaiting processing.",
+                        "payment": TransactionSerializer(payment).data,
+                        "payment_identifier": OrderPaymentService.get_payment_identifier(payment)
+                    },
+                    status=status.HTTP_201_CREATED
+                )
+        except ValidationError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Payment initiation failed: {e}")
+            return Response(
+                {"error": f"Payment initiation failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['patch'])
+    def update_status(self, request, pk=None):
+        """
+        Update payment status (admin only).
+        """
+        payment = get_object_or_404(OrderPayment, pk=pk)
+        new_status = request.data.get('status')
+        
+        if new_status not in dict(OrderPayment.STATUS_CHOICES):
+            return Response(
+                {"error": "Invalid status."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        payment.status = new_status
+        if new_status == 'completed' and not payment.confirmed_at:
+            payment.confirmed_at = timezone.now()
+        payment.save()
+        
+        payment_data = TransactionSerializer(payment).data
+        payment_data['identifier'] = OrderPaymentService.get_payment_identifier(payment)
+        
+        return Response(payment_data, status=status.HTTP_200_OK)
+        
+    @action(detail=True, methods=['get'])
+    def details(self, request, pk=None):
+        """
+        Get detailed payment information.
+        """
+        payment = get_object_or_404(OrderPayment, pk=pk)
+        payment_obj = TransactionSerializer(payment).data
+        payment_obj['identifier'] = OrderPaymentService.get_payment_identifier(payment)
+        return Response(payment_obj, status=status.HTTP_200_OK)
+
+
+# Stub viewsets for other payment-related models
+from .models import PaymentNotification, PaymentLog, PaymentDispute, DiscountUsage, AdminLog, PaymentReminderSettings
+
+class PaymentNotificationViewSet(viewsets.ModelViewSet):
+    queryset = PaymentNotification.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+class PaymentLogViewSet(viewsets.ModelViewSet):
+    queryset = PaymentLog.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+class PaymentDisputeViewSet(viewsets.ModelViewSet):
+    queryset = PaymentDispute.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+class DiscountUsageViewSet(viewsets.ModelViewSet):
+    queryset = DiscountUsage.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+class AdminLogViewSet(viewsets.ModelViewSet):
+    queryset = AdminLog.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+class PaymentReminderSettingsViewSet(viewsets.ModelViewSet):
+    queryset = PaymentReminderSettings.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+class TransactionViewSet(viewsets.ModelViewSet):
+    queryset = OrderPayment.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+class PaymentViewSet(viewsets.ModelViewSet):
+    queryset = OrderPayment.objects.all()
+    serializer_class = TransactionSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+
+from .models.payment_reminders import (
+    PaymentReminderConfig,
+    PaymentReminderSent,
+    PaymentReminderDeletionMessage
+)
+from .serializers import (
+    PaymentReminderConfigSerializer,
+    PaymentReminderDeletionMessageSerializer,
+    PaymentReminderSentSerializer
+)
+from .services.payment_reminder_service import PaymentReminderService
+
+
+class PaymentReminderConfigViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing payment reminder configurations.
+    Admin/Superadmin can create, update, delete reminder configs.
+    """
+    queryset = PaymentReminderConfig.objects.all().select_related('website', 'created_by')
+    serializer_class = PaymentReminderConfigSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Filter by website if user has website context
+        website = getattr(self.request.user, 'website', None)
+        if website:
+            queryset = queryset.filter(website=website)
+        return queryset.order_by('display_order', 'deadline_percentage')
+
+    def perform_create(self, serializer):
+        # Set website from user context if not provided
+        if 'website' not in serializer.validated_data:
+            website = getattr(self.request.user, 'website', None)
+            if website:
+                serializer.save(website=website, created_by=self.request.user)
+            else:
+                serializer.save(created_by=self.request.user)
+        else:
+            serializer.save(created_by=self.request.user)
+
+
+class PaymentReminderDeletionMessageViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing payment deletion messages.
+    Admin/Superadmin can create, update, delete deletion messages.
+    """
+    queryset = PaymentReminderDeletionMessage.objects.all().select_related('website', 'created_by')
+    serializer_class = PaymentReminderDeletionMessageSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Filter by website if user has website context
+        website = getattr(self.request.user, 'website', None)
+        if website:
+            queryset = queryset.filter(website=website)
+        return queryset
+
+    def perform_create(self, serializer):
+        # Set website from user context if not provided
+        if 'website' not in serializer.validated_data:
+            website = getattr(self.request.user, 'website', None)
+            if website:
+                serializer.save(website=website, created_by=self.request.user)
+            else:
+                serializer.save(created_by=self.request.user)
+        else:
+            serializer.save(created_by=self.request.user)
+
+
+class PaymentReminderSentViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing sent payment reminders (read-only history).
+    """
+    queryset = PaymentReminderSent.objects.all().select_related(
+        'reminder_config', 'order', 'payment', 'client'
+    )
+    serializer_class = PaymentReminderSentSerializer
+    permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        # Filter by website if user has website context
+        website = getattr(self.request.user, 'website', None)
+        if website:
+            queryset = queryset.filter(
+                models.Q(order__website=website) | models.Q(payment__website=website)
+            )
+        return queryset.order_by('-sent_at')

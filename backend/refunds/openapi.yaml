@@ -1,0 +1,232 @@
+openapi: 3.0.3
+info:
+  title: Refunds API
+  version: 1.0.0
+  description: API for managing refunds, refund logs, and refund receipts.
+
+servers:
+  - url: /  # Adjust if your API is under a prefix
+
+components:
+  securitySchemes:
+    TokenAuth:
+      type: http
+      scheme: bearer
+
+  schemas:
+    Refund:
+      type: object
+      properties:
+        id: { type: integer }
+        order_payment: { type: integer }
+        client: { type: integer }
+        website: { type: integer }
+        type: { type: string }
+        wallet_amount: { type: number, format: float }
+        external_amount: { type: number, format: float }
+        refund_method: { type: string }
+        processed_by: { type: integer, nullable: true }
+        processed_at: { type: string, format: date-time, nullable: true }
+        status: { type: string }
+        metadata: { type: object }
+        error_message: { type: string, nullable: true }
+        total_amount: { type: number, format: float }
+      required: [order_payment, wallet_amount, external_amount, refund_method]
+
+    RefundLog:
+      type: object
+      properties:
+        id: { type: integer }
+        order: { type: integer }
+        amount: { type: number, format: float }
+        website: { type: integer }
+        source: { type: string }
+        status: { type: string }
+        metadata: { type: object }
+        created_at: { type: string, format: date-time }
+        refund: { type: integer }
+        client: { type: integer }
+        processed_by: { type: integer }
+        action: { type: string }
+
+    RefundReceipt:
+      type: object
+      properties:
+        id: { type: integer }
+        website: { type: integer }
+        refund: { type: integer }
+        generated_at: { type: string, format: date-time }
+        reference_code: { type: string }
+        amount: { type: number, format: float }
+        order_payment: { type: integer }
+        client: { type: integer }
+        processed_by: { type: integer }
+        reason: { type: string }
+
+security:
+  - TokenAuth: []
+
+paths:
+  /refunds/:
+    get:
+      summary: List refunds
+      security: [{ TokenAuth: [] }]
+      responses:
+        '200':
+          description: List of refunds
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Refund'
+    post:
+      summary: Create a refund
+      security: [{ TokenAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order_payment: { type: integer }
+                wallet_amount: { type: number, format: float }
+                external_amount: { type: number, format: float }
+                refund_method: { type: string }
+              required: [order_payment, refund_method]
+      responses:
+        '201':
+          description: Refund created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+        '400':
+          description: Validation error
+
+  /refunds/{id}/:
+    get:
+      summary: Retrieve a refund
+      security: [{ TokenAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Refund detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Refund'
+    put:
+      summary: Not allowed
+      responses:
+        '405':
+          description: Not allowed
+    patch:
+      summary: Not allowed
+      responses:
+        '405':
+          description: Not allowed
+    delete:
+      summary: Not allowed
+      responses:
+        '405':
+          description: Not allowed
+
+  /refunds/{id}/retry/:
+    post:
+      summary: Retry a rejected refund (staff only)
+      security: [{ TokenAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Refund retried
+        '400':
+          description: Only rejected refunds can be retried
+        '403':
+          description: Only staff can retry refunds
+
+  /refunds/{id}/cancel/:
+    post:
+      summary: Cancel a pending refund
+      security: [{ TokenAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Refund canceled
+        '400':
+          description: Only pending refunds can be canceled
+
+  /refund-logs/:
+    get:
+      summary: List refund logs
+      security: [{ TokenAuth: [] }]
+      responses:
+        '200':
+          description: List of refund logs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RefundLog'
+
+  /refund-logs/{id}/:
+    get:
+      summary: Retrieve a refund log
+      security: [{ TokenAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Refund log detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundLog'
+
+  /refund-receipts/:
+    get:
+      summary: List refund receipts
+      security: [{ TokenAuth: [] }]
+      responses:
+        '200':
+          description: List of refund receipts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RefundReceipt'
+
+  /refund-receipts/{id}/:
+    get:
+      summary: Retrieve a refund receipt
+      security: [{ TokenAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Refund receipt detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefundReceipt'

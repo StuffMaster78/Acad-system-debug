@@ -1,0 +1,33 @@
+{% load humanize %}
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Your Notification Digest</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.5;">
+  <h2>Hi {{ user.get_full_name|default:user.username }},</h2>
+
+  <p>Here’s your latest digest:</p>
+
+  <ul>
+    {% for item in items %}
+      <li>
+        <strong>{{ item.title }}</strong><br>
+        {{ item.message|linebreaksbr }}
+        <small style="color: #888;">{{ item.timestamp|naturaltime }}</small>
+      </li>
+    {% empty %}
+      <li>No new updates. 🎉</li>
+    {% endfor %}
+  </ul>
+
+  <hr>
+
+  <p style="font-size: 0.9em; color: #999;">
+    You are receiving this because you’re subscribed to digests.
+    <br>
+    <a href="{{ unsubscribe_url }}">Unsubscribe</a> or manage settings in your account.
+  </p>
+</body>
+</html>

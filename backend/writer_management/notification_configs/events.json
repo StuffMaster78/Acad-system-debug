@@ -1,0 +1,59 @@
+{
+  "events": {
+    "badge.awarded": {
+      "key": "badge.awarded",
+      "event_key": "badge.awarded",
+      "label": "Badge Awarded",
+      "description": "Notification when a writer receives a new badge",
+      "enabled": true,
+      "roles": ["writer"],
+      "channels": ["in_app", "email"],
+      "priority": 3,
+      "templates": {
+        "in_app": "badge_awarded_in_app",
+        "email": "badge_awarded_email"
+      }
+    },
+    "badge.revoked": {
+      "key": "badge.revoked",
+      "event_key": "badge.revoked",
+      "label": "Badge Revoked",
+      "description": "Notification when a writer's badge is revoked",
+      "enabled": true,
+      "roles": ["writer"],
+      "channels": ["in_app", "email"],
+      "priority": 3,
+      "templates": {
+        "in_app": "badge_revoked_in_app",
+        "email": "badge_revoked_email"
+      }
+    },
+    "badge.milestone": {
+      "key": "badge.milestone",
+      "event_key": "badge.milestone",
+      "label": "Badge Milestone",
+      "description": "Notification when a writer reaches a badge milestone",
+      "enabled": true,
+      "roles": ["writer"],
+      "channels": ["in_app", "email"],
+      "priority": 2,
+      "templates": {
+        "in_app": "badge_milestone_in_app",
+        "email": "badge_milestone_email"
+      }
+    },
+    "badge.leaderboard": {
+      "key": "badge.leaderboard",
+      "event_key": "badge.leaderboard",
+      "label": "Badge Leaderboard Update",
+      "description": "Notification when badge leaderboard positions change",
+      "enabled": true,
+      "roles": ["writer"],
+      "channels": ["in_app"],
+      "priority": 1,
+      "templates": {
+        "in_app": "badge_leaderboard_in_app"
+      }
+    }
+  }
+}

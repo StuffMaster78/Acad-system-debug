@@ -2,7 +2,7 @@ services:
   web:
     platform: linux/amd64
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     command: python manage.py runserver 0.0.0.0:8000
     environment:
@@ -10,12 +10,12 @@ services:
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD}
     volumes:
-      - .:/app
+      - ./backend:/app
     working_dir: /app
     ports:
       - "8000:8000"  # Expose Django app to localhost
     env_file:
-      - .env
+      - ./backend/.env
     depends_on:
       - db
       - redis
@@ -56,7 +56,7 @@ services:
   celery:
       platform: linux/amd64
       build:
-        context: .
+        context: ./backend
         dockerfile: Dockerfile
       command: celery -A writing_system worker --loglevel=info
       environment:
@@ -71,9 +71,9 @@ services:
         - DB_HOST=${DB_HOST:-db}
         - DB_PORT=${DB_PORT:-5432}
       volumes:
-        - .:/app
+        - ./backend:/app
       env_file:
-        - .env
+        - ./backend/.env
       depends_on:
         - db
         - redis

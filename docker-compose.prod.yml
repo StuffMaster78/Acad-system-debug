@@ -2,7 +2,7 @@ services:
   web:
     platform: linux/amd64
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     command: gunicorn writing_system.wsgi:application --bind 0.0.0.0:8000 --workers=3 --timeout=120
     environment:
@@ -13,7 +13,7 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      - ./backend/.env
     depends_on:
       db:
         condition: service_healthy
@@ -67,7 +67,7 @@ services:
   celery:
     platform: linux/amd64
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     command: celery -A writing_system worker --loglevel=info --concurrency=2
     environment:
@@ -77,7 +77,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - DJANGO_SETTINGS_MODULE=writing_system.settings
     env_file:
-      - .env
+      - ./backend/.env
     depends_on:
       db:
         condition: service_healthy
@@ -94,7 +94,7 @@ services:
   beat:
     platform: linux/amd64
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     command: celery -A writing_system beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     environment:
@@ -104,7 +104,7 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - DJANGO_SETTINGS_MODULE=writing_system.settings
     env_file:
-      - .env
+      - ./backend/.env
     depends_on:
       db:
         condition: service_healthy

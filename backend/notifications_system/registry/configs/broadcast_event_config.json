@@ -1,0 +1,28 @@
+[
+  {
+    "event_key": "broadcast.system_announcement",
+    "description": "System-wide announcement to all users",
+    "scope": "systemwide",
+    "channels": [
+      "in_app",
+      "email"
+    ]
+  },
+  {
+    "event_key": "broadcast.website_alert",
+    "description": "Website-specific maintenance alert",
+    "scope": "website",
+    "channels": [
+      "email"
+    ]
+  },
+  {
+    "event_key": "broadcast.discount_code_alert",
+    "description": "Website-specific discount promo code",
+    "scope": "website",
+    "channels": [
+      "in_app",
+      "email"
+    ]
+  }
+]
