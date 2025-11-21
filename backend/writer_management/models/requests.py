@@ -33,6 +33,11 @@ class WriterOrderRequest(models.Model):
         auto_now_add=True,
         help_text="When the request was made."
     )
+    reason = models.TextField(
+        help_text="Writer's reason for requesting this order (e.g., expertise, availability, interest).",
+        blank=False,
+        null=False
+    )
     approved = models.BooleanField(
         default=False, help_text="Has the request been approved?"
     )

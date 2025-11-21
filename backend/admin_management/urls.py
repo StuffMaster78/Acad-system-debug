@@ -16,6 +16,7 @@ from .views import (
     AdminClassBundlesManagementViewSet,
     AdminTipManagementViewSet,
 )
+from .views_writer_assignment import WriterAssignmentViewSet
 from .views.user_management import ComprehensiveUserManagementViewSet
 from .views.config_management import (
     PricingConfigManagementViewSet,
@@ -68,6 +69,9 @@ router.register(r'reviews', AdminReviewModerationViewSet, basename="admin_review
 
 # Order Management
 router.register(r'orders', AdminOrderManagementViewSet, basename="admin_orders")
+
+# Writer Assignment
+router.register(r'writer-assignment', WriterAssignmentViewSet, basename="writer_assignment")
 
 # Special Orders Management
 router.register(r'special-orders', AdminSpecialOrdersManagementViewSet, basename="admin_special_orders")

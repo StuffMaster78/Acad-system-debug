@@ -46,6 +46,21 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         except Exception:
             return False
 
+    def _get_order_pages(self, order):
+        """Safe helper to read the number of pages on an order."""
+        return (
+            getattr(order, 'number_of_pages', None)
+            or getattr(order, 'pages', None)
+            or 0
+        )
+
+    def _get_completed_timestamp(self, order):
+        """Return the best available completion/submission timestamp for an order."""
+        completed_at = getattr(order, 'submitted_at', None)
+        if completed_at:
+            return completed_at
+        return getattr(order, 'updated_at', None) or getattr(order, 'created_at', None)
+
     @action(detail=False, methods=['get'], url_path='earnings')
     def get_earnings(self, request):
         """Get earnings breakdown and trends."""
@@ -265,17 +280,24 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             if declined_order_ids:
                 available_orders = available_orders.exclude(id__in=declined_order_ids)
             
-            available_orders = available_orders.select_related('client', 'service_type', 'paper_type').order_by('-created_at')[:50]
+            available_orders = available_orders.select_related('client', 'type_of_work', 'paper_type').order_by('-created_at')[:50]
             
             # Get writer's order requests
             order_requests = WriterOrderRequest.objects.filter(
                 writer=profile
-            ).select_related('order').order_by('-created_at')
+            ).select_related('order').order_by('-requested_at')
+            
+            # Get list of order IDs that this writer has already requested
+            requested_order_ids = list(order_requests.values_list('order_id', flat=True))
             
             # Get writer requests (from orders app)
             writer_requests = WriterRequest.objects.filter(
                 requested_by_writer=request.user
             ).select_related('order').order_by('-created_at')
+            
+            # Add writer request order IDs to requested list
+            writer_requested_order_ids = list(writer_requests.values_list('order_id', flat=True))
+            requested_order_ids.extend(writer_requested_order_ids)
             
             # Get preferred orders (if client has preferred writers)
             # Only show PAID orders that are available and not assigned
@@ -292,18 +314,20 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             if declined_order_ids:
                 preferred_orders = preferred_orders.exclude(id__in=declined_order_ids)
             
-            preferred_orders = preferred_orders.select_related('client', 'service_type', 'paper_type').order_by('-created_at')[:20]
+            preferred_orders = preferred_orders.select_related('client', 'type_of_work', 'paper_type').order_by('-created_at')[:20]
             
             return Response({
             'takes_enabled': takes_enabled,
+            'requested_order_ids': requested_order_ids,  # Include requested order IDs for frontend
             'available_orders': [
                 {
                     'id': o.id,
                     'topic': o.topic,
-                    'service_type': getattr(o.service_type, 'name', str(o.service_type)) if o.service_type else 'Unknown',
+                    'is_requested': o.id in requested_order_ids,  # Flag if already requested
+                    'service_type': getattr(o.type_of_work, 'name', str(o.type_of_work)) if o.type_of_work else 'Unknown',
                     'paper_type': getattr(o.paper_type, 'name', str(o.paper_type)) if o.paper_type else None,
                     'deadline': (o.client_deadline or o.writer_deadline or getattr(o, 'deadline', None)).isoformat() if (o.client_deadline or o.writer_deadline or getattr(o, 'deadline', None)) else None,
-                    'pages': o.pages or 0,
+                    'pages': self._get_order_pages(o),
                     'price': float(o.total_price) if o.total_price else 0,
                     'created_at': o.created_at.isoformat() if o.created_at else None,
                 }
@@ -316,7 +340,8 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'order_topic': r.order.topic if r.order else None,
                     'approved': r.approved,
                     'status': getattr(r, 'status', 'pending'),
-                    'created_at': r.created_at.isoformat() if r.created_at else None,
+                    'created_at': r.requested_at.isoformat() if r.requested_at else None,
+                    'requested_at': r.requested_at.isoformat() if r.requested_at else None,
                 }
                 for r in order_requests[:20]
             ],
@@ -334,12 +359,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 {
                     'id': o.id,
                     'topic': o.topic,
-                    'service_type': getattr(o.service_type, 'name', str(o.service_type)) if o.service_type else 'Unknown',
+                    'service_type': getattr(o.type_of_work, 'name', str(o.type_of_work)) if o.type_of_work else 'Unknown',
                     'paper_type': getattr(o.paper_type, 'name', str(o.paper_type)) if o.paper_type else None,
                     'deadline': (o.client_deadline or o.writer_deadline or getattr(o, 'deadline', None)).isoformat() if (o.client_deadline or o.writer_deadline or getattr(o, 'deadline', None)) else None,
-                    'pages': o.pages or 0,
+                    'pages': self._get_order_pages(o),
                     'price': float(o.total_price) if o.total_price else 0,
                     'created_at': o.created_at.isoformat() if o.created_at else None,
+                    'is_requested': o.id in requested_order_ids,  # Flag if already requested
                 }
                 for o in preferred_orders
             ],
@@ -455,7 +481,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             assigned_writer=request.user,
             status__in=['completed', 'approved'],
             is_paid=True
-        ).select_related('client', 'website').order_by('-completed_at', '-created_at')
+        ).select_related('client', 'website').order_by('-submitted_at', '-created_at', '-updated_at')
         
         # Get completed orders that are paid but writer payment hasn't been processed yet (upcoming payments)
         # These are orders where client has paid, but WriterPayment record doesn't exist yet
@@ -466,7 +492,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         upcoming_order_ids = [oid for oid in completed_paid_order_ids if oid not in processed_order_ids]
         upcoming_orders = Order.objects.filter(
             id__in=upcoming_order_ids
-        ).select_related('client', 'website').order_by('-completed_at', '-created_at') if upcoming_order_ids else Order.objects.none()
+        ).select_related('client', 'website').order_by('-submitted_at', '-created_at', '-updated_at') if upcoming_order_ids else Order.objects.none()
         
         # Group historical payments by month
         monthly_payments = historical_payments.annotate(
@@ -566,7 +592,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                         'id': o.id,
                         'topic': o.topic,
                         'total_price': float(o.total_price or 0),
-                        'completed_at': o.completed_at.isoformat() if hasattr(o, 'completed_at') and o.completed_at else None,
+                        'completed_at': (
+                            completed_ts.isoformat() if (completed_ts := self._get_completed_timestamp(o)) else None
+                        ),
                         'created_at': o.created_at.isoformat() if o.created_at else None,
                         'status': o.status,
                     }
@@ -768,7 +796,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         assigned_orders = Order.objects.filter(
             assigned_writer=request.user,
             status__in=['in_progress', 'on_hold', 'revision_requested'],
-        ).select_related('client', 'service_type', 'paper_type')
+        ).select_related('client', 'type_of_work', 'paper_type')
         
         # Build calendar data
         calendar_data = {}
@@ -796,8 +824,8 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             calendar_data[date_key].append({
                 'id': order.id,
                 'topic': order.topic or 'No topic',
-                'service_type': getattr(order.service_type, 'name', str(order.service_type)) if order.service_type else 'Unknown',
-                'pages': order.pages or order.number_of_pages or 0,
+                'service_type': getattr(order.type_of_work, 'name', str(order.type_of_work)) if order.type_of_work else 'Unknown',
+                'pages': self._get_order_pages(order),
                 'deadline': deadline.isoformat(),
                 'status': order.status,
                 'is_overdue': is_overdue,
@@ -857,9 +885,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         
         # Calculate estimated completion time for current orders
         # (simplified - could be enhanced with actual completion time estimates)
-        total_pages = sum(
-            (o.pages or o.number_of_pages or 0) for o in active_orders
-        )
+        total_pages = sum(self._get_order_pages(o) for o in active_orders)
         
         # Estimate: assume average writing speed (e.g., 2 pages per hour)
         estimated_hours = total_pages / 2 if total_pages > 0 else 0
@@ -882,7 +908,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'topic': order.topic or 'No topic',
                     'deadline': deadline.isoformat(),
                     'hours_remaining': round(hours_remaining, 1),
-                    'pages': order.pages or order.number_of_pages or 0,
+                    'pages': self._get_order_pages(order),
                 })
         
         return Response({
@@ -920,7 +946,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         # Get all order requests for this writer
         order_requests = WriterOrderRequest.objects.filter(
             writer=profile
-        ).select_related('order', 'reviewed_by').order_by('-requested_at')
+        ).select_related('order', 'order__client', 'reviewed_by', 'website').order_by('-requested_at')
         
         # Also get WriterRequest (from orders app)
         writer_requests = WriterRequest.objects.filter(
@@ -940,7 +966,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'order_topic': order.topic or 'No topic',
                 'order_status': order.status,
                 'order_price': float(order.total_price) if order.total_price else 0,
-                'order_pages': order.pages or order.number_of_pages or 0,
+                'order_pages': self._get_order_pages(order),
                 'requested_at': req.requested_at.isoformat() if req.requested_at else None,
                 'status': 'approved' if req.approved else 'pending',
                 'reviewed_by': req.reviewed_by.username if req.reviewed_by else None,
@@ -957,7 +983,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'order_topic': order.topic or 'No topic',
                 'order_status': order.status,
                 'order_price': float(order.total_price) if order.total_price else 0,
-                'order_pages': order.pages or order.number_of_pages or 0,
+                'order_pages': self._get_order_pages(order),
                 'requested_at': req.created_at.isoformat() if req.created_at else None,
                 'status': req.status if hasattr(req, 'status') else 'pending',
                 'reviewed_by': None,
@@ -998,14 +1024,14 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             revision_orders = Order.objects.filter(
                 assigned_writer=request.user,
                 status='revision_requested'
-            ).select_related('client', 'service_type').order_by('-updated_at')[:10]
+            ).select_related('client', 'type_of_work').order_by('-updated_at')[:10]
             
             revision_requests = [
                 {
                     'id': o.id,
                     'topic': o.topic or 'No topic',
                     'client_name': o.client.username if o.client else 'N/A',
-                    'pages': o.pages or o.number_of_pages or 0,
+                    'pages': self._get_order_pages(o),
                     'updated_at': o.updated_at.isoformat() if o.updated_at else None,
                     'deadline': (o.writer_deadline or o.client_deadline or getattr(o, 'deadline', None)).isoformat() if (o.writer_deadline or o.client_deadline or getattr(o, 'deadline', None)) else None,
                     'total_price': float(o.total_price) if o.total_price else 0,
@@ -1033,16 +1059,16 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             )
             
             # Get recent reviews
-            # Try to order by created_at, fallback to id if it doesn't exist
+            # WriterReview has: writer, website, reviewer (not order or client)
             try:
                 recent_reviews = WriterReview.objects.filter(
                     writer=request.user
-                ).select_related('order', 'client').order_by('-created_at')[:5]
+                ).select_related('reviewer', 'writer', 'website').order_by('-submitted_at')[:5]
             except Exception:
-                # Fallback if created_at doesn't exist
+                # Fallback if submitted_at doesn't exist
                 recent_reviews = WriterReview.objects.filter(
                     writer=request.user
-                ).select_related('order', 'client').order_by('-id')[:5]
+                ).select_related('reviewer', 'writer', 'website').order_by('-id')[:5]
             
             recent_reviews_list = []
             for r in recent_reviews:
@@ -1055,14 +1081,16 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 elif hasattr(r, 'date_created') and r.date_created:
                     created_at = r.date_created.isoformat()
                 
+                # WriterReview doesn't have order or client fields
+                # It has: writer, website, reviewer (the reviewer is typically the client)
                 recent_reviews_list.append({
                     'id': r.id,
-                    'order_id': r.order.id if r.order else None,
+                    'order_id': None,  # WriterReview doesn't have an order field
                     'rating': float(r.rating) if r.rating else None,
                     'comment': r.comment or '',
-                    'client_name': r.client.username if r.client else 'N/A',
+                    'client_name': r.reviewer.username if r.reviewer else 'N/A',  # Reviewer is the client
                     'created_at': created_at,
-                    'order_topic': r.order.topic if r.order else 'N/A',
+                    'order_topic': 'N/A',  # WriterReview doesn't have an order field
                 })
             
             # Calculate average rating

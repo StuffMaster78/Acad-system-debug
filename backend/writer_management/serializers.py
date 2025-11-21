@@ -97,42 +97,41 @@ class WriterOrderRequestSerializer(serializers.ModelSerializer):
     """
     Serializer for Writer Order Requests (Express Interest in an Order)
     """
-    writer = serializers.PrimaryKeyRelatedField(queryset=WriterProfile.objects.all())
-    order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
+    writer = serializers.PrimaryKeyRelatedField(queryset=WriterProfile.objects.all(), required=False)
+    order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all(), required=False)
+    order_id = serializers.IntegerField(write_only=True, required=False)
 
     class Meta:
         model = WriterOrderRequest
         fields = '__all__'
         extra_kwargs = {
-            'website': {'required': False, 'allow_null': True}
+            'website': {'required': False, 'allow_null': True},
+            'reason': {'required': True, 'allow_blank': False}  # Require reason
         }
-
+    
     def validate(self, data):
         """
-        Validate max requests per writer before allowing a new request.
-        Uses writer's level configuration instead of global config.
+        Validate that either order or order_id is provided, and reason is provided.
         """
-        # Get max requests from writer's level, fallback to WriterConfig if no level
-        writer = data['writer']
-        if writer.writer_level:
-            max_requests = writer.writer_level.max_requests_per_writer
-        else:
-            # Fallback to WriterConfig for writers without a level
-            config = WriterConfig.objects.filter(website=writer.website).first()
-            if not config:
-                raise ValidationError("WriterConfig settings are missing and writer has no level assigned.")
-            max_requests = config.max_requests_per_writer
+        if not data.get('order') and not data.get('order_id'):
+            raise serializers.ValidationError("Either 'order' or 'order_id' must be provided.")
         
-        active_requests = WriterOrderRequest.objects.filter(
-            writer=writer,
-            approved=False
-        ).count()
-
-        if active_requests >= max_requests:
-            raise ValidationError(
-                f"Writer {writer.user.username} has reached their max request limit ({max_requests})."
-            )
-
+        # Require reason field
+        if not data.get('reason') or not data.get('reason', '').strip():
+            raise serializers.ValidationError({
+                'reason': 'Please provide a reason for requesting this order (e.g., your expertise, availability, or interest in the topic).'
+            })
+        
+        # Convert order_id to order if provided
+        if data.get('order_id') and not data.get('order'):
+            try:
+                data['order'] = Order.objects.get(id=data['order_id'])
+            except Order.DoesNotExist:
+                raise serializers.ValidationError(f"Order with id {data['order_id']} does not exist.")
+        
+        # Remove order_id from validated data as it's not a model field
+        data.pop('order_id', None)
+        
         return data
 
     def create(self, validated_data):
