@@ -43,7 +43,16 @@ class MessagePagination(PageNumberPagination):
     max_page_size = 100
 
 class CommunicationThreadViewSet(viewsets.ModelViewSet):
-    queryset = CommunicationThread.objects.all()
+    queryset = CommunicationThread.objects.select_related(
+        'order',
+        'website',
+        'order__client',
+        'order__assigned_writer',
+        'order__website'
+    ).prefetch_related(
+        'participants',
+        'messages'
+    )
     serializer_class = CommunicationThreadSerializer
     permission_classes = [permissions.IsAuthenticated]
     throttle_classes = [MessageThrottle]
@@ -93,7 +102,10 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         return (participant_threads | order_threads).distinct().order_by('-updated_at', '-id')
 
     def create(self, request, *args, **kwargs):
-        """Override create to handle thread creation properly."""
+        """
+        Override create to handle thread creation properly.
+        Auto-determines participants if not provided, making it easier to use.
+        """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
@@ -105,28 +117,67 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         if not getattr(created_by, "role", None) in ["admin", "superadmin"]:
             ThreadService.assert_can_create_thread(order)
 
-        # Auto-add order-related users as participants if not already included
-        if order:
-            if order.client and order.client not in participants:
+        # Auto-determine participants if not provided (simplified approach)
+        if not participants and order:
+            # If no participants specified, auto-determine based on order
+            participants = [created_by]  # Always include the creator
+            
+            # Add order client if exists and different from creator
+            if order.client and order.client != created_by:
                 participants.append(order.client)
-            if order.assigned_writer and order.assigned_writer not in participants:
+            
+            # Add assigned writer if exists and different from creator
+            if order.assigned_writer and order.assigned_writer != created_by:
                 participants.append(order.assigned_writer)
-            # Always include the creator
+            
+            # Ensure we have at least 2 participants (creator + one other)
+            # If no client or writer, add support/admin as fallback
+            if len(participants) == 1:
+                website = order.website
+                if website:
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    support_user = User.objects.filter(
+                        role__in=['admin', 'superadmin', 'support'],
+                        website=website
+                    ).first()
+                    if support_user and support_user != created_by:
+                        participants.append(support_user)
+        else:
+            # Participants were provided, but ensure creator is included
             if created_by not in participants:
                 participants.append(created_by)
+            
+            # Also auto-add order-related users if not already included
+            if order:
+                if order.client and order.client not in participants:
+                    participants.append(order.client)
+                if order.assigned_writer and order.assigned_writer not in participants:
+                    participants.append(order.assigned_writer)
 
         # Get thread_type from serializer if provided
         thread_type = serializer.validated_data.get("thread_type", "order")
-        website = serializer.validated_data.get("website")
+        website = serializer.validated_data.get("website") or (order.website if order else None)
         
         # Actually create the thread
-        thread = ThreadService.create_thread(
-            order=order,
-            created_by=created_by,
-            participants=participants,
-            thread_type=thread_type,
-            website=website
-        )
+        try:
+            thread = ThreadService.create_thread(
+                order=order,
+                created_by=created_by,
+                participants=participants,
+                thread_type=thread_type,
+                website=website
+            )
+        except PermissionDenied as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        except (ValueError, TypeError) as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         # Return the created thread using the read serializer
         response_serializer = CommunicationThreadSerializer(thread, context={'request': request})
@@ -304,9 +355,18 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         # Use the existing permission check
         try:
             CommunicationGuardService.assert_can_start_thread(user, order)
-        except (PermissionError, PermissionDenied) as e:
+        except PermissionDenied as e:
             return Response(
                 {"detail": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        except Exception as perm_error:
+            # Catch any other permission-related errors
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Permission check failed for user {user.id} on order {order_id}: {str(perm_error)}")
+            return Response(
+                {"detail": "You do not have permission to create a thread for this order."},
                 status=status.HTTP_403_FORBIDDEN
             )
         
@@ -360,7 +420,7 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
                 {"detail": str(e)},
                 status=status.HTTP_403_FORBIDDEN
             )
-        except ValueError as e:
+        except (ValueError, TypeError) as e:
             # Handle validation errors
             return Response(
                 {"detail": str(e)},

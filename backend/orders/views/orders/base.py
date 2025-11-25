@@ -15,6 +15,7 @@ from orders.services.order_deletion_service import (
     OrderDeletionService, ALLOWED_STAFF_ROLES
 )
 from orders.exceptions import InvalidTransitionError
+from order_payments_management.models import OrderPayment
 
 
 class LimitedPagination(PageNumberPagination):
@@ -138,7 +139,7 @@ class OrderBaseViewSet(
                         assigned_writer__isnull=True,
                         is_paid=True,  # Only paid orders
                         website=writer_website,
-                    ).filter(
+                    ) & (
                         # Either in common pool or preferred for this writer
                         models.Q(preferred_writer__isnull=True) | models.Q(preferred_writer=user)
                     )
@@ -221,6 +222,67 @@ class OrderBaseViewSet(
                 'total_pages': 0,
             })
     
+
+    @decorators.action(detail=True, methods=["get"], url_path="payment-summary")
+    def payment_summary(self, request, pk=None):
+        """
+        Provide payment and installment summary for the order owner or staff.
+        """
+        order = self.get_object()
+        payments_qs = OrderPayment.objects.filter(order=order).order_by("-created_at")
+
+        def _sum_amount(queryset):
+            total = queryset.aggregate(total=models.Sum("amount")).get("total")
+            return total or Decimal("0.00")
+
+        completed_statuses = ["completed", "succeeded"]
+        pending_statuses = ["pending", "processing", "under_review", "unpaid"]
+        refunded_statuses = ["refunded", "partially_refunded", "fully_refunded"]
+
+        amount_paid = _sum_amount(payments_qs.filter(status__in=completed_statuses))
+        pending_amount = _sum_amount(payments_qs.filter(status__in=pending_statuses))
+        refunded_amount = _sum_amount(payments_qs.filter(status__in=refunded_statuses))
+
+        total_price = order.total_price or Decimal("0.00")
+        balance_due = total_price - amount_paid
+        if balance_due < Decimal("0.00"):
+            balance_due = Decimal("0.00")
+
+        def _format_decimal(value):
+            return f"{(value or Decimal('0.00')).quantize(Decimal('0.01'))}"
+
+        payments_payload = [
+            {
+                "id": payment.id,
+                "amount": _format_decimal(payment.amount),
+                "status": payment.status,
+                "payment_method": payment.payment_method or "manual",
+                "payment_type": payment.payment_type,
+                "reference_id": payment.reference_id,
+                "transaction_id": payment.transaction_id,
+                "created_at": payment.created_at,
+                "confirmed_at": payment.confirmed_at,
+            }
+            for payment in payments_qs
+        ]
+
+        summary = {
+            "order_id": order.id,
+            "currency": "USD",
+            "order_total": _format_decimal(total_price),
+            "amount_paid": _format_decimal(amount_paid),
+            "pending_amount": _format_decimal(pending_amount),
+            "refunded_amount": _format_decimal(refunded_amount),
+            "balance_due": _format_decimal(balance_due),
+            "is_fully_paid": balance_due == Decimal("0.00"),
+            "last_payment_at": payments_qs.filter(status__in=completed_statuses).values_list("confirmed_at", flat=True).first(),
+            "payments": payments_payload,
+            "installments": [],
+            "upcoming_installment": None,
+        }
+
+        return Response(summary, status=status.HTTP_200_OK)
+
 
 
     @decorators.action(detail=False, methods=["post"], url_path="create")

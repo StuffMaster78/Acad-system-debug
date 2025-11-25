@@ -318,5 +318,20 @@ class WebsiteSettings(models.Model):
         help_text="Sender's email address"
     )
     
+    # Payment Settings
+    manual_payment_requests_enabled = models.BooleanField(
+        default=True,
+        help_text="Allow writers to request manual payments outside of scheduled dates"
+    )
+    default_payment_schedule = models.CharField(
+        max_length=20,
+        choices=[
+            ('bi-weekly', 'Bi-Weekly (Every 2 weeks)'),
+            ('monthly', 'Monthly'),
+        ],
+        default='bi-weekly',
+        help_text="Default payment schedule for new writers"
+    )
+    
     def __str__(self):
         return self.sender_name

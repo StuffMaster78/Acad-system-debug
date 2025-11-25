@@ -23,6 +23,18 @@ from writer_management.models.requests import (
     WriterOrderRequest, WriterOrderTake, WriterDeadlineExtensionRequest,
     WriterOrderHoldRequest, WriterOrderReopenRequest, WriterEarningsReviewRequest
 )
+try:
+    from writer_management.models.pen_name_requests import WriterPenNameChangeRequest
+except ImportError:
+    WriterPenNameChangeRequest = None
+try:
+    from writer_management.models.resources import (
+        WriterResource, WriterResourceCategory, WriterResourceView
+    )
+except ImportError:
+    WriterResource = None
+    WriterResourceCategory = None
+    WriterResourceView = None
 from writer_management.models.performance import (
     WriterPerformanceReport
 )
@@ -39,7 +51,8 @@ from writer_management.models.tickets import (
     WriterSupportTicket
 )
 from writer_management.models.discipline import (
-    Probation, WriterPenalty, WriterSuspension
+    Probation, WriterPenalty, WriterSuspension, WriterStrike,
+    WriterStrikeHistory, WriterDisciplineConfig
 )
 from writer_management.models.logs import (
     WriterActivityLog, WriterIPLog,
@@ -337,6 +350,60 @@ class WriterSuspensionSerializer(serializers.ModelSerializer):
             if website:
                 validated_data['website'] = website
         return super().create(validated_data)
+
+
+class WriterStrikeSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Writer Strikes
+    """
+    writer_username = serializers.CharField(source='writer.user.username', read_only=True)
+    writer_email = serializers.CharField(source='writer.user.email', read_only=True)
+    issued_by_username = serializers.CharField(source='issued_by.username', read_only=True)
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    
+    class Meta:
+        model = WriterStrike
+        fields = '__all__'
+        extra_kwargs = {
+            'website': {'required': False, 'allow_null': True},
+            'issued_by': {'required': False, 'allow_null': True}
+        }
+        read_only_fields = ['issued_at']
+
+    def create(self, validated_data):
+        if not validated_data.get('website'):
+            writer = validated_data.get('writer')
+            website = getattr(writer, 'website', None)
+            if website:
+                validated_data['website'] = website
+        if not validated_data.get('issued_by'):
+            validated_data['issued_by'] = self.context['request'].user
+        return super().create(validated_data)
+
+
+class WriterStrikeHistorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for Writer Strike History
+    """
+    changed_by_username = serializers.CharField(source='changed_by.username', read_only=True)
+    
+    class Meta:
+        model = WriterStrikeHistory
+        fields = '__all__'
+        read_only_fields = ['change_date']
+
+
+class WriterDisciplineConfigSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Writer Discipline Configuration
+    """
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    
+    class Meta:
+        model = WriterDisciplineConfig
+        fields = '__all__'
+        read_only_fields = ['website_name', 'website_domain']
 
 
 class WriterActionLogSerializer(serializers.ModelSerializer):
@@ -967,3 +1034,89 @@ class WriterBadgeTimelineSerializer(serializers.ModelSerializer):
             "id", "badge_name", "badge_icon",
             "issued_at", "is_auto_awarded"
         ]
+
+
+### ---------------- Writer Pen Name & Resources Serializers ---------------- ###
+
+class WriterPenNameChangeRequestSerializer(serializers.ModelSerializer):
+    """
+    Serializer for pen name change requests.
+    """
+    writer_username = serializers.CharField(source="writer.user.username", read_only=True)
+    writer_registration_id = serializers.CharField(source="writer.registration_id", read_only=True)
+    reviewer_username = serializers.CharField(source="reviewed_by.username", read_only=True, allow_null=True)
+    
+    class Meta:
+        model = WriterPenNameChangeRequest
+        fields = [
+            "id", "website", "writer", "writer_username", "writer_registration_id",
+            "current_pen_name", "requested_pen_name", "reason",
+            "requested_at", "status", "reviewed_by", "reviewer_username",
+            "reviewed_at", "admin_notes"
+        ]
+        read_only_fields = [
+            "id", "requested_at", "status", "reviewed_by", "reviewed_at"
+        ]
+
+
+class WriterResourceCategorySerializer(serializers.ModelSerializer):
+    """
+    Serializer for writer resource categories.
+    """
+    resource_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = WriterResourceCategory
+        fields = [
+            "id", "website", "name", "description", "display_order",
+            "is_active", "created_at", "updated_at", "resource_count"
+        ]
+        read_only_fields = ["created_at", "updated_at"]
+    
+    def get_resource_count(self, obj):
+        """Get count of active resources in this category."""
+        return obj.resources.filter(is_active=True).count() if hasattr(obj, 'resources') else 0
+
+
+class WriterResourceSerializer(serializers.ModelSerializer):
+    """
+    Serializer for writer resources.
+    """
+    category_name = serializers.CharField(source="category.name", read_only=True, allow_null=True)
+    created_by_username = serializers.CharField(source="created_by.username", read_only=True, allow_null=True)
+    updated_by_username = serializers.CharField(source="updated_by.username", read_only=True, allow_null=True)
+    url = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = WriterResource
+        fields = [
+            "id", "website", "category", "category_name", "title", "description",
+            "resource_type", "file", "external_url", "video_url", "content",
+            "is_featured", "is_active", "display_order",
+            "view_count", "download_count",
+            "created_by", "created_by_username", "created_at",
+            "updated_by", "updated_by_username", "updated_at",
+            "url"
+        ]
+        read_only_fields = [
+            "id", "view_count", "download_count", "created_at", "updated_at"
+        ]
+    
+    def get_url(self, obj):
+        """Get the appropriate URL based on resource type."""
+        return obj.get_url()
+
+
+class WriterResourceViewSerializer(serializers.ModelSerializer):
+    """
+    Serializer for tracking resource views.
+    """
+    resource_title = serializers.CharField(source="resource.title", read_only=True)
+    writer_username = serializers.CharField(source="writer.user.username", read_only=True)
+    
+    class Meta:
+        model = WriterResourceView
+        fields = [
+            "id", "resource", "resource_title", "writer", "writer_username", "viewed_at"
+        ]
+        read_only_fields = ["id", "viewed_at"]

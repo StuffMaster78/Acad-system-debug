@@ -41,7 +41,18 @@ class CommunicationThreadSerializer(serializers.ModelSerializer):
         """
         Get the last non-deleted message in the thread.
         Returns None if no messages are present.
+        Optimized to use prefetched messages if available.
         """
+        # Use prefetched messages if available (from prefetch_related)
+        if hasattr(obj, '_prefetched_objects_cache') and 'messages' in obj._prefetched_objects_cache:
+            messages = [m for m in obj._prefetched_objects_cache['messages'] if not m.is_deleted]
+            if messages:
+                # Sort by sent_at descending and get first
+                last = sorted(messages, key=lambda m: m.sent_at, reverse=True)[0]
+                return CommunicationMessageSerializer(last, context=self.context).data
+            return None
+        
+        # Fallback to database query if not prefetched
         last = obj.messages.filter(is_deleted=False).order_by("-sent_at").first()
         if last:
             return CommunicationMessageSerializer(last, context=self.context).data

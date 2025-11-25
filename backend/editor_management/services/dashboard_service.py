@@ -61,16 +61,23 @@ class EditorDashboardService:
         )
         
         # Upcoming deadlines (tasks due in next 7 days)
+        # Get order IDs from active tasks first, then filter Orders by client_deadline
+        # This avoids OneToOneField lookup issues
         upcoming_deadline = now() + timedelta(days=7)
-        urgent_tasks = active_tasks.filter(
-            order__deadline__lte=upcoming_deadline,
-            order__deadline__gte=now()
-        )
+        active_order_ids = active_tasks.values_list('order_id', flat=True)
+        urgent_order_ids = Order.objects.filter(
+            id__in=active_order_ids,
+            client_deadline__lte=upcoming_deadline,
+            client_deadline__gte=now()
+        ).values_list('id', flat=True)
+        urgent_tasks = active_tasks.filter(order_id__in=urgent_order_ids)
         
         # Overdue tasks
-        overdue_tasks = active_tasks.filter(
-            order__deadline__lt=now()
-        )
+        overdue_order_ids = Order.objects.filter(
+            id__in=active_order_ids,
+            client_deadline__lt=now()
+        ).values_list('id', flat=True)
+        overdue_tasks = active_tasks.filter(order_id__in=overdue_order_ids)
         
         # Performance metrics
         try:

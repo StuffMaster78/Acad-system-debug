@@ -244,13 +244,36 @@ class ReferralService:
         if existing_referral:
             return  # Already referred
 
+        # Get IP addresses from request
+        def get_client_ip(request):
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+            if x_forwarded_for:
+                ip = x_forwarded_for.split(',')[0]
+            else:
+                ip = request.META.get('REMOTE_ADDR', '127.0.0.1')
+            return ip
+        
+        referrer_ip = get_client_ip(request) if hasattr(request, 'META') else None
+        referee_ip = referrer_ip  # Same IP for now, will be updated when referee registers
+        
         # Create the referral
         referral = Referral.objects.create(
             website=ref_code.website,
             referrer=ref_code.user,
             referee=user,
-            referral_code=code
+            referral_code=code,
+            referrer_ip=referrer_ip,
+            referee_ip=referee_ip
         )
+        
+        # Run abuse detection
+        try:
+            from referrals.services.abuse_detection import ReferralAbuseDetectionService
+            ReferralAbuseDetectionService.check_all_abuse_patterns(referral)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Abuse detection error (non-blocking): {e}", exc_info=True)
 
         # Check if there's a pending invitation for this email and mark it as converted
         from .models import PendingReferralInvitation

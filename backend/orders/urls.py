@@ -16,6 +16,7 @@ from orders.views.orders.webhook_delivery_log_view import WebhookDeliveryLogList
 from orders.views.writers.writer_requests_preview import WriterRequestPreviewView
 from orders.views.orders.editing_admin import OrderEditingAdminView
 from orders.views.progress import WriterProgressViewSet
+from orders.views.draft_requests import DraftRequestViewSet, DraftFileViewSet
 
 
 app_name = 'orders'
@@ -28,6 +29,8 @@ router.register(
     r"reassignment-logs", WriterReassignmentLogViewSet, basename="reassignment-log"
 )
 router.register(r'progress', WriterProgressViewSet, basename='writer-progress')
+router.register(r'draft-requests', DraftRequestViewSet, basename='draft-request')
+router.register(r'draft-files', DraftFileViewSet, basename='draft-file')
 
 
 urlpatterns = [

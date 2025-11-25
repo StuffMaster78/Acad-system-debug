@@ -486,7 +486,14 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         # Get completed orders that are paid but writer payment hasn't been processed yet (upcoming payments)
         # These are orders where client has paid, but WriterPayment record doesn't exist yet
         completed_paid_order_ids = list(completed_paid_orders.values_list('id', flat=True))
-        processed_order_ids = list(historical_payments.exclude(order__isnull=True).values_list('order_id', flat=True))
+        
+        # Note: WriterPayment model doesn't have an 'order' field, so we can't directly link payments to orders
+        # Instead, we'll check if there's a payment record in writer_payments_management.WriterPayment
+        # which does have an order field
+        from writer_payments_management.models import WriterPayment as WriterPaymentWithOrder
+        processed_order_ids = list(WriterPaymentWithOrder.objects.filter(
+            writer=profile
+        ).values_list('order_id', flat=True))
         
         # Upcoming payments: completed paid orders that don't have a WriterPayment record yet
         upcoming_order_ids = [oid for oid in completed_paid_order_ids if oid not in processed_order_ids]
@@ -854,6 +861,136 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 if order['is_urgent']
             ),
         })
+    
+    @action(detail=False, methods=['get'], url_path='calendar/export')
+    def export_calendar_ics(self, request):
+        """Export writer's order deadlines as ICS (iCalendar) file."""
+        from django.http import HttpResponse
+        from datetime import timedelta
+        
+        profile = self.get_writer_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=404
+            )
+        
+        # Get date range (default to next 3 months)
+        from_date = request.query_params.get('from_date')
+        to_date = request.query_params.get('to_date')
+        
+        if from_date:
+            from_date = timezone.datetime.fromisoformat(from_date.replace('Z', '+00:00'))
+        else:
+            from_date = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        if to_date:
+            to_date = timezone.datetime.fromisoformat(to_date.replace('Z', '+00:00'))
+        else:
+            # Default to 3 months from now
+            to_date = from_date + timedelta(days=90)
+            to_date = to_date.replace(hour=23, minute=59, second=59)
+        
+        # Get assigned orders with deadlines
+        assigned_orders = Order.objects.filter(
+            assigned_writer=request.user,
+            status__in=['in_progress', 'on_hold', 'revision_requested'],
+        ).select_related('client', 'type_of_work', 'paper_type', 'website')
+        
+        # Generate ICS content
+        ics_lines = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Writing System//Writer Calendar//EN',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+        ]
+        
+        now = timezone.now()
+        for order in assigned_orders:
+            # Use writer_deadline, client_deadline, or deadline (in that order)
+            deadline = order.writer_deadline or order.client_deadline or getattr(order, 'deadline', None)
+            if not deadline:
+                continue
+            
+            # Only include if within date range
+            if deadline < from_date or deadline > to_date:
+                continue
+            
+            # Format dates for ICS (YYYYMMDDTHHMMSSZ)
+            dtstart = deadline.strftime('%Y%m%dT%H%M%S')
+            dtstamp = now.strftime('%Y%m%dT%H%M%S')
+            
+            # Create event
+            summary = f"Order #{order.id}: {order.topic or 'No topic'}"
+            description_parts = [
+                f"Order ID: {order.id}",
+                f"Topic: {order.topic or 'N/A'}",
+                f"Service: {getattr(order.type_of_work, 'name', 'Unknown') if order.type_of_work else 'Unknown'}",
+                f"Pages: {self._get_order_pages(order)}",
+                f"Status: {order.status}",
+            ]
+            
+            if order.total_price:
+                description_parts.append(f"Price: ${order.total_price:,.2f}")
+            
+            if hasattr(order, 'website') and order.website:
+                description_parts.append(f"Website: {order.website.name}")
+            
+            description = '\\n'.join(description_parts)
+            
+            # Calculate time remaining for urgency
+            time_remaining = deadline - now
+            hours_remaining = time_remaining.total_seconds() / 3600
+            is_overdue = deadline < now
+            is_urgent = hours_remaining <= 24 and hours_remaining > 0
+            
+            # Set alarm/reminder (1 day before for urgent, 3 days for normal)
+            alarm_minutes = 1440 if is_urgent else 4320  # 1 day or 3 days before
+            
+            # Build event
+            ics_lines.extend([
+                'BEGIN:VEVENT',
+                f'UID:order-{order.id}-{deadline.timestamp()}@writingsystem',
+                f'DTSTART:{dtstart}',
+                f'DTEND:{dtstart}',  # Single point in time event
+                f'DTSTAMP:{dtstamp}',
+                f'SUMMARY:{summary}',
+                f'DESCRIPTION:{description}',
+                f'STATUS:CONFIRMED',
+                f'SEQUENCE:0',
+                f'PRIORITY:{"1" if is_urgent or is_overdue else "5"}',
+            ])
+            
+            # Add location if website exists
+            if hasattr(order, 'website') and order.website:
+                ics_lines.append(f'LOCATION:{order.website.name}')
+            
+            # Add URL to order
+            website_domain = getattr(order.website, 'domain', '') if hasattr(order, 'website') and order.website else ''
+            if website_domain:
+                order_url = f"{website_domain}/orders/{order.id}"
+                ics_lines.append(f'URL:{order_url}')
+            
+            # Add alarm/reminder
+            ics_lines.extend([
+                'BEGIN:VALARM',
+                'TRIGGER:-PT{}M'.format(alarm_minutes),
+                'ACTION:DISPLAY',
+                f'DESCRIPTION:Reminder: {summary}',
+                'END:VALARM',
+            ])
+            
+            ics_lines.append('END:VEVENT')
+        
+        ics_lines.append('END:VCALENDAR')
+        
+        # Create HTTP response with ICS content
+        response = HttpResponse('\r\n'.join(ics_lines), content_type='text/calendar; charset=utf-8')
+        filename = f'writer_calendar_{now.strftime("%Y%m%d")}.ics'
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        return response
     
     @action(detail=False, methods=['get'], url_path='workload')
     def get_workload(self, request):

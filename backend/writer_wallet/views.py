@@ -1,6 +1,7 @@
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from django.db import transaction
 from decimal import Decimal
 from .models import (
@@ -8,22 +9,23 @@ from .models import (
     WriterPaymentBatch, PaymentSchedule,
     ScheduledWriterPayment, PaymentOrderRecord,
     WriterPayment, AdminPaymentAdjustment,
-    PaymentConfirmation
+    PaymentConfirmation, WriterPaymentRequest
 )
 from .serializers import (
     WriterWalletSerializer, WalletTransactionSerializer,
     WriterPaymentBatchSerializer, PaymentScheduleSerializer,
     ScheduledWriterPaymentSerializer, PaymentOrderRecordSerializer,
     WriterPaymentSerializer, AdminPaymentAdjustmentSerializer,
-    PaymentConfirmationSerializer
+    PaymentConfirmationSerializer, WriterPaymentRequestSerializer
 )
+from admin_management.permissions import IsAdmin
 
 
 class WriterWalletViewSet(viewsets.ModelViewSet):
     """ API endpoint for managing writer wallets. """
     queryset = WriterWallet.objects.all()
     serializer_class = WriterWalletSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
 
     @action(detail=True, methods=["get"])
     def transactions(self, request, pk=None):
@@ -121,14 +123,14 @@ class WalletTransactionViewSet(viewsets.ModelViewSet):
     """ API endpoint for wallet transactions. """
     queryset = WalletTransaction.objects.all()
     serializer_class = WalletTransactionSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
 
 
 class WriterPaymentBatchViewSet(viewsets.ModelViewSet):
     """ API endpoint for managing payment batches. """
     queryset = WriterPaymentBatch.objects.all()
     serializer_class = WriterPaymentBatchSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
 
     @action(detail=True, methods=["get"])
     def payments(self, request, pk=None):
@@ -143,28 +145,32 @@ class PaymentScheduleViewSet(viewsets.ModelViewSet):
     """ API endpoint for payment schedules. """
     queryset = PaymentSchedule.objects.all()
     serializer_class = PaymentScheduleSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
+    
+    @action(detail=True, methods=['get'], url_path='breakdown')
+    def breakdown(self, request, pk=None):
+        """
+        Get detailed breakdown of a payment batch including all writers and line items.
+        """
+        from writer_wallet.services.payment_batching_service import PaymentBatchingService
+        
+        schedule = self.get_object()
+        breakdown = PaymentBatchingService.get_batch_breakdown(schedule)
+        return Response(breakdown)
 
 
 class ScheduledWriterPaymentViewSet(viewsets.ModelViewSet):
     """ API endpoint for scheduled writer payments. """
     queryset = ScheduledWriterPayment.objects.all()
     serializer_class = ScheduledWriterPaymentSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
 
 
 class PaymentOrderRecordViewSet(viewsets.ModelViewSet):
     """ API endpoint for order records related to writer payments. """
     queryset = PaymentOrderRecord.objects.all()
     serializer_class = PaymentOrderRecordSerializer
-    permission_classes = [permissions.IsAdminUser]
-
-
-class ScheduledWriterPaymentViewSet(viewsets.ModelViewSet):
-    """ API endpoint for scheduled writer payments. """
-    queryset = ScheduledWriterPayment.objects.all()
-    serializer_class = ScheduledWriterPaymentSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
 
     def get_permissions(self):
         """
@@ -172,7 +178,7 @@ class ScheduledWriterPaymentViewSet(viewsets.ModelViewSet):
         """
         if self.action in ['mark_as_paid', 'bulk_mark_as_paid']:
             return [permissions.IsAuthenticated()]
-        return [permissions.IsAdminUser()]
+        return [IsAdmin()]
 
     @action(detail=True, methods=['post'], url_path='mark-as-paid')
     def mark_as_paid(self, request, pk=None):
@@ -292,6 +298,7 @@ class ScheduledWriterPaymentViewSet(viewsets.ModelViewSet):
             "count": updated_count
         }, status=200)
 
+    
     @action(detail=True, methods=['get'], url_path='breakdown')
     def payment_breakdown(self, request, pk=None):
         """
@@ -404,7 +411,7 @@ class WriterPaymentViewSet(viewsets.ModelViewSet):
     """ API endpoint for writer payments. """
     queryset = WriterPayment.objects.all()
     serializer_class = WriterPaymentSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
 
     @action(detail=False, methods=['get'], url_path='grouped')
     def grouped(self, request):
@@ -467,7 +474,11 @@ class WriterPaymentViewSet(viewsets.ModelViewSet):
             total_amount = Decimal('0.00')
             writer_count = 0
             
-            for payment in scheduled_payments.select_related('writer_wallet__writer', 'writer_wallet__website').prefetch_related('orders__order'):
+            for payment in scheduled_payments.select_related('writer_wallet__writer__user', 'writer_wallet__website').prefetch_related('orders__order'):
+                # Skip payments with missing relationships
+                if not payment.writer_wallet or not payment.writer_wallet.writer or not payment.writer_wallet.writer.user:
+                    continue
+                
                 # Get order count and order details
                 order_records = payment.orders.all()
                 order_count = order_records.count()
@@ -520,14 +531,17 @@ class WriterPaymentViewSet(viewsets.ModelViewSet):
                 # Calculate total earnings (amount + tips - fines)
                 total_earnings = payment.amount + tips_total - fines_total
                 
+                writer = payment.writer_wallet.writer
+                user = writer.user
+                
                 payments_data.append({
                     'id': payment.id,
                     'writer': {
-                        'id': payment.writer_wallet.writer.id,
-                        'username': payment.writer_wallet.writer.user.username,
-                        'email': payment.writer_wallet.writer.user.email,
-                        'full_name': payment.writer_wallet.writer.user.get_full_name() or payment.writer_wallet.writer.user.username,
-                        'registration_id': payment.writer_wallet.writer.registration_id,
+                        'id': writer.id,
+                        'username': user.username if user else 'Unknown',
+                        'email': user.email if user else '',
+                        'full_name': user.get_full_name() if user else (writer.registration_id or 'Unknown Writer'),
+                        'registration_id': writer.registration_id or '',
                     },
                     'amount': float(payment.amount),
                     'tips': float(tips_total),
@@ -596,11 +610,180 @@ class AdminPaymentAdjustmentViewSet(viewsets.ModelViewSet):
     """ API endpoint for admin adjustments to writer payments. """
     queryset = AdminPaymentAdjustment.objects.all()
     serializer_class = AdminPaymentAdjustmentSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
 
 
 class PaymentConfirmationViewSet(viewsets.ModelViewSet):
     """ API endpoint for confirming payments. """
     queryset = PaymentConfirmation.objects.all()
     serializer_class = PaymentConfirmationSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [IsAdmin]
+
+
+class WriterPaymentRequestViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint for managing writer payment requests.
+    Writers can request manual payments if enabled.
+    """
+    queryset = WriterPaymentRequest.objects.all()
+    serializer_class = WriterPaymentRequestSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        user = self.request.user
+        if user.role in ['admin', 'superadmin', 'support']:
+            return WriterPaymentRequest.objects.all()
+        # Writers can only see their own requests
+        return WriterPaymentRequest.objects.filter(writer_wallet__writer__user=user)
+    
+    @action(detail=False, methods=['post'], url_path='request-payment')
+    def request_payment(self, request):
+        """
+        Writer requests a manual payment.
+        """
+        from writer_wallet.models import WriterWallet
+        from writer_management.models.profile import WriterProfile
+        from websites.models import WebsiteSettings
+        
+        try:
+            writer_profile = WriterProfile.objects.get(user=request.user)
+        except WriterProfile.DoesNotExist:
+            return Response({"error": "Writer profile not found"}, status=404)
+        
+        # Check if manual requests are enabled
+        website = writer_profile.website
+        website_settings = WebsiteSettings.objects.filter(website=website).first()
+        
+        if website_settings and not website_settings.manual_payment_requests_enabled:
+            if not writer_profile.manual_payment_requests_enabled:
+                return Response({
+                    "error": "Manual payment requests are not enabled for your account."
+                }, status=403)
+        
+        try:
+            writer_wallet = WriterWallet.objects.get(
+                writer=request.user,
+                website=website
+            )
+        except WriterWallet.DoesNotExist:
+            return Response({"error": "Writer wallet not found"}, status=404)
+        
+        requested_amount = request.data.get('amount')
+        reason = request.data.get('reason', '')
+        
+        if not requested_amount:
+            return Response({"error": "Amount is required"}, status=400)
+        
+        try:
+            requested_amount = Decimal(str(requested_amount))
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid amount format"}, status=400)
+        
+        # Check if writer has enough balance
+        if writer_wallet.balance < requested_amount:
+            return Response({
+                "error": f"Insufficient balance. Available: ${writer_wallet.balance:,.2f}"
+            }, status=400)
+        
+        # Check for pending requests
+        pending_requests = WriterPaymentRequest.objects.filter(
+            writer_wallet=writer_wallet,
+            status='pending'
+        ).count()
+        
+        if pending_requests > 0:
+            return Response({
+                "error": "You already have a pending payment request. Please wait for it to be processed."
+            }, status=400)
+        
+        # Create payment request
+        payment_request = WriterPaymentRequest.objects.create(
+            website=website,
+            writer_wallet=writer_wallet,
+            requested_amount=requested_amount,
+            available_balance=writer_wallet.balance,
+            reason=reason,
+            requested_by=request.user
+        )
+        
+        return Response({
+            "message": "Payment request submitted successfully",
+            "request_id": payment_request.id,
+            "status": payment_request.status
+        }, status=201)
+    
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve_request(self, request, pk=None):
+        """
+        Admin approves a payment request.
+        """
+        from django.utils.timezone import now
+        from writer_wallet.models import PaymentSchedule, ScheduledWriterPayment
+        from datetime import date
+        
+        payment_request = self.get_object()
+        
+        if payment_request.status != 'pending':
+            return Response({
+                "error": f"Request is already {payment_request.status}"
+            }, status=400)
+        
+        # Approve and create scheduled payment
+        payment_request.status = 'approved'
+        payment_request.reviewed_by = request.user
+        payment_request.reviewed_at = now()
+        payment_request.save()
+        
+        # Create or get a manual payment schedule
+        schedule, created = PaymentSchedule.objects.get_or_create(
+            website=payment_request.website,
+            schedule_type='Manual',
+            scheduled_date=date.today(),
+            defaults={
+                'processed_by': request.user,
+                'completed': False
+            }
+        )
+        
+        scheduled_payment = ScheduledWriterPayment.objects.create(
+            website=payment_request.website,
+            batch=schedule,
+            writer_wallet=payment_request.writer_wallet,
+            amount=payment_request.requested_amount,
+            status='Pending'
+        )
+        
+        payment_request.scheduled_payment = scheduled_payment
+        payment_request.save()
+        
+        return Response({
+            "message": "Payment request approved",
+            "scheduled_payment_id": scheduled_payment.id
+        })
+    
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject_request(self, request, pk=None):
+        """
+        Admin rejects a payment request.
+        """
+        from django.utils.timezone import now
+        
+        payment_request = self.get_object()
+        
+        if payment_request.status != 'pending':
+            return Response({
+                "error": f"Request is already {payment_request.status}"
+            }, status=400)
+        
+        review_notes = request.data.get('review_notes', '')
+        
+        payment_request.status = 'rejected'
+        payment_request.reviewed_by = request.user
+        payment_request.reviewed_at = now()
+        payment_request.review_notes = review_notes
+        payment_request.save()
+        
+        return Response({
+            "message": "Payment request rejected",
+            "review_notes": review_notes
+        })

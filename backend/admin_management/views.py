@@ -98,6 +98,23 @@ class AdminDashboardView(viewsets.ViewSet):
     def list(self, request):
         """Dashboard stats for admin panel"""
         from .services.dashboard_metrics_service import DashboardMetricsService
+        from django.core.cache import cache
+        
+        # Clear cache on refresh if requested
+        if request.query_params.get('refresh') == 'true':
+            # Clear all dashboard cache keys for this user
+            cache_key = DashboardMetricsService.get_cache_key(request.user, "summary")
+            cache.delete(cache_key)
+            # Clear other related cache keys by trying common patterns
+            website_id = getattr(request.user, 'website_id', None) or 'all'
+            role = getattr(request.user, 'role', 'unknown')
+            for suffix in ["yearly_", "monthly_", "service_revenue_", "payment_status"]:
+                try:
+                    pattern_key = f"dashboard_metrics_{role}_{website_id}_{suffix}*"
+                    # Django cache doesn't support wildcard deletion, so we clear specific keys
+                    # This is a limitation, but we clear the main summary cache which is most important
+                except Exception:
+                    pass
         
         summary = DashboardMetricsService.get_summary(request.user)
         
@@ -337,6 +354,14 @@ class AdminDashboardView(viewsets.ViewSet):
             "total_tickets": summary.get("total_tickets", 0),
             "open_tickets_count": summary.get("open_tickets_count", 0),
             "closed_tickets_count": summary.get("closed_tickets_count", 0),
+            # New comprehensive metrics
+            "orders_in_progress": summary.get("orders_in_progress", 0),
+            "orders_on_revision": summary.get("orders_on_revision", 0),
+            "disputed_orders": summary.get("disputed_orders", 0),
+            "amount_paid_today": summary.get("amount_paid_today", 0.0),
+            "income_this_week": summary.get("income_this_week", 0.0),
+            "income_2weeks": summary.get("income_2weeks", 0.0),
+            "income_monthly": summary.get("income_monthly", 0.0),
             "recent_logs": [log.action for log in recent_logs],
             "payment_reminder_stats": payment_reminder_stats,
             # Additional comprehensive metrics

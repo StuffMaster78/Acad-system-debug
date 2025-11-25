@@ -61,6 +61,16 @@ try:
     from .tipping import Tip
 except Exception:
     Tip = None
+try:
+    from .pen_name_requests import WriterPenNameChangeRequest
+except Exception:
+    WriterPenNameChangeRequest = None
+try:
+    from .resources import WriterResource, WriterResourceCategory, WriterResourceView
+except Exception:
+    WriterResource = None
+    WriterResourceCategory = None
+    WriterResourceView = None
 
 __all__ = [
     "WriterProfile",
@@ -84,5 +94,9 @@ __all__ = [
     "WriterStrike",
     "WriterSupportTicket",
     "Tip",
+    "WriterPenNameChangeRequest",
+    "WriterResource",
+    "WriterResourceCategory",
+    "WriterResourceView",
 ]
 

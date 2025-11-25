@@ -35,6 +35,13 @@ from .views.email_management import (
 from .views.financial_overview import FinancialOverviewViewSet
 from .views.unified_search import UnifiedSearchViewSet
 from .views.exports import ExportViewSet
+from .views.duplicate_detection import DuplicateAccountDetectionViewSet
+from .views_referrals import (
+    AdminReferralTrackingViewSet,
+    AdminReferralAbuseViewSet,
+    AdminReferralCodeViewSet,
+)
+from .views_loyalty import AdminLoyaltyTrackingViewSet
 
 # DRF Router for ViewSets
 router = DefaultRouter()
@@ -90,6 +97,17 @@ router.register(r'unified-search', UnifiedSearchViewSet, basename="unified_searc
 
 # Exports
 router.register(r'exports', ExportViewSet, basename="exports")
+
+# Duplicate Account Detection
+router.register(r'duplicate-detection', DuplicateAccountDetectionViewSet, basename="duplicate_detection")
+
+# Referral Tracking and Abuse Management
+router.register(r'referrals/tracking', AdminReferralTrackingViewSet, basename="referral_tracking")
+router.register(r'referrals/abuse-flags', AdminReferralAbuseViewSet, basename="referral_abuse")
+router.register(r'referrals/codes', AdminReferralCodeViewSet, basename="referral_codes")
+
+# Loyalty Points Tracking
+router.register(r'loyalty/tracking', AdminLoyaltyTrackingViewSet, basename="loyalty_tracking")
 
 urlpatterns = [
     # Authentication APIs (JWT-Based)

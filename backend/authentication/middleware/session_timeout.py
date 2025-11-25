@@ -29,6 +29,16 @@ class SessionTimeoutMiddleware:
             response = self.get_response(request)
             return response
         
+        # Check if request is using JWT authentication (Bearer token)
+        # If so, don't enforce session timeout - let JWT tokens handle expiration
+        auth_header = request.META.get('HTTP_AUTHORIZATION', '')
+        if auth_header.startswith('Bearer '):
+            # JWT-based request - skip session timeout enforcement
+            # JWT tokens have their own expiration (1 day for access, 7 days for refresh)
+            response = self.get_response(request)
+            return response
+        
+        # For session-based authentication only, enforce idle timeout
         # Update last activity timestamp
         now = timezone.now().timestamp()
         last_activity_key = f'last_activity_{request.user.id}'
@@ -52,8 +62,8 @@ class SessionTimeoutMiddleware:
         
         response = self.get_response(request)
         
-        # Add session timeout info to response headers
-        if request.user.is_authenticated:
+        # Add session timeout info to response headers (only for session-based auth)
+        if request.user.is_authenticated and not auth_header.startswith('Bearer '):
             remaining_time = self.idle_timeout - idle_time
             warning_threshold = self.warning_time
             

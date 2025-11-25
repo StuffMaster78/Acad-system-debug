@@ -44,6 +44,7 @@ from .config_management import (
     ScreenedWordManagementViewSet,
     BlogAuthorPersonaManagementViewSet,
 )
+from .duplicate_detection import DuplicateAccountDetectionViewSet
 
 __all__ = [
     'AdminDashboardView',
@@ -68,5 +69,6 @@ __all__ = [
     'SystemConfigManagementViewSet',
     'ScreenedWordManagementViewSet',
     'BlogAuthorPersonaManagementViewSet',
+    'DuplicateAccountDetectionViewSet',
 ]
 

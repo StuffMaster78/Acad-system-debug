@@ -20,7 +20,7 @@ class TipService:
         """
         try:
             profile = WriterProfile.objects.get(user=writer, website=website or writer.website)
-            return profile.level
+            return profile.writer_level
         except WriterProfile.DoesNotExist:
             return None
 

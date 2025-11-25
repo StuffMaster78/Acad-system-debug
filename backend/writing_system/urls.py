@@ -79,6 +79,7 @@ urlpatterns = [
     path('api/v1/wallet/', include('wallet.urls')),
     path('api/v1/wallet/', include('client_wallet.urls')),  # Client Wallet Management
     path('api/v1/writer-wallet/', include('writer_wallet.urls')),  # Writer Wallet Management
+    path('api/v1/writer-payments/', include('writer_payments_management.urls')),  # Writer Payments Management
     path('api/v1/mass-emails/', include('mass_emails.urls')),
     path('api/v1/blog_pages_management/', include('blog_pages_management.urls')),
     path('api/v1/service-pages/', include('service_pages_management.urls')),

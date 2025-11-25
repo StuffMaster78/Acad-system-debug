@@ -8,11 +8,11 @@ from django.shortcuts import render
 from django.db.models import Count, Sum, Q
 from django.contrib.auth import get_user_model
 from django.db import models  
-from rest_framework.filters import SearchFilter
+from rest_framework.filters import SearchFilter, OrderingFilter
 from rest_framework.pagination import PageNumberPagination
 
-from .models import SuperadminProfile, SuperadminLog, Probation
-from .serializers import SuperadminProfileSerializer, UserSerializer, SuperadminLogSerializer
+from .models import SuperadminProfile, SuperadminLog, Probation, Appeal
+from .serializers import SuperadminProfileSerializer, UserSerializer, SuperadminLogSerializer, AppealSerializer
 from .permissions import IsSuperadmin
 from .managers import SuperadminManager
 from .pagination import SuperadminPagination , SuperadminLogCursorPagination
@@ -206,16 +206,16 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
             role="writer",
             orders_as_writer__status="completed"
         ).annotate(
-            completed_orders=Count("orders_as_writer", filter=Q(orders_as_writer__status="completed")),
+            completed_orders_count=Count("orders_as_writer", filter=Q(orders_as_writer__status="completed")),
             total_earnings=Sum("orders_as_writer__writer_compensation", filter=Q(orders_as_writer__status="completed"), default=0),
-        ).order_by("-completed_orders")[:10]
+        ).order_by("-completed_orders_count")[:10]
         
         top_writers_data = [
             {
                 "id": writer.id,
                 "username": writer.username,
                 "email": writer.email,
-                "completed_orders": writer.completed_orders,
+                "completed_orders": writer.completed_orders_count,
                 "total_earnings": float(writer.total_earnings) if writer.total_earnings else 0.0,
             }
             for writer in top_writers
@@ -244,7 +244,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         # Website Statistics
         website_stats = Website.objects.annotate(
             order_count=Count("order"),
-            user_count=Count("user"),
+            user_count=Count("website_users"),
             total_revenue=Sum("order__total_price", filter=Q(order__is_paid=True), default=0),
         ).values("id", "name", "domain", "is_active", "order_count", "user_count", "total_revenue")[:10]
         
@@ -285,9 +285,9 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         # Dispute Statistics
         dispute_stats = Dispute.objects.aggregate(
             total_disputes=Count("id"),
-            resolved_disputes=Count("id", filter=Q(status="resolved")),
-            pending_disputes=Count("id", filter=Q(status="pending")),
-            in_progress_disputes=Count("id", filter=Q(status="in_progress")),
+            resolved_disputes=Count("id", filter=Q(dispute_status="resolved")),
+            pending_disputes=Count("id", filter=Q(dispute_status="open")),
+            in_progress_disputes=Count("id", filter=Q(dispute_status="in_review")),
         )
         
         # Ticket Statistics
@@ -377,7 +377,7 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
 
         dispute_stats = Dispute.objects.aggregate(
             total_disputes=Count("id"),
-            resolved_disputes=Count("id", filter=Q(status="resolved"))
+            resolved_disputes=Count("id", filter=Q(dispute_status="resolved"))
         )
 
         # Fetch all unread notifications for Superadmins
@@ -394,3 +394,102 @@ class SuperadminDashboardViewSet(viewsets.ViewSet):
         }
 
         return render(request, "superadmin_dashboard.html", context)
+
+
+### 🔹 6️⃣ Appeal Management ViewSet
+class AppealViewSet(viewsets.ModelViewSet):
+    """API for managing user appeals (probation, blacklist, suspension)."""
+    queryset = Appeal.objects.all().select_related(
+        'user', 'reviewed_by'
+    ).order_by('-submitted_at')
+    serializer_class = AppealSerializer
+    permission_classes = [IsSuperadmin]
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['status', 'appeal_type', 'user']
+    search_fields = ['user__username', 'user__email', 'reason']
+    ordering_fields = ['submitted_at', 'status']
+    ordering = ['-submitted_at']
+
+    @action(detail=True, methods=['post'])
+    def approve(self, request, pk=None):
+        """Approve an appeal."""
+        appeal = self.get_object()
+        
+        if appeal.status != 'pending':
+            return Response(
+                {"error": "Appeal has already been reviewed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        appeal.status = 'approved'
+        appeal.reviewed_by = request.user
+        appeal.save()
+        
+        # Handle appeal type-specific actions
+        if appeal.appeal_type == 'probation':
+            # Remove from probation
+            from writer_management.models.discipline import Probation
+            Probation.objects.filter(
+                writer__user=appeal.user,
+                is_active=True
+            ).update(is_active=False)
+        elif appeal.appeal_type == 'blacklist':
+            # Remove from blacklist
+            from writer_management.models.discipline import WriterBlacklist
+            WriterBlacklist.objects.filter(
+                writer__user=appeal.user,
+                is_active=True
+            ).update(is_active=False)
+        elif appeal.appeal_type == 'suspension':
+            # Lift suspension
+            from writer_management.models.discipline import WriterSuspension
+            WriterSuspension.objects.filter(
+                writer__user=appeal.user,
+                is_active=True
+            ).update(is_active=False)
+        
+        # Log the action
+        SuperadminLog.objects.create(
+            superadmin=request.user,
+            action_type="Appeal Approved",
+            action_details=f"Approved {appeal.appeal_type} appeal for {appeal.user.username}"
+        )
+        
+        return Response(
+            {"message": "Appeal approved successfully."},
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        """Reject an appeal."""
+        appeal = self.get_object()
+        
+        if appeal.status != 'pending':
+            return Response(
+                {"error": "Appeal has already been reviewed."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        appeal.status = 'rejected'
+        appeal.reviewed_by = request.user
+        appeal.save()
+        
+        # Log the action
+        SuperadminLog.objects.create(
+            superadmin=request.user,
+            action_type="Appeal Rejected",
+            action_details=f"Rejected {appeal.appeal_type} appeal for {appeal.user.username}"
+        )
+        
+        return Response(
+            {"message": "Appeal rejected."},
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=['get'])
+    def pending(self, request):
+        """Get all pending appeals."""
+        appeals = self.queryset.filter(status='pending')
+        serializer = self.get_serializer(appeals, many=True)
+        return Response(serializer.data)

@@ -115,3 +115,60 @@ from writer_management.views.performance import (
 
 # Import WriterLevelViewSet from level_management module
 from writer_management.views.level_management import WriterLevelViewSet
+
+# Import discipline ViewSets from main views.py file
+# Using importlib to avoid circular imports since views.py and views/ both exist
+try:
+    import sys
+    import os
+    import importlib.util
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    main_views_path = os.path.join(parent_dir, 'views.py')
+    if os.path.exists(main_views_path):
+        spec = importlib.util.spec_from_file_location("writer_management.views_main", main_views_path)
+        if spec and spec.loader:
+            views_main = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(views_main)
+            WriterStrikeViewSet = getattr(views_main, 'WriterStrikeViewSet', None)
+            WriterDisciplineConfigViewSet = getattr(views_main, 'WriterDisciplineConfigViewSet', None)
+        else:
+            WriterStrikeViewSet = None
+            WriterDisciplineConfigViewSet = None
+    else:
+        WriterStrikeViewSet = None
+        WriterDisciplineConfigViewSet = None
+except Exception:
+    # If import fails, set to None - urls.py will handle the error
+    WriterStrikeViewSet = None
+    WriterDisciplineConfigViewSet = None
+
+# Import pen name and resource viewsets from main views.py
+try:
+    import sys
+    import os
+    import importlib.util
+    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    main_views_path = os.path.join(parent_dir, 'views.py')
+    if os.path.exists(main_views_path):
+        spec = importlib.util.spec_from_file_location("writer_management.views_main", main_views_path)
+        if spec and spec.loader:
+            views_main = importlib.util.module_from_spec(spec)
+            views_main.__package__ = 'writer_management'
+            views_main.__name__ = 'writer_management.views'
+            spec.loader.exec_module(views_main)
+            WriterPenNameChangeRequestViewSet = getattr(views_main, 'WriterPenNameChangeRequestViewSet', None)
+            WriterResourceViewSet = getattr(views_main, 'WriterResourceViewSet', None)
+            WriterResourceCategoryViewSet = getattr(views_main, 'WriterResourceCategoryViewSet', None)
+        else:
+            WriterPenNameChangeRequestViewSet = None
+            WriterResourceViewSet = None
+            WriterResourceCategoryViewSet = None
+    else:
+        WriterPenNameChangeRequestViewSet = None
+        WriterResourceViewSet = None
+        WriterResourceCategoryViewSet = None
+except Exception:
+    # If import fails, set to None - urls.py will handle the error
+    WriterPenNameChangeRequestViewSet = None
+    WriterResourceViewSet = None
+    WriterResourceCategoryViewSet = None

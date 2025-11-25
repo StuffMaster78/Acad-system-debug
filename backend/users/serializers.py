@@ -186,17 +186,28 @@ class WriterProfileSerializer(serializers.ModelSerializer):
     full_name = serializers.SerializerMethodField()
     pen_name = serializers.CharField(read_only=True)
     registration_id = serializers.CharField(read_only=True)
+    bio = serializers.SerializerMethodField()  # Map to introduction for backward compatibility
 
     class Meta:
         model = WriterProfile
         fields = [
-            'user', 'bio', 'writer_level', 'rating', 'average_rating', 
+            'user', 'introduction', 'bio', 'writer_level', 'rating', 'average_rating', 
             'total_ratings', 'completed_orders', 'active_orders', 
             'verification_documents', 'total_earnings', 'last_payment_date',
             'phone_number', 'avatar', 'avatar_url', 'country', 'state',
             'email', 'username', 'first_name', 'last_name', 'full_name',
             'pen_name', 'registration_id'
         ]
+
+    def get_bio(self, obj):
+        """Get bio from WriterProfile introduction field, or from UserProfile if available."""
+        # First try WriterProfile introduction
+        if hasattr(obj, 'introduction') and obj.introduction:
+            return obj.introduction
+        # Fallback to UserProfile bio
+        if hasattr(obj.user, 'user_main_profile') and obj.user.user_main_profile:
+            return obj.user.user_main_profile.bio
+        return None
 
     def get_phone_number(self, obj):
         """Get phone number from UserProfile if available."""

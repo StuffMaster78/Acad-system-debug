@@ -14,7 +14,6 @@ export const useAuthStore = defineStore('auth', {
     user: null,
     accessToken: null,
     refreshToken: null,
-    isAuthenticated: false,
     loading: false,
     error: null
   }),
@@ -34,6 +33,18 @@ export const useAuthStore = defineStore('auth', {
     
     // Check if user is superadmin
     isSuperAdmin: (state) => state.user?.role === 'superadmin',
+
+    // Check if user is writer
+    isWriter: (state) => state.user?.role === 'writer',
+
+    // Check if user is client
+    isClient: (state) => state.user?.role === 'client',
+
+    // Check if user is editor
+    isEditor: (state) => state.user?.role === 'editor',
+
+    // Check if user is support staff
+    isSupport: (state) => state.user?.role === 'support',
     
     // Get user email
     userEmail: (state) => state.user?.email || null,
@@ -104,8 +115,6 @@ export const useAuthStore = defineStore('auth', {
         })
         await this.setUser(response.data.user)
         
-        this.isAuthenticated = true
-        
         return {
           success: true,
           user: response.data.user
@@ -137,11 +146,9 @@ export const useAuthStore = defineStore('auth', {
         })
         await this.setUser(response.data.user)
         
-        this.isAuthenticated = true
-        
         return {
-          success: true,
-          user: response.data.user
+            success: true,
+            user: response.data.user
         }
       } catch (error) {
         this.error = error.response?.data?.error || 
@@ -173,7 +180,6 @@ export const useAuthStore = defineStore('auth', {
         this.user = null
         this.accessToken = null
         this.refreshToken = null
-        this.isAuthenticated = false
         
         // Clear localStorage
         localStorage.removeItem('access_token')
@@ -283,11 +289,9 @@ export const useAuthStore = defineStore('auth', {
         })
         await this.setUser(response.data.user)
         
-        this.isAuthenticated = true
-        
         return {
-          success: true,
-          user: response.data.user
+            success: true,
+            user: response.data.user
         }
       } catch (error) {
         this.error = error.response?.data?.error || 
@@ -312,7 +316,6 @@ export const useAuthStore = defineStore('auth', {
           this.accessToken = accessToken
           this.refreshToken = refreshToken
           this.user = JSON.parse(userStr)
-          this.isAuthenticated = true
         }
       } catch (error) {
         console.error('Failed to load from storage:', error)
@@ -345,6 +348,13 @@ export const useAuthStore = defineStore('auth', {
           await this.logout()
         }
       }
+    },
+
+    /**
+     * Fetch current user from API (alias for refreshUser for router compatibility)
+     */
+    async fetchUser() {
+      return this.refreshUser()
     }
   }
 })

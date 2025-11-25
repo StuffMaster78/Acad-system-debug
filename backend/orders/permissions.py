@@ -193,7 +193,7 @@ class OrderActionPermission(BasePermission):
 
 class IsOrderOwnerOrSupport(BasePermission):
     """
-    Allows access to the owner of the order or support/admin/superadmin.
+    Allows access to the owner of the order or support/admin/superadmin/editor.
     Also allows writers to see orders assigned to them or available orders.
     """
 
@@ -206,13 +206,13 @@ class IsOrderOwnerOrSupport(BasePermission):
             return False
 
         user_role = getattr(request.user, "role", None)
-        support_roles = {"support", "admin", "superadmin"}
+        support_roles = {"support", "admin", "superadmin", "editor"}
 
         # Client owns the order
         if obj.client == request.user:
             return True
         
-        # Support/admin/superadmin can see all orders
+        # Support/admin/superadmin/editor can see all orders
         if user_role in support_roles:
             return True
         

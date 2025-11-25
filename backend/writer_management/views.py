@@ -5,13 +5,13 @@ from django.utils.timezone import now
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.filters import OrderingFilter
+from rest_framework.filters import OrderingFilter, SearchFilter
 from django_filters.rest_framework import DjangoFilterBackend # type: ignore
 from django.db.models import Q
 from writer_management.models.levels import (
     WriterLevel, WriterLevelHistory
 )
-from writer_management.models.configs import WriterConfig
+from writer_management.models.configs import WriterConfig, WriterLevelConfig
 from writer_management.models.messages import (
     WriterMessageThread, WriterMessage
 )
@@ -67,7 +67,7 @@ from writer_management.models.tickets import (
 
 from orders.models import Order
 from writer_management.models.order_dispute import OrderDispute
-from .serializers import (
+from writer_management.serializers import (
     WebhookSettingsSerializer, WriterProfileSerializer, WriterLevelSerializer,
     WriterConfigSerializer, WriterLevelConfigSerializer, WriterOrderRequestSerializer,
     WriterOrderTakeSerializer, WriterPayoutPreferenceSerializer,
@@ -82,13 +82,14 @@ from .serializers import (
     WriterActivityLogSerializer, WriterRatingCooldownSerializer,
     WriterFileDownloadLogSerializer, WriterIPLogSerializer,
     OrderDisputeSerializer, CurrencyConversionRateSerializer,
-    WriterPaymentSerializer, WriterPerformanceSnapshotSerializer,
-    WriterPerformanceSummarySerializer, WriterLevelHistorySerializer,
-    WriterBadgeSerializer,
-)
-
-from writer_management.serializers import (
-WebhookSettingsSerializer
+    WriterPerformanceSnapshotSerializer, WriterPerformanceSummarySerializer,
+    WriterLevelHistorySerializer, WriterBadgeSerializer,
+    TipCreateSerializer, TipListSerializer, WriterStatusSerializer,
+    WriterWarningSelfViewSerializer, WriterStrikeSerializer,
+    WriterStrikeHistorySerializer, WriterDisciplineConfigSerializer,
+    WriterWarningSerializer, WriterBadgeTimelineSerializer,
+    WriterPenNameChangeRequestSerializer, WriterResourceSerializer,
+    WriterResourceCategorySerializer, WriterResourceViewSerializer
 )
 from writer_management.services.webhook_settings_service import (
     WebhookSettingsService
@@ -97,36 +98,32 @@ from writer_management.models.payout import CurrencyConversionRate
 from writer_management.services.payment_service import WriterPaymentService
 from decimal import Decimal
 from core.utils.notifications import send_notification 
-from writer_management.serializers import TipCreateSerializer
 from writer_management.models.tipping import Tip
-from writer_management.serializers import TipListSerializer
 from writer_management.services.tip_service import TipService
-from rest_framework import generics 
+from rest_framework import generics, viewsets, filters
 from rest_framework.views import APIView
 from writer_management.models.profile import WriterProfile
-from writer_management.serializers import WriterStatusSerializer
 from writer_management.services.status_service import WriterStatusService
 from writer_management.models.performance_snapshot import WriterPerformanceSnapshot
-from writer_management.serializers import (
-    WriterPerformanceSnapshotSerializer, WriterWarningSelfViewSerializer
-)
 from rest_framework.permissions import IsAdminUser
-from writer_management.serializers import WriterLevelSerializer
 from writer_management.models.writer_warnings import WriterWarning
-from writer_management.serializers import WriterWarningSerializer
 from writer_management.services.writer_warning_service import (
     WriterWarningService
 )
 from django.db.models import Q
-
-from rest_framework import viewsets, filters
-from rest_framework.permissions import IsAdminUser
 from writer_management.models.badges import WriterBadge
-from writer_management.serializers import WriterBadgeSerializer
-from writer_management.models.profile import WriterProfile
-from writer_management.serializers import (
-    WriterBadgeTimelineSerializer
-)
+try:
+    from writer_management.models.pen_name_requests import WriterPenNameChangeRequest
+except ImportError:
+    WriterPenNameChangeRequest = None
+try:
+    from writer_management.models.resources import (
+        WriterResource, WriterResourceCategory, WriterResourceView
+    )
+except ImportError:
+    WriterResource = None
+    WriterResourceCategory = None
+    WriterResourceView = None
 from rest_framework.response import Response
 from collections import defaultdict
 
@@ -141,7 +138,9 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
     """
     Manage Writer Profiles.
     """
-    queryset = WriterProfile.objects.all()
+    queryset = WriterProfile.objects.all().select_related(
+        'user', 'website', 'writer_level'
+    )
     serializer_class = WriterProfileSerializer
     permission_classes = [permissions.IsAdminUser]
     
@@ -158,8 +157,12 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
         Writers can only access their own profile.
         """
         if self.request.user.role == 'writer':
-            return WriterProfile.objects.filter(user=self.request.user)
-        return WriterProfile.objects.all()
+            return WriterProfile.objects.filter(user=self.request.user).select_related(
+                'user', 'website', 'writer_level'
+            )
+        return WriterProfile.objects.all().select_related(
+            'user', 'website', 'writer_level'
+        )
     
     def update(self, request, *args, **kwargs):
         """
@@ -195,19 +198,25 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
         """
         Get the current writer's own profile with hierarchy details.
         """
-        if request.user.role != 'writer':
-            return Response(
-                {"detail": "This endpoint is only available for writers."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-        
-        try:
-            profile = request.user.writer_profile
-        except WriterProfile.DoesNotExist:
-            return Response(
-                {"detail": "Writer profile not found."},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        # Check if user has writer role or writer_profile
+        user_role = getattr(request.user, 'role', None)
+        if user_role != 'writer':
+            # Still allow if they have a writer_profile (more flexible)
+            try:
+                profile = request.user.writer_profile
+            except WriterProfile.DoesNotExist:
+                return Response(
+                    {"detail": "This endpoint is only available for writers."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        else:
+            try:
+                profile = request.user.writer_profile
+            except WriterProfile.DoesNotExist:
+                return Response(
+                    {"detail": "Writer profile not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
         
         serializer = self.get_serializer(profile)
         data = serializer.data
@@ -285,7 +294,9 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
     """
     Writers can request an order. Admins must approve.
     """
-    queryset = WriterOrderRequest.objects.all()
+    queryset = WriterOrderRequest.objects.all().select_related(
+        'writer__user', 'order', 'website'
+    )
     serializer_class = WriterOrderRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -418,7 +429,9 @@ class WriterPaymentViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAdminUser]
 
     def list(self, request):
-        payments = WriterPayment.objects.select_related("writer", "website").order_by("-payment_date")
+        payments = WriterPayment.objects.select_related(
+            "writer__user", "website", "processed_by"
+        ).order_by("-payment_date")
         serializer = WriterPaymentSerializer(payments, many=True)
         return Response(serializer.data)
 
@@ -495,7 +508,9 @@ class WriterSupportTicketViewSet(viewsets.ModelViewSet):
     """
     Writers can submit support tickets.
     """
-    queryset = WriterSupportTicket.objects.all()
+    queryset = WriterSupportTicket.objects.all().select_related(
+        'writer__user', 'website', 'assigned_to'
+    )
     serializer_class = WriterSupportTicketSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -565,7 +580,9 @@ class WriterLevelViewSet(viewsets.ModelViewSet):
     serializer_class = WriterLevelSerializer
 
 class WriterEarningsHistoryViewSet(viewsets.ModelViewSet):
-    queryset = WriterEarningsHistory.objects.all()
+    queryset = WriterEarningsHistory.objects.all().select_related(
+        'writer__user', 'website'
+    )
     serializer_class = WriterEarningsHistorySerializer
 
 class WriterEarningsReviewRequestViewSet(viewsets.ModelViewSet):
@@ -1136,3 +1153,348 @@ class WriterBadgeTimelineViewSet(viewsets.ViewSet):
             )
 
         return Response(grouped)
+
+
+class WriterStrikeViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing writer strikes.
+    Admins can issue, view, and manage strikes.
+    """
+    queryset = WriterStrike.objects.all().select_related(
+        'writer__user', 'issued_by', 'website'
+    ).order_by('-issued_at')
+    serializer_class = WriterStrikeSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['writer', 'website', 'issued_by']
+    ordering_fields = ['issued_at']
+    ordering = ['-issued_at']
+
+    def perform_create(self, serializer):
+        """Create a strike and update writer status."""
+        strike = serializer.save()
+        
+        # Update writer status to reflect new strike
+        WriterStatusService.update(strike.writer)
+        
+        # Evaluate if strike should trigger suspension/blacklist
+        from writer_management.services.discipline import DisciplineService
+        DisciplineService.evaluate_strikes(strike.writer)
+        
+        return strike
+
+    @action(detail=False, methods=['get'], url_path='by-writer/(?P<writer_id>[^/.]+)')
+    def by_writer(self, request, writer_id=None):
+        """Get all strikes for a specific writer."""
+        strikes = self.queryset.filter(writer_id=writer_id)
+        serializer = self.get_serializer(strikes, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def revoke(self, request, pk=None):
+        """Revoke a strike (soft delete by creating history entry)."""
+        strike = self.get_object()
+        
+        # Create history entry
+        WriterStrikeHistory.objects.create(
+            strike=strike,
+            changed_by=request.user,
+            change_type="Deleted",
+            notes="Strike revoked by admin"
+        )
+        
+        # Delete the strike
+        strike.delete()
+        
+        # Update writer status
+        WriterStatusService.update(strike.writer)
+        
+        return Response(
+            {'detail': 'Strike revoked successfully.'},
+            status=status.HTTP_200_OK
+        )
+
+
+class WriterDisciplineConfigViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing writer discipline configuration.
+    Admins can configure strike thresholds, suspension rules, etc.
+    """
+    queryset = WriterDisciplineConfig.objects.all().select_related('website')
+    serializer_class = WriterDisciplineConfigSerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['website']
+    lookup_field = 'website'
+
+    def get_object(self):
+        """Get config by website ID."""
+        website_id = self.kwargs.get('website')
+        if website_id:
+            obj = get_object_or_404(self.queryset, website_id=website_id)
+            self.check_object_permissions(self.request, obj)
+            return obj
+        return super().get_object()
+
+    @action(detail=False, methods=['get'], url_path='by-website/(?P<website_id>[^/.]+)')
+    def by_website(self, request, website_id=None):
+        """Get discipline config for a specific website."""
+        config = self.queryset.filter(website_id=website_id).first()
+        if not config:
+            # Return default config structure
+            return Response({
+                'website': int(website_id),
+                'max_strikes': 3,
+                'auto_suspend_days': 7,
+                'auto_blacklist_strikes': 5
+            })
+        serializer = self.get_serializer(config)
+        return Response(serializer.data)
+
+
+### ---------------- Writer Pen Name & Resources Views ---------------- ###
+
+class WriterPenNameChangeRequestViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing pen name change requests.
+    Writers can create requests, admins/superadmins can approve/reject.
+    """
+    queryset = WriterPenNameChangeRequest.objects.all().select_related(
+        'writer__user', 'website', 'reviewed_by'
+    ) if WriterPenNameChangeRequest else WriterPenNameChangeRequest.objects.none()
+    serializer_class = WriterPenNameChangeRequestSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['status', 'website', 'writer']
+    ordering_fields = ['requested_at', 'reviewed_at']
+    ordering = ['-requested_at']
+    
+    def get_queryset(self):
+        """Filter queryset based on user role."""
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Writers can only see their own requests
+        if user.role == 'writer':
+            try:
+                writer_profile = WriterProfile.objects.get(user=user)
+                queryset = queryset.filter(writer=writer_profile)
+            except WriterProfile.DoesNotExist:
+                queryset = queryset.none()
+        
+        # Admins/superadmins see all requests
+        elif user.role in ['admin', 'superadmin']:
+            # Can filter by website if provided
+            website_id = self.request.query_params.get('website_id')
+            if website_id:
+                queryset = queryset.filter(website_id=website_id)
+        else:
+            queryset = queryset.none()
+        
+        return queryset
+    
+    def perform_create(self, serializer):
+        """Create a pen name change request."""
+        user = self.request.user
+        if user.role != 'writer':
+            raise ValidationError("Only writers can request pen name changes")
+        
+        try:
+            writer_profile = WriterProfile.objects.get(user=user)
+        except WriterProfile.DoesNotExist:
+            raise ValidationError("Writer profile not found")
+        
+        # Set current pen name from profile
+        current_pen_name = writer_profile.pen_name or ''
+        
+        serializer.save(
+            writer=writer_profile,
+            website=writer_profile.website,
+            current_pen_name=current_pen_name,
+            status='pending'
+        )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def approve(self, request, pk=None):
+        """Approve a pen name change request (admin/superadmin only)."""
+        if request.user.role not in ['admin', 'superadmin']:
+            return Response(
+                {'error': 'Only admins can approve requests'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        request_obj = self.get_object()
+        notes = request.data.get('admin_notes', '')
+        
+        try:
+            request_obj.approve(request.user, notes)
+            return Response(
+                {'message': 'Pen name change approved successfully'},
+                status=status.HTTP_200_OK
+            )
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def reject(self, request, pk=None):
+        """Reject a pen name change request (admin/superadmin only)."""
+        if request.user.role not in ['admin', 'superadmin']:
+            return Response(
+                {'error': 'Only admins can reject requests'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        request_obj = self.get_object()
+        notes = request.data.get('admin_notes', '')
+        
+        try:
+            request_obj.reject(request.user, notes)
+            return Response(
+                {'message': 'Pen name change rejected'},
+                status=status.HTTP_200_OK
+            )
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
+class WriterResourceCategoryViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing writer resource categories.
+    Admin/superadmin only.
+    """
+    queryset = WriterResourceCategory.objects.all().select_related('website') if WriterResourceCategory else WriterResourceCategory.objects.none()
+    serializer_class = WriterResourceCategorySerializer
+    permission_classes = [IsAuthenticated, IsAdminUser]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
+    filterset_fields = ['website', 'is_active']
+    ordering_fields = ['display_order', 'name']
+    ordering = ['display_order', 'name']
+    
+    def perform_create(self, serializer):
+        """Create a resource category."""
+        serializer.save()
+
+
+class WriterResourceViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing writer resources.
+    Writers can view, admins can create/update/delete.
+    """
+    queryset = WriterResource.objects.all().select_related(
+        'category', 'website', 'created_by', 'updated_by'
+    ) if WriterResource else WriterResource.objects.none()
+    serializer_class = WriterResourceSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
+    filterset_fields = ['website', 'category', 'resource_type', 'is_active', 'is_featured']
+    ordering_fields = ['display_order', 'created_at', 'view_count']
+    ordering = ['display_order', '-created_at']
+    search_fields = ['title', 'description']
+    
+    def get_queryset(self):
+        """Filter queryset based on user role."""
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Writers can only see active resources
+        if user.role == 'writer':
+            queryset = queryset.filter(is_active=True)
+            # Filter by website if writer has a profile
+            try:
+                writer_profile = WriterProfile.objects.get(user=user)
+                queryset = queryset.filter(website=writer_profile.website)
+            except WriterProfile.DoesNotExist:
+                queryset = queryset.none()
+        
+        # Admins/superadmins see all resources
+        elif user.role in ['admin', 'superadmin']:
+            website_id = self.request.query_params.get('website_id')
+            if website_id:
+                queryset = queryset.filter(website_id=website_id)
+        else:
+            queryset = queryset.none()
+        
+        return queryset
+    
+    def perform_create(self, serializer):
+        """Create a resource (admin/superadmin only)."""
+        if self.request.user.role not in ['admin', 'superadmin']:
+            raise ValidationError("Only admins can create resources")
+        
+        serializer.save(created_by=self.request.user)
+    
+    def perform_update(self, serializer):
+        """Update a resource (admin/superadmin only)."""
+        if self.request.user.role not in ['admin', 'superadmin']:
+            raise ValidationError("Only admins can update resources")
+        
+        serializer.save(updated_by=self.request.user)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def view(self, request, pk=None):
+        """Track a resource view (writers only)."""
+        if request.user.role != 'writer':
+            return Response(
+                {'error': 'Only writers can track views'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        resource = self.get_object()
+        
+        try:
+            writer_profile = WriterProfile.objects.get(user=request.user)
+            
+            # Create or get view record
+            view_record, created = WriterResourceView.objects.get_or_create(
+                resource=resource,
+                writer=writer_profile
+            )
+            
+            # Increment view count if new view
+            if created:
+                resource.increment_view()
+            
+            return Response(
+                {'message': 'View tracked successfully'},
+                status=status.HTTP_200_OK
+            )
+        except WriterProfile.DoesNotExist:
+            return Response(
+                {'error': 'Writer profile not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def download(self, request, pk=None):
+        """Track a resource download (writers only)."""
+        if request.user.role != 'writer':
+            return Response(
+                {'error': 'Only writers can download resources'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        resource = self.get_object()
+        
+        if resource.resource_type != 'document' or not resource.file:
+            return Response(
+                {'error': 'Resource is not a downloadable document'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Increment download count
+        resource.increment_download()
+        
+        # Return file URL
+        return Response(
+            {
+                'message': 'Download tracked',
+                'file_url': resource.file.url
+            },
+            status=status.HTTP_200_OK
+        )

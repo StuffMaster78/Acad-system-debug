@@ -665,6 +665,82 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         recommended_blogs = cache.get(f"user_recommendations_{user_id}", [])
         return Response({"recommended_blogs": recommended_blogs})
 
+    @action(detail=False, methods=["post"], permission_classes=[IsAuthenticated])
+    def suggest_internal_links(self, request):
+        """
+        Suggest internal links based on content analysis.
+        
+        Request body:
+        {
+            "content": "text content to analyze",
+            "website_id": 1,
+            "current_post_id": 2,  # optional
+            "limit": 10,
+            "content_type": "blog"  # or "seo_page"
+        }
+        """
+        from blog_pages_management.services.internal_linking_service import InternalLinkingService
+        
+        content = request.data.get('content', '')
+        website_id = request.data.get('website_id')
+        current_post_id = request.data.get('current_post_id')
+        limit = int(request.data.get('limit', 10))
+        content_type = request.data.get('content_type', 'blog')
+        
+        if not content:
+            return Response(
+                {"error": "Content is required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not website_id:
+            # Try to get from user
+            website = getattr(request.user, 'website', None)
+            if not website:
+                return Response(
+                    {"error": "website_id is required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            website_id = website.id
+        
+        suggestions = InternalLinkingService.suggest_internal_links(
+            content=content,
+            website_id=website_id,
+            current_post_id=current_post_id,
+            limit=limit,
+            content_type=content_type
+        )
+        
+        return Response({
+            "suggestions": suggestions,
+            "count": len(suggestions)
+        })
+
+    @action(detail=True, methods=["get"])
+    def related_content(self, request, pk=None):
+        """
+        Get related content for a specific blog post.
+        
+        Query params:
+        - limit: Number of related items (default: 5)
+        """
+        blog = self.get_object()
+        limit = int(request.query_params.get('limit', 5))
+        
+        from blog_pages_management.services.internal_linking_service import InternalLinkingService
+        
+        related = InternalLinkingService.get_related_content(
+            post_id=blog.id,
+            website_id=blog.website_id,
+            content_type='blog',
+            limit=limit
+        )
+        
+        return Response({
+            "related_content": related,
+            "count": len(related)
+        })
+
 
 
 # ------------------ BLOG ENGAGEMENT & ANALYTICS (APIView) ------------------

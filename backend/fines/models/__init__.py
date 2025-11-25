@@ -247,7 +247,9 @@ class FineAppeal(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="fine_appeals",
-        help_text="Writer who submitted the appeal."
+        help_text="Writer who submitted the appeal.",
+        null=True,
+        blank=True
     )
     
     submitted_at = models.DateTimeField(auto_now_add=True)

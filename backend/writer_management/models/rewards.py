@@ -36,7 +36,7 @@ class WriterReward(models.Model):
     prize = models.CharField(max_length=255, blank=True, null=True, help_text="Prize or benefit (e.g., 'Bonus $50').")
     notes = models.TextField(blank=True, null=True, help_text="Additional notes about the reward.")
     metadata = models.JSONField(default=dict, blank=True)  # For backward compatibility
-    created_at = models.DateTimeField(auto_now_add=True)  # For backward compatibility
+    created_at = models.DateTimeField(default=now)  # For backward compatibility
 
     objects = WriterRewardManager()
 

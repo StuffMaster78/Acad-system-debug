@@ -36,8 +36,12 @@ class ReferralViewSet(viewsets.ModelViewSet):
     serializer_class = ReferralSerializer
 
     def get_queryset(self):
-        """Filter referrals by the authenticated user."""
-        return Referral.objects.filter(referrer=self.request.user)
+        """Filter referrals by the authenticated user. Only clients can view their referrals."""
+        user = self.request.user
+        if user.role != 'client':
+            # Non-clients get empty queryset
+            return Referral.objects.none()
+        return Referral.objects.filter(referrer=user)
 
     @action(detail=False, methods=['post'], url_path='generate-code')
     def generate_code(self, request):

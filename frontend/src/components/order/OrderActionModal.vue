@@ -110,7 +110,7 @@
             :key="writer.id"
             :value="writer.id"
           >
-            {{ writer.writer_id || `WRTR${writer.id.toString().padStart(6, '0')}` }} - {{ writer.username || writer.email }} 
+            {{ writer.writer_id || `WRTR${writer.id.toString().padStart(6, '0')}` }} - {{ formatWriterName(writer) }} 
             (Rating: {{ writer.profile?.rating || 0 }}, Active: {{ writer.workload?.active_orders_count || 0 }})
           </option>
         </select>
@@ -216,6 +216,7 @@ import { ordersAPI } from '@/api'
 import writerAssignmentAPI from '@/api/writer-assignment'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { formatOrderId, formatUserId } from '@/utils/idFormatter'
+import { formatWriterName } from '@/utils/formatDisplay'
 
 const props = defineProps({
   visible: {

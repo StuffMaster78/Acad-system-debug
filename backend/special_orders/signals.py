@@ -49,7 +49,8 @@ def handle_new_special_order(sender, instance, created, **kwargs):
         )
 
     CommunicationThread.objects.create(
-        order_type='special',
+        website=instance.website,
+        thread_type='special',
         special_order=instance,
         sender_role='client',
         recipient_role='admin'

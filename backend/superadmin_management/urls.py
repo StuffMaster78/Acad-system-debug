@@ -5,6 +5,7 @@ from .views import (
     UserManagementViewSet,
     SuperadminLogViewSet,
     SuperadminDashboardViewSet,
+    AppealViewSet,
 )
 
 # Create router instance
@@ -15,6 +16,7 @@ router.register(r"superadmin-profile", SuperadminProfileViewSet, basename="super
 router.register(r"users", UserManagementViewSet, basename="users")
 router.register(r"logs", SuperadminLogViewSet, basename="logs")
 router.register(r"dashboard", SuperadminDashboardViewSet, basename="superadmin-dashboard")
+router.register(r"appeals", AppealViewSet, basename="appeals")
 
 # Define urlpatterns
 urlpatterns = [

@@ -126,9 +126,15 @@ class WriterPayment(models.Model):
                 self.bonuses += self.writer.writer_level.bonus_per_order_completed
             
             # Rating-based bonus (if order has rating above threshold)
-            if hasattr(self.order, 'client_rating') and self.order.client_rating:
-                if self.order.client_rating >= self.writer.writer_level.rating_threshold_for_bonus:
+            # Get rating from OrderReview instead of client_rating field
+            from reviews_system.models.order_review import OrderReview
+            try:
+                order_review = OrderReview.objects.get(order=self.order)
+                if order_review.rating and order_review.rating >= self.writer.writer_level.rating_threshold_for_bonus:
                     self.bonuses += self.writer.writer_level.bonus_per_rating_above_threshold
+            except OrderReview.DoesNotExist:
+                # No review exists for this order, skip rating bonus
+                pass
 
         # Calculate total deductions (penalties)
         total_fines = sum(p.amount_deducted for p in self.writer.penalties.all())

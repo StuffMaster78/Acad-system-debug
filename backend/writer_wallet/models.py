@@ -143,6 +143,7 @@ class PaymentSchedule(models.Model):
     SCHEDULE_TYPES = [
         ("Bi-Weekly", "Bi-Weekly"),
         ("Monthly", "Monthly"),
+        ("Manual", "Manual"),  # For manual payment requests
     ]
 
     reference_code = models.CharField(
@@ -167,7 +168,16 @@ class PaymentSchedule(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.reference_code:
-            self.reference_code = f"PAYBATCH-{int(now().timestamp())}"  # Unique batch code
+            import time
+            import random
+            # Generate unique reference code with timestamp and random component
+            timestamp = int(time.time())
+            random_suffix = random.randint(1000, 9999)
+            self.reference_code = f"PAYBATCH-{timestamp}-{random_suffix}"
+            # Ensure uniqueness
+            while PaymentSchedule.objects.filter(reference_code=self.reference_code).exists():
+                random_suffix = random.randint(1000, 9999)
+                self.reference_code = f"PAYBATCH-{timestamp}-{random_suffix}"
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -357,3 +367,84 @@ class PaymentConfirmation(models.Model):
 
     def __str__(self):
         return f"{self.writer_wallet.writer.username} - {'Confirmed' if self.confirmed else 'Pending'}"
+
+
+class WriterPaymentRequest(models.Model):
+    """
+    Tracks manual payment requests from writers.
+    """
+    REQUEST_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+        ('processed', 'Processed'),
+    ]
+    
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE
+    )
+    writer_wallet = models.ForeignKey(
+        WriterWallet,
+        on_delete=models.CASCADE,
+        related_name="payment_requests"
+    )
+    requested_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text="Amount requested by writer"
+    )
+    available_balance = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        help_text="Writer's available balance at time of request"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=REQUEST_STATUS_CHOICES,
+        default='pending'
+    )
+    reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optional reason for the payment request"
+    )
+    requested_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="payment_requests_made"
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payment_requests_reviewed"
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    review_notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Admin notes on approval/rejection"
+    )
+    created_at = models.DateTimeField(default=now)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Link to payment if processed
+    scheduled_payment = models.ForeignKey(
+        'ScheduledWriterPayment',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payment_request"
+    )
+    
+    def __str__(self):
+        return f"{self.writer_wallet.writer.username} - ${self.requested_amount} - {self.status}"
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['writer_wallet', 'status']),
+        ]

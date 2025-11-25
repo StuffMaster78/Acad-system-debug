@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from .models import (
     WriterWallet, WalletTransaction, WriterPaymentBatch, PaymentSchedule, 
-    ScheduledWriterPayment, PaymentOrderRecord, WriterPayment, AdminPaymentAdjustment, PaymentConfirmation
+    ScheduledWriterPayment, PaymentOrderRecord, WriterPayment, AdminPaymentAdjustment, PaymentConfirmation,
+    WriterPaymentRequest
 )
 
 class WriterWalletSerializer(serializers.ModelSerializer):
@@ -92,3 +93,25 @@ class PaymentConfirmationSerializer(serializers.ModelSerializer):
     class Meta:
         model = PaymentConfirmation
         fields = "__all__"
+
+class WriterPaymentRequestSerializer(serializers.ModelSerializer):
+    writer_name = serializers.SerializerMethodField()
+    writer_email = serializers.SerializerMethodField()
+    reviewed_by_username = serializers.CharField(source="reviewed_by.username", read_only=True)
+    requested_by_username = serializers.CharField(source="requested_by.username", read_only=True)
+    
+    class Meta:
+        model = WriterPaymentRequest
+        fields = "__all__"
+    
+    def get_writer_name(self, obj):
+        if obj.writer_wallet and obj.writer_wallet.writer:
+            user = obj.writer_wallet.writer.user
+            return user.get_full_name() if user else obj.writer_wallet.writer.registration_id
+        return 'Unknown'
+    
+    def get_writer_email(self, obj):
+        if obj.writer_wallet and obj.writer_wallet.writer:
+            user = obj.writer_wallet.writer.user
+            return user.email if user else ''
+        return ''

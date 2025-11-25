@@ -1,157 +1,207 @@
-/**
- * API Client Setup
- * 
- * Axios instance with interceptors for authentication and error handling.
- * Copy this to: src/api/client.js
- */
-
 import axios from 'axios'
+import { normalizeApiError, isAuthError } from '@/utils/error'
 
-// Get API base URL from environment variable (Vite uses import.meta.env)
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
-
-// Create axios instance
 const apiClient = axios.create({
-  baseURL: `${API_BASE_URL}/api/v1`,
+  baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || '/api/v1',
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
   },
   timeout: 30000, // 30 seconds
-  withCredentials: true // Important for CORS with credentials
 })
 
-// Request interceptor - Add auth token to requests
+// Proactive token refresh - refresh token before it expires
+let tokenRefreshInterval = null
+let lastTokenRefresh = 0
+const TOKEN_REFRESH_INTERVAL = 20 * 60 * 1000 // Refresh every 20 minutes (tokens last 1 day = 1440 min)
+const TOKEN_REFRESH_COOLDOWN = 5 * 60 * 1000 // Don't refresh more than once per 5 minutes
+
+function startProactiveTokenRefresh() {
+  if (tokenRefreshInterval) {
+    return // Already started
+  }
+  
+  tokenRefreshInterval = setInterval(async () => {
+    const now = Date.now()
+    const accessToken = localStorage.getItem('access_token')
+    const refreshToken = localStorage.getItem('refresh_token')
+    
+    // Don't refresh if no tokens or too soon since last refresh
+    if (!accessToken || !refreshToken || (now - lastTokenRefresh < TOKEN_REFRESH_COOLDOWN)) {
+      return
+    }
+    
+    try {
+      const baseURL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || '/api/v1'
+      const refreshURL = baseURL.endsWith('/api/v1') 
+        ? `${baseURL}/auth/auth/refresh-token/`
+        : `${baseURL}/api/v1/auth/auth/refresh-token/`
+      
+      const response = await axios.post(
+        refreshURL,
+        { refresh_token: refreshToken },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        }
+      )
+      
+      const { access_token } = response.data
+      if (access_token) {
+        localStorage.setItem('access_token', access_token)
+        lastTokenRefresh = now
+        console.debug('Token refreshed proactively')
+      }
+    } catch (error) {
+      // Silently fail - token refresh will happen on next 401 anyway
+      console.debug('Proactive token refresh failed (non-critical):', error.message)
+    }
+  }, TOKEN_REFRESH_INTERVAL)
+}
+
+function stopProactiveTokenRefresh() {
+  if (tokenRefreshInterval) {
+    clearInterval(tokenRefreshInterval)
+    tokenRefreshInterval = null
+  }
+}
+
+// Start proactive refresh when module loads (if tokens exist)
+if (typeof window !== 'undefined') {
+  if (localStorage.getItem('access_token') && localStorage.getItem('refresh_token')) {
+    startProactiveTokenRefresh()
+  }
+  
+  // Also start when tokens are set
+  const originalSetItem = localStorage.setItem
+  localStorage.setItem = function(key, _value) {
+    originalSetItem.apply(this, arguments)
+    if (key === 'access_token' && localStorage.getItem('refresh_token')) {
+      if (!tokenRefreshInterval) {
+        startProactiveTokenRefresh()
+      }
+    }
+  }
+  
+  // Stop when tokens are removed
+  const originalRemoveItem = localStorage.removeItem
+  localStorage.removeItem = function(key) {
+    originalRemoveItem.apply(this, arguments)
+    if (key === 'access_token' || key === 'refresh_token') {
+      if (!localStorage.getItem('access_token') || !localStorage.getItem('refresh_token')) {
+        stopProactiveTokenRefresh()
+      }
+    }
+  }
+}
+
+// Request interceptor - add auth token
 apiClient.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
     const token = localStorage.getItem('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
-
-    // Add website context if available
-    const websiteId = localStorage.getItem('website_id')
-    if (websiteId) {
-      config.headers['X-Website-ID'] = websiteId
+    
+    // Add tenant/website header if available
+    const website = localStorage.getItem('current_website')
+    if (website) {
+      config.headers['X-Website'] = website
     }
-
+    
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Response interceptor - Handle token refresh and errors
+// Response interceptor - handle token refresh and retries
 apiClient.interceptors.response.use(
-  (response) => {
-    // Return successful responses as-is
-    return response
-  },
+  (response) => response,
   async (error) => {
     const originalRequest = error.config
 
-    // Handle 401 Unauthorized - Token expired or invalid
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
+    // Simple retry for network errors (once)
+    if (!error.response && !originalRequest._retry_network) {
+      originalRequest._retry_network = true
+      return apiClient(originalRequest)
+    }
 
+    // Handle 401 Unauthorized - refresh token
+    if (isAuthError(error) && !originalRequest._retry) {
+      originalRequest._retry = true
+      
       try {
         const refreshToken = localStorage.getItem('refresh_token')
-        
         if (!refreshToken) {
-          // No refresh token, redirect to login
-          localStorage.removeItem('access_token')
-          localStorage.removeItem('refresh_token')
-          localStorage.removeItem('user')
-          window.location.href = '/login'
+          // No refresh token - only logout if this was not a refresh token request itself
+          if (!originalRequest.url?.includes('refresh-token')) {
+            console.warn('No refresh token available, clearing auth')
+            localStorage.removeItem('access_token')
+            localStorage.removeItem('refresh_token')
+            localStorage.removeItem('current_website')
+            localStorage.removeItem('user')
+            if (window.location.pathname !== '/login') {
+              window.location.href = '/login'
+            }
+          }
           return Promise.reject(error)
         }
 
-        // Try to refresh the token
+        // Use the same baseURL as apiClient
+        const baseURL = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || '/api/v1'
+        const refreshURL = baseURL.endsWith('/api/v1') 
+          ? `${baseURL}/auth/auth/refresh-token/`
+          : `${baseURL}/api/v1/auth/auth/refresh-token/`
+
         const response = await axios.post(
-          `${API_BASE_URL}/api/v1/auth/refresh-token/`,
+          refreshURL,
           { refresh_token: refreshToken },
-          { withCredentials: true }
+          {
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          }
         )
-
-        const { access_token, refresh_token } = response.data
-
-        // Store new tokens
-        localStorage.setItem('access_token', access_token)
-        if (refresh_token) {
-          localStorage.setItem('refresh_token', refresh_token)
+        
+        const { access_token } = response.data
+        if (access_token) {
+          localStorage.setItem('access_token', access_token)
+          originalRequest.headers.Authorization = `Bearer ${access_token}`
+          return apiClient(originalRequest)
+        } else {
+          throw new Error('No access token in refresh response')
         }
-
-        // Retry original request with new token
-        originalRequest.headers.Authorization = `Bearer ${access_token}`
-        return apiClient(originalRequest)
       } catch (refreshError) {
-        // Refresh failed, clear storage and redirect to login
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user')
-        localStorage.removeItem('website_id')
+        // Only logout if refresh token is actually invalid/expired (401/403)
+        // Don't logout on network errors or other issues
+        const isTokenInvalid = refreshError.response?.status === 401 || 
+                               refreshError.response?.status === 403 ||
+                               refreshError.response?.data?.code === 'token_not_valid'
         
-        // Only redirect if not already on login page
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
+        if (isTokenInvalid) {
+          console.warn('Refresh token invalid, logging out')
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          localStorage.removeItem('current_website')
+          localStorage.removeItem('user')
+          
+          // Only redirect if not already on login page
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login'
+          }
+        } else {
+          // For network errors or other issues, just reject the original error
+          console.warn('Token refresh failed (non-auth error):', refreshError.message)
         }
         
-        return Promise.reject(refreshError)
+        return Promise.reject(error) // Return original error, not refresh error
       }
     }
 
-    // Handle 403 Forbidden - Permission denied
-    if (error.response?.status === 403) {
-      // Could redirect to unauthorized page or show error
-      console.error('Access forbidden:', error.response.data)
-    }
-
-    // Handle 429 Too Many Requests - Rate limiting
-    if (error.response?.status === 429) {
-      const retryAfter = error.response.headers['retry-after']
-      console.warn(`Rate limited. Retry after ${retryAfter} seconds`)
-    }
-
-    // Handle network errors
-    if (!error.response) {
-      console.error('Network error:', error.message)
-      // Could show network error notification
-    }
-
-    return Promise.reject(error)
+    // Normalize other errors
+    return Promise.reject(normalizeApiError(error))
   }
 )
 
-// Helper function to handle API errors consistently
-export const handleApiError = (error) => {
-  if (error.response) {
-    // Server responded with error
-    const { status, data } = error.response
-    
-    switch (status) {
-      case 400:
-        return data.error || data.detail || 'Bad request. Please check your input.'
-      case 401:
-        return 'Authentication required. Please log in.'
-      case 403:
-        return 'You do not have permission to perform this action.'
-      case 404:
-        return 'Resource not found.'
-      case 429:
-        return 'Too many requests. Please try again later.'
-      case 500:
-        return 'Server error. Please try again later.'
-      default:
-        return data.error || data.detail || `Error: ${status}`
-    }
-  } else if (error.request) {
-    // Request made but no response
-    return 'Network error. Please check your connection.'
-  } else {
-    // Error setting up request
-    return error.message || 'An unexpected error occurred.'
-  }
-}
-
 export default apiClient
+

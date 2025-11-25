@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import (
-    Referral, ReferralBonusConfig, ReferralCode, ReferralStats, ReferralBonusDecay
+    Referral, ReferralBonusConfig, ReferralCode, ReferralStats, 
+    ReferralBonusDecay, ReferralAbuseFlag
 )
 from users.models import User
 from websites.models import Website
@@ -86,6 +87,32 @@ class WalletTransactionSerializer(serializers.ModelSerializer):
         fields = ['id', 'wallet', 'transaction_type',
                   'amount', 'description', 'website'
         ]
+
+
+class ReferralAbuseFlagSerializer(serializers.ModelSerializer):
+    """Serializer for ReferralAbuseFlag."""
+    referral_details = ReferralSerializer(source='referral', read_only=True)
+    reviewed_by_username = serializers.CharField(source='reviewed_by.username', read_only=True)
+    abuse_type_display = serializers.CharField(source='get_abuse_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = ReferralAbuseFlag
+        fields = '__all__'
+        read_only_fields = ['detected_at', 'reviewed_by', 'reviewed_at']
+
+
+class ReferralAbuseFlagSerializer(serializers.ModelSerializer):
+    """Serializer for ReferralAbuseFlag."""
+    referral_details = ReferralSerializer(source='referral', read_only=True)
+    reviewed_by_username = serializers.CharField(source='reviewed_by.username', read_only=True)
+    abuse_type_display = serializers.CharField(source='get_abuse_type_display', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    
+    class Meta:
+        model = ReferralAbuseFlag
+        fields = '__all__'
+        read_only_fields = ['detected_at', 'reviewed_by', 'reviewed_at']
 
 
 class ReferralBonusDecaySerializer(serializers.ModelSerializer):

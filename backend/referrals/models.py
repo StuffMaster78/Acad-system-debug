@@ -79,6 +79,34 @@ class Referral(SoftDeleteModel):
     bonus_awarded = models.BooleanField(default=False)
     registration_bonus_credited = models.BooleanField(default=False)
     first_order_bonus_credited = models.BooleanField(default=False)
+    
+    # Abuse detection fields
+    is_flagged = models.BooleanField(
+        default=False,
+        help_text="Whether this referral has been flagged for abuse."
+    )
+    flagged_reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Reason for flagging this referral."
+    )
+    is_voided = models.BooleanField(
+        default=False,
+        help_text="Whether this referral has been voided due to abuse."
+    )
+    voided_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this referral was voided."
+    )
+    voided_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='voided_referrals',
+        help_text="Admin who voided this referral."
+    )
 
     
 
@@ -204,6 +232,10 @@ class ReferralCode(models.Model):
         return f"https://{domain}/signup?ref={self.code}"
 
     def save(self, *args, **kwargs):
+        # Validate that only clients can have referral codes
+        if self.user.role != 'client':
+            raise ValueError(f"Only clients can have referral codes. User {self.user.username} has role: {self.user.role}")
+        
         if not getattr(self, "website_id", None):
             try:
                 if getattr(self.user, "website_id", None):
@@ -359,4 +391,100 @@ class PendingReferralInvitation(models.Model):
         """Mark this invitation as converted when the user signs up."""
         self.converted = True
         self.converted_at = now()
+        self.save()
+
+
+class ReferralAbuseFlag(models.Model):
+    """
+    Tracks suspected abuse of the referral system.
+    Examples: self-referrals, multiple accounts, suspicious patterns.
+    """
+    ABUSE_TYPES = (
+        ('self_referral', 'Self Referral'),
+        ('multiple_accounts', 'Multiple Accounts'),
+        ('suspicious_ip', 'Suspicious IP Pattern'),
+        ('rapid_referrals', 'Rapid Referrals'),
+        ('fake_accounts', 'Fake Accounts'),
+        ('other', 'Other'),
+    )
+    
+    STATUS_CHOICES = (
+        ('pending', 'Pending Review'),
+        ('reviewed', 'Reviewed'),
+        ('resolved', 'Resolved'),
+        ('false_positive', 'False Positive'),
+    )
+    
+    referral = models.ForeignKey(
+        Referral,
+        on_delete=models.CASCADE,
+        related_name='abuse_flags',
+        help_text="The referral that was flagged."
+    )
+    abuse_type = models.CharField(
+        max_length=30,
+        choices=ABUSE_TYPES,
+        help_text="Type of suspected abuse."
+    )
+    reason = models.TextField(
+        help_text="Detailed reason for flagging this referral."
+    )
+    detected_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When this abuse was detected."
+    )
+    detected_by = models.CharField(
+        max_length=50,
+        default='system',
+        help_text="Who/what detected this (system, admin username, etc)."
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text="Current status of this abuse flag."
+    )
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reviewed_abuse_flags',
+        help_text="Admin/superadmin who reviewed this flag."
+    )
+    reviewed_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this flag was reviewed."
+    )
+    review_notes = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Notes from the reviewer."
+    )
+    action_taken = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Action taken (e.g., referral voided, bonus revoked)."
+    )
+    
+    class Meta:
+        ordering = ['-detected_at']
+        indexes = [
+            models.Index(fields=['status', 'abuse_type']),
+            models.Index(fields=['referral']),
+        ]
+    
+    def __str__(self):
+        return f"Abuse Flag: {self.get_abuse_type_display()} for Referral {self.referral.id}"
+    
+    def mark_as_reviewed(self, reviewer, notes=None, action_taken=None):
+        """Mark this flag as reviewed by an admin."""
+        self.status = 'reviewed'
+        self.reviewed_by = reviewer
+        self.reviewed_at = now()
+        if notes:
+            self.review_notes = notes
+        if action_taken:
+            self.action_taken = action_taken
         self.save()

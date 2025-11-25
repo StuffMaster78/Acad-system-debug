@@ -86,60 +86,72 @@ class Command(BaseCommand):
 
         User = get_user_model()
 
-        website, _ = Website.objects.get_or_create(
-            domain="https://demo.writingsystem.test",
-            defaults={"name": "Demo Writing System", "contact_email": "support@demo.test"},
-        )
+        # Seed for all active websites, or create demo website if none exist
+        websites = Website.objects.filter(is_active=True)
+        if not websites.exists():
+            website, _ = Website.objects.get_or_create(
+                domain="https://demo.writingsystem.test",
+                defaults={"name": "Demo Writing System", "contact_email": "support@demo.test", "is_active": True},
+            )
+            websites = Website.objects.filter(id=website.id)
 
-        admin_user = self.ensure_user(
-            email="admin.demo@example.com",
-            username="admin_demo",
-            role="superadmin",
-            password="AdminDemo123!",
-            website=website,
-            is_staff=True,
-            is_superuser=True,
-        )
-        admin_user.is_staff = True
-        admin_user.is_superuser = True
-        admin_user.role = "superadmin"
-        admin_user.save(update_fields=["is_staff", "is_superuser", "role", "website", "detected_country", "detected_timezone"])
+        # Process each website
+        total_schedules = 0
+        total_payments = 0
+        for website in websites:
+            self.stdout.write(f"\n{'='*60}")
+            self.stdout.write(f"Processing website: {website.name} (ID: {website.id})")
+            self.stdout.write(f"{'='*60}")
 
-        client_user = self.ensure_user(
-            email="client.demo@example.com",
-            username="client_demo",
-            role="client",
-            password="ClientDemo123!",
-            website=website,
-        )
+            admin_user = self.ensure_user(
+                email=f"admin.demo@{website.id}.example.com",
+                username=f"admin_demo_{website.id}",
+                role="superadmin",
+                password="AdminDemo123!",
+                website=website,
+                is_staff=True,
+                is_superuser=True,
+            )
+            admin_user.is_staff = True
+            admin_user.is_superuser = True
+            admin_user.role = "superadmin"
+            admin_user.save(update_fields=["is_staff", "is_superuser", "role", "website", "detected_country", "detected_timezone"])
 
-        paper_type = PaperType.objects.filter(name="Essay").first()
-        if paper_type is None:
-            paper_type = PaperType.objects.create(website=website, name="Essay")
+            client_user = self.ensure_user(
+                email=f"client.demo@{website.id}.example.com",
+                username=f"client_demo_{website.id}",
+                role="client",
+                password="ClientDemo123!",
+                website=website,
+            )
 
-        academic_level, _ = AcademicLevel.objects.get_or_create(website=website, name="University")
-        formatting_style = FormattingandCitationStyle.objects.filter(name="APA").first()
-        if formatting_style is None:
-            formatting_style = FormattingandCitationStyle.objects.create(website=website, name="APA")
+            paper_type = PaperType.objects.filter(name="Essay", website=website).first()
+            if paper_type is None:
+                paper_type = PaperType.objects.create(website=website, name="Essay")
 
-        subject = Subject.objects.filter(name="Business").first()
-        if subject is None:
-            subject = Subject.objects.create(website=website, name="Business")
+            academic_level, _ = AcademicLevel.objects.get_or_create(website=website, name="University")
+            formatting_style = FormattingandCitationStyle.objects.filter(name="APA", website=website).first()
+            if formatting_style is None:
+                formatting_style = FormattingandCitationStyle.objects.create(website=website, name="APA")
 
-        type_of_work = TypeOfWork.objects.filter(name="Writing").first()
-        if type_of_work is None:
-            type_of_work = TypeOfWork.objects.create(website=website, name="Writing")
+            subject = Subject.objects.filter(name="Business", website=website).first()
+            if subject is None:
+                subject = Subject.objects.create(website=website, name="Business")
 
-        english_type = EnglishType.objects.filter(name="US English").first()
-        if english_type is None:
-            english_type = EnglishType.objects.create(website=website, name="US English", code="US")
+            type_of_work = TypeOfWork.objects.filter(name="Writing", website=website).first()
+            if type_of_work is None:
+                type_of_work = TypeOfWork.objects.create(website=website, name="Writing")
 
-        writer_deadline_cfg, _ = WriterDeadlineConfig.objects.get_or_create(website=website, writer_deadline_percentage=80)
+            english_type = EnglishType.objects.filter(name="US English", website=website).first()
+            if english_type is None:
+                english_type = EnglishType.objects.create(website=website, name="US English", code="US")
 
-        demo_writers = []
-        for index in range(1, writers_count + 1):
-            email = f"writer{index}.demo@example.com"
-            username = f"writer_demo_{index}"
+            writer_deadline_cfg, _ = WriterDeadlineConfig.objects.get_or_create(website=website, writer_deadline_percentage=80)
+
+            demo_writers = []
+            for index in range(1, writers_count + 1):
+                email = f"writer{index}.demo@{website.id}.example.com"
+                username = f"writer_demo_{website.id}_{index}"
             writer_user = self.ensure_user(
                 email=email,
                 username=username,
@@ -254,58 +266,154 @@ class Command(BaseCommand):
 
         payment_periods = []
         today = timezone.now().date()
-        for offset in range(periods_count):
-            scheduled_date = today - timedelta(days=14 * offset)
-            biweekly_schedule = PaymentSchedule.objects.create(
-                website=website,
-                schedule_type="Bi-Weekly",
-                scheduled_date=scheduled_date,
-                processed_by=admin_user,
-                completed=offset == 0,
-                reference_code=f"PB{uuid4().hex[:8]}",
-            )
-            payment_periods.append(biweekly_schedule)
-
-            month_start = (today.replace(day=1) - timedelta(days=30 * offset))
+        
+        # Create bi-weekly schedules: 3 months back + current + 1 month forward (pending)
+        biweekly_count = 0
+        for months_back in range(3, -2, -1):  # 3 months back to 1 month forward
+            if months_back > 0:
+                # Past bi-weekly periods
+                for week_offset in [0, 2]:  # Two bi-weekly periods per month
+                    scheduled_date = today - timedelta(days=30 * months_back + 14 * week_offset)
+                    if scheduled_date <= today:
+                        biweekly_schedule = PaymentSchedule.objects.create(
+                            website=website,
+                            schedule_type="Bi-Weekly",
+                            scheduled_date=scheduled_date,
+                            processed_by=admin_user,
+                            completed=True,  # Past periods are completed
+                            reference_code=f"BW{uuid4().hex[:8]}",
+                        )
+                        payment_periods.append(biweekly_schedule)
+                        biweekly_count += 1
+            elif months_back == 0:
+                # Current month - create past and upcoming bi-weekly
+                for week_offset in [2, 0, -2]:  # Past, current, future
+                    scheduled_date = today - timedelta(days=14 * week_offset)
+                    if week_offset >= 0:
+                        completed = True
+                    else:
+                        completed = False  # Future period is pending
+                    biweekly_schedule = PaymentSchedule.objects.create(
+                        website=website,
+                        schedule_type="Bi-Weekly",
+                        scheduled_date=scheduled_date,
+                        processed_by=admin_user if completed else None,
+                        completed=completed,
+                        reference_code=f"BW{uuid4().hex[:8]}",
+                    )
+                    payment_periods.append(biweekly_schedule)
+                    biweekly_count += 1
+            else:
+                # Future month - pending
+                scheduled_date = today + timedelta(days=abs(months_back) * 30)
+                biweekly_schedule = PaymentSchedule.objects.create(
+                    website=website,
+                    schedule_type="Bi-Weekly",
+                    scheduled_date=scheduled_date,
+                    processed_by=None,
+                    completed=False,  # Future period is pending
+                    reference_code=f"BW{uuid4().hex[:8]}",
+                )
+                payment_periods.append(biweekly_schedule)
+                biweekly_count += 1
+        
+        # Create monthly schedules: 3 months back + current + 1 month forward (pending)
+        # Past 3 months
+        for i in range(1, 4):
+            month = today.month - i
+            year = today.year
+            while month <= 0:
+                month += 12
+                year -= 1
+            month_date = today.replace(year=year, month=month, day=1)
             monthly_schedule = PaymentSchedule.objects.create(
                 website=website,
                 schedule_type="Monthly",
-                scheduled_date=month_start,
+                scheduled_date=month_date,
                 processed_by=admin_user,
-                completed=offset == 0,
-                reference_code=f"PB{uuid4().hex[:8]}",
+                completed=True,  # Past periods are completed
+                reference_code=f"MO{uuid4().hex[:8]}",
             )
             payment_periods.append(monthly_schedule)
+        
+        # Current month
+        current_month = today.replace(day=1)
+        monthly_schedule = PaymentSchedule.objects.create(
+            website=website,
+            schedule_type="Monthly",
+            scheduled_date=current_month,
+            processed_by=admin_user if today.day > 15 else None,
+            completed=today.day > 15,  # Completed if we're past mid-month
+            reference_code=f"MO{uuid4().hex[:8]}",
+        )
+        payment_periods.append(monthly_schedule)
+        
+        # Next month (pending)
+        month = today.month + 1
+        year = today.year
+        if month > 12:
+            month = 1
+            year += 1
+        next_month = today.replace(year=year, month=month, day=1)
+        monthly_schedule = PaymentSchedule.objects.create(
+            website=website,
+            schedule_type="Monthly",
+            scheduled_date=next_month,
+            processed_by=None,
+            completed=False,  # Future period is pending
+            reference_code=f"MO{uuid4().hex[:8]}",
+        )
+        payment_periods.append(monthly_schedule)
 
         payment_records_created = 0
+        import random
         for schedule in payment_periods:
             for writer in demo_writers:
-                amount = Decimal("250.00") + Decimal(payment_records_created % 3) * Decimal("25.00")
+                # Vary amounts: $150-$800 range
+                base_amount = Decimal("150.00") + Decimal(str(random.randint(0, 65))) * Decimal("10.00")
+                amount = base_amount
+                
+                # Create payment with appropriate status
                 payment = ScheduledWriterPayment.objects.create(
                     website=website,
                     batch=schedule,
                     writer_wallet=writer["wallet"],
                     amount=amount,
                     status="Paid" if schedule.completed else "Pending",
-                    payment_date=timezone.now() - timedelta(days=1) if schedule.completed else None,
+                    payment_date=timezone.now() - timedelta(days=random.randint(1, 30)) if schedule.completed else None,
                     reference_code=f"PW{uuid4().hex[:8]}",
                 )
 
-                for order in created_orders[:2]:
-                    PaymentOrderRecord.objects.create(
-                        website=website,
-                        payment=payment,
-                        order=order,
-                        amount_paid=order.writer_compensation or Decimal("100.00"),
-                    )
+                # Link some orders to payments (not all payments need orders)
+                if created_orders and random.random() > 0.3:  # 70% chance to link orders
+                    num_orders = random.randint(1, min(3, len(created_orders)))
+                    for order in created_orders[:num_orders]:
+                        PaymentOrderRecord.objects.create(
+                            website=website,
+                            payment=payment,
+                            order=order,
+                            amount_paid=order.writer_compensation or Decimal("100.00"),
+                        )
 
                 payment_records_created += 1
+            
+            total_schedules += len(payment_periods)
+            total_payments += payment_records_created
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"✓ Created {len(payment_periods)} payment schedules and "
+                    f"{payment_records_created} scheduled payments for {website.name}"
+                )
+            )
 
-        self.stdout.write(self.style.SUCCESS("Seeded demo writer payment data."))
+        self.stdout.write(self.style.SUCCESS(f"\n{'='*60}"))
+        self.stdout.write(self.style.SUCCESS("Seeded demo writer payment data for all websites."))
+        self.stdout.write(self.style.SUCCESS(f"{'='*60}"))
         self.stdout.write(
-            """Created/updated demo users:
-  Admin: admin.demo@example.com / AdminDemo123!
-  Client: client.demo@example.com / ClientDemo123!
-  Writers: writerX.demo@example.com / WriterDemo123! (X = 1..n)
-Navigate to /admin/writer-payments or /admin/batched-writer-payments in the frontend as an admin to view the tables."""
+            f"""\nSummary:
+  - Total Payment Schedules: {total_schedules}
+  - Total Scheduled Payments: {total_payments}
+  - Websites Processed: {websites.count()}
+
+Navigate to /admin/payments/writer-payments or /admin/payments/batched in the frontend as an admin to view the tables."""
         )

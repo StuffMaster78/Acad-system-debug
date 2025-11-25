@@ -274,8 +274,10 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 SESSION_CACHE_ALIAS = "default"
 
 # Session idle timeout settings (in seconds)
-SESSION_IDLE_TIMEOUT = int(os.getenv("SESSION_IDLE_TIMEOUT", 30 * 60))  # Default: 30 minutes
-SESSION_WARNING_TIME = int(os.getenv("SESSION_WARNING_TIME", 5 * 60))   # Default: 5 minutes before timeout
+# Session idle timeout - only applies to session-based auth, not JWT
+# JWT tokens have their own expiration (ACCESS_TOKEN_LIFETIME = 1 day)
+SESSION_IDLE_TIMEOUT = int(os.getenv("SESSION_IDLE_TIMEOUT", 8 * 60 * 60))  # Default: 8 hours (increased from 30 min)
+SESSION_WARNING_TIME = int(os.getenv("SESSION_WARNING_TIME", 30 * 60))   # Default: 30 minutes before timeout (increased from 5 min)
 
 
 

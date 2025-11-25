@@ -5,7 +5,7 @@ from .views import (
     WriterPaymentBatchViewSet, PaymentScheduleViewSet,
     ScheduledWriterPaymentViewSet, PaymentOrderRecordViewSet, 
     WriterPaymentViewSet, AdminPaymentAdjustmentViewSet,
-    PaymentConfirmationViewSet
+    PaymentConfirmationViewSet, WriterPaymentRequestViewSet
 )
 
 router = DefaultRouter()
@@ -18,6 +18,7 @@ router.register("payment-order-records", PaymentOrderRecordViewSet)
 router.register("writer-payments", WriterPaymentViewSet)
 router.register("payment-adjustments", AdminPaymentAdjustmentViewSet)
 router.register("payment-confirmations", PaymentConfirmationViewSet)
+router.register("payment-requests", WriterPaymentRequestViewSet, basename="payment-requests")
 
 urlpatterns = [
     path("", include(router.urls)),

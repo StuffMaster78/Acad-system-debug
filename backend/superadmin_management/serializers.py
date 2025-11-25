@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import SuperadminProfile, SuperadminLog
+from .models import SuperadminProfile, SuperadminLog, Appeal
 from django.contrib.auth import get_user_model
 from superadmin_management.models import Probation  # Import at the top to avoid circular import
 
@@ -61,3 +61,16 @@ class UserSerializer(serializers.ModelSerializer):
     def get_is_on_probation(self, obj):
         """Check if the user is currently on probation."""
         return Probation.objects.filter(user=obj, is_active=True).exists()
+
+
+### 🔹 4️⃣ Appeal Serializer
+class AppealSerializer(serializers.ModelSerializer):
+    """Serializer for user appeals."""
+    user_username = serializers.CharField(source='user.username', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    reviewed_by_username = serializers.CharField(source='reviewed_by.username', read_only=True)
+    
+    class Meta:
+        model = Appeal
+        fields = '__all__'
+        read_only_fields = ['submitted_at', 'user_username', 'user_email', 'reviewed_by_username']

@@ -172,6 +172,7 @@ class OrderActionService:
         self,
         order: Order,
         action_name: str,
+        reason: str = None,
         **params
     ) -> Order:
         """
@@ -208,6 +209,11 @@ class OrderActionService:
                     f"User role '{self.user_role}' does not have permission to perform '{action_name}'"
                 )
         
+        # Build reason for transition (use provided reason or default)
+        transition_reason = reason or f"Action: {action_name}"
+        if reason:
+            transition_reason = f"{action_name}: {reason}"
+        
         # Execute the action via dispatcher
         from orders.dispatcher import OrderActionDispatcher
         try:
@@ -215,6 +221,7 @@ class OrderActionService:
                 action_name=action_name,
                 order_id=order.id,
                 actor=self.user,
+                reason=reason,
                 **params
             )
         except Exception as e:
@@ -225,7 +232,7 @@ class OrderActionService:
                 updated_order = transition_service.transition_order_to_status(
                     order,
                     target_status,
-                    reason=f"Action: {action_name}"
+                    reason=transition_reason
                 )
             else:
                 raise ValueError(f"Action '{action_name}' failed: {str(e)}")
@@ -238,7 +245,7 @@ class OrderActionService:
                 updated_order = transition_service.transition_order_to_status(
                     updated_order,
                     target_status,
-                    reason=f"Action: {action_name}"
+                    reason=transition_reason
                 )
             except Exception as e:
                 # Transition failed, but action might have succeeded

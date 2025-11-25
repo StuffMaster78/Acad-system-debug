@@ -1,256 +1,357 @@
 <template>
-  <div class="tip-management">
-    <!-- Header -->
-    <div class="header">
-      <h1>Tip Management</h1>
-      <div class="header-actions">
-        <button @click="refreshDashboard" :disabled="loading" class="btn btn-primary">
-          <span v-if="loading">Loading...</span>
-          <span v-else>Refresh</span>
-        </button>
+  <div class="space-y-6 p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Tip Management & Earnings</h1>
+        <p class="mt-2 text-gray-600">Track tip earnings, writer payouts, and platform profit</p>
+      </div>
+      <div class="flex gap-2">
+        <select v-model="daysFilter" @change="loadDashboard" class="border rounded px-3 py-2">
+          <option :value="7">Last 7 days</option>
+          <option :value="30">Last 30 days</option>
+          <option :value="90">Last 90 days</option>
+          <option :value="365">Last year</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div v-if="dashboardData && dashboardData.summary" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+        <p class="text-sm font-medium text-purple-700 mb-1">Total Tips</p>
+        <p class="text-3xl font-bold text-purple-900">{{ dashboardData.summary?.total_tips || 0 }}</p>
+      </div>
+      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+        <p class="text-sm font-medium text-blue-700 mb-1">Total Amount</p>
+        <p class="text-3xl font-bold text-blue-900">${{ formatCurrency(dashboardData.summary?.total_tip_amount) }}</p>
+      </div>
+      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+        <p class="text-sm font-medium text-green-700 mb-1">Writer Earnings</p>
+        <p class="text-3xl font-bold text-green-900">${{ formatCurrency(dashboardData.summary?.total_writer_earnings) }}</p>
+      </div>
+      <div class="card p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+        <p class="text-sm font-medium text-indigo-700 mb-1">Platform Profit</p>
+        <p class="text-3xl font-bold text-indigo-900">${{ formatCurrency(dashboardData.summary?.total_platform_profit) }}</p>
+      </div>
+      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+        <p class="text-sm font-medium text-yellow-700 mb-1">Avg Tip</p>
+        <p class="text-3xl font-bold text-yellow-900">${{ formatCurrency(dashboardData.summary?.avg_tip_amount) }}</p>
+      </div>
+      <div class="card p-4 bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200">
+        <p class="text-sm font-medium text-pink-700 mb-1">Avg Writer %</p>
+        <p class="text-3xl font-bold text-pink-900">{{ (dashboardData.summary?.avg_writer_percentage || 0).toFixed(1) }}%</p>
+      </div>
+    </div>
+
+    <!-- Recent Summary -->
+    <div v-if="dashboardData && dashboardData.recent_summary" class="card p-6 bg-gradient-to-r from-purple-500 to-indigo-600 text-white">
+      <h2 class="text-xl font-bold mb-4">Last {{ dashboardData.recent_summary.days }} Days Summary</h2>
+      <div class="grid grid-cols-4 gap-4">
+        <div>
+          <p class="text-sm opacity-90">Tips</p>
+          <p class="text-3xl font-bold">{{ dashboardData.recent_summary.total_tips }}</p>
+        </div>
+        <div>
+          <p class="text-sm opacity-90">Total Amount</p>
+          <p class="text-3xl font-bold">${{ formatCurrency(dashboardData.recent_summary.total_tip_amount) }}</p>
+        </div>
+        <div>
+          <p class="text-sm opacity-90">Writer Earnings</p>
+          <p class="text-3xl font-bold">${{ formatCurrency(dashboardData.recent_summary.total_writer_earnings) }}</p>
+        </div>
+        <div>
+          <p class="text-sm opacity-90">Platform Profit</p>
+          <p class="text-3xl font-bold">${{ formatCurrency(dashboardData.recent_summary.total_platform_profit) }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Status Cards -->
+    <div v-if="dashboardData && dashboardData.payment_status" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div class="card p-4 bg-green-50 border border-green-200">
+        <p class="text-sm font-medium text-green-700 mb-1">Completed</p>
+        <p class="text-2xl font-bold text-green-900">{{ dashboardData.payment_status.completed || 0 }}</p>
+      </div>
+      <div class="card p-4 bg-yellow-50 border border-yellow-200">
+        <p class="text-sm font-medium text-yellow-700 mb-1">Pending</p>
+        <p class="text-2xl font-bold text-yellow-900">{{ dashboardData.payment_status.pending || 0 }}</p>
+      </div>
+      <div class="card p-4 bg-blue-50 border border-blue-200">
+        <p class="text-sm font-medium text-blue-700 mb-1">Processing</p>
+        <p class="text-2xl font-bold text-blue-900">{{ dashboardData.payment_status.processing || 0 }}</p>
+      </div>
+      <div class="card p-4 bg-red-50 border border-red-200">
+        <p class="text-sm font-medium text-red-700 mb-1">Failed</p>
+        <p class="text-2xl font-bold text-red-900">{{ dashboardData.payment_status.failed || 0 }}</p>
       </div>
     </div>
 
     <!-- Tabs -->
-    <div class="tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        @click="activeTab = tab.id"
-        :class="['tab', { active: activeTab === tab.id }]"
-      >
-        {{ tab.label }}
-      </button>
+    <div class="border-b border-gray-200">
+      <nav class="-mb-px flex space-x-8">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          @click="activeTab = tab.id"
+          :class="[
+            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+            activeTab === tab.id
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          ]"
+        >
+          {{ tab.label }}
+          <span v-if="tab.badge" class="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">
+            {{ tab.badge }}
+          </span>
+        </button>
+      </nav>
     </div>
 
-    <!-- Dashboard Tab -->
-    <div v-if="activeTab === 'dashboard'" class="tab-content">
-      <div v-if="loading" class="loading">Loading dashboard...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
-      <div v-else class="dashboard-container">
-        <!-- Summary Cards -->
-        <div class="stats-grid">
-          <div class="dashboard-card card-blue">
-            <div class="card-icon">💰</div>
-            <div class="card-label">Total Tips</div>
-            <div class="card-value">{{ formatNumber(dashboardData.summary?.total_tips || 0) }}</div>
+    <!-- Tips List Tab -->
+    <div v-if="activeTab === 'tips'" class="space-y-4">
+      <!-- Filters -->
+      <div class="card p-4">
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Tip Type</label>
+            <select v-model="filters.tip_type" @change="loadTips" class="w-full border rounded px-3 py-2">
+              <option value="">All Types</option>
+              <option value="direct">Direct</option>
+              <option value="order">Order-Based</option>
+              <option value="class">Class-Based</option>
+            </select>
           </div>
-          <div class="dashboard-card card-green">
-            <div class="card-icon">💵</div>
-            <div class="card-label">Total Tip Amount</div>
-            <div class="card-value money-value">${{ formatCurrency(dashboardData.summary?.total_tip_amount || 0) }}</div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Payment Status</label>
+            <select v-model="filters.payment_status" @change="loadTips" class="w-full border rounded px-3 py-2">
+              <option value="">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
+              <option value="completed">Completed</option>
+              <option value="failed">Failed</option>
+            </select>
           </div>
-          <div class="dashboard-card card-purple">
-            <div class="card-icon">✍️</div>
-            <div class="card-label">Writer Earnings</div>
-            <div class="card-value money-value">${{ formatCurrency(dashboardData.summary?.total_writer_earnings || 0) }}</div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Writer ID</label>
+            <input
+              v-model.number="filters.writer_id"
+              @input="debouncedSearch"
+              type="number"
+              placeholder="Writer ID"
+              class="w-full border rounded px-3 py-2"
+            />
           </div>
-          <div class="dashboard-card card-orange">
-            <div class="card-icon">🏢</div>
-            <div class="card-label">Platform Profit</div>
-            <div class="card-value money-value">${{ formatCurrency(dashboardData.summary?.total_platform_profit || 0) }}</div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Client ID</label>
+            <input
+              v-model.number="filters.client_id"
+              @input="debouncedSearch"
+              type="number"
+              placeholder="Client ID"
+              class="w-full border rounded px-3 py-2"
+            />
           </div>
-        </div>
-
-        <!-- Recent Summary -->
-        <div class="dashboard-section">
-          <h2>Recent Summary (Last {{ dashboardData.recent_summary?.days || 30 }} Days)</h2>
-          <div class="stats-grid">
-            <div class="stat-item">
-              <div class="stat-label">Total Tips</div>
-              <div class="stat-value">{{ formatNumber(dashboardData.recent_summary?.total_tips || 0) }}</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">Total Amount</div>
-              <div class="stat-value money-value">${{ formatCurrency(dashboardData.recent_summary?.total_tip_amount || 0) }}</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">Writer Earnings</div>
-              <div class="stat-value money-value">${{ formatCurrency(dashboardData.recent_summary?.total_writer_earnings || 0) }}</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-label">Platform Profit</div>
-              <div class="stat-value money-value">${{ formatCurrency(dashboardData.recent_summary?.total_platform_profit || 0) }}</div>
-            </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Date From</label>
+            <input
+              v-model="filters.date_from"
+              @change="loadTips"
+              type="date"
+              class="w-full border rounded px-3 py-2"
+            />
           </div>
-        </div>
-
-        <!-- Payment Status -->
-        <div class="dashboard-section">
-          <h2>Payment Status</h2>
-          <div class="payment-status">
-            <div class="status-item">
-              <span class="status-badge completed">Completed</span>
-              <span>{{ dashboardData.payment_status?.completed || 0 }}</span>
-            </div>
-            <div class="status-item">
-              <span class="status-badge pending">Pending</span>
-              <span>{{ dashboardData.payment_status?.pending || 0 }}</span>
-            </div>
-            <div class="status-item">
-              <span class="status-badge processing">Processing</span>
-              <span>{{ dashboardData.payment_status?.processing || 0 }}</span>
-            </div>
-            <div class="status-item">
-              <span class="status-badge failed">Failed</span>
-              <span>{{ dashboardData.payment_status?.failed || 0 }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Type Breakdown -->
-        <div class="dashboard-section">
-          <h2>Breakdown by Type</h2>
-          <div class="breakdown">
-            <div
-              v-for="item in dashboardData.type_breakdown"
-              :key="item.tip_type"
-              class="breakdown-item"
-            >
-              <h4>{{ item.tip_type }}</h4>
-              <p>Count: {{ item.count }}</p>
-              <p>Total: ${{ formatCurrency(item.total_amount) }}</p>
-              <p>Writer Earnings: ${{ formatCurrency(item.writer_earnings) }}</p>
-              <p>Platform Profit: ${{ formatCurrency(item.platform_profit) }}</p>
-            </div>
+          <div class="flex items-end">
+            <button @click="resetFilters" class="btn btn-secondary w-full">Reset</button>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- List Tips Tab -->
-    <div v-if="activeTab === 'list'" class="tab-content">
-      <div class="filters">
-        <select v-model="filters.tip_type" @change="loadTips">
-          <option value="">All Types</option>
-          <option value="direct">Direct</option>
-          <option value="order">Order</option>
-          <option value="class">Class</option>
-        </select>
-        <select v-model="filters.payment_status" @change="loadTips">
-          <option value="">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="processing">Processing</option>
-          <option value="completed">Completed</option>
-          <option value="failed">Failed</option>
-        </select>
-        <input
-          v-model="filters.date_from"
-          type="date"
-          placeholder="From Date"
-          @change="loadTips"
-        />
-        <input
-          v-model="filters.date_to"
-          type="date"
-          placeholder="To Date"
-          @change="loadTips"
-        />
-        <button @click="clearFilters" class="btn btn-secondary">Clear Filters</button>
+      <!-- Summary Stats -->
+      <div v-if="tipsSummary" class="grid grid-cols-3 gap-4">
+        <div class="card p-4 bg-blue-50">
+          <p class="text-sm text-blue-700 mb-1">Total Tip Amount</p>
+          <p class="text-2xl font-bold text-blue-900">${{ formatCurrency(tipsSummary.total_tip_amount) }}</p>
+        </div>
+        <div class="card p-4 bg-green-50">
+          <p class="text-sm text-green-700 mb-1">Writer Earnings</p>
+          <p class="text-2xl font-bold text-green-900">${{ formatCurrency(tipsSummary.total_writer_earnings) }}</p>
+        </div>
+        <div class="card p-4 bg-indigo-50">
+          <p class="text-sm text-indigo-700 mb-1">Platform Profit</p>
+          <p class="text-2xl font-bold text-indigo-900">${{ formatCurrency(tipsSummary.total_platform_profit) }}</p>
+        </div>
       </div>
 
-      <div v-if="loading" class="loading">Loading tips...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
-      <div v-else>
-        <div class="tips-summary">
-          <p>Total: {{ formatNumber(tipsData.count || 0) }} tips</p>
-          <p>Total Amount: ${{ formatCurrency(tipsData.summary?.total_tip_amount || 0) }}</p>
+      <!-- Tips Table -->
+      <div class="card overflow-hidden">
+        <div v-if="loadingTips" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-        <table class="tips-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Client</th>
-              <th>Writer</th>
-              <th>Type</th>
-              <th>Amount</th>
-              <th>Writer Earning</th>
-              <th>Platform Profit</th>
-              <th>Status</th>
-              <th>Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="tip in tipsData.results" :key="tip.id">
-              <td>{{ tip.id }}</td>
-              <td>{{ tip.client?.username || tip.client?.email }}</td>
-              <td>{{ tip.writer?.username || tip.writer?.email }}</td>
-              <td>{{ tip.tip_type }}</td>
-              <td>${{ formatCurrency(tip.tip_amount) }}</td>
-              <td>${{ formatCurrency(tip.writer_earning) }}</td>
-              <td>${{ formatCurrency(tip.platform_profit) }}</td>
-              <td>
-                <span :class="['status-badge', tip.payment_status]">
-                  {{ tip.payment_status }}
-                </span>
-              </td>
-              <td>{{ formatDate(tip.sent_at) }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div class="pagination">
-          <button
-            @click="previousPage"
-            :disabled="pagination.offset === 0"
-            class="btn btn-secondary"
-          >
-            Previous
-          </button>
-          <span>Page {{ currentPage }} of {{ totalPages }}</span>
-          <button
-            @click="nextPage"
-            :disabled="pagination.offset + pagination.limit >= tipsData.count"
-            class="btn btn-secondary"
-          >
-            Next
-          </button>
+        
+        <div v-else>
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tip Amount</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer Earned</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Platform Profit</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer %</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="tip in tips" :key="tip.id" class="hover:bg-gray-50">
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  #{{ tip.id }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span class="px-2 py-1 text-xs rounded" :class="getTypeBadgeClass(tip.tip_type)">
+                    {{ tip.tip_type_display || tip.tip_type }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{ tip.writer_username || 'N/A' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  {{ tip.client_username || 'N/A' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  ${{ formatCurrency(tip.full_tip_amount || tip.tip_amount) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                  ${{ formatCurrency(tip.amount_received || tip.writer_earning) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">
+                  ${{ formatCurrency((tip.full_tip_amount || tip.tip_amount) - (tip.amount_received || tip.writer_earning)) }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ tip.writer_percentage_display || (tip.writer_percentage ? tip.writer_percentage + '%' : 'N/A') }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  <span class="px-2 py-1 text-xs rounded" :class="getStatusBadgeClass(tip.payment_status)">
+                    {{ tip.payment_status || 'pending' }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {{ formatDate(tip.sent_at) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div v-if="tips.length === 0" class="text-center py-12 text-gray-500">
+            No tips found
+          </div>
         </div>
       </div>
     </div>
 
     <!-- Analytics Tab -->
-    <div v-if="activeTab === 'analytics'" class="tab-content">
-      <div class="analytics-controls">
-        <label>
-          Days:
-          <input
-            v-model.number="analyticsDays"
-            type="number"
-            min="1"
-            max="365"
-            @change="loadAnalytics"
-          />
-        </label>
-        <button @click="loadAnalytics" class="btn btn-primary">Update</button>
+    <div v-if="activeTab === 'analytics'" class="space-y-4">
+      <div v-if="loadingAnalytics" class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-      <div v-if="loading" class="loading">Loading analytics...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
-      <div v-else class="analytics">
-        <div class="section">
-          <h2>Monthly Trends</h2>
-          <div class="trends">
-            <div
-              v-for="trend in analyticsData.trends?.monthly"
-              :key="trend.month"
-              class="trend-item"
-            >
-              <h4>{{ formatDate(trend.month) }}</h4>
-              <p>Count: {{ trend.count }}</p>
-              <p>Total: ${{ formatCurrency(trend.total_amount) }}</p>
+      
+      <div v-else-if="analyticsData" class="space-y-6">
+        <!-- Top Performers -->
+        <div class="grid grid-cols-2 gap-6">
+          <div class="card p-6">
+            <h3 class="text-lg font-bold mb-4">Top Writers by Earnings</h3>
+            <div class="space-y-3">
+              <div
+                v-for="(writer, index) in analyticsData.top_performers?.writers || []"
+                :key="writer.writer__id"
+                class="flex items-center justify-between p-3 bg-gray-50 rounded"
+              >
+                <div class="flex items-center gap-3">
+                  <span class="text-lg font-bold text-gray-400">#{{ index + 1 }}</span>
+                  <div>
+                    <p class="font-medium">{{ writer.writer__username }}</p>
+                    <p class="text-sm text-gray-500">{{ writer.tip_count }} tips</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="font-bold text-green-600">${{ formatCurrency(writer.total_received) }}</p>
+                  <p class="text-xs text-gray-500">Avg: ${{ formatCurrency(writer.avg_tip) }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card p-6">
+            <h3 class="text-lg font-bold mb-4">Top Clients by Tips Sent</h3>
+            <div class="space-y-3">
+              <div
+                v-for="(client, index) in analyticsData.top_performers?.clients || []"
+                :key="client.client__id"
+                class="flex items-center justify-between p-3 bg-gray-50 rounded"
+              >
+                <div class="flex items-center gap-3">
+                  <span class="text-lg font-bold text-gray-400">#{{ index + 1 }}</span>
+                  <div>
+                    <p class="font-medium">{{ client.client__username }}</p>
+                    <p class="text-sm text-gray-500">{{ client.tip_count }} tips</p>
+                  </div>
+                </div>
+                <div class="text-right">
+                  <p class="font-bold text-blue-600">${{ formatCurrency(client.total_sent) }}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="section">
-          <h2>Top Writers</h2>
-          <div class="top-performers">
-            <div
-              v-for="writer in analyticsData.top_performers?.writers"
-              :key="writer.writer__id"
-              class="performer-item"
-            >
-              <h4>{{ writer.writer__username }}</h4>
-              <p>Tips: {{ writer.tip_count }}</p>
-              <p>Total Received: ${{ formatCurrency(writer.total_received) }}</p>
+
+        <!-- Breakdowns -->
+        <div class="grid grid-cols-2 gap-6">
+          <div class="card p-6">
+            <h3 class="text-lg font-bold mb-4">Breakdown by Type</h3>
+            <div class="space-y-3">
+              <div
+                v-for="item in analyticsData.breakdowns?.by_type || []"
+                :key="item.tip_type"
+                class="flex items-center justify-between p-3 bg-gray-50 rounded"
+              >
+                <div>
+                  <p class="font-medium capitalize">{{ item.tip_type }}</p>
+                  <p class="text-sm text-gray-500">{{ item.count }} tips</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-bold">${{ formatCurrency(item.total_amount) }}</p>
+                  <p class="text-xs text-gray-500">
+                    Writer: ${{ formatCurrency(item.writer_earnings) }} | 
+                    Platform: ${{ formatCurrency(item.platform_profit) }}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card p-6">
+            <h3 class="text-lg font-bold mb-4">Breakdown by Level</h3>
+            <div class="space-y-3">
+              <div
+                v-for="item in analyticsData.breakdowns?.by_level || []"
+                :key="item.writer_level__name"
+                class="flex items-center justify-between p-3 bg-gray-50 rounded"
+              >
+                <div>
+                  <p class="font-medium">{{ item.writer_level__name }}</p>
+                    <p class="text-sm text-gray-500">{{ item.tip_count }} tips ({{ (item.avg_percentage || 0).toFixed(1) }}% avg)</p>
+                </div>
+                <div class="text-right">
+                  <p class="font-bold">${{ formatCurrency(item.total_tips) }}</p>
+                  <p class="text-xs text-gray-500">
+                    Writer: ${{ formatCurrency(item.total_writer_earnings) }} | 
+                    Platform: ${{ formatCurrency(item.total_platform_profit) }}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -258,62 +359,78 @@
     </div>
 
     <!-- Earnings Tab -->
-    <div v-if="activeTab === 'earnings'" class="tab-content">
-      <div class="earnings-controls">
-        <label>
-          From Date:
-          <input
-            v-model="earningsFilters.date_from"
-            type="date"
-            @change="loadEarnings"
-          />
-        </label>
-        <label>
-          To Date:
-          <input
-            v-model="earningsFilters.date_to"
-            type="date"
-            @change="loadEarnings"
-          />
-        </label>
-        <button @click="loadEarnings" class="btn btn-primary">Update</button>
+    <div v-if="activeTab === 'earnings'" class="space-y-4">
+      <div v-if="loadingEarnings" class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
-      <div v-if="loading" class="loading">Loading earnings...</div>
-      <div v-else-if="error" class="error">{{ error }}</div>
-      <div v-else class="earnings">
-        <div class="section">
-          <h2>Overall Earnings</h2>
-          <div class="stats-grid">
-            <div class="stat-item">
-              <div class="stat-label">Total Tips</div>
-              <div class="stat-value">{{ formatNumber(earningsData.overall?.total_tips || 0) }}</div>
+      
+      <div v-else-if="earningsData" class="space-y-6">
+        <!-- Overall Earnings -->
+        <div v-if="earningsData && earningsData.overall" class="card p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+          <h3 class="text-xl font-bold mb-4">Overall Earnings Summary</h3>
+          <div class="grid grid-cols-4 gap-4">
+            <div>
+              <p class="text-sm opacity-90">Total Tips</p>
+              <p class="text-2xl font-bold">{{ earningsData.overall?.total_tips || 0 }}</p>
             </div>
-            <div class="stat-item">
-              <div class="stat-label">Total Amount</div>
-              <div class="stat-value money-value">${{ formatCurrency(earningsData.overall?.total_tip_amount || 0) }}</div>
+            <div>
+              <p class="text-sm opacity-90">Total Amount</p>
+              <p class="text-2xl font-bold">${{ formatCurrency(earningsData.overall?.total_tip_amount) }}</p>
             </div>
-            <div class="stat-item">
-              <div class="stat-label">Writer Earnings</div>
-              <div class="stat-value money-value">${{ formatCurrency(earningsData.overall?.total_writer_earnings || 0) }}</div>
+            <div>
+              <p class="text-sm opacity-90">Writer Earnings</p>
+              <p class="text-2xl font-bold">${{ formatCurrency(earningsData.overall?.total_writer_earnings) }}</p>
             </div>
-            <div class="stat-item">
-              <div class="stat-label">Platform Profit</div>
-              <div class="stat-value money-value">${{ formatCurrency(earningsData.overall?.total_platform_profit || 0) }}</div>
+            <div>
+              <p class="text-sm opacity-90">Platform Profit</p>
+              <p class="text-2xl font-bold">${{ formatCurrency(earningsData.overall?.total_platform_profit) }}</p>
+              <p class="text-sm opacity-75">({{ (earningsData.overall?.platform_profit_percentage || 0).toFixed(1) }}%)</p>
             </div>
           </div>
         </div>
-        <div class="section">
-          <h2>Earnings by Level</h2>
-          <div class="breakdown">
+
+        <!-- Earnings by Level -->
+        <div class="card p-6">
+          <h3 class="text-lg font-bold mb-4">Earnings by Writer Level</h3>
+          <div class="space-y-3">
             <div
-              v-for="item in earningsData.by_level"
+              v-for="item in earningsData.by_level || []"
               :key="item.writer_level__name"
-              class="breakdown-item"
+              class="flex items-center justify-between p-4 bg-gray-50 rounded"
             >
-              <h4>{{ item.writer_level__name }}</h4>
-              <p>Tips: {{ item.tip_count }}</p>
-              <p>Total: ${{ formatCurrency(item.total_tips) }}</p>
-              <p>Writer Earnings: ${{ formatCurrency(item.writer_earnings) }}</p>
+              <div>
+                <p class="font-medium text-lg">{{ item.writer_level__name }}</p>
+                <p class="text-sm text-gray-500">{{ item.tip_count }} tips | Avg: {{ (item.avg_percentage || 0).toFixed(1) }}%</p>
+              </div>
+              <div class="text-right">
+                <p class="text-lg font-bold">${{ formatCurrency(item.total_tips) }}</p>
+                <p class="text-sm text-gray-500">
+                  Writer: ${{ formatCurrency(item.writer_earnings) }} | 
+                  Platform: ${{ formatCurrency(item.platform_profit) }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Earnings by Type -->
+        <div class="card p-6">
+          <h3 class="text-lg font-bold mb-4">Earnings by Tip Type</h3>
+          <div class="grid grid-cols-3 gap-4">
+            <div
+              v-for="item in earningsData.by_type || []"
+              :key="item.tip_type"
+              class="p-4 bg-gray-50 rounded"
+            >
+              <p class="font-medium capitalize mb-2">{{ item.tip_type }}</p>
+              <p class="text-sm text-gray-500 mb-2">{{ item.tip_count }} tips</p>
+              <p class="text-lg font-bold mb-1">${{ formatCurrency(item.total_tips) }}</p>
+              <p class="text-xs text-gray-500">
+                Writer: ${{ formatCurrency(item.writer_earnings) }}
+              </p>
+              <p class="text-xs text-gray-500">
+                Platform: ${{ formatCurrency(item.platform_profit) }}
+              </p>
             </div>
           </div>
         </div>
@@ -322,441 +439,193 @@
   </div>
 </template>
 
-<script>
-import { adminTipsApi } from '@/api/admin/tips' // Adjust import path
+<script setup>
+import { ref, onMounted, watch } from 'vue'
+import { adminTipsAPI } from '@/api'
 
-export default {
-  name: 'TipManagement',
-  data() {
-    return {
-      activeTab: 'dashboard',
-      tabs: [
-        { id: 'dashboard', label: 'Dashboard' },
-        { id: 'list', label: 'List Tips' },
-        { id: 'analytics', label: 'Analytics' },
-        { id: 'earnings', label: 'Earnings' }
-      ],
-      loading: false,
-      error: null,
-      dashboardData: {},
-      tipsData: {},
-      analyticsData: {},
-      earningsData: {},
-      filters: {
-        tip_type: '',
-        payment_status: '',
-        date_from: '',
-        date_to: ''
-      },
-      earningsFilters: {
-        date_from: '',
-        date_to: ''
-      },
-      pagination: {
-        limit: 50,
-        offset: 0
-      },
-      analyticsDays: 90
-    }
-  },
-  computed: {
-    currentPage() {
-      return Math.floor(this.pagination.offset / this.pagination.limit) + 1
-    },
-    totalPages() {
-      return Math.ceil((this.tipsData.count || 0) / this.pagination.limit)
-    }
-  },
-  mounted() {
-    this.loadDashboard()
-  },
-  watch: {
-    activeTab(newTab) {
-      if (newTab === 'dashboard' && !this.dashboardData.summary) {
-        this.loadDashboard()
-      } else if (newTab === 'list' && !this.tipsData.results) {
-        this.loadTips()
-      } else if (newTab === 'analytics' && !this.analyticsData.trends) {
-        this.loadAnalytics()
-      } else if (newTab === 'earnings' && !this.earningsData.overall) {
-        this.loadEarnings()
-      }
-    }
-  },
-  methods: {
-    async loadDashboard() {
-      this.loading = true
-      this.error = null
-      try {
-        const response = await adminTipsApi.getDashboard({ days: 30 })
-        this.dashboardData = response.data
-      } catch (err) {
-        this.error = err.response?.data?.detail || 'Failed to load dashboard'
-        console.error('Dashboard error:', err)
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadTips() {
-      this.loading = true
-      this.error = null
-      try {
-        const params = {
-          ...this.filters,
-          limit: this.pagination.limit,
-          offset: this.pagination.offset
-        }
-        // Remove empty filters
-        Object.keys(params).forEach(key => {
-          if (params[key] === '') delete params[key]
-        })
-        const response = await adminTipsApi.listTips(params)
-        this.tipsData = response.data
-      } catch (err) {
-        this.error = err.response?.data?.detail || 'Failed to load tips'
-        console.error('Tips error:', err)
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadAnalytics() {
-      this.loading = true
-      this.error = null
-      try {
-        const response = await adminTipsApi.getAnalytics({ days: this.analyticsDays })
-        this.analyticsData = response.data
-      } catch (err) {
-        this.error = err.response?.data?.detail || 'Failed to load analytics'
-        console.error('Analytics error:', err)
-      } finally {
-        this.loading = false
-      }
-    },
-    async loadEarnings() {
-      this.loading = true
-      this.error = null
-      try {
-        const params = { ...this.earningsFilters }
-        // Remove empty filters
-        Object.keys(params).forEach(key => {
-          if (params[key] === '') delete params[key]
-        })
-        const response = await adminTipsApi.getEarnings(params)
-        this.earningsData = response.data
-      } catch (err) {
-        this.error = err.response?.data?.detail || 'Failed to load earnings'
-        console.error('Earnings error:', err)
-      } finally {
-        this.loading = false
-      }
-    },
-    refreshDashboard() {
-      this.loadDashboard()
-    },
-    clearFilters() {
-      this.filters = {
-        tip_type: '',
-        payment_status: '',
-        date_from: '',
-        date_to: ''
-      }
-      this.pagination.offset = 0
-      this.loadTips()
-    },
-    previousPage() {
-      if (this.pagination.offset > 0) {
-        this.pagination.offset -= this.pagination.limit
-        this.loadTips()
-      }
-    },
-    nextPage() {
-      if (this.pagination.offset + this.pagination.limit < this.tipsData.count) {
-        this.pagination.offset += this.pagination.limit
-        this.loadTips()
-      }
-    },
-    formatCurrency(value) {
-      const num = parseFloat(value || 0)
-      // Format with thousand separators and 2 decimal places
-      return num.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })
-    },
-    formatNumber(value) {
-      return parseInt(value || 0).toLocaleString()
-    },
-    formatDate(dateString) {
-      if (!dateString) return ''
-      const date = new Date(dateString)
-      return date.toLocaleDateString()
-    }
+const dashboardData = ref(null)
+const tips = ref([])
+const tipsSummary = ref(null)
+const analyticsData = ref(null)
+const earningsData = ref(null)
+const loadingDashboard = ref(false)
+const loadingTips = ref(false)
+const loadingAnalytics = ref(false)
+const loadingEarnings = ref(false)
+const activeTab = ref('tips')
+const daysFilter = ref(30)
+
+const tabs = [
+  { id: 'tips', label: 'All Tips' },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'earnings', label: 'Earnings' }
+]
+
+const filters = ref({
+  tip_type: '',
+  payment_status: '',
+  writer_id: '',
+  client_id: '',
+  date_from: '',
+  date_to: ''
+})
+
+let searchTimeout = null
+
+const formatCurrency = (value) => {
+  if (!value) return '0.00'
+  return parseFloat(value).toFixed(2)
+}
+
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A'
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+const getTypeBadgeClass = (type) => {
+  const classes = {
+    direct: 'bg-purple-100 text-purple-800',
+    order: 'bg-blue-100 text-blue-800',
+    class: 'bg-green-100 text-green-800'
+  }
+  return classes[type] || 'bg-gray-100 text-gray-800'
+}
+
+const getStatusBadgeClass = (status) => {
+  const classes = {
+    completed: 'bg-green-100 text-green-800',
+    pending: 'bg-yellow-100 text-yellow-800',
+    processing: 'bg-blue-100 text-blue-800',
+    failed: 'bg-red-100 text-red-800'
+  }
+  return classes[status] || 'bg-gray-100 text-gray-800'
+}
+
+const loadDashboard = async () => {
+  loadingDashboard.value = true
+  try {
+    const response = await adminTipsAPI.getDashboard({ days: daysFilter.value })
+    dashboardData.value = response.data
+  } catch (error) {
+    console.error('Error loading dashboard:', error)
+  } finally {
+    loadingDashboard.value = false
   }
 }
+
+const loadTips = async () => {
+  loadingTips.value = true
+  try {
+    const params = {
+      limit: 100,
+      ...Object.fromEntries(
+        Object.entries(filters.value).filter(([_, v]) => v !== '')
+      )
+    }
+    const response = await adminTipsAPI.listTips(params)
+    tips.value = response.data.results || []
+    tipsSummary.value = response.data.summary || null
+  } catch (error) {
+    console.error('Error loading tips:', error)
+  } finally {
+    loadingTips.value = false
+  }
+}
+
+const loadAnalytics = async () => {
+  loadingAnalytics.value = true
+  try {
+    const response = await adminTipsAPI.getAnalytics({ days: 90 })
+    analyticsData.value = response.data
+  } catch (error) {
+    console.error('Error loading analytics:', error)
+  } finally {
+    loadingAnalytics.value = false
+  }
+}
+
+const loadEarnings = async () => {
+  loadingEarnings.value = true
+  try {
+    const response = await adminTipsAPI.getEarnings()
+    earningsData.value = response.data
+  } catch (error) {
+    console.error('Error loading earnings:', error)
+  } finally {
+    loadingEarnings.value = false
+  }
+}
+
+const debouncedSearch = () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    loadTips()
+  }, 500)
+}
+
+const resetFilters = () => {
+  filters.value = {
+    tip_type: '',
+    payment_status: '',
+    writer_id: '',
+    client_id: '',
+    date_from: '',
+    date_to: ''
+  }
+  loadTips()
+}
+
+watch(activeTab, (newTab) => {
+  if (newTab === 'analytics' && !analyticsData.value) {
+    loadAnalytics()
+  } else if (newTab === 'earnings' && !earningsData.value) {
+    loadEarnings()
+  }
+})
+
+onMounted(() => {
+  loadDashboard()
+  loadTips()
+})
 </script>
 
 <style scoped>
-.tip-management {
-  /* Uses shared dashboard-container from dashboard.css */
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  border-bottom: 2px solid #e0e0e0;
-}
-
-.tab {
-  padding: 10px 20px;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  cursor: pointer;
-  font-size: 16px;
-}
-
-.tab.active {
-  border-bottom-color: #007bff;
-  color: #007bff;
-}
-
-.tab-content {
-  padding: 20px 0;
-}
-
-.loading, .error {
-  text-align: center;
-  padding: 40px;
-}
-
-.error {
-  color: #dc3545;
-}
-
-/* Styles now use shared dashboard.css */
-
-.filters {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
-}
-
-.filters select,
-.filters input {
-  padding: 8px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-}
-
-.tips-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 20px;
-}
-
-.tips-table th,
-.tips-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #ddd;
-}
-
-.tips-table th {
-  background: #f8f9fa;
-  font-weight: 600;
-}
-
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.status-badge.completed {
-  background: #d4edda;
-  color: #155724;
-}
-
-.status-badge.pending {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.status-badge.processing {
-  background: #cce5ff;
-  color: #004085;
-}
-
-.status-badge.failed {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 20px;
-  margin-top: 20px;
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
 }
 
 .btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
 }
 
 .btn-primary {
-  background: #007bff;
+  background-color: #2563eb;
   color: white;
+}
+
+.btn-primary:hover {
+  background-color: #1d4ed8;
 }
 
 .btn-secondary {
-  background: #6c757d;
-  color: white;
+  background-color: #e5e7eb;
+  color: #374151;
 }
 
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* Breakdown and other sections */
-.breakdown {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.breakdown-item {
-  padding: 16px;
-  background: white;
-  border-radius: 10px;
-  border-left: 3px solid #667eea;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-}
-
-.breakdown-item h4 {
-  margin: 0 0 12px 0;
-  font-size: 16px;
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.breakdown-item p {
-  margin: 8px 0;
-  font-size: 14px;
-  color: #4b5563;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Style paragraphs that contain money values (they start with $ or contain currency) */
-.breakdown-item p:first-of-type + p,
-.breakdown-item p:nth-of-type(3),
-.breakdown-item p:nth-of-type(4) {
-  font-weight: 600;
-  color: #1f2937;
-  font-size: clamp(13px, 1.5vw, 15px);
-}
-
-.payment-status {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-top: 16px;
-}
-
-.status-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.status-item span:last-child {
-  font-weight: 600;
-  font-size: 18px;
-  color: #1f2937;
-}
-
-.trends,
-.top-performers {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.trend-item,
-.performer-item {
-  padding: 16px;
-  background: white;
-  border-radius: 10px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-}
-
-.trend-item h4,
-.performer-item h4 {
-  margin: 0 0 12px 0;
-  font-size: 15px;
-  color: #1f2937;
-  font-weight: 600;
-}
-
-.trend-item p,
-.performer-item p {
-  margin: 6px 0;
-  font-size: 14px;
-  color: #4b5563;
-  word-break: break-word;
-  overflow-wrap: break-word;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Style money values (typically the last or second-to-last paragraph) */
-.trend-item p:last-child,
-.performer-item p:last-child {
-  font-weight: 600;
-  color: #1f2937;
-  font-size: clamp(13px, 1.5vw, 15px);
-}
-
-/* Mobile optimizations for breakdown and other sections */
-@media (max-width: 768px) {
-  .breakdown {
-    grid-template-columns: 1fr;
-  }
-
-  .payment-status {
-    flex-direction: column;
-  }
-
-  .trends,
-  .top-performers {
-    grid-template-columns: 1fr;
-  }
+.btn-secondary:hover {
+  background-color: #d1d5db;
 }
 </style>
 

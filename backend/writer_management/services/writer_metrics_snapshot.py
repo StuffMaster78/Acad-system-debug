@@ -63,9 +63,13 @@ class WriterMetricsService:
         preferred_count = preferred_orders.count()
         hvo_count = hvo_orders.count()
 
-        rating = completed_orders.aggregate(
-            avg_rating=Avg("client_rating")
-        )["avg_rating"]
+        # Get average rating from OrderReview instead of client_rating field
+        from reviews_system.models.order_review import OrderReview
+        order_ids = completed_orders.values_list('id', flat=True)
+        rating_result = OrderReview.objects.filter(
+            order_id__in=order_ids
+        ).aggregate(avg_rating=Avg('rating'))
+        rating = rating_result["avg_rating"]
 
         # Earnings & Profit
         payouts = WriterPayment.objects.filter(

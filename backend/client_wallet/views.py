@@ -154,13 +154,7 @@ class ClientWalletViewSet(viewsets.ModelViewSet):
         """
         Top up the client's wallet (client-initiated payment).
         """
-        try:
-            wallet = ClientWallet.objects.select_for_update().get(user=request.user)
-        except ClientWallet.DoesNotExist:
-            return Response(
-                {"detail": "Wallet not found. Please contact support."},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        from django.db import transaction
         
         amount = request.data.get('amount')
         description = request.data.get('description', 'Wallet top-up')
@@ -184,25 +178,51 @@ class ClientWalletViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Credit wallet with top-up transaction type
-        wallet.credit_wallet(amount, description or 'Wallet top-up')
-        
-        # Update transaction type to 'top-up' (client payment)
-        last_transaction = ClientWalletTransaction.objects.filter(
-            wallet=wallet
-        ).order_by('-created_at').first()
-        if last_transaction:
-            last_transaction.transaction_type = 'top-up'
-            last_transaction.save()
-        
-        # Refresh wallet
-        wallet.refresh_from_db()
-        serializer = ClientWalletSerializer(wallet)
-        
-        return Response({
-            'detail': f'Wallet topped up successfully! ${amount:,.2f} added.',
-            'wallet': serializer.data
-        }, status=status.HTTP_200_OK)
+        # Use atomic transaction for wallet operations
+        # Note: credit_wallet() already uses transaction.atomic() internally,
+        # but we need to wrap select_for_update() in a transaction
+        try:
+            with transaction.atomic():
+                # Get wallet with row-level lock inside transaction
+                try:
+                    wallet = ClientWallet.objects.select_for_update().get(user=request.user)
+                except ClientWallet.DoesNotExist:
+                    return Response(
+                        {"detail": "Wallet not found. Please contact support."},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+                
+                # Credit wallet with top-up transaction type
+                # credit_wallet() uses its own transaction.atomic(), which will be a savepoint
+                # in this outer transaction, which is fine
+                wallet.credit_wallet(amount, description or 'Wallet top-up')
+                
+                # Update transaction type to 'top-up' (client payment)
+                last_transaction = ClientWalletTransaction.objects.filter(
+                    wallet=wallet
+                ).order_by('-created_at').first()
+                if last_transaction:
+                    last_transaction.transaction_type = 'top-up'
+                    last_transaction.save()
+            
+            # Refresh wallet after transaction commits
+            wallet.refresh_from_db()
+            serializer = ClientWalletSerializer(wallet)
+            
+            return Response({
+                'detail': f'Wallet topped up successfully! ${amount:,.2f} added.',
+                'wallet': serializer.data
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            # Log the error for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error during wallet top-up: {str(e)}", exc_info=True)
+            
+            return Response(
+                {"detail": f"An error occurred while processing your top-up: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 # Loyalty Transaction ViewSet
 class LoyaltyTransactionViewSet(viewsets.ModelViewSet):

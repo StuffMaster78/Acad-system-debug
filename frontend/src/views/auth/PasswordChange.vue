@@ -148,14 +148,15 @@
 </template>
 
 <script>
-import { authApi } from '@/api/auth' // Adjust import path
+import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 
 export default {
   name: 'PasswordChange',
   setup() {
     const router = useRouter()
-    return { router }
+    const authStore = useAuthStore()
+    return { router, authStore }
   },
   data() {
     return {
@@ -237,35 +238,35 @@ export default {
       this.success = null
 
       try {
-        await authApi.changePassword(
+        const result = await this.authStore.changePassword(
           this.form.currentPassword,
           this.form.newPassword,
           this.form.confirmPassword
         )
 
-        this.success = 'Password changed successfully!'
-        
-        // Clear form
-        this.form = {
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        }
+        if (result.success) {
+          this.success = result.message || 'Password changed successfully!'
+          
+          // Clear form
+          this.form = {
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+          }
 
-        // Redirect after 2 seconds
-        setTimeout(() => {
-          this.router.push('/account/settings')
-        }, 2000)
-      } catch (err) {
-        const errorData = err.response?.data
-        
-        if (errorData?.details && Array.isArray(errorData.details)) {
-          this.error = errorData.details
+          // Redirect after 2 seconds
+          setTimeout(() => {
+            this.router.push('/account/settings')
+          }, 2000)
         } else {
-          this.error = errorData?.error || 
-                      errorData?.detail || 
-                      'Failed to change password. Please try again.'
+          if (result.details && Array.isArray(result.details)) {
+            this.error = result.details
+          } else {
+            this.error = result.error || 'Failed to change password. Please try again.'
+          }
         }
+      } catch (err) {
+        this.error = err.message || 'Failed to change password. Please try again.'
       } finally {
         this.loading = false
       }

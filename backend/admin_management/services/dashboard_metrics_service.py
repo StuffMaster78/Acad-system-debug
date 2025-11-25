@@ -84,17 +84,24 @@ class DashboardMetricsService:
         
         # Revenue metrics and order counts - combined into single aggregation
         recent_cutoff = timezone.now() - timedelta(days=7)
+        
+        # Calculate paid/unpaid orders correctly
+        # Paid orders: orders where is_paid=True
+        # Unpaid orders: orders where is_paid=False OR is_paid is None
+        paid_orders_qs = order_qs.filter(is_paid=True)
+        unpaid_orders_qs = order_qs.filter(Q(is_paid=False) | Q(is_paid__isnull=True))
+        recent_orders_qs = order_qs.filter(created_at__gte=recent_cutoff)
+        
         order_stats = order_qs.aggregate(
             total_revenue=Sum('total_price', filter=Q(is_paid=True), output_field=DecimalField()),
-            paid_orders_count=Count('id', filter=Q(is_paid=True)),
-            unpaid_orders_count=Count('id', filter=Q(is_paid=False)),
-            recent_orders_count=Count('id', filter=Q(created_at__gte=recent_cutoff))
         )
         
+        # Get counts separately to ensure accuracy
+        paid_orders_count = paid_orders_qs.count()
+        unpaid_orders_count = unpaid_orders_qs.count()
+        recent_orders_count = recent_orders_qs.count()
+        
         total_revenue = order_stats['total_revenue'] or Decimal('0.00')
-        paid_orders_count = order_stats['paid_orders_count'] or 0
-        unpaid_orders = order_stats['unpaid_orders_count'] or 0
-        recent_orders = order_stats['recent_orders_count'] or 0
         
         # Tickets (if applicable) - combined queries
         ticket_qs = Ticket.objects.all()
@@ -115,16 +122,125 @@ class DashboardMetricsService:
         open_tickets = ticket_stats['open_tickets'] or 0
         closed_tickets = ticket_stats['closed_tickets'] or 0
         
+        # Additional metrics for admin/superadmin dashboard
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = today_start + timedelta(days=1)
+        
+        # Orders in progress (active work states)
+        orders_in_progress = order_qs.filter(
+            status__in=[
+                OrderStatus.IN_PROGRESS.value,
+                OrderStatus.ASSIGNED.value,
+                OrderStatus.UNDER_EDITING.value,
+                OrderStatus.SUBMITTED.value,
+                OrderStatus.UNDER_REVIEW.value,
+            ]
+        ).count()
+        
+        # Orders on revision
+        orders_on_revision = order_qs.filter(
+            status__in=[
+                OrderStatus.ON_REVISION.value,
+                OrderStatus.REVISION_REQUESTED.value,
+                OrderStatus.REVISED.value,
+            ]
+        ).count()
+        
+        # Disputed orders
+        disputed_orders = order_qs.filter(status=OrderStatus.DISPUTED.value).count()
+        
+        # Amount paid today - use OrderPayment model
+        try:
+            from order_payments_management.models import OrderPayment
+            # Get payments confirmed today (use confirmed_at if available, otherwise created_at)
+            payments_today = OrderPayment.objects.filter(
+                status__in=['completed', 'succeeded'],
+            ).filter(
+                Q(confirmed_at__gte=today_start, confirmed_at__lt=today_end) |
+                Q(confirmed_at__isnull=True, created_at__gte=today_start, created_at__lt=today_end)
+            )
+            amount_paid_today = payments_today.aggregate(
+                total=Sum('amount', output_field=DecimalField())
+            )['total'] or Decimal('0.00')
+            
+            # Income for last 2 weeks
+            two_weeks_ago = timezone.now() - timedelta(days=14)
+            payments_2weeks = OrderPayment.objects.filter(
+                status__in=['completed', 'succeeded'],
+            ).filter(
+                Q(confirmed_at__gte=two_weeks_ago) |
+                Q(confirmed_at__isnull=True, created_at__gte=two_weeks_ago)
+            )
+            income_2weeks = payments_2weeks.aggregate(
+                total=Sum('amount', output_field=DecimalField())
+            )['total'] or Decimal('0.00')
+            
+            # Income for this week (last 7 days)
+            week_start = timezone.now() - timedelta(days=7)
+            payments_this_week = OrderPayment.objects.filter(
+                status__in=['completed', 'succeeded'],
+            ).filter(
+                Q(confirmed_at__gte=week_start) |
+                Q(confirmed_at__isnull=True, created_at__gte=week_start)
+            )
+            income_this_week = payments_this_week.aggregate(
+                total=Sum('amount', output_field=DecimalField())
+            )['total'] or Decimal('0.00')
+            
+            # Income for current month
+            month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            payments_monthly = OrderPayment.objects.filter(
+                status__in=['completed', 'succeeded'],
+            ).filter(
+                Q(confirmed_at__gte=month_start) |
+                Q(confirmed_at__isnull=True, created_at__gte=month_start)
+            )
+            income_monthly = payments_monthly.aggregate(
+                total=Sum('amount', output_field=DecimalField())
+            )['total'] or Decimal('0.00')
+        except ImportError:
+            # Fallback to order-based calculation if OrderPayment is not available
+            amount_paid_today = Decimal('0.00')
+            two_weeks_ago = timezone.now() - timedelta(days=14)
+            income_2weeks = order_qs.filter(
+                is_paid=True,
+                updated_at__gte=two_weeks_ago
+            ).aggregate(
+                total=Sum('total_price', output_field=DecimalField())
+            )['total'] or Decimal('0.00')
+            week_start = timezone.now() - timedelta(days=7)
+            income_this_week = order_qs.filter(
+                is_paid=True,
+                updated_at__gte=week_start
+            ).aggregate(
+                total=Sum('total_price', output_field=DecimalField())
+            )['total'] or Decimal('0.00')
+            month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            income_monthly = order_qs.filter(
+                is_paid=True,
+                updated_at__gte=month_start
+            ).aggregate(
+                total=Sum('total_price', output_field=DecimalField())
+            )['total'] or Decimal('0.00')
+        
         summary = {
             'total_orders': total_orders,
             'orders_by_status': status_counts,
             'total_revenue': float(total_revenue),
             'paid_orders_count': paid_orders_count,
-            'unpaid_orders_count': unpaid_orders,
-            'recent_orders_count': recent_orders,
+            'unpaid_orders_count': unpaid_orders_count,
+            'recent_orders_count': recent_orders_count,  # Last 7 days
             'total_tickets': total_tickets,
             'open_tickets_count': open_tickets,
             'closed_tickets_count': closed_tickets,
+            # New metrics for admin/superadmin
+            'orders_in_progress': orders_in_progress,
+            'orders_on_revision': orders_on_revision,
+            'disputed_orders': disputed_orders,
+            'amount_paid_today': float(amount_paid_today),
+            'income_this_week': float(income_this_week),
+            'income_2weeks': float(income_2weeks),
+            'income_monthly': float(income_monthly),
         }
         
         # Cache for 5 minutes

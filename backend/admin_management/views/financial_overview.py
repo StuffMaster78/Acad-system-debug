@@ -7,13 +7,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ViewSet
-from django.db.models import Sum, Count, Q
+from django.db.models import Sum, Count, Q, Exists, OuterRef
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
 from orders.models import Order
-from special_orders.models import SpecialOrder
-from class_management.models import ClassBundle
+from special_orders.models import SpecialOrder, InstallmentPayment
+from class_management.models import ClassBundle, ClassInstallment
 from order_payments_management.models import OrderPayment
 from writer_wallet.models import ScheduledWriterPayment, PaymentSchedule
 from writer_management.models.tipping import Tip
@@ -49,8 +49,20 @@ class FinancialOverviewViewSet(ViewSet):
         
         # Build base querysets
         orders_qs = Order.objects.filter(is_paid=True)
-        special_orders_qs = SpecialOrder.objects.filter(is_paid=True)
-        class_bundles_qs = ClassBundle.objects.filter(is_paid=True)
+        # Special orders: filter by admin_marked_paid OR having paid installments
+        special_orders_qs = SpecialOrder.objects.filter(
+            Q(admin_marked_paid=True) | 
+            Exists(
+                InstallmentPayment.objects.filter(
+                    special_order=OuterRef('pk'),
+                    is_paid=True
+                )
+            )
+        )
+        # Class bundles use installments with is_paid field, not the bundle itself
+        class_bundles_qs = ClassBundle.objects.filter(
+            installments__is_paid=True
+        ).distinct()
         writer_payments_qs = ScheduledWriterPayment.objects.filter(status='Paid')
         
         if website_id:
@@ -60,15 +72,31 @@ class FinancialOverviewViewSet(ViewSet):
             writer_payments_qs = writer_payments_qs.filter(website_id=website_id)
         
         if date_from:
-            orders_qs = orders_qs.filter(paid_at__gte=date_from)
-            special_orders_qs = special_orders_qs.filter(paid_at__gte=date_from)
-            class_bundles_qs = class_bundles_qs.filter(paid_at__gte=date_from)
+            # Filter orders by OrderPayment created_at (when payment was made)
+            orders_qs = orders_qs.filter(
+                orderpayment__status='completed',
+                orderpayment__created_at__gte=date_from
+            ).distinct()
+            # For special orders, filter by installments paid_at or created_at
+            special_orders_qs = special_orders_qs.filter(
+                Q(installments__paid_at__gte=date_from) | 
+                Q(admin_marked_paid=True, created_at__gte=date_from)
+            ).distinct()
+            class_bundles_qs = class_bundles_qs.filter(installments__paid_at__gte=date_from).distinct()
             writer_payments_qs = writer_payments_qs.filter(payment_date__gte=date_from)
         
         if date_to:
-            orders_qs = orders_qs.filter(paid_at__lte=date_to)
-            special_orders_qs = special_orders_qs.filter(paid_at__lte=date_to)
-            class_bundles_qs = class_bundles_qs.filter(paid_at__lte=date_to)
+            # Filter orders by OrderPayment created_at (when payment was made)
+            orders_qs = orders_qs.filter(
+                orderpayment__status='completed',
+                orderpayment__created_at__lte=date_to
+            ).distinct()
+            # For special orders, filter by installments paid_at or created_at
+            special_orders_qs = special_orders_qs.filter(
+                Q(installments__paid_at__lte=date_to) | 
+                Q(admin_marked_paid=True, created_at__lte=date_to)
+            ).distinct()
+            class_bundles_qs = class_bundles_qs.filter(installments__paid_at__lte=date_to).distinct()
             writer_payments_qs = writer_payments_qs.filter(payment_date__lte=date_to)
         
         # Calculate earnings
@@ -86,9 +114,16 @@ class FinancialOverviewViewSet(ViewSet):
             total=Sum('total_cost')
         )['total'] or Decimal('0.00')
         
-        # Class Bundles
-        class_revenue = class_bundles_qs.aggregate(
-            total=Sum('total_price')
+        # Class Bundles - sum from installments that are paid
+        paid_installments = ClassInstallment.objects.filter(is_paid=True)
+        if website_id:
+            paid_installments = paid_installments.filter(class_bundle__website_id=website_id)
+        if date_from:
+            paid_installments = paid_installments.filter(paid_at__gte=date_from)
+        if date_to:
+            paid_installments = paid_installments.filter(paid_at__lte=date_to)
+        class_revenue = paid_installments.aggregate(
+            total=Sum('amount')
         )['total'] or Decimal('0.00')
         
         # Total Revenue
@@ -100,10 +135,9 @@ class FinancialOverviewViewSet(ViewSet):
         )['total'] or Decimal('0.00')
         
         # Calculate Tips (these are expenses as they're paid to writers)
-        tips_qs = Tip.objects.filter(
-            payment_status='completed',
-            website_id=website_id if website_id else None
-        )
+        tips_qs = Tip.objects.filter(payment_status='completed')
+        if website_id:
+            tips_qs = tips_qs.filter(website_id=website_id)
         if date_from:
             tips_qs = tips_qs.filter(sent_at__gte=date_from)
         if date_to:
@@ -132,21 +166,29 @@ class FinancialOverviewViewSet(ViewSet):
                 created_at__gte=month_start,
                 created_at__lte=month_end
             )
+            if website_id:
+                month_orders = month_orders.filter(order__website_id=website_id)
             month_order_revenue = month_orders.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
             
             month_special = SpecialOrder.objects.filter(
-                is_paid=True,
-                paid_at__gte=month_start,
-                paid_at__lte=month_end
-            )
+                Q(admin_marked_paid=True) | 
+                Exists(
+                    InstallmentPayment.objects.filter(
+                        special_order=OuterRef('pk'),
+                        is_paid=True,
+                        paid_at__gte=month_start,
+                        paid_at__lte=month_end
+                    )
+                )
+            ).distinct()
             month_special_revenue = month_special.aggregate(total=Sum('total_cost'))['total'] or Decimal('0.00')
             
-            month_classes = ClassBundle.objects.filter(
+            month_classes = ClassInstallment.objects.filter(
                 is_paid=True,
                 paid_at__gte=month_start,
                 paid_at__lte=month_end
             )
-            month_class_revenue = month_classes.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
+            month_class_revenue = month_classes.aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
             
             month_writer_payments = ScheduledWriterPayment.objects.filter(
                 status='Paid',
@@ -229,25 +271,64 @@ class FinancialOverviewViewSet(ViewSet):
             payments_qs = payments_qs.filter(payment_date__lte=date_to)
         
         payments_data = []
-        for payment in payments_qs.order_by('-payment_date'):
+        for payment in payments_qs.order_by('-payment_date', '-id'):
+            # Skip payments with missing relationships
+            if not payment.writer_wallet or not payment.writer_wallet.writer or not payment.writer_wallet.writer.user:
+                continue
+                
             order_records = payment.orders.all()
             order_count = order_records.count()
+            
+            # Calculate tips and fines if available
+            tips_total = Decimal('0.00')
+            fines_total = Decimal('0.00')
+            
+            try:
+                from writer_management.models.tipping import Tip
+                from writer_wallet.models import WalletTransaction
+                
+                # Get tips for this payment period
+                if payment.batch:
+                    period_start = payment.batch.scheduled_date
+                    period_end = period_start + timedelta(days=14 if payment.batch.schedule_type == 'Bi-Weekly' else 30)
+                    tips = Tip.objects.filter(
+                        writer=payment.writer_wallet.writer.user,
+                        website=payment.website,
+                        sent_at__gte=period_start,
+                        sent_at__lt=period_end
+                    )
+                    tips_total = sum(tip.writer_earning for tip in tips)
+                
+                # Get fines from wallet transactions
+                if payment.batch:
+                    fines_transactions = WalletTransaction.objects.filter(
+                        writer_wallet=payment.writer_wallet,
+                        transaction_type='Fine',
+                        created_at__gte=period_start,
+                        created_at__lt=period_end
+                    )
+                    fines_total = sum(abs(t.amount) for t in fines_transactions)
+            except Exception:
+                pass
+            
+            writer = payment.writer_wallet.writer
+            user = writer.user
             
             payments_data.append({
                 'id': payment.id,
                 'payment_id': payment.reference_code,
                 'writer': {
-                    'id': payment.writer_wallet.writer.id,
-                    'name': payment.writer_wallet.writer.user.get_full_name() or payment.writer_wallet.writer.user.username,
-                    'email': payment.writer_wallet.writer.user.email,
-                    'registration_id': payment.writer_wallet.writer.registration_id,
+                    'id': writer.id,
+                    'name': user.get_full_name() if user else (writer.registration_id or 'Unknown'),
+                    'email': user.email if user else '',
+                    'registration_id': writer.registration_id or '',
                 },
                 'number_of_orders': order_count,
                 'amount': float(payment.amount),
-                'tips': 0.00,  # Will be calculated if needed
-                'fines': 0.00,  # Will be calculated if needed
-                'total_earnings': float(payment.amount),
-                'date': payment.payment_date.isoformat() if payment.payment_date else None,
+                'tips': float(tips_total),
+                'fines': float(fines_total),
+                'total_earnings': float(payment.amount + tips_total - fines_total),
+                'date': payment.payment_date.isoformat() if payment.payment_date else (payment.batch.scheduled_date.isoformat() if payment.batch and payment.batch.scheduled_date else None),
                 'status': payment.status,
                 'type': payment.batch.schedule_type if payment.batch else 'Manual',
                 'reference': payment.reference_code,

@@ -38,10 +38,40 @@ class IsAdminOfWebsite(BasePermission):
         if not website:
             return False
 
-        # If the resource is website-specific, ensure user belongs to the same website
-        if hasattr(view, 'get_object'):
-            obj = view.get_object()
-            return getattr(obj, 'website', None) == website
+        # Check if this is a list/create action (no pk in URL)
+        # For list actions, we allow access and filter in queryset or check in has_object_permission
+        lookup_url_kwarg = getattr(view, 'lookup_url_kwarg', None) or 'pk'
+        has_lookup_param = lookup_url_kwarg in view.kwargs
+        
+        # If no lookup parameter, it's a list/create action - allow access
+        if not has_lookup_param:
+            return True
+        
+        # For detail actions (has pk), try to get the object and check website
+        # But only if get_object() can be safely called
+        if hasattr(view, 'get_object') and has_lookup_param:
+            try:
+                obj = view.get_object()
+                return getattr(obj, 'website', None) == website
+            except (AssertionError, AttributeError, KeyError):
+                # If get_object() fails for any reason, allow access
+                # Object-level permission will be checked in has_object_permission
+                pass
 
-        # Default to allowing access if no specific object is tied
+        # Default to allowing access - object-level checks will happen in has_object_permission
         return True
+    
+    def has_object_permission(self, request, view, obj):
+        """
+        Object-level permission check.
+        """
+        if not request.user.is_authenticated or not request.user.is_staff:
+            return False
+        
+        website = getattr(request.user, 'website', None)
+        if not website:
+            return False
+        
+        # Check if object belongs to the same website
+        obj_website = getattr(obj, 'website', None)
+        return obj_website == website

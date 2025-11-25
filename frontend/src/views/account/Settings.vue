@@ -74,7 +74,10 @@
           </div>
 
           <div class="form-group">
-            <label>Phone Number</label>
+            <label class="flex items-center gap-1">
+              Phone Number
+              <Tooltip text="We use your phone number to coordinate order completion and send SMS notifications about important updates regarding your orders." />
+            </label>
             <input
               v-model="profileForm.phone_number"
               type="tel"
@@ -84,37 +87,44 @@
           </div>
 
           <div class="form-group">
-            <label>Bio</label>
-            <textarea
+            <RichTextEditor
               v-model="profileForm.bio"
+              label="Bio"
               :disabled="loading"
-              rows="4"
               placeholder="Tell us about yourself..."
-              maxlength="500"
-            ></textarea>
-            <p class="help-text">{{ (profileForm.bio || '').length }}/500 characters</p>
+              :max-length="500"
+              :show-char-count="true"
+              toolbar="basic"
+              height="150px"
+            />
           </div>
 
           <div class="form-row">
-            <div class="form-group">
-              <label>Country</label>
-              <input
-                v-model="profileForm.country"
-                type="text"
-                :disabled="loading"
-                placeholder="Country"
-              />
-            </div>
+          <div class="form-group">
+            <label class="flex items-center gap-1">
+              Country
+              <Tooltip text="Your country helps us provide localized services and comply with regional regulations." />
+            </label>
+            <input
+              v-model="profileForm.country"
+              type="text"
+              :disabled="loading"
+              placeholder="Country"
+            />
+          </div>
 
-            <div class="form-group">
-              <label>State/Province</label>
-              <input
-                v-model="profileForm.state"
-                type="text"
-                :disabled="loading"
-                placeholder="State or Province"
-              />
-            </div>
+          <div class="form-group">
+            <label class="flex items-center gap-1">
+              State/Province
+              <Tooltip text="Your state or province helps us provide more accurate regional support and services." />
+            </label>
+            <input
+              v-model="profileForm.state"
+              type="text"
+              :disabled="loading"
+              placeholder="State or Province"
+            />
+          </div>
           </div>
 
           <div v-if="error" class="error-message">{{ error }}</div>
@@ -200,6 +210,65 @@
           Logout All Devices
         </button>
       </div>
+
+      <!-- Account Deletion (Only for clients, writers, support, editors) -->
+      <div v-if="canRequestDeletion" class="settings-section danger-zone">
+        <h2>Delete Account</h2>
+        <p class="section-description">
+          Once you delete your account, there is no going back. Please be certain.
+        </p>
+        <div v-if="deletionRequested" class="deletion-status">
+          <div class="status-badge warning">⚠️ Deletion Requested</div>
+          <p class="section-description">
+            Your account deletion request is pending. Your account will be deleted in 3 months.
+          </p>
+        </div>
+        <div v-else>
+          <button @click="showDeletionModal = true" class="btn btn-danger">
+            Request Account Deletion
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sessions Tab -->
+    <div v-if="activeTab === 'sessions'" class="tab-content">
+      <SessionManagement />
+    </div>
+
+    <!-- Update Requests Tab -->
+    <div v-if="activeTab === 'update-requests'" class="tab-content">
+      <ProfileUpdateRequests />
+    </div>
+
+    <!-- Account Deletion Modal -->
+    <div v-if="showDeletionModal" class="modal-overlay" @click="showDeletionModal = false">
+      <div class="modal-content" @click.stop>
+        <h2>Request Account Deletion</h2>
+        <p class="section-description">
+          Are you sure you want to delete your account? This action cannot be undone.
+          Your account will be frozen immediately and permanently deleted after 3 months.
+        </p>
+        <div class="form-group">
+          <label>Reason for deletion (optional)</label>
+          <textarea
+            v-model="deletionReason"
+            rows="4"
+            placeholder="Please let us know why you're leaving..."
+            class="w-full border rounded px-3 py-2"
+          ></textarea>
+        </div>
+        <div v-if="deletionError" class="error-message">{{ deletionError }}</div>
+        <div class="modal-actions">
+          <button @click="confirmDeletion" class="btn btn-danger" :disabled="deleting">
+            <span v-if="deleting">Processing...</span>
+            <span v-else>Yes, Delete My Account</span>
+          </button>
+          <button @click="showDeletionModal = false" class="btn btn-secondary" :disabled="deleting">
+            Cancel
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- 2FA Setup Modal -->
@@ -239,11 +308,22 @@
 </template>
 
 <script>
-import { authApi } from '@/api/auth' // Adjust import path
-import { useAuthStore } from '@/stores/auth' // Adjust import path
+import { authApi } from '@/api/auth'
+import { useAuthStore } from '@/stores/auth'
+import usersAPI from '@/api/users'
+import SessionManagement from '@/components/settings/SessionManagement.vue'
+import ProfileUpdateRequests from '@/components/profile/ProfileUpdateRequests.vue'
+import RichTextEditor from '@/components/common/RichTextEditor.vue'
+import Tooltip from '@/components/common/Tooltip.vue'
 
 export default {
   name: 'AccountSettings',
+  components: {
+    SessionManagement,
+    ProfileUpdateRequests,
+    RichTextEditor,
+    Tooltip
+  },
   setup() {
     const authStore = useAuthStore()
     return { authStore }
@@ -253,7 +333,9 @@ export default {
       activeTab: 'profile',
       tabs: [
         { id: 'profile', label: 'Profile' },
-        { id: 'security', label: 'Security' }
+        { id: 'security', label: 'Security' },
+        { id: 'sessions', label: 'Sessions' },
+        { id: 'update-requests', label: 'Update Requests' }
       ],
       loading: false,
       loadingProfile: false,
@@ -278,13 +360,13 @@ export default {
       twoFAQrCode: null,
       twoFABackupCodes: [],
       twoFACode: '',
-      sessions: []
+      sessions: [],
+      showDeletionModal: false,
+      deletionReason: '',
+      deletionRequested: false,
+      deleting: false,
+      deletionError: null
     }
-  },
-  mounted() {
-    this.loadProfile()
-    this.loadSessions()
-    this.check2FAStatus()
   },
   computed: {
     fullName() {
@@ -292,7 +374,18 @@ export default {
         return `${this.profileForm.first_name} ${this.profileForm.last_name}`
       }
       return this.profileForm.first_name || this.profileForm.last_name || this.profileForm.username || ''
+    },
+    canRequestDeletion() {
+      // Only clients, writers, support, and editors can request deletion
+      const userRole = this.authStore.userRole
+      return ['client', 'writer', 'support', 'editor'].includes(userRole)
     }
+  },
+  mounted() {
+    this.loadProfile()
+    this.loadSessions()
+    this.check2FAStatus()
+    this.checkDeletionStatus()
   },
   methods: {
     async loadProfile() {
@@ -330,9 +423,8 @@ export default {
             this.profileData.avatar_url = avatarUrl
           } else {
             // Construct full URL for relative paths
-            // Use the same base URL pattern as the API client
-            const apiBaseUrl = process.env.VUE_APP_API_URL || 'http://localhost:8000'
-            this.profileData.avatar_url = `${apiBaseUrl}${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || 'http://localhost:8000'
+            this.profileData.avatar_url = `${apiBaseUrl.replace('/api/v1', '')}${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`
           }
         }
       } catch (err) {
@@ -471,6 +563,40 @@ export default {
       if (!dateString) return ''
       const date = new Date(dateString)
       return date.toLocaleString()
+    },
+
+    async checkDeletionStatus() {
+      // Check if user has a pending deletion request
+      if (this.profileData && this.profileData.is_frozen) {
+        this.deletionRequested = true
+      }
+    },
+
+    async confirmDeletion() {
+      if (!confirm('Are you absolutely sure? This action cannot be undone.')) {
+        return
+      }
+
+      this.deleting = true
+      this.deletionError = null
+
+      try {
+        const response = await usersAPI.requestAccountDeletion(this.deletionReason || 'No reason provided')
+        this.success = response.data?.message || 'Account deletion requested successfully.'
+        this.deletionRequested = true
+        this.showDeletionModal = false
+        this.deletionReason = ''
+        
+        // Reload profile to get updated status
+        await this.loadProfile()
+      } catch (err) {
+        console.error('Deletion request error:', err)
+        this.deletionError = err.response?.data?.error || 
+                            err.response?.data?.detail || 
+                            'Failed to request account deletion. Please try again.'
+      } finally {
+        this.deleting = false
+      }
     }
   },
   watch: {
@@ -602,6 +728,12 @@ export default {
   cursor: not-allowed;
 }
 
+.help-text {
+  font-size: 12px;
+  color: #999;
+  margin-top: 5px;
+}
+
 .avatar-group {
   text-align: center;
 }
@@ -618,10 +750,15 @@ export default {
   border: 3px solid #667eea;
 }
 
-.help-text {
-  font-size: 12px;
-  color: #999;
-  margin-top: 5px;
+.loading-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+}
+
+.loading-state p {
+  margin: 0;
+  font-size: 16px;
 }
 
 .status-badge {
@@ -795,15 +932,21 @@ export default {
   flex: 1;
 }
 
-.loading-state {
-  text-align: center;
-  padding: 40px 20px;
-  color: #666;
+.danger-zone {
+  border-left: 4px solid #dc3545;
 }
 
-.loading-state p {
-  margin: 0;
-  font-size: 16px;
+.danger-zone h2 {
+  color: #dc3545;
+}
+
+.status-badge.warning {
+  background: #fff3cd;
+  color: #856404;
+}
+
+.deletion-status {
+  margin-top: 15px;
 }
 
 @media (max-width: 768px) {

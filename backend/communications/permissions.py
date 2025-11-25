@@ -3,7 +3,7 @@ from rest_framework.permissions import BasePermission
 
 class IsSuperAdmin(BasePermission):
     def has_permission(self, request, view):
-        return request.user.is_authenticated and request.user.profile.role == "superadmin"
+        return request.user.is_authenticated and getattr(request.user, 'role', None) == "superadmin"
     
 class IsAdminOrOwner(permissions.BasePermission):
     """
@@ -24,7 +24,8 @@ class CanSendOrderMessage(permissions.BasePermission):
     def has_permission(self, request, view):
         if request.method == "POST":
             thread = view.get_object()
-            if not thread.is_active and not thread.admin_override and request.user.profile.role in ["client", "writer"]:
+            user_role = getattr(request.user, 'role', None)
+            if not thread.is_active and not thread.admin_override and user_role in ["client", "writer"]:
                 return False
         return True
 
@@ -52,8 +53,9 @@ class IsAdminOrOwner(permissions.BasePermission):
     """
     def has_object_permission(self, request, view, obj):
         user = request.user
+        user_role = getattr(user, 'role', None)
         return (
-            user.profile.role in ["admin", "superadmin"]
+            user_role in ["admin", "superadmin"]
             or getattr(obj, "sender", None) == user
             or getattr(obj, "user", None) == user
         )
@@ -71,14 +73,15 @@ class CanSendCommunicationMessage(permissions.BasePermission):
 
         # Basic policy: allow if user has a valid role
         allowed_roles = ["client", "writer", "editor", "admin", "superadmin"]
-        return user.profile.role in allowed_roles
+        user_role = getattr(user, 'role', None)
+        return user_role in allowed_roles
 
 
 def can_start_thread(user, order) -> bool:
     """
     Check whether a user is allowed to start a communication thread for an order.
     """
-    role = getattr(user.profile, "role", None)
+    role = getattr(user, "role", None)
     status = getattr(order, "status", None)
 
     if status in {"archived", "cancelled"}:
@@ -99,7 +102,7 @@ def can_send_message(user, thread) -> bool:
     Allows all users with access to the order to send messages.
     """
     order = getattr(thread, "order", None)
-    role = getattr(user.profile, "role", None) or getattr(user, "role", None)
+    role = getattr(user, "role", None)
 
     if not thread.is_active and not thread.admin_override:
         return False
@@ -155,7 +158,7 @@ def can_view_thread(user, thread) -> bool:
     # Check if user has access to the order
     order = getattr(thread, "order", None)
     if order:
-        role = getattr(user.profile, "role", None) or getattr(user, "role", None)
+        role = getattr(user, "role", None)
         
         # Client who placed the order
         if order.client == user:
@@ -184,7 +187,8 @@ def can_edit_message(user, message) -> bool:
         return True  # Owners can edit their own messages
 
     # Additional checks for special cases
-    if getattr(message, "order", None) and message.order.is_special and user.profile.role in {"admin", "support"}:
+    user_role = getattr(user, "role", None)
+    if getattr(message, "order", None) and message.order.is_special and user_role in {"admin", "support"}:
         return True
 
     return False  # Default deny
@@ -220,7 +224,7 @@ def can_reply_to_thread(user, thread) -> bool:
     # Check if user has access to the order
     order = getattr(thread, "order", None)
     if order:
-        role = getattr(user.profile, "role", None) or getattr(user, "role", None)
+        role = getattr(user, "role", None)
         
         # Client who placed the order
         if order.client == user:
@@ -248,7 +252,8 @@ def can_view_message(user, message) -> bool:
         return True  # Owners can view their own messages
 
     # Additional checks for special cases
-    if getattr(message, "order", None) and message.order.is_special and user.profile.role in {"admin", "support"}:
+    user_role = getattr(user, "role", None)
+    if getattr(message, "order", None) and message.order.is_special and user_role in {"admin", "support"}:
         return True
 
     return False  # Default deny

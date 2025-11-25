@@ -80,4 +80,4 @@ class CommunicationGuardService:
     @staticmethod
     def assert_can_start_thread(user, order):
         if not can_start_thread(user, order):
-            raise PermissionError("You cannot create a thread on this order.")
+            raise PermissionDenied("You cannot create a thread on this order.")

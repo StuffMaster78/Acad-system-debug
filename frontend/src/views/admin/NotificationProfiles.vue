@@ -132,231 +132,210 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <transition name="modal-fade">
-      <div
-        v-if="showCreateModal || showEditModal"
-        class="modal-overlay"
-        role="dialog"
-        aria-modal="true"
-        @click.self="closeModal"
-      >
-        <div class="modal-content modal-content--form">
-          <div class="modal-header">
-            <div>
-              <p class="modal-eyebrow">Notification Profile</p>
-              <h2>{{ showEditModal ? 'Edit Profile' : 'Create Profile' }}</h2>
-            </div>
-            <button @click="closeModal" class="btn-close" aria-label="Close modal">✕</button>
+    <div v-if="showCreateModal || showEditModal" class="modal-overlay" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>{{ showEditModal ? 'Edit Profile' : 'Create Profile' }}</h2>
+          <button @click="closeModal" class="btn-close">✕</button>
+        </div>
+
+        <form @submit.prevent="saveProfile" class="modal-body">
+          <div class="form-group">
+            <label>Profile Name *</label>
+            <input
+              v-model="formData.name"
+              type="text"
+              required
+              placeholder="e.g., Quiet Hours Profile"
+              class="form-control"
+            />
           </div>
 
-          <form @submit.prevent="saveProfile" class="modal-body">
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Profile Name *</label>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea
+              v-model="formData.description"
+              placeholder="Describe this profile..."
+              class="form-control"
+              rows="3"
+            ></textarea>
+          </div>
+
+          <div class="form-section">
+            <h3>Channel Settings</h3>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
                 <input
-                  v-model="formData.name"
-                  type="text"
-                  required
-                  placeholder="e.g., Quiet Hours Profile"
+                  v-model="formData.email_enabled"
+                  type="checkbox"
+                />
+                <span>Email Enabled</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input
+                  v-model="formData.default_email"
+                  type="checkbox"
+                />
+                <span>Default Email</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input
+                  v-model="formData.sms_enabled"
+                  type="checkbox"
+                />
+                <span>SMS Enabled</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input
+                  v-model="formData.default_sms"
+                  type="checkbox"
+                />
+                <span>Default SMS</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input
+                  v-model="formData.push_enabled"
+                  type="checkbox"
+                />
+                <span>Push Enabled</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input
+                  v-model="formData.default_push"
+                  type="checkbox"
+                />
+                <span>Default Push</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input
+                  v-model="formData.in_app_enabled"
+                  type="checkbox"
+                />
+                <span>In-App Enabled</span>
+              </label>
+            </div>
+
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input
+                  v-model="formData.default_in_app"
+                  type="checkbox"
+                />
+                <span>Default In-App</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>Do-Not-Disturb Settings</h3>
+            
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input
+                  v-model="formData.dnd_enabled"
+                  type="checkbox"
+                />
+                <span>Enable Do-Not-Disturb</span>
+              </label>
+            </div>
+
+            <div v-if="formData.dnd_enabled" class="form-row">
+              <div class="form-group">
+                <label>Start Hour (0-23)</label>
+                <input
+                  v-model.number="formData.dnd_start_hour"
+                  type="number"
+                  min="0"
+                  max="23"
                   class="form-control"
                 />
               </div>
-
-              <div class="form-group form-group--span-2">
-                <label>Description</label>
-                <textarea
-                  v-model="formData.description"
-                  placeholder="Describe this profile..."
+              <div class="form-group">
+                <label>End Hour (0-23)</label>
+                <input
+                  v-model.number="formData.dnd_end_hour"
+                  type="number"
+                  min="0"
+                  max="23"
                   class="form-control"
-                  rows="3"
-                ></textarea>
+                />
               </div>
             </div>
+          </div>
 
-            <div class="form-section">
-              <div class="section-header">
-                <div>
-                  <h3>Channel Settings</h3>
-                  <p>Toggle which channels are enabled and their defaults.</p>
-                </div>
-                <span class="badge badge-soft">Delivery</span>
-              </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                v-model="formData.is_default"
+                type="checkbox"
+              />
+              <span>Set as Default Profile</span>
+            </label>
+          </div>
 
-              <div class="channel-grid">
-                <div class="channel-card">
-                  <div class="channel-card__header">
-                    <span class="channel-icon">📧</span>
-                    <div>
-                      <p class="channel-name">Email</p>
-                      <p class="channel-hint">Transactional + marketing</p>
-                    </div>
-                  </div>
-                  <label class="pill-toggle">
-                    <input v-model="formData.email_enabled" type="checkbox" />
-                    <span>Enabled</span>
-                  </label>
-                  <label class="pill-toggle pill-toggle--ghost">
-                    <input v-model="formData.default_email" type="checkbox" />
-                    <span>Default channel</span>
-                  </label>
-                </div>
-
-                <div class="channel-card">
-                  <div class="channel-card__header">
-                    <span class="channel-icon">💬</span>
-                    <div>
-                      <p class="channel-name">SMS</p>
-                      <p class="channel-hint">Short text alerts</p>
-                    </div>
-                  </div>
-                  <label class="pill-toggle">
-                    <input v-model="formData.sms_enabled" type="checkbox" />
-                    <span>Enabled</span>
-                  </label>
-                  <label class="pill-toggle pill-toggle--ghost">
-                    <input v-model="formData.default_sms" type="checkbox" />
-                    <span>Default channel</span>
-                  </label>
-                </div>
-
-                <div class="channel-card">
-                  <div class="channel-card__header">
-                    <span class="channel-icon">📱</span>
-                    <div>
-                      <p class="channel-name">Push</p>
-                      <p class="channel-hint">Mobile & desktop</p>
-                    </div>
-                  </div>
-                  <label class="pill-toggle">
-                    <input v-model="formData.push_enabled" type="checkbox" />
-                    <span>Enabled</span>
-                  </label>
-                  <label class="pill-toggle pill-toggle--ghost">
-                    <input v-model="formData.default_push" type="checkbox" />
-                    <span>Default channel</span>
-                  </label>
-                </div>
-
-                <div class="channel-card">
-                  <div class="channel-card__header">
-                    <span class="channel-icon">🖥️</span>
-                    <div>
-                      <p class="channel-name">In-App</p>
-                      <p class="channel-hint">Inbox + banners</p>
-                    </div>
-                  </div>
-                  <label class="pill-toggle">
-                    <input v-model="formData.in_app_enabled" type="checkbox" />
-                    <span>Enabled</span>
-                  </label>
-                  <label class="pill-toggle pill-toggle--ghost">
-                    <input v-model="formData.default_in_app" type="checkbox" />
-                    <span>Default channel</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            <div class="form-section">
-              <div class="section-header">
-                <div>
-                  <h3>Do-Not-Disturb</h3>
-                  <p>Mute notifications between specific hours.</p>
-                </div>
-                <label class="pill-toggle pill-toggle--outline">
-                  <input v-model="formData.dnd_enabled" type="checkbox" />
-                  <span>{{ formData.dnd_enabled ? 'Enabled' : 'Disabled' }}</span>
-                </label>
-              </div>
-
-              <div v-if="formData.dnd_enabled" class="form-grid form-grid--two">
-                <div class="form-group">
-                  <label>Start Hour (0-23)</label>
-                  <input
-                    v-model.number="formData.dnd_start_hour"
-                    type="number"
-                    min="0"
-                    max="23"
-                    class="form-control"
-                  />
-                </div>
-                <div class="form-group">
-                  <label>End Hour (0-23)</label>
-                  <input
-                    v-model.number="formData.dnd_end_hour"
-                    type="number"
-                    min="0"
-                    max="23"
-                    class="form-control"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div class="form-section form-section--compact">
-              <label class="pill-toggle pill-toggle--outline">
-                <input v-model="formData.is_default" type="checkbox" />
-                <span>Set as default profile</span>
-              </label>
-            </div>
-
-            <div class="modal-footer">
-              <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
-              <button type="submit" :disabled="saving" class="btn btn-primary">
-                <span v-if="saving">Saving...</span>
-                <span v-else>{{ showEditModal ? 'Update Profile' : 'Create Profile' }}</span>
-              </button>
-            </div>
-          </form>
-        </div>
+          <div class="modal-footer">
+            <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
+            <button type="submit" :disabled="saving" class="btn btn-primary">
+              <span v-if="saving">Saving...</span>
+              <span v-else>{{ showEditModal ? 'Update' : 'Create' }}</span>
+            </button>
+          </div>
+        </form>
       </div>
-    </transition>
+    </div>
 
     <!-- Apply to Users Modal -->
-    <transition name="modal-fade">
-      <div
-        v-if="showApplyModal"
-        class="modal-overlay"
-        role="dialog"
-        aria-modal="true"
-        @click.self="showApplyModal = false"
-      >
-        <div class="modal-content">
-          <div class="modal-header">
-            <div>
-              <p class="modal-eyebrow">Bulk action</p>
-              <h2>Apply Profile to Users</h2>
-            </div>
-            <button @click="showApplyModal = false" class="btn-close" aria-label="Close modal">✕</button>
+    <div v-if="showApplyModal" class="modal-overlay" @click="showApplyModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>Apply Profile to Users</h2>
+          <button @click="showApplyModal = false" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>User IDs (comma-separated)</label>
+            <input
+              v-model="applyUserIds"
+              type="text"
+              placeholder="e.g., 1, 2, 3"
+              class="form-control"
+            />
           </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label>User IDs (comma-separated)</label>
-              <input
-                v-model="applyUserIds"
-                type="text"
-                placeholder="e.g., 1, 2, 3"
-                class="form-control"
-              />
-              <small class="input-hint">Only users belonging to this website will be updated.</small>
-            </div>
-            <div class="form-group">
-              <label class="pill-toggle pill-toggle--outline">
-                <input v-model="overrideExisting" type="checkbox" />
-                <span>Override existing preferences</span>
-              </label>
-            </div>
-            <div class="modal-footer">
-              <button @click="showApplyModal = false" class="btn btn-secondary">Cancel</button>
-              <button @click="confirmApply" :disabled="applying" class="btn btn-primary">
-                <span v-if="applying">Applying...</span>
-                <span v-else>Apply Profile</span>
-              </button>
-            </div>
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input v-model="overrideExisting" type="checkbox" />
+              <span>Override Existing Preferences</span>
+            </label>
+          </div>
+          <div class="modal-footer">
+            <button @click="showApplyModal = false" class="btn btn-secondary">Cancel</button>
+            <button @click="confirmApply" :disabled="applying" class="btn btn-primary">
+              <span v-if="applying">Applying...</span>
+              <span v-else>Apply Profile</span>
+            </button>
           </div>
         </div>
       </div>
-    </transition>
+    </div>
   </div>
 </template>
 
@@ -804,51 +783,39 @@ export default {
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 24px;
+  padding: 20px;
 }
 
 .modal-content {
   background: white;
-  border-radius: 16px;
+  border-radius: 8px;
+  max-width: 600px;
   width: 100%;
-  max-width: 560px;
-  max-height: 92vh;
+  max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.25);
-  border: 1px solid rgba(148, 163, 184, 0.3);
-}
-
-.modal-content--form {
-  max-width: 720px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  padding: 24px 28px 0 28px;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--gray-200);
 }
 
 .modal-header h2 {
-  margin: 4px 0 0;
-  font-size: 26px;
-  font-weight: 700;
-  color: var(--gray-900);
-}
-
-.modal-eyebrow {
   margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--gray-500);
+  font-size: 24px;
 }
 
 .btn-close {
@@ -856,199 +823,72 @@ export default {
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: var(--gray-400);
-  line-height: 1;
-  transition: color 0.2s;
-}
-
-.btn-close:hover {
   color: var(--gray-600);
 }
 
 .modal-body {
-  padding: 24px 28px 28px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+  padding: 20px;
 }
 
-.form-grid {
-  display: grid;
-  gap: 20px;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+.form-section {
+  margin-bottom: 24px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--gray-200);
 }
 
-.form-grid--two {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+.form-section:last-child {
+  border-bottom: none;
+}
+
+.form-section h3 {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  color: var(--gray-900);
 }
 
 .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-group--span-2 {
-  grid-column: span 2;
+  margin-bottom: 16px;
 }
 
 .form-group label {
-  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
   color: var(--gray-700);
 }
 
 .form-control {
   width: 100%;
-  padding: 12px;
+  padding: 10px;
   border: 1px solid var(--gray-300);
-  border-radius: 10px;
+  border-radius: 6px;
   font-size: 14px;
-  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
-.form-control:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
-}
-
-.input-hint {
-  color: var(--gray-500);
-  font-size: 12px;
-}
-
-.form-section {
-  padding: 20px;
-  border: 1px solid var(--gray-200);
-  border-radius: 14px;
-  background: #f8fafc;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-section--compact {
-  padding: 12px 20px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 16px;
 }
 
-.section-header h3 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.section-header p {
-  margin: 4px 0 0;
-  color: var(--gray-500);
-  font-size: 13px;
-}
-
-.badge-soft {
-  background: #e0f2fe;
-  color: #0369a1;
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.channel-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-.channel-card {
-  background: white;
-  border-radius: 12px;
-  border: 1px solid var(--gray-200);
-  padding: 16px;
+.checkbox-label {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
-}
-
-.channel-card__header {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.channel-icon {
-  font-size: 20px;
-  background: #eef2ff;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-}
-
-.channel-name {
-  margin: 0;
-  font-weight: 600;
-  color: var(--gray-900);
-}
-
-.channel-hint {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--gray-500);
-}
-
-.pill-toggle {
-  display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  border: 1px solid #dbeafe;
-  background: #eff6ff;
-  font-size: 13px;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
-.pill-toggle input {
-  accent-color: #3b82f6;
-}
-
-.pill-toggle--ghost {
-  background: transparent;
-  border-color: #e5e7eb;
-  color: var(--gray-600);
-}
-
-.pill-toggle--outline {
-  background: white;
-  border-color: #c7d2fe;
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  cursor: pointer;
 }
 
 .modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding-top: 12px;
-  border-top: 1px solid #e2e8f0;
-}
-
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--gray-200);
 }
 
 .empty-state {
@@ -1133,7 +973,7 @@ export default {
     align-items: flex-start;
   }
   
-  .form-grid--two {
+  .form-row {
     grid-template-columns: 1fr;
   }
 }

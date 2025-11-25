@@ -8,17 +8,57 @@
       </div>
     </div>
 
-    <!-- Role-specific dashboard content -->
-    <div v-if="authStore.isAdmin" class="dashboard-content">
-      <router-link to="/admin/dashboard" class="dashboard-card card-blue" style="text-decoration: none; display: block;">
-        <div class="card-icon">👨‍💼</div>
-        <div class="card-label">Admin Dashboard</div>
-        <div class="card-value">View Full Dashboard →</div>
-      </router-link>
-    </div>
-
-    <div v-else class="dashboard-content">
-      <div class="welcome-card">
+    <!-- Role-specific dashboard redirects -->
+    <div class="dashboard-content">
+      <div v-if="authStore.isSuperAdmin" class="welcome-card">
+        <router-link to="/superadmin/dashboard" class="dashboard-card card-blue" style="text-decoration: none; display: block;">
+          <div class="card-icon">👑</div>
+          <div class="card-label">Superadmin Dashboard</div>
+          <div class="card-value">View Full Dashboard →</div>
+        </router-link>
+      </div>
+      
+      <div v-else-if="authStore.isAdmin" class="welcome-card">
+        <router-link to="/admin/dashboard" class="dashboard-card card-blue" style="text-decoration: none; display: block;">
+          <div class="card-icon">👨‍💼</div>
+          <div class="card-label">Admin Dashboard</div>
+          <div class="card-value">View Full Dashboard →</div>
+        </router-link>
+      </div>
+      
+      <div v-else-if="authStore.userRole === 'client'" class="welcome-card">
+        <router-link to="/client/dashboard" class="dashboard-card card-green" style="text-decoration: none; display: block;">
+          <div class="card-icon">👤</div>
+          <div class="card-label">Client Dashboard</div>
+          <div class="card-value">View Full Dashboard →</div>
+        </router-link>
+      </div>
+      
+      <div v-else-if="authStore.userRole === 'writer'" class="welcome-card">
+        <router-link to="/writer/dashboard" class="dashboard-card card-purple" style="text-decoration: none; display: block;">
+          <div class="card-icon">✍️</div>
+          <div class="card-label">Writer Dashboard</div>
+          <div class="card-value">View Full Dashboard →</div>
+        </router-link>
+      </div>
+      
+      <div v-else-if="authStore.userRole === 'editor'" class="welcome-card">
+        <router-link to="/editor/dashboard" class="dashboard-card card-orange" style="text-decoration: none; display: block;">
+          <div class="card-icon">📝</div>
+          <div class="card-label">Editor Dashboard</div>
+          <div class="card-value">View Full Dashboard →</div>
+        </router-link>
+      </div>
+      
+      <div v-else-if="authStore.userRole === 'support'" class="welcome-card">
+        <router-link to="/support/dashboard" class="dashboard-card card-teal" style="text-decoration: none; display: block;">
+          <div class="card-icon">🎧</div>
+          <div class="card-label">Support Dashboard</div>
+          <div class="card-value">View Full Dashboard →</div>
+        </router-link>
+      </div>
+      
+      <div v-else class="welcome-card">
         <h2>Welcome to Writing System</h2>
         <p>You are logged in as: <strong>{{ authStore.userRole }}</strong></p>
         

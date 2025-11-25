@@ -205,6 +205,27 @@ class WriterProfile(models.Model):
 
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    
+    # Payment Schedule Preferences
+    payment_schedule = models.CharField(
+        max_length=20,
+        choices=[
+            ('bi-weekly', 'Bi-Weekly (Every 2 weeks)'),
+            ('monthly', 'Monthly'),
+        ],
+        default='bi-weekly',
+        help_text="Writer's preferred payment schedule"
+    )
+    payment_date_preference = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Preferred payment dates (e.g., '1,15' for bi-weekly on 1st and 15th, '1' for monthly on 1st)"
+    )
+    manual_payment_requests_enabled = models.BooleanField(
+        default=False,
+        help_text="Allow this writer to request manual payments outside of scheduled dates"
+    )
 
     objects = WriterProfileManager()
 

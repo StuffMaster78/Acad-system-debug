@@ -1,193 +1,268 @@
 <template>
-  <div class="dashboard-container">
-    <div class="dashboard-header">
-      <h1>Client Dashboard</h1>
-      <button @click="refreshDashboard" :disabled="loading" class="btn btn-primary">
-        <span v-if="loading">Loading...</span>
-        <span v-else>Refresh</span>
+  <div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900">Client Dashboard</h1>
+        <p class="mt-2 text-gray-600">Welcome back, {{ authStore.user?.email }}</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button
+          @click="refreshDashboard"
+          :disabled="refreshing"
+          class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+        >
+          <svg 
+            class="w-5 h-5" 
+            :class="{ 'animate-spin': refreshing }"
+            fill="none" 
+            stroke="currentColor" 
+            viewBox="0 0 24 24"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          {{ refreshing ? 'Refreshing...' : 'Refresh' }}
       </button>
+        <router-link
+          to="/orders/wizard"
+          class="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm hover:shadow-md"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Create Order
+        </router-link>
+      </div>
     </div>
 
-    <div v-if="loading" class="dashboard-loading">Loading dashboard data...</div>
-    <div v-else-if="error" class="dashboard-error">{{ error }}</div>
+    <!-- Loading State -->
+    <div v-if="loading" class="flex items-center justify-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        </div>
+        
+    <!-- Error State -->
+    <div v-else-if="error" class="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span class="text-red-800">{{ error }}</span>
+          </div>
+        </div>
+        
+    <!-- Dashboard Content -->
     <div v-else>
-      <!-- Primary Summary Cards -->
-      <div class="stats-grid">
-        <div class="dashboard-card card-blue">
-          <div class="card-header">
-            <div class="card-icon">📦</div>
-            <div class="card-label">Total Orders</div>
-          </div>
-          <div class="card-value">{{ formatNumber(dashboardData.total_orders || 0) }}</div>
-          <div class="card-footer">
-            <span class="card-badge">All time</span>
-          </div>
-        </div>
-        
-        <div class="dashboard-card card-green">
-          <div class="card-header">
-            <div class="card-icon">💰</div>
-            <div class="card-label">Total Spent</div>
-          </div>
-          <div class="card-value money-value">${{ formatCurrency(dashboardData.all_time_spend || 0) }}</div>
-          <div class="card-footer">
-            <span class="card-badge">All time</span>
-          </div>
-        </div>
-        
-        <div class="dashboard-card card-purple">
-          <div class="card-header">
-            <div class="card-icon">📊</div>
-            <div class="card-label">This Month</div>
-          </div>
-          <div class="card-value">{{ formatNumber(dashboardData.month_orders || 0) }}</div>
-          <div class="card-footer">
-            <span class="card-badge">Orders this month</span>
-          </div>
-        </div>
-        
-        <div class="dashboard-card card-orange">
-          <div class="card-header">
-            <div class="card-icon">💵</div>
-            <div class="card-label">Month Spending</div>
-          </div>
-          <div class="card-value money-value">${{ formatCurrency(dashboardData.month_spend || 0) }}</div>
-          <div class="card-footer">
-            <span class="card-badge">Current month</span>
-          </div>
-        </div>
-        
-        <div class="dashboard-card card-indigo">
-          <div class="card-header">
-            <div class="card-icon">📈</div>
-            <div class="card-label">Avg Order Value</div>
-          </div>
-          <div class="card-value money-value">${{ formatCurrency(dashboardData.avg_order_value || 0) }}</div>
-          <div class="card-footer">
-            <span class="card-badge">Per order</span>
-          </div>
-        </div>
-        
-        <div class="dashboard-card card-teal">
-          <div class="card-header">
-            <div class="card-icon">✅</div>
-            <div class="card-label">Completed</div>
-          </div>
-          <div class="card-value">{{ formatNumber(dashboardData.status_breakdown?.completed || 0) }}</div>
-          <div class="card-footer">
-            <span class="card-badge" v-if="dashboardData.total_orders">
-              {{ Math.round((dashboardData.status_breakdown?.completed / dashboardData.total_orders) * 100) }}% completion
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Order Status Breakdown -->
-      <div class="dashboard-section">
-        <h2>Order Status Breakdown</h2>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-label">⏳ Pending</div>
-            <div class="stat-value">{{ formatNumber(dashboardData.status_breakdown?.pending || 0) }}</div>
-            <div class="stat-description">Awaiting assignment</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">🔄 In Progress</div>
-            <div class="stat-value">{{ formatNumber(dashboardData.status_breakdown?.in_progress || 0) }}</div>
-            <div class="stat-description">Being worked on</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">✏️ On Revision</div>
-            <div class="stat-value">{{ formatNumber(dashboardData.status_breakdown?.on_revision || 0) }}</div>
-            <div class="stat-description">Under revision</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-label">✅ Completed</div>
-            <div class="stat-value">{{ formatNumber(dashboardData.status_breakdown?.completed || 0) }}</div>
-            <div class="stat-description">Finished orders</div>
-          </div>
-        </div>
-      </div>
+      <!-- Use the ClientDashboard component with fetched data -->
+      <ClientDashboardComponent
+        :client-dashboard-data="clientDashboardData"
+        :client-loyalty-data="clientLoyaltyData"
+        :client-analytics-data="clientAnalyticsData"
+        :client-wallet-analytics="clientWalletAnalytics"
+        :wallet-balance="walletBalance"
+        :recent-orders="recentOrders"
+        :recent-orders-loading="recentOrdersLoading"
+        :recent-notifications="recentNotifications"
+        :recent-notifications-loading="recentNotificationsLoading"
+        :recent-communications="recentCommunications"
+        :recent-communications-loading="recentCommunicationsLoading"
+        :recent-tickets="recentTickets"
+        :recent-tickets-loading="recentTicketsLoading"
+        :loading="loading"
+      />
     </div>
   </div>
 </template>
 
-<script>
-import axios from 'axios'
+<script setup>
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import clientDashboardAPI from '@/api/client-dashboard'
+import walletAPI from '@/api/wallet'
+import ordersAPI from '@/api/orders'
+import notificationsAPI from '@/api/notifications'
+import communicationsAPI from '@/api/communications'
+import ticketsAPI from '@/api/tickets'
+import ClientDashboardComponent from '@/views/dashboard/components/ClientDashboard.vue'
 
-export default {
-  name: 'ClientDashboard',
-  setup() {
     const authStore = useAuthStore()
-    return { authStore }
-  },
-  data() {
-    return {
-      loading: false,
-      error: null,
-      dashboardData: {}
-    }
-  },
-  mounted() {
-    this.loadDashboard()
-  },
-  methods: {
-    async loadDashboard() {
-      this.loading = true
-      this.error = null
-      try {
-        const response = await axios.get('/api/v1/client-management/dashboard/stats/', {
-          headers: {
-            'Authorization': `Bearer ${this.authStore.accessToken}`
-          }
-        })
-        this.dashboardData = response.data
-      } catch (err) {
-        this.error = err.response?.data?.detail || 'Failed to load dashboard'
-        console.error('Dashboard error:', err)
-      } finally {
-        this.loading = false
-      }
-    },
-    refreshDashboard() {
-      this.loadDashboard()
-    },
-    formatCurrency(value) {
-      const num = parseFloat(value || 0)
-      return num.toLocaleString('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      })
-    },
-    formatNumber(value) {
-      return parseInt(value || 0).toLocaleString()
-    }
+
+// State
+const loading = ref(true)
+const refreshing = ref(false)
+const error = ref(null)
+
+const clientDashboardData = ref({})
+const clientLoyaltyData = ref({})
+const clientAnalyticsData = ref({})
+const clientWalletAnalytics = ref({})
+const walletBalance = ref(0)
+const recentOrders = ref([])
+const recentOrdersLoading = ref(false)
+const recentNotifications = ref([])
+const recentNotificationsLoading = ref(false)
+const recentCommunications = ref([])
+const recentCommunicationsLoading = ref(false)
+const recentTickets = ref([])
+const recentTicketsLoading = ref(false)
+
+// Fetch functions
+const fetchClientDashboard = async () => {
+  try {
+    const response = await clientDashboardAPI.getStats(30)
+    clientDashboardData.value = response?.data || {}
+  } catch (err) {
+    console.error('Failed to fetch client dashboard:', err)
+    error.value = err.response?.data?.detail || 'Failed to load dashboard'
+    clientDashboardData.value = {}
   }
 }
+
+const fetchClientLoyalty = async () => {
+  try {
+    const response = await clientDashboardAPI.getLoyalty()
+    clientLoyaltyData.value = response?.data || {}
+  } catch (err) {
+    console.error('Failed to fetch loyalty data:', err)
+  }
+}
+
+const fetchClientAnalytics = async () => {
+  try {
+    const response = await clientDashboardAPI.getAnalytics(30)
+    clientAnalyticsData.value = response?.data || {}
+  } catch (err) {
+    console.error('Failed to fetch analytics:', err)
+  }
+}
+
+const fetchClientWalletAnalytics = async () => {
+  try {
+    const response = await clientDashboardAPI.getWalletAnalytics(30)
+    clientWalletAnalytics.value = response?.data || {}
+  } catch (err) {
+    console.error('Failed to fetch wallet analytics:', err)
+  }
+}
+
+const fetchWalletBalance = async () => {
+  try {
+    const response = await walletAPI.getBalance()
+    walletBalance.value = response.data.balance || response.data.wallet?.balance || 0
+  } catch (err) {
+    console.error('Failed to fetch wallet balance:', err)
+  }
+}
+
+const fetchRecentOrders = async () => {
+  recentOrdersLoading.value = true
+  try {
+    const response = await ordersAPI.list({ page_size: 5, ordering: '-created_at' })
+    const orders = Array.isArray(response.data?.results) 
+      ? response.data.results 
+      : (Array.isArray(response.data) ? response.data : [])
+    recentOrders.value = orders.slice(0, 5)
+  } catch (err) {
+    console.error('Failed to fetch recent orders:', err)
+    recentOrders.value = []
+  } finally {
+    recentOrdersLoading.value = false
+  }
+}
+
+const fetchRecentNotifications = async () => {
+  recentNotificationsLoading.value = true
+  try {
+    const response = await notificationsAPI.getNotifications({ page_size: 3, ordering: '-created_at' })
+    const notifications = Array.isArray(response.data?.results)
+      ? response.data.results
+      : (Array.isArray(response.data) ? response.data : [])
+    recentNotifications.value = notifications.slice(0, 3)
+  } catch (err) {
+    console.error('Failed to fetch notifications:', err)
+    recentNotifications.value = []
+  } finally {
+    recentNotificationsLoading.value = false
+  }
+}
+
+const fetchRecentCommunications = async () => {
+  recentCommunicationsLoading.value = true
+  try {
+    const response = await communicationsAPI.listThreads({ page_size: 5, ordering: '-updated_at' })
+    const threads = Array.isArray(response.data?.results)
+      ? response.data.results
+      : (Array.isArray(response.data) ? response.data : [])
+    recentCommunications.value = threads.slice(0, 5)
+  } catch (err) {
+    console.error('Failed to fetch communications:', err)
+    recentCommunications.value = []
+  } finally {
+    recentCommunicationsLoading.value = false
+  }
+}
+
+const fetchRecentTickets = async () => {
+  recentTicketsLoading.value = true
+  try {
+    const response = await ticketsAPI.list({ page_size: 5, ordering: '-updated_at' })
+    const tickets = Array.isArray(response.data?.results)
+      ? response.data.results
+      : (Array.isArray(response.data) ? response.data : [])
+    recentTickets.value = tickets.slice(0, 5)
+      } catch (err) {
+    console.error('Failed to fetch tickets:', err)
+    recentTickets.value = []
+      } finally {
+    recentTicketsLoading.value = false
+  }
+}
+
+const refreshDashboard = async () => {
+  refreshing.value = true
+  error.value = null
+  try {
+    await Promise.all([
+      fetchClientDashboard(),
+      fetchClientLoyalty(),
+      fetchClientAnalytics(),
+      fetchClientWalletAnalytics(),
+      fetchWalletBalance(),
+      fetchRecentOrders(),
+      fetchRecentNotifications(),
+      fetchRecentCommunications(),
+      fetchRecentTickets()
+    ])
+  } catch (err) {
+    console.error('Failed to refresh dashboard:', err)
+    error.value = err.response?.data?.detail || 'Failed to refresh dashboard'
+  } finally {
+    refreshing.value = false
+  }
+}
+
+// Lifecycle
+onMounted(async () => {
+  await Promise.all([
+    fetchClientDashboard(),
+    fetchClientLoyalty(),
+    fetchClientAnalytics(),
+    fetchClientWalletAnalytics(),
+    fetchWalletBalance(),
+    fetchRecentOrders(),
+    fetchRecentNotifications(),
+    fetchRecentCommunications(),
+    fetchRecentTickets()
+  ])
+  loading.value = false
+})
 </script>
 
 <style scoped>
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-}
-
-.dashboard-header h1 {
-  font-size: clamp(24px, 4vw, 32px);
-  font-weight: 700;
-  color: var(--gray-900);
-  margin: 0;
-}
-
-@media (max-width: 768px) {
-  .dashboard-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
 }
 </style>
-

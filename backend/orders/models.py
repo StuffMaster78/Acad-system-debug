@@ -1507,6 +1507,182 @@ class WriterReassignmentLog(models.Model):
         return f"Order #{self.order.id} reassigned to {self.new_writer}"
     
 
+class DraftRequest(models.Model):
+    """
+    Tracks client requests for drafts to see order progress.
+    Only available if client has paid for Progressive Delivery extra service.
+    """
+    REQUEST_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('fulfilled', 'Fulfilled'),
+        ('cancelled', 'Cancelled'),
+    ]
+
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='draft_requests'
+    )
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='draft_requests'
+    )
+    requested_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='draft_requests_made',
+        help_text="Client who requested the draft"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=REQUEST_STATUS_CHOICES,
+        default='pending',
+        help_text="Status of the draft request"
+    )
+    message = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optional message from client about what they want to see"
+    )
+    requested_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the draft was requested"
+    )
+    fulfilled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the writer uploaded the draft"
+    )
+    cancelled_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the request was cancelled"
+    )
+
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['order', 'status']),
+            models.Index(fields=['requested_by', 'status']),
+        ]
+
+    def __str__(self):
+        return f"Draft Request #{self.id} - Order #{self.order.id} - {self.status}"
+
+    def can_request(self):
+        """
+        Check if client can request a draft (has paid for Progressive Delivery).
+        """
+        from pricing_configs.models import AdditionalService
+
+        progressive_service = AdditionalService.objects.filter(
+            website=self.website,
+            is_active=True
+        ).filter(
+            models.Q(slug='progressive-delivery') |
+            models.Q(service_name__icontains='progressive') |
+            models.Q(service_name__icontains='draft')
+        ).first()
+
+        if not progressive_service:
+            return False, "Progressive Delivery service is not available"
+
+        if not self.order.extra_services.filter(id=progressive_service.id).exists():
+            return False, "Progressive Delivery service not added to this order"
+
+        if not self.order.is_paid:
+            return False, "Order must be paid before requesting drafts"
+
+        return True, None
+
+    def fulfill(self, fulfilled_by):
+        """Mark the draft request as fulfilled."""
+        self.status = 'fulfilled'
+        self.fulfilled_at = timezone.now()
+        self.save()
+
+
+class DraftFile(models.Model):
+    """Files uploaded by writers in response to draft requests."""
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='draft_files'
+    )
+    draft_request = models.ForeignKey(
+        DraftRequest,
+        on_delete=models.CASCADE,
+        related_name='files',
+        help_text="The draft request this file fulfills"
+    )
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='draft_files',
+        help_text="The order this draft belongs to"
+    )
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='draft_files_uploaded',
+        help_text="Writer who uploaded the draft"
+    )
+    file = models.FileField(
+        upload_to='draft_files/',
+        help_text="The draft file"
+    )
+    file_name = models.CharField(
+        max_length=255,
+        help_text="Original filename"
+    )
+    file_size = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="File size in bytes"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optional description of what's in this draft"
+    )
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the draft was uploaded"
+    )
+    is_visible_to_client = models.BooleanField(
+        default=True,
+        help_text="Whether client can view this draft"
+    )
+
+    class Meta:
+        ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['draft_request', 'uploaded_at']),
+            models.Index(fields=['order', 'uploaded_at']),
+        ]
+
+    def __str__(self):
+        return f"Draft File - {self.file_name} (Request #{self.draft_request.id})"
+
+    def save(self, *args, **kwargs):
+        # Auto-set website from order if not set
+        if not self.website_id and self.order_id:
+            self.website = self.order.website
+        # Auto-set file_name from file if not set
+        if self.file and not self.file_name:
+            self.file_name = self.file.name.split('/')[-1]
+        # Auto-set file_size from file if not set
+        if self.file and not self.file_size:
+            try:
+                self.file_size = self.file.size
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+
+
 class SoftDeletableMixin(models.Model):
     """Soft deletion flags and metadata."""
 

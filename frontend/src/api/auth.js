@@ -1,181 +1,189 @@
-/**
- * Authentication API Service
- * 
- * Complete authentication API service for frontend integration.
- * Copy this file to your frontend project: src/api/auth.js
- * 
- * Usage:
- * import { authApi } from '@/api/auth'
- * await authApi.login(email, password)
- */
+import apiClient from './client'
+import axios from 'axios'
 
-import apiClient from './client' // Adjust import path as needed
+// Create a public API client without auth token for registration
+const publicApiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || '/api/v1',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  timeout: 15000,
+})
 
-export const authApi = {
-  /**
-   * Login with email and password
-   * @param {string} email - User email
-   * @param {string} password - User password
-   * @param {boolean} rememberMe - Remember user session
-   * @returns {Promise} Response with access_token, refresh_token, and user data
-   */
+// Export both authAPI and authApi for compatibility
+export const authAPI = {
   login: (email, password, rememberMe = false) => {
+    console.log('📤 Login API call:', {
+      url: '/auth/auth/login/',
+      baseURL: apiClient.defaults.baseURL,
+      email,
+      remember_me: rememberMe,
+    })
     return apiClient.post('/auth/auth/login/', {
       email,
       password,
-      remember_me: rememberMe
+      remember_me: rememberMe,
     })
+      .then(response => {
+        console.log('✅ Login API success:', {
+          status: response.status,
+          data: { ...response.data, password: '***' },
+        })
+        return response
+      })
+      .catch(error => {
+        console.error('❌ Login API error:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          url: error.config?.url,
+          baseURL: error.config?.baseURL,
+        })
+        throw error
+      })
   },
 
-  /**
-   * Logout current user
-   * @param {boolean} logoutAll - Logout from all devices
-   * @returns {Promise} Success message
-   */
-  logout: (logoutAll = false) => {
-    return apiClient.post('/auth/auth/logout/', {
-      logout_all: logoutAll
-    })
+  logout: () => {
+    return apiClient.post('/auth/auth/logout/')
   },
 
-  /**
-   * Refresh access token using refresh token
-   * @param {string} refreshToken - Refresh token
-   * @returns {Promise} New access_token and refresh_token
-   */
   refreshToken: (refreshToken) => {
     return apiClient.post('/auth/auth/refresh-token/', {
-      refresh_token: refreshToken
+      refresh_token: refreshToken,
     })
   },
 
-  /**
-   * Change password for authenticated user
-   * @param {string} currentPassword - Current password
-   * @param {string} newPassword - New password
-   * @param {string} confirmPassword - Password confirmation
-   * @returns {Promise} Success message
-   */
+  getProfile: () => {
+    return apiClient.get('/users/users/profile/')
+  },
+
+  // Get current user profile (from auth endpoint)
+  getCurrentUser: () => {
+    return apiClient.get('/auth/auth/user/')
+  },
+
+  // Update current user profile
+  updateProfile: (data) => {
+    return apiClient.patch('/auth/auth/user/', data)
+  },
+
+  // Impersonation (admin/superadmin only)
+  impersonate: (userId) => {
+    return apiClient.post('/auth/impersonate/', { user_id: userId })
+  },
+
+  // Create impersonation token (for new tab impersonation)
+  createImpersonationToken: (userId) => {
+    return apiClient.post('/auth/impersonate/create_token/', { target_user: userId })
+  },
+
+  // Start impersonation with token
+  startImpersonation: (token) => {
+    return apiClient.post('/auth/impersonate/start/', { token })
+  },
+
+  endImpersonation: () => {
+    return apiClient.post('/auth/impersonate/end/')
+  },
+
+  getImpersonationStatus: () => {
+    return apiClient.get('/auth/impersonate/status/')
+  },
+
+  signup: (data) => {
+    // Use public client (no auth token) for registration
+    // Some environments expose nested route /auth/auth/register/
+    // Try that first, then fall back to /auth/register/
+    const primary = '/auth/auth/register/'
+    const fallback = '/auth/register/'
+    console.log('Signup API call:', { url: primary, baseURL: publicApiClient.defaults.baseURL, data: { ...data, password: '***' } })
+    
+    return publicApiClient.post(primary, data)
+      .then(response => {
+        console.log('Signup API success:', response.status, response.data)
+        return response
+      })
+      .catch(error => {
+        // Fallback to alternative route if 404
+        if (error?.response?.status === 404) {
+          return publicApiClient.post(fallback, data)
+        }
+        console.error('Signup API error:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          url: error.config?.url,
+          baseURL: error.config?.baseURL
+        })
+        
+        // Improve error handling for network errors
+        if (!error.response) {
+          // Network error - server not reachable
+          const errorMsg = `Network error: Unable to connect to ${publicApiClient.defaults.baseURL}. Please ensure the backend is running at ${publicApiClient.defaults.baseURL.replace('/api/v1', '')}`
+          throw new Error(errorMsg)
+        }
+        throw error
+      })
+  },
+
+  requestPasswordReset: (email) => {
+    return apiClient.post('/auth/auth/password-reset/', { email })
+  },
+  confirmPasswordReset: (token, password) => {
+    return apiClient.post('/auth/auth/password-reset/confirm/', { token, password })
+  },
+
+  // Password change (authenticated)
   changePassword: (currentPassword, newPassword, confirmPassword) => {
-    return apiClient.post('/auth/change-password/', {
+    return apiClient.post('/auth/auth/change-password/', {
       current_password: currentPassword,
       new_password: newPassword,
       confirm_password: confirmPassword
     })
   },
 
-  /**
-   * Request password reset link
-   * @param {string} email - User email
-   * @returns {Promise} Success message (always returns success for security)
-   */
-  requestPasswordReset: (email) => {
-    return apiClient.post('/auth/password-reset/', {
-      email
-    })
-  },
-
-  /**
-   * Confirm password reset with token
-   * @param {string} token - Reset token from email
-   * @param {string} password - New password
-   * @returns {Promise} Success message
-   */
-  confirmPasswordReset: (token, password) => {
-    return apiClient.post('/auth/password-reset/confirm/', {
-      token,
-      password
-    })
-  },
-
-  /**
-   * Request magic link for passwordless login
-   * @param {string} email - User email
-   * @returns {Promise} Success message
-   */
+  // Magic link login
   requestMagicLink: (email) => {
-    return apiClient.post('/auth/magic-link/request/', {
-      email
-    })
+    return publicApiClient.post('/auth/magic-link/request/', { email })
   },
 
-  /**
-   * Verify magic link token and get JWT tokens
-   * @param {string} token - Magic link token from email
-   * @returns {Promise} Response with access_token, refresh_token, and user data
-   */
   verifyMagicLink: (token) => {
-    return apiClient.post('/auth/magic-link/verify/', {
-      token
-    })
+    return publicApiClient.post('/auth/magic-link/verify/', { token })
   },
 
-  /**
-   * Setup 2FA (TOTP)
-   * @returns {Promise} Response with secret, QR code, and backup codes
-   */
+  // 2FA
   setup2FA: () => {
     return apiClient.post('/auth/2fa/totp/setup/')
   },
 
-  /**
-   * Verify 2FA code
-   * @param {string} code - TOTP code
-   * @returns {Promise} Success message
-   */
   verify2FA: (code) => {
-    return apiClient.post('/auth/2fa/totp/verify/', {
-      code
-    })
+    return apiClient.post('/auth/2fa/totp/verify/', { code })
   },
 
-  /**
-   * Get active user sessions
-   * @returns {Promise} List of active sessions
-   */
+  // Session management
   getActiveSessions: () => {
     return apiClient.get('/auth/user-sessions/')
   },
+  getSessions: () => {
+    return apiClient.get('/auth/user-sessions/')
+  },
+  revokeSession: (sessionId) => {
+    return apiClient.delete(`/auth/user-sessions/${sessionId}/`)
+  },
+  revokeAllSessions: () => {
+    return apiClient.post('/auth/user-sessions/revoke-all/')
+  },
 
-  /**
-   * Request account unlock
-   * @param {string} email - User email
-   * @returns {Promise} Success message
-   */
+  // Account unlock
   requestAccountUnlock: (email) => {
-    return apiClient.post('/auth/account-unlock/', {
-      email
-    })
+    return publicApiClient.post('/auth/auth/account-unlock/', { email })
   },
 
-  /**
-   * Confirm account unlock with token
-   * @param {string} token - Unlock token from email
-   * @returns {Promise} Success message
-   */
   confirmAccountUnlock: (token) => {
-    return apiClient.post('/auth/account-unlock/confirm/', {
-      token
-    })
+    return publicApiClient.post('/auth/auth/account-unlock/confirm/', { token })
   },
-
-  /**
-   * Get current user profile
-   * @returns {Promise} User profile data
-   */
-  getCurrentUser: () => {
-    return apiClient.get('/auth/user/')
-  },
-
-  /**
-   * Update user profile
-   * @param {Object} data - User data to update
-   * @returns {Promise} Updated user data
-   */
-  updateProfile: (data) => {
-    return apiClient.patch('/auth/user/', data)
-  }
 }
 
-export default authApi
+// Alias for compatibility with components using authApi
+export const authApi = authAPI
 

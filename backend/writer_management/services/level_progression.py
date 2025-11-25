@@ -120,9 +120,18 @@ class WriterLevelProgressionService:
         # Calculate completion rate
         completion_rate = (completed_orders.count() / total_orders * 100) if total_orders > 0 else 0
         
-        # Calculate average rating
-        ratings = completed_orders.exclude(client_rating__isnull=True).values_list('client_rating', flat=True)
-        avg_rating = sum(ratings) / len(ratings) if ratings else 0
+        # Calculate average rating from reviews
+        # Order model has a 'reviews' relationship (related_name from OrderReview)
+        # We need to get ratings from the reviews
+        from reviews_system.models.order_review import OrderReview
+        from django.db.models import Avg
+        
+        # Get average rating from OrderReview for completed orders
+        order_ids = completed_orders.values_list('id', flat=True)
+        avg_rating_result = OrderReview.objects.filter(
+            order_id__in=order_ids
+        ).aggregate(avg_rating=Avg('rating'))
+        avg_rating = float(avg_rating_result['avg_rating'] or 0)
         
         # Calculate revision rate (orders with revisions)
         revised_orders = completed_orders.filter(has_revision=True).count()
