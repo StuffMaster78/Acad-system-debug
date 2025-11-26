@@ -94,3 +94,10 @@ class NotificationsSystemConfig(AppConfig):
                 exc_info=True,
             )
         logger.info("Notifications system ready.")
+
+        # Import tasks to ensure they're registered with Celery after Django is ready.
+        # This must never raise on missing optional tasks; log a warning instead.
+        try:
+            from . import tasks  # noqa: F401
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Failed to import notification tasks module: %s", exc, exc_info=True)

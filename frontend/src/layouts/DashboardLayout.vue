@@ -1,9 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-50 overflow-hidden">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-300 ease-in-out',
+        'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         'lg:translate-x-0'
       ]"
@@ -24,6 +24,20 @@
 
         <!-- Navigation -->
         <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+          <!-- Dashboard - Always at top -->
+          <router-link
+            to="/dashboard"
+            :class="[
+              'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors mb-4',
+              $route.name === 'Dashboard' || $route.path === '/dashboard'
+                ? 'bg-primary-50 text-primary-700'
+                : 'text-gray-700 hover:bg-gray-100'
+            ]"
+          >
+            <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">📊</span>
+            Dashboard
+          </router-link>
+
           <!-- Place New Order Button - Prominent at top (Client) -->
           <div v-if="authStore.isClient" class="mb-4">
             <router-link
@@ -137,12 +151,119 @@
             </router-link>
           </div>
 
+          <!-- Writer Groups - Organized by category -->
+          <template v-if="authStore.isWriter">
+            <!-- Orders Group -->
+            <div class="space-y-1 mb-4">
+              <button @click="writerOrdersOpen = !writerOrdersOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+                <span class="flex items-center">
+                  <span class="w-5 h-5 mr-3">📝</span>
+                  Orders
+                </span>
+                <span>{{ writerOrdersOpen ? '▾' : '▸' }}</span>
+              </button>
+              <div v-if="writerOrdersOpen" class="ml-6 space-y-1">
+                <router-link to="/writer/orders" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/orders')}">📋 My Orders</router-link>
+                <router-link to="/writer/queue" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/queue')}">📋 Order Queue</router-link>
+                <router-link to="/writer/order-requests" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/order-requests')}">📋 Order Requests</router-link>
+                <router-link to="/writer/orders?status=revision_requested" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.query.status === 'revision_requested'}">⚠️ Revision Requests</router-link>
+                <router-link to="/writer/workload" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/workload')}">⚖️ Workload & Capacity</router-link>
+                <router-link to="/writer/calendar" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/calendar')}">📅 Deadline Calendar</router-link>
+                <router-link to="/writer/deadline-extensions" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/deadline-extensions')}">⏰ Deadline Extensions</router-link>
+                <router-link to="/writer/order-holds" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/order-holds')}">🛑 Hold Requests</router-link>
+              </div>
+            </div>
+
+            <!-- Finances Group -->
+            <div class="space-y-1 mb-4">
+              <button @click="writerFinancesOpen = !writerFinancesOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+                <span class="flex items-center">
+                  <span class="w-5 h-5 mr-3">💰</span>
+                  Finances
+                </span>
+                <span>{{ writerFinancesOpen ? '▾' : '▸' }}</span>
+              </button>
+              <div v-if="writerFinancesOpen" class="ml-6 space-y-1">
+                <router-link to="/writer/payments" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payments')}">💳 Payments</router-link>
+                <router-link to="/writer/payment-request" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payment-request')}">💳 Payment Requests</router-link>
+                <router-link to="/writer/tips" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tips')}">💰 Tips</router-link>
+                <router-link to="/writer/fines" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-red-50 text-red-700 font-medium': $route.path.startsWith('/writer/fines')}">🚫 Fines & Appeals</router-link>
+              </div>
+            </div>
+
+            <!-- Reviews & Ratings Group -->
+            <div class="space-y-1 mb-4">
+              <button @click="writerReviewsOpen = !writerReviewsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+                <span class="flex items-center">
+                  <span class="w-5 h-5 mr-3">⭐</span>
+                  Reviews & Ratings
+                </span>
+                <span>{{ writerReviewsOpen ? '▾' : '▸' }}</span>
+              </button>
+              <div v-if="writerReviewsOpen" class="ml-6 space-y-1">
+                <router-link to="/writer/reviews" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/reviews')}">⭐ My Reviews</router-link>
+                <router-link to="/writer/performance" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/performance')}">📊 Performance</router-link>
+                <router-link to="/writer/badges" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/badges')}">🏆 Badges</router-link>
+                <router-link to="/writer/badge-analytics" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/badge-analytics')}">📈 Badge Analytics</router-link>
+                <router-link to="/writer/level-details" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/level-details')}">🏅 Level Details</router-link>
+              </div>
+            </div>
+
+            <!-- User Management Group -->
+            <div class="space-y-1 mb-4">
+              <button @click="writerUserManagementOpen = !writerUserManagementOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+                <span class="flex items-center">
+                  <span class="w-5 h-5 mr-3">👤</span>
+                  User Management
+                </span>
+                <span>{{ writerUserManagementOpen ? '▾' : '▸' }}</span>
+              </button>
+              <div v-if="writerUserManagementOpen" class="ml-6 space-y-1">
+                <router-link to="/writer/profile-settings" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/profile-settings')}">⚙️ Profile Settings</router-link>
+                <router-link to="/writer/pen-name" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/pen-name')}">✏️ Pen Name Management</router-link>
+                <router-link to="/writer/resources" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/resources')}">📚 Resources & Guides</router-link>
+              </div>
+            </div>
+
+            <!-- Activity Group -->
+            <div class="space-y-1 mb-4">
+              <button @click="writerActivityOpen = !writerActivityOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+                <span class="flex items-center">
+                  <span class="w-5 h-5 mr-3">📊</span>
+                  Activity
+                </span>
+                <span>{{ writerActivityOpen ? '▾' : '▸' }}</span>
+              </button>
+              <div v-if="writerActivityOpen" class="ml-6 space-y-1">
+                <router-link to="/writer/dashboard-summary" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/dashboard-summary')}">📊 Dashboard Summary</router-link>
+                <router-link to="/writer/communications" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/communications')}">💬 Communications</router-link>
+                <router-link to="/writer/tickets" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tickets')}">🎫 My Tickets</router-link>
+                <router-link to="/activity" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/activity')}">📊 Activity Logs</router-link>
+              </div>
+            </div>
+
+            <!-- Discipline Group -->
+            <div class="space-y-1 mb-4">
+              <button @click="writerDisciplineOpen = !writerDisciplineOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+                <span class="flex items-center">
+                  <span class="w-5 h-5 mr-3">⚖️</span>
+                  Discipline
+                </span>
+                <span>{{ writerDisciplineOpen ? '▾' : '▸' }}</span>
+              </button>
+              <div v-if="writerDisciplineOpen" class="ml-6 space-y-1">
+                <router-link to="/writer/discipline-status" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/discipline-status')}">📜 Status & History</router-link>
+                <router-link to="/writer/tickets" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tickets')}">📝 Submit Appeal</router-link>
+              </div>
+            </div>
+          </template>
+
           <!-- Admin/Superadmin have access to tracking dashboards only, not client features -->
 
           <!-- Navigation items with Users section integrated -->
           <template v-for="item in navigationItems" :key="item.name">
             <router-link
-              v-if="item.name !== 'UsersSection' && item.name !== 'Wallet' && item.name !== 'Referrals' && item.name !== 'Loyalty' && item.name !== 'Payments'"
+              v-if="item.name !== 'Dashboard' && item.name !== 'UsersSection' && item.name !== 'Wallet' && item.name !== 'Referrals' && item.name !== 'Loyalty' && item.name !== 'Payments' && !item.name.startsWith('Writer') && item.name !== 'PenNameManagement'"
               :to="item.to"
               :class="[
                 'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
@@ -280,17 +401,17 @@
         </nav>
 
         <!-- User section -->
-        <div class="p-4 border-t border-gray-200">
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center">
-              <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+              <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
                 <span class="text-primary-600 text-sm font-medium">
                   {{ userInitials }}
                 </span>
               </div>
               <div class="ml-3">
-                <p class="text-sm font-medium text-gray-900">{{ authStore.user?.email }}</p>
-                <p class="text-xs text-gray-500 capitalize">{{ authStore.userRole }}</p>
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ authStore.user?.email }}</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 capitalize">{{ authStore.userRole }}</p>
               </div>
             </div>
           </div>
@@ -312,11 +433,11 @@
     <!-- Main content -->
     <div class="lg:pl-64 h-screen overflow-hidden flex flex-col">
       <!-- Top bar -->
-      <header class="sticky top-0 z-40 bg-white border-b border-gray-200">
+      <header class="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           <button
             @click="sidebarOpen = !sidebarOpen"
-            class="lg:hidden text-gray-500 hover:text-gray-700"
+            class="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -324,19 +445,27 @@
           </button>
 
           <div class="flex-1 flex items-center justify-between">
-            <div class="hidden sm:block text-sm text-gray-500">
-              <span class="font-medium text-gray-700">{{ $route.meta.title || 'Dashboard' }}</span>
+            <div class="hidden sm:block text-sm text-gray-500 dark:text-gray-400">
+              <span class="font-medium text-gray-700 dark:text-gray-100">{{ $route.meta.title || 'Dashboard' }}</span>
             </div>
             <div class="flex items-center space-x-4 flex-1 max-w-2xl mx-4">
               <!-- Global Search -->
               <div class="flex-1 max-w-xl">
                 <GlobalSearch />
               </div>
-            <!-- Activity -->
+            <!-- Activity & Theme -->
             <div class="relative">
+              <button
+                @click="toggleTheme"
+                class="mr-3 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
+                :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+              >
+                <span v-if="isDark">🌙</span>
+                <span v-else>☀️</span>
+              </button>
               <button 
                 @click="toggleActivitiesDropdown"
-                class="relative text-gray-500 hover:text-gray-700 focus:outline-none"
+                class="relative text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 focus:outline-none"
                 title="User Activity"
               >
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-label="Activity">
@@ -348,10 +477,10 @@
               <div
                 v-if="showActivitiesDropdown"
                 ref="activitiesDropdownRef"
-                class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col"
+                class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-hidden flex flex-col"
               >
-                <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                  <h3 class="font-semibold text-gray-900">Activities</h3>
+                <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <h3 class="font-semibold text-gray-900 dark:text-gray-100">Activities</h3>
                   <button
                     @click="closeActivitiesDropdown"
                     class="text-gray-400 hover:text-gray-600"
@@ -593,16 +722,26 @@ import activityAPI from '@/api/activity-logs'
 import GlobalSearch from '@/components/common/GlobalSearch.vue'
 import SessionTimeoutWarning from '@/components/common/SessionTimeoutWarning.vue'
 import sessionManager from '@/services/sessionManager'
+import { useTheme } from '@/composables/useTheme'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const { isDark, toggleTheme } = useTheme()
 const sidebarOpen = ref(false)
 const ordersOpen = ref(true)
 const orderManagementOpen = ref(false)
 const usersOpen = ref(false)
 const paymentsOpen = ref(false)
 const configsOpen = ref(false)
+
+// Writer sidebar groups
+const writerOrdersOpen = ref(false)
+const writerFinancesOpen = ref(false)
+const writerReviewsOpen = ref(false)
+const writerUserManagementOpen = ref(false)
+const writerActivityOpen = ref(false)
+const writerDisciplineOpen = ref(false)
 
 // Notifications state
 const showNotificationsDropdown = ref(false)
@@ -951,112 +1090,8 @@ const navigationItems = computed(() => {
       icon: '📊',
       roles: ['admin', 'superadmin', 'support', 'writer', 'client', 'editor'],
     },
-    {
-      name: 'WriterTickets',
-      to: '/writer/tickets',
-      label: 'My Tickets',
-      icon: '🎫',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterTips',
-      to: '/writer/tips',
-      label: 'My Tips',
-      icon: '💰',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterPaymentRequest',
-      to: '/writer/payment-request',
-      label: 'Payment Requests',
-      icon: '💳',
-      roles: ['writer'],
-    },
-    {
-      name: 'PenNameChangeRequest',
-      to: '/writer/pen-name-change',
-      label: 'Pen Name Change',
-      icon: '✏️',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterResources',
-      to: '/writer/resources',
-      label: 'Resources & Guides',
-      icon: '📚',
-      roles: ['writer'],
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterReviews',
-      to: '/writer/reviews',
-      label: 'My Reviews',
-      icon: '⭐',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterRevisionRequests',
-      to: '/writer/orders?status=revision_requested',
-      label: 'Revision Requests',
-      icon: '⚠️',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterMyOrders',
-      to: '/writer/orders',
-      label: 'My Orders',
-      icon: '📝',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterOrderQueue',
-      to: '/writer/queue',
-      label: 'Order Queue',
-      icon: '📋',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterPayments',
-      to: '/writer/payments',
-      label: 'Payments',
-      icon: '💰',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterCalendar',
-      to: '/writer/calendar',
-      label: 'Deadline Calendar',
-      icon: '📅',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterWorkload',
-      to: '/writer/workload',
-      label: 'Workload & Capacity',
-      icon: '⚖️',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterOrderRequests',
-      to: '/writer/order-requests',
-      label: 'Order Requests',
-      icon: '📋',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterProfileSettings',
-      to: '/writer/profile-settings',
-      label: 'Profile Settings',
-      icon: '👤',
-      roles: ['writer'],
-    },
-    {
-      name: 'WriterCommunications',
-      to: '/writer/communications',
-      label: 'Communications',
-      icon: '💬',
-      roles: ['writer'],
-    },
+    // Writer items are now grouped in the sidebar template, but keep them here for filtering
+    // They won't be rendered as individual items since they're in collapsible groups
     {
       name: 'EditorTasks',
       to: '/editor/tasks',
@@ -1139,6 +1174,36 @@ const updateExpandedSections = (path) => {
   // Also expand orders section for client orders
   if (path.startsWith('/orders') && authStore.isClient) {
     ordersOpen.value = true
+  }
+  
+  // Writer groups
+  if (authStore.isWriter) {
+    // Orders group
+    if (path.startsWith('/writer/orders') || path.startsWith('/writer/queue') || 
+        path.startsWith('/writer/order-requests') || path.startsWith('/writer/workload') || 
+        path.startsWith('/writer/calendar') || path.includes('revision_requested')) {
+      writerOrdersOpen.value = true
+    }
+    // Finances group
+    if (path.startsWith('/writer/payments') || path.startsWith('/writer/payment-request') || 
+        path.startsWith('/writer/tips')) {
+      writerFinancesOpen.value = true
+    }
+    // Reviews group
+    if (path.startsWith('/writer/reviews') || path.startsWith('/writer/performance') || 
+        path.startsWith('/writer/badges')) {
+      writerReviewsOpen.value = true
+    }
+    // User Management group
+    if (path.startsWith('/writer/profile-settings') || path.startsWith('/writer/pen-name') || 
+        path.startsWith('/writer/resources')) {
+      writerUserManagementOpen.value = true
+    }
+    // Activity group
+    if (path.startsWith('/writer/communications') || path.startsWith('/writer/tickets') || 
+        path.startsWith('/activity')) {
+      writerActivityOpen.value = true
+    }
   }
 }
 

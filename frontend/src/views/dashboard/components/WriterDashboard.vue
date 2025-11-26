@@ -56,6 +56,179 @@
       />
     </div>
 
+    <!-- Real-time Focus Widgets -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <!-- Next Deadline -->
+      <div class="card bg-white rounded-lg shadow-sm border border-gray-100 p-6 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Next Deadline</p>
+            <p class="text-2xl font-bold text-gray-900 mt-1">
+              {{ nextDeadlineInfo ? formatDate(nextDeadlineInfo.deadline) : 'No deadlines' }}
+            </p>
+          </div>
+          <span class="text-3xl">⏳</span>
+        </div>
+        <p class="text-sm text-gray-600">
+          {{ nextDeadlineInfo ? (nextDeadlineInfo.topic || 'Assigned order') : 'Enjoy the calm before the next assignment.' }}
+        </p>
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs text-gray-500 uppercase tracking-wide">Time Remaining</p>
+            <p class="text-xl font-semibold text-primary-600">{{ deadlineCountdown }}</p>
+          </div>
+          <router-link
+            v-if="nextDeadlineOrderLink"
+            :to="nextDeadlineOrderLink"
+            class="px-3 py-1.5 text-sm font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+          >
+            Open Order
+          </router-link>
+        </div>
+      </div>
+
+      <!-- Availability -->
+      <div class="card bg-white rounded-lg shadow-sm border border-gray-100 p-6 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Availability</p>
+            <p class="text-2xl font-bold" :class="isAvailabilityOnline ? 'text-green-600' : 'text-gray-600'">
+              {{ isAvailabilityOnline ? 'Available' : 'On Break' }}
+            </p>
+          </div>
+          <span class="text-3xl">{{ isAvailabilityOnline ? '🟢' : '🛌' }}</span>
+        </div>
+        <p class="text-sm text-gray-600">
+          {{ isAvailabilityOnline ? 'You appear in the pool for instant assignments.' : 'You will not auto-receive urgent orders.' }}
+        </p>
+        <p v-if="availabilityMessage" class="text-xs text-gray-500 italic">
+          "{{ availabilityMessage }}"
+        </p>
+        <div class="flex items-center gap-2">
+          <button
+            @click="toggleAvailability"
+            :disabled="availabilityLoading"
+            class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+            :class="isAvailabilityOnline ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'"
+          >
+            {{ isAvailabilityOnline ? 'Mark as On Break' : 'Mark as Available' }}
+          </button>
+          <button
+            @click="pingAvailability"
+            :disabled="availabilityLoading"
+            class="px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            title="Ping the system to refresh your live status"
+          >
+            Ping
+          </button>
+        </div>
+        <p class="text-xs text-gray-500">
+          Last ping: {{ lastAvailabilityPing ? new Date(lastAvailabilityPing).toLocaleTimeString() : 'Never' }}
+        </p>
+      </div>
+
+      <!-- Queue Auto Refresh -->
+      <div class="card bg-white rounded-lg shadow-sm border border-gray-100 p-6 flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Auto Refresh</p>
+            <p class="text-2xl font-bold text-gray-900">{{ autoRefreshEnabled ? 'Enabled' : 'Disabled' }}</p>
+          </div>
+          <span class="text-3xl">{{ autoRefreshEnabled ? '🔁' : '⏱️' }}</span>
+        </div>
+        <p class="text-sm text-gray-600">
+          {{ autoRefreshEnabled ? 'Queue refreshes every 30s so you never miss a drop.' : 'Turn on auto refresh to watch new orders appear in real-time.' }}
+        </p>
+        <div class="flex items-center gap-2">
+          <button
+            @click="toggleAutoRefresh"
+            class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
+            :class="autoRefreshEnabled ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+          >
+            {{ autoRefreshEnabled ? 'Disable Auto Refresh' : 'Enable Auto Refresh' }}
+          </button>
+          <button
+            @click="requestQueueRefresh"
+            class="px-3 py-2 text-sm text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+          >
+            Refresh Now
+          </button>
+        </div>
+        <div class="text-xs text-gray-500">
+          <p>Available orders: <span class="font-semibold text-gray-800">{{ queueStats.available }}</span></p>
+          <p>Preferred orders: <span class="font-semibold text-gray-800">{{ queueStats.preferred }}</span></p>
+          <p>Last refresh: {{ lastQueueRefreshLabel }}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Real-time Widgets -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div
+        v-if="realtimeOrdersReady"
+        class="card bg-white rounded-lg shadow-sm border border-orange-100 p-6 flex flex-col gap-3"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-orange-500 uppercase tracking-wide">Orders Ready</p>
+            <p class="text-2xl font-bold text-gray-900">{{ realtimeOrdersReady.count || 0 }}</p>
+          </div>
+          <span class="text-3xl">🚀</span>
+        </div>
+        <p class="text-sm text-gray-600">
+          {{ realtimeOrdersReady.count ? 'Orders that are nearly ready to submit.' : 'All caught up!' }}
+        </p>
+        <div v-if="realtimeOrdersReady.orders?.length" class="space-y-3">
+          <div
+            v-for="order in realtimeOrdersReady.orders"
+            :key="`ready-${order.id}`"
+            class="p-3 border border-orange-200 rounded-lg bg-orange-50"
+          >
+            <div class="flex items-center justify-between gap-2">
+              <router-link
+                :to="`/orders/${order.id}`"
+                class="font-semibold text-gray-900 hover:text-primary-600"
+              >
+                #{{ order.id }} • {{ order.topic || 'Untitled' }}
+              </router-link>
+              <span class="text-xs font-medium text-orange-700 capitalize">{{ order.status || 'ready' }}</span>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+              Due {{ order.deadline ? formatDate(order.deadline) : 'TBD' }} • {{ order.pages || 0 }} pages
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div
+        v-if="realtimeGoalProgress"
+        class="card bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow-sm border border-indigo-200 p-6 flex flex-col gap-3"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wide">Goal Progress</p>
+            <p class="text-xl font-bold text-gray-900">
+              {{ realtimeGoalProgress.next_level_name || 'Next level' }}
+            </p>
+          </div>
+          <span class="text-3xl">🎯</span>
+        </div>
+        <div class="w-full bg-white rounded-full h-3 border border-indigo-200">
+          <div
+            class="h-3 rounded-full bg-indigo-500 transition-all"
+            :style="{ width: `${Math.min(100, realtimeGoalProgress.progress_percentage || 0)}%` }"
+          ></div>
+        </div>
+        <div class="flex items-center justify-between text-sm text-gray-600">
+          <span>{{ formatScore(realtimeGoalProgress.current_score) }} pts</span>
+          <span>{{ formatScore(realtimeGoalProgress.required_score) }} required</span>
+        </div>
+        <p class="text-xs text-gray-500">
+          {{ realtimeGoalProgress.points_needed > 0 ? `${realtimeGoalProgress.points_needed} pts to go` : 'Ready for promotion!' }}
+        </p>
+      </div>
+    </div>
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
       <StatsCard
@@ -892,14 +1065,16 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import StatsCard from '@/components/dashboard/StatsCard.vue'
 import QuickActionCard from '@/components/dashboard/QuickActionCard.vue'
 import ChartWidget from '@/components/dashboard/ChartWidget.vue'
 import Modal from '@/components/common/Modal.vue'
 import writerOrderRequestsAPI from '@/api/writer-order-requests'
+import writerDashboardAPI from '@/api/writer-dashboard'
 import { useToast } from '@/composables/useToast'
 import { getErrorMessage } from '@/utils/errorHandler'
+import onlineStatusAPI from '@/api/online-status'
 
 const props = defineProps({
   writerEarningsData: Object,
@@ -910,10 +1085,12 @@ const props = defineProps({
   writerSummaryData: Object,
   recentOrders: Array,
   recentOrdersLoading: Boolean,
-  loading: Boolean
+  loading: Boolean,
+  availabilityStatus: Object,
+  realtimeWidgetData: Object
 })
 
-const emit = defineEmits(['order-requested'])
+const emit = defineEmits(['order-requested', 'refresh-requested', 'availability-updated'])
 
 const earningsTrendSeries = computed(() => {
   if (!props.writerEarningsData?.earnings_trend?.length) return []
@@ -973,6 +1150,11 @@ const formatCurrency = (amount) => {
   return parseFloat(amount).toFixed(2)
 }
 
+const formatScore = (value) => {
+  if (value === null || value === undefined || value === '') return '0.0'
+  return Number(value).toFixed(1)
+}
+
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
@@ -993,6 +1175,244 @@ const formatDate = (dateString) => {
     year: 'numeric',
   })
 }
+
+// Real-time widgets ----------------------------------------------------------
+const nextDeadlineInfo = computed(() => {
+  const realtime = props.realtimeWidgetData?.next_deadline
+  if (realtime?.deadline) {
+    return {
+      deadline: realtime.deadline,
+      orderId: realtime.order_id || realtime.orderId || null,
+      topic: realtime.topic || '',
+    }
+  }
+
+  const deadlines = []
+  if (props.writerSummaryData?.next_deadline) {
+    deadlines.push({
+      deadline: props.writerSummaryData.next_deadline,
+      orderId: props.writerSummaryData.next_deadline_order_id || null,
+      topic: props.writerSummaryData.next_deadline_topic || '',
+    })
+  }
+  ;(props.recentOrders || []).forEach(order => {
+    const deadline = order.writer_deadline || order.deadline || order.client_deadline
+    if (deadline) {
+      deadlines.push({
+        deadline,
+        orderId: order.id,
+        topic: order.topic,
+      })
+    }
+  })
+  if (!deadlines.length) return null
+  return deadlines.sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0]
+})
+
+const nextDeadlineOrderLink = computed(() =>
+  nextDeadlineInfo.value?.orderId ? `/orders/${nextDeadlineInfo.value.orderId}` : null
+)
+
+const deadlineCountdown = ref('No deadlines')
+let countdownTimer = null
+
+const updateDeadlineCountdown = () => {
+  const info = nextDeadlineInfo.value
+  if (!info) {
+    deadlineCountdown.value = 'No deadlines'
+    return
+  }
+  const diff = new Date(info.deadline) - new Date()
+  if (diff <= 0) {
+    deadlineCountdown.value = 'Due now'
+    return
+  }
+  const days = Math.floor(diff / 86400000)
+  const hours = Math.floor((diff % 86400000) / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
+  const seconds = Math.floor((diff % 60000) / 1000)
+  if (days > 0) {
+    deadlineCountdown.value = `${days}d ${hours}h`
+  } else if (hours > 0) {
+    deadlineCountdown.value = `${hours}h ${minutes}m`
+  } else if (minutes > 0) {
+    deadlineCountdown.value = `${minutes}m ${seconds}s`
+  } else {
+    deadlineCountdown.value = `${seconds}s`
+  }
+}
+
+const startCountdown = () => {
+  stopCountdown()
+  updateDeadlineCountdown()
+  countdownTimer = setInterval(updateDeadlineCountdown, 1000)
+}
+
+const stopCountdown = () => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+}
+
+watch(nextDeadlineInfo, () => {
+  startCountdown()
+})
+
+watch(
+  () => props.availabilityStatus,
+  (status) => {
+    if (!status) return
+    if (typeof status.is_available === 'boolean') {
+      isAvailabilityOnline.value = status.is_available
+    }
+    if (status.last_changed) {
+      lastAvailabilityPing.value = new Date(status.last_changed)
+    }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => props.realtimeWidgetData?.availability,
+  (availability) => {
+    if (!availability) return
+    if (typeof availability.is_available === 'boolean') {
+      isAvailabilityOnline.value = availability.is_available
+    }
+    const reference = availability.last_active || availability.last_changed
+    if (reference) {
+      lastAvailabilityPing.value = new Date(reference)
+    }
+  }
+)
+
+const isAvailabilityOnline = ref(true)
+const availabilityLoading = ref(false)
+const lastAvailabilityPing = ref(null)
+
+const pingAvailability = async (skipLoader = false) => {
+  if (!skipLoader) {
+    availabilityLoading.value = true
+  }
+  try {
+    await onlineStatusAPI.updateStatus()
+    lastAvailabilityPing.value = new Date()
+  } catch (error) {
+    console.error('Failed to ping availability:', error)
+    showError(getErrorMessage(error, 'Unable to update availability'))
+  } finally {
+    if (!skipLoader) {
+      availabilityLoading.value = false
+    }
+  }
+}
+
+const toggleAvailability = async () => {
+  const nextValue = !isAvailabilityOnline.value
+  availabilityLoading.value = true
+  try {
+    const response = await writerDashboardAPI.updateAvailability({
+      is_available: nextValue,
+    })
+    isAvailabilityOnline.value = nextValue
+    emit('availability-updated', response?.data || null)
+    if (nextValue) {
+      await pingAvailability(true)
+    }
+  } catch (error) {
+    showError(getErrorMessage(error, 'Unable to update availability'))
+  } finally {
+    availabilityLoading.value = false
+  }
+}
+
+const queueStats = computed(() => {
+  if (props.realtimeWidgetData?.queue) {
+    return {
+      available: props.realtimeWidgetData.queue.available || 0,
+      preferred: props.realtimeWidgetData.queue.preferred || 0,
+      requests: props.realtimeWidgetData.queue.requests || 0,
+    }
+  }
+  return {
+    available: props.writerQueueData?.available_orders?.length || 0,
+    preferred: props.writerQueueData?.preferred_orders?.length || 0,
+    requests:
+      (props.writerQueueData?.writer_requests?.length || 0) +
+      (props.writerQueueData?.order_requests?.length || 0),
+  }
+})
+
+const realtimeOrdersReady = computed(() => props.realtimeWidgetData?.orders_ready || null)
+const realtimeGoalProgress = computed(() => props.realtimeWidgetData?.goal_progress || null)
+const availabilityMessage = computed(() =>
+  props.availabilityStatus?.message ||
+  props.realtimeWidgetData?.availability?.message ||
+  ''
+)
+
+const lastQueueRefresh = ref(props.writerQueueData ? new Date() : null)
+const lastQueueRefreshLabel = computed(() => {
+  if (!lastQueueRefresh.value) return 'Never'
+  return lastQueueRefresh.value.toLocaleTimeString()
+})
+
+watch(
+  () => props.writerQueueData,
+  () => {
+    lastQueueRefresh.value = new Date()
+  }
+)
+
+const autoRefreshEnabled = ref(
+  localStorage.getItem('writerQueueAutoRefresh') === 'true'
+)
+let autoRefreshTimer = null
+
+const requestQueueRefresh = () => {
+  emit('refresh-requested', { scope: 'queue' })
+}
+
+const startAutoRefresh = () => {
+  stopAutoRefresh()
+  requestQueueRefresh()
+  autoRefreshTimer = setInterval(requestQueueRefresh, 30000)
+}
+
+const stopAutoRefresh = () => {
+  if (autoRefreshTimer) {
+    clearInterval(autoRefreshTimer)
+    autoRefreshTimer = null
+  }
+}
+
+const toggleAutoRefresh = () => {
+  autoRefreshEnabled.value = !autoRefreshEnabled.value
+  localStorage.setItem('writerQueueAutoRefresh', autoRefreshEnabled.value)
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh()
+  } else {
+    stopAutoRefresh()
+  }
+}
+
+onMounted(() => {
+  startCountdown()
+  if (isAvailabilityOnline.value) {
+    pingAvailability()
+  }
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh()
+  }
+})
+
+onUnmounted(() => {
+  stopCountdown()
+  stopAutoRefresh()
+})
+
+// ---------------------------------------------------------------------------
 
 // Order request functionality
 const { success: showSuccess, error: showError } = useToast()

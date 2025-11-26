@@ -2,10 +2,13 @@ from rest_framework import viewsets, filters
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db import models
+from django_filters.rest_framework import DjangoFilterBackend
+
 from activity.models import ActivityLog
 from activity.serializers import ActivityLogSerializer
+from activity.serializers_user_feed import UserActivityFeedSerializer
 from activity.filters import ActivityLogFilter
-from django_filters.rest_framework import DjangoFilterBackend
+from orders.models import Order
 
 
 class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
@@ -48,8 +51,8 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
                 models.Q(user__role='client')  # Clients
             )
         
-        # Writers and clients can only see their own activities
-        elif user_role in ['writer', 'client']:
+        # Writers, clients, editors: default to their own technical logs only
+        elif user_role in ['writer', 'client', 'editor']:
             qs = qs.filter(user=user)
         
         # Default: users can only see their own activities
@@ -72,7 +75,7 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
             qs = qs.filter(action_type=action_type)
 
         return qs
-    
+
     def list(self, request, *args, **kwargs):
         """List activity logs with optional limit."""
         queryset = self.filter_queryset(self.get_queryset())
@@ -98,3 +101,66 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
             'results': serializer.data,
             'count': len(serializer.data)
         })
+
+
+class UserActivityFeedViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    User-facing activity feed with friendly descriptions and strict role scoping.
+    This is what non-admin users should see in the UI.
+    """
+
+    serializer_class = UserActivityFeedSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        qs = ActivityLog.objects.select_related(
+            "user", "triggered_by", "website"
+        ).order_by("-timestamp")
+
+        user = self.request.user
+        user_role = getattr(user, "role", None)
+
+        # Admin / Superadmin: see all events
+        if user_role in ["admin", "superadmin"]:
+            pass
+
+        # Support: see their own actions + all client/writer/editor activity
+        elif user_role == "support":
+            qs = qs.filter(
+                models.Q(user=user)
+                | models.Q(user__role__in=["writer", "editor", "client"])
+            )
+
+        # Writer: own actions + actions attached to orders assigned to them
+        elif user_role == "writer":
+            writer_order_ids = list(
+                Order.objects.filter(assigned_writer=user).values_list("id", flat=True)
+            )
+            qs = qs.filter(
+                models.Q(user=user)
+                | models.Q(metadata__order_id__in=writer_order_ids)
+            )
+
+        # Client: own actions + actions attached to their orders
+        elif user_role == "client":
+            client_order_ids = list(
+                Order.objects.filter(client=user).values_list("id", flat=True)
+            )
+            qs = qs.filter(
+                models.Q(user=user)
+                | models.Q(metadata__order_id__in=client_order_ids)
+            )
+
+        # Editors or any other role: only own events by default
+        else:
+            qs = qs.filter(user=user)
+
+        limit = self.request.query_params.get("limit")
+        if limit:
+            try:
+                limit = int(limit)
+                qs = qs[:limit]
+            except (ValueError, TypeError):
+                pass
+
+        return qs

@@ -51,6 +51,7 @@ except (ImportError, AttributeError):
         else:
             raise ImportError("Could not find writer_management/views.py")
 from writer_management.views_dashboard import WriterDashboardViewSet
+from writer_management.views_realtime import WriterDashboardRealtimeStream
 # Import Tip views from views.tips module
 from writer_management.views.tips import TipViewSet, TipListView
 # Import pen name and resource views
@@ -99,4 +100,5 @@ urlpatterns = [
     path('writer-performance-dashboard/<int:pk>/', WriterPerformanceDashboardView.as_view(), name='writer-performance-dashboard'),
     # Legacy endpoint for backward compatibility
     path('tips/list/', TipListView.as_view(), name='tip-list'),
+    path('dashboard/realtime/stream/', WriterDashboardRealtimeStream.as_view(), name='writer-dashboard-realtime'),
 ]

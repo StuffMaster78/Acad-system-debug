@@ -2,11 +2,17 @@ from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.shortcuts import get_object_or_404
-from django.core.exceptions import PermissionDenied
+from django.core.exceptions import PermissionDenied, ValidationError
 
 from fines.models import Fine, FineAppeal, FineStatus
-from fines.serializers import FineSerializer, FineAppealSerializer
+from fines.serializers import (
+    FineSerializer,
+    FineAppealSerializer,
+    FineAppealEventSerializer,
+    FineAppealEvidenceSerializer,
+)
 from fines.services.fine_services import FineService
 from fines.services.fine_appeal_service import FineAppealService
 from authentication.permissions import IsAdminOrSuperAdmin
@@ -17,7 +23,13 @@ class FineViewSet(viewsets.ModelViewSet):
     ViewSet for managing fines. Supports CRUD and custom actions like
     waive and void, with user-context and permissions handled.
     """
-    queryset = Fine.objects.select_related('order', 'order__assigned_writer', 'issued_by', 'waived_by')
+    queryset = Fine.objects.select_related(
+        'order',
+        'order__assigned_writer',
+        'issued_by',
+        'waived_by',
+        'appeal',
+    ).prefetch_related('appeal__events__attachments', 'appeal__evidence_files')
     serializer_class = FineSerializer
     permission_classes = [IsAuthenticated]
 
@@ -182,8 +194,12 @@ class FineAppealViewSet(viewsets.ModelViewSet):
     review workflows with smart permissioning and audit trails.
     """
     queryset = FineAppeal.objects.select_related(
-        'fine', 'fine__order', 'appealed_by', 'reviewed_by', 'escalated_to'
-    )
+        'fine',
+        'fine__order',
+        'appealed_by',
+        'reviewed_by',
+        'escalated_to',
+    ).prefetch_related('events__attachments', 'evidence_files')
     serializer_class = FineAppealSerializer
     permission_classes = [IsAuthenticated]
 
@@ -203,6 +219,82 @@ class FineAppealViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Set the current user as the appellant."""
         serializer.save(appealed_by=self.request.user)
+
+    def _ensure_participant(self, request_user, appeal):
+        if request_user.role in ['admin', 'superadmin', 'support']:
+            return
+        writer = getattr(appeal, "appealed_by", None) or getattr(
+            appeal.fine.order, "assigned_writer", None
+        )
+        if writer and writer == request_user:
+            return
+        raise PermissionDenied("You do not have access to update this appeal.")
+
+    @action(detail=True, methods=["get", "post"], url_path="timeline")
+    def timeline(self, request, pk=None):
+        """
+        GET returns the ordered timeline, POST adds a new comment entry.
+        """
+        appeal = self.get_object()
+
+        if request.method.lower() == "get":
+            events = appeal.events.select_related("actor").prefetch_related("attachments")
+            serializer = FineAppealEventSerializer(
+                events, many=True, context={"request": request}
+            )
+            return Response(serializer.data)
+
+        # POST branch
+        self._ensure_participant(request.user, appeal)
+        message = (request.data.get("message") or "").strip()
+        if not message:
+            return Response(
+                {"detail": "Message is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            event = FineAppealService.add_comment(appeal, request.user, message)
+        except ValidationError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = FineAppealEventSerializer(event, context={"request": request})
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(
+        detail=True,
+        methods=["post"],
+        url_path="evidence",
+        parser_classes=[MultiPartParser, FormParser],
+    )
+    def upload_evidence(self, request, pk=None):
+        """
+        Upload evidence files tied to an appeal.
+        """
+        appeal = self.get_object()
+        self._ensure_participant(request.user, appeal)
+
+        file_obj = request.FILES.get("file")
+        description = request.data.get("description", "")
+
+        if not file_obj:
+            return Response(
+                {"detail": "File upload is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            evidence = FineAppealService.add_evidence(
+                appeal,
+                request.user,
+                uploaded_file=file_obj,
+                description=description,
+            )
+        except ValidationError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = FineAppealEvidenceSerializer(
+            evidence, context={"request": request}
+        )
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"], url_path="review")
     def review(self, request, pk=None):

@@ -5,6 +5,9 @@ from writer_management.models.status import WriterStatus
 from writer_management.models.profile import WriterProfile
 from writer_management.services.escalation_config_service import EscalationConfigService
 from audit_logging.services.audit_log_service import AuditLogService
+from writer_management.services.discipline_notification_service import (
+    DisciplineNotificationService,
+)
 class WriterStatusService:
     """
     Service to fetch and update a writer's centralized status,
@@ -58,6 +61,11 @@ class WriterStatusService:
         )
 
         prev = WriterStatusService.get(writer)
+        prev_active_strikes = (
+            prev.get("active_strikes")
+            if isinstance(prev, dict)
+            else getattr(prev, "active_strikes", 0)
+        ) if prev else 0
 
         WriterStatus.objects.update_or_create(
             writer=writer,
@@ -88,6 +96,17 @@ class WriterStatusService:
             "should_be_suspended": should_suspend,
             "should_be_probated": should_probate,
         }
+
+        if (
+            config.max_strikes
+            and prev
+            and prev_active_strikes < config.max_strikes <= active_strikes
+        ):
+            DisciplineNotificationService.notify_strike_threshold(
+                writer,
+                strikes=active_strikes,
+                threshold=config.max_strikes,
+            )
 
         WriterStatusService._notify_on_change(writer, prev, status)
         cache.set(f"writer_status:{writer.id}", status, timeout=300)

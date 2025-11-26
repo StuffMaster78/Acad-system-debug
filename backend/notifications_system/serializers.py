@@ -337,9 +337,21 @@ class NotificationPreferenceGroupSerializer(serializers.ModelSerializer):
 
 
 class NotificationGroupSerializer(serializers.ModelSerializer):
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    user_count = serializers.SerializerMethodField()
+    
     class Meta:
         model = NotificationGroup
-        fields = "__all__"
+        fields = [
+            'id', 'name', 'description', 'website', 'website_name', 'website_domain',
+            'channels', 'is_active', 'default_channel', 'default_priority',
+            'is_enabled_by_default', 'created_at', 'updated_at', 'user_count'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_user_count(self, obj):
+        return obj.users.count()
 
 
 # --- Small action payload ---------------------------------------------------
@@ -486,8 +498,27 @@ class NotificationStatusBulkMarkSerializer(serializers.Serializer):
     
 class NotificationGroupProfileSerializer(serializers.ModelSerializer):
     """Serializer for notification preferences at the group level."""
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    group_name = serializers.CharField(source='group.name', read_only=True)
+    profile_name = serializers.CharField(source='profile.name', read_only=True)
+    user_count = serializers.SerializerMethodField()
+    active_channels = serializers.SerializerMethodField()
     
     class Meta:
-        model = GroupNotificationProfile
-        fields = ["id", "profile", "group"]
-        read_only_fields = ["id"]
+        model = NotificationGroupProfile
+        fields = [
+            'id', 'name', 'website', 'website_name', 'website_domain',
+            'profile', 'profile_name', 'group', 'group_name',
+            'allowed_channels', 'min_priority', 'roles', 'role_slug',
+            'is_active', 'is_default', 'receive_email', 'receive_in_app',
+            'receive_push', 'receive_sms', 'created_at', 'updated_at',
+            'user_count', 'active_channels'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_user_count(self, obj):
+        return obj.users.count()
+    
+    def get_active_channels(self, obj):
+        return obj.get_active_channels()

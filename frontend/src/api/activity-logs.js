@@ -10,6 +10,8 @@ export default {
   // Will gracefully handle 404 if endpoint doesn't exist
   list: (params) => apiClient.get('/activity/activity-logs/', { params }).catch(() => ({ data: { results: [], count: 0 } })),
   get: (id) => apiClient.get(`/activity/activity-logs/${id}/`),
+  // User-facing activity feed (friendly, scoped)
+  listUserFeed: (params) => apiClient.get('/activity/user-feed/', { params }).catch(() => ({ data: { results: [], count: 0 } })),
   
   // Note: Activity logs are read-only, no create/update/delete operations
 }

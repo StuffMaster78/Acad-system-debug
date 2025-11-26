@@ -2,12 +2,101 @@
 
 from django.utils import timezone
 from django.core.exceptions import PermissionDenied, ValidationError
-from fines.models import Fine, FineAppeal, FineStatus
+from notifications_system.enums import NotificationType
+from notifications_system.services.dispatch import send
+from fines.models import (
+    Fine,
+    FineAppeal,
+    FineStatus,
+    FineAppealEvent,
+    FineAppealEvidence,
+)
 from audit_logging.services.audit_log_service import AuditLogService
 
 
 class FineAppealService:
     """Encapsulates fine appeal/dispute submission and review logic."""
+
+    SUPPORTED_ADMIN_ROLES = ("admin", "superadmin", "support")
+
+    # ------------------------------------------------------------------ Helpers
+    @staticmethod
+    def _writer_user(appeal):
+        return getattr(appeal, "appealed_by", None) or getattr(
+            appeal.fine.order, "assigned_writer", None
+        )
+
+    @staticmethod
+    def _website(appeal):
+        return getattr(getattr(appeal.fine, "order", None), "website", None)
+
+    @staticmethod
+    def _admin_recipients(appeal):
+        candidates = [
+            getattr(appeal, "escalated_to", None),
+            getattr(appeal, "reviewed_by", None),
+            getattr(appeal.fine, "issued_by", None),
+        ]
+        # Remove duplicates while preserving order
+        seen = set()
+        unique = []
+        for user in candidates:
+            if user and user.id not in seen:
+                unique.append(user)
+                seen.add(user.id)
+        return unique
+
+    @staticmethod
+    def _notify_user(user, *, event, payload, website):
+        if not user:
+            return
+        send(
+            user=user,
+            event=event,
+            payload=payload,
+            website=website,
+            channels=[NotificationType.IN_APP, NotificationType.WEBSOCKET],
+            category="fine_appeals",
+        )
+
+    @staticmethod
+    def _notify_admins(appeal, *, event, payload):
+        website = FineAppealService._website(appeal)
+        for user in FineAppealService._admin_recipients(appeal):
+            FineAppealService._notify_user(user, event=event, payload=payload, website=website)
+
+    @staticmethod
+    def _notify_writer(appeal, *, event, payload):
+        writer = FineAppealService._writer_user(appeal)
+        if not writer:
+            return
+        FineAppealService._notify_user(
+            writer,
+            event=event,
+            payload=payload,
+            website=FineAppealService._website(appeal),
+        )
+
+    @staticmethod
+    def _record_event(appeal, *, actor, event_type, message="", metadata=None):
+        return FineAppealEvent.objects.create(
+            appeal=appeal,
+            actor=actor,
+            actor_role=getattr(actor, "role", "") if actor else "",
+            event_type=event_type,
+            message=message or "",
+            metadata=metadata or {},
+        )
+
+    @staticmethod
+    def _ensure_participant(appeal, actor):
+        if not actor:
+            raise PermissionDenied("Authentication required.")
+        if actor.role in FineAppealService.SUPPORTED_ADMIN_ROLES:
+            return
+        if actor == FineAppealService._writer_user(appeal):
+            return
+        raise PermissionDenied("You do not have access to this appeal.")
 
     @staticmethod
     def submit_appeal(
@@ -56,12 +145,30 @@ class FineAppealService:
         fine.status = FineStatus.DISPUTED  # Changed from APPEALED to DISPUTED
         fine.save(update_fields=["status"])
 
+        event = FineAppealService._record_event(
+            appeal,
+            actor=appealed_by,
+            event_type="appeal_submitted",
+            message=reason,
+        )
+
         AuditLogService.log_auto(
             actor=appealed_by,
             action="fine_disputed",
             target=fine,
             changes={"appeal_reason": reason, "status": FineStatus.DISPUTED},
             context={"appeal_id": appeal.id},
+        )
+
+        FineAppealService._notify_admins(
+            appeal,
+            event="fine.appeal.submitted",
+            payload={
+                "appeal_id": appeal.id,
+                "fine_id": fine.id,
+                "order_id": fine.order_id,
+                "event_id": event.id,
+            },
         )
 
         return appeal
@@ -97,12 +204,31 @@ class FineAppealService:
         appeal.fine.status = FineStatus.ESCALATED
         appeal.fine.save(update_fields=['status'])
         
+        message = escalation_reason or "Appeal escalated for further review."
+        FineAppealService._record_event(
+            appeal,
+            actor=escalated_to,
+            event_type="status_change",
+            message=message,
+            metadata={"escalated_to": escalated_to.id},
+        )
+        
         AuditLogService.log_auto(
             actor=escalated_to,
             action="fine_dispute_escalated",
             target=appeal.fine,
             changes={"escalated_to": escalated_to.username},
             context={"appeal_id": appeal.id},
+        )
+
+        FineAppealService._notify_writer(
+            appeal,
+            event="fine.appeal.escalated",
+            payload={
+                "appeal_id": appeal.id,
+                "fine_id": appeal.fine_id,
+                "message": message,
+            },
         )
         
         return appeal
@@ -124,7 +250,7 @@ class FineAppealService:
             ValueError: If already reviewed or fine not in disputed/escalated status.
             PermissionDenied: If user is not admin/superadmin.
         """
-        if reviewed_by.role not in ['admin', 'superadmin', 'support']:
+        if reviewed_by.role not in FineAppealService.SUPPORTED_ADMIN_ROLES:
             raise PermissionDenied("Only admins, superadmins, or support can review disputes.")
         
         if appeal.reviewed_at is not None:
@@ -181,4 +307,108 @@ class FineAppealService:
             context={"appeal_id": appeal.id},
         )
 
+        decision_message = appeal.resolution_notes
+        FineAppealService._record_event(
+            appeal,
+            actor=reviewed_by,
+            event_type="admin_response",
+            message=decision_message,
+            metadata={"accepted": accept},
+        )
+        FineAppealService._notify_writer(
+            appeal,
+            event="fine.appeal.reviewed",
+            payload={
+                "appeal_id": appeal.id,
+                "fine_id": fine.id,
+                "accepted": accept,
+                "message": decision_message,
+            },
+        )
+
         return appeal
+
+    # ---------------------------------------------------------------- Comments & evidence
+    @staticmethod
+    def add_comment(appeal, actor, message: str):
+        """
+        Add a timeline comment (writer update or admin response).
+        """
+        FineAppealService._ensure_participant(appeal, actor)
+        if not message or not message.strip():
+            raise ValidationError("Message is required.")
+
+        event_type = (
+            "writer_update" if getattr(actor, "role", "") == "writer" else "admin_response"
+        )
+        event = FineAppealService._record_event(
+            appeal,
+            actor=actor,
+            event_type=event_type,
+            message=message.strip(),
+        )
+
+        payload = {
+            "appeal_id": appeal.id,
+            "fine_id": appeal.fine_id,
+            "message": message.strip(),
+            "event_id": event.id,
+        }
+        if event_type == "writer_update":
+            FineAppealService._notify_admins(
+                appeal,
+                event="fine.appeal.updated",
+                payload=payload,
+            )
+        else:
+            FineAppealService._notify_writer(
+                appeal,
+                event="fine.appeal.response",
+                payload=payload,
+            )
+
+        return event
+
+    @staticmethod
+    def add_evidence(appeal, actor, *, uploaded_file, description=""):
+        """
+        Attach evidence to the appeal timeline.
+        """
+        FineAppealService._ensure_participant(appeal, actor)
+        if not uploaded_file:
+            raise ValidationError("File is required.")
+
+        event = FineAppealService._record_event(
+            appeal,
+            actor=actor,
+            event_type="evidence_added",
+            message=description or "New evidence uploaded.",
+        )
+        evidence = FineAppealEvidence.objects.create(
+            appeal=appeal,
+            event=event,
+            uploaded_by=actor,
+            description=description or "",
+            file=uploaded_file,
+        )
+
+        payload = {
+            "appeal_id": appeal.id,
+            "fine_id": appeal.fine_id,
+            "description": description,
+            "evidence_id": evidence.id,
+        }
+        if getattr(actor, "role", "") == "writer":
+            FineAppealService._notify_admins(
+                appeal,
+                event="fine.appeal.evidence_added",
+                payload=payload,
+            )
+        else:
+            FineAppealService._notify_writer(
+                appeal,
+                event="fine.appeal.evidence_added",
+                payload=payload,
+            )
+
+        return evidence

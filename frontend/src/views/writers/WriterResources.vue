@@ -100,7 +100,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { debounce } from 'lodash-es'
+import { debounce } from '@/utils/debounce'
 import writerAPI from '@/api/writers'
 import ResourceCard from '@/components/writers/ResourceCard.vue'
 

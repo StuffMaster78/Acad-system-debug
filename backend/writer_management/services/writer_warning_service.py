@@ -5,9 +5,11 @@ from datetime import timedelta
 
 from writer_management.models.writer_warnings import WriterWarning
 from writer_management.models.profile import WriterProfile
-from notifications_system.services.dispatch import send
 from writer_management.services.escalation_config_service import (
     EscalationConfigService,
+)
+from writer_management.services.discipline_notification_service import (
+    DisciplineNotificationService,
 )
 
 
@@ -31,14 +33,6 @@ class WriterWarningService:
             expires_at=expires_at,
         )
 
-        send(
-            user=writer.user,
-            title="You've received a warning",
-            message=reason,
-            category="writer_warning",
-            data={"warning_id": warning.id}
-        )
-
         WriterWarningService.check_threshold(writer)
         return warning
 
@@ -55,20 +49,10 @@ class WriterWarningService:
         count = WriterWarningService.get_active_warning_count(writer)
 
         if count >= config.admin_alert_threshold:
-            send(
-                user=writer.user,
-                title="Writer Warning Threshold Reached",
-                message=(
-                    f"{writer.user.username} has {count} active warnings. "
-                    f"Review for possible suspension or probation."
-                ),
-                data={
-                    "writer_id": writer.id,
-                    "warning_count": count,
-                    "suggested_action": WriterWarningService.suggest_action(
-                        config, count
-                    ),
-                }
+            DisciplineNotificationService.notify_warning_threshold(
+                writer,
+                warnings=count,
+                threshold=config.admin_alert_threshold,
             )
 
     @staticmethod

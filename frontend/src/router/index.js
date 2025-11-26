@@ -318,12 +318,32 @@ const router = createRouter({
           },
         },
         {
+          path: 'writer/pen-name',
+          name: 'PenNameManagement',
+          component: () => import('@/views/writers/PenNameManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Pen Name Management',
+            roles: ['writer'],
+          },
+        },
+        {
           path: 'writer/performance',
           name: 'WriterPerformance',
           component: () => import('@/views/writers/Performance.vue'),
           meta: {
             requiresAuth: true,
             title: 'Performance Analytics',
+            roles: ['writer'],
+          },
+        },
+        {
+          path: 'writer/level-details',
+          name: 'WriterLevelDetails',
+          component: () => import('@/views/writers/WriterLevelDetails.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Level Details',
             roles: ['writer'],
           },
         },
@@ -348,6 +368,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'writer/fines',
+          name: 'WriterFines',
+          component: () => import('@/views/writers/WriterFines.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Fines & Appeals',
+            roles: ['writer'],
+          },
+        },
+        {
           path: 'writer/payment-request',
           name: 'WriterPaymentRequest',
           component: () => import('@/views/writers/PaymentRequest.vue'),
@@ -360,10 +390,10 @@ const router = createRouter({
         {
           path: 'writer/pen-name-change',
           name: 'PenNameChangeRequest',
-          component: () => import('@/views/writers/PenNameChangeRequest.vue'),
+          component: () => import('@/views/writers/PenNameManagement.vue'),
           meta: {
             requiresAuth: true,
-            title: 'Pen Name Change Request',
+            title: 'Pen Name Management',
             roles: ['writer'],
           },
         },
@@ -448,12 +478,62 @@ const router = createRouter({
           },
         },
         {
+          path: 'writer/order-holds',
+          name: 'WriterOrderHoldRequests',
+          component: () => import('@/views/writers/OrderHoldRequests.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Order Hold Requests',
+            roles: ['writer'],
+          },
+        },
+        {
           path: 'writer/communications',
           name: 'WriterCommunications',
           component: () => import('@/views/writers/WriterCommunications.vue'),
           meta: {
             requiresAuth: true,
             title: 'Client Communications',
+            roles: ['writer'],
+          },
+        },
+        {
+          path: 'writer/deadline-extensions',
+          name: 'DeadlineExtensionRequests',
+          component: () => import('@/views/writers/DeadlineExtensionRequests.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Deadline Extension Requests',
+            roles: ['writer'],
+          },
+        },
+        {
+          path: 'writer/dashboard-summary',
+          name: 'DashboardSummary',
+          component: () => import('@/views/writers/DashboardSummary.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Dashboard Summary',
+            roles: ['writer'],
+          },
+        },
+        {
+          path: 'writer/badge-analytics',
+          name: 'BadgeAnalytics',
+          component: () => import('@/views/writers/BadgeAnalytics.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Badge Analytics',
+            roles: ['writer'],
+          },
+        },
+        {
+          path: 'writer/discipline-status',
+          name: 'DisciplineStatus',
+          component: () => import('@/views/writers/DisciplineStatus.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Discipline Status',
             roles: ['writer'],
           },
         },
@@ -604,6 +684,16 @@ const router = createRouter({
     meta: {
       requiresAuth: true,
             title: 'Notification Profiles',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/notification-groups',
+          name: 'NotificationGroups',
+          component: () => import('@/views/admin/NotificationGroups.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Notification Groups & Profiles',
             roles: ['admin', 'superadmin'],
           },
         },

@@ -119,9 +119,12 @@ class NotificationGroupProfile(models.Model):
 
     # Optional targeting
     roles = models.CharField(
-            max_length=50,
-            choices=[(role.name, role.value) for role in UserRole]
-        )
+        max_length=50,
+        blank=True,
+        null=True,
+        choices=[(role.name, role.value) for role in UserRole],
+        help_text="Target role for this profile"
+    )
     users = models.ManyToManyField(
         User, blank=True,
         help_text="Directly assigned users"
@@ -140,10 +143,6 @@ class NotificationGroupProfile(models.Model):
     receive_in_app = models.BooleanField(default=True)
     receive_push = models.BooleanField(default=False)
     receive_sms = models.BooleanField(default=False)
-    allowed_channels = models.JSONField(default=list)
-    min_priority = models.PositiveSmallIntegerField(
-        default=NotificationPriority.NORMAL
-    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -157,11 +156,11 @@ class NotificationGroupProfile(models.Model):
         return {
             "name": self.name,
             "website": self.website.domain,
-            "profile": self.profile.name,
-            "group": self.group.name,
+            "profile": self.profile.name if self.profile else None,
+            "group": self.group.name if self.group else None,
             "allowed_channels": self.allowed_channels,
             "min_priority": self.min_priority,
-            "roles": [role.name for role in self.roles.all()],
+            "roles": self.roles or "",
             "users": [user.username for user in self.users.all()],
             "is_active": self.is_active,
             "is_default": self.is_default,

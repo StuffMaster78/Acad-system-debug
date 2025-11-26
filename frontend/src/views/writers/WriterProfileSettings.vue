@@ -5,6 +5,7 @@
       <p class="mt-2 text-gray-600">Manage your pen name and profile visibility</p>
     </div>
 
+    <!-- Pen Name Management Link -->
     <div class="bg-white rounded-lg shadow-sm p-6">
       <h2 class="text-xl font-semibold mb-4">Pen Name</h2>
       <p class="text-sm text-gray-600 mb-4">
@@ -12,49 +13,19 @@
         This helps maintain privacy while working with clients.
       </p>
       
-      <form @submit.prevent="savePenName" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium mb-1">Pen Name</label>
-          <input
-            v-model="penNameForm.pen_name"
-            type="text"
-            maxlength="100"
-            class="w-full border rounded px-3 py-2"
-            placeholder="Enter your pen name (e.g., 'Alex Writer', 'Professional Pen')"
-          />
-          <p class="text-xs text-gray-500 mt-1">
-            If left empty, clients will see your registration ID: <span class="font-mono">{{ registrationId }}</span>
-          </p>
-        </div>
-        
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p class="text-sm text-blue-800">
-            <strong>Privacy Note:</strong> Clients will only see your pen name (or registration ID) and will not have access to your real name, email, or other personal information.
-          </p>
-        </div>
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+        <p class="text-sm text-blue-800 mb-3">
+          <strong>Privacy Note:</strong> Clients will only see your pen name (or registration ID) and will not have access to your real name, email, or other personal information.
+        </p>
+        <router-link
+          to="/writer/pen-name"
+          class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+        >
+          Manage Pen Name →
+        </router-link>
+      </div>
 
-        <div class="flex justify-end gap-2">
-          <button
-            type="button"
-            @click="resetForm"
-            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            :disabled="saving"
-            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ saving ? 'Saving...' : 'Save Pen Name' }}
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Current Display Info -->
-    <div class="bg-white rounded-lg shadow-sm p-6">
-      <h2 class="text-xl font-semibold mb-4">How Clients See You</h2>
+      <!-- Current Display Info -->
       <div class="space-y-3">
         <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
           <span class="text-sm font-medium text-gray-600">Display Name:</span>
@@ -250,41 +221,7 @@ const loadProfile = async () => {
   }
 }
 
-const savePenName = async () => {
-  saving.value = true
-  try {
-    // Get writer profile ID from user profile
-    const profileResponse = await apiClient.get('/users/users/profile/')
-    const profileData = profileResponse.data
-    
-    // Find writer profile ID
-    let writerProfileId = null
-    if (profileData.id) {
-      writerProfileId = profileData.id
-    } else if (profileData.user && profileData.user.writer_profile) {
-      writerProfileId = profileData.user.writer_profile
-    }
-    
-    if (!writerProfileId) {
-      throw new Error('Writer profile not found')
-    }
-    
-    // Update writer profile pen_name
-    const response = await apiClient.patch(`/writer-management/writers/${writerProfileId}/`, {
-      pen_name: penNameForm.value.pen_name || null
-    })
-    writerProfile.value = response.data
-    showMessage('Pen name updated successfully', true)
-  } catch (error) {
-    showMessage('Failed to update pen name: ' + (error.response?.data?.detail || JSON.stringify(error.response?.data) || error.message), false)
-  } finally {
-    saving.value = false
-  }
-}
-
-const resetForm = () => {
-  penNameForm.value.pen_name = writerProfile.value?.pen_name || ''
-}
+// Pen name management moved to dedicated page
 
 const message = ref('')
 const messageSuccess = ref(false)

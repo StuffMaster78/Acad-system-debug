@@ -1,7 +1,13 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
-from fines.models import Fine, FineAppeal, FineStatus
+from fines.models import (
+    Fine,
+    FineAppeal,
+    FineStatus,
+    FineAppealEvent,
+    FineAppealEvidence,
+)
 from orders.models import Order
 
 User = get_user_model()
@@ -13,6 +19,74 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "username", "email"]
+
+
+class FineAppealEvidenceSerializer(serializers.ModelSerializer):
+    """Serializer for evidence attachments tied to an appeal."""
+
+    uploaded_by = UserSerializer(read_only=True)
+    file_url = serializers.SerializerMethodField()
+    file_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FineAppealEvidence
+        fields = [
+            "id",
+            "description",
+            "file",
+            "file_url",
+            "file_name",
+            "uploaded_at",
+            "uploaded_by",
+            "event_id",
+        ]
+        read_only_fields = [
+            "id",
+            "file_url",
+            "file_name",
+            "uploaded_at",
+            "uploaded_by",
+            "event_id",
+        ]
+        extra_kwargs = {
+            "file": {"write_only": True},
+        }
+
+    def get_file_url(self, obj):
+        if not obj.file:
+            return None
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(obj.file.url)
+        return obj.file.url
+
+    def get_file_name(self, obj):
+        if not obj.file:
+            return None
+        return obj.file.name.split("/")[-1]
+
+
+class FineAppealEventSerializer(serializers.ModelSerializer):
+    """Serializer for appeal timeline entries."""
+
+    actor = UserSerializer(read_only=True)
+    attachments = FineAppealEvidenceSerializer(
+        many=True, read_only=True, source="attachments"
+    )
+
+    class Meta:
+        model = FineAppealEvent
+        fields = [
+            "id",
+            "event_type",
+            "message",
+            "metadata",
+            "created_at",
+            "actor",
+            "actor_role",
+            "attachments",
+        ]
+        read_only_fields = fields
 
 
 class FineSerializer(serializers.ModelSerializer):
@@ -32,6 +106,7 @@ class FineSerializer(serializers.ModelSerializer):
     fine_type_code = serializers.CharField(source="fine_type_config.code", read_only=True, allow_null=True)
     has_appeal = serializers.SerializerMethodField()
     can_dispute = serializers.SerializerMethodField()
+    appeal = serializers.SerializerMethodField()
 
     class Meta:
         model = Fine
@@ -57,6 +132,7 @@ class FineSerializer(serializers.ModelSerializer):
             "resolved_reason",
             "has_appeal",
             "can_dispute",
+            "appeal",
         ]
         read_only_fields = [
             "status",
@@ -69,6 +145,7 @@ class FineSerializer(serializers.ModelSerializer):
             "resolved_reason",
             "has_appeal",
             "can_dispute",
+            "appeal",
         ]
     
     def get_has_appeal(self, obj):
@@ -99,6 +176,14 @@ class FineSerializer(serializers.ModelSerializer):
         validated_data["status"] = FineStatus.ISSUED
         return Fine.objects.create(**validated_data)
 
+    def get_appeal(self, obj):
+        appeal = getattr(obj, "appeal", None)
+        if not appeal:
+            return None
+        context = dict(self.context) if self.context else {}
+        context["include_timeline"] = False
+        return FineAppealSerializer(appeal, context=context).data
+
 
 class FineAppealSerializer(serializers.ModelSerializer):
     """
@@ -116,6 +201,8 @@ class FineAppealSerializer(serializers.ModelSerializer):
     fine_status = serializers.CharField(source="fine.status", read_only=True)
     order_id = serializers.IntegerField(source="fine.order.id", read_only=True)
     order_topic = serializers.CharField(source="fine.order.topic", read_only=True)
+    events = serializers.SerializerMethodField()
+    evidence_files = serializers.SerializerMethodField()
 
     class Meta:
         model = FineAppeal
@@ -137,6 +224,8 @@ class FineAppealSerializer(serializers.ModelSerializer):
             "escalated_at",
             "escalated_to_username",
             "resolution_notes",
+            "events",
+            "evidence_files",
         ]
         read_only_fields = [
             "created_at",
@@ -146,6 +235,8 @@ class FineAppealSerializer(serializers.ModelSerializer):
             "escalated",
             "escalated_at",
             "resolution_notes",
+            "events",
+            "evidence_files",
         ]
 
     def validate_fine_id(self, fine_id):
@@ -172,3 +263,22 @@ class FineAppealSerializer(serializers.ModelSerializer):
             validated_data['fine'] = fine
         
         return FineAppeal.objects.create(**validated_data)
+
+    def _include_timeline(self):
+        return self.context.get("include_timeline", True)
+
+    def get_events(self, obj):
+        if not self._include_timeline():
+            return []
+        events = obj.events.all()
+        return FineAppealEventSerializer(
+            events, many=True, context=self.context
+        ).data
+
+    def get_evidence_files(self, obj):
+        if not self._include_timeline():
+            return []
+        evidence = obj.evidence_files.all()
+        return FineAppealEvidenceSerializer(
+            evidence, many=True, context=self.context
+        ).data

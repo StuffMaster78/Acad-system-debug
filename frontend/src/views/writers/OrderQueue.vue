@@ -30,6 +30,115 @@
       </div>
     </div>
 
+    <!-- Take Capacity -->
+    <div class="bg-white rounded-lg shadow-sm border border-primary-100 p-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div>
+        <p class="text-sm font-medium text-primary-600 uppercase tracking-wide">Level Capacity</p>
+        <p class="text-xl font-semibold text-gray-900 mt-1">
+          {{ levelDetails?.name || 'Unranked' }}
+        </p>
+        <p class="text-sm text-gray-600">
+          Active orders: <span class="font-semibold text-gray-900">{{ takeCapacity.active }}</span> / {{ takeCapacity.maxOrders }}
+          ({{ takeCapacity.remaining }} slots remaining)
+        </p>
+      </div>
+      <div class="text-sm text-gray-600">
+        <p v-if="!takesEnabled" class="text-red-600 font-medium">
+          Taking orders directly is currently disabled by admins. Please request orders instead.
+        </p>
+        <p v-else-if="takeCapacity.remaining <= 0" class="text-yellow-700 font-medium">
+          You’ve reached your current limit. Submit work or request a hold before taking another order.
+        </p>
+        <p v-else class="text-green-700 font-medium">
+          You can take up to {{ takeCapacity.remaining }} more order{{ takeCapacity.remaining === 1 ? '' : 's' }} right now.
+        </p>
+        <p class="text-xs text-gray-500 mt-2">
+          Order holds temporarily freeze deadlines while you wait for client input.
+        </p>
+      </div>
+    </div>
+
+    <!-- Recommended Orders -->
+    <div
+      v-if="recommendedOrders.length"
+      class="bg-white rounded-lg shadow-sm border border-blue-100 p-6"
+    >
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide">Smart Picks</p>
+          <h2 class="text-2xl font-bold text-gray-900">Recommended For You</h2>
+          <p class="text-sm text-gray-500">Based on your skills, subject preferences, and earning potential.</p>
+        </div>
+        <button
+          class="text-sm font-semibold text-primary-600 hover:text-primary-800"
+          @click="activeTab = 'available'"
+        >
+          View full queue →
+        </button>
+      </div>
+      <div class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div
+          v-for="order in recommendedOrders.slice(0, 6)"
+          :key="`recommended-${order.id}`"
+          class="border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-white"
+        >
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-xs text-gray-500">Order #{{ order.id }}</p>
+              <p class="text-base font-semibold text-gray-900">{{ order.topic || 'Untitled order' }}</p>
+            </div>
+            <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold">
+              Match {{ Math.round(order.match_score || 0) }}%
+            </span>
+          </div>
+          <p class="text-sm text-gray-600 mt-1">{{ order.subject || order.service_type || 'General' }}</p>
+
+          <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 mt-4">
+            <div>
+              <p class="text-xs uppercase text-gray-400">Potential payout</p>
+              <p class="text-green-700 font-semibold">${{ formatCurrency(order.potential_payout) }}</p>
+            </div>
+            <div>
+              <p class="text-xs uppercase text-gray-400">Deadline</p>
+              <p class="font-semibold text-gray-900">{{ formatDate(order.deadline) }}</p>
+            </div>
+          </div>
+
+          <div v-if="order.match_tags?.length" class="flex flex-wrap gap-2 mt-4">
+            <span
+              v-for="tag in order.match_tags.slice(0, 3)"
+              :key="`${order.id}-${tag}`"
+              class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
+            >
+              {{ tag }}
+            </span>
+          </div>
+
+          <div class="flex gap-2 mt-5">
+            <button @click="viewOrder(order)" class="flex-1 btn btn-secondary text-sm">
+              View
+            </button>
+            <button
+              @click="takeOrder(order)"
+              :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders || isOrderRequested(order)"
+              class="flex-1 btn btn-primary text-sm"
+              :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested(order) ? 'You have already requested this order' : 'Take this order immediately')"
+            >
+              {{ takingOrder === order.id ? 'Taking...' : 'Take' }}
+            </button>
+            <button
+              @click="openRequestModal(order)"
+              :disabled="isOrderRequested(order) || requestingOrder === order.id || takingOrder === order.id"
+              class="flex-1 btn btn-primary text-sm"
+              :title="isOrderRequested(order) ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
+            >
+              {{ isOrderRequested(order) ? 'Requested' : (requestingOrder === order.id ? 'Requesting...' : 'Request') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Tabs -->
     <div class="bg-white rounded-lg shadow-sm">
       <div class="border-b border-gray-200">
@@ -72,7 +181,7 @@
 
       <!-- Filters -->
       <div class="p-4 border-b border-gray-200">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
           <div>
             <label class="block text-sm font-medium mb-1">Service Type</label>
             <select v-model="filters.service_type" @change="filterOrders" class="w-full border rounded px-3 py-2">
@@ -87,6 +196,14 @@
           <div>
             <label class="block text-sm font-medium mb-1">Max Pages</label>
             <input v-model.number="filters.max_pages" type="number" @input="filterOrders" class="w-full border rounded px-3 py-2" placeholder="Any" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Sort By</label>
+            <select v-model="sortOption" class="w-full border rounded px-3 py-2">
+              <option value="default">Newest first</option>
+              <option value="payout_desc">Potential payout (high → low)</option>
+              <option value="deadline_asc">Deadline (soonest)</option>
+            </select>
           </div>
           <div class="flex items-end">
             <button @click="resetFilters" class="btn btn-secondary w-full">Reset</button>
@@ -123,16 +240,28 @@
                 <span class="font-medium text-green-600">${{ order.price?.toFixed(2) || '0.00' }}</span>
               </div>
               <div class="flex justify-between">
+                <span>Potential payout:</span>
+                <span class="font-medium text-green-700">${{ formatCurrency(order.potential_payout) }}</span>
+              </div>
+              <div class="flex justify-between">
                 <span>Deadline:</span>
                 <span class="font-medium">{{ formatDate(order.deadline) }}</span>
               </div>
             </div>
+            <div v-if="order.match_tags?.length" class="flex flex-wrap gap-2 mt-3">
+              <span
+                v-for="tag in order.match_tags.slice(0, 3)"
+                :key="`${order.id}-tag-${tag}`"
+                class="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
+              >
+                {{ tag }}
+              </span>
+            </div>
             <div class="flex space-x-2">
               <button @click="viewOrder(order)" class="flex-1 btn btn-secondary text-sm">View</button>
               <button 
-                v-if="takesEnabled" 
                 @click="takeOrder(order)" 
-                :disabled="takingOrder === order.id || requestingOrder === order.id" 
+                :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders" 
                 class="flex-1 btn btn-primary text-sm"
               >
                 {{ takingOrder === order.id ? 'Taking...' : 'Take Order' }}
@@ -178,16 +307,28 @@
                 <span class="font-medium text-green-600">${{ order.price?.toFixed(2) || '0.00' }}</span>
               </div>
               <div class="flex justify-between">
+                <span>Potential payout:</span>
+                <span class="font-medium text-green-700">${{ formatCurrency(order.potential_payout) }}</span>
+              </div>
+              <div class="flex justify-between">
                 <span>Deadline:</span>
                 <span class="font-medium">{{ formatDate(order.deadline) }}</span>
               </div>
             </div>
+            <div v-if="order.match_tags?.length" class="flex flex-wrap gap-2 mt-3">
+              <span
+                v-for="tag in order.match_tags.slice(0, 3)"
+                :key="`${order.id}-pref-tag-${tag}`"
+                class="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"
+              >
+                {{ tag }}
+              </span>
+            </div>
             <div class="flex space-x-2">
               <button @click="viewOrder(order)" class="flex-1 btn btn-secondary text-sm">View</button>
               <button 
-                v-if="takesEnabled" 
                 @click="takeOrder(order)" 
-                :disabled="takingOrder === order.id || requestingOrder === order.id" 
+                :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders" 
                 class="flex-1 btn btn-primary text-sm"
               >
                 {{ takingOrder === order.id ? 'Taking...' : 'Take Order' }}
@@ -277,10 +418,11 @@
         <div class="p-6 border-t flex justify-end space-x-3">
           <button @click="selectedOrder = null" class="btn btn-secondary">Close</button>
           <button 
-            v-if="takesEnabled" 
+            v-if="takesEnabled && !isOrderRequested(selectedOrder)" 
             @click="takeOrder(selectedOrder)" 
-            :disabled="takingOrder === selectedOrder.id || requestingOrder === selectedOrder.id" 
+            :disabled="takingOrder === selectedOrder.id || requestingOrder === selectedOrder.id || !canTakeOrders" 
             class="btn btn-primary"
+            :title="!canTakeOrders ? 'You have reached your order limit' : 'Take this order immediately'"
           >
             {{ takingOrder === selectedOrder.id ? 'Taking...' : 'Take Order' }}
           </button>
@@ -289,6 +431,7 @@
             @click="openRequestModal(selectedOrder)" 
             :disabled="requestingOrder === selectedOrder.id || takingOrder === selectedOrder.id" 
             class="btn btn-primary"
+            title="Request this order (requires admin approval)"
           >
             {{ requestingOrder === selectedOrder.id ? 'Requesting...' : 'Request Order' }}
           </button>
@@ -367,6 +510,8 @@
 import { ref, onMounted, computed } from 'vue'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import writerOrderRequestsAPI from '@/api/writer-order-requests'
+import writerManagementAPI from '@/api/writer-management'
+import ordersAPI from '@/api/orders'
 import { useToast } from '@/composables/useToast'
 import { getErrorMessage } from '@/utils/errorHandler'
 
@@ -392,6 +537,10 @@ const showRequestModal = ref(false)
 const selectedOrderForRequest = ref(null)
 const requestReason = ref('')
 const requestedOrderIds = ref([])  // Track which orders have been requested
+const writerProfile = ref(null)
+const activeAssignmentCount = ref(0)
+const recommendedOrders = ref([])
+const sortOption = ref('default')
 
 const serviceTypes = computed(() => {
   const types = new Set()
@@ -412,37 +561,61 @@ const allRequests = computed(() => {
   })
 })
 
-const filteredAvailableOrders = computed(() => {
-  let filtered = [...availableOrders.value]
-  
+const applyFilters = (orders) => {
+  let filtered = [...orders]
   if (filters.value.service_type) {
     filtered = filtered.filter(o => o.service_type === filters.value.service_type)
   }
-  if (filters.value.min_price !== null) {
+  if (filters.value.min_price !== null && filters.value.min_price !== undefined) {
     filtered = filtered.filter(o => (o.price || 0) >= filters.value.min_price)
   }
-  if (filters.value.max_pages !== null) {
+  if (filters.value.max_pages !== null && filters.value.max_pages !== undefined) {
     filtered = filtered.filter(o => (o.pages || 0) <= filters.value.max_pages)
   }
-  
   return filtered
+}
+
+const getDeadlineTimestamp = (order) => {
+  const raw = order?.deadline || order?.created_at
+  if (!raw) return Number.MAX_SAFE_INTEGER
+  const date = new Date(raw)
+  return Number.isNaN(date.getTime()) ? Number.MAX_SAFE_INTEGER : date.getTime()
+}
+
+const applySort = (orders) => {
+  if (sortOption.value === 'default') {
+    return orders
+  }
+  const sorted = [...orders]
+  if (sortOption.value === 'payout_desc') {
+    return sorted.sort((a, b) => (b.potential_payout || 0) - (a.potential_payout || 0))
+  }
+  if (sortOption.value === 'deadline_asc') {
+    return sorted.sort((a, b) => getDeadlineTimestamp(a) - getDeadlineTimestamp(b))
+  }
+  return sorted
+}
+
+const filteredAvailableOrders = computed(() => {
+  const filtered = applyFilters(availableOrders.value)
+  return applySort(filtered)
 })
 
 const filteredPreferredOrders = computed(() => {
-  let filtered = [...preferredOrders.value]
-  
-  if (filters.value.service_type) {
-    filtered = filtered.filter(o => o.service_type === filters.value.service_type)
-  }
-  if (filters.value.min_price !== null) {
-    filtered = filtered.filter(o => (o.price || 0) >= filters.value.min_price)
-  }
-  if (filters.value.max_pages !== null) {
-    filtered = filtered.filter(o => (o.pages || 0) <= filters.value.max_pages)
-  }
-  
-  return filtered
+  const filtered = applyFilters(preferredOrders.value)
+  return applySort(filtered)
 })
+
+const levelDetails = computed(() => writerProfile.value?.writer_level_details || null)
+
+const takeCapacity = computed(() => {
+  const maxOrders = levelDetails.value?.max_orders || 0
+  const active = activeAssignmentCount.value
+  const remaining = Math.max(0, maxOrders - active)
+  return { maxOrders, active, remaining }
+})
+
+const canTakeOrders = computed(() => takesEnabled.value && takeCapacity.value.remaining > 0)
 
 const loadQueue = async () => {
   loading.value = true
@@ -450,9 +623,12 @@ const loadQueue = async () => {
     const response = await writerDashboardAPI.getOrderQueue()
     const data = response.data
     
-    takesEnabled.value = data.takes_enabled || false
+    if (typeof data.takes_enabled === 'boolean') {
+      takesEnabled.value = data.takes_enabled
+    }
     availableOrders.value = data.available_orders || []
     preferredOrders.value = data.preferred_orders || []
+    recommendedOrders.value = data.recommended_orders || []
     orderRequests.value = data.order_requests || []
     writerRequests.value = data.writer_requests || []
     
@@ -484,9 +660,43 @@ const loadQueue = async () => {
   }
 }
 
+const loadWriterContext = async () => {
+  try {
+    const profileResponse = await writerManagementAPI.getMyProfile()
+    writerProfile.value = profileResponse.data
+  } catch (error) {
+    console.error('Failed to load writer profile:', error)
+  }
+  await loadActiveAssignments()
+}
+
+const loadActiveAssignments = async () => {
+  try {
+    const response = await ordersAPI.list({
+      assigned_writer: true,
+      status__in: 'in_progress,under_editing,revision_requested,on_hold',
+      page_size: 1,
+    })
+    if (typeof response.data?.count === 'number') {
+      activeAssignmentCount.value = response.data.count
+    } else {
+      const results = response.data?.results || response.data || []
+      activeAssignmentCount.value = results.length
+    }
+  } catch (error) {
+    console.error('Failed to load active assignments:', error)
+  }
+}
+
 const isOrderRequested = (order) => {
   if (!order || !order.id) return false
-  return requestedOrderIds.value.includes(order.id) || order.is_requested
+  const orderId = order.id
+  return (
+    requestedOrderIds.value.includes(orderId) ||
+    order.is_requested ||
+    orderRequests.value.some(r => r.order_id === orderId) ||
+    writerRequests.value.some(r => r.order_id === orderId)
+  )
 }
 
 const openRequestModal = (order) => {
@@ -506,28 +716,74 @@ const requestOrder = async () => {
   const order = selectedOrderForRequest.value
   if (!order || !order.id) return
   
+  // Prevent duplicate requests
+  if (requestingOrder.value === order.id) {
+    return
+  }
+  
   // Validate reason
-  if (!requestReason.value || !requestReason.value.trim()) {
+  const reason = requestReason.value?.trim() || ''
+  if (!reason) {
     showError('Please provide a reason for requesting this order.')
     return
   }
   
+  if (reason.length < 10) {
+    showError('Please provide a more detailed reason (at least 10 characters).')
+    return
+  }
+  
+  if (reason.length > 2000) {
+    showError('Reason is too long (maximum 2000 characters).')
+    return
+  }
+  
+  // Check if already requested
+  if (isOrderRequested(order)) {
+    showWarning('You have already requested this order. Please wait for admin review.')
+    closeRequestModal()
+    return
+  }
+  
   requestingOrder.value = order.id
+  
+  // Optimistic update: mark order as requested immediately
+  const orderId = order.id
+  if (!requestedOrderIds.value.includes(orderId)) {
+    requestedOrderIds.value.push(orderId)
+  }
+  
   try {
     await writerOrderRequestsAPI.create({
       order_id: order.id,
-      reason: requestReason.value.trim(),
+      reason: reason,
     })
+    
+    // Refresh queue to get latest state
     await loadQueue()
+    
     showSuccess('Order request submitted successfully! Your request is pending admin review.')
     closeRequestModal()
+    
     if (selectedOrder.value && selectedOrder.value.id === order.id) {
       selectedOrder.value = null
     }
   } catch (error) {
     console.error('Failed to request order:', error)
+    
+    // Revert optimistic update on error
+    requestedOrderIds.value = requestedOrderIds.value.filter(id => id !== orderId)
+    
     const errorMsg = getErrorMessage(error, 'Failed to request order. Please try again.')
-    showError(errorMsg)
+    
+    // Provide more specific error messages
+    if (errorMsg.includes('already requested') || errorMsg.includes('already')) {
+      showWarning(errorMsg)
+    } else if (errorMsg.includes('limit reached') || errorMsg.includes('maximum')) {
+      showWarning(errorMsg)
+    } else {
+      showError(errorMsg)
+    }
   } finally {
     requestingOrder.value = null
   }
@@ -536,21 +792,101 @@ const requestOrder = async () => {
 const takeOrder = async (order) => {
   if (!order || !order.id) return
   
-  if (!confirm(`Are you sure you want to take Order #${order.id}? This will assign it to you immediately.`)) {
+  // Prevent duplicate takes
+  if (takingOrder.value === order.id) {
+    return
+  }
+  
+  // Check if already requested or taken
+  if (isOrderRequested(order)) {
+    showWarning('You have already requested this order. Please wait for admin review.')
+    return
+  }
+  
+  // Validate capacity
+  if (!canTakeOrders.value) {
+    if (!takesEnabled.value) {
+      showWarning('Taking orders directly is currently disabled. Please submit a request instead.')
+    } else {
+      showWarning(
+        `You have reached your current take limit (${takeCapacity.value.maxOrders} orders). ` +
+        'Submit existing work or request a hold before taking another order.'
+      )
+    }
+    return
+  }
+  
+  // Confirm action
+  if (!confirm(
+    `Are you sure you want to take Order #${order.id}?\n\n` +
+    `This will assign it to you immediately and you'll be responsible for completing it by the deadline.\n\n` +
+    `Current capacity: ${takeCapacity.value.active}/${takeCapacity.value.maxOrders} orders`
+  )) {
     return
   }
   
   takingOrder.value = order.id
+  
+  // Optimistic update: remove from available orders immediately
+  const orderId = order.id
+  const wasInAvailable = availableOrders.value.some(o => o.id === orderId)
+  const wasInPreferred = preferredOrders.value.some(o => o.id === orderId)
+  const wasInRecommended = recommendedOrders.value.some(o => o.id === orderId)
+  
+  if (wasInAvailable) {
+    availableOrders.value = availableOrders.value.filter(o => o.id !== orderId)
+  }
+  if (wasInPreferred) {
+    preferredOrders.value = preferredOrders.value.filter(o => o.id !== orderId)
+  }
+  if (wasInRecommended) {
+    recommendedOrders.value = recommendedOrders.value.filter(o => o.id !== orderId)
+  }
+  
+  // Optimistically update capacity
+  const previousActiveCount = activeAssignmentCount.value
+  activeAssignmentCount.value = Math.min(activeAssignmentCount.value + 1, takeCapacity.value.maxOrders)
+  
   try {
     await writerOrderRequestsAPI.createTake({
       order: order.id,
     })
-    await loadQueue()
-    showSuccess('Order taken successfully!')
+    
+    // Refresh queue and assignments to get latest state
+    await Promise.all([
+      loadQueue(),
+      loadActiveAssignments()
+    ])
+    
+    showSuccess(`Order #${order.id} taken successfully! It has been assigned to you.`)
+    
+    // Close modal if open
+    if (selectedOrder.value && selectedOrder.value.id === order.id) {
+      selectedOrder.value = null
+    }
   } catch (error) {
     console.error('Failed to take order:', error)
+    
+    // Revert optimistic updates on error
+    if (wasInAvailable || wasInPreferred || wasInRecommended) {
+      await loadQueue()
+    }
+    activeAssignmentCount.value = previousActiveCount
+    
     const errorMsg = getErrorMessage(error, 'Failed to take order. Please try again.')
-    showError(errorMsg)
+    
+    // Provide more specific error messages
+    if (errorMsg.includes('already assigned') || errorMsg.includes('already taken')) {
+      showWarning(errorMsg)
+    } else if (errorMsg.includes('not available') || errorMsg.includes('status')) {
+      showWarning(errorMsg)
+    } else if (errorMsg.includes('limit') || errorMsg.includes('maximum')) {
+      showWarning(errorMsg)
+    } else if (errorMsg.includes('disabled')) {
+      showWarning(errorMsg)
+    } else {
+      showError(errorMsg)
+    }
   } finally {
     takingOrder.value = null
   }
@@ -566,6 +902,7 @@ const resetFilters = () => {
     min_price: null,
     max_pages: null,
   }
+  sortOption.value = 'default'
 }
 
 const filterOrders = () => {
@@ -593,8 +930,13 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleString()
 }
 
+const formatCurrency = (value) => Number(value || 0).toFixed(2)
+
+// Removed requestOrderFromCard - now using openRequestModal directly
+
 onMounted(() => {
   loadQueue()
+  loadWriterContext()
 })
 </script>
 

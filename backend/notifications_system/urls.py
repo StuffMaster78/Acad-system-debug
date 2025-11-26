@@ -20,7 +20,8 @@ from notifications_system.views.preferences import (
 from notifications_system.views.prefs_api import PreferencesViewSet
 from notifications_system.views.profiles import (
     NotificationProfileViewSet,
-    NotificationGroupProfileViewSet
+    NotificationGroupProfileViewSet,
+    NotificationGroupViewSet
 )
 from notifications_system.views.broadcasts import BroadcastNotificationViewSet
 from notifications_system.views.admin_views import NotificationAdminViewSet
@@ -91,6 +92,11 @@ router.register(
 #     r"profiles", NotificationProfileViewSet,
 #     basename="notification-profiles"
 # )
+router.register(
+    "notification-groups",
+    NotificationGroupViewSet,
+    basename="notification-groups"
+)
 router.register(
     "notification-group-profiles",
     NotificationGroupProfileViewSet,

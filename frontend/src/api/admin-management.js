@@ -45,5 +45,15 @@ export default {
   updateNotificationConfig: (id, data) => apiClient.put(`/admin-management/configs/notifications/${id}/`, data),
   
   listAllConfigs: () => apiClient.get('/admin-management/configs/list_all_configs/'),
+  
+  // Fines Management Dashboard
+  getFinesDashboard: () => apiClient.get('/admin-management/fines/dashboard/'),
+  getPendingFines: (params) => apiClient.get('/admin-management/fines/pending/', { params }),
+  getAppealsQueue: (params) => apiClient.get('/admin-management/fines/appeals/', { params }),
+  getFinesAnalytics: (params) => apiClient.get('/admin-management/fines/analytics/', { params }),
+  waiveFine: (id, data) => apiClient.post(`/admin-management/fines/${id}/waive/`, data),
+  voidFine: (id, data) => apiClient.post(`/admin-management/fines/${id}/void/`, data),
+  approveAppeal: (id, data) => apiClient.post(`/admin-management/fines/${id}/appeals/approve/`, data),
+  rejectAppeal: (id, data) => apiClient.post(`/admin-management/fines/${id}/appeals/reject/`, data),
 }
 

@@ -123,6 +123,21 @@ class WriterProfile(models.Model):
         default=0,
         help_text="Total orders the writer has accepted."
     )
+    is_available_for_auto_assignments = models.BooleanField(
+        default=True,
+        help_text="If disabled, the writer is hidden from instant assignment/auto queue."
+    )
+    availability_last_changed = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the writer last toggled their availability."
+    )
+    availability_message = models.CharField(
+        max_length=160,
+        blank=True,
+        default='',
+        help_text="Optional status message shown to admins (e.g., 'On break until 5pm')."
+    )
     total_earnings = models.DecimalField(
         max_digits=12,
         decimal_places=2,

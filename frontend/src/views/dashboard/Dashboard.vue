@@ -188,6 +188,7 @@
 
     <WriterDashboard
       @order-requested="handleOrderRequested"
+      @refresh-requested="handleWriterRefreshRequest"
       v-if="authStore.isWriter"
       :writer-earnings-data="writerEarningsData"
       :writer-performance-data="writerPerformanceData"
@@ -1777,6 +1778,12 @@ const fetchWriterQueue = async () => {
 const handleOrderRequested = async () => {
   // Refresh the queue data after an order is requested
   await fetchWriterQueue()
+}
+
+const handleWriterRefreshRequest = async (payload) => {
+  if (!payload || payload.scope === 'queue') {
+    await fetchWriterQueue()
+  }
 }
 
 const fetchWriterBadges = async () => {

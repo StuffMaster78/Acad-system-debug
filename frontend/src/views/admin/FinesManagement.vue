@@ -40,6 +40,9 @@
       <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Amount</p>
         <p class="text-3xl font-bold text-blue-900">${{ stats.total_amount || '0.00' }}</p>
+        <p class="text-xs text-blue-600 mt-1" v-if="stats.recent_count">
+          {{ stats.recent_count }} recent (30d)
+        </p>
       </div>
     </div>
 
@@ -603,6 +606,11 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import { finesAPI, websitesAPI } from '@/api'
+import adminManagementAPI from '@/api/admin-management'
+import { useToast } from '@/composables/useToast'
+import { getErrorMessage } from '@/utils/errorHandler'
+
+const { error: showError, success: showSuccess } = useToast()
 
 const tabs = [
   { id: 'fines', label: 'Fines' },
@@ -713,24 +721,43 @@ const getAppealStatusBadgeClass = (status) => {
 
 const loadStats = async () => {
   try {
-    const [finesRes, appealsRes] = await Promise.all([
-      finesAPI.list({ page_size: 1 }),
-      finesAPI.listAppeals({ status: 'pending', page_size: 1 }),
-    ])
-    
-    // Calculate stats from fines
-    const allFines = finesRes.data.results || finesRes.data || []
-    const totalAmount = allFines.reduce((sum, fine) => sum + (parseFloat(fine.amount) || 0), 0)
-    const waivedCount = allFines.filter(f => f.status === 'waived').length
+    // Use the new dashboard endpoint for comprehensive stats
+    const dashboardResponse = await adminManagementAPI.getFinesDashboard()
+    const dashboard = dashboardResponse.data
     
     stats.value = {
-      total_fines: finesRes.data.count || allFines.length,
-      pending_appeals: appealsRes.data.count || appealsRes.data.results?.length || 0,
-      waived_fines: waivedCount,
-      total_amount: totalAmount.toFixed(2),
+      total_fines: dashboard.summary?.total_fines || 0,
+      pending_appeals: dashboard.summary?.pending_appeals || 0,
+      waived_fines: dashboard.summary?.waived_fines || 0,
+      voided_fines: dashboard.summary?.voided_fines || 0,
+      resolved_fines: dashboard.summary?.resolved_fines || 0,
+      total_amount: dashboard.summary?.total_amount || '0.00',
+      fines_with_appeals: dashboard.summary?.fines_with_appeals || 0,
+      recent_count: dashboard.recent?.count || 0,
+      recent_amount: dashboard.recent?.amount || '0.00',
     }
   } catch (error) {
-    console.error('Failed to load stats:', error)
+    console.error('Failed to load dashboard stats:', error)
+    // Fallback to manual calculation if dashboard endpoint fails
+    try {
+      const [finesRes, appealsRes] = await Promise.all([
+        finesAPI.list({ page_size: 1 }),
+        finesAPI.listAppeals({ status: 'pending', page_size: 1 }),
+      ])
+      
+      const allFines = finesRes.data.results || finesRes.data || []
+      const totalAmount = allFines.reduce((sum, fine) => sum + (parseFloat(fine.amount) || 0), 0)
+      const waivedCount = allFines.filter(f => f.status === 'waived').length
+      
+      stats.value = {
+        total_fines: finesRes.data.count || allFines.length,
+        pending_appeals: appealsRes.data.count || appealsRes.data.results?.length || 0,
+        waived_fines: waivedCount,
+        total_amount: totalAmount.toFixed(2),
+      }
+    } catch (fallbackError) {
+      console.error('Failed to load stats (fallback):', fallbackError)
+    }
   }
 }
 
@@ -754,10 +781,18 @@ const loadFines = async () => {
 const loadAppeals = async () => {
   appealsLoading.value = true
   try {
-    const response = await finesAPI.listAppeals()
-    appeals.value = response.data.results || response.data || []
+    // Use the new appeals queue endpoint
+    const response = await adminManagementAPI.getAppealsQueue()
+    appeals.value = response.data || []
   } catch (error) {
     console.error('Failed to load appeals:', error)
+    // Fallback to regular API
+    try {
+      const fallbackResponse = await finesAPI.listAppeals()
+      appeals.value = fallbackResponse.data.results || fallbackResponse.data || []
+    } catch (fallbackError) {
+      console.error('Failed to load appeals (fallback):', fallbackError)
+    }
   } finally {
     appealsLoading.value = false
   }
@@ -806,26 +841,29 @@ const waiveFine = async (id) => {
   if (!reason) return
   
   try {
-    await finesAPI.waive(id, { reason })
+    await adminManagementAPI.waiveFine(id, { reason })
     await loadFines()
     await loadStats()
+    showSuccess('Fine waived successfully')
   } catch (error) {
     console.error('Failed to waive fine:', error)
-    alert('Failed to waive fine')
+    const errorMsg = getErrorMessage(error, 'Failed to waive fine. Please try again.')
+    showError(errorMsg)
   }
 }
 
 const voidFine = async (id) => {
-  const reason = prompt('Enter reason for voiding this fine:')
-  if (!reason) return
+  const reason = prompt('Enter reason for voiding this fine:') || 'Fine voided by admin'
   
   try {
-    await finesAPI.void(id, { reason })
+    await adminManagementAPI.voidFine(id, { reason })
     await loadFines()
     await loadStats()
+    showSuccess('Fine voided successfully')
   } catch (error) {
     console.error('Failed to void fine:', error)
-    alert('Failed to void fine')
+    const errorMsg = getErrorMessage(error, 'Failed to void fine. Please try again.')
+    showError(errorMsg)
   }
 }
 
@@ -835,19 +873,23 @@ const viewAppeal = (appeal) => {
 }
 
 const reviewAppeal = async (id) => {
-  const accept = confirm('Do you want to accept this appeal?')
-  const reviewNotes = prompt('Enter review notes:')
+  const accept = confirm('Do you want to approve this appeal?')
+  const reviewNotes = prompt('Enter review notes:') || ''
   
   try {
-    await finesAPI.reviewAppeal(id, {
-      accept,
-      review_notes: reviewNotes || '',
-    })
+    if (accept) {
+      await adminManagementAPI.approveAppeal(id, { notes: reviewNotes })
+      showSuccess('Appeal approved successfully')
+    } else {
+      await adminManagementAPI.rejectAppeal(id, { notes: reviewNotes })
+      showSuccess('Appeal rejected')
+    }
     await loadAppeals()
     await loadStats()
   } catch (error) {
     console.error('Failed to review appeal:', error)
-    alert('Failed to review appeal')
+    const errorMsg = getErrorMessage(error, 'Failed to review appeal. Please try again.')
+    showError(errorMsg)
   }
 }
 

@@ -196,10 +196,12 @@
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import activityAPI from '@/api/activity-logs'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const loading = ref(true)
 const activities = ref([])
@@ -258,7 +260,10 @@ const loadActivities = async (page = 1) => {
       page_size: pageSize.value,
     }
     
-    const res = await activityAPI.list(params)
+    const isAdmin = ['admin', 'superadmin'].includes(authStore.userRole)
+    const res = isAdmin
+      ? await activityAPI.list(params)
+      : await activityAPI.listUserFeed(params)
     
     // Handle paginated response from DRF
     if (res.data?.results && Array.isArray(res.data.results)) {

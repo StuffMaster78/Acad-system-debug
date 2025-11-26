@@ -34,5 +34,38 @@ export default {
   // Writer Status
   getWriterStatus: (writerId) => apiClient.get(`/writer-management/writer-status/${writerId}/`),
   listWriterStatuses: (params) => apiClient.get('/writer-management/writer-status/', { params }),
+  
+  // Writer Profile
+  getMyProfile: () => apiClient.get('/writer-management/writers/my_profile/'),
+  
+  // Writer Suspensions
+  listSuspensions: (params) => apiClient.get('/writer-management/writer-suspensions/', { params }),
+  getSuspension: (id) => apiClient.get(`/writer-management/writer-suspensions/${id}/`),
+  
+  // Writer Order Hold Requests
+  listHoldRequests: (params) => apiClient.get('/writer-management/writer-order-hold-requests/', { params }),
+  getHoldRequest: (id) => apiClient.get(`/writer-management/writer-order-hold-requests/${id}/`),
+  createHoldRequest: (data) => apiClient.post('/writer-management/writer-order-hold-requests/', data),
+  updateHoldRequest: (id, data) => apiClient.patch(`/writer-management/writer-order-hold-requests/${id}/`, data),
+  
+  // Deadline Extension Requests
+  listDeadlineExtensionRequests: (params) => apiClient.get('/writer-management/writer-deadline-extension-requests/', { params }),
+  getDeadlineExtensionRequest: (id) => apiClient.get(`/writer-management/writer-deadline-extension-requests/${id}/`),
+  createDeadlineExtensionRequest: (data) => apiClient.post('/writer-management/writer-deadline-extension-requests/', data),
+  updateDeadlineExtensionRequest: (id, data) => apiClient.patch(`/writer-management/writer-deadline-extension-requests/${id}/`, data),
+  
+  // Badge Analytics
+  getBadgeAnalytics: (params) => apiClient.get('/writer-management/badge-analytics/', { params }),
+  getBadgeAchievements: (params) => apiClient.get('/writer-management/badge-achievements/', { params }),
+  getBadgePerformance: (params) => apiClient.get('/writer-management/badge-performance/', { params }),
+  
+  // Performance Snapshots
+  listPerformanceSnapshots: (params) => apiClient.get('/writer-management/writer-performance-snapshots/', { params }),
+  getPerformanceSnapshot: (id) => apiClient.get(`/writer-management/writer-performance-snapshots/${id}/`),
+  
+  // Writer Payments
+  listPayments: (params) => apiClient.get('/writer-management/writer-payments/', { params }),
+  getPayment: (id) => apiClient.get(`/writer-management/writer-payments/${id}/`),
+  downloadReceipt: (id) => apiClient.get(`/writer-management/writer-payments/${id}/receipt/`, { responseType: 'blob' }),
 }
 

@@ -125,14 +125,27 @@ class WriterOrderRequestSerializer(serializers.ModelSerializer):
     def validate(self, data):
         """
         Validate that either order or order_id is provided, and reason is provided.
+        Also check for basic duplicate prevention (detailed check happens in view).
         """
         if not data.get('order') and not data.get('order_id'):
             raise serializers.ValidationError("Either 'order' or 'order_id' must be provided.")
         
         # Require reason field
-        if not data.get('reason') or not data.get('reason', '').strip():
+        reason = data.get('reason', '').strip()
+        if not reason:
             raise serializers.ValidationError({
                 'reason': 'Please provide a reason for requesting this order (e.g., your expertise, availability, or interest in the topic).'
+            })
+        
+        # Validate reason length
+        if len(reason) < 10:
+            raise serializers.ValidationError({
+                'reason': 'Please provide a more detailed reason (at least 10 characters).'
+            })
+        
+        if len(reason) > 2000:
+            raise serializers.ValidationError({
+                'reason': 'Reason is too long (maximum 2000 characters).'
             })
         
         # Convert order_id to order if provided
@@ -174,18 +187,36 @@ class WriterOrderTakeSerializer(serializers.ModelSerializer):
     def validate(self, data):
         """
         Validate if a writer is allowed to take an order based on config and limits.
+        Basic validation - detailed checks happen in view with proper locking.
         """
-        config = WriterConfig.objects.first()
+        writer = data.get('writer')
+        order = data.get('order')
+        
+        if not writer:
+            raise ValidationError("Writer is required.")
+        
+        if not order:
+            raise ValidationError("Order is required.")
+        
+        # Check if takes are enabled (basic check, detailed check in view)
+        config = WriterConfig.objects.filter(website=writer.website).first()
         if not config or not config.takes_enabled:
             raise ValidationError(
                 "Order takes are currently disabled. Writers must request orders."
             )
 
-        max_allowed_orders = data['writer'].writer_level.max_orders if data['writer'].writer_level else 0
-        current_taken_orders = WriterOrderTake.objects.filter(writer=data['writer']).count()
-
-        if current_taken_orders >= max_allowed_orders:
-            raise ValidationError(f"Writer {data['writer'].user.username} has reached their max take limit.")
+        # Basic level check
+        if not writer.writer_level:
+            raise ValidationError(
+                "You do not have a writer level assigned. Please contact an administrator."
+            )
+        
+        max_allowed_orders = writer.writer_level.max_orders if writer.writer_level else 0
+        
+        if max_allowed_orders <= 0:
+            raise ValidationError(
+                "You do not have permission to take orders. Please contact an administrator."
+            )
 
         return data
 

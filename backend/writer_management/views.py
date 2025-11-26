@@ -67,6 +67,12 @@ from writer_management.models.tickets import (
 
 from orders.models import Order
 from writer_management.models.order_dispute import OrderDispute
+from activity.utils.logger_safe import safe_log_activity
+from notifications_system.services.dispatch import send
+from notifications_system.enums import NotificationType
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 from writer_management.serializers import (
     WebhookSettingsSerializer, WriterProfileSerializer, WriterLevelSerializer,
     WriterConfigSerializer, WriterLevelConfigSerializer, WriterOrderRequestSerializer,
@@ -108,7 +114,10 @@ from writer_management.models.performance_snapshot import WriterPerformanceSnaps
 from rest_framework.permissions import IsAdminUser
 from writer_management.models.writer_warnings import WriterWarning
 from writer_management.services.writer_warning_service import (
-    WriterWarningService
+    WriterWarningService,
+)
+from writer_management.services.discipline_notification_service import (
+    DisciplineNotificationService,
 )
 from django.db.models import Q
 from writer_management.models.badges import WriterBadge
@@ -205,18 +214,18 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
             try:
                 profile = request.user.writer_profile
             except WriterProfile.DoesNotExist:
-                return Response(
-                    {"detail": "This endpoint is only available for writers."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+            return Response(
+                {"detail": "This endpoint is only available for writers."},
+                status=status.HTTP_403_FORBIDDEN
+            )
         else:
-            try:
-                profile = request.user.writer_profile
-            except WriterProfile.DoesNotExist:
-                return Response(
-                    {"detail": "Writer profile not found."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
+        try:
+            profile = request.user.writer_profile
+        except WriterProfile.DoesNotExist:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         serializer = self.get_serializer(profile)
         data = serializer.data
@@ -303,8 +312,48 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """
         Validate and save writer order requests.
+        Prevents duplicates and handles race conditions.
         """
+        from django.db import transaction
+        from orders.order_enums import OrderStatus
+        
         writer = self.request.user.writer_profile
+        order = serializer.validated_data.get('order')
+        
+        if not order:
+            raise ValidationError("Order is required.")
+        
+        # Use select_for_update to prevent race conditions
+        with transaction.atomic():
+            # Lock the order to prevent concurrent modifications
+            order = Order.objects.select_for_update().get(id=order.id)
+            
+            # Check if order is already requested by this writer
+            existing_request = WriterOrderRequest.objects.filter(
+                writer=writer,
+                order=order
+            ).first()
+            
+            if existing_request:
+                if existing_request.approved:
+                    raise ValidationError("You have already requested and been approved for this order.")
+                else:
+                    raise ValidationError("You have already requested this order. Please wait for admin review.")
+            
+            # Check if order is already assigned to this writer
+            if order.assigned_writer == writer.user:
+                raise ValidationError("This order is already assigned to you.")
+            
+            # Check if order is already assigned to another writer
+            if order.assigned_writer is not None:
+                raise ValidationError("This order is already assigned to another writer.")
+            
+            # Validate order status - must be available or pending
+            if order.status not in [OrderStatus.AVAILABLE.value, OrderStatus.PENDING.value, OrderStatus.PENDING_PREFERRED.value]:
+                raise ValidationError(
+                    f"This order is not available for requests. Current status: {order.status.replace('_', ' ').title()}"
+                )
+            
         # Get max requests from writer's level, fallback to WriterConfig if no level
         if writer.writer_level:
             max_requests = writer.writer_level.max_requests_per_writer
@@ -313,22 +362,233 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
             config = WriterConfig.objects.filter(website=writer.website).first()
             max_requests = config.max_requests_per_writer if config else 5
         
-        active_requests = WriterOrderRequest.objects.filter(writer=writer, approved=False).count()
+            # Count active requests (excluding this one if it exists)
+            active_requests = WriterOrderRequest.objects.filter(
+                writer=writer,
+                approved=False
+            ).count()
 
         if active_requests >= max_requests:
-            raise ValidationError(f"Max request limit reached ({max_requests}).")
+                raise ValidationError(
+                    f"You have reached your maximum request limit ({max_requests}). "
+                    "Please wait for existing requests to be reviewed or submit work to free up capacity."
+                )
 
-        serializer.save(writer=writer)
+            request_instance = serializer.save(writer=writer)
+            
+            # Log activity
+            try:
+                safe_log_activity(
+                    user=writer.user,
+                    website=writer.website,
+                    action_type="ORDER",
+                    description=f"You requested order #{order.id}",
+                    metadata={
+                        "order_id": order.id,
+                        "request_id": request_instance.id,
+                        "reason": request_instance.reason[:200] if request_instance.reason else None,
+                    },
+                    triggered_by=writer.user,
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to log activity for order request: {e}")
+            
+            # Notify admins about the new request
+            try:
+                admin_users = User.objects.filter(
+                    role__in=['admin', 'superadmin'],
+                    is_active=True
+                ).exclude(id=writer.user.id)
+                
+                # If website-specific, filter by website
+                if writer.website:
+                    admin_users = admin_users.filter(website=writer.website)
+                
+                for admin in admin_users[:50]:  # Limit to prevent spam
+                    send(
+                        user=admin,
+                        event="writer.order_request.created",
+                        payload={
+                            "order_id": order.id,
+                            "order_topic": order.topic or "No topic",
+                            "writer_id": writer.id,
+                            "writer_username": writer.user.username,
+                            "request_id": request_instance.id,
+                            "reason_preview": request_instance.reason[:100] if request_instance.reason else None,
+                        },
+                        website=writer.website,
+                        channels=[NotificationType.IN_APP, NotificationType.WEBSOCKET],
+                        category="order_requests",
+                    )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to notify admins about order request: {e}")
+            
+            return request_instance
 
     @action(detail=True, methods=['POST'], permission_classes=[permissions.IsAdminUser])
     def approve(self, request, pk=None):
         """
         Admin approves a writer's order request.
+        Assigns the order to the writer and updates order status.
+        """
+        from django.db import transaction
+        from orders.order_enums import OrderStatus
+        from django.utils import timezone
+        
+        request_obj = self.get_object()
+        
+        # Check if already approved
+        if request_obj.approved:
+            return Response(
+                {"message": "This request has already been approved."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        order = request_obj.order
+        writer = request_obj.writer
+        
+        with transaction.atomic():
+            # Lock the order
+            order = Order.objects.select_for_update().get(id=order.id)
+            
+            # Validate order is still available
+            if order.assigned_writer is not None:
+                return Response(
+                    {"error": "This order has already been assigned to another writer."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            if order.status not in [OrderStatus.AVAILABLE.value, OrderStatus.PENDING.value, OrderStatus.PENDING_PREFERRED.value]:
+                return Response(
+                    {"error": f"Order is not available for assignment. Current status: {order.status}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Approve the request
+        request_obj.approved = True
+            request_obj.reviewed_by = request.user
+        request_obj.save()
+            
+            # Assign the order to the writer
+            order.assigned_writer = writer.user
+            order.status = OrderStatus.IN_PROGRESS.value
+            if hasattr(order, 'assigned_at'):
+                order.assigned_at = timezone.now()
+            order.save()
+            
+            # Log activity
+            try:
+                safe_log_activity(
+                    user=writer.user,
+                    website=writer.website,
+                    action_type="ORDER",
+                    description=f"Admin approved your request for order #{order.id}",
+                    metadata={
+                        "order_id": order.id,
+                        "request_id": request_obj.id,
+                        "approved_by": request.user.username,
+                    },
+                    triggered_by=request.user,
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to log activity for order approval: {e}")
+            
+            # Notify the writer
+            try:
+                send(
+                    user=writer.user,
+                    event="writer.order_request.approved",
+                    payload={
+                        "order_id": order.id,
+                        "order_topic": order.topic or "No topic",
+                        "request_id": request_obj.id,
+                        "approved_by": request.user.username,
+                    },
+                    website=writer.website,
+                    channels=[NotificationType.IN_APP, NotificationType.WEBSOCKET],
+                    category="order_requests",
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to notify writer about approval: {e}")
+        
+        return Response({
+            "message": "Order request approved and assigned successfully.",
+            "order_id": order.id,
+            "assigned_to": writer.user.username
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['POST'], permission_classes=[permissions.IsAdminUser])
+    def reject(self, request, pk=None):
+        """
+        Admin rejects a writer's order request with optional feedback.
         """
         request_obj = self.get_object()
-        request_obj.approved = True
-        request_obj.save()
-        return Response({"message": "Order request approved."}, status=status.HTTP_200_OK)
+        
+        # Check if already approved
+        if request_obj.approved:
+            return Response(
+                {"error": "Cannot reject an already approved request."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        feedback = request.data.get('feedback', '')
+        writer = request_obj.writer
+        order = request_obj.order
+        
+        # Mark as reviewed (we'll use a custom field or just track via reviewed_by)
+        # For now, we'll delete the request or mark it as rejected
+        # Since we don't have a rejected field, we'll delete it and log the rejection
+        
+        # Log activity before deletion
+        try:
+            safe_log_activity(
+                user=writer.user,
+                website=writer.website,
+                action_type="ORDER",
+                description=f"Admin rejected your request for order #{order.id}",
+                metadata={
+                    "order_id": order.id,
+                    "request_id": request_obj.id,
+                    "rejected_by": request.user.username,
+                    "feedback": feedback[:200] if feedback else None,
+                },
+                triggered_by=request.user,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to log activity for order rejection: {e}")
+        
+        # Notify the writer
+        try:
+            send(
+                user=writer.user,
+                event="writer.order_request.rejected",
+                payload={
+                    "order_id": order.id,
+                    "order_topic": order.topic or "No topic",
+                    "request_id": request_obj.id,
+                    "rejected_by": request.user.username,
+                    "feedback": feedback[:500] if feedback else None,
+                },
+                website=writer.website,
+                channels=[NotificationType.IN_APP, NotificationType.WEBSOCKET],
+                category="order_requests",
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to notify writer about rejection: {e}")
+        
+        # Delete the request (or you could add a 'rejected' field to the model)
+        request_obj.delete()
+        
+        return Response({
+            "message": "Order request rejected.",
+            "feedback": feedback if feedback else None
+        }, status=status.HTTP_200_OK)
 
 
 class WriterOrderTakeViewSet(viewsets.ModelViewSet):
@@ -343,31 +603,78 @@ class WriterOrderTakeViewSet(viewsets.ModelViewSet):
         """
         Validate and allow a writer to take an order.
         Automatically assigns the order to the writer when taken.
+        Prevents duplicates and handles race conditions.
         """
         from django.db import transaction
         from orders.order_enums import OrderStatus
+        from orders.models import Order
         
         writer = self.request.user.writer_profile
-        config = WriterConfig.objects.first()
-        if not config or not config.takes_enabled:
-            raise ValidationError("Taking orders is disabled.")
-
-        max_allowed_orders = writer.writer_level.max_orders if writer.writer_level else 0
-        current_taken_orders = WriterOrderTake.objects.filter(writer=writer).count()
-
-        if current_taken_orders >= max_allowed_orders:
-            raise ValidationError("You have reached your max take limit.")
-
         order = serializer.validated_data.get('order')
         
-        # Validate order is available and not assigned
-        if order.status != OrderStatus.AVAILABLE.value:
-            raise ValidationError(f"Order is not available. Current status: {order.status}")
+        if not order:
+            raise ValidationError("Order is required.")
         
-        if order.assigned_writer is not None:
-            raise ValidationError("Order is already assigned to another writer.")
-        
+        # Use select_for_update to prevent race conditions
         with transaction.atomic():
+            # Lock the order to prevent concurrent modifications
+            order = Order.objects.select_for_update().get(id=order.id)
+            
+            # Check if order is already taken by this writer
+            existing_take = WriterOrderTake.objects.filter(
+                writer=writer,
+                order=order
+            ).first()
+            
+            if existing_take:
+                raise ValidationError("You have already taken this order.")
+            
+            # Check if order is already assigned to this writer
+            if order.assigned_writer == writer.user:
+                raise ValidationError("This order is already assigned to you.")
+            
+            # Check if order is already assigned to another writer
+        if order.assigned_writer is not None:
+                raise ValidationError("This order is already assigned to another writer.")
+            
+            # Validate order status - must be available
+            if order.status != OrderStatus.AVAILABLE.value:
+                raise ValidationError(
+                    f"This order is not available. Current status: {order.status.replace('_', ' ').title()}"
+                )
+            
+            # Check if takes are enabled
+            config = WriterConfig.objects.filter(website=writer.website).first()
+            if not config or not config.takes_enabled:
+                raise ValidationError(
+                    "Taking orders directly is currently disabled. Please submit a request instead."
+                )
+
+            # Get max allowed orders from writer's level
+            max_allowed_orders = writer.writer_level.max_orders if writer.writer_level else 0
+            
+            if max_allowed_orders <= 0:
+                raise ValidationError(
+                    "You do not have permission to take orders. Please contact an administrator."
+                )
+            
+            # Count active assignments (in_progress, on_hold, revision_requested, under_editing)
+            active_assignments = Order.objects.filter(
+                assigned_writer=writer.user,
+                status__in=[
+                    OrderStatus.IN_PROGRESS.value,
+                    OrderStatus.ON_HOLD.value,
+                    OrderStatus.REVISION_REQUESTED.value,
+                    OrderStatus.UNDER_EDITING.value,
+                ]
+            ).count()
+
+            if active_assignments >= max_allowed_orders:
+                raise ValidationError(
+                    f"You have reached your maximum order limit ({max_allowed_orders}). "
+                    "Please submit existing work or request a hold before taking another order."
+                )
+            
             # Create the take record
             take_instance = serializer.save(writer=writer)
             
@@ -378,6 +685,53 @@ class WriterOrderTakeViewSet(viewsets.ModelViewSet):
                 from django.utils import timezone
                 order.assigned_at = timezone.now()
             order.save()
+            
+            # Log activity
+            try:
+                safe_log_activity(
+                    user=writer.user,
+                    website=writer.website,
+                    action_type="ORDER",
+                    description=f"You took order #{order.id}",
+                    metadata={
+                        "order_id": order.id,
+                        "take_id": take_instance.id,
+                    },
+                    triggered_by=writer.user,
+                )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to log activity for order take: {e}")
+            
+            # Notify admins about the order take
+            try:
+                admin_users = User.objects.filter(
+                    role__in=['admin', 'superadmin'],
+                    is_active=True
+                ).exclude(id=writer.user.id)
+                
+                # If website-specific, filter by website
+                if writer.website:
+                    admin_users = admin_users.filter(website=writer.website)
+                
+                for admin in admin_users[:50]:  # Limit to prevent spam
+                    send(
+                        user=admin,
+                        event="writer.order_taken",
+                        payload={
+                            "order_id": order.id,
+                            "order_topic": order.topic or "No topic",
+                            "writer_id": writer.id,
+                            "writer_username": writer.user.username,
+                            "take_id": take_instance.id,
+                        },
+                        website=writer.website,
+                        channels=[NotificationType.IN_APP, NotificationType.WEBSOCKET],
+                        category="order_takes",
+                    )
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).warning(f"Failed to notify admins about order take: {e}")
             
             return take_instance
 
@@ -471,6 +825,81 @@ class WriterPaymentViewSet(viewsets.ViewSet):
         )
 
         return Response(WriterPaymentSerializer(payment).data, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['get'], url_path='receipt')
+    def download_receipt(self, request, pk=None):
+        """Download PDF receipt for a writer payment."""
+        try:
+            payment = WriterPayment.objects.select_related(
+                'writer__user', 'website', 'processed_by'
+            ).get(pk=pk)
+        except WriterPayment.DoesNotExist:
+            return Response(
+                {"detail": "Payment not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check permissions - writers can only download their own receipts
+        if request.user.role == 'writer':
+            if payment.writer.user != request.user:
+                return Response(
+                    {"detail": "You can only download your own payment receipts."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        try:
+            from order_payments_management.services.receipt_service import ReceiptService
+            from django.utils import timezone
+            
+            # Prepare transaction data for receipt
+            transaction_data = {
+                'reference_id': f"WP-{payment.id}",
+                'transaction_id': str(payment.id),
+                'amount': float(payment.amount),
+                'currency': 'USD',
+                'payment_date': payment.payment_date.isoformat() if payment.payment_date else timezone.now().isoformat(),
+                'payment_type': 'writer_payment',
+                'description': payment.description or f"Writer Payment #{payment.id}",
+                'writer': {
+                    'id': payment.writer.id,
+                    'username': payment.writer.user.username,
+                    'email': payment.writer.user.email,
+                },
+                'breakdown': {
+                    'base_amount': float(payment.amount),
+                    'bonuses': float(payment.bonuses or 0),
+                    'fines': float(payment.fines or 0),
+                    'tips': float(payment.tips or 0),
+                },
+            }
+            
+            if payment.converted_amount:
+                transaction_data['converted_amount'] = float(payment.converted_amount)
+                transaction_data['conversion_rate'] = float(payment.conversion_rate or 1)
+            
+            website_name = payment.website.name if payment.website else "Writing System"
+            
+            # Generate PDF receipt
+            pdf_buffer = ReceiptService.generate_receipt_pdf(transaction_data, website_name)
+            filename = f"writer_payment_receipt_{payment.id}_{timezone.now().strftime('%Y%m%d')}.pdf"
+            return ReceiptService.create_pdf_response(pdf_buffer, filename)
+            
+        except ImportError as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"PDF generation failed: {str(e)}")
+            return Response(
+                {"error": "PDF generation is not available. Please install reportlab: pip install reportlab"},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error generating receipt: {str(e)}")
+            return Response(
+                {"error": f"Failed to generate receipt: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 ### ---------------- Writer Penalty & Reward Views ---------------- ###
@@ -500,6 +929,31 @@ class ProbationViewSet(viewsets.ModelViewSet):
     queryset = Probation.objects.all()
     serializer_class = ProbationSerializer
     permission_classes = [permissions.IsAdminUser]
+
+    def perform_create(self, serializer):
+        probation = serializer.save()
+        if probation.is_active:
+            DisciplineNotificationService.notify_probation_started(probation)
+        WriterStatusService.update(probation.writer)
+        return probation
+
+    def perform_update(self, serializer):
+        previous_active = serializer.instance.is_active
+        probation = serializer.save()
+        WriterStatusService.update(probation.writer)
+        if previous_active and not probation.is_active:
+            DisciplineNotificationService.notify_probation_completed(probation)
+        elif not previous_active and probation.is_active:
+            DisciplineNotificationService.notify_probation_started(probation)
+        return probation
+
+    def perform_destroy(self, instance):
+        writer = instance.writer
+        was_active = instance.is_active
+        if was_active:
+            DisciplineNotificationService.notify_probation_completed(instance)
+        super().perform_destroy(instance)
+        WriterStatusService.update(writer)
 
 
 ### ---------------- Support, Disputes & Requests ---------------- ###
@@ -596,11 +1050,32 @@ class WriterRewardCriteriaViewSet(viewsets.ModelViewSet):
 class WriterSuspensionViewSet(viewsets.ModelViewSet):
     queryset = WriterSuspension.objects.all()
     serializer_class = WriterSuspensionSerializer
+    permission_classes = [permissions.IsAdminUser]
 
+    def perform_create(self, serializer):
+        suspension = serializer.save()
+        WriterStatusService.update(suspension.writer)
+        if suspension.is_active:
+            DisciplineNotificationService.notify_suspension_started(suspension)
+        return suspension
 
-class WriterSuspensionViewSet(viewsets.ModelViewSet):
-    queryset = WriterSuspension.objects.all()
-    serializer_class = WriterSuspensionSerializer
+    def perform_update(self, serializer):
+        previous_active = serializer.instance.is_active
+        suspension = serializer.save()
+        WriterStatusService.update(suspension.writer)
+        if previous_active and not suspension.is_active:
+            DisciplineNotificationService.notify_suspension_lifted(suspension)
+        elif not previous_active and suspension.is_active:
+            DisciplineNotificationService.notify_suspension_started(suspension)
+        return suspension
+
+    def perform_destroy(self, instance):
+        writer = instance.writer
+        was_active = instance.is_active
+        if was_active:
+            DisciplineNotificationService.notify_suspension_lifted(instance)
+        super().perform_destroy(instance)
+        WriterStatusService.update(writer)
 class WriterActionLogViewSet(viewsets.ModelViewSet):
     queryset = WriterActionLog.objects.all()
     serializer_class = WriterActionLogSerializer
@@ -1079,12 +1554,17 @@ class WriterWarningViewSet(viewsets.ModelViewSet):
         reason = serializer.validated_data['reason']
         expires_at = serializer.validated_data.get('expires_at')
 
+        expires_days = (
+            (expires_at - now()).days
+            if expires_at
+            else None
+        )
+
         warning = WriterWarningService.issue_warning(
             writer=writer,
             reason=reason,
             issued_by=self.request.user,
-            expires_days=(expires_at - warning.issued_at).days
-            if expires_at else 30
+            expires_days=expires_days
         )
 
         return warning
@@ -1092,7 +1572,11 @@ class WriterWarningViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         instance.is_active = False
-        instance.save()
+        instance.save(update_fields=['is_active'])
+        DisciplineNotificationService.notify_warning_resolved(
+            instance,
+            reason="revoked by admin",
+        )
         return Response(
             {'detail': 'Warning marked as inactive.'},
             status=status.HTTP_200_OK
@@ -1181,6 +1665,8 @@ class WriterStrikeViewSet(viewsets.ModelViewSet):
         from writer_management.services.discipline import DisciplineService
         DisciplineService.evaluate_strikes(strike.writer)
         
+        DisciplineNotificationService.notify_strike_issued(strike)
+
         return strike
 
     @action(detail=False, methods=['get'], url_path='by-writer/(?P<writer_id>[^/.]+)')
@@ -1203,6 +1689,8 @@ class WriterStrikeViewSet(viewsets.ModelViewSet):
             notes="Strike revoked by admin"
         )
         
+        DisciplineNotificationService.notify_strike_revoked(strike)
+
         # Delete the strike
         strike.delete()
         

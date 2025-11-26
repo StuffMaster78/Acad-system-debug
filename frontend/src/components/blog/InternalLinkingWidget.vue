@@ -86,7 +86,7 @@
 
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import { debounce } from 'lodash-es'
+import { debounce } from '@/utils/debounce'
 import blogPagesAPI from '@/api/blog-pages'
 
 const props = defineProps({

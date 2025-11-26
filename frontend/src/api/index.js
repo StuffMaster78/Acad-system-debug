@@ -48,4 +48,5 @@ export { default as writerManagementAPI } from './writer-management'
 export { default as duplicateDetectionAPI } from './duplicate-detection'
 export { default as referralTrackingAPI } from './referral-tracking'
 export { default as loyaltyTrackingAPI } from './loyalty-tracking'
+export { default as adminManagementAPI } from './admin-management'
 

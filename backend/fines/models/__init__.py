@@ -6,6 +6,7 @@ and new models (from submodules).
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+from django.core.validators import FileExtensionValidator
 
 # Import new models from submodules first (they may depend on base classes)
 from .late_fine_policy import LatenessFineRule
@@ -339,6 +340,85 @@ class FineAppeal(models.Model):
         return f"Appeal for Fine #{self.fine.id} by {self.submitted_by.username} ({self.get_review_decision_display()})"
 
 
+class FineAppealEvent(models.Model):
+    """
+    Timeline entry for a fine appeal capturing status updates,
+    evidence uploads, and admin responses.
+    """
+
+    EVENT_TYPES = [
+        ("appeal_submitted", "Appeal Submitted"),
+        ("writer_update", "Writer Update"),
+        ("evidence_added", "Evidence Added"),
+        ("admin_response", "Admin Response"),
+        ("status_change", "Status Update"),
+        ("system", "System Notice"),
+    ]
+
+    appeal = models.ForeignKey(
+        FineAppeal,
+        on_delete=models.CASCADE,
+        related_name="events",
+    )
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fine_appeal_events",
+    )
+    actor_role = models.CharField(max_length=32, blank=True)
+    event_type = models.CharField(max_length=32, choices=EVENT_TYPES)
+    message = models.TextField(blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.get_event_type_display()} - Appeal #{self.appeal_id}"
+
+
+class FineAppealEvidence(models.Model):
+    """
+    File uploads tied to a fine appeal (and optionally a specific event).
+    """
+
+    appeal = models.ForeignKey(
+        FineAppeal,
+        on_delete=models.CASCADE,
+        related_name="evidence_files",
+    )
+    event = models.ForeignKey(
+        FineAppealEvent,
+        on_delete=models.CASCADE,
+        related_name="attachments",
+        null=True,
+        blank=True,
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="fine_appeal_evidence",
+    )
+    description = models.CharField(max_length=255, blank=True)
+    file = models.FileField(
+        upload_to="uploads/fine_appeals/%Y/%m/%d/",
+        validators=[FileExtensionValidator(allowed_extensions=["pdf", "doc", "docx", "png", "jpg", "jpeg", "txt", "zip"])],
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["uploaded_at"]
+
+    def __str__(self):
+        filename = self.file.name.split("/")[-1]
+        return f"Evidence {filename} for Appeal #{self.appeal_id}"
+
+
 # Export all models
 __all__ = [
     # Enums
@@ -348,6 +428,8 @@ __all__ = [
     'FinePolicy',
     'Fine',
     'FineAppeal',
+    'FineAppealEvent',
+    'FineAppealEvidence',
     # New models from submodules
     'LatenessFineRule',
     'FineTypeConfig',

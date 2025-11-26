@@ -280,7 +280,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             if declined_order_ids:
                 available_orders = available_orders.exclude(id__in=declined_order_ids)
             
-            available_orders = available_orders.select_related('client', 'type_of_work', 'paper_type').order_by('-created_at')[:50]
+            available_orders = list(
+                available_orders.select_related('client', 'type_of_work', 'paper_type', 'subject').order_by('-created_at')[:50]
+            )
             
             # Get writer's order requests
             order_requests = WriterOrderRequest.objects.filter(
@@ -314,23 +316,164 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             if declined_order_ids:
                 preferred_orders = preferred_orders.exclude(id__in=declined_order_ids)
             
-            preferred_orders = preferred_orders.select_related('client', 'type_of_work', 'paper_type').order_by('-created_at')[:20]
+            preferred_orders = list(
+                preferred_orders.select_related('client', 'type_of_work', 'paper_type', 'subject').order_by('-created_at')[:20]
+            )
+
+            # ------------------------------------------------------------------
+            # Intelligent recommendations & metadata
+            # ------------------------------------------------------------------
+
+            def _normalize_keywords(raw):
+                if not raw:
+                    return set()
+                return {
+                    segment.strip().lower()
+                    for segment in raw.split(',')
+                    if segment and segment.strip()
+                }
+
+            skill_keywords = _normalize_keywords(profile.skills or "")
+            subject_keywords = _normalize_keywords(profile.subject_preferences or "")
+
+            subject_pref_manager = getattr(profile, 'subject_preferences_for_specific_writer', None)
+            if subject_pref_manager:
+                for pref in subject_pref_manager.all():
+                    for subject in pref.subjects or []:
+                        if subject:
+                            subject_keywords.add(subject.lower())
+
+            keyword_bank = skill_keywords | subject_keywords
+            high_payout_threshold = 150
+
+            def _estimate_payout(order):
+                compensation = getattr(order, 'writer_compensation', None) or Decimal('0.00')
+                if compensation and compensation > 0:
+                    return float(compensation)
+
+                order_total = order.total_price or Decimal('0.00')
+                level = getattr(profile, 'writer_level', None)
+                if level:
+                    try:
+                        payout = level.calculate_order_payment(
+                            pages=self._get_order_pages(order),
+                            slides=getattr(order, 'number_of_slides', 0),
+                            is_urgent=bool(getattr(order, 'is_urgent', False)),
+                            is_technical=False,
+                            order_total=order_total,
+                            order_cost=order_total,
+                        )
+                        if payout:
+                            return float(payout)
+                    except Exception:
+                        pass
+
+                fallback_percentage = None
+                if level:
+                    fallback_percentage = (
+                        level.earnings_percentage_of_total
+                        or level.earnings_percentage_of_cost
+                    )
+                percentage = float(fallback_percentage or 55) / 100
+                return float(order_total) * percentage if order_total else 0.0
+
+            def _deadline_dt(order):
+                return (
+                    order.writer_deadline
+                    or order.client_deadline
+                    or getattr(order, 'deadline', None)
+                    or order.created_at
+                )
+
+            def _compute_match_metadata(order):
+                meta = {
+                    'score': 0,
+                    'tags': [],
+                }
+                subject_name = getattr(order.subject, 'name', None)
+                type_of_work = getattr(order.type_of_work, 'name', None)
+                topic_text = (order.topic or '').lower()
+
+                if subject_name and subject_name.lower() in subject_keywords:
+                    meta['score'] += 40
+                    meta['tags'].append(f"Subject match: {subject_name}")
+
+                if type_of_work and type_of_work.lower() in keyword_bank:
+                    meta['score'] += 20
+                    meta['tags'].append(f"Preferred work type: {type_of_work}")
+
+                if topic_text and skill_keywords:
+                    for skill in skill_keywords:
+                        if skill and skill in topic_text:
+                            meta['score'] += 10
+                            meta['tags'].append(f"Topic mentions '{skill}'")
+                            break
+
+                potential_payout = round(_estimate_payout(order), 2)
+                meta['potential_payout'] = potential_payout
+
+                if potential_payout >= high_payout_threshold:
+                    meta['score'] += 10
+                    meta['tags'].append("High payout opportunity")
+
+                meta['score'] = min(meta['score'], 100)
+                meta['subject_name'] = subject_name
+                meta['type_of_work'] = type_of_work
+                meta['deadline'] = _deadline_dt(order)
+                return meta
+
+            candidate_orders = {}
+            for order in available_orders + preferred_orders:
+                candidate_orders[order.id] = order
+
+            match_metadata = {
+                order_id: _compute_match_metadata(order)
+                for order_id, order in candidate_orders.items()
+            }
+
+            def _serialize_order(order):
+                meta = match_metadata.get(order.id, {})
+                deadline = (order.client_deadline or order.writer_deadline or getattr(order, 'deadline', None))
+                return {
+                    'id': order.id,
+                    'topic': order.topic,
+                    'subject': meta.get('subject_name'),
+                    'service_type': getattr(order.type_of_work, 'name', str(order.type_of_work)) if order.type_of_work else 'Unknown',
+                    'paper_type': getattr(order.paper_type, 'name', str(order.paper_type)) if order.paper_type else None,
+                    'deadline': deadline.isoformat() if deadline else None,
+                    'pages': self._get_order_pages(order),
+                    'price': float(order.total_price) if order.total_price else 0,
+                    'created_at': order.created_at.isoformat() if order.created_at else None,
+                    'is_requested': order.id in requested_order_ids,
+                    'match_score': meta.get('score', 0),
+                    'match_tags': meta.get('tags', []),
+                    'potential_payout': meta.get('potential_payout', 0),
+                }
+
+            recommended_candidates = [
+                (order, match_metadata.get(order.id, {}))
+                for order in candidate_orders.values()
+                if order.id not in requested_order_ids
+            ]
+
+            recommended_candidates.sort(
+                key=lambda item: (
+                    -item[1].get('score', 0),
+                    -item[1].get('potential_payout', 0),
+                    item[1].get('deadline') or timezone.now(),
+                )
+            )
+
+            recommended_orders = [
+                _serialize_order(order)
+                for order, _ in recommended_candidates[:10]
+            ]
             
             return Response({
             'takes_enabled': takes_enabled,
             'requested_order_ids': requested_order_ids,  # Include requested order IDs for frontend
             'available_orders': [
-                {
-                    'id': o.id,
-                    'topic': o.topic,
-                    'is_requested': o.id in requested_order_ids,  # Flag if already requested
-                    'service_type': getattr(o.type_of_work, 'name', str(o.type_of_work)) if o.type_of_work else 'Unknown',
-                    'paper_type': getattr(o.paper_type, 'name', str(o.paper_type)) if o.paper_type else None,
-                    'deadline': (o.client_deadline or o.writer_deadline or getattr(o, 'deadline', None)).isoformat() if (o.client_deadline or o.writer_deadline or getattr(o, 'deadline', None)) else None,
-                    'pages': self._get_order_pages(o),
-                    'price': float(o.total_price) if o.total_price else 0,
-                    'created_at': o.created_at.isoformat() if o.created_at else None,
-                }
+                _serialize_order(o)
                 for o in available_orders
             ],
             'order_requests': [
@@ -356,19 +499,10 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 for r in writer_requests[:20]
             ],
             'preferred_orders': [
-                {
-                    'id': o.id,
-                    'topic': o.topic,
-                    'service_type': getattr(o.type_of_work, 'name', str(o.type_of_work)) if o.type_of_work else 'Unknown',
-                    'paper_type': getattr(o.paper_type, 'name', str(o.paper_type)) if o.paper_type else None,
-                    'deadline': (o.client_deadline or o.writer_deadline or getattr(o, 'deadline', None)).isoformat() if (o.client_deadline or o.writer_deadline or getattr(o, 'deadline', None)) else None,
-                    'pages': self._get_order_pages(o),
-                    'price': float(o.total_price) if o.total_price else 0,
-                    'created_at': o.created_at.isoformat() if o.created_at else None,
-                    'is_requested': o.id in requested_order_ids,  # Flag if already requested
-                }
+                _serialize_order(o)
                 for o in preferred_orders
             ],
+            'recommended_orders': recommended_orders,
             })
         except Exception as e:
             import logging
@@ -381,6 +515,41 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 },
                 status=500
             )
+
+    @action(detail=False, methods=['get', 'post'], url_path='availability')
+    def availability(self, request):
+        """Get or update writer availability for instant assignments."""
+        profile = self.get_writer_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=404
+            )
+
+        if request.method.lower() == 'get':
+            return Response(self._serialize_availability(profile))
+
+        is_available = request.data.get('is_available')
+        if is_available is None:
+            return Response(
+                {"detail": "'is_available' is required."},
+                status=400
+            )
+
+        if isinstance(is_available, str):
+            is_available = is_available.strip().lower() in ['1', 'true', 'yes', 'on']
+
+        profile.is_available_for_auto_assignments = bool(is_available)
+        profile.availability_message = (request.data.get('message') or '').strip()[:160]
+        profile.availability_last_changed = timezone.now()
+        profile.save(
+            update_fields=[
+                'is_available_for_auto_assignments',
+                'availability_message',
+                'availability_last_changed',
+            ]
+        )
+        return Response(self._serialize_availability(profile))
     
     @action(detail=False, methods=['get'], url_path='badges')
     def get_badges(self, request):
@@ -1469,4 +1638,12 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 ]),
             },
         })
+
+    def _serialize_availability(self, profile):
+        return {
+            "is_available": bool(getattr(profile, 'is_available_for_auto_assignments', True)),
+            "message": profile.availability_message or "",
+            "last_changed": profile.availability_last_changed.isoformat()
+            if getattr(profile, 'availability_last_changed', None) else None,
+        }
 

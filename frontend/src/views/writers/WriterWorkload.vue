@@ -5,9 +5,19 @@
         <h1 class="text-3xl font-bold text-gray-900">Workload & Capacity</h1>
         <p class="mt-2 text-gray-600">Track your current workload vs capacity</p>
       </div>
-      <button @click="loadWorkload" :disabled="loading" class="btn btn-secondary">
-        {{ loading ? 'Loading...' : 'Refresh' }}
-      </button>
+      <div class="flex items-center gap-3">
+        <label class="flex items-center gap-2 text-sm text-gray-600">
+          <input
+            type="checkbox"
+            v-model="autoRefresh"
+            class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+          />
+          <span>Auto-refresh (30s)</span>
+        </label>
+        <button @click="loadWorkload" :disabled="loading" class="btn btn-secondary">
+          {{ loading ? 'Loading...' : 'Refresh' }}
+        </button>
+      </div>
     </div>
 
     <div v-if="loading" class="bg-white rounded-lg shadow-sm p-12">
@@ -114,16 +124,30 @@
 
       <!-- Status Breakdown -->
       <div class="bg-white rounded-lg shadow-sm p-6">
-        <h2 class="text-xl font-semibold text-gray-900 mb-4">Orders by Status</h2>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-gray-900">Orders by Status</h2>
+          <router-link
+            to="/orders?assigned_writer=true"
+            class="text-sm text-primary-600 hover:text-primary-700 font-medium"
+          >
+            View All Orders →
+          </router-link>
+        </div>
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div
+          <button
             v-for="(count, status) in workloadData.status_breakdown"
             :key="status"
-            class="text-center p-4 border rounded-lg"
+            @click="filterByStatus(status)"
+            :class="[
+              'text-center p-4 border rounded-lg transition-all cursor-pointer',
+              selectedStatus === status
+                ? 'bg-primary-50 border-primary-300 shadow-md'
+                : 'hover:bg-gray-50 hover:border-gray-300'
+            ]"
           >
             <p class="text-2xl font-bold text-gray-900">{{ count }}</p>
-            <p class="text-xs text-gray-600 capitalize">{{ status.replace('_', ' ') }}</p>
-          </div>
+            <p class="text-xs text-gray-600 capitalize mt-1">{{ formatStatus(status) }}</p>
+          </button>
         </div>
       </div>
 
@@ -143,6 +167,87 @@
             <p class="text-3xl font-bold text-indigo-900">{{ workloadData.workload_estimate.estimated_days }}d</p>
             <p class="text-sm text-gray-600 mt-1">Estimated Days</p>
             <p class="text-xs text-gray-500 mt-1">(8-hour workday)</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Orders List -->
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-semibold text-gray-900">Active Orders</h2>
+          <router-link
+            to="/orders?assigned_writer=true"
+            class="text-sm text-primary-600 hover:text-primary-700 font-medium"
+          >
+            View All →
+          </router-link>
+        </div>
+        <div v-if="activeOrders.length === 0" class="text-center py-12">
+          <div class="flex flex-col items-center gap-3">
+            <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <div>
+              <p class="text-lg font-medium text-gray-900">You don't have any orders in progress</p>
+              <p class="text-sm text-gray-500 mt-1">Check the order queue to find available orders to work on</p>
+            </div>
+            <router-link
+              to="/writer/queue"
+              class="mt-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+            >
+              View Order Queue
+            </router-link>
+          </div>
+        </div>
+        <div v-else class="space-y-3">
+          <div
+            v-for="order in activeOrders"
+            :key="order.id"
+            class="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div class="flex-1">
+              <div class="flex items-center gap-3">
+                <router-link
+                  :to="`/orders/${order.id}`"
+                  class="font-medium text-gray-900 hover:text-primary-600"
+                >
+                  Order #{{ order.id }}
+                </router-link>
+                <span
+                  :class="[
+                    'px-2 py-1 text-xs font-medium rounded',
+                    getStatusColor(order.status)
+                  ]"
+                >
+                  {{ formatStatus(order.status) }}
+                </span>
+              </div>
+              <div class="text-sm text-gray-600 mt-1">
+                {{ order.topic || 'No topic' }} • {{ order.pages || 0 }} pages
+              </div>
+              <div v-if="order.deadline" class="text-xs text-gray-500 mt-1">
+                Due: {{ formatDeadline(order.deadline) }}
+                <span
+                  v-if="order.hours_remaining !== undefined"
+                  :class="[
+                    'ml-2 font-medium',
+                    order.hours_remaining <= 24 ? 'text-red-600' :
+                    order.hours_remaining <= 48 ? 'text-orange-600' :
+                    'text-gray-600'
+                  ]"
+                >
+                  ({{ formatTimeRemaining(order.hours_remaining) }} remaining)
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <router-link
+                :to="`/orders/${order.id}`"
+                class="px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+              >
+                View
+              </router-link>
+            </div>
           </div>
         </div>
       </div>
@@ -194,9 +299,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import writerDashboardAPI from '@/api/writer-dashboard'
+import ordersAPI from '@/api/orders'
 import { useToast } from '@/composables/useToast'
 import { getErrorMessage } from '@/utils/errorHandler'
 
@@ -205,19 +311,124 @@ const { error: showError } = useToast()
 
 const loading = ref(false)
 const workloadData = ref(null)
+const activeOrders = ref([])
+const selectedStatus = ref(null)
+const autoRefresh = ref(false)
+let refreshInterval = null
 
 const loadWorkload = async () => {
   loading.value = true
   try {
     const response = await writerDashboardAPI.getWorkload()
     workloadData.value = response.data
+    
+    // Load active orders
+    await loadActiveOrders()
   } catch (error) {
     console.error('Failed to load workload:', error)
-    const errorMsg = getErrorMessage(error, 'Failed to load workload data. Please try again.')
-    showError(errorMsg)
+    
+    // Check if it's a 404 or empty result (no orders is a valid state)
+    if (error.response?.status === 404 || error.response?.status === 200) {
+      // No workload data available - writer might not have any orders
+      workloadData.value = {
+        capacity: {
+          current_orders: 0,
+          max_orders: 10,
+          available_slots: 10,
+          capacity_percentage: 0,
+          is_at_capacity: false,
+          is_near_capacity: false,
+        },
+        status_breakdown: {},
+        workload_estimate: {
+          total_pages: 0,
+          estimated_hours: 0,
+          estimated_days: 0,
+        },
+        upcoming_deadlines: [],
+        writer_level: {
+          name: 'Unknown',
+          max_orders: 10,
+        },
+      }
+      activeOrders.value = []
+    } else {
+      // Real error - show message
+      const errorMsg = getErrorMessage(error, 'Failed to load workload data. Please try again.')
+      showError(errorMsg)
+    }
   } finally {
     loading.value = false
   }
+}
+
+const loadActiveOrders = async () => {
+  try {
+    const params = {
+      assigned_writer: true,
+      status__in: ['in_progress', 'on_hold', 'revision_requested', 'submitted', 'under_editing', 'revision_in_progress'],
+      page_size: 10,
+    }
+    
+    if (selectedStatus.value) {
+      params.status = selectedStatus.value
+    }
+    
+    const response = await ordersAPI.list(params)
+    const orders = response.data.results || response.data || []
+    
+    // Calculate hours remaining for each order
+    const now = new Date()
+    activeOrders.value = orders.map(order => {
+      const deadline = order.writer_deadline || order.client_deadline || order.deadline
+      let hours_remaining = null
+      if (deadline) {
+        const deadlineDate = new Date(deadline)
+        hours_remaining = (deadlineDate - now) / (1000 * 60 * 60)
+      }
+      
+      return {
+        ...order,
+        deadline,
+        hours_remaining,
+        pages: order.number_of_pages || order.pages || 0,
+      }
+    })
+  } catch (error) {
+    // If it's a 404 or empty result, that's fine - just no orders
+    if (error.response?.status === 404) {
+      activeOrders.value = []
+    } else {
+      // Only log real errors, don't show error message for empty results
+      console.error('Failed to load active orders:', error)
+      activeOrders.value = []
+    }
+  }
+}
+
+const filterByStatus = (status) => {
+  if (selectedStatus.value === status) {
+    selectedStatus.value = null
+  } else {
+    selectedStatus.value = status
+  }
+  loadActiveOrders()
+}
+
+const formatStatus = (status) => {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
+const getStatusColor = (status) => {
+  const colors = {
+    'in_progress': 'bg-blue-100 text-blue-800',
+    'on_hold': 'bg-yellow-100 text-yellow-800',
+    'revision_requested': 'bg-orange-100 text-orange-800',
+    'revision_in_progress': 'bg-orange-100 text-orange-800',
+    'submitted': 'bg-green-100 text-green-800',
+    'under_editing': 'bg-purple-100 text-purple-800',
+  }
+  return colors[status] || 'bg-gray-100 text-gray-800'
 }
 
 const formatDeadline = (dateString) => {
@@ -233,6 +444,8 @@ const formatDeadline = (dateString) => {
 }
 
 const formatTimeRemaining = (hours) => {
+  if (hours === null || hours === undefined) return 'N/A'
+  if (hours < 0) return 'Overdue'
   if (hours < 1) {
     return `${Math.round(hours * 60)}m`
   } else if (hours < 24) {
@@ -244,8 +457,29 @@ const formatTimeRemaining = (hours) => {
   }
 }
 
+// Watch autoRefresh and set up interval
+watch(autoRefresh, (newVal) => {
+  if (newVal && !refreshInterval) {
+    refreshInterval = setInterval(() => {
+      if (!loading.value) {
+        loadWorkload()
+      }
+    }, 30000) // 30 seconds
+  } else if (!newVal && refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+  }
+})
+
 onMounted(() => {
   loadWorkload()
+})
+
+onBeforeUnmount(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval)
+    refreshInterval = null
+  }
 })
 </script>
 

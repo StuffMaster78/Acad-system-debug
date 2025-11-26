@@ -1,6 +1,7 @@
 from celery import shared_task
 import requests # type: ignore
 import logging
+from datetime import timedelta
 from django.core.cache import cache
 from django.conf import settings
 from .utils import WebhookPayloadFormatter
@@ -11,15 +12,18 @@ from writer_management.models.webhook_settings import (
 from orders.order_enums import  WebhookEvent
 from writer_management.models.payout import CurrencyConversionRate
 from writer_management.services.conversion_service import CurrencyConversionService
-from writer_management.models.profile import WriterProfile
 from writer_management.services.writer_metrics_snapshot import WriterMetricsService
 from writer_management.services.leveling import WriterLevelingService
 from writer_management.services.scoring import CompositeScoreService
 from writer_management.models.writer_warnings import WriterWarning
-from writer_management.models.profile import WriterProfile
+from writer_management.models.discipline import Probation
 from writer_management.services.auto_badge_award_service import (
     AutoBadgeAwardService
 )
+from writer_management.services.discipline_notification_service import (
+    DisciplineNotificationService,
+)
+from writer_management.services.status_service import WriterStatusService
 from django.utils.timezone import now
 
 logger = logging.getLogger(__name__)
@@ -104,12 +108,52 @@ def update_writer_metrics_and_levels():
 
 @shared_task
 def expire_old_warnings():
-    WriterWarning.objects.filter(
-        is_active=True, expires_at__lte=now()
-    ).update(is_active=False)
+    expired = list(
+        WriterWarning.objects.filter(
+            is_active=True,
+            expires_at__lte=now()
+        ).select_related("writer__user")
+    )
+    for warning in expired:
+        warning.is_active = False
+        warning.save(update_fields=["is_active"])
+        WriterStatusService.update(warning.writer)
 
 
 @shared_task
 def run_auto_badge_awards():
     for writer in WriterProfile.objects.filter(user__is_active=True):
         AutoBadgeAwardService.run(writer)
+
+
+@shared_task
+def send_probation_reminders():
+    now_ts = now()
+    reminder_window = now_ts + timedelta(days=2)
+    probations = Probation.objects.filter(
+        is_active=True,
+        end_date__gt=now_ts,
+        end_date__lte=reminder_window
+    ).select_related("writer__user")
+
+    for probation in probations:
+        cache_key = f"probation_reminder:{probation.id}:{probation.end_date.date()}"
+        if cache.get(cache_key):
+            continue
+        eta = probation.end_date - now_ts
+        DisciplineNotificationService.notify_probation_expiring(probation, eta=eta)
+        cache.set(cache_key, True, timeout=86400)
+
+
+@shared_task
+def close_completed_probations():
+    completed = Probation.objects.filter(
+        is_active=True,
+        end_date__lte=now()
+    ).select_related("writer__user")
+
+    for probation in completed:
+        probation.is_active = False
+        probation.save(update_fields=["is_active"])
+        DisciplineNotificationService.notify_probation_completed(probation)
+        WriterStatusService.update(probation.writer)

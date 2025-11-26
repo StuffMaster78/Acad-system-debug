@@ -77,7 +77,16 @@ if CELERY_AVAILABLE:
         # non-fatal; you still have explicit broker/backends above
         pass
 
-app.autodiscover_tasks()
+# Autodiscover tasks from all installed apps
+# This will automatically find tasks.py files in each installed app
+# By default, it looks for 'tasks' modules in all installed Django apps
+if CELERY_AVAILABLE:
+    app.autodiscover_tasks()
+    # Also explicitly tell it to look in notifications_system
+    try:
+        app.autodiscover_tasks(['notifications_system'])
+    except Exception:
+        pass  # If it fails, autodiscover should have already found it
 
 @app.task(bind=True)
 def debug_task(self):

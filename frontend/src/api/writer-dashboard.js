@@ -10,6 +10,8 @@ export default {
   getEarnings: (days = 30) => apiClient.get('/writer-management/dashboard/earnings/', { params: { days } }),
   getPerformanceAnalytics: (days = 30) => apiClient.get('/writer-management/dashboard/performance/', { params: { days } }),
   getOrderQueue: () => apiClient.get('/writer-management/dashboard/queue/'),
+  getAvailability: () => apiClient.get('/writer-management/dashboard/availability/'),
+  updateAvailability: (data) => apiClient.post('/writer-management/dashboard/availability/', data),
   getBadgesAndAchievements: () => apiClient.get('/writer-management/dashboard/badges/'),
   getLevelAndRanking: () => apiClient.get('/writer-management/dashboard/level/'),
   getEstimatedEarnings: (params) => apiClient.get('/writer-management/dashboard/estimated-earnings/', { params }),

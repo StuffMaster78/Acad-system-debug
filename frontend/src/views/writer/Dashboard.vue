@@ -6,7 +6,18 @@
         <h1 class="text-3xl font-bold text-gray-900">Writer Dashboard</h1>
         <p class="mt-2 text-gray-600">Welcome back, {{ authStore.user?.email }}</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 text-xs text-gray-500">
+          <span
+            class="inline-block w-2 h-2 rounded-full"
+            :class="{
+              'bg-green-500': realtimeConnectionStatus === 'connected',
+              'bg-yellow-400 animate-pulse': realtimeConnectionStatus === 'connecting',
+              'bg-red-500 animate-pulse': realtimeConnectionStatus === 'disconnected'
+            }"
+          ></span>
+          <span>{{ realtimeStatusText }}</span>
+        </div>
         <button
           @click="refreshDashboard"
           :disabled="refreshing"
@@ -54,17 +65,23 @@
         :recent-orders="recentOrders"
         :recent-orders-loading="recentOrdersLoading"
         :loading="loading"
+        :availability-status="availabilityStatus"
+        :realtime-widget-data="realtimeWidgetData"
+        @refresh-requested="handleWidgetRefresh"
+        @order-requested="handleWidgetOrderRequest"
+        @availability-updated="handleAvailabilityUpdated"
       />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import ordersAPI from '@/api/orders'
 import WriterDashboardComponent from '@/views/dashboard/components/WriterDashboard.vue'
+import { useWriterDashboardRealtime } from '@/composables/useWriterDashboardRealtime'
 
 const authStore = useAuthStore()
 
@@ -81,6 +98,21 @@ const writerLevelData = ref(null)
 const writerSummaryData = ref(null)
 const recentOrders = ref([])
 const recentOrdersLoading = ref(false)
+const availabilityStatus = ref(null)
+const realtimeWidgetData = ref(null)
+
+const { status: realtimeConnectionStatus } = useWriterDashboardRealtime({
+  onMessage: (payload) => {
+    realtimeWidgetData.value = payload
+  }
+})
+
+const realtimeStatusText = computed(() => {
+  if (realtimeConnectionStatus.value === 'connected') return 'Live updates'
+  if (realtimeConnectionStatus.value === 'connecting') return 'Connecting...'
+  if (realtimeConnectionStatus.value === 'disconnected') return 'Reconnecting...'
+  return 'Offline'
+})
 
 // Fetch functions
 const fetchWriterEarnings = async () => {
@@ -163,6 +195,26 @@ const fetchRecentOrders = async () => {
   }
 }
 
+const handleWidgetRefresh = async ({ scope }) => {
+  switch (scope) {
+    case 'queue':
+      await fetchWriterQueue()
+      break
+    case 'summary':
+      await fetchWriterSummary()
+      break
+    case 'earnings':
+      await fetchWriterEarnings()
+      break
+    default:
+      break
+  }
+}
+
+const handleWidgetOrderRequest = async () => {
+  await Promise.all([fetchWriterQueue(), fetchWriterSummary()])
+}
+
 const refreshDashboard = async () => {
   refreshing.value = true
   error.value = null
@@ -174,7 +226,8 @@ const refreshDashboard = async () => {
       fetchWriterBadges(),
       fetchWriterLevel(),
       fetchWriterSummary(),
-      fetchRecentOrders()
+      fetchRecentOrders(),
+      loadAvailabilityStatus()
     ])
   } catch (err) {
     console.error('Failed to refresh dashboard:', err)
@@ -193,10 +246,24 @@ onMounted(async () => {
     fetchWriterBadges(),
     fetchWriterLevel(),
     fetchWriterSummary(),
-    fetchRecentOrders()
+    fetchRecentOrders(),
+    loadAvailabilityStatus()
   ])
   loading.value = false
 })
+
+const loadAvailabilityStatus = async () => {
+  try {
+    const response = await writerDashboardAPI.getAvailability()
+    availabilityStatus.value = response?.data || null
+  } catch (err) {
+    console.error('Failed to load availability status:', err)
+  }
+}
+
+const handleAvailabilityUpdated = (payload) => {
+  availabilityStatus.value = payload
+}
 </script>
 
 <style scoped>
