@@ -114,7 +114,9 @@ class WriterLevelProgressionService:
         
         # Fallback: calculate from orders
         orders = Order.objects.filter(assigned_writer=writer.user)
-        completed_orders = orders.filter(status='completed')
+        # Include both 'completed' and 'revised' statuses as completed orders
+        from orders.order_enums import OrderStatus
+        completed_orders = orders.filter(status__in=[OrderStatus.COMPLETED.value, OrderStatus.REVISED.value])
         total_orders = orders.count()
         
         # Calculate completion rate
@@ -134,7 +136,29 @@ class WriterLevelProgressionService:
         avg_rating = float(avg_rating_result['avg_rating'] or 0)
         
         # Calculate revision rate (orders with revisions)
-        revised_orders = completed_orders.filter(has_revision=True).count()
+        # Check OrderTransitionLog to see if order has ever been in a revision status
+        from orders.models import OrderTransitionLog
+        revision_statuses = [
+            OrderStatus.REVISED.value,
+            OrderStatus.IN_REVISION.value,
+            OrderStatus.ON_REVISION.value,
+            OrderStatus.REVISION_REQUESTED.value,
+        ]
+        # Get order IDs that have transitions involving revision statuses
+        order_ids_list = list(order_ids)
+        revised_order_ids_from_transitions = set(
+            OrderTransitionLog.objects.filter(
+                order_id__in=order_ids_list,
+                new_status__in=revision_statuses
+            ).values_list('order_id', flat=True).distinct()
+        )
+        # Also include orders with current status REVISED
+        current_revised_ids = set(
+            completed_orders.filter(status=OrderStatus.REVISED.value).values_list('id', flat=True)
+        )
+        # Union both sets to get all revised orders
+        all_revised_order_ids = revised_order_ids_from_transitions | current_revised_ids
+        revised_orders = len(all_revised_order_ids)
         revision_rate = (revised_orders / completed_orders.count() * 100) if completed_orders.count() > 0 else 0
         
         # Calculate lateness rate (orders submitted late)

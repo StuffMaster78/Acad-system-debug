@@ -82,8 +82,10 @@ router.register(r'writer-order-requests', WriterOrderRequestViewSet, basename='w
 router.register(r'writer-order-takes', WriterOrderTakeViewSet, basename='writer-order-takes')
 router.register(r'writer-support-tickets', WriterSupportTicketViewSet, basename='writer-support-tickets')
 router.register(r'writer-suspensions', WriterSuspensionViewSet, basename='writer-suspensions')
-router.register(r'writer-strikes', WriterStrikeViewSet, basename='writer-strikes')
-router.register(r'writer-discipline-configs', WriterDisciplineConfigViewSet, basename='writer-discipline-configs')
+if WriterStrikeViewSet:
+    router.register(r'writer-strikes', WriterStrikeViewSet, basename='writer-strikes')
+if WriterDisciplineConfigViewSet:
+    router.register(r'writer-discipline-configs', WriterDisciplineConfigViewSet, basename='writer-discipline-configs')
 router.register(r'writer-deadline-extension-requests', WriterDeadlineExtensionRequestViewSet, basename='writer-deadline-extension-requests')
 router.register(r'writer-performance-snapshots', WriterPerformanceSnapshotViewSet, basename='writer-performance-snapshots')
 router.register(r'dashboard', WriterDashboardViewSet, basename='writer-dashboard')
