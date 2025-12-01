@@ -26,11 +26,11 @@ class ThreadService:
 
         # Note: Special orders and class bundles use GenericRelation
         # and are handled separately via their own thread creation methods
-        if getattr(order, "is_special", False):
+        if order and getattr(order, "is_special", False):
             raise PermissionDenied("Special orders do not support threads.")
 
         # Class bundles are handled via ClassBundleCommunicationService
-        # Skip this check if order is None (class bundle threads)
+        # Skip this check if order is None (class bundle threads or general threads)
         if order and getattr(order, "is_class", False):
             raise PermissionDenied("Class orders do not support threads.")
 
@@ -46,6 +46,17 @@ class ThreadService:
                         website = Website.objects.get(id=website_id)
                     except Website.DoesNotExist:
                         pass
+        
+        if not website and order:
+            # If we have an order, try to get website from it
+            website = getattr(order, 'website', None)
+        
+        if not website:
+            # For general threads (no order), try to get website from user
+            if hasattr(created_by, 'website'):
+                website = created_by.website
+            elif hasattr(created_by, 'user_main_profile') and created_by.user_main_profile:
+                website = getattr(created_by.user_main_profile, 'website', None)
         
         if not website:
             raise PermissionDenied("Website is required for thread creation.")

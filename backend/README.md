@@ -53,14 +53,19 @@ The Writing System Backend is a robust, scalable API platform that powers a writ
 
 ## 🚀 Quick Start
 
-### 1. Clone the Repository
+### Option 1: Automated Setup (Recommended)
+
+From the project root:
 
 ```bash
-git clone <repository-url>
-cd writing_system_backend
+make setup
 ```
 
-### 2. Environment Setup
+This command fully automates the setup process.
+
+### Option 2: Manual Setup
+
+#### 1. Environment Setup
 
 ```bash
 # Copy environment template
@@ -70,7 +75,7 @@ cp env.template .env
 nano .env
 ```
 
-Required environment variables:
+Required environment variables (see `env.template` for full list):
 ```bash
 SECRET_KEY=your-secret-key-here
 POSTGRES_DB_NAME=writing_system_db
@@ -81,29 +86,29 @@ DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
 ```
 
-### 3. Start Services
+#### 2. Start Services
 
 ```bash
-# Start all services (web, db, redis, celery, beat)
+# From project root
 docker-compose up -d
 
 # Or start just the web server
 docker-compose up -d web
 ```
 
-### 4. Run Migrations
+#### 3. Run Migrations
 
 ```bash
 docker-compose exec web python manage.py migrate
 ```
 
-### 5. Create Superuser
+#### 4. Create Superuser
 
 ```bash
 docker-compose exec web python manage.py createsuperuser
 ```
 
-### 6. Verify Installation
+#### 5. Verify Installation
 
 ```bash
 # Check API root
@@ -111,7 +116,12 @@ curl http://localhost:8000/api/v1/
 
 # Check service status
 docker-compose ps
+
+# View interactive API docs
+open http://localhost:8000/api/v1/docs/swagger/
 ```
+
+**You're ready!** The API is running at `http://localhost:8000` and interactive API docs are at `http://localhost:8000/api/v1/docs/swagger/`.
 
 ## 📁 Project Structure
 
@@ -153,7 +163,22 @@ writing_system_backend/
 └── writer_wallet/               # Writer wallet management
 ```
 
-## 🔧 Development
+## 🛠️ Development Commands
+
+The project uses a `Makefile` (in the project root) to streamline common development tasks.
+
+| Command              | Description                                                         |
+| -------------------- | ------------------------------------------------------------------- |
+| `make setup`         | Runs the complete one-time setup for the dev environment.           |
+| `make run`           | Starts the Django development server.                               |
+| `make run-celery`    | Starts the Celery worker for processing background tasks.           |
+| `make run-celery-beat` | Starts the Celery beat scheduler for periodic tasks.                |
+| `make test`          | Runs the full pytest test suite.                                    |
+| `make migrations`    | Creates new database migrations based on model changes.             |
+| `make migrate`       | Applies pending database migrations.                                 |
+| `make shell`         | Opens the Django shell.                                             |
+| `make restart`       | Restarts the Docker environment.                                    |
+| `make logs`          | Views logs from all services.                                       |
 
 ### Running Locally (Without Docker)
 
@@ -248,6 +273,8 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 
 - **[Invoice System](./INVOICE_PAYMENT_SYSTEM_DESIGN.md)**: Complete invoice and payment workflow
 - **[Session Management](./SESSION_MANAGEMENT_COMPLETE.md)**: Idle timeout and session tracking
+- **[Email Templates](./EMAIL_TEMPLATES.md)**: Email template system and customization
+- **[Geolocation Analysis](./GEOLOCATION_ANALYSIS.md)**: IP geolocation implementation and IP2Location LITE comparison
 - **[Dropdown Options API](./DROPDOWN_OPTIONS_API.md)**: Database-driven dropdown lists
 - **[Performance Optimizations](./PERFORMANCE_IMPROVEMENTS_COMPLETED.md)**: Query optimizations and caching
 - **[Multi-Domain Deployment](./MULTI_DOMAIN_DEPLOYMENT_GUIDE.md)**: Production deployment guide

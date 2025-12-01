@@ -46,12 +46,27 @@ export default {
   
   listAllConfigs: () => apiClient.get('/admin-management/configs/list_all_configs/'),
   
+  // System Health
+  getSystemHealth: () => apiClient.get('/admin-management/system-health/health/'),
+  getSystemAlerts: () => apiClient.get('/admin-management/system-health/alerts/'),
+  
+  // Enhanced Analytics
+  getEnhancedAnalytics: (days = 30) => apiClient.get('/admin-management/dashboard/analytics/enhanced/', { params: { days } }),
+  getComparativeAnalytics: (period1Days = 30, period2Days = 30) => apiClient.get('/admin-management/dashboard/analytics/compare/', { params: { period1_days: period1Days, period2_days: period2Days } }),
+  
   // Fines Management Dashboard
   getFinesDashboard: () => apiClient.get('/admin-management/fines/dashboard/'),
+  getFinesDashboardAnalytics: (params) => apiClient.get('/admin-management/fines/dashboard/analytics/', { params }),
+  getFinesDisputeQueue: (params) => apiClient.get('/admin-management/fines/dashboard/dispute-queue/', { params }),
+  getFinesActiveFines: (params) => apiClient.get('/admin-management/fines/dashboard/active-fines/', { params }),
   getPendingFines: (params) => apiClient.get('/admin-management/fines/pending/', { params }),
   getAppealsQueue: (params) => apiClient.get('/admin-management/fines/appeals/', { params }),
-  getFinesAnalytics: (params) => apiClient.get('/admin-management/fines/analytics/', { params }),
-  waiveFine: (id, data) => apiClient.post(`/admin-management/fines/${id}/waive/`, data),
+      getFinesAnalytics: (params) => apiClient.get('/admin-management/fines/analytics/', { params }),
+      waiveFine: (id, data) => apiClient.post(`/admin-management/fines/${id}/waive/`, data),
+      
+      // Advanced Analytics
+      getAdvancedAnalytics: (params) => apiClient.get('/admin-management/advanced-analytics/dashboard/', { params }),
+      getAdvancedAnalyticsComparison: (params) => apiClient.get('/admin-management/advanced-analytics/comparison/', { params }),
   voidFine: (id, data) => apiClient.post(`/admin-management/fines/${id}/void/`, data),
   approveAppeal: (id, data) => apiClient.post(`/admin-management/fines/${id}/appeals/approve/`, data),
   rejectAppeal: (id, data) => apiClient.post(`/admin-management/fines/${id}/appeals/reject/`, data),

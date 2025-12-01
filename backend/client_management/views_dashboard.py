@@ -9,7 +9,7 @@ from datetime import timedelta
 from decimal import Decimal
 
 from client_management.models import ClientProfile
-from orders.models import Order
+from orders.models import Order, WriterProgress, OrderTransitionLog, WriterReassignmentLog
 from order_payments_management.models import OrderPayment
 from wallet.models import Wallet, WalletTransaction
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier, ClientBadge
@@ -260,11 +260,11 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             count=Count('order', distinct=True)
         ).order_by('date')
         
-        # Service type breakdown
+        # Service type breakdown (using type_of_work)
         service_breakdown = Order.objects.filter(
             client=request.user,
             created_at__gte=date_from
-        ).values('service_type').annotate(
+        ).values('type_of_work__name').annotate(
             count=Count('id'),
             total_spend=Sum('payments__amount', filter=Q(payments__status='completed'))
         ).order_by('-count')
@@ -321,7 +321,7 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             ],
             'service_breakdown': [
                 {
-                    'service_type': item['service_type'] or 'Unknown',
+                    'service_type': item['type_of_work__name'] or 'Unknown',
                     'count': item['count'],
                     'total_spend': float(item['total_spend'] or 0),
                 }
@@ -465,5 +465,453 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 }
                 for r in referrals[:10]
             ],
+        })
+    
+    @action(detail=False, methods=['get'], url_path='order-activity-timeline')
+    def get_order_activity_timeline(self, request):
+        """Get comprehensive activity timeline for client's orders."""
+        profile = self.get_client_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Client profile not found."},
+                status=404
+            )
+        
+        # Get order ID if specified, otherwise get all orders
+        order_id = request.query_params.get('order_id', None)
+        days = int(request.query_params.get('days', 90))
+        date_from = timezone.now() - timedelta(days=days)
+        
+        # Get orders
+        orders_query = Order.objects.filter(
+            client=request.user,
+            created_at__gte=date_from
+        )
+        
+        if order_id:
+            orders_query = orders_query.filter(id=order_id)
+        
+        orders = orders_query.select_related(
+            'assigned_writer', 'type_of_work', 'paper_type'
+        ).prefetch_related('transitions')
+        
+        # Build timeline
+        timeline = []
+        
+        for order in orders:
+            # Order creation
+            timeline.append({
+                'order_id': order.id,
+                'order_topic': order.topic or 'No topic',
+                'timestamp': order.created_at.isoformat() if order.created_at else None,
+                'event_type': 'order_created',
+                'event_title': 'Order Created',
+                'event_description': f'Order #{order.id} was created',
+                'status': order.status,
+                'actor': order.client.username if order.client else 'System',
+            })
+            
+            # Status transitions
+            transitions = order.transitions.all().order_by('timestamp')
+            for transition in transitions:
+                timeline.append({
+                    'order_id': order.id,
+                    'order_topic': order.topic or 'No topic',
+                    'timestamp': transition.timestamp.isoformat() if transition.timestamp else None,
+                    'event_type': 'status_change',
+                    'event_title': f'Status Changed: {transition.old_status} → {transition.new_status}',
+                    'event_description': transition.action or f'Status changed from {transition.old_status} to {transition.new_status}',
+                    'old_status': transition.old_status,
+                    'new_status': transition.new_status,
+                    'status': transition.new_status,
+                    'is_automatic': transition.is_automatic,
+                    'actor': transition.user.username if transition.user else ('System' if transition.is_automatic else 'Unknown'),
+                    'meta': transition.meta,
+                })
+            
+            # Payment events
+            payments = OrderPayment.objects.filter(order=order).order_by('created_at')
+            for payment in payments:
+                timeline.append({
+                    'order_id': order.id,
+                    'order_topic': order.topic or 'No topic',
+                    'timestamp': payment.created_at.isoformat() if payment.created_at else None,
+                    'event_type': 'payment',
+                    'event_title': f'Payment {payment.status.title()}',
+                    'event_description': f'Payment of ${payment.amount} - {payment.status}',
+                    'status': order.status,
+                    'payment_amount': float(payment.amount),
+                    'payment_status': payment.status,
+                    'actor': order.client.username if order.client else 'System',
+                })
+            
+            # Writer assignment
+            if order.assigned_writer:
+                # Try to find when writer was assigned (could be from transitions or created_at)
+                assignment_time = order.updated_at if hasattr(order, 'updated_at') else order.created_at
+                timeline.append({
+                    'order_id': order.id,
+                    'order_topic': order.topic or 'No topic',
+                    'timestamp': assignment_time.isoformat() if assignment_time else None,
+                    'event_type': 'writer_assigned',
+                    'event_title': 'Writer Assigned',
+                    'event_description': f'Writer {order.assigned_writer.username} was assigned to this order',
+                    'status': order.status,
+                    'writer_id': order.assigned_writer.id,
+                    'writer_username': order.assigned_writer.username,
+                    'actor': 'System',
+                })
+            
+            # Submission
+            if order.submitted_at:
+                timeline.append({
+                    'order_id': order.id,
+                    'order_topic': order.topic or 'No topic',
+                    'timestamp': order.submitted_at.isoformat() if order.submitted_at else None,
+                    'event_type': 'submitted',
+                    'event_title': 'Order Submitted',
+                    'event_description': 'Writer submitted the completed order',
+                    'status': order.status,
+                    'actor': order.assigned_writer.username if order.assigned_writer else 'Writer',
+                })
+            
+            # Deadlines
+            if order.client_deadline:
+                timeline.append({
+                    'order_id': order.id,
+                    'order_topic': order.topic or 'No topic',
+                    'timestamp': order.client_deadline.isoformat() if order.client_deadline else None,
+                    'event_type': 'deadline',
+                    'event_title': 'Client Deadline',
+                    'event_description': f'Client deadline: {order.client_deadline.strftime("%Y-%m-%d %H:%M")}',
+                    'status': order.status,
+                    'is_overdue': order.client_deadline < timezone.now() if order.client_deadline else False,
+                    'actor': 'System',
+                })
+        
+        # Sort timeline by timestamp (most recent first)
+        timeline.sort(key=lambda x: x['timestamp'] or '', reverse=True)
+        
+        # Group by date for easier frontend rendering
+        timeline_by_date = {}
+        for event in timeline:
+            if event['timestamp']:
+                date_key = event['timestamp'][:10]  # Extract date part (YYYY-MM-DD)
+                if date_key not in timeline_by_date:
+                    timeline_by_date[date_key] = []
+                timeline_by_date[date_key].append(event)
+        
+        return Response({
+            'timeline': timeline,
+            'timeline_by_date': timeline_by_date,
+            'total_events': len(timeline),
+            'date_range': {
+                'from': date_from.isoformat(),
+                'to': timezone.now().isoformat(),
+            },
+            'order_id': order_id,
+        })
+    
+    @action(detail=False, methods=['get'], url_path='enhanced-order-status')
+    def get_enhanced_order_status(self, request):
+        """Get detailed order status with progress tracking, estimated completion, and quality metrics."""
+        profile = self.get_client_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Client profile not found."},
+                status=404
+            )
+        
+        order_id = request.query_params.get('order_id')
+        if not order_id:
+            return Response(
+                {"detail": "order_id parameter is required."},
+                status=400
+            )
+        
+        try:
+            order = Order.objects.select_related(
+                'assigned_writer', 'type_of_work', 'paper_type', 'subject',
+                'completed_by'
+            ).prefetch_related(
+                'progress_logs', 'transitions', 'reassignment_logs',
+                'disputes', 'reviews'
+            ).get(
+                id=order_id,
+                client=request.user
+            )
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=404
+            )
+        
+        now = timezone.now()
+        
+        # Calculate progress percentage from WriterProgress logs
+        progress_logs = order.progress_logs.filter(is_withdrawn=False).order_by('-timestamp')
+        current_progress = 0
+        if progress_logs.exists():
+            latest_progress = progress_logs.first()
+            current_progress = latest_progress.progress_percentage
+        
+        # Estimate completion time
+        estimated_completion = None
+        if order.assigned_writer and order.writer_deadline:
+            time_remaining = order.writer_deadline - now
+            if time_remaining.total_seconds() > 0:
+                estimated_completion = {
+                    'deadline': order.writer_deadline.isoformat(),
+                    'hours_remaining': round(time_remaining.total_seconds() / 3600, 2),
+                    'days_remaining': round(time_remaining.total_seconds() / 86400, 2),
+                    'is_overdue': False,
+                }
+            else:
+                estimated_completion = {
+                    'deadline': order.writer_deadline.isoformat(),
+                    'hours_remaining': 0,
+                    'days_remaining': 0,
+                    'is_overdue': True,
+                }
+        elif order.client_deadline:
+            time_remaining = order.client_deadline - now
+            if time_remaining.total_seconds() > 0:
+                estimated_completion = {
+                    'deadline': order.client_deadline.isoformat(),
+                    'hours_remaining': round(time_remaining.total_seconds() / 3600, 2),
+                    'days_remaining': round(time_remaining.total_seconds() / 86400, 2),
+                    'is_overdue': False,
+                }
+            else:
+                estimated_completion = {
+                    'deadline': order.client_deadline.isoformat(),
+                    'hours_remaining': 0,
+                    'days_remaining': 0,
+                    'is_overdue': True,
+                }
+        
+        # Writer activity status
+        writer_activity = None
+        if order.assigned_writer:
+            # Get last progress update
+            last_progress = progress_logs.first()
+            last_activity_time = None
+            if last_progress:
+                last_activity_time = last_progress.timestamp
+            elif order.updated_at:
+                last_activity_time = order.updated_at
+            
+            # Determine activity status
+            is_active = False
+            if last_activity_time:
+                hours_since_activity = (now - last_activity_time).total_seconds() / 3600
+                is_active = hours_since_activity < 24  # Active if activity within 24 hours
+            
+            writer_activity = {
+                'writer_id': order.assigned_writer.id,
+                'writer_username': order.assigned_writer.username,
+                'is_active': is_active,
+                'last_activity': last_activity_time.isoformat() if last_activity_time else None,
+                'hours_since_activity': round((now - last_activity_time).total_seconds() / 3600, 2) if last_activity_time else None,
+            }
+        
+        # Revision history
+        revision_history = []
+        transitions = order.transitions.filter(
+            new_status__in=['revision_requested', 'on_revision', 'revised', 'revision_in_progress']
+        ).order_by('timestamp')
+        
+        for transition in transitions:
+            revision_history.append({
+                'timestamp': transition.timestamp.isoformat(),
+                'status': transition.new_status,
+                'action': transition.action,
+                'is_automatic': transition.is_automatic,
+                'actor': transition.user.username if transition.user else 'System',
+            })
+        
+        # Quality metrics
+        quality_metrics = {
+            'revision_count': len(revision_history),
+            'dispute_count': order.disputes.count(),
+            'has_reviews': order.reviews.exists(),
+            'average_rating': None,
+        }
+        
+        # Get average rating if reviews exist
+        if order.reviews.exists():
+            try:
+                from reviews_system.models import OrderReview
+                reviews = OrderReview.objects.filter(order=order)
+                if reviews.exists():
+                    avg_rating = reviews.aggregate(Avg('rating'))['rating__avg']
+                    quality_metrics['average_rating'] = round(avg_rating, 2) if avg_rating else None
+            except Exception:
+                pass
+        
+        # Recent progress updates
+        recent_progress = []
+        for progress in progress_logs[:5]:  # Last 5 progress updates
+            recent_progress.append({
+                'timestamp': progress.timestamp.isoformat(),
+                'progress_percentage': progress.progress_percentage,
+                'notes': progress.notes,
+            })
+        
+        # Status timeline
+        status_timeline = []
+        all_transitions = order.transitions.all().order_by('timestamp')
+        for transition in all_transitions:
+            status_timeline.append({
+                'timestamp': transition.timestamp.isoformat(),
+                'from_status': transition.old_status,
+                'to_status': transition.new_status,
+                'action': transition.action,
+                'is_automatic': transition.is_automatic,
+                'actor': transition.user.username if transition.user else 'System',
+            })
+        
+        # Writer reassignments
+        reassignments = []
+        for reassignment in order.reassignment_logs.all().order_by('-created_at'):
+            reassignments.append({
+                'timestamp': reassignment.created_at.isoformat(),
+                'previous_writer': reassignment.previous_writer.username if reassignment.previous_writer else None,
+                'new_writer': reassignment.new_writer.username if reassignment.new_writer else None,
+                'reason': reassignment.reason,
+                'reassigned_by': reassignment.reassigned_by.username if reassignment.reassigned_by else 'System',
+            })
+        
+        return Response({
+            'order_id': order.id,
+            'order_topic': order.topic,
+            'current_status': order.status,
+            'progress': {
+                'percentage': current_progress,
+                'recent_updates': recent_progress,
+            },
+            'estimated_completion': estimated_completion,
+            'writer_activity': writer_activity,
+            'revision_history': revision_history,
+            'quality_metrics': quality_metrics,
+            'status_timeline': status_timeline,
+            'writer_reassignments': reassignments,
+            'deadlines': {
+                'client_deadline': order.client_deadline.isoformat() if order.client_deadline else None,
+                'writer_deadline': order.writer_deadline.isoformat() if order.writer_deadline else None,
+            },
+            'order_details': {
+                'type_of_work': order.type_of_work.name if order.type_of_work else None,
+                'paper_type': order.paper_type.name if order.paper_type else None,
+                'number_of_pages': order.number_of_pages,
+                'subject': order.subject.name if order.subject else None,
+            },
+        })
+    
+    @action(detail=False, methods=['get'], url_path='payment-reminders')
+    def get_payment_reminders(self, request):
+        """Get payment reminders for client's unpaid orders."""
+        profile = self.get_client_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Client profile not found."},
+                status=404
+            )
+        
+        try:
+            from order_payments_management.models.payment_reminders import (
+                PaymentReminderSent, PaymentReminderConfig
+            )
+        except ImportError:
+            return Response({
+                'reminders': [],
+                'unpaid_orders': [],
+                'message': 'Payment reminder system not available.',
+            })
+        
+        # Get unpaid orders
+        unpaid_orders = Order.objects.filter(
+            client=request.user,
+            is_paid=False
+        ).exclude(
+            status__in=['cancelled', 'refunded', 'closed']
+        ).select_related('type_of_work')
+        
+        # Get sent reminders for these orders
+        sent_reminders = PaymentReminderSent.objects.filter(
+            client=request.user,
+            order__in=unpaid_orders
+        ).select_related('reminder_config', 'order').order_by('-sent_at')
+        
+        # Get reminder configurations
+        reminder_configs = PaymentReminderConfig.objects.filter(
+            website=request.user.website,
+            is_active=True
+        ).order_by('deadline_percentage')
+        
+        # Build reminders list
+        reminders_list = []
+        for reminder in sent_reminders:
+            reminders_list.append({
+                'id': reminder.id,
+                'order_id': reminder.order.id,
+                'order_topic': reminder.order.topic,
+                'reminder_name': reminder.reminder_config.name,
+                'deadline_percentage': float(reminder.reminder_config.deadline_percentage),
+                'message': reminder.reminder_config.message,
+                'sent_at': reminder.sent_at.isoformat(),
+                'sent_as_notification': reminder.sent_as_notification,
+                'sent_as_email': reminder.sent_as_email,
+            })
+        
+        # Build unpaid orders list with reminder eligibility
+        unpaid_orders_list = []
+        for order in unpaid_orders:
+            # Calculate deadline percentage
+            deadline_percentage = None
+            if order.client_deadline:
+                now = timezone.now()
+                if order.created_at:
+                    total_duration = (order.client_deadline - order.created_at).total_seconds()
+                    elapsed = (now - order.created_at).total_seconds()
+                    if total_duration > 0:
+                        deadline_percentage = (elapsed / total_duration) * 100
+            
+            # Check which reminders have been sent
+            sent_for_order = PaymentReminderSent.objects.filter(
+                order=order,
+                client=request.user
+            ).values_list('reminder_config__deadline_percentage', flat=True)
+            
+            # Find next eligible reminder
+            next_reminder = None
+            if deadline_percentage is not None:
+                for config in reminder_configs:
+                    if float(config.deadline_percentage) > deadline_percentage:
+                        if float(config.deadline_percentage) not in sent_for_order:
+                            next_reminder = {
+                                'name': config.name,
+                                'deadline_percentage': float(config.deadline_percentage),
+                                'message': config.message,
+                            }
+                            break
+            
+            unpaid_orders_list.append({
+                'order_id': order.id,
+                'order_topic': order.topic,
+                'type_of_work': order.type_of_work.name if order.type_of_work else None,
+                'total_price': float(order.total_price),
+                'client_deadline': order.client_deadline.isoformat() if order.client_deadline else None,
+                'created_at': order.created_at.isoformat(),
+                'deadline_percentage': round(deadline_percentage, 2) if deadline_percentage else None,
+                'next_reminder': next_reminder,
+                'reminders_sent': list(sent_for_order),
+            })
+        
+        return Response({
+            'reminders': reminders_list,
+            'unpaid_orders': unpaid_orders_list,
+            'total_unpaid_orders': len(unpaid_orders_list),
+            'total_reminders_sent': len(reminders_list),
         })
 

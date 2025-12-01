@@ -615,6 +615,9 @@ const { error: showError, success: showSuccess } = useToast()
 const tabs = [
   { id: 'fines', label: 'Fines' },
   { id: 'appeals', label: 'Appeals' },
+  { id: 'analytics', label: 'Analytics' },
+  { id: 'dispute-queue', label: 'Dispute Queue' },
+  { id: 'active-fines', label: 'Active Fines' },
   { id: 'fine-types', label: 'Fine Types' },
   { id: 'lateness-rules', label: 'Lateness Rules' },
 ]
@@ -632,6 +635,14 @@ const finesLoading = ref(false)
 const appealsLoading = ref(false)
 const fineTypesLoading = ref(false)
 const latenessRulesLoading = ref(false)
+const analyticsLoading = ref(false)
+const disputeQueueLoading = ref(false)
+const activeFinesLoading = ref(false)
+
+const analyticsDays = ref(30)
+const analyticsData = ref(null)
+const disputeQueue = ref([])
+const activeFines = ref([])
 
 const filters = ref({
   order_id: null,
@@ -1100,12 +1111,100 @@ const submitIssueFine = async () => {
   }
 }
 
+const loadAnalytics = async () => {
+  analyticsLoading.value = true
+  try {
+    const response = await adminManagementAPI.getFinesDashboardAnalytics({ days: analyticsDays.value })
+    analyticsData.value = response?.data || null
+  } catch (err) {
+    console.error('Failed to load analytics:', err)
+    showError('Failed to load analytics')
+  } finally {
+    analyticsLoading.value = false
+  }
+}
+
+const loadDisputeQueue = async () => {
+  disputeQueueLoading.value = true
+  try {
+    const response = await adminManagementAPI.getFinesDisputeQueue({})
+    disputeQueue.value = response?.data?.disputes || []
+  } catch (err) {
+    console.error('Failed to load dispute queue:', err)
+    showError('Failed to load dispute queue')
+  } finally {
+    disputeQueueLoading.value = false
+  }
+}
+
+const loadActiveFines = async () => {
+  activeFinesLoading.value = true
+  try {
+    const response = await adminManagementAPI.getFinesActiveFines({})
+    activeFines.value = response?.data?.fines || []
+  } catch (err) {
+    console.error('Failed to load active fines:', err)
+    showError('Failed to load active fines')
+  } finally {
+    activeFinesLoading.value = false
+  }
+}
+
+const approveDispute = async (id) => {
+  // TODO: Implement approve dispute
+  showSuccess('Approve functionality coming soon')
+}
+
+const rejectDispute = async (id) => {
+  // TODO: Implement reject dispute
+  showSuccess('Reject functionality coming soon')
+}
+
+const viewFineDetails = (id) => {
+  // TODO: Implement view fine details
+  showSuccess('View details functionality coming soon')
+}
+
+const formatCurrency = (amount) => {
+  if (!amount) return '0.00'
+  return parseFloat(amount).toFixed(2)
+}
+
+const finesTrendsSeries = computed(() => {
+  if (!analyticsData.value?.trends?.length) return []
+  return [{
+    name: 'Fines',
+    data: analyticsData.value.trends.map(t => t.count || 0)
+  }]
+})
+
+const finesTrendsOptions = computed(() => ({
+  chart: { type: 'line', toolbar: { show: false } },
+  xaxis: {
+    categories: analyticsData.value?.trends?.map(t => {
+      if (t.date) {
+        return new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      }
+      return ''
+    }).filter(Boolean) || []
+  },
+  yaxis: { title: { text: 'Count' } },
+  stroke: { curve: 'smooth' },
+  colors: ['#EF4444']
+}))
+
 watch(activeTab, (newTab) => {
   if (newTab === 'fines') {
     loadFines()
     loadFineTypes() // Need fine types for filter dropdown
   } else if (newTab === 'appeals') {
     loadAppeals()
+  } else if (newTab === 'analytics') {
+    loadAnalytics()
+  } else if (newTab === 'dispute-queue') {
+    loadDisputeQueue()
+  } else if (newTab === 'active-fines') {
+    loadActiveFines()
   } else if (newTab === 'fine-types') {
     loadFineTypes()
   } else if (newTab === 'lateness-rules') {

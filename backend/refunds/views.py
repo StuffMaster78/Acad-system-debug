@@ -72,12 +72,26 @@ class RefundViewSet(viewsets.ModelViewSet):
     def process_refund(self, request, pk=None):
         """
         Process a pending refund using the RefundProcessorService.
-        Only staff can process refunds.
+        Only staff can process refunds. Requires password verification.
         """
         if not request.user.is_staff:
             return Response(
                 {"error": "Only staff can process refunds."},
                 status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Verify password for security
+        password = request.data.get('password')
+        if not password:
+            return Response(
+                {"error": "Password verification is required to process refunds."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not request.user.check_password(password):
+            return Response(
+                {"error": "Invalid password. Please try again."},
+                status=status.HTTP_400_BAD_REQUEST
             )
         
         refund = self.get_object()
@@ -112,6 +126,29 @@ class RefundViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='cancel')
     def cancel_refund(self, request, pk=None):
+        """
+        Cancel a pending refund. Requires password verification for staff.
+        """
+        if not request.user.is_staff:
+            return Response(
+                {"error": "Only staff can cancel refunds."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Verify password for security
+        password = request.data.get('password')
+        if not password:
+            return Response(
+                {"error": "Password verification is required to cancel refunds."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not request.user.check_password(password):
+            return Response(
+                {"error": "Invalid password. Please try again."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         refund = self.get_object()
         if refund.status != Refund.PENDING:
             return Response(

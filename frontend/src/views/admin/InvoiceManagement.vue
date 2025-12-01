@@ -594,9 +594,13 @@ const loadData = async () => {
 const loadStatistics = async () => {
   try {
     const response = await invoicesAPI.getStatistics()
-    statistics.value = response.data
+    statistics.value = response.data || {}
   } catch (error) {
-    console.error('Error loading statistics:', error)
+    // Only log if it's not a 404 (endpoint doesn't exist)
+    if (error?.response?.status !== 404) {
+      console.error('Error loading statistics:', error)
+    }
+    statistics.value = {}
   }
 }
 

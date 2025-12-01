@@ -95,6 +95,13 @@
               <router-link to="/orders" class="block px-3 py-2 text-sm rounded hover:bg-gray-100 text-primary-600 font-medium">
                 🔍 View All Statuses →
               </router-link>
+              
+              <div class="border-t my-2"></div>
+              
+              <!-- Order Templates -->
+              <router-link to="/orders/templates" class="block px-3 py-2 text-sm rounded hover:bg-gray-100 font-medium text-primary-600">
+                📋 Order Templates
+              </router-link>
             </div>
           </div>
 
@@ -186,6 +193,7 @@
               <div v-if="writerFinancesOpen" class="ml-6 space-y-1">
                 <router-link to="/writer/payments" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payments')}">💳 Payments</router-link>
                 <router-link to="/writer/payment-request" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payment-request')}">💳 Payment Requests</router-link>
+                <router-link to="/writer/advance-payments" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/advance-payments')}">💸 Advance Payments</router-link>
                 <router-link to="/writer/tips" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tips')}">💰 Tips</router-link>
                 <router-link to="/writer/fines" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-red-50 text-red-700 font-medium': $route.path.startsWith('/writer/fines')}">🚫 Fines & Appeals</router-link>
               </div>
@@ -258,12 +266,739 @@
             </div>
           </template>
 
-          <!-- Admin/Superadmin have access to tracking dashboards only, not client features -->
+          <!-- Admin/Superadmin Grouped Navigation -->
+          <template v-if="authStore.isAdmin || authStore.isSuperAdmin">
+            <!-- Core Operations Group -->
+            <div class="mb-6">
+              <div class="px-4 py-2 mb-2">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                  <span>⚙️</span>
+                  Core Operations
+                </h3>
+              </div>
+              <div class="space-y-1">
+                <!-- Orders Section -->
+                <div class="space-y-1">
+                  <button 
+                    @click="adminGroups.orders = !adminGroups.orders" 
+                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100"
+                  >
+                <span class="flex items-center">
+                  <span class="w-5 h-5 mr-3">📝</span>
+                  Orders
+                </span>
+                    <span class="text-xs">{{ adminGroups.orders ? '▾' : '▸' }}</span>
+              </button>
+                  <div v-if="adminGroups.orders" class="ml-6 space-y-1">
+                    <router-link 
+                      to="/admin/orders" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      :class="isRouteActive({ to: '/admin/orders' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
+                    >
+                      📋 All Orders
+                    </router-link>
+                    <router-link 
+                      to="/admin/orders?status=pending" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      ⏳ Pending
+                    </router-link>
+                    <router-link 
+                      to="/admin/orders?status=in_progress" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      ⚙️ In Progress
+                    </router-link>
+                    <router-link 
+                      to="/admin/orders?status=completed" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      ✅ Completed
+                    </router-link>
+                    <router-link 
+                      to="/admin/orders?status=disputed" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      ⚠️ Disputed
+                </router-link>
+              </div>
+            </div>
+            
+                <!-- Special Orders -->
+                <router-link
+                  to="/admin/special-orders"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/special-orders' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">⭐</span>
+                  Special Orders
+                </router-link>
+                
+                <!-- Users Section -->
+                <div class="space-y-1">
+                  <button 
+                    @click="adminGroups.users = !adminGroups.users" 
+                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100"
+                  >
+                <span class="flex items-center">
+                  <span class="w-5 h-5 mr-3">👥</span>
+                  Users
+                </span>
+                    <span class="text-xs">{{ adminGroups.users ? '▾' : '▸' }}</span>
+              </button>
+                  <div v-if="adminGroups.users" class="ml-6 space-y-1">
+                    <router-link 
+                      to="/admin/users" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      :class="isRouteActive({ to: '/admin/users' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
+                    >
+                      All Users
+                    </router-link>
+                    <router-link 
+                      to="/admin/users?role=client" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      👤 Clients
+                    </router-link>
+                    <router-link 
+                      to="/admin/users?role=writer" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      ✍️ Writers
+                    </router-link>
+                    <router-link 
+                      to="/admin/users?role=editor" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      📝 Editors
+                    </router-link>
+                    <router-link 
+                      to="/admin/users?role=support" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      🎧 Support
+                    </router-link>
+                    <router-link 
+                      v-if="authStore.isSuperAdmin"
+                      to="/admin/users?role=admin" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      👔 Admins
+                    </router-link>
+              </div>
+            </div>
+            
+                <!-- Support Tickets -->
+              <router-link
+                  to="/admin/support-tickets"
+                :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/support-tickets' })
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-700 hover:bg-gray-100'
+                ]"
+              >
+                  <span class="w-5 h-5 mr-3">🎫</span>
+                  Support Tickets
+              </router-link>
+              </div>
+            </div>
+            
+            <!-- Financial Management Group -->
+            <div class="mb-6">
+              <div class="px-4 py-2 mb-2">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                  <span>💰</span>
+                  Financial
+                </h3>
+              </div>
+              <div class="space-y-1">
+                <div class="space-y-1">
+                  <button 
+                    @click="adminGroups.payments = !adminGroups.payments" 
+                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100"
+                  >
+                <span class="flex items-center">
+                  <span class="w-5 h-5 mr-3">💳</span>
+                  Payments
+                </span>
+                    <span class="text-xs">{{ adminGroups.payments ? '▾' : '▸' }}</span>
+              </button>
+                  <div v-if="adminGroups.payments" class="ml-6 space-y-1">
+                <router-link
+                  to="/admin/payments/writer-payments"
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      :class="isRouteActive({ to: '/admin/payments/writer-payments' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
+                    >
+                      Writer Payments
+                    </router-link>
+                    <router-link 
+                      to="/admin/payments/batched" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      Payment Management
+                    </router-link>
+                    <router-link 
+                      to="/admin/payments/all" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      All Payments
+                    </router-link>
+                    <router-link 
+                      to="/admin/payments/logs" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      Payment Logs
+                    </router-link>
+                    <router-link 
+                      to="/admin/financial-overview" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      Financial Overview
+                    </router-link>
+                  </div>
+                </div>
+                
+                <router-link
+                  to="/admin/refunds"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/refunds' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">↩️</span>
+                  Refunds
+                </router-link>
+                
+                <router-link
+                  to="/admin/disputes"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/disputes' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">⚖️</span>
+                  Disputes
+                </router-link>
+                
+                <router-link
+                  to="/admin/tips"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/tips' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">💸</span>
+                  Tips
+                </router-link>
+                
+                <router-link
+                  to="/admin/fines"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/fines' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🚫</span>
+                  Fines
+                </router-link>
+                
+                <router-link
+                  to="/admin/advance-payments"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/advance-payments' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">💵</span>
+                  Advance Payments
+                </router-link>
+                
+                <router-link
+                  to="/admin/wallets"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/wallets' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">💼</span>
+                  Wallets
+                </router-link>
+                
+                <router-link
+                  to="/admin/invoices"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/invoices' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📄</span>
+                  Invoices
+                </router-link>
+              </div>
+            </div>
+            
+            <!-- Content & Services Group -->
+            <div class="mb-6">
+              <div class="px-4 py-2 mb-2">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                  <span>📝</span>
+                  Content & Services
+                </h3>
+              </div>
+              <div class="space-y-1">
+                <div class="space-y-1">
+                  <button 
+                    @click="adminGroups.reviews = !adminGroups.reviews" 
+                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100"
+                  >
+                <span class="flex items-center">
+                      <span class="w-5 h-5 mr-3">💬</span>
+                      Reviews
+                </span>
+                    <span class="text-xs">{{ adminGroups.reviews ? '▾' : '▸' }}</span>
+              </button>
+                  <div v-if="adminGroups.reviews" class="ml-6 space-y-1">
+                    <router-link 
+                      to="/admin/reviews" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      All Reviews
+                    </router-link>
+                    <router-link 
+                      to="/admin/reviews/moderation" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      Moderation
+                    </router-link>
+                    <router-link 
+                      to="/admin/review-aggregation" 
+                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                    >
+                      Aggregation
+                    </router-link>
+                  </div>
+                </div>
+                
+                <router-link
+                  to="/admin/class-management"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/class-management' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📚</span>
+                  Class Management
+                </router-link>
+                
+                <router-link
+                  to="/admin/express-classes"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/express-classes' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">⚡</span>
+                  Express Classes
+                </router-link>
+                
+                <router-link
+                  to="/admin/blog"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/blog' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📝</span>
+                  Blog Pages
+                </router-link>
+                
+                <router-link
+                  to="/admin/seo-pages"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/seo-pages' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🔍</span>
+                  SEO Pages
+                </router-link>
+                
+                <router-link
+                  to="/admin/files"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/files' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📁</span>
+                  File Management
+                </router-link>
+              </div>
+            </div>
 
-          <!-- Navigation items with Users section integrated -->
-          <template v-for="item in navigationItems" :key="item.name">
+            <!-- Analytics & Reporting Group -->
+            <div class="mb-6">
+              <div class="px-4 py-2 mb-2">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                  <span>📊</span>
+                  Analytics
+                </h3>
+              </div>
+              <div class="space-y-1">
+                <router-link
+                  to="/admin/advanced-analytics"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/advanced-analytics' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📈</span>
+                  Advanced Analytics
+                </router-link>
+                
+                <router-link
+                  to="/admin/enhanced-analytics"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/enhanced-analytics' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📉</span>
+                  Enhanced Analytics
+                </router-link>
+                
+                <router-link
+                  to="/admin/pricing-analytics"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/pricing-analytics' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">💰</span>
+                  Pricing Analytics
+                </router-link>
+                
+                <router-link
+                  to="/admin/discount-analytics"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/discount-analytics' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🎟️</span>
+                  Discount Analytics
+                </router-link>
+                
+                <router-link
+                  to="/admin/writer-performance"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/writer-performance' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">👤</span>
+                  Writer Performance
+                </router-link>
+                
+                <router-link
+                  to="/admin/referral-tracking"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/referral-tracking' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🎁</span>
+                  Referral Tracking
+                </router-link>
+                
+                <router-link
+                  to="/admin/loyalty-tracking"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/loyalty-tracking' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">⭐</span>
+                  Loyalty Tracking
+                </router-link>
+                
+                <router-link
+                  to="/admin/loyalty-management"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/loyalty-management' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🏆</span>
+                  Loyalty Management
+                </router-link>
+                
+                <router-link
+                  to="/admin/campaigns"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/campaigns' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📢</span>
+                  Campaign Analytics
+                </router-link>
+              </div>
+            </div>
+
+            <!-- System Management Group -->
+            <div class="mb-6">
+              <div class="px-4 py-2 mb-2">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                  <span>⚙️</span>
+                  System
+                </h3>
+              </div>
+              <div class="space-y-1">
+                <router-link
+                  to="/admin/configs"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/configs' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🎛️</span>
+                  Configurations
+                </router-link>
+                
+                <router-link
+                  to="/admin/system-health"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/system-health' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🏥</span>
+                  System Health
+                </router-link>
+                
+                <router-link
+                  to="/admin/activity-logs"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/activity-logs' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📋</span>
+                  Activity Logs
+                </router-link>
+                
+                <router-link
+                  to="/admin/emails"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/emails' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📧</span>
+                  Email Management
+                </router-link>
+                
+                <router-link
+                  to="/admin/notification-profiles"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/notification-profiles' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🔔</span>
+                  Notification Profiles
+                </router-link>
+                
+                <router-link
+                  to="/admin/notification-groups"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/notification-groups' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">👥</span>
+                  Notification Groups
+                </router-link>
+                
+                <router-link
+                  to="/admin/duplicate-detection"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/duplicate-detection' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🔍</span>
+                  Duplicate Detection
+                </router-link>
+              </div>
+            </div>
+
+            <!-- Discipline & Appeals Group -->
+            <div class="mb-6">
+              <div class="px-4 py-2 mb-2">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                  <span>⚖️</span>
+                  Discipline
+                </h3>
+              </div>
+              <div class="space-y-1">
+                <router-link
+                  to="/admin/writer-discipline"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/writer-discipline' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📜</span>
+                  Writer Discipline
+                </router-link>
+                
+                <router-link
+                  to="/admin/appeals"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/appeals' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">📝</span>
+                  Appeals
+                </router-link>
+                
+                <router-link
+                  to="/admin/discipline-config"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/discipline-config' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">⚙️</span>
+                  Discipline Config
+                </router-link>
+              </div>
+            </div>
+
+            <!-- Multi-Tenant Group -->
+            <div class="mb-6">
+              <div class="px-4 py-2 mb-2">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                  <span>🌐</span>
+                  Multi-Tenant
+                </h3>
+              </div>
+              <div class="space-y-1">
+                <router-link
+                  to="/websites"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/websites' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🌐</span>
+                  Websites
+                </router-link>
+              </div>
+            </div>
+
+            <!-- Superadmin Only -->
+            <div v-if="authStore.isSuperAdmin" class="mb-6">
+              <div class="px-4 py-2 mb-2">
+                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
+                  <span>👑</span>
+                  Superadmin
+                </h3>
+              </div>
+              <div class="space-y-1">
+                <router-link
+                  to="/admin/superadmin"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/superadmin' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">👑</span>
+                  Superadmin Dashboard
+                </router-link>
+              </div>
+            </div>
+          </template>
+
+          <!-- Other navigation items (non-admin) -->
+          <template v-for="item in navigationItems">
             <router-link
-              v-if="item.name !== 'Dashboard' && item.name !== 'UsersSection' && item.name !== 'Wallet' && item.name !== 'Referrals' && item.name !== 'Loyalty' && item.name !== 'Payments' && !item.name.startsWith('Writer') && item.name !== 'PenNameManagement'"
+              v-if="(item.name === 'Tickets' || item.name === 'Notifications' || item.name === 'ActivityLogsGeneral' || item.name === 'Profile' || item.name === 'Settings') && !(authStore.isAdmin || authStore.isSuperAdmin)"
+              :key="item.name"
               :to="item.to"
               :class="[
                 'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
@@ -282,121 +1017,6 @@
               >{{ item.icon || '📋' }}</span>
               {{ item.label }}
             </router-link>
-            
-            <!-- Orders section for admins - Simplified and at top -->
-            <div v-if="item.name === 'Orders' && (authStore.isAdmin || authStore.isSuperAdmin)" class="space-y-1 mt-2 mb-4">
-              <button @click="orderManagementOpen = !orderManagementOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
-                <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">📝</span>
-                  Orders
-                </span>
-                <span>{{ orderManagementOpen ? '▾' : '▸' }}</span>
-              </button>
-              <div v-if="orderManagementOpen" class="ml-6 space-y-1">
-                <router-link to="/admin/orders" class="block px-3 py-2 text-sm rounded hover:bg-gray-100 font-medium">📋 All Orders</router-link>
-                <div class="border-t my-2"></div>
-                <div class="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Quick Filters</div>
-                <router-link to="/admin/orders?status=pending" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">⏳ Pending</router-link>
-                <router-link to="/admin/orders?status=in_progress" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">⚙️ In Progress</router-link>
-                <router-link to="/admin/orders?status=submitted" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">📤 Submitted</router-link>
-                <router-link to="/admin/orders?status=completed" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">🎉 Completed</router-link>
-                <router-link to="/admin/orders?status=disputed" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">⚠️ Disputed</router-link>
-                <router-link to="/admin/orders?status=cancelled" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">❌ Cancelled</router-link>
-                <div class="border-t my-2"></div>
-                <router-link to="/admin/orders" class="block px-3 py-2 text-sm rounded hover:bg-gray-100 text-primary-600 font-medium">
-                  🔍 View All Statuses →
-                </router-link>
-              </div>
-            </div>
-            
-            <!-- Users group appears right after Orders -->
-            <div v-if="item.name === 'Orders' && (authStore.isAdmin || authStore.isSuperAdmin)" class="space-y-1 mt-2">
-              <button @click="usersOpen = !usersOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
-                <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">👥</span>
-                  Users
-                </span>
-                <span>{{ usersOpen ? '▾' : '▸' }}</span>
-              </button>
-              <div v-if="usersOpen" class="ml-6 space-y-1">
-                <router-link to="/admin/users" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">All Users</router-link>
-                <router-link to="/admin/users?role=client" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Clients</router-link>
-                <router-link to="/admin/users?role=writer" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Writers</router-link>
-                <router-link to="/admin/users?role=editor" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Editors</router-link>
-                <router-link to="/admin/users?role=support" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Support</router-link>
-                <router-link v-if="authStore.isSuperAdmin" to="/admin/users?role=admin" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Admins</router-link>
-                <router-link v-if="authStore.isSuperAdmin" to="/admin/users?role=superadmin" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Superadmins</router-link>
-              </div>
-            </div>
-            
-            <!-- Invoice Management - Direct button for admin/superadmin -->
-            <div v-if="item.name === 'Orders' && (authStore.isAdmin || authStore.isSuperAdmin)" class="space-y-1 mt-2">
-              <router-link
-                to="/admin/invoices"
-                :class="[
-                  'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
-                  $route.name === 'InvoiceManagement'
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-700 hover:bg-gray-100'
-                ]"
-              >
-                <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">📄</span>
-                Invoice Management
-              </router-link>
-            </div>
-            
-            <!-- Payments group appears after Invoice Management (for admin/superadmin) -->
-            <div v-if="item.name === 'Orders' && (authStore.isAdmin || authStore.isSuperAdmin)" class="space-y-1 mt-2">
-              <button @click="paymentsOpen = !paymentsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
-                <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">💳</span>
-                  Payments
-                </span>
-                <span>{{ paymentsOpen ? '▾' : '▸' }}</span>
-              </button>
-              <div v-if="paymentsOpen" class="ml-6 space-y-1">
-                <router-link
-                  to="/admin/payments/writer-payments"
-                  :class="[
-                    'block px-3 py-2 text-sm rounded hover:bg-gray-100',
-                    $route.name === 'AdminWriterPayments' ? 'font-medium text-primary-600' : ''
-                  ]"
-                >
-                  Writer Payments Dashboard
-                </router-link>
-                <router-link
-                  v-if="authStore.isAdmin || authStore.isSuperAdmin"
-                  to="/admin/payments/batched"
-                  :class="[
-                    'block px-3 py-2 text-sm rounded hover:bg-gray-100',
-                    $route.name === 'BatchedWriterPayments' ? 'font-medium text-primary-600' : ''
-                  ]"
-                >
-                  Payment Management
-                </router-link>
-                <router-link to="/admin/payments/all" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">All Payments</router-link>
-                <router-link to="/admin/payments/logs" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Payment Logs</router-link>
-                <router-link to="/admin/financial-overview" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Financial Overview</router-link>
-              </div>
-            </div>
-            
-            <!-- Configurations group appears after ConfigManagement link (for admin/superadmin) -->
-            <div v-if="item.name === 'ConfigManagement' && (authStore.isAdmin || authStore.isSuperAdmin)" class="space-y-1 mt-2">
-              <button @click="configsOpen = !configsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
-                <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">⚙️</span>
-                  Quick Links
-                </span>
-                <span>{{ configsOpen ? '▾' : '▸' }}</span>
-              </button>
-              <div v-if="configsOpen" class="ml-6 space-y-1">
-                <router-link to="/admin/configs?tab=pricing&subtab=deadline-multipliers" class="block px-3 py-2 text-sm rounded hover:bg-gray-100 font-medium text-primary-600">➕ Deadline Multipliers</router-link>
-                <router-link to="/admin/configs?tab=pricing&subtab=base-pricing" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Base Pricing</router-link>
-                <router-link to="/admin/configs?tab=pricing&subtab=additional-services" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Additional Services</router-link>
-                <router-link to="/admin/configs?tab=pricing&subtab=preferred-writers" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Preferred Writers</router-link>
-                <router-link to="/admin/configs?tab=pricing&subtab=writer-levels" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">Writer Levels</router-link>
-              </div>
-            </div>
           </template>
         </nav>
 
@@ -735,6 +1355,33 @@ const usersOpen = ref(false)
 const paymentsOpen = ref(false)
 const configsOpen = ref(false)
 
+// Admin navigation groups state
+const adminGroups = ref({
+  orders: false,
+  users: false,
+  payments: false,
+  reviews: false,
+})
+
+// Auto-expand admin groups based on current route
+watch(() => route.path, (newPath) => {
+  if (authStore.isAdmin || authStore.isSuperAdmin) {
+    // Auto-expand relevant groups based on current route
+    if (newPath.startsWith('/admin/orders')) {
+      adminGroups.value.orders = true
+    }
+    if (newPath.startsWith('/admin/users')) {
+      adminGroups.value.users = true
+    }
+    if (newPath.startsWith('/admin/payments') || newPath.startsWith('/admin/refunds') || newPath.startsWith('/admin/disputes') || newPath.startsWith('/admin/tips') || newPath.startsWith('/admin/fines') || newPath.startsWith('/admin/advance-payments') || newPath.startsWith('/admin/wallets') || newPath.startsWith('/admin/invoices') || newPath.startsWith('/admin/financial-overview')) {
+      adminGroups.value.payments = true
+    }
+    if (newPath.startsWith('/admin/reviews')) {
+      adminGroups.value.reviews = true
+    }
+  }
+}, { immediate: true })
+
 // Writer sidebar groups
 const writerOrdersOpen = ref(false)
 const writerFinancesOpen = ref(false)
@@ -885,6 +1532,20 @@ const navigationItems = computed(() => {
       roles: ['admin', 'superadmin'],
     },
     {
+      name: 'SystemHealth',
+      to: '/admin/system-health',
+      label: 'System Health',
+      icon: '🏥',
+      roles: ['admin', 'superadmin'],
+    },
+    {
+      name: 'AdvancePaymentsManagement',
+      to: '/admin/advance-payments',
+      label: 'Advance Payments',
+      icon: '💵',
+      roles: ['admin', 'superadmin'],
+    },
+    {
       name: 'ActivityLogs',
       to: '/admin/activity-logs',
       label: 'Activity Logs',
@@ -1018,6 +1679,13 @@ const navigationItems = computed(() => {
       roles: ['admin', 'superadmin'],
     },
     {
+      name: 'EnhancedAnalytics',
+      to: '/admin/enhanced-analytics',
+      label: 'Enhanced Analytics',
+      icon: '📊',
+      roles: ['admin', 'superadmin'],
+    },
+    {
       name: 'EmailManagement',
       to: '/admin/emails',
       label: 'Email Management',
@@ -1076,6 +1744,13 @@ const navigationItems = computed(() => {
     // Referrals and Loyalty are client-only features
     // They are accessed via direct links in the client account section (lines 102-125)
     // Admins/Superadmins have access to tracking dashboards only (ReferralTracking, LoyaltyTracking)
+    {
+      name: 'Messages',
+      to: '/messages',
+      label: 'Messages',
+      icon: '💬',
+      roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+    },
     {
       name: 'Notifications',
       to: '/notifications',
@@ -1144,8 +1819,9 @@ const navigationItems = computed(() => {
 
 // Helper function to check if a route is active
 const isRouteActive = (item) => {
+  if (!item || !item.to) return false
   // Check by route name first (most reliable)
-  if (route.name === item.name) {
+  if (item.name && route.name === item.name) {
     return true
   }
   // Fallback: check by path (handles cases where route name might not match exactly)
@@ -1153,6 +1829,20 @@ const isRouteActive = (item) => {
   const itemPath = item.to.split('?')[0] // Remove query params
   if (currentPath === itemPath || currentPath.startsWith(itemPath + '/')) {
     return true
+  }
+  // Also check if current path matches with query params
+  if (item.to.includes('?') && currentPath === itemPath) {
+    const itemParams = new URLSearchParams(item.to.split('?')[1])
+    const currentParams = new URLSearchParams(route.query)
+    // Check if all item params are present in current params
+    let allMatch = true
+    for (const [key, value] of itemParams.entries()) {
+      if (currentParams.get(key) !== value) {
+        allMatch = false
+        break
+      }
+    }
+    if (allMatch) return true
   }
   return false
 }
@@ -1186,7 +1876,7 @@ const updateExpandedSections = (path) => {
     }
     // Finances group
     if (path.startsWith('/writer/payments') || path.startsWith('/writer/payment-request') || 
-        path.startsWith('/writer/tips')) {
+        path.startsWith('/writer/advance-payments') || path.startsWith('/writer/tips') || path.startsWith('/writer/fines')) {
       writerFinancesOpen.value = true
     }
     // Reviews group

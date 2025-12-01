@@ -564,8 +564,8 @@
     </div>
 
     <!-- Adjust Wallet Modal -->
-    <div v-if="showAdjustModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+    <div v-if="showAdjustModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg p-6 max-w-md w-full my-auto max-h-[90vh] overflow-y-auto">
         <h2 class="text-2xl font-bold mb-4">Adjust Wallet</h2>
         
         <div v-if="selectedWallet" class="mb-4 space-y-2">
@@ -652,8 +652,8 @@
     </div>
 
     <!-- Wallet Details Modal -->
-    <div v-if="viewingWallet" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+    <div v-if="viewingWallet" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-4xl w-full my-auto max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-bold">{{ walletType === 'writer' ? 'Writer' : 'Client' }} Wallet Details</h2>
@@ -988,8 +988,16 @@ const loadWallets = async (pageUrl = null) => {
       websites.value = Array.from(siteMap.values())
     }
   } catch (e) {
-    console.error('Failed to load wallets:', e)
-    error.value = e?.response?.data?.detail || e.message || 'Failed to load wallets'
+    // Only log and set error if it's not a 404 (endpoint doesn't exist)
+    if (e?.response?.status !== 404) {
+      console.error('Failed to load wallets:', e)
+      error.value = e?.response?.data?.detail || e.message || 'Failed to load wallets'
+    } else {
+      // Endpoint doesn't exist, set empty arrays
+      clientWallets.value = []
+      writerWallets.value = []
+      error.value = null
+    }
   } finally {
     loading.value = false
   }

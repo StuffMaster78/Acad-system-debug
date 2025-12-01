@@ -71,6 +71,11 @@ except Exception:
     WriterResource = None
     WriterResourceCategory = None
     WriterResourceView = None
+try:
+    from .advance_payment import WriterAdvancePaymentRequest, AdvanceDeduction
+except Exception:
+    WriterAdvancePaymentRequest = None
+    AdvanceDeduction = None
 
 __all__ = [
     "WriterProfile",
@@ -98,5 +103,7 @@ __all__ = [
     "WriterResource",
     "WriterResourceCategory",
     "WriterResourceView",
+    "WriterAdvancePaymentRequest",
+    "AdvanceDeduction",
 ]
 

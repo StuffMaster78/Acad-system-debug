@@ -19,7 +19,7 @@ class MFASettingsView(APIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request, *args, **kwargs):
-        mfa_settings, created = MFASettings.objects.get_or_create(user=request.user)
+        mfa_settings, created = MFASettings.get_or_create_for_user(request.user)
         serializer = MFASettingsSerializer(mfa_settings)
         return Response(serializer.data)
 

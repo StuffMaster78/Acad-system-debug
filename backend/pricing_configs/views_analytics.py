@@ -117,20 +117,21 @@ class PricingAnalyticsViewSet(viewsets.ViewSet):
         
         service_revenue = {}
         for payment in payments:
-            service_type = payment.order.service_type or 'Unknown'
+            # Use type_of_work instead of service_type
+            service_type = payment.order.type_of_work.name if payment.order.type_of_work else 'Unknown'
             if service_type not in service_revenue:
                 service_revenue[service_type] = {'total': 0, 'count': 0}
             service_revenue[service_type]['total'] += float(payment.amount)
             service_revenue[service_type]['count'] += 1
         
-        # Also get order counts by service type
-        service_counts = orders.values('service_type').annotate(
+        # Also get order counts by type of work
+        service_counts = orders.values('type_of_work__name').annotate(
             count=Count('id')
         )
         
         service_stats = {}
         for item in service_counts:
-            service_type = item['service_type'] or 'Unknown'
+            service_type = item['type_of_work__name'] or 'Unknown'
             service_stats[service_type] = {'order_count': item['count']}
         
         # Merge revenue data
@@ -230,7 +231,7 @@ class PricingAnalyticsViewSet(viewsets.ViewSet):
             # Count orders using this service
             orders_with_service = Order.objects.filter(
                 created_at__gte=date_from,
-                additional_services=service
+                extra_services=service
             ).count()
             
             service_list.append({

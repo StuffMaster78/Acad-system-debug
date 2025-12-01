@@ -1,66 +1,154 @@
 # Writing System Frontend
 
-Vue.js 3 frontend application for the Writing System platform.
+Vue.js 3 frontend application for the Writing System platform. A modern, responsive SPA built with Vue 3, Vite, Pinia, and Tailwind CSS.
 
-## Quick Start
+## 🎯 Overview
 
-### 1. Install Dependencies
+The Writing System Frontend is a comprehensive single-page application that provides role-based dashboards and interfaces for Writers, Clients, Admins, Editors, and Support staff. It features real-time updates, session management, and a modern, responsive design.
+
+## ✨ Key Features
+
+- **JWT Authentication**: Secure token-based authentication with automatic refresh
+- **Role-Based Dashboards**: Customized interfaces for each user role
+- **Session Management**: Idle timeout with warning dialogs
+- **Real-Time Updates**: SSE (Server-Sent Events) for notifications
+- **Responsive Design**: Mobile-first design with Tailwind CSS
+- **Rich Text Editing**: Quill editor for content creation
+- **Form Validation**: VeeValidate with Yup schemas
+- **State Management**: Pinia for centralized state
+- **Charts & Analytics**: ApexCharts for data visualization
+
+## 🛠️ Tech Stack
+
+- **Framework**: Vue.js 3 (Composition API)
+- **Build Tool**: Vite
+- **State Management**: Pinia
+- **Routing**: Vue Router 4
+- **UI Framework**: Tailwind CSS
+- **Charts**: ApexCharts
+- **Rich Text**: Quill Editor
+- **Form Validation**: VeeValidate + Yup
+- **HTTP Client**: Axios
+- **Icons**: Heroicons
+
+## 📋 Prerequisites
+
+- Node.js 18+
+- npm or pnpm
+- Backend API running (see [Backend README](../backend/README.md))
+
+## 🚀 Quick Start
+
+### Option 1: Using Makefile (Recommended)
+
+From the project root:
+
+```bash
+make run-frontend
+```
+
+### Option 2: Manual Setup
+
+#### 1. Install Dependencies
 
 ```bash
 cd frontend
 npm install
+# or
+pnpm install
 ```
 
-### 2. Start Development Server
+#### 2. Environment Setup
+
+Create a `.env` file (if not exists):
+
+```bash
+VITE_API_BASE_URL=http://localhost:8000
+VITE_API_FULL_URL=http://localhost:8000/api/v1
+VITE_APP_NAME=Writing System
+```
+
+#### 3. Start Development Server
 
 ```bash
 npm run dev
 ```
 
-The frontend will be available at `http://localhost:3000`
+The frontend will be available at `http://localhost:5173` (or the port shown in terminal).
 
-### 3. Build for Production
+#### 4. Build for Production
 
 ```bash
-npm run build
+# Build for all domains
+npm run build:all
+
+# Or build for specific domain
+npm run build:writers
+npm run build:clients
+npm run build:staff
 ```
 
-## Project Structure
+The built files will be in the `dist/` directory.
+
+## 📁 Project Structure
+
+The codebase is organized with a clear separation of concerns, following Vue.js best practices.
 
 ```
 frontend/
 ├── src/
-│   ├── api/              # API service files
-│   │   ├── client.js     # Axios instance with interceptors
-│   │   ├── auth.js       # Authentication API
-│   │   └── admin/        # Admin API services
-│   ├── stores/           # Pinia stores
-│   │   └── auth.js       # Authentication store
-│   ├── router/           # Vue Router
-│   │   └── index.js     # Router configuration
-│   ├── views/            # Page components
-│   │   ├── auth/         # Authentication pages
-│   │   ├── account/      # Account management
-│   │   └── admin/        # Admin pages
-│   ├── components/       # Reusable components
-│   ├── utils/            # Utility functions
-│   ├── App.vue          # Root component
-│   └── main.js          # Application entry point
-├── package.json
-├── vite.config.js
-└── .env                  # Environment variables
+│   ├── api/                    # API service files
+│   │   ├── client.js           # Axios instance with interceptors
+│   │   ├── auth.js             # Authentication API
+│   │   └── admin/              # Admin API services
+│   ├── components/             # Reusable Vue components
+│   │   ├── common/             # Common UI components
+│   │   ├── dashboard/          # Dashboard-specific components
+│   │   ├── orders/             # Order-related components
+│   │   ├── payments/           # Payment components
+│   │   └── ...                 # Other feature components
+│   ├── composables/            # Vue composables (reusable logic)
+│   │   ├── useAuth.js          # Authentication composable
+│   │   ├── useToast.js         # Toast notifications
+│   │   └── ...                 # Other composables
+│   ├── router/                 # Vue Router configuration
+│   │   └── index.js            # Route definitions
+│   ├── stores/                 # Pinia stores
+│   │   └── auth.js             # Authentication store
+│   ├── utils/                  # Utility functions
+│   │   ├── errorHandler.js     # Error handling utilities
+│   │   ├── permissions.js      # Permission checking
+│   │   └── ...                 # Other utilities
+│   ├── views/                  # Page components (routes)
+│   │   ├── auth/               # Authentication pages
+│   │   ├── account/            # Account management
+│   │   ├── admin/              # Admin pages
+│   │   └── ...                 # Other views
+│   ├── layouts/                # Layout components
+│   │   └── DashboardLayout.vue # Main dashboard layout
+│   ├── config/                 # Configuration files
+│   │   └── adminNavigation.js   # Admin navigation config
+│   ├── services/               # Service layer
+│   │   └── sessionManager.js   # Session management
+│   ├── styles/                 # Global styles
+│   │   └── dashboard.css        # Dashboard-specific styles
+│   ├── App.vue                 # Root component
+│   └── main.js                 # Application entry point
+├── package.json                # Dependencies and scripts
+├── vite.config.js              # Vite configuration
+├── tailwind.config.js          # Tailwind CSS configuration
+└── .env                        # Environment variables
 ```
 
-## Features
+## 🛠️ Development Commands
 
-- ✅ JWT Authentication
-- ✅ Password Management (Change/Reset)
-- ✅ Magic Link Login
-- ✅ 2FA Support
-- ✅ Session Management
-- ✅ Tip Management Dashboard
-- ✅ Admin Features
-- ✅ Responsive Design
+| Command              | Description                                                         |
+| -------------------- | ------------------------------------------------------------------- |
+| `npm run dev`        | Starts the Vite development server.                                  |
+| `npm run build`      | Builds the application for production.                               |
+| `npm run build:all`  | Builds for all domains (writers, clients, staff).                    |
+| `npm run lint`       | Runs ESLint to check code quality.                                  |
+| `npm run preview`    | Preview the production build locally.                                |
 
 ## API Integration
 
@@ -72,12 +160,23 @@ All API calls are handled through the `apiClient` with automatic:
 - Error handling
 - Request/response interceptors
 
-## Environment Variables
+## ⚙️ Configuration
 
-See `.env` file for configuration:
-- `VUE_APP_API_URL` - Backend API URL
-- `VUE_APP_NAME` - Application name
-- `VUE_APP_ENV` - Environment (development/production)
+### Environment Variables
+
+Create a `.env` file in the `frontend/` directory:
+
+```bash
+# API Configuration
+VITE_API_BASE_URL=http://localhost:8000
+VITE_API_FULL_URL=http://localhost:8000/api/v1
+
+# Application
+VITE_APP_NAME=Writing System
+VITE_APP_ENV=development
+```
+
+**Note**: In Vite, environment variables must be prefixed with `VITE_` to be exposed to the client.
 
 ## Development
 
@@ -130,8 +229,22 @@ server: {
 
 ## Documentation
 
-For detailed integration guides, see:
-- `../frontend_integration/SETUP_INSTRUCTIONS.md`
-- `../frontend_integration/FRONTEND_COMPONENTS_GUIDE.md`
-- `../AUTH_SYSTEM_REVIEW_AND_IMPROVEMENTS.md`
+### For Frontend Developers
+
+- **[FRONTEND_DEVELOPER_GUIDE.md](./FRONTEND_DEVELOPER_GUIDE.md)** - Comprehensive guide covering:
+  - Project structure and setup
+  - Core concepts and patterns
+  - API integration
+  - Component development
+  - State management
+  - Routing and styling
+  - Best practices
+
+- **[QUICK_REFERENCE.md](./QUICK_REFERENCE.md)** - Quick reference for common patterns and code snippets
+
+### Additional Resources
+
+- `../frontend_integration/SETUP_INSTRUCTIONS.md` - Setup instructions
+- `../frontend_integration/FRONTEND_COMPONENTS_GUIDE.md` - Component guide
+- `../AUTH_SYSTEM_REVIEW_AND_IMPROVEMENTS.md` - Auth system documentation
 

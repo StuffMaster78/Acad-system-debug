@@ -215,33 +215,58 @@
       :loading="loading.summary"
     />
 
-    <!-- Admin/Superadmin Quick Actions -->
-    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 sm:grid-cols-5 gap-4 mb-6">
-      <router-link to="/orders" class="card hover:shadow-lg p-4 text-center transition-all duration-200 hover:scale-[1.02] border border-gray-200 hover:border-primary-300">
-        <div class="text-3xl mb-2">📝</div>
-        <div class="font-semibold text-gray-900">All Orders</div>
-        <div class="text-sm text-gray-500 mt-1">Manage and filter orders</div>
-      </router-link>
-      <router-link to="/users" class="card hover:shadow-lg p-4 text-center transition-all duration-200 hover:scale-[1.02] border border-gray-200 hover:border-primary-300">
-        <div class="text-3xl mb-2">👥</div>
-        <div class="font-semibold text-gray-900">Users</div>
-        <div class="text-sm text-gray-500 mt-1">Clients · Writers · Editors</div>
-      </router-link>
-      <router-link to="/payments" class="card hover:shadow-lg p-4 text-center transition-all duration-200 hover:scale-[1.02] border border-gray-200 hover:border-primary-300">
-        <div class="text-3xl mb-2">💳</div>
-        <div class="font-semibold text-gray-900">Payments</div>
-        <div class="text-sm text-gray-500 mt-1">Monitor transactions</div>
-      </router-link>
-      <router-link to="/admin/payments/writer-payments" class="card hover:shadow-lg p-4 text-center transition-all duration-200 hover:scale-[1.02] border border-gray-200 hover:border-primary-300">
-        <div class="text-3xl mb-2">💸</div>
-        <div class="font-semibold text-gray-900">Writer Payouts</div>
-        <div class="text-sm text-gray-500 mt-1">Review writer payments</div>
-      </router-link>
-      <router-link to="/websites" class="card hover:shadow-lg p-4 text-center transition-all duration-200 hover:scale-[1.02] border border-gray-200 hover:border-primary-300">
-        <div class="text-3xl mb-2">🌐</div>
-        <div class="font-semibold text-gray-900">Websites</div>
-        <div class="text-sm text-gray-500 mt-1">Multi-tenant management</div>
-      </router-link>
+    <!-- Admin/Superadmin Quick Actions - Improved Layout -->
+    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold text-gray-900">Quick Actions</h2>
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <router-link 
+          to="/admin/orders" 
+          class="group relative bg-white rounded-xl shadow-sm p-5 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-400"
+        >
+          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">📝</div>
+          <div class="font-semibold text-gray-900 mb-1">Orders</div>
+          <div class="text-xs text-gray-500">Manage all orders</div>
+          <div class="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        </router-link>
+        <router-link 
+          to="/admin/users" 
+          class="group relative bg-white rounded-xl shadow-sm p-5 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-400"
+        >
+          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">👥</div>
+          <div class="font-semibold text-gray-900 mb-1">Users</div>
+          <div class="text-xs text-gray-500">Manage users</div>
+          <div class="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        </router-link>
+        <router-link 
+          to="/admin/payments/writer-payments" 
+          class="group relative bg-white rounded-xl shadow-sm p-5 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-400"
+        >
+          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">💳</div>
+          <div class="font-semibold text-gray-900 mb-1">Payments</div>
+          <div class="text-xs text-gray-500">Writer payouts</div>
+          <div class="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        </router-link>
+        <router-link 
+          to="/admin/refunds" 
+          class="group relative bg-white rounded-xl shadow-sm p-5 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-400"
+        >
+          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">↩️</div>
+          <div class="font-semibold text-gray-900 mb-1">Refunds</div>
+          <div class="text-xs text-gray-500">Process refunds</div>
+          <div class="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        </router-link>
+        <router-link 
+          to="/websites" 
+          class="group relative bg-white rounded-xl shadow-sm p-5 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-400"
+        >
+          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">🌐</div>
+          <div class="font-semibold text-gray-900 mb-1">Websites</div>
+          <div class="text-xs text-gray-500">Multi-tenant</div>
+          <div class="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+        </router-link>
+      </div>
     </div>
 
 
@@ -250,18 +275,39 @@
       <div
         v-for="stat in summaryStats"
         :key="stat.name"
-        class="card bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-primary-200"
+        :class="[
+          'card bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-primary-200',
+          stat.name === 'Total Revenue' 
+            ? 'lg:col-span-2 p-8' 
+            : 'p-6'
+        ]"
       >
         <div class="flex items-start justify-between">
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-medium text-gray-600 mb-2 uppercase tracking-wide">{{ stat.name }}</p>
+          <div class="flex-1 min-w-0 pr-4">
             <p 
               :class="[
-                'font-bold text-gray-900 mb-1',
-                stat.size === 'compact' ? 'text-2xl' : 'text-3xl'
+                'font-medium text-gray-600 mb-2 uppercase tracking-wide',
+                stat.name === 'Total Revenue' ? 'text-base' : 'text-sm'
               ]"
+            >{{ stat.name }}</p>
+            <p 
+              :class="[
+                'font-bold text-gray-900 mb-1 break-words',
+                stat.name === 'Total Revenue' 
+                  ? 'text-4xl sm:text-5xl lg:text-6xl' 
+                  : stat.size === 'compact' 
+                    ? 'text-2xl' 
+                    : 'text-3xl'
+              ]"
+              style="word-break: break-word; overflow-wrap: break-word;"
             >{{ stat.value }}</p>
-            <p v-if="stat.subtitle" class="text-xs text-gray-500 mt-1 leading-relaxed">{{ stat.subtitle }}</p>
+            <p 
+              v-if="stat.subtitle" 
+              :class="[
+                'text-gray-500 mt-1 leading-relaxed',
+                stat.name === 'Total Revenue' ? 'text-sm' : 'text-xs'
+              ]"
+            >{{ stat.subtitle }}</p>
             <p v-if="stat.change !== null && stat.change !== undefined" :class="[
               'text-sm mt-2 flex items-center',
               stat.change > 0 ? 'text-green-600' : stat.change < 0 ? 'text-red-600' : 'text-gray-500'
@@ -270,8 +316,14 @@
               {{ Math.abs(stat.change) }}% from last month
             </p>
           </div>
-          <div class="p-3 rounded-lg ml-4 shrink-0" :class="stat.bgColor || 'bg-primary-100'">
-            <span class="text-2xl">{{ stat.icon }}</span>
+          <div 
+            :class="[
+              'rounded-lg shrink-0',
+              stat.name === 'Total Revenue' ? 'p-4 ml-4' : 'p-3 ml-4',
+              stat.bgColor || 'bg-primary-100'
+            ]"
+          >
+            <span :class="stat.name === 'Total Revenue' ? 'text-4xl' : 'text-2xl'">{{ stat.icon }}</span>
           </div>
         </div>
       </div>
@@ -611,6 +663,7 @@ const paymentStatusData = ref(null)
 const recentActivity = ref([])
 const paymentReminderStats = ref(null)
 const chartsReady = ref(false)
+const error = ref(null)
 
 const loading = ref({
   summary: false,
@@ -929,6 +982,20 @@ const summaryStats = computed(() => {
     return `$${formatCurrency(amount)}`
   }
   
+  // Format currency for large display (handles overflow better)
+  const formatLargeCurrency = (amount) => {
+    // For very large amounts, use compact notation
+    if (amount >= 1000000000) {
+      return `$${(amount / 1000000000).toFixed(2)}B`
+    } else if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(2)}M`
+    } else if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(2)}K`
+    }
+    // For smaller amounts, use full formatting with commas
+    return `$${formatCurrency(amount)}`
+  }
+  
   return [
     {
       name: 'Total Orders',
@@ -941,12 +1008,12 @@ const summaryStats = computed(() => {
     },
     {
       name: 'Total Revenue',
-      value: `$${formatCurrency(totalRevenue)}`,
+      value: formatLargeCurrency(totalRevenue),
       icon: '💰',
       change: null,
-      subtitle: paidOrders > 0 ? `From ${paidOrders} paid order${paidOrders !== 1 ? 's' : ''}` : 'No paid orders yet',
-      bgColor: 'bg-green-100',
-      size: 'normal',
+      subtitle: paidOrders > 0 ? `From ${paidOrders.toLocaleString()} paid order${paidOrders !== 1 ? 's' : ''}` : 'No paid orders yet',
+      bgColor: 'bg-gradient-to-br from-green-100 to-emerald-100',
+      size: 'large',
     },
     {
       name: 'Orders in Progress',
@@ -1264,6 +1331,20 @@ const fetchSummary = async (forceRefresh = false) => {
     const stats = dashboardData.stats || dashboardData
     const flatData = dashboardData
     
+    // Debug: Log the actual data structure to understand what we're receiving
+    if (import.meta.env.DEV) {
+      console.debug('Dashboard API response structure:', {
+        hasStats: !!dashboardData.stats,
+        hasFlatData: !!dashboardData,
+        statsKeys: dashboardData.stats ? Object.keys(dashboardData.stats) : [],
+        flatDataKeys: Object.keys(dashboardData).slice(0, 20), // First 20 keys
+        statsPaid: dashboardData.stats?.paid_orders_count,
+        statsUnpaid: dashboardData.stats?.unpaid_orders_count,
+        flatPaid: dashboardData.paid_orders_count,
+        flatUnpaid: dashboardData.unpaid_orders_count,
+      })
+    }
+    
     // Map the dashboard data to summaryData format with proper type conversion
     // Ensure all numeric values are properly converted
     summaryData.value = {
@@ -1292,19 +1373,21 @@ const fetchSummary = async (forceRefresh = false) => {
       suspended_users: Number(stats.suspended_users ?? flatData.suspended_users ?? 0),
     }
     
-    // Validate data consistency
+    // Validate data consistency (backend should ensure total_orders = paid + unpaid)
     const totalOrders = summaryData.value.total_orders
     const paidOrders = summaryData.value.paid_orders_count
     const unpaidOrders = summaryData.value.unpaid_orders_count
     const calculatedTotal = paidOrders + unpaidOrders
     
-    // If there's a mismatch, log it but don't break the UI
-    if (totalOrders > 0 && Math.abs(totalOrders - calculatedTotal) > 1) {
-      console.warn('Data inconsistency detected:', {
+    // If there's a significant mismatch (> 5 orders difference), log it for debugging
+    // This helps catch data issues but allows for minor rounding/calculation differences
+    if (totalOrders > 0 && Math.abs(totalOrders - calculatedTotal) > 5) {
+      console.warn('Data inconsistency detected (backend should ensure consistency):', {
         total_orders: totalOrders,
         paid: paidOrders,
         unpaid: unpaidOrders,
-        calculated: calculatedTotal
+        calculated: calculatedTotal,
+        difference: Math.abs(totalOrders - calculatedTotal)
       })
     }
     

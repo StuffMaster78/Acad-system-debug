@@ -11,10 +11,10 @@ class AuditLogThrottle(UserRateThrottle):
     rate = "10/minute"  # Adjust as needed
 class CommunicationMessageThrottle(UserRateThrottle):
     scope = "communication_message"
-    rate = "20/minute"  # Adjust as needed
+    rate = "60/minute"  # Increased from 20/minute for better UX
 class CommunicationThreadThrottle(UserRateThrottle):
     scope = "communication_thread"
-    rate = "15/minute"  # Adjust as needed
+    rate = "60/minute"  # Increased from 15/minute for better UX
 
 class CommunicationNotificationThrottle(UserRateThrottle):
     scope = "communication_notification"
@@ -42,7 +42,7 @@ class OrderMessageNotificationThrottle(UserRateThrottle):
 
 class OrderMessageThrottle(UserRateThrottle):
     scope = "order_message"
-    rate = "20/minute"  # Adjust as needed
+    rate = "60/minute"  # Increased from 20/minute for better UX
 
 class OrderMessageReadReceiptThrottle(UserRateThrottle):
     scope = "order_message_read_receipt"

@@ -13,6 +13,19 @@ export default {
    * @returns {Promise} API response with thread data
    */
   startThreadForOrder: (orderId) => apiClient.post('/order-communications/communication-threads/start-for-order/', { order_id: orderId }),
+  /**
+   * Create a general messaging thread (not order-related)
+   * @param {number} recipientId - The recipient user ID
+   * @param {string} message - Initial message text
+   * @param {string} threadType - Thread type (default: 'general')
+   * @returns {Promise} API response with thread data
+   */
+  createGeneralThread: (recipientId, message, threadType = 'general') => 
+    apiClient.post('/order-communications/communication-threads/create-general-thread/', {
+      recipient_id: recipientId,
+      message: message,
+      thread_type: threadType
+    }),
   updateThread: (threadId, data) => apiClient.patch(`/order-communications/communication-threads/${threadId}/`, data),
   deleteThread: (threadId) => apiClient.delete(`/order-communications/communication-threads/${threadId}/`),
   
@@ -21,22 +34,54 @@ export default {
   getMessage: (threadId, messageId) => apiClient.get(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/`),
   sendMessage: (threadId, data) => {
     const formData = new FormData()
-    formData.append('recipient_id', data.recipient_id)
+    // Support both 'recipient' and 'recipient_id' for backward compatibility
+    const recipientId = data.recipient_id || data.recipient
+    formData.append('recipient', recipientId)  // Backend expects 'recipient' as IntegerField
     formData.append('message', data.message)
     if (data.message_type) formData.append('message_type', data.message_type)
     if (data.attachment) formData.append('attachment', data.attachment)
     if (data.is_internal_note !== undefined) formData.append('is_internal_note', data.is_internal_note)
+    if (data.reply_to || data.reply_to_id) {
+      formData.append('reply_to', data.reply_to || data.reply_to_id)  // Backend expects 'reply_to'
+    }
     return apiClient.post(`/order-communications/communication-threads/${threadId}/communication-messages/`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+  /**
+   * Simplified message sending - auto-detects recipient
+   * @param {number} threadId - The thread ID
+   * @param {string} message - Message text
+   * @param {File} attachment - Optional file attachment
+   * @param {number} replyTo - Optional message ID to reply to
+   * @returns {Promise} API response
+   */
+  sendMessageSimple: (threadId, message, attachment = null, replyTo = null) => {
+    const formData = new FormData()
+    if (message) formData.append('message', message)
+    if (attachment) formData.append('attachment', attachment)
+    if (replyTo) formData.append('reply_to', replyTo)
+    return apiClient.post(`/order-communications/communication-threads/${threadId}/send-message-simple/`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
   },
   updateMessage: (threadId, messageId, data) => apiClient.patch(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/`, data),
   deleteMessage: (threadId, messageId) => apiClient.delete(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/`),
   downloadAttachment: (threadId, messageId) => apiClient.get(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/download_attachment/`, { responseType: 'blob' }),
+  uploadAttachment: (formData) => apiClient.post('/order-communications/message-attachments/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   getAvailableRecipients: (threadId) => apiClient.get(`/order-communications/communication-threads/${threadId}/communication-messages/available_recipients/`),
   getOrderRecipients: (orderId) => apiClient.get(`/order-communications/communication-threads/order-recipients/`, { params: { order_id: orderId } }),
   
   // Notifications
   listNotifications: (params) => apiClient.get('/order-communications/communication-notifications/', { params }),
   markNotificationRead: (notificationId) => apiClient.patch(`/order-communications/communication-notifications/${notificationId}/`, { is_read: true }),
+  
+  // Enhanced features
+  markMessageAsRead: (threadId, messageId) => apiClient.post(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/mark_as_read/`),
+  addReaction: (threadId, messageId, reaction) => apiClient.post(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/react/`, { reaction }),
+  removeReaction: (threadId, messageId, reaction) => apiClient.delete(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/react/`, { data: { reaction } }),
+  setTyping: (threadId) => apiClient.post(`/order-communications/communication-threads/${threadId}/typing/`),
+  getTypingStatus: (threadId) => apiClient.get(`/order-communications/communication-threads/${threadId}/typing_status/`),
 }

@@ -36,6 +36,9 @@ from notifications_system.views.feed_and_status import (
     NotificationFeedViewSet,
     NotificationStatusViewSet
 )
+from notifications_system.views.webhook_endpoints import (
+    NotificationWebhookEndpointViewSet,
+)
 
 from notifications_system.views.views_feed import NotificationFeedView
 from notifications_system.views.views_actions import (
@@ -131,6 +134,11 @@ router.register(
     r"my/event-preferences",
     MyEventNotificationPreferenceViewSet,
     basename="my-event-preferences"
+)
+router.register(
+    r"webhook-endpoints",
+    NotificationWebhookEndpointViewSet,
+    basename="notification-webhooks",
 )
 
 urlpatterns = [

@@ -284,8 +284,8 @@
     </div>
 
     <!-- Refund Detail Modal -->
-    <div v-if="viewingRefund" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-3xl w-full p-6 max-h-[90vh] overflow-y-auto">
+    <div v-if="viewingRefund" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-3xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-2xl font-bold">Refund Details</h3>
           <button @click="viewingRefund = null" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
@@ -386,8 +386,8 @@
     </div>
 
     <!-- Create Refund Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-2xl w-full p-6">
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-2xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-xl font-bold">Create Refund</h3>
           <button @click="closeCreateModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
@@ -435,6 +435,20 @@
     <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
       {{ message }}
     </div>
+
+    <!-- Password Verification Modal -->
+    <PasswordVerificationModal
+      :show="showPasswordModal"
+      @update:show="showPasswordModal = $event"
+      :title="passwordModalTitle"
+      :subtitle="passwordModalSubtitle"
+      :warning-message="passwordModalWarning"
+      :confirm-button-text="passwordModalConfirmText"
+      :loading="passwordVerifying"
+      @confirm="handlePasswordConfirm"
+      @cancel="handlePasswordCancel"
+      ref="passwordModalRef"
+    />
   </div>
   <!-- Error Display -->
   <div v-else-if="componentError" class="p-6">
@@ -458,6 +472,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { refundsAPI } from '@/api'
 import adminRefundsAPI from '@/api/admin-refunds'
 import apiClient from '@/api/client'
+import PasswordVerificationModal from '@/components/common/PasswordVerificationModal.vue'
 
 const componentError = ref(null)
 const initialLoading = ref(true)
@@ -478,6 +493,14 @@ const receiptsLoading = ref(false)
 const saving = ref(false)
 const viewingRefund = ref(null)
 const showCreateModal = ref(false)
+const showPasswordModal = ref(false)
+const passwordVerifying = ref(false)
+const passwordModalRef = ref(null)
+const passwordModalTitle = ref('Confirm Refund Action')
+const passwordModalSubtitle = ref('This action requires password verification')
+const passwordModalWarning = ref(null)
+const passwordModalConfirmText = ref('Confirm')
+const pendingAction = ref(null) // Store the action to execute after password verification
 
 const stats = ref({
   pending: 0,
@@ -584,7 +607,10 @@ const loadDashboard = async () => {
       }
     }
   } catch (error) {
-    console.error('Failed to load refund dashboard:', error)
+    // Only log if it's not a 404 (endpoint doesn't exist)
+    if (error?.response?.status !== 404) {
+      console.error('Failed to load refund dashboard:', error)
+    }
     // Fallback to calculating from refunds list
     calculateStats()
   }
@@ -623,39 +649,23 @@ const viewRefund = async (refund) => {
 }
 
 const processRefund = async (refund) => {
-  if (!confirm('Are you sure you want to process this refund? This action will credit the client\'s wallet or initiate external refund.')) return
-  
-  saving.value = true
-  try {
-    await refundsAPI.process(refund.id, { reason: 'Refund processed by admin' })
-    showMessage('Refund processed successfully', true)
-    await loadRefunds()
-    if (viewingRefund.value?.id === refund.id) {
-      viewingRefund.value = null
-    }
-  } catch (error) {
-    showMessage('Failed to process refund: ' + (error.response?.data?.error || error.response?.data?.detail || error.message), false)
-  } finally {
-    saving.value = false
-  }
+  const amount = parseFloat(refund.total_amount || (parseFloat(refund.wallet_amount || 0) + parseFloat(refund.external_amount || 0))).toFixed(2)
+  passwordModalTitle.value = 'Process Refund'
+  passwordModalSubtitle.value = `Processing refund of $${amount}`
+  passwordModalWarning.value = `You are about to process a refund of $${amount}. This action will credit the client's wallet or initiate external refund. This action cannot be undone.`
+  passwordModalConfirmText.value = 'Process Refund'
+  pendingAction.value = { type: 'process', refund }
+  showPasswordModal.value = true
 }
 
 const cancelRefund = async (refund) => {
-  if (!confirm('Are you sure you want to cancel this refund?')) return
-  
-  saving.value = true
-  try {
-    await refundsAPI.cancel(refund.id)
-    showMessage('Refund canceled successfully', true)
-    await loadRefunds()
-    if (viewingRefund.value?.id === refund.id) {
-      viewingRefund.value = null
-    }
-  } catch (error) {
-    showMessage('Failed to cancel refund: ' + (error.response?.data?.detail || error.message), false)
-  } finally {
-    saving.value = false
-  }
+  const amount = parseFloat(refund.total_amount || (parseFloat(refund.wallet_amount || 0) + parseFloat(refund.external_amount || 0))).toFixed(2)
+  passwordModalTitle.value = 'Cancel Refund'
+  passwordModalSubtitle.value = `Canceling refund of $${amount}`
+  passwordModalWarning.value = `You are about to cancel this refund request. This action cannot be undone.`
+  passwordModalConfirmText.value = 'Cancel Refund'
+  pendingAction.value = { type: 'cancel', refund }
+  showPasswordModal.value = true
 }
 
 const retryRefund = async (refund) => {
@@ -723,6 +733,70 @@ const saveRefund = async () => {
 const viewReceipt = (receipt) => {
   // TODO: Implement receipt detail view
   showMessage('Receipt detail view coming soon', false)
+}
+
+const handlePasswordConfirm = async (credentials) => {
+  // Support both object (with username/password) and string (password only)
+  const password = credentials?.password || credentials
+  if (!pendingAction.value) return
+  
+  passwordVerifying.value = true
+  if (passwordModalRef.value) {
+    passwordModalRef.value.setError('')
+  }
+  
+  try {
+    const { type, refund } = pendingAction.value
+    
+    if (type === 'process') {
+      await refundsAPI.process(refund.id, { 
+        reason: 'Refund processed by admin',
+        password: password
+      })
+      showMessage('Refund processed successfully', true)
+      await loadRefunds()
+      if (viewingRefund.value?.id === refund.id) {
+        viewingRefund.value = null
+      }
+    } else if (type === 'cancel') {
+      await refundsAPI.cancel(refund.id, { password: password })
+      showMessage('Refund canceled successfully', true)
+      await loadRefunds()
+      if (viewingRefund.value?.id === refund.id) {
+        viewingRefund.value = null
+      }
+    }
+    
+    // Close modal and reset
+    showPasswordModal.value = false
+    pendingAction.value = null
+    if (passwordModalRef.value) {
+      passwordModalRef.value.clearPassword()
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.error || error.response?.data?.detail || error.message || 'Action failed'
+    
+    // If it's a password error, show it in the modal
+    if (errorMessage.toLowerCase().includes('password') || error.response?.status === 400) {
+      if (passwordModalRef.value) {
+        passwordModalRef.value.setError(errorMessage)
+      }
+    } else {
+      // For other errors, close modal and show message
+      showPasswordModal.value = false
+      showMessage(errorMessage, false)
+      pendingAction.value = null
+    }
+  } finally {
+    passwordVerifying.value = false
+  }
+}
+
+const handlePasswordCancel = () => {
+  pendingAction.value = null
+  if (passwordModalRef.value) {
+    passwordModalRef.value.clearPassword()
+  }
 }
 
 const getStatusClass = (status) => {

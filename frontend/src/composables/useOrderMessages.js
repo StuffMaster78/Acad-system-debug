@@ -5,8 +5,8 @@
 
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { listThreads, startThreadForOrder, getThreadMessages, sendMessage, markThreadAsRead, clearThreadsCache } from '@/api/communications'
-import { throttle } from '@/utils/messageUtils'
+import { startThreadForOrder, markThreadAsRead } from '@/api/communications'
+import messagesStore from '@/stores/messages'
 
 export function useOrderMessages(orderId) {
   const threads = ref([])
@@ -18,8 +18,8 @@ export function useOrderMessages(orderId) {
   
   const authStore = useAuthStore()
   
-  // Throttle API calls to prevent 429 errors
-  const loadThreads = throttle(async () => {
+  // Use shared cache to prevent duplicate requests
+  const loadThreads = async () => {
     if (!orderId || !authStore.token) {
       return
     }
@@ -28,9 +28,14 @@ export function useOrderMessages(orderId) {
     error.value = null
     
     try {
-      const response = await listThreads(orderId)
+      // Use shared cache store instead of direct API call
+      const allThreads = await messagesStore.getThreads()
       
-      threads.value = response.data.results || response.data || []
+      // Filter threads for this order
+      threads.value = allThreads.filter(thread => {
+        const threadOrderId = thread.order || thread.order_id
+        return threadOrderId && parseInt(threadOrderId) === parseInt(orderId)
+      })
       
       // Calculate total unread count
       unreadCount.value = threads.value.reduce((sum, thread) => {
@@ -52,7 +57,7 @@ export function useOrderMessages(orderId) {
     } finally {
       loading.value = false
     }
-  }, 5000) // Throttle to max once per 5 seconds (matches cache time)
+  }
   
   /**
    * Start a new conversation thread for the order
@@ -87,9 +92,9 @@ export function useOrderMessages(orderId) {
           threads.value = [thread, ...threads.value]
         }
         
-        // Clear cache and reload to get fresh data
-        clearThreadsCache()
-        await loadThreads()
+      // Invalidate cache and reload to get fresh data
+      messagesStore.invalidateThreadsCache()
+      await loadThreads()
         
         return thread
       } else {
@@ -112,14 +117,14 @@ export function useOrderMessages(orderId) {
     }
   }
   
-  const loadMessages = throttle(async (threadId) => {
+  const loadMessages = async (threadId) => {
     if (!threadId || !authStore.token) {
       return
     }
     
     try {
-      const response = await getThreadMessages(threadId)
-      messages.value = response.data.results || response.data || []
+      // Use shared cache store instead of direct API call
+      messages.value = await messagesStore.getThreadMessages(threadId)
     } catch (err) {
       if (err.message.includes('Authentication')) {
         error.value = 'Authentication required.'
@@ -131,7 +136,7 @@ export function useOrderMessages(orderId) {
         console.error('Failed to load messages:', err)
       }
     }
-  }, 3000) // Throttle to max once per 3 seconds
+  }
   
   const loadFiles = throttle(async () => {
     if (!orderId || !authStore.token) {
@@ -163,28 +168,44 @@ export function useOrderMessages(orderId) {
   }, 5000) // Files can be throttled more
   
   /**
-   * Send a message in a thread
+   * Send a message in a thread (simplified - auto-detects recipient)
    */
   const sendThreadMessage = async (threadId, messageText, options = {}) => {
-    if (!threadId || !messageText || !authStore.token) {
-      throw new Error('Thread ID, message, and authentication required')
+    if (!threadId || !authStore.token) {
+      throw new Error('Thread ID and authentication required')
+    }
+    
+    if (!messageText && !options.attachment) {
+      throw new Error('Message text or attachment is required')
     }
     
     try {
-      const response = await sendMessage(threadId, messageText, options)
+      // Use simplified endpoint that auto-detects recipient
+      const commsAPI = await import('@/api/communications')
+      const response = await commsAPI.default.sendMessageSimple(
+        threadId,
+        messageText || '',
+        options.attachment || null,
+        options.reply_to || null
+      )
       
       // Reload messages to show the new one
       await loadMessages(threadId)
       
-      // Clear cache and reload threads to update unread counts
-      clearThreadsCache()
+      // Invalidate cache and reload threads to update unread counts
+      messagesStore.invalidateThreadsCache()
+      messagesStore.invalidateThreadMessagesCache(threadId)
       await loadThreads()
       
       return response.data
     } catch (err) {
-      error.value = err.message || 'Failed to send message'
+      const errorMsg = err.response?.data?.detail || 
+                      err.response?.data?.error || 
+                      err.message || 
+                      'Failed to send message. Please try again.'
+      error.value = errorMsg
       console.error('Failed to send message:', err)
-      throw err
+      throw new Error(errorMsg)
     }
   }
   
@@ -201,19 +222,19 @@ export function useOrderMessages(orderId) {
     }
   }
   
-  // Auto-refresh with longer intervals to prevent rate limiting
+  // Use shared refresh to prevent multiple intervals
   let refreshInterval = null
   
   const startAutoRefresh = () => {
-    // Refresh every 30 seconds instead of constantly
-    refreshInterval = setInterval(() => {
+    // Use shared refresh system
+    refreshInterval = messagesStore.startSharedRefresh(() => {
       loadThreads()
-    }, 30000)
+    }, 30000) // 30 seconds
   }
   
   const stopAutoRefresh = () => {
     if (refreshInterval) {
-      clearInterval(refreshInterval)
+      messagesStore.stopRefresh(refreshInterval)
       refreshInterval = null
     }
   }

@@ -361,6 +361,83 @@ class EditorProfileViewSet(viewsets.ReadOnlyModelViewSet):
                 for assignment in recent_assignments
             ]
         })
+    
+    @action(detail=False, methods=['get'], url_path='dashboard/workload')
+    def dashboard_workload(self, request):
+        """Get workload management information for editor dashboard."""
+        if request.user.role != 'editor':
+            return Response(
+                {"detail": "Only editors can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        try:
+            profile = request.user.editor_profile
+        except EditorProfile.DoesNotExist:
+            return Response(
+                {"detail": "Editor profile not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Get current active tasks
+        active_tasks = EditorTaskAssignment.objects.filter(
+            assigned_editor=profile,
+            review_status__in=['pending', 'in_review']
+        ).select_related('order')
+        
+        # Get max concurrent tasks from profile (if exists)
+        max_concurrent = getattr(profile, 'max_concurrent_tasks', 5)  # Default to 5
+        
+        # Calculate current workload
+        current_count = active_tasks.count()
+        capacity_percentage = (current_count / max_concurrent * 100) if max_concurrent > 0 else 0
+        
+        # Get tasks by deadline
+        urgent_tasks = active_tasks.filter(
+            order__deadline__lte=now() + timedelta(days=1),
+            order__deadline__gte=now()
+        ).count()
+        
+        overdue_tasks = active_tasks.filter(
+            order__deadline__lt=now()
+        ).count()
+        
+        # Calculate estimated completion times
+        tasks_with_deadlines = active_tasks.filter(order__deadline__isnull=False)
+        estimated_hours = 0
+        for task in tasks_with_deadlines:
+            if task.order.deadline:
+                hours_until_deadline = (task.order.deadline - now()).total_seconds() / 3600
+                estimated_hours += max(0, hours_until_deadline)
+        
+        # Get recommended order limits
+        can_take_more = current_count < max_concurrent
+        recommended_limit = max(0, max_concurrent - current_count)
+        
+        return Response({
+            'current_workload': {
+                'active_tasks_count': current_count,
+                'max_concurrent_tasks': max_concurrent,
+                'capacity_percentage': round(capacity_percentage, 2),
+                'available_slots': recommended_limit,
+                'is_at_capacity': current_count >= max_concurrent,
+                'can_take_more': can_take_more,
+            },
+            'deadline_analysis': {
+                'urgent_tasks': urgent_tasks,  # Due within 24 hours
+                'overdue_tasks': overdue_tasks,
+                'total_with_deadlines': tasks_with_deadlines.count(),
+            },
+            'time_estimates': {
+                'estimated_hours_until_all_deadlines': round(estimated_hours, 2),
+                'average_hours_per_task': round(estimated_hours / current_count, 2) if current_count > 0 else 0,
+            },
+            'recommendations': {
+                'recommended_max_orders': recommended_limit,
+                'should_claim_more': can_take_more and overdue_tasks == 0,
+                'should_focus_on_urgent': urgent_tasks > 0 or overdue_tasks > 0,
+            }
+        })
 
 
 class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
@@ -388,7 +465,7 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def available_tasks(self, request):
-        """Get available tasks that can be claimed."""
+        """Get available tasks that can be claimed with enhanced filtering."""
         if request.user.role != 'editor':
             return Response(
                 {"detail": "Only editors can access this endpoint."},
@@ -403,16 +480,92 @@ class EditorTaskAssignmentViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
+        # Get query parameters for filtering
+        deadline_filter = request.query_params.get('deadline', None)  # 'urgent', 'upcoming', 'all'
+        pages_min = request.query_params.get('pages_min', None)
+        pages_max = request.query_params.get('pages_max', None)
+        paper_type = request.query_params.get('paper_type', None)
+        subject = request.query_params.get('subject', None)
+        sort_by = request.query_params.get('sort_by', 'deadline')  # 'deadline', 'pages', 'assigned_at'
+        limit = int(request.query_params.get('limit', 50))
+        
+        # Base queryset
         available = self.queryset.filter(
             Q(review_status='unclaimed') | 
             (Q(review_status='pending') & Q(assigned_editor__isnull=True))
         ).filter(
             order__website=profile.website,
             order__status=OrderStatus.UNDER_EDITING.value
-        )
+        ).select_related('order', 'order__client', 'order__writer')
+        
+        # Filter by deadline
+        if deadline_filter == 'urgent':
+            # Due within 24 hours
+            available = available.filter(
+                order__deadline__lte=now() + timedelta(days=1),
+                order__deadline__gte=now()
+            )
+        elif deadline_filter == 'upcoming':
+            # Due within 7 days
+            available = available.filter(
+                order__deadline__lte=now() + timedelta(days=7),
+                order__deadline__gte=now()
+            )
+        elif deadline_filter == 'overdue':
+            # Past deadline
+            available = available.filter(order__deadline__lt=now())
+        
+        # Filter by pages
+        if pages_min:
+            available = available.filter(order__pages__gte=int(pages_min))
+        if pages_max:
+            available = available.filter(order__pages__lte=int(pages_max))
+        
+        # Filter by paper type
+        if paper_type:
+            available = available.filter(order__paper_type=paper_type)
+        
+        # Filter by subject
+        if subject:
+            available = available.filter(order__subject=subject)
+        
+        # Sort
+        if sort_by == 'deadline':
+            available = available.order_by('order__deadline')
+        elif sort_by == 'pages':
+            available = available.order_by('order__pages')
+        elif sort_by == 'assigned_at':
+            available = available.order_by('-assigned_at')
+        else:
+            available = available.order_by('order__deadline')
+        
+        # Limit results
+        available = available[:limit]
         
         serializer = self.get_serializer(available, many=True)
-        return Response(serializer.data)
+        
+        # Get summary stats
+        total_available = self.queryset.filter(
+            Q(review_status='unclaimed') | 
+            (Q(review_status='pending') & Q(assigned_editor__isnull=True))
+        ).filter(
+            order__website=profile.website,
+            order__status=OrderStatus.UNDER_EDITING.value
+        ).count()
+        
+        return Response({
+            'tasks': serializer.data,
+            'count': len(serializer.data),
+            'total_available': total_available,
+            'filters_applied': {
+                'deadline': deadline_filter,
+                'pages_min': pages_min,
+                'pages_max': pages_max,
+                'paper_type': paper_type,
+                'subject': subject,
+                'sort_by': sort_by,
+            }
+        })
     
     @action(detail=False, methods=['post'])
     def claim(self, request):

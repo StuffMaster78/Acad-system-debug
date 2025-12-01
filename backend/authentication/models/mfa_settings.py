@@ -103,3 +103,35 @@ class MFASettings(models.Model):
         if self.otp_expires_at and self.otp_code:
             return self.otp_expires_at > timezone.now()
         return False
+
+    @classmethod
+    def get_or_create_for_user(cls, user):
+        """
+        Get or create MFASettings for a user, ensuring website is set.
+        
+        Args:
+            user: User instance
+            
+        Returns:
+            tuple: (MFASettings instance, created boolean)
+        """
+        # Get user's website
+        website = getattr(user, 'website', None)
+        if not website:
+            # Try to get website from user's profile or default website
+            from websites.models import Website
+            website = Website.objects.first()  # Fallback to first website
+        
+        if not website:
+            raise ValueError("User must have a website associated for MFA settings.")
+        
+        mfa_settings, created = cls.objects.get_or_create(
+            user=user,
+            defaults={'website': website}
+        )
+        # Ensure website is set even if object already exists
+        if mfa_settings.website != website:
+            mfa_settings.website = website
+            mfa_settings.save(update_fields=['website'])
+        
+        return mfa_settings, created

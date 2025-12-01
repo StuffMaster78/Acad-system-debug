@@ -15,5 +15,8 @@ export default {
   
   // Get referral dashboard data
   getReferrals: () => apiClient.get('/client-management/dashboard/referrals/'),
+  
+  // Get order activity timeline
+  getOrderActivityTimeline: (params) => apiClient.get('/client-management/dashboard/order-activity-timeline/', { params }),
 }
 

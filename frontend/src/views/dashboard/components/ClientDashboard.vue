@@ -427,6 +427,11 @@
         </router-link>
       </div>
     </div>
+
+    <!-- Order Activity Timeline -->
+    <div class="mt-6">
+      <OrderActivityTimeline />
+    </div>
   </div>
 </template>
 
@@ -435,6 +440,7 @@ import { computed } from 'vue'
 import StatsCard from '@/components/dashboard/StatsCard.vue'
 import QuickActionCard from '@/components/dashboard/QuickActionCard.vue'
 import ChartWidget from '@/components/dashboard/ChartWidget.vue'
+import OrderActivityTimeline from '@/components/client/OrderActivityTimeline.vue'
 
 const props = defineProps({
   clientDashboardData: {

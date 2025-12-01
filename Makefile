@@ -1,0 +1,125 @@
+.PHONY: help setup run run-frontend run-celery run-celery-beat test check migrations migrate shell restart logs clean nuke-db
+
+# Default target
+help:
+	@echo "Writing System Platform - Development Commands"
+	@echo ""
+	@echo "Available commands:"
+	@echo "  make setup           - Complete one-time setup (env files, migrations, superuser)"
+	@echo "  make run             - Start Django development server"
+	@echo "  make run-frontend   - Start Vue.js development server"
+	@echo "  make run-celery     - Start Celery worker"
+	@echo "  make run-celery-beat - Start Celery beat scheduler"
+	@echo "  make test           - Run all tests"
+	@echo "  make check           - Run code quality checks (linting, formatting)"
+	@echo "  make migrations      - Create new database migrations"
+	@echo "  make migrate         - Apply pending database migrations"
+	@echo "  make shell           - Open Django shell"
+	@echo "  make restart         - Restart all Docker services"
+	@echo "  make logs            - View logs from all services"
+	@echo "  make clean           - Stop and remove containers, volumes"
+	@echo "  make nuke-db         - Delete database and all migration files (USE WITH CAUTION)"
+	@echo ""
+
+# Complete setup
+setup:
+	@echo "🚀 Setting up Writing System Platform..."
+	@if [ ! -f backend/.env ]; then \
+		echo "📝 Creating backend/.env from template..."; \
+		cp backend/env.template backend/.env; \
+		echo "⚠️  Please edit backend/.env with your configuration"; \
+	fi
+	@echo "🐳 Starting Docker services..."
+	docker-compose up -d
+	@echo "⏳ Waiting for services to be ready..."
+	sleep 5
+	@echo "📦 Running database migrations..."
+	docker-compose exec -T web python manage.py migrate || true
+	@echo "✅ Setup complete!"
+	@echo ""
+	@echo "Next steps:"
+	@echo "  1. Edit backend/.env with your configuration"
+	@echo "  2. Create a superuser: make shell (then: python manage.py createsuperuser)"
+	@echo "  3. Start the server: make run"
+	@echo ""
+
+# Start Django development server
+run:
+	@echo "🚀 Starting Django development server..."
+	docker-compose up web
+
+# Start frontend development server
+run-frontend:
+	@echo "🚀 Starting Vue.js development server..."
+	cd frontend && npm run dev
+
+# Start Celery worker
+run-celery:
+	@echo "🚀 Starting Celery worker..."
+	docker-compose up celery
+
+# Start Celery beat scheduler
+run-celery-beat:
+	@echo "🚀 Starting Celery beat scheduler..."
+	docker-compose up beat
+
+# Run tests
+test:
+	@echo "🧪 Running tests..."
+	docker-compose exec -T web python manage.py test
+
+# Run code quality checks
+check:
+	@echo "🔍 Running code quality checks..."
+	@echo "Backend checks (if configured)..."
+	@# docker-compose exec -T web flake8 . || true
+	@# docker-compose exec -T web black --check . || true
+	@echo "Frontend checks..."
+	@cd frontend && npm run lint || true
+
+# Create migrations
+migrations:
+	@echo "📝 Creating database migrations..."
+	docker-compose exec web python manage.py makemigrations
+
+# Apply migrations
+migrate:
+	@echo "📦 Applying database migrations..."
+	docker-compose exec web python manage.py migrate
+
+# Open Django shell
+shell:
+	@echo "🐚 Opening Django shell..."
+	docker-compose exec web python manage.py shell
+
+# Restart all services
+restart:
+	@echo "🔄 Restarting all services..."
+	docker-compose restart
+
+# View logs
+logs:
+	@echo "📋 Viewing logs from all services..."
+	docker-compose logs -f
+
+# Clean up (stop and remove containers, volumes)
+clean:
+	@echo "🧹 Cleaning up Docker resources..."
+	docker-compose down -v
+	@echo "✅ Cleanup complete!"
+
+# Nuclear option: delete database and migrations (USE WITH CAUTION)
+nuke-db:
+	@echo "⚠️  WARNING: This will delete the database and all migration files!"
+	@echo "Press Ctrl+C to cancel, or Enter to continue..."
+	@read
+	@echo "🗑️  Stopping services..."
+	docker-compose down
+	@echo "🗑️  Removing database volume..."
+	docker volume rm writing_project_postgres_data || true
+	@echo "🗑️  Removing migration files..."
+	find backend -path "*/migrations/*.py" -not -name "__init__.py" -delete
+	find backend -path "*/migrations/*.pyc" -delete
+	@echo "✅ Database and migrations deleted!"
+	@echo "Run 'make setup' to recreate everything."
+

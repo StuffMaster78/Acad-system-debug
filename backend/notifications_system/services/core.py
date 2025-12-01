@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable, Optional
 from django.conf import settings
 from django.utils import timezone
 
+from notifications_system.config import NotificationSettings
 from notifications_system.enums import (
     NotificationPriority,
     NotificationType,
@@ -50,6 +51,9 @@ from notifications_system.utils.dedupe import allow_once
 
 from notifications_system.registry.notification_registry import get_event 
 from notifications_system.services.templates_registry import resolve_template
+from notifications_system.services.webhook_endpoints import (
+    WebhookEndpointService,
+)
 from notifications_system.services.dispatcher import queue_delivery
 from notifications_system.services.outbox import enqueue_outbox 
 from notifications_system.tasks.notification_tasks import process_outbox
@@ -277,6 +281,20 @@ class NotificationService:
         if not resolved_channels:
             resolved_channels = [NotificationType.IN_APP]
 
+        webhook_endpoints = []
+        if NotificationSettings.is_channel_enabled(NotificationType.WEBHOOK):
+            webhook_endpoints = WebhookEndpointService.get_active_endpoints(
+                user=user,
+                website=website,
+                event=event,
+            )
+            if webhook_endpoints and NotificationType.WEBHOOK not in resolved_channels:
+                resolved_channels.append(NotificationType.WEBHOOK)
+            if not webhook_endpoints:
+                resolved_channels = [
+                    ch for ch in resolved_channels if ch != NotificationType.WEBHOOK
+                ]
+
         # Filter by user prefs (only when not forced)
         if not forced:
             resolved_channels = filter_channels_by_user_preferences(
@@ -424,6 +442,9 @@ class NotificationService:
             status=DeliveryStatus.PENDING,
         )
 
+        # Cache webhook endpoints on the notification instance for later use.
+        setattr(notification, "_webhook_endpoints", webhook_endpoints)
+
         if is_silent:
             return notification
 
@@ -570,6 +591,12 @@ class NotificationService:
         Returns:
             True on success, False otherwise.
         """
+        if channel == NotificationType.WEBHOOK:
+            return NotificationService._deliver_webhook(
+                notification,
+                attempt=attempt,
+            )
+
         try:
             # Lazy import avoids cycles with delivery map.
             from notifications_system.delivery import CHANNEL_BACKENDS
@@ -681,6 +708,62 @@ class NotificationService:
             )
 
         return success
+
+    @staticmethod
+    def _deliver_webhook(notification, *, attempt: int = 1) -> bool:
+        """Deliver notification payload to every active webhook endpoint."""
+        try:
+            from notifications_system.delivery import CHANNEL_BACKENDS
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(
+                f"Delivery registry import failed: {exc}"
+            ) from exc
+
+        backend_cls = CHANNEL_BACKENDS.get(NotificationType.WEBHOOK)
+        if not backend_cls:
+            raise ValueError("Webhook delivery backend not registered.")
+
+        endpoints = getattr(notification, "_webhook_endpoints", None)
+        if endpoints is None:
+            endpoints = WebhookEndpointService.get_active_endpoints(
+                user=notification.user,
+                website=notification.website,
+                event=notification.event,
+            )
+
+        if not endpoints:
+            logger.info(
+                "Skipping webhook delivery: no endpoints for user=%s event=%s",
+                getattr(notification.user, "id", None),
+                notification.event,
+            )
+            return False
+
+        any_success = False
+        for endpoint in endpoints:
+            cfg = {
+                "url": endpoint.url,
+                "secret": endpoint.secret_token,
+                "headers": endpoint.headers or {},
+                "include_rendered": endpoint.include_rendered_fields,
+                "timeout": endpoint.timeout_seconds,
+                "algo": endpoint.signature_algorithm,
+            }
+            backend = backend_cls(notification, channel_config=cfg)
+            try:
+                success = bool(backend.send())
+            except Exception as exc:  # noqa: BLE001
+                logger.exception(
+                    "Webhook endpoint %s failed: %s",
+                    endpoint.id,
+                    exc,
+                )
+                success = False
+
+            WebhookEndpointService.record_delivery(endpoint, success=success)
+            any_success = any_success or success
+
+        return any_success
 
     # -----------------------
     # Optional extras kept

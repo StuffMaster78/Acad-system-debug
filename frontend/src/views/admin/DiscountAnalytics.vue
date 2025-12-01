@@ -181,9 +181,13 @@ const maxEventCount = computed(() => {
 const loadOverallStats = async () => {
   try {
     const response = await discountsAPI.getOverallStats()
-    stats.value = response.data
+    stats.value = response.data || {}
   } catch (error) {
-    console.error('Failed to load overall stats:', error)
+    // Only log if it's not a 404 (endpoint doesn't exist)
+    if (error?.response?.status !== 404) {
+      console.error('Failed to load overall stats:', error)
+    }
+    stats.value = {}
   }
 }
 
@@ -193,7 +197,11 @@ const loadTopUsed = async () => {
     const response = await discountsAPI.getTopUsed()
     topUsed.value = response.data || []
   } catch (error) {
-    console.error('Failed to load top used discounts:', error)
+    // Only log if it's not a 404 (endpoint doesn't exist)
+    if (error?.response?.status !== 404) {
+      console.error('Failed to load top used discounts:', error)
+    }
+    topUsed.value = []
   } finally {
     topUsedLoading.value = false
   }
@@ -205,7 +213,11 @@ const loadEventsBreakdown = async () => {
     const response = await discountsAPI.getEventsBreakdown()
     eventsBreakdown.value = response.data || []
   } catch (error) {
-    console.error('Failed to load events breakdown:', error)
+    // Only log if it's not a 404 (endpoint doesn't exist)
+    if (error?.response?.status !== 404) {
+      console.error('Failed to load events breakdown:', error)
+    }
+    eventsBreakdown.value = []
   } finally {
     eventsLoading.value = false
   }
@@ -223,7 +235,11 @@ const loadDiscountUsage = async () => {
     const response = await discountsAPI.listUsage(params)
     discountUsage.value = response.data.results || response.data || []
   } catch (error) {
-    console.error('Failed to load discount usage:', error)
+    // Only log if it's not a 404 (endpoint doesn't exist)
+    if (error?.response?.status !== 404) {
+      console.error('Failed to load discount usage:', error)
+    }
+    discountUsage.value = []
   } finally {
     usageLoading.value = false
   }

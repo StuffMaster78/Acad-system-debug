@@ -21,6 +21,12 @@
         description="View payment history"
       />
       <QuickActionCard
+        to="/writer/advance-payments"
+        icon="💳"
+        title="Advance Payments"
+        description="Request advance payments"
+      />
+      <QuickActionCard
         to="/writer/performance"
         icon="⭐"
         title="Badges & Performance"
@@ -1043,6 +1049,14 @@
       </div>
     </div>
 
+    <!-- Payment Status Widget -->
+    <div v-if="writerPaymentStatus" class="mt-6">
+      <PaymentStatusWidget
+        :payment-status="writerPaymentStatus"
+        :loading="loading"
+      />
+    </div>
+
     <!-- Recent Orders -->
     <div class="card bg-white rounded-lg shadow-sm p-6">
       <div class="flex items-center justify-between mb-4">
@@ -1070,6 +1084,7 @@ import StatsCard from '@/components/dashboard/StatsCard.vue'
 import QuickActionCard from '@/components/dashboard/QuickActionCard.vue'
 import ChartWidget from '@/components/dashboard/ChartWidget.vue'
 import Modal from '@/components/common/Modal.vue'
+import PaymentStatusWidget from '@/components/writer/PaymentStatusWidget.vue'
 import writerOrderRequestsAPI from '@/api/writer-order-requests'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import { useToast } from '@/composables/useToast'
@@ -1083,6 +1098,7 @@ const props = defineProps({
   writerBadgesData: Object,
   writerLevelData: Object,
   writerSummaryData: Object,
+  writerPaymentStatus: Object,
   recentOrders: Array,
   recentOrdersLoading: Boolean,
   loading: Boolean,

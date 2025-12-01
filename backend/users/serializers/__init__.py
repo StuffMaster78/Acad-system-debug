@@ -3,9 +3,9 @@ import importlib.util
 import sys
 from pathlib import Path
 
-# Import from the serializers.py file directly (not the package)
+# Import from the serializers_legacy.py file directly (not the package)
 _parent_dir = Path(__file__).parent.parent
-_legacy_path = _parent_dir / 'serializers.py'
+_legacy_path = _parent_dir / 'serializers_legacy.py'
 
 SimpleUserSerializer = None
 UserSerializer = None

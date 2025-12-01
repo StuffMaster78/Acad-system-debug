@@ -230,7 +230,11 @@ const loadAwardSources = async () => {
     const res = await loyaltyTrackingAPI.getAwardSources()
     awardSources.value = res.data || {}
   } catch (e) {
-    console.error('Failed to load award sources:', e)
+    // Only log if it's not a 404 (endpoint doesn't exist)
+    if (e?.response?.status !== 404) {
+      console.error('Failed to load award sources:', e)
+    }
+    awardSources.value = {}
   }
 }
 

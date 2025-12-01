@@ -57,16 +57,33 @@ services:
   redis:
     image: redis:latest
     restart: always
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    # Require password from .env file (only if set)
+    command: >
+      sh -c "
+      if [ -n \"$$REDIS_PASSWORD\" ] && [ \"$$REDIS_PASSWORD\" != \"\" ]; then
+        redis-server --requirepass \"$$REDIS_PASSWORD\"
+      else
+        redis-server
+      fi
+      "
+    env_file:
+      - ./backend/.env
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - DJANGO_SETTINGS_MODULE=writing_system.settings
     ports:
       - "6380:6379"  # Expose Redis (using 6380 to avoid conflict with host Redis)
     healthcheck:
-      test: ["CMD", "redis-cli", "-h", "localhost", "ping"]
+      # Healthcheck with password if set
+      test: >
+        sh -c "
+        if [ -n \"$$REDIS_PASSWORD\" ] && [ \"$$REDIS_PASSWORD\" != \"\" ]; then
+          redis-cli -a \"$$REDIS_PASSWORD\" ping
+        else
+          redis-cli ping
+        fi
+        "
       interval: 10s
       timeout: 5s
       retries: 3

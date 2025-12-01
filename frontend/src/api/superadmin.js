@@ -65,7 +65,7 @@ const superadminAPI = {
     return apiClient.get(`/superadmin-management/logs/${id}/`)
   },
   
-  // Websites/Tenants (using websites API)
+  // Websites/Tenants (using websites API - legacy)
   listWebsites(params = {}) {
     return apiClient.get('/websites/websites/', { params })
   },
@@ -84,6 +84,39 @@ const superadminAPI = {
   
   deleteWebsite(id) {
     return apiClient.delete(`/websites/websites/${id}/`)
+  },
+  
+  // Tenant Management (new comprehensive endpoints)
+  listTenants(params = {}) {
+    return apiClient.get('/superadmin-management/tenants/list_tenants/', { params })
+  },
+  
+  createTenant(data) {
+    return apiClient.post('/superadmin-management/tenants/create_tenant/', data)
+  },
+  
+  getTenantDetails(id) {
+    return apiClient.get(`/superadmin-management/tenants/${id}/tenant_details/`)
+  },
+  
+  updateTenant(id, data) {
+    return apiClient.patch(`/superadmin-management/tenants/${id}/update_tenant/`, data)
+  },
+  
+  deleteTenant(id) {
+    return apiClient.delete(`/superadmin-management/tenants/${id}/delete_tenant/`)
+  },
+  
+  restoreTenant(id) {
+    return apiClient.post(`/superadmin-management/tenants/${id}/restore_tenant/`)
+  },
+  
+  getTenantAnalytics(id, params = {}) {
+    return apiClient.get(`/superadmin-management/tenants/${id}/analytics/`, { params })
+  },
+  
+  getTenantComparison(params = {}) {
+    return apiClient.get('/superadmin-management/tenants/comparison/', { params })
   },
 }
 

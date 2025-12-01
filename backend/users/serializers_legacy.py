@@ -50,6 +50,9 @@ class UserListSerializer(serializers.ModelSerializer):
 class UserDetailSerializer(serializers.ModelSerializer):
     display_avatar = serializers.SerializerMethodField()
     profile_data = serializers.SerializerMethodField()
+    phone_number = serializers.SerializerMethodField()
+    avatar = serializers.SerializerMethodField()
+    profile_picture = serializers.SerializerMethodField()
     website = serializers.SlugRelatedField(
         slug_field='domain',
         read_only=True
@@ -71,6 +74,25 @@ class UserDetailSerializer(serializers.ModelSerializer):
 
     def get_profile_data(self, obj):
         return obj.get_profile()
+    
+    def get_phone_number(self, obj):
+        """Get phone number from UserProfile if available."""
+        if hasattr(obj, 'user_main_profile') and obj.user_main_profile:
+            return str(obj.user_main_profile.phone_number) if obj.user_main_profile.phone_number else None
+        return None
+    
+    def get_avatar(self, obj):
+        """Get avatar from UserProfile if available."""
+        if hasattr(obj, 'user_main_profile') and obj.user_main_profile:
+            return obj.user_main_profile.avatar
+        return None
+    
+    def get_profile_picture(self, obj):
+        """Get profile picture URL from UserProfile if available."""
+        if hasattr(obj, 'user_main_profile') and obj.user_main_profile:
+            if obj.user_main_profile.profile_picture:
+                return obj.user_main_profile.profile_picture.url
+        return None
 
 class ClientProfileSerializer(serializers.ModelSerializer):
     """
@@ -92,11 +114,12 @@ class ClientProfileSerializer(serializers.ModelSerializer):
     last_name = serializers.SerializerMethodField()
     full_name = serializers.SerializerMethodField()
     registration_id = serializers.CharField(read_only=True)
+    membership_tier = serializers.SerializerMethodField()
 
     class Meta:
         model = ClientProfile
         fields = [
-            'user', 'loyalty_points', 'membership_tier', 'notes', 'tasks',
+            'user', 'loyalty_points', 'membership_tier',
             'phone_number', 'bio', 'avatar', 'avatar_url', 'country', 'state',
             'email', 'username', 'first_name', 'last_name', 'full_name',
             'registration_id'
@@ -159,6 +182,12 @@ class ClientProfileSerializer(serializers.ModelSerializer):
         elif obj.user.last_name:
             return obj.user.last_name
         return obj.user.username
+    
+    def get_membership_tier(self, obj):
+        """Get membership tier name from the tier ForeignKey."""
+        if obj.tier:
+            return obj.tier.name if hasattr(obj.tier, 'name') else str(obj.tier)
+        return None
 
     def to_representation(self, instance):
         """Override to optimize database query by using select_related."""

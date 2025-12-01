@@ -370,7 +370,8 @@ REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", "")  # Default Redis password
 
 
 def _redis_url(db: int) -> str:
-    if REDIS_PASSWORD:
+    # Only include password if it's set and not empty
+    if REDIS_PASSWORD and REDIS_PASSWORD.strip():
         return (
             f"redis://:{quote_plus(REDIS_PASSWORD)}@"
             f"{REDIS_HOST}:{REDIS_PORT}/{db}"

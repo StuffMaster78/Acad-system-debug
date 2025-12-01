@@ -34,7 +34,7 @@ from .throttles import SuperAdminAuditThrottle
 
 
 class MessageThrottle(UserRateThrottle):
-    rate = '10/min'
+    rate = '30/min'  # Increased from 10/min for better messaging experience
 
 class MessagePagination(PageNumberPagination):
     """Pagination for messages in threads."""
@@ -109,12 +109,12 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         
-        order = serializer.validated_data["order"]
+        order = serializer.validated_data.get("order")  # Can be None for general threads
         participants = serializer.validated_data.get("participants", [])
         created_by = request.user
 
-        # Check thread creation permission
-        if not getattr(created_by, "role", None) in ["admin", "superadmin"]:
+        # Check thread creation permission (only for order threads)
+        if order and not getattr(created_by, "role", None) in ["admin", "superadmin"]:
             ThreadService.assert_can_create_thread(order)
 
         # Auto-determine participants if not provided (simplified approach)
@@ -307,6 +307,143 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         
         return Response(recipients)
     
+    @action(detail=False, methods=['post'], url_path='create-general-thread')
+    def create_general_thread(self, request):
+        """
+        Create a general messaging thread without requiring an order.
+        This is for direct communication between users (not order-related).
+        
+        POST /api/v1/order-communications/communication-threads/create-general-thread/
+        
+        Body:
+        {
+            "recipient_id": 123,
+            "message": "Your initial message",
+            "thread_type": "general" (optional)
+        }
+        """
+        recipient_id = request.data.get('recipient_id')
+        initial_message = request.data.get('message', '').strip()
+        thread_type = request.data.get('thread_type', 'general')
+        
+        if not recipient_id:
+            return Response(
+                {"detail": "recipient_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not initial_message:
+            return Response(
+                {"detail": "Initial message is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            recipient = User.objects.get(pk=recipient_id)
+        except User.DoesNotExist:
+            return Response(
+                {"detail": "Recipient not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        user = request.user
+        
+        # Check if thread already exists between these two users
+        existing_thread = CommunicationThread.objects.filter(
+            participants=user
+        ).filter(
+            participants=recipient
+        ).filter(
+            order__isnull=True,
+            thread_type=thread_type
+        ).first()
+        
+        if existing_thread:
+            # Thread exists, just send the message
+            try:
+                sender_role = getattr(user, 'role', None) or 'client'
+                comm_message = MessageService.create_message(
+                    thread=existing_thread,
+                    sender=user,
+                    recipient=recipient,
+                    sender_role=sender_role,
+                    message=initial_message,
+                    message_type="text"
+                )
+                serializer = CommunicationThreadSerializer(existing_thread, context={'request': request})
+                return Response(
+                    {
+                        "detail": "Message sent to existing conversation.",
+                        "thread": serializer.data
+                    },
+                    status=status.HTTP_200_OK
+                )
+            except Exception as e:
+                return Response(
+                    {"detail": f"Failed to send message: {str(e)}"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Create new thread
+        try:
+            # Get website from current user
+            website = getattr(user, 'website', None)
+            if not website:
+                # Try to get from user's profile
+                if hasattr(user, 'user_main_profile') and user.user_main_profile:
+                    website = getattr(user.user_main_profile, 'website', None)
+            
+            if not website:
+                return Response(
+                    {"detail": "Unable to determine website. Please contact support."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Determine roles
+            sender_role = getattr(user, 'role', None) or 'client'
+            recipient_role = getattr(recipient, 'role', None) or 'client'
+            
+            # Create thread without order
+            thread = CommunicationThread.objects.create(
+                order=None,
+                website=website,
+                thread_type=thread_type,
+                sender_role=sender_role,
+                recipient_role=recipient_role,
+                is_active=True
+            )
+            
+            thread.participants.set([user, recipient])
+            
+            # Send initial message
+            comm_message = MessageService.create_message(
+                thread=thread,
+                sender=user,
+                recipient=recipient,
+                sender_role=sender_role,
+                message=initial_message,
+                message_type="text"
+            )
+            
+            serializer = CommunicationThreadSerializer(thread, context={'request': request})
+            return Response(
+                {
+                    "detail": "Conversation started successfully.",
+                    "thread": serializer.data
+                },
+                status=status.HTTP_201_CREATED
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Error creating general thread: {e}")
+            return Response(
+                {"detail": f"Failed to create conversation: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
     @action(detail=False, methods=['post'], url_path='start-for-order')
     def start_for_order(self, request):
         """
@@ -434,6 +571,129 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
             
             return Response(
                 {"detail": "An error occurred while creating the conversation thread. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @action(detail=True, methods=['post'], url_path='send-message-simple')
+    def send_message_simple(self, request, pk=None):
+        """
+        Simplified message sending endpoint that auto-detects recipient.
+        This makes sending messages much easier - just provide the message text.
+        
+        POST /api/v1/order-communications/communication-threads/{id}/send-message-simple/
+        
+        Body:
+        {
+            "message": "Your message text here",
+            "attachment": <file> (optional),
+            "reply_to": <message_id> (optional)
+        }
+        """
+        thread = self.get_object()
+        user = request.user
+        
+        # Check permissions
+        if not CommunicationGuardService.can_send_message(user, thread):
+            return Response(
+                {"detail": "You do not have permission to send messages in this thread."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Auto-detect recipient (the other participant in the thread)
+        participants = list(thread.participants.exclude(id=user.id))
+        
+        if not participants:
+            # If no other participants, try to get from order
+            order = getattr(thread, 'order', None)
+            if order:
+                if user == order.client and order.assigned_writer:
+                    recipient = order.assigned_writer
+                elif user == order.assigned_writer and order.client:
+                    recipient = order.client
+                else:
+                    # For staff, default to client or writer
+                    recipient = order.client or order.assigned_writer
+            else:
+                return Response(
+                    {"detail": "Cannot determine recipient. Please specify a recipient."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        else:
+            # Use the first other participant (most common case: 2-person thread)
+            recipient = participants[0]
+            # If multiple participants and user is staff, prefer client or writer
+            if len(participants) > 1 and getattr(user, 'role', None) in ['admin', 'superadmin', 'support', 'editor']:
+                order = getattr(thread, 'order', None)
+                if order:
+                    if order.client in participants:
+                        recipient = order.client
+                    elif order.assigned_writer in participants:
+                        recipient = order.assigned_writer
+        
+        message_text = request.data.get('message', '').strip()
+        attachment_file = request.FILES.get('attachment')
+        reply_to_id = request.data.get('reply_to')
+        
+        if not message_text and not attachment_file:
+            return Response(
+                {"detail": "Message text or attachment is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get reply_to message if provided
+        reply_to = None
+        if reply_to_id:
+            try:
+                reply_to = CommunicationMessage.objects.get(
+                    id=reply_to_id,
+                    thread=thread
+                )
+            except CommunicationMessage.DoesNotExist:
+                return Response(
+                    {"detail": "Reply-to message not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
+        try:
+            sender_role = getattr(user, 'role', None) or 'client'
+            
+            # Create message using the service
+            comm_message = MessageService.create_message(
+                thread=thread,
+                sender=user,
+                recipient=recipient,
+                sender_role=sender_role,
+                message=message_text or "📎 File attachment",
+                message_type="file" if attachment_file else "text",
+                reply_to=reply_to,
+                attachment_file=attachment_file
+            )
+            
+            # Serialize and return
+            serializer = CommunicationMessageSerializer(comm_message, context={'request': request})
+            return Response(
+                {
+                    "detail": "Message sent successfully.",
+                    "message": serializer.data
+                },
+                status=status.HTTP_201_CREATED
+            )
+        except ValueError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except PermissionError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error sending message: {str(e)}", exc_info=True)
+            return Response(
+                {"detail": "An error occurred while sending the message. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     

@@ -150,38 +150,22 @@
 
         <!-- Paper Type and Academic Level -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Paper Type <span class="text-red-500">*</span>
-            </label>
-            <select
-              v-model="form.paper_type_id"
-              required
-              class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              @change="loadPricing"
-            >
-              <option value="">Select paper type</option>
-              <option v-for="pt in paperTypes" :key="pt.id" :value="pt.id">
-                {{ pt.name }}
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Academic Level <span class="text-red-500">*</span>
-            </label>
-            <select
-              v-model="form.academic_level_id"
-              required
-              class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              @change="loadPricing"
-            >
-              <option value="">Select academic level</option>
-              <option v-for="level in academicLevels" :key="level.id" :value="level.id">
-                {{ level.name }}
-              </option>
-            </select>
-          </div>
+          <DatabaseSelect
+            v-model="form.paper_type_id"
+            source="paper-types"
+            label="Paper Type"
+            placeholder="Select a paper type..."
+            required
+            @change="loadPricing"
+          />
+          <DatabaseSelect
+            v-model="form.academic_level_id"
+            source="academic-levels"
+            label="Academic Level"
+            placeholder="Select an academic level..."
+            required
+            @change="loadPricing"
+          />
         </div>
 
         <!-- Pages and Deadline -->
@@ -228,37 +212,22 @@
 
         <!-- Subject and Type of Work -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Subject <span class="text-red-500">*</span>
-            </label>
-            <select
-              v-model="form.subject_id"
-              required
-              class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-              @change="loadPricing"
-            >
-              <option value="">Select subject</option>
-              <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
-                {{ subject.name }}
-                <span v-if="subject.is_technical"> (Technical)</span>
-              </option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Type of Work
-            </label>
-            <select
-              v-model="form.type_of_work_id"
-              class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Select type of work</option>
-              <option v-for="work in typesOfWork" :key="work.id" :value="work.id">
-                {{ work.name }}
-              </option>
-            </select>
-          </div>
+          <DatabaseSelect
+            v-model="form.subject_id"
+            source="subjects"
+            label="Subject"
+            placeholder="Select a subject..."
+            required
+            :sort-fn="(a, b) => a.name.localeCompare(b.name)"
+            @change="loadPricing"
+          />
+          <DatabaseSelect
+            v-model="form.type_of_work_id"
+            source="types-of-work"
+            label="Type of Work"
+            placeholder="Select type of work..."
+            @change="loadPricing"
+          />
         </div>
 
       </div>
@@ -287,36 +256,20 @@
 
         <!-- Formatting Style and English Type -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              Formatting & Citation Style
-            </label>
-            <select
-              v-model="form.formatting_style_id"
-              class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Select formatting style</option>
-              <option v-for="style in formattingStyles" :key="style.id" :value="style.id">
-                {{ style.name }}
-              </option>
-            </select>
-            <p class="text-xs text-gray-500 mt-1">e.g., APA, MLA, Chicago, Harvard</p>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-2">
-              English Type
-            </label>
-            <select
-              v-model="form.english_type_id"
-              class="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            >
-              <option value="">Select English type</option>
-              <option v-for="et in englishTypes" :key="et.id" :value="et.id">
-                {{ et.name }} ({{ et.code }})
-              </option>
-            </select>
-            <p class="text-xs text-gray-500 mt-1">US, UK, AU, CA, or International</p>
-          </div>
+          <DatabaseSelect
+            v-model="form.formatting_style_id"
+            source="formatting-styles"
+            label="Formatting & Citation Style"
+            placeholder="Select formatting style..."
+            helper-text="e.g., APA, MLA, Chicago, Harvard"
+          />
+          <DatabaseSelect
+            v-model="form.english_type_id"
+            source="english-types"
+            label="English Type"
+            placeholder="Select English type..."
+            helper-text="US, UK, AU, CA, or International"
+          />
         </div>
 
         <!-- Spacing and References -->
@@ -667,6 +620,7 @@ import SafeHtml from '@/components/common/SafeHtml.vue'
 import FileUpload from '@/components/common/FileUpload.vue'
 import Modal from '@/components/common/Modal.vue'
 import Tooltip from '@/components/common/Tooltip.vue'
+import DatabaseSelect from '@/components/common/DatabaseSelect.vue'
 import { formatWriterName, formatClientName } from '@/utils/formatDisplay'
 
 const router = useRouter()

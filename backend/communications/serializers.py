@@ -72,8 +72,9 @@ class CommunicationThreadSerializer(serializers.ModelSerializer):
 class CreateCommunicationThreadSerializer(serializers.Serializer):
     """Serializer for creating a new communication thread."""
     order = serializers.IntegerField(
-        required=True,
-        help_text="Order ID for this thread"
+        required=False,
+        allow_null=True,
+        help_text="Order ID for this thread (optional for general threads)"
     )
     website = serializers.IntegerField(
         required=False,
@@ -94,6 +95,8 @@ class CreateCommunicationThreadSerializer(serializers.Serializer):
 
     def validate_order(self, value):
         """Validate order exists and is accessible."""
+        if value is None:
+            return None
         from orders.models import Order
         try:
             order = Order.objects.get(id=value)
@@ -234,6 +237,7 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
     read_receipts = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
     link_preview_json = serializers.JSONField(read_only=True)
+    reactions = serializers.SerializerMethodField()
 
     class Meta:
         model = CommunicationMessage
@@ -243,7 +247,8 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
             "reply_to_id", "message_type", "link_url", "link_domain",
             "is_flagged", "is_hidden", "contains_link", "is_link_approved",
             "is_read", "sent_at", "flagged_message", "read_receipts", "attachment",
-            "unread_count", "is_system", "is_sender", "link_preview", "link_preview_json"
+            "unread_count", "is_system", "is_sender", "link_preview", "link_preview_json",
+            "reactions"
         ]
         read_only_fields = [
             "id", "thread", "sender",
@@ -446,6 +451,28 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
                 "read_at": receipt.read_at.strftime("%Y-%m-%d %H:%M:%S"),
             }
             for receipt in obj.messagereadreceipt_set.select_related("user__profile")
+        ]
+    
+    def get_reactions(self, obj):
+        """Get all reactions for this message grouped by reaction type."""
+        from collections import defaultdict
+        
+        reactions_data = defaultdict(list)
+        for reaction in obj.reactions.select_related('user').all():
+            reactions_data[reaction.reaction].append({
+                'user_id': reaction.user.id,
+                'username': reaction.user.username,
+                'created_at': reaction.created_at.strftime("%Y-%m-%d %H:%M:%S")
+            })
+        
+        # Convert to list format: [{'reaction': '👍', 'users': [...]}, ...]
+        return [
+            {
+                'reaction': reaction,
+                'count': len(users),
+                'users': users
+            }
+            for reaction, users in reactions_data.items()
         ]
 
 

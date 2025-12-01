@@ -44,4 +44,7 @@ export default {
   getOverallStats: () => apiClient.get(`/discounts/discounts/analytics/`, { params: { type: 'stats' } }),
   getTopUsed: () => apiClient.get(`/discounts/discounts/analytics/`, { params: { type: 'top-used' } }),
   getEventsBreakdown: () => apiClient.get(`/discounts/discounts/analytics/`, { params: { type: 'events-breakdown' } }),
+  
+  // Bulk Operations
+  bulkGenerate: (data) => apiClient.post('/discounts/discounts/bulk-generate/', data),
 }

@@ -252,17 +252,20 @@ class AdminManager:
             if not permissions:
                 return {"status": "error", "message": "No permissions found for this role"}
 
-            # Fetch or create the group and assign permissions
-            admin_group, _ = Group.objects.get_or_create(name="Admin")
-
-            for perm in permissions:
-                permission = Permission.objects.filter(codename=perm).first()
-                if permission:
-                    admin_group.permissions.add(permission)
-                else:
-                    return {"status": "error", "message": f"Permission '{perm}' not found."}
-
-            admin_profile.user.groups.add(admin_group)
+            # Use refined group service for consistent group creation
+            from users.services.group_service import UserGroupService
+            try:
+                UserGroupService.assign_user_to_group(admin_profile.user, admin_profile.user.role)
+            except Exception as e:
+                # Fallback to old method if service fails
+                admin_group, _ = Group.objects.get_or_create(name="Admin")
+                for perm in permissions:
+                    permission = Permission.objects.filter(codename=perm).first()
+                    if permission:
+                        admin_group.permissions.add(permission)
+                    else:
+                        return {"status": "error", "message": f"Permission '{perm}' not found."}
+                admin_profile.user.groups.add(admin_group)
 
             # Log action
             AdminLog = get_admin_log_model()

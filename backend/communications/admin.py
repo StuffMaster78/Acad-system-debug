@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import (
+    MessageReaction,
     CommunicationMessage, CommunicationThread, CommunicationNotification, 
     ScreenedWord, CommunicationLog, DisputeMessage, FlaggedMessage,
     MessageReadReceipt, SystemAlert, WebSocketAuditLog
@@ -194,6 +195,26 @@ class MessageReadReceiptAdmin(admin.ModelAdmin):
     search_fields = ("user__username", "message__id")
     list_filter = ("read_at",)
     readonly_fields = ("read_at",)
+
+    def user_username(self, obj):
+        return obj.user.username if obj.user else "-"
+
+    def message_id(self, obj):
+        return obj.message.id if obj.message else "-"
+
+
+@admin.register(MessageReaction)
+class MessageReactionAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "message_id",
+        "user_username",
+        "reaction",
+        "created_at"
+    )
+    search_fields = ("user__username", "message__id", "reaction")
+    list_filter = ("reaction", "created_at")
+    readonly_fields = ("created_at",)
 
     def user_username(self, obj):
         return obj.user.username if obj.user else "-"

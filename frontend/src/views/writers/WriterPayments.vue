@@ -6,6 +6,13 @@
         <p class="text-gray-600 mt-1">View your payment history and upcoming payments</p>
       </div>
       <div class="flex items-center gap-2">
+        <router-link
+          to="/writer/advance-payments"
+          class="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold shadow-sm hover:shadow-md"
+        >
+          <span>💳</span>
+          <span>Request Advance Payment</span>
+        </router-link>
         <select
           v-model="periodView"
           @change="loadPayments"
@@ -92,6 +99,23 @@
             <option value="fortnightly">Fortnightly View</option>
           </select>
         </div>
+      </div>
+    </div>
+
+    <!-- Advance Payments CTA -->
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg shadow-lg p-6 text-white">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="text-2xl font-bold mb-2">Need Money Before Payday?</h2>
+          <p class="text-primary-100">Request an advance payment against your earnings</p>
+        </div>
+        <router-link
+          to="/writer/advance-payments"
+          class="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg hover:bg-primary-50 transition-colors shadow-md hover:shadow-lg font-semibold"
+        >
+          <span>💳</span>
+          <span>Request Advance</span>
+        </router-link>
       </div>
     </div>
 

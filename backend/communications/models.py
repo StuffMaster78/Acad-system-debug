@@ -485,6 +485,40 @@ class CommunicationReadReceipt(models.Model):
         return f"Read by {self.user} at {self.read_at}"
 
 
+class MessageReaction(models.Model):
+    """
+    Tracks reactions (emojis) on messages for enhanced communication.
+    """
+    REACTION_CHOICES = [
+        ('👍', '👍'),
+        ('❤️', '❤️'),
+        ('😊', '😊'),
+        ('🎉', '🎉'),
+        ('✅', '✅'),
+        ('❌', '❌'),
+        ('⚠️', '⚠️'),
+        ('💡', '💡'),
+    ]
+    
+    message = models.ForeignKey(
+        CommunicationMessage,
+        on_delete=models.CASCADE,
+        related_name="reactions"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE
+    )
+    reaction = models.CharField(max_length=10, choices=REACTION_CHOICES)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together = ("message", "user", "reaction")
+        ordering = ["-created_at"]
+    
+    def __str__(self):
+        return f"{self.user} reacted {self.reaction} to message {self.message.id}"
+
 
 class CommunicationNotification(models.Model):
     """

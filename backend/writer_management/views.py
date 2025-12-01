@@ -207,20 +207,35 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
         """
         Get the current writer's own profile with hierarchy details.
         """
-        # Check if user has writer role or writer_profile
+        from websites.models import Website
+        
+        # Check if user has writer role
         user_role = getattr(request.user, 'role', None)
         if user_role != 'writer':
-            # Still allow if they have a writer_profile (more flexible)
-            try:
-                profile = request.user.writer_profile
-            except WriterProfile.DoesNotExist:
             return Response(
                 {"detail": "This endpoint is only available for writers."},
                 status=status.HTTP_403_FORBIDDEN
             )
-        else:
+        
+        # Get writer profile - try to get by website if provided, otherwise get first one
+        website_id = request.query_params.get('website') or request.headers.get('X-Website')
+        
         try:
-            profile = request.user.writer_profile
+            if website_id:
+                # Try to get profile for specific website
+                try:
+                    website = Website.objects.get(id=website_id)
+                    profile = WriterProfile.objects.get(user=request.user, website=website)
+                except (Website.DoesNotExist, WriterProfile.DoesNotExist):
+                    # Fallback to any profile for this user
+                    profile = WriterProfile.objects.filter(user=request.user).first()
+                    if not profile:
+                        raise WriterProfile.DoesNotExist
+            else:
+                # Get first available profile for this user
+                profile = WriterProfile.objects.filter(user=request.user).first()
+                if not profile:
+                    raise WriterProfile.DoesNotExist
         except WriterProfile.DoesNotExist:
             return Response(
                 {"detail": "Writer profile not found."},

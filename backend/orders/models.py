@@ -1720,3 +1720,76 @@ class SoftDeletableMixin(models.Model):
         self.is_deleted = False
         self.restored_at = timezone.now()
         self.restored_by = user
+
+
+class OrderTemplate(models.Model):
+    """Template for quick order creation."""
+    
+    client = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='order_templates',
+        limit_choices_to={'role': 'client'}
+    )
+    website = models.ForeignKey(Website, on_delete=models.CASCADE)
+    
+    # Template details
+    name = models.CharField(max_length=200, help_text="Template name for easy identification")
+    description = models.TextField(blank=True, help_text="Optional description")
+    
+    # Order fields (matching Order model)
+    topic = models.CharField(max_length=500)
+    paper_type = models.ForeignKey(
+        'order_configs.PaperType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    academic_level = models.ForeignKey(
+        'order_configs.AcademicLevel',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    subject = models.ForeignKey(
+        'order_configs.Subject',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    number_of_pages = models.PositiveIntegerField(default=1)
+    order_instructions = models.TextField()
+    
+    # Additional services (stored as JSON)
+    additional_services = models.JSONField(default=list, blank=True)
+    
+    # Preferred settings
+    preferred_writer_id = models.IntegerField(null=True, blank=True)
+    preferred_deadline_days = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Default number of days from now for deadline"
+    )
+    
+    # Metadata
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    last_used_at = models.DateTimeField(null=True, blank=True)
+    usage_count = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['-last_used_at', '-created_at']
+        indexes = [
+            models.Index(fields=['client', 'is_active']),
+            models.Index(fields=['website']),
+        ]
+    
+    def __str__(self):
+        return f"{self.name} - {self.client.username}"
+    
+    def mark_used(self):
+        """Mark template as used and update usage count."""
+        self.last_used_at = timezone.now()
+        self.usage_count += 1
+        self.save(update_fields=['last_used_at', 'usage_count'])

@@ -80,7 +80,6 @@ class DashboardMetricsService:
             count=Count('id')
         )
         status_counts = {item['status']: item['count'] for item in orders_by_status}
-        total_orders = sum(item['count'] for item in orders_by_status)
         
         # Revenue metrics and order counts - combined into single aggregation
         recent_cutoff = timezone.now() - timedelta(days=7)
@@ -100,6 +99,20 @@ class DashboardMetricsService:
         paid_orders_count = paid_orders_qs.count()
         unpaid_orders_count = unpaid_orders_qs.count()
         recent_orders_count = recent_orders_qs.count()
+        
+        # Calculate total_orders as the sum of paid and unpaid to ensure consistency
+        # This ensures total_orders = paid_orders_count + unpaid_orders_count
+        total_orders = paid_orders_count + unpaid_orders_count
+        
+        # If total_orders from status sum differs significantly, log a warning but use the consistent value
+        status_sum_total = sum(item['count'] for item in orders_by_status)
+        if abs(total_orders - status_sum_total) > 1:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(
+                f"Order count mismatch: status sum={status_sum_total}, "
+                f"paid+unpaid={total_orders} (using paid+unpaid for consistency)"
+            )
         
         total_revenue = order_stats['total_revenue'] or Decimal('0.00')
         

@@ -1,21 +1,28 @@
-from django.shortcuts import get_object_or_404
-from django.utils.functional import cached_property
-from rest_framework import status, decorators, viewsets, mixins
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.pagination import PageNumberPagination
-from django.db import models
+from datetime import datetime, time
 from decimal import Decimal
 
+from django.conf import settings
+from django.db import models
+from django.db.models import Q
+from django.shortcuts import get_object_or_404
+from django.utils import timezone
+from django.utils.dateparse import parse_date, parse_datetime
+from django.utils.functional import cached_property
+from rest_framework import decorators, mixins, status, viewsets
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+
 from orders.models import Order
-from orders.serializers import OrderSerializer
+from orders.order_enums import OrderFlags, OrderStatus
 from orders.permissions import IsOrderOwnerOrSupport
-from orders.services.order_deletion_service import (
-    OrderDeletionService, ALLOWED_STAFF_ROLES
-)
-from orders.exceptions import InvalidTransitionError
+from orders.serializers import OrderSerializer
 from order_payments_management.models import OrderPayment
+from orders.exceptions import InvalidTransitionError
+from orders.services.order_deletion_service import (
+    ALLOWED_STAFF_ROLES,
+    OrderDeletionService,
+)
 
 
 class LimitedPagination(PageNumberPagination):
@@ -37,11 +44,49 @@ class LimitedPagination(PageNumberPagination):
         })
 
 
-class OrderBaseViewSet(
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    viewsets.GenericViewSet
-):
+STATUS_GROUPS = {
+    "active": [
+        OrderStatus.CREATED.value,
+        OrderStatus.PENDING.value,
+        OrderStatus.UNPAID.value,
+        OrderStatus.AVAILABLE.value,
+        OrderStatus.ASSIGNED.value,
+        OrderStatus.IN_PROGRESS.value,
+        OrderStatus.UNDER_EDITING.value,
+        OrderStatus.ON_HOLD.value,
+        OrderStatus.SUBMITTED.value,
+    ],
+    "pending": [
+        OrderStatus.PENDING.value,
+        OrderStatus.UNPAID.value,
+        OrderStatus.PENDING_PREFERRED.value,
+        OrderStatus.AVAILABLE.value,
+    ],
+    "needs_attention": [
+        OrderStatus.REVISION_REQUESTED.value,
+        OrderStatus.ON_REVISION.value,
+        OrderStatus.REVISED.value,
+        OrderStatus.DISPUTED.value,
+        OrderStatus.LATE.value,
+        OrderStatus.CRITICAL.value,
+    ],
+    "completed": [
+        OrderStatus.COMPLETED.value,
+        OrderStatus.APPROVED.value,
+        OrderStatus.RATED.value,
+        OrderStatus.REVIEWED.value,
+        OrderStatus.CLOSED.value,
+    ],
+    "archived": [
+        OrderStatus.ARCHIVED.value,
+        OrderStatus.REFUNDED.value,
+        OrderStatus.CANCELLED.value,
+        OrderStatus.EXPIRED.value,
+    ],
+}
+
+
+class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     """
     Base viewset for orders. Supports list and retrieve operations.
 
@@ -99,7 +144,6 @@ class OrderBaseViewSet(
             # 1. Orders assigned to them (always visible, regardless of payment status)
             # 2. Paid orders that are available and not assigned to other writers
             # 3. Paid orders that are preferred for them (unless they declined)
-            from orders.order_enums import OrderStatus
             from writer_management.models.profile import WriterProfile
             from orders.models import PreferredWriterResponse
             
@@ -159,6 +203,47 @@ class OrderBaseViewSet(
 
         # Query param filters
         params = self.request.query_params
+
+        def parse_bool(value):
+            if value is None:
+                return None
+            if isinstance(value, bool):
+                return value
+            return str(value).strip().lower() in {"1", "true", "yes", "on"}
+
+        def parse_decimal_param(value):
+            if value in (None, ""):
+                return None
+            try:
+                return Decimal(str(value))
+            except (Decimal.InvalidOperation, ValueError):
+                return None
+
+        def parse_datetime_param(value, *, end_of_day=False):
+            if not value:
+                return None
+            dt = parse_datetime(value)
+            if dt is None:
+                date_value = parse_date(value)
+                if date_value is None:
+                    return None
+                dt = datetime.combine(
+                    date_value,
+                    time.max if end_of_day else time.min,
+                )
+                if settings.USE_TZ:
+                    dt = timezone.make_aware(dt, timezone.get_current_timezone())
+            elif settings.USE_TZ and timezone.is_naive(dt):
+                dt = timezone.make_aware(dt, timezone.get_current_timezone())
+            return dt
+
+        def parse_csv(value):
+            if not value:
+                return []
+            if isinstance(value, (list, tuple)):
+                return [str(item).strip() for item in value if str(item).strip()]
+            return [item.strip() for item in str(value).split(",") if item.strip()]
+
         unattributed = params.get('unattributed')
         if unattributed is not None:
             val = unattributed.lower() in ['1', 'true', 'yes']
@@ -177,19 +262,168 @@ class OrderBaseViewSet(
                 models.Q(external_contact_phone__icontains=contact_search)
             )
 
-        paid = params.get('is_paid')
+        paid = parse_bool(params.get('is_paid'))
         if paid is not None:
-            base_qs = base_qs.filter(is_paid=(paid.lower() in ['1','true','yes']))
+            base_qs = base_qs.filter(is_paid=paid)
 
         # Filter by one or more statuses (comma-separated)
-        statuses = params.get('status')
+        statuses = parse_csv(params.get('status'))
         if statuses:
-            requested = [s.strip() for s in statuses.split(',') if s.strip()]
-            if requested:
-                base_qs = base_qs.filter(status__in=requested)
+            base_qs = base_qs.filter(status__in=statuses)
 
-        # Order by most recent first
-        base_qs = base_qs.order_by('-created_at', '-id')
+        # Status groups
+        status_groups = parse_csv(params.get('status_group'))
+        if status_groups:
+            resolved_statuses = set()
+            for group in status_groups:
+                resolved_statuses.update(STATUS_GROUPS.get(group, []))
+            if resolved_statuses:
+                base_qs = base_qs.filter(status__in=list(resolved_statuses))
+
+        # Text search
+        search_term = params.get('q') or params.get('search')
+        if search_term:
+            search_term = search_term.strip()
+            search_filter = (
+                Q(topic__icontains=search_term)
+                | Q(order_instructions__icontains=search_term)
+                | Q(client__username__icontains=search_term)
+                | Q(client__email__icontains=search_term)
+                | Q(assigned_writer__username__icontains=search_term)
+                | Q(assigned_writer__email__icontains=search_term)
+                | Q(external_contact_name__icontains=search_term)
+                | Q(external_contact_email__icontains=search_term)
+                | Q(subject__name__icontains=search_term)
+            )
+            if search_term.isdigit():
+                search_filter |= Q(id=int(search_term))
+            base_qs = base_qs.filter(search_filter)
+
+        # ID filter
+        ids_param = parse_csv(params.get('ids'))
+        if ids_param:
+            id_list = []
+            for value in ids_param:
+                if value.isdigit():
+                    id_list.append(int(value))
+            if id_list:
+                base_qs = base_qs.filter(id__in=id_list)
+
+        # Numeric and select filters
+        mapping_fields = {
+            'subject_id': 'subject_id',
+            'paper_type_id': 'paper_type_id',
+            'academic_level_id': 'academic_level_id',
+            'type_of_work_id': 'type_of_work_id',
+            'english_type_id': 'english_type_id',
+            'formatting_style_id': 'formatting_style_id',
+            'writer_id': 'assigned_writer_id',
+            'preferred_writer_id': 'preferred_writer_id',
+            'client_id': 'client_id',
+        }
+        for param_name, field_name in mapping_fields.items():
+            value = params.get(param_name)
+            if value and str(value).isdigit():
+                base_qs = base_qs.filter(**{field_name: int(value)})
+
+        # Writer/client query strings
+        writer_query = params.get('writer_query')
+        if writer_query:
+            base_qs = base_qs.filter(
+                Q(assigned_writer__username__icontains=writer_query)
+                | Q(assigned_writer__email__icontains=writer_query)
+                | Q(preferred_writer__username__icontains=writer_query)
+                | Q(preferred_writer__email__icontains=writer_query)
+            )
+
+        client_query = params.get('client_query')
+        if client_query:
+            base_qs = base_qs.filter(
+                Q(client__username__icontains=client_query)
+                | Q(client__email__icontains=client_query)
+            )
+
+        # Pages filter
+        pages_min = params.get('pages_min')
+        if pages_min and pages_min.isdigit():
+            base_qs = base_qs.filter(number_of_pages__gte=int(pages_min))
+        pages_max = params.get('pages_max')
+        if pages_max and pages_max.isdigit():
+            base_qs = base_qs.filter(number_of_pages__lte=int(pages_max))
+
+        # Flags filter
+        flag_values = parse_csv(params.get('flags'))
+        if flag_values:
+            for flag in flag_values:
+                base_qs = base_qs.filter(flags__contains=[flag])
+
+        # Price filters
+        price_min = parse_decimal_param(params.get('price_min'))
+        if price_min is not None:
+            base_qs = base_qs.filter(total_price__gte=price_min)
+        price_max = parse_decimal_param(params.get('price_max'))
+        if price_max is not None:
+            base_qs = base_qs.filter(total_price__lte=price_max)
+
+        # Deadline range
+        deadline_from = parse_datetime_param(params.get('deadline_from'))
+        deadline_to = parse_datetime_param(params.get('deadline_to'), end_of_day=True)
+        if deadline_from:
+            base_qs = base_qs.filter(client_deadline__gte=deadline_from)
+        if deadline_to:
+            base_qs = base_qs.filter(client_deadline__lte=deadline_to)
+
+        # Created range
+        created_from = parse_datetime_param(params.get('created_from') or params.get('date_from'))
+        created_to = parse_datetime_param(params.get('created_to') or params.get('date_to'), end_of_day=True)
+        if created_from:
+            base_qs = base_qs.filter(created_at__gte=created_from)
+        if created_to:
+            base_qs = base_qs.filter(created_at__lte=created_to)
+
+        # Updated range
+        updated_from = parse_datetime_param(params.get('updated_from'))
+        updated_to = parse_datetime_param(params.get('updated_to'), end_of_day=True)
+        if updated_from:
+            base_qs = base_qs.filter(updated_at__gte=updated_from)
+        if updated_to:
+            base_qs = base_qs.filter(updated_at__lte=updated_to)
+
+        include_archived = parse_bool(params.get('include_archived'))
+        only_archived = parse_bool(params.get('only_archived'))
+        
+        # Admin and superadmin should see all orders including archived by default
+        # unless explicitly excluded
+        is_admin_or_superadmin = (
+            user.is_superuser or 
+            user_role in ['admin', 'superadmin', 'support']
+        )
+        
+        if only_archived:
+            archived_statuses = STATUS_GROUPS["archived"]
+            base_qs = base_qs.filter(status__in=archived_statuses)
+        elif not include_archived and not status_groups and not statuses:
+            # For admin/superadmin: include archived by default
+            # For others: exclude archived unless explicitly requested
+            if not is_admin_or_superadmin:
+                base_qs = base_qs.exclude(status=OrderStatus.ARCHIVED.value)
+            # Admin/superadmin see all orders including archived (no exclusion)
+
+        # Sorting
+        sort_field = params.get('sort_by')
+        allowed_sorts = {
+            'created_at',
+            'updated_at',
+            'client_deadline',
+            'total_price',
+            'status',
+        }
+        sort_direction = params.get('sort_dir', 'desc')
+        if sort_field in allowed_sorts:
+            direction = '-' if sort_direction != 'asc' else ''
+            base_qs = base_qs.order_by(f"{direction}{sort_field}", '-id')
+        else:
+            base_qs = base_qs.order_by('-created_at', '-id')
         
         return base_qs
     
@@ -222,6 +456,31 @@ class OrderBaseViewSet(
                 'total_pages': 0,
             })
     
+    @decorators.action(detail=False, methods=["get"], url_path="filter-options", permission_classes=[IsAuthenticated])
+    def filter_options(self, request):
+        status_list = [
+            {"value": status.value, "label": status.name.replace("_", " ").title()}
+            for status in OrderStatus
+        ]
+        status_groups = [
+            {
+                "key": key,
+                "label": key.replace("_", " ").title(),
+                "statuses": values,
+            }
+            for key, values in STATUS_GROUPS.items()
+        ]
+        flag_options = [
+            {"value": flag.value, "label": flag.name.replace("_", " ").title()}
+            for flag in OrderFlags
+        ]
+        return Response(
+            {
+                "statuses": status_list,
+                "status_groups": status_groups,
+                "flags": flag_options,
+            }
+        )
 
     @decorators.action(detail=True, methods=["get"], url_path="payment-summary")
     def payment_summary(self, request, pk=None):

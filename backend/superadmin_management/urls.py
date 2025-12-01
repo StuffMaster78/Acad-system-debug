@@ -7,6 +7,7 @@ from .views import (
     SuperadminDashboardViewSet,
     AppealViewSet,
 )
+from .views.tenant_management import SuperadminTenantManagementViewSet
 
 # Create router instance
 router = DefaultRouter()
@@ -17,6 +18,7 @@ router.register(r"users", UserManagementViewSet, basename="users")
 router.register(r"logs", SuperadminLogViewSet, basename="logs")
 router.register(r"dashboard", SuperadminDashboardViewSet, basename="superadmin-dashboard")
 router.register(r"appeals", AppealViewSet, basename="appeals")
+router.register(r"tenants", SuperadminTenantManagementViewSet, basename="tenant-management")
 
 # Define urlpatterns
 urlpatterns = [

@@ -1,275 +1,362 @@
 <template>
   <div class="advanced-analytics space-y-6 p-6">
+    <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Advanced Analytics</h1>
-        <p class="mt-2 text-gray-600">Comprehensive business intelligence and performance metrics</p>
+        <p class="mt-2 text-gray-600">Comprehensive analytics and insights across all operations</p>
       </div>
-      <div class="flex gap-2">
-        <button @click="exportToCSV" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
-          Export CSV
+      <div class="flex items-center gap-4">
+        <select
+          v-model="selectedDays"
+          @change="fetchDashboard"
+          class="px-4 py-2 border rounded-lg"
+        >
+          <option :value="7">Last 7 days</option>
+          <option :value="30">Last 30 days</option>
+          <option :value="90">Last 90 days</option>
+          <option :value="180">Last 180 days</option>
+          <option :value="365">Last year</option>
+        </select>
+        <button
+          @click="showComparison = !showComparison"
+          class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+        >
+          {{ showComparison ? 'Hide' : 'Show' }} Comparison
         </button>
-        <button @click="refreshAnalytics" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700" :disabled="loading">
+        <button
+          @click="fetchDashboard"
+          class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+          :disabled="loading"
+        >
           {{ loading ? 'Loading...' : 'Refresh' }}
         </button>
       </div>
     </div>
 
-    <!-- Date Range Filter -->
-    <div class="bg-white rounded-lg shadow p-4">
-      <div class="flex items-center gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-          <input
-            v-model="dateFrom"
-            type="date"
-            class="border rounded px-3 py-2"
-            @change="loadAnalytics"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-          <input
-            v-model="dateTo"
-            type="date"
-            class="border rounded px-3 py-2"
-            @change="loadAnalytics"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Year</label>
-          <select
-            v-model.number="selectedYear"
-            @change="loadAnalytics"
-            class="border rounded px-3 py-2"
-          >
-            <option :value="null">All Years</option>
-            <option v-for="year in availableYears" :key="year" :value="year">{{ year }}</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Month</label>
-          <select
-            v-model.number="selectedMonth"
-            @change="loadAnalytics"
-            class="border rounded px-3 py-2"
-          >
-            <option :value="null">All Months</option>
-            <option v-for="(month, idx) in months" :key="idx" :value="idx + 1">{{ month }}</option>
-          </select>
-        </div>
-      </div>
+    <!-- Summary Cards -->
+    <div v-if="dashboardData?.summary" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StatsCard
+        name="Total Revenue"
+        :value="`$${formatCurrency(dashboardData.summary.total_revenue)}`"
+        icon="💰"
+        bgColor="bg-green-100"
+      />
+      <StatsCard
+        name="Total Orders"
+        :value="dashboardData.summary.total_orders || 0"
+        icon="📦"
+        bgColor="bg-blue-100"
+      />
+      <StatsCard
+        name="Completed Orders"
+        :value="dashboardData.summary.completed_orders || 0"
+        icon="✅"
+        bgColor="bg-purple-100"
+        :subtitle="`${dashboardData.summary.completion_rate || 0}% completion rate`"
+      />
+      <StatsCard
+        name="Avg Order Value"
+        :value="`$${formatCurrency(dashboardData.summary.avg_order_value)}`"
+        icon="📊"
+        bgColor="bg-orange-100"
+      />
     </div>
 
-    <!-- Key Metrics Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">Total Revenue</p>
-            <p class="text-2xl font-bold text-gray-900">${{ formatCurrency(summary.total_revenue || 0) }}</p>
-          </div>
-          <div class="text-green-500 text-3xl">💰</div>
-        </div>
-      </div>
-      
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">Total Orders</p>
-            <p class="text-2xl font-bold text-gray-900">{{ summary.total_orders || 0 }}</p>
-          </div>
-          <div class="text-blue-500 text-3xl">📦</div>
-        </div>
-      </div>
-      
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">Paid Orders</p>
-            <p class="text-2xl font-bold text-gray-900">{{ summary.paid_orders_count || 0 }}</p>
-          </div>
-          <div class="text-purple-500 text-3xl">✅</div>
-        </div>
-      </div>
-      
-      <div class="bg-white rounded-lg shadow p-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm text-gray-600">Unpaid Orders</p>
-            <p class="text-2xl font-bold text-gray-900">{{ summary.unpaid_orders_count || 0 }}</p>
-          </div>
-          <div class="text-orange-500 text-3xl">⏳</div>
-        </div>
-      </div>
+    <!-- Additional Summary -->
+    <div v-if="dashboardData?.summary" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <StatsCard
+        name="Total Tickets"
+        :value="dashboardData.summary.total_tickets || 0"
+        icon="🎫"
+        bgColor="bg-yellow-100"
+      />
+      <StatsCard
+        name="Total Disputes"
+        :value="dashboardData.summary.total_disputes || 0"
+        icon="⚖️"
+        bgColor="bg-red-100"
+      />
+      <StatsCard
+        name="Total Refunds"
+        :value="dashboardData.summary.total_refunds || 0"
+        icon="💸"
+        bgColor="bg-pink-100"
+      />
+      <StatsCard
+        name="Completion Rate"
+        :value="`${dashboardData.summary.completion_rate || 0}%`"
+        icon="📈"
+        bgColor="bg-indigo-100"
+      />
     </div>
 
-    <!-- Charts Section -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Revenue Trend (Yearly) -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold mb-4">Revenue Trend (Yearly)</h3>
-        <div v-if="yearlyLoading" class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <!-- Revenue Analytics -->
+    <div v-if="dashboardData?.revenue_analytics" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <ChartWidget
+        title="Daily Revenue Breakdown"
+        type="area"
+        :series="dailyRevenueSeries"
+        :options="dailyRevenueOptions"
+        :loading="loading"
+      />
+      <div class="card bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Revenue by Service Type</h2>
+        <div v-if="loading" class="text-center py-8">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
         </div>
-        <div v-else-if="yearlyData.length === 0" class="text-center py-12 text-gray-500">
-          No data available
-        </div>
-        <div v-else class="space-y-2">
+        <div v-else class="space-y-3">
           <div
-            v-for="(month, index) in yearlyData"
-            :key="index"
-            class="flex items-center justify-between p-2 bg-gray-50 rounded"
+            v-for="service in dashboardData.revenue_analytics.by_service_type"
+            :key="service.service_type"
+            class="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
           >
-            <span class="text-sm font-medium">{{ month.month_name }}</span>
-            <div class="flex items-center gap-4">
-              <span class="text-sm text-gray-600">{{ month.order_count }} orders</span>
-              <span class="text-sm font-bold text-green-600">${{ formatCurrency(month.revenue) }}</span>
-              <div class="w-32 bg-gray-200 rounded-full h-2">
-                <div
-                  class="bg-green-600 h-2 rounded-full"
-                  :style="{ width: `${(month.revenue / maxRevenue) * 100}%` }"
-                ></div>
+            <div>
+              <div class="font-medium text-gray-900">{{ service.service_type || 'Unknown' }}</div>
+              <div class="text-sm text-gray-500">{{ service.count }} orders</div>
               </div>
+            <div class="text-lg font-bold text-primary-600">
+              ${{ formatCurrency(service.revenue) }}
             </div>
           </div>
         </div>
       </div>
+        </div>
 
-      <!-- Monthly Orders (Daily Breakdown) -->
-      <div class="bg-white rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold mb-4">Monthly Orders (Daily Breakdown)</h3>
-        <div v-if="monthlyLoading" class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <!-- Order Analytics -->
+    <div class="card bg-white rounded-lg shadow-sm p-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Order Conversion Funnel</h2>
+      <div v-if="loading" class="text-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
         </div>
-        <div v-else-if="monthlyData.length === 0" class="text-center py-12 text-gray-500">
-          No data available for selected month
-        </div>
-        <div v-else class="space-y-2 max-h-96 overflow-y-auto">
-          <div
-            v-for="(day, index) in monthlyData"
-            :key="index"
-            class="flex items-center justify-between p-2 bg-gray-50 rounded"
-          >
-            <span class="text-sm font-medium">Day {{ day.day }}</span>
-            <div class="flex items-center gap-4">
-              <span class="text-sm text-gray-600">{{ day.order_count }} orders</span>
-              <span class="text-sm font-bold text-blue-600">${{ formatCurrency(day.revenue) }}</span>
-              <div class="w-24 bg-gray-200 rounded-full h-2">
-                <div
-                  class="bg-blue-600 h-2 rounded-full"
-                  :style="{ width: `${(day.order_count / maxDailyOrders) * 100}%` }"
-                ></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Service Revenue Breakdown -->
-    <div class="bg-white rounded-lg shadow p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-lg font-semibold">Service Revenue Breakdown</h3>
-        <select
-          v-model.number="serviceRevenueDays"
-          @change="loadServiceRevenue"
-          class="border rounded px-3 py-2"
-        >
-          <option :value="7">Last 7 days</option>
-          <option :value="30">Last 30 days</option>
-          <option :value="90">Last 90 days</option>
-          <option :value="365">Last year</option>
-        </select>
-      </div>
-      <div v-if="serviceRevenueLoading" class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-      <div v-else-if="!serviceRevenueData" class="text-center py-12 text-gray-500">
-        No service revenue data available
-      </div>
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- By Paper Type -->
-        <div>
-          <h4 class="font-semibold mb-3">By Paper Type</h4>
-          <div v-if="serviceRevenueData.by_paper_type?.length === 0" class="text-sm text-gray-500">
-            No paper type data
-          </div>
-          <div v-else class="space-y-2">
-            <div
-              v-for="(item, index) in serviceRevenueData.by_paper_type"
-              :key="index"
-              class="flex items-center justify-between p-3 bg-gray-50 rounded"
-            >
-              <span class="text-sm font-medium">{{ item.name }}</span>
-              <div class="flex items-center gap-3">
-                <span class="text-xs text-gray-600">{{ item.order_count }} orders</span>
-                <span class="text-sm font-bold">${{ formatCurrency(item.revenue) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <!-- By Additional Service -->
-        <div>
-          <h4 class="font-semibold mb-3">By Additional Service</h4>
-          <div v-if="serviceRevenueData.by_service?.length === 0" class="text-sm text-gray-500">
-            No additional service data
-          </div>
-          <div v-else class="space-y-2">
-            <div
-              v-for="(item, index) in serviceRevenueData.by_service"
-              :key="index"
-              class="flex items-center justify-between p-3 bg-gray-50 rounded"
-            >
-              <span class="text-sm font-medium">{{ item.name }}</span>
-              <div class="flex items-center gap-3">
-                <span class="text-xs text-gray-600">{{ item.order_count }} orders</span>
-                <span class="text-sm font-bold">${{ formatCurrency(item.revenue) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Payment Status Breakdown -->
-    <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-lg font-semibold mb-4">Payment Status Breakdown</h3>
-      <div v-if="paymentStatusLoading" class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-      <div v-else-if="!paymentStatusData" class="text-center py-12 text-gray-500">
-        No payment status data available
-      </div>
-      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="p-4 bg-green-50 rounded-lg border border-green-200">
-          <h4 class="font-semibold text-green-800 mb-2">Paid Orders</h4>
-          <p class="text-2xl font-bold text-green-900">{{ paymentStatusData.paid?.count || 0 }}</p>
-          <p class="text-sm text-green-700 mt-1">Revenue: ${{ formatCurrency(paymentStatusData.paid?.revenue || 0) }}</p>
-        </div>
-        <div class="p-4 bg-orange-50 rounded-lg border border-orange-200">
-          <h4 class="font-semibold text-orange-800 mb-2">Unpaid Orders</h4>
-          <p class="text-2xl font-bold text-orange-900">{{ paymentStatusData.unpaid?.count || 0 }}</p>
-          <p class="text-sm text-orange-700 mt-1">Pending revenue</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Orders by Status -->
-    <div class="bg-white rounded-lg shadow p-6">
-      <h3 class="text-lg font-semibold mb-4">Orders by Status</h3>
-      <div v-if="!summary.orders_by_status || Object.keys(summary.orders_by_status).length === 0" class="text-center py-12 text-gray-500">
-        No order status data available
-      </div>
-      <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div v-else-if="dashboardData?.order_analytics?.conversion_funnel" class="space-y-4">
         <div
-          v-for="(count, status) in summary.orders_by_status"
-          :key="status"
-          class="p-4 bg-gray-50 rounded-lg"
+          v-for="(count, stage) in dashboardData.order_analytics.conversion_funnel"
+          :key="stage"
+          class="flex items-center gap-4"
         >
-          <p class="text-sm text-gray-600 capitalize">{{ status.replace('_', ' ') }}</p>
-          <p class="text-2xl font-bold text-gray-900">{{ count }}</p>
+          <div class="w-32 text-sm font-medium text-gray-700 capitalize">
+            {{ stage.replace(/_/g, ' ') }}
+          </div>
+          <div class="flex-1">
+            <div class="h-8 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                :class="getFunnelColor(stage)"
+                class="h-full flex items-center justify-end pr-4 text-white text-sm font-medium transition-all"
+                :style="{ width: `${(count / dashboardData.order_analytics.conversion_funnel.created) * 100}%` }"
+              >
+                <span v-if="count > 0">{{ count }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="w-20 text-right text-sm font-medium text-gray-900">
+            {{ count }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Writer Performance -->
+    <div v-if="dashboardData?.writer_performance?.length > 0" class="card bg-white rounded-lg shadow-sm p-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Top Writers by Performance</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Completed Orders</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Earnings</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avg Rating</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="writer in dashboardData.writer_performance" :key="writer.writer_id">
+              <td class="px-4 py-3 whitespace-nowrap">
+                <div class="font-medium text-gray-900">{{ writer.username || 'N/A' }}</div>
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                {{ writer.completed_orders || 0 }}
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                ${{ formatCurrency(writer.total_earnings) }}
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                {{ writer.avg_rating ? writer.avg_rating.toFixed(1) : 'N/A' }} ⭐
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Client Analytics -->
+    <div v-if="dashboardData?.client_analytics?.length > 0" class="card bg-white rounded-lg shadow-sm p-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Top Clients by Spending</h2>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order Count</th>
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Spent</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="client in dashboardData.client_analytics" :key="client.client_id">
+              <td class="px-4 py-3 whitespace-nowrap">
+                <div class="font-medium text-gray-900">{{ client.username || 'N/A' }}</div>
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                {{ client.email || 'N/A' }}
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                {{ client.order_count || 0 }}
+              </td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                ${{ formatCurrency(client.total_spent) }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      </div>
+
+    <!-- Weekly Trends -->
+    <ChartWidget
+      v-if="dashboardData?.weekly_trends?.length > 0"
+      title="Weekly Trends"
+      type="line"
+      :series="weeklyTrendsSeries"
+      :options="weeklyTrendsOptions"
+      :loading="loading"
+    />
+
+    <!-- Support & Dispute Metrics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div v-if="dashboardData?.support_metrics" class="card bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Support Metrics</h2>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span class="text-gray-700">Total Tickets</span>
+            <span class="font-bold text-gray-900">{{ dashboardData.support_metrics.total_tickets || 0 }}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span class="text-gray-700">Resolved Tickets</span>
+            <span class="font-bold text-green-600">{{ dashboardData.support_metrics.resolved_tickets || 0 }}</span>
+          </div>
+        </div>
+      </div>
+      <div v-if="dashboardData?.dispute_metrics" class="card bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Dispute Metrics</h2>
+        <div class="space-y-4">
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span class="text-gray-700">Total Disputes</span>
+            <span class="font-bold text-gray-900">{{ dashboardData.dispute_metrics.total_disputes || 0 }}</span>
+          </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span class="text-gray-700">Resolved</span>
+            <span class="font-bold text-green-600">{{ dashboardData.dispute_metrics.resolved || 0 }}</span>
+              </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span class="text-gray-700">Pending</span>
+            <span class="font-bold text-yellow-600">{{ dashboardData.dispute_metrics.pending || 0 }}</span>
+            </div>
+          <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+            <span class="text-gray-700">Resolution Rate</span>
+            <span class="font-bold text-blue-600">{{ dashboardData.dispute_metrics.resolution_rate || 0 }}%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Refund Metrics -->
+    <div v-if="dashboardData?.refund_metrics" class="card bg-white rounded-lg shadow-sm p-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Refund Metrics</h2>
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <div class="text-sm text-gray-600">Total Refunds</div>
+          <div class="text-2xl font-bold text-gray-900">{{ dashboardData.refund_metrics.total_refunds || 0 }}</div>
+      </div>
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <div class="text-sm text-gray-600">Total Amount</div>
+          <div class="text-2xl font-bold text-red-600">${{ formatCurrency(dashboardData.refund_metrics.total_amount) }}</div>
+      </div>
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <div class="text-sm text-gray-600">Approved</div>
+          <div class="text-2xl font-bold text-green-600">{{ dashboardData.refund_metrics.approved || 0 }}</div>
+        </div>
+        <div class="p-4 bg-gray-50 rounded-lg">
+          <div class="text-sm text-gray-600">Pending</div>
+          <div class="text-2xl font-bold text-yellow-600">{{ dashboardData.refund_metrics.pending || 0 }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Period Comparison -->
+    <div v-if="showComparison" class="card bg-white rounded-lg shadow-sm p-6">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Period Comparison</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Period 1 (Days)</label>
+          <input
+            v-model.number="comparisonForm.period1_days"
+            type="number"
+            min="1"
+            class="w-full border rounded px-3 py-2"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Period 2 (Days)</label>
+          <input
+            v-model.number="comparisonForm.period2_days"
+            type="number"
+            min="1"
+            class="w-full border rounded px-3 py-2"
+          />
+        </div>
+      </div>
+      <button
+        @click="fetchComparison"
+        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        :disabled="loadingComparison"
+      >
+        {{ loadingComparison ? 'Loading...' : 'Compare Periods' }}
+      </button>
+      
+      <div v-if="comparisonData" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h3 class="font-semibold mb-2">Period 1</h3>
+          <div class="space-y-2 text-sm">
+            <div>Revenue: ${{ formatCurrency(comparisonData.period1.revenue) }}</div>
+            <div>Orders: {{ comparisonData.period1.total_orders }}</div>
+            <div>Completed: {{ comparisonData.period1.completed_orders }}</div>
+          </div>
+        </div>
+        <div>
+          <h3 class="font-semibold mb-2">Period 2</h3>
+          <div class="space-y-2 text-sm">
+            <div>Revenue: ${{ formatCurrency(comparisonData.period2.revenue) }}</div>
+            <div>Orders: {{ comparisonData.period2.total_orders }}</div>
+            <div>Completed: {{ comparisonData.period2.completed_orders }}</div>
+          </div>
+        </div>
+        <div class="md:col-span-2 p-4 bg-blue-50 rounded-lg">
+          <h3 class="font-semibold mb-2">Changes</h3>
+          <div class="space-y-2 text-sm">
+            <div>
+              Revenue Change: 
+              <span :class="comparisonData.changes.revenue_change_percent >= 0 ? 'text-green-600' : 'text-red-600'">
+                {{ comparisonData.changes.revenue_change_percent >= 0 ? '+' : '' }}{{ comparisonData.changes.revenue_change_percent }}%
+              </span>
+            </div>
+            <div>
+              Completed Orders Change: 
+              <span :class="comparisonData.changes.completed_change_percent >= 0 ? 'text-green-600' : 'text-red-600'">
+                {{ comparisonData.changes.completed_change_percent >= 0 ? '+' : '' }}{{ comparisonData.changes.completed_change_percent }}%
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -277,187 +364,157 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import { advancedAnalyticsAPI } from '@/api'
+import { ref, computed, onMounted } from 'vue'
+import { useToast } from '@/composables/useToast'
+import adminManagementAPI from '@/api/admin-management'
+import StatsCard from '@/components/dashboard/StatsCard.vue'
+import ChartWidget from '@/components/dashboard/ChartWidget.vue'
 
+const { showToast } = useToast()
+
+// State
 const loading = ref(false)
-const summary = ref({})
-const yearlyData = ref([])
-const monthlyData = ref([])
-const serviceRevenueData = ref(null)
-const paymentStatusData = ref(null)
+const loadingComparison = ref(false)
+const selectedDays = ref(30)
+const showComparison = ref(false)
+const dashboardData = ref(null)
+const comparisonData = ref(null)
 
-const yearlyLoading = ref(false)
-const monthlyLoading = ref(false)
-const serviceRevenueLoading = ref(false)
-const paymentStatusLoading = ref(false)
-
-const dateFrom = ref('')
-const dateTo = ref('')
-const selectedYear = ref(new Date().getFullYear())
-const selectedMonth = ref(null)
-const serviceRevenueDays = ref(30)
-
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-
-const availableYears = computed(() => {
-  const years = []
-  const currentYear = new Date().getFullYear()
-  for (let i = currentYear; i >= currentYear - 5; i--) {
-    years.push(i)
-  }
-  return years
+const comparisonForm = ref({
+  period1_days: 30,
+  period2_days: 30
 })
 
-const maxRevenue = computed(() => {
-  if (yearlyData.value.length === 0) return 1
-  return Math.max(...yearlyData.value.map(m => m.revenue), 1)
-})
-
-const maxDailyOrders = computed(() => {
-  if (monthlyData.value.length === 0) return 1
-  return Math.max(...monthlyData.value.map(d => d.order_count), 1)
-})
-
-const loadSummary = async () => {
-  try {
-    const response = await advancedAnalyticsAPI.getSummary()
-    summary.value = response.data || {}
-  } catch (error) {
-    console.error('Error loading summary:', error)
-    summary.value = {}
-  }
-}
-
-const loadYearlyData = async () => {
-  yearlyLoading.value = true
-  try {
-    const response = await advancedAnalyticsAPI.getYearlyOrders(selectedYear.value)
-    yearlyData.value = response.data || []
-  } catch (error) {
-    console.error('Error loading yearly data:', error)
-    yearlyData.value = []
-  } finally {
-    yearlyLoading.value = false
-  }
-}
-
-const loadMonthlyData = async () => {
-  if (!selectedYear.value || !selectedMonth.value) {
-    monthlyData.value = []
-    return
-  }
-  
-  monthlyLoading.value = true
-  try {
-    const response = await advancedAnalyticsAPI.getMonthlyOrders(selectedYear.value, selectedMonth.value)
-    monthlyData.value = response.data || []
-  } catch (error) {
-    console.error('Error loading monthly data:', error)
-    monthlyData.value = []
-  } finally {
-    monthlyLoading.value = false
-  }
-}
-
-const loadServiceRevenue = async () => {
-  serviceRevenueLoading.value = true
-  try {
-    const response = await advancedAnalyticsAPI.getServiceRevenue(serviceRevenueDays.value)
-    serviceRevenueData.value = response.data || null
-  } catch (error) {
-    console.error('Error loading service revenue:', error)
-    serviceRevenueData.value = null
-  } finally {
-    serviceRevenueLoading.value = false
-  }
-}
-
-const loadPaymentStatus = async () => {
-  paymentStatusLoading.value = true
-  try {
-    const response = await advancedAnalyticsAPI.getPaymentStatus()
-    paymentStatusData.value = response.data || null
-  } catch (error) {
-    console.error('Error loading payment status:', error)
-    paymentStatusData.value = null
-  } finally {
-    paymentStatusLoading.value = false
-  }
-}
-
-const loadAnalytics = async () => {
+// Methods
+const fetchDashboard = async () => {
   loading.value = true
   try {
-    await Promise.all([
-      loadSummary(),
-      loadYearlyData(),
-      loadMonthlyData(),
-      loadServiceRevenue(),
-      loadPaymentStatus(),
-    ])
-  } catch (error) {
-    console.error('Error loading analytics:', error)
+    const response = await adminManagementAPI.getAdvancedAnalytics({ days: selectedDays.value })
+    dashboardData.value = response?.data || null
+  } catch (err) {
+    console.error('Failed to fetch advanced analytics:', err)
+    showToast('Failed to load analytics', 'error')
+    dashboardData.value = null
   } finally {
     loading.value = false
   }
 }
 
-const refreshAnalytics = () => {
-  loadAnalytics()
-}
-
-const formatCurrency = (value) => {
-  if (!value) return '0.00'
-  return parseFloat(value).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-}
-
-const exportToCSV = () => {
-  // Simple CSV export
-  const csvRows = []
-  
-  // Summary data
-  csvRows.push(['Metric', 'Value'])
-  csvRows.push(['Total Revenue', summary.value.total_revenue || 0])
-  csvRows.push(['Total Orders', summary.value.total_orders || 0])
-  csvRows.push(['Paid Orders', summary.value.paid_orders_count || 0])
-  csvRows.push(['Unpaid Orders', summary.value.unpaid_orders_count || 0])
-  csvRows.push([])
-  
-  // Yearly data
-  csvRows.push(['Month', 'Orders', 'Revenue'])
-  yearlyData.value.forEach(month => {
-    csvRows.push([month.month_name, month.order_count, month.revenue])
-  })
-  csvRows.push([])
-  
-  // Monthly data
-  if (monthlyData.value.length > 0) {
-    csvRows.push(['Day', 'Orders', 'Revenue'])
-    monthlyData.value.forEach(day => {
-      csvRows.push([day.day, day.order_count, day.revenue])
+const fetchComparison = async () => {
+  loadingComparison.value = true
+  try {
+    const response = await adminManagementAPI.getAdvancedAnalyticsComparison({
+      period1_days: comparisonForm.value.period1_days,
+      period2_days: comparisonForm.value.period2_days
     })
+    comparisonData.value = response?.data || null
+  } catch (err) {
+    console.error('Failed to fetch comparison:', err)
+    showToast('Failed to load comparison', 'error')
+  } finally {
+    loadingComparison.value = false
   }
-  
-  const csvContent = csvRows.map(row => row.join(',')).join('\n')
-  const blob = new Blob([csvContent], { type: 'text/csv' })
-  const url = window.URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`
-  a.click()
-  window.URL.revokeObjectURL(url)
 }
 
+const formatCurrency = (amount) => {
+  if (!amount) return '0.00'
+  return parseFloat(amount).toFixed(2)
+}
+
+const getFunnelColor = (stage) => {
+  const colors = {
+    'created': 'bg-blue-500',
+    'paid': 'bg-green-500',
+    'assigned': 'bg-purple-500',
+    'in_progress': 'bg-yellow-500',
+    'submitted': 'bg-orange-500',
+    'completed': 'bg-green-600',
+  }
+  return colors[stage] || 'bg-gray-500'
+}
+
+// Computed
+const dailyRevenueSeries = computed(() => {
+  if (!dashboardData.value?.revenue_analytics?.daily_breakdown?.length) return []
+  return [{
+    name: 'Revenue',
+    data: dashboardData.value.revenue_analytics.daily_breakdown.map(d => parseFloat(d.revenue || 0))
+  }]
+})
+
+const dailyRevenueOptions = computed(() => ({
+  chart: { type: 'area', toolbar: { show: false } },
+  xaxis: {
+    categories: dashboardData.value?.revenue_analytics?.daily_breakdown?.map(d => {
+      if (d.date) {
+        return new Date(d.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      }
+      return ''
+    }).filter(Boolean) || []
+  },
+  yaxis: { title: { text: 'Revenue ($)' } },
+  stroke: { curve: 'smooth' },
+  colors: ['#10B981'],
+  fill: {
+    type: 'gradient',
+    gradient: {
+      shadeIntensity: 1,
+      opacityFrom: 0.7,
+      opacityTo: 0.3,
+      stops: [0, 90, 100]
+    }
+  }
+}))
+
+const weeklyTrendsSeries = computed(() => {
+  if (!dashboardData.value?.weekly_trends?.length) return []
+  return [
+    {
+      name: 'Orders Created',
+      data: dashboardData.value.weekly_trends.map(t => t.orders_created || 0)
+    },
+    {
+      name: 'Orders Completed',
+      data: dashboardData.value.weekly_trends.map(t => t.orders_completed || 0)
+    },
+    {
+      name: 'Revenue',
+      data: dashboardData.value.weekly_trends.map(t => parseFloat(t.revenue || 0))
+    }
+  ]
+})
+
+const weeklyTrendsOptions = computed(() => ({
+  chart: { type: 'line', toolbar: { show: false } },
+  xaxis: {
+    categories: dashboardData.value?.weekly_trends?.map(t => {
+      if (t.week) {
+        return new Date(t.week).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      }
+      return ''
+    }).filter(Boolean) || []
+  },
+  yaxis: { title: { text: 'Count / Revenue' } },
+  stroke: { curve: 'smooth', width: 2 },
+  colors: ['#3B82F6', '#10B981', '#F59E0B'],
+  legend: {
+    position: 'top',
+    horizontalAlign: 'right'
+  }
+}))
+
+// Lifecycle
 onMounted(() => {
-  loadAnalytics()
+  fetchDashboard()
 })
 </script>
 
 <style scoped>
-.advanced-analytics {
-  min-height: 100vh;
-  background-color: #f9fafb;
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
 }
 </style>
-

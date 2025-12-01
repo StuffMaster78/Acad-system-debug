@@ -105,6 +105,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'orders/templates',
+          name: 'OrderTemplates',
+          component: () => import('@/views/orders/OrderTemplates.vue'),
+          meta: { 
+            requiresAuth: true, 
+            title: 'Order Templates',
+            roles: ['client'],
+          },
+        },
+        {
           path: 'orders/special-new',
           name: 'SpecialOrderNew',
           component: () => import('@/views/orders/SpecialOrderNew.vue'),
@@ -228,6 +238,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/advance-payments',
+          name: 'AdvancePaymentsManagement',
+          component: () => import('@/views/admin/AdvancePaymentsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Advance Payments Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/invoices',
           name: 'InvoiceManagement',
           component: () => import('@/views/admin/InvoiceManagement.vue'),
@@ -274,6 +294,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Notifications',
+            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+          },
+        },
+        {
+          path: 'messages',
+          name: 'Messages',
+          component: () => import('@/views/messages/Messages.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Messages',
             roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
           },
         },
@@ -384,6 +414,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Payment Requests',
+            roles: ['writer'],
+          },
+        },
+        {
+          path: 'writer/advance-payments',
+          name: 'AdvancePayments',
+          component: () => import('@/views/writers/AdvancePayments.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Advance Payments',
             roles: ['writer'],
           },
         },
@@ -848,6 +888,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/system-health',
+          name: 'SystemHealth',
+          component: () => import('@/views/admin/SystemHealth.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'System Health',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/activity-logs',
           name: 'ActivityLogs',
           component: () => import('@/views/admin/ActivityLogs.vue'),
@@ -894,6 +944,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Promotional Campaign Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/campaigns/:id/discounts',
+          name: 'CampaignDiscounts',
+          component: () => import('@/views/admin/CampaignDiscounts.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Campaign Discounts',
             roles: ['admin', 'superadmin'],
           },
         },
@@ -1001,9 +1061,19 @@ const router = createRouter({
           path: 'admin/pricing-analytics',
           name: 'PricingAnalytics',
           component: () => import('@/views/admin/PricingAnalytics.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'Pricing Analytics',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/enhanced-analytics',
+          name: 'EnhancedAnalytics',
+          component: () => import('@/views/admin/EnhancedAnalytics.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Enhanced Analytics',
             roles: ['admin', 'superadmin'],
           },
         },

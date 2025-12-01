@@ -131,7 +131,13 @@
           <div class="flex justify-between items-start">
             <div>
               <p class="font-semibold">Order #{{ order.id }} - {{ order.topic }}</p>
-              <p class="text-sm text-gray-600">Client: {{ order.client_username || 'N/A' }}</p>
+              <p class="text-sm text-gray-600">
+                <span class="inline-flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full" :class="getWebsiteColorClass(order.website || order.website_name)"></span>
+                  {{ getWebsiteName(order) }}
+                </span>
+                · Client: {{ order.client_username || 'N/A' }}
+              </p>
               <p class="text-sm text-gray-600">Status: {{ order.status }}</p>
             </div>
             <button
@@ -162,7 +168,13 @@
           <div class="flex justify-between items-start">
             <div>
               <p class="font-semibold text-red-900">Order #{{ order.id }} - {{ order.topic }}</p>
-              <p class="text-sm text-gray-600">Client: {{ order.client_username || 'N/A' }}</p>
+              <p class="text-sm text-gray-600">
+                <span class="inline-flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full" :class="getWebsiteColorClass(order.website || order.website_name)"></span>
+                  {{ getWebsiteName(order) }}
+                </span>
+                · Client: {{ order.client_username || 'N/A' }}
+              </p>
               <p class="text-sm text-red-600">Deadline: {{ formatDate(order.client_deadline) }}</p>
             </div>
             <span class="bg-red-100 text-red-800 px-2 py-1 rounded text-sm">Overdue</span>
@@ -188,7 +200,13 @@
           <div class="flex justify-between items-start">
             <div>
               <p class="font-semibold text-yellow-900">Order #{{ order.id }} - {{ order.topic }}</p>
-              <p class="text-sm text-gray-600">Client: {{ order.client_username || 'N/A' }}</p>
+              <p class="text-sm text-gray-600">
+                <span class="inline-flex items-center gap-1">
+                  <span class="w-2 h-2 rounded-full" :class="getWebsiteColorClass(order.website || order.website_name)"></span>
+                  {{ getWebsiteName(order) }}
+                </span>
+                · Client: {{ order.client_username || 'N/A' }}
+              </p>
               <p class="text-sm text-yellow-600">Last Updated: {{ formatDate(order.updated_at) }}</p>
             </div>
             <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">Stuck</span>
@@ -199,7 +217,7 @@
 
     <!-- Filters -->
     <div class="card p-4">
-      <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-8 gap-4">
         <div>
           <label class="block text-sm font-medium mb-1">Search</label>
           <input
@@ -209,6 +227,15 @@
             placeholder="Order ID, topic, client..."
             class="w-full border rounded px-3 py-2"
           />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Website</label>
+          <select v-model="filters.website" @change="loadOrders" class="w-full border rounded px-3 py-2">
+            <option value="">All Websites</option>
+            <option v-for="website in uniqueWebsites" :key="website.id || website" :value="website.id || website">
+              {{ typeof website === 'string' ? website : (website.name || website.domain || 'Unknown') }}
+            </option>
+          </select>
         </div>
         <div>
           <label class="block text-sm font-medium mb-1">Status</label>
@@ -234,6 +261,13 @@
             <option value="">All</option>
             <option value="true">Paid</option>
             <option value="false">Unpaid</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Include Archived</label>
+          <select v-model="filters.include_archived" @change="loadOrders" class="w-full border rounded px-3 py-2">
+            <option :value="true">Yes (All Orders)</option>
+            <option :value="false">No (Exclude Archived)</option>
           </select>
         </div>
         <div>
@@ -276,8 +310,8 @@
       </div>
     </div>
 
-    <!-- Orders Table -->
-    <div class="card overflow-hidden">
+    <!-- All Orders Table -->
+    <div v-if="activeQuickTab === 'all'" class="card overflow-hidden">
       <div v-if="loading" class="flex items-center justify-center py-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
@@ -290,6 +324,7 @@
                 <input type="checkbox" @change="toggleSelectAll" :checked="allSelected" />
               </th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Website</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Topic</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer</th>
@@ -311,6 +346,13 @@
                 />
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ order.id }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                <div v-if="order.website || order.website_name" class="flex items-center gap-2">
+                  <div class="w-2 h-2 rounded-full" :class="getWebsiteColorClass(order.website || order.website_name)"></div>
+                  <span class="text-gray-700 font-medium">{{ getWebsiteName(order) }}</span>
+                </div>
+                <span v-else class="text-gray-400 italic">N/A</span>
+              </td>
               <td class="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">{{ order.topic || 'N/A' }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                 {{ order.client_username || order.client?.username || 'N/A' }}
@@ -359,8 +401,8 @@
     </div>
 
     <!-- Order Detail Modal -->
-    <div v-if="viewingOrder" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+    <div v-if="viewingOrder" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-5xl w-full my-auto max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-bold">Order #{{ viewingOrder.id }}</h2>
@@ -442,43 +484,178 @@
       </div>
     </div>
 
-    <!-- Assign Writer Modal -->
-    <div v-if="showAssignModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-md w-full p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold">Assign Writer</h3>
-          <button @click="closeAssignModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
-        </div>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Select Writer</label>
-            <select v-model="assignForm.writerId" class="w-full border rounded px-3 py-2">
-              <option value="">Select a writer...</option>
-              <option v-for="writer in availableWriters" :key="writer.id" :value="writer.id">
-                {{ formatWriterName(writer) }}
-              </option>
-            </select>
+    <!-- Enhanced Assign Writer Modal -->
+    <Transition name="modal">
+      <div v-if="showAssignModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="closeAssignModal">
+        <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full my-auto max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+          <!-- Header -->
+          <div class="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-xl font-bold text-white">Assign Writer</h3>
+                <p v-if="currentOrderForAction" class="text-sm text-blue-100 mt-1">
+                  Order #{{ currentOrderForAction.id }} · {{ currentOrderForAction.topic || 'Untitled Order' }}
+                </p>
+              </div>
+              <button 
+                @click="closeAssignModal" 
+                class="text-white/80 hover:text-white hover:bg-white/20 rounded-lg p-1.5 transition-colors"
+                :disabled="assigning"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Reason (optional)</label>
-            <textarea v-model="assignForm.reason" class="w-full border rounded px-3 py-2" rows="3"></textarea>
+
+          <!-- Order Summary -->
+          <div v-if="currentOrderForAction" class="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <span class="text-gray-500 dark:text-gray-400">Pages:</span>
+                <span class="ml-2 font-medium">{{ currentOrderForAction.number_of_pages || 'N/A' }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500 dark:text-gray-400">Deadline:</span>
+                <span class="ml-2 font-medium">{{ formatDate(currentOrderForAction.client_deadline) }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500 dark:text-gray-400">Type:</span>
+                <span class="ml-2 font-medium">{{ currentOrderForAction.type_of_work?.name || 'N/A' }}</span>
+              </div>
+              <div>
+                <span class="text-gray-500 dark:text-gray-400">Level:</span>
+                <span class="ml-2 font-medium">{{ currentOrderForAction.academic_level?.name || 'N/A' }}</span>
+              </div>
+            </div>
           </div>
-          <div class="flex gap-2 pt-4">
-            <button @click="confirmAssign" class="btn btn-primary flex-1">Assign</button>
-            <button @click="closeAssignModal" class="btn btn-secondary flex-1">Cancel</button>
+
+          <!-- Content -->
+          <div class="flex-1 overflow-y-auto p-6">
+            <!-- Search/Filter -->
+            <div class="mb-4">
+              <div class="relative">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <input
+                  v-model="writerSearch"
+                  type="text"
+                  placeholder="Search writers by name, email, or level..."
+                  class="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <!-- Writers List -->
+            <div v-if="loadingWriters" class="text-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p class="mt-4 text-gray-600 dark:text-gray-400">Loading writers...</p>
+            </div>
+
+            <div v-else-if="filteredWriters.length === 0" class="text-center py-12 text-gray-500 dark:text-gray-400">
+              <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p>No writers found</p>
+            </div>
+
+            <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
+              <div
+                v-for="writer in filteredWriters"
+                :key="writer.id"
+                @click="selectWriter(writer.id)"
+                :class="[
+                  'p-4 border-2 rounded-xl cursor-pointer transition-all',
+                  assignForm.writerId === writer.id
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md'
+                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-md'
+                ]"
+              >
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <div class="flex items-center gap-2 mb-2">
+                      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
+                        {{ (writer.username || writer.email || 'W')[0].toUpperCase() }}
+                      </div>
+                      <div>
+                        <h4 class="font-semibold text-gray-900 dark:text-white">{{ formatWriterName(writer) }}</h4>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ writer.email }}</p>
+                      </div>
+                    </div>
+                    <div class="flex flex-wrap gap-2 mt-2">
+                      <span v-if="writer.writer_level" class="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full font-medium">
+                        {{ writer.writer_level.name || writer.writer_level }}
+                      </span>
+                      <span v-if="writer.is_available !== false" class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
+                        Available
+                      </span>
+                      <span v-else class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-full">
+                        Unavailable
+                      </span>
+                    </div>
+                  </div>
+                  <div v-if="assignForm.writerId === writer.id" class="flex-shrink-0">
+                    <div class="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
+                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Reason Input -->
+            <div v-if="assignForm.writerId" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                Assignment Reason (Optional)
+              </label>
+              <textarea
+                v-model="assignForm.reason"
+                placeholder="Add any notes or instructions for this assignment..."
+                rows="3"
+                class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white resize-none"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-6 py-4 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex gap-3">
+            <button
+              @click="closeAssignModal"
+              :disabled="assigning"
+              class="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-xl text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              @click="confirmAssign"
+              :disabled="!assignForm.writerId || assigning"
+              class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+            >
+              <svg v-if="assigning" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>{{ assigning ? 'Assigning...' : (currentOrderForAction?.assigned_writer ? 'Reassign Writer' : 'Assign Writer') }}</span>
+            </button>
           </div>
         </div>
       </div>
-    </div>
+    </Transition>
 
     <!-- Edit Order Modal -->
-    <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-2xl w-full p-6">
-        <div class="flex items-center justify-between mb-4">
+    <div v-if="showEditModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-2xl w-full my-auto max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between z-10">
           <h3 class="text-xl font-bold">Edit Order</h3>
           <button @click="closeEditModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
         </div>
-        <div class="space-y-4">
+        <div class="p-6 space-y-4">
           <div>
             <label class="block text-sm font-medium mb-1">Topic</label>
             <input v-model="editForm.topic" type="text" class="w-full border rounded px-3 py-2" />
@@ -511,7 +688,7 @@
             <label class="block text-sm font-medium mb-1">Instructions</label>
             <textarea v-model="editForm.order_instructions" class="w-full border rounded px-3 py-2" rows="5"></textarea>
           </div>
-          <div class="flex gap-2 pt-4">
+          <div class="flex gap-2 pt-4 border-t sticky bottom-0 bg-white -mx-6 px-6 py-4">
             <button @click="saveEdit" class="btn btn-primary flex-1">Save</button>
             <button @click="closeEditModal" class="btn btn-secondary flex-1">Cancel</button>
           </div>
@@ -578,6 +755,11 @@ const availableWriters = ref([])
 const availableActions = ref([])
 const selectedAction = ref(null)
 const currentOrderForAction = ref(null)
+const initialLoading = ref(true)
+const componentError = ref(null)
+const writerSearch = ref('')
+const loadingWriters = ref(false)
+const assigning = ref(false)
 
 const filters = ref({
   search: '',
@@ -585,6 +767,8 @@ const filters = ref({
   is_paid: '',
   client: '',
   writer: '',
+  website: '', // Add website filter
+  include_archived: true, // Admin/superadmin should see all orders by default
 })
 
 const stats = ref({
@@ -645,6 +829,21 @@ let searchTimeout = null
 
 const allSelected = computed(() => {
   return orders.value.length > 0 && selectedOrders.value.length === orders.value.length
+})
+
+// Extract unique websites from orders for filter dropdown
+const uniqueWebsites = computed(() => {
+  const websitesMap = new Map()
+  orders.value.forEach(order => {
+    const website = order.website || order.website_name
+    if (website) {
+      const key = typeof website === 'object' ? (website.id || website.name || website.domain) : website
+      if (!websitesMap.has(key)) {
+        websitesMap.set(key, website)
+      }
+    }
+  })
+  return Array.from(websitesMap.values())
 })
 
 const debouncedSearch = () => {
@@ -708,12 +907,18 @@ const loadStuckOrders = async () => {
 const loadOrders = async () => {
   loading.value = true
   try {
-    const params = {}
+    const params = {
+      // Admin/superadmin should see all orders including archived by default
+      include_archived: filters.value.include_archived !== false,
+      // Request more orders per page for admin views
+      page_size: 500,
+    }
     if (filters.value.status) params.status = filters.value.status
     if (filters.value.is_paid) params.is_paid = filters.value.is_paid === 'true'
     if (filters.value.search) params.search = filters.value.search
     if (filters.value.client) params.client = filters.value.client
     if (filters.value.writer) params.writer = filters.value.writer
+    if (filters.value.website) params.website = filters.value.website
 
     const res = await ordersAPI.list(params)
     orders.value = res.data.results || res.data || []
@@ -742,13 +947,59 @@ const formatDate = (date) => {
   return new Date(date).toLocaleDateString()
 }
 
+const getWebsiteName = (order) => {
+  if (order.website_name) return order.website_name
+  if (order.website?.name) return order.website.name
+  if (order.website?.domain) return order.website.domain
+  if (typeof order.website === 'string') return order.website
+  return 'Unknown'
+}
+
+const getWebsiteColorClass = (website) => {
+  if (!website) return 'bg-gray-300'
+  
+  // Generate a consistent color based on website name/domain
+  const name = typeof website === 'string' ? website : (website?.name || website?.domain || '')
+  const colors = [
+    'bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 
+    'bg-indigo-500', 'bg-yellow-500', 'bg-red-500', 'bg-teal-500'
+  ]
+  
+  // Simple hash function to get consistent color
+  let hash = 0
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return colors[Math.abs(hash) % colors.length]
+}
+
 const loadWriters = async () => {
+  loadingWriters.value = true
   try {
     const res = await usersAPI.list({ role: 'writer', is_active: true })
     availableWriters.value = res.data.results || res.data || []
   } catch (error) {
     console.error('Error loading writers:', error)
+    showMessage('Failed to load writers: ' + (error.response?.data?.detail || error.message), false)
+  } finally {
+    loadingWriters.value = false
   }
+}
+
+const filteredWriters = computed(() => {
+  if (!writerSearch.value) return availableWriters.value
+  
+  const search = writerSearch.value.toLowerCase()
+  return availableWriters.value.filter(writer => {
+    const name = formatWriterName(writer).toLowerCase()
+    const email = (writer.email || '').toLowerCase()
+    const level = (writer.writer_level?.name || writer.writer_level || '').toLowerCase()
+    return name.includes(search) || email.includes(search) || level.includes(search)
+  })
+})
+
+const selectWriter = (writerId) => {
+  assignForm.value.writerId = writerId
 }
 
 const resetFilters = () => {
@@ -758,6 +1009,8 @@ const resetFilters = () => {
     is_paid: '',
     client: '',
     writer: '',
+    website: '',
+    include_archived: true, // Admin/superadmin should see all orders by default
   }
   loadOrders()
 }
@@ -789,14 +1042,17 @@ const openAssignModal = async (order) => {
 }
 
 const closeAssignModal = () => {
+  if (assigning.value) return // Prevent closing while assigning
   showAssignModal.value = false
   assignForm.value = { writerId: '', reason: '' }
+  writerSearch.value = ''
   currentOrderForAction.value = null
 }
 
 const confirmAssign = async () => {
   if (!assignForm.value.writerId || !currentOrderForAction.value) return
   
+  assigning.value = true
   try {
     const isReassign = currentOrderForAction.value.assigned_writer || currentOrderForAction.value.writer_username
     if (isReassign) {
@@ -806,12 +1062,15 @@ const confirmAssign = async () => {
     }
     showMessage('Writer assigned successfully', true)
     closeAssignModal()
-    loadOrders()
+    await loadOrders()
+    await loadAssignmentQueue() // Refresh assignment queue
     if (viewingOrder.value && viewingOrder.value.id === currentOrderForAction.value.id) {
       await viewOrder(currentOrderForAction.value)
     }
   } catch (error) {
     showMessage('Failed to assign writer: ' + (error.response?.data?.detail || error.message), false)
+  } finally {
+    assigning.value = false
   }
 }
 
@@ -1013,6 +1272,8 @@ watch(activeQuickTab, (newTab) => {
 
 onMounted(async () => {
   try {
+    initialLoading.value = true
+    componentError.value = null
     await Promise.all([
       loadDashboard(),
       loadOrders(),
@@ -1021,9 +1282,33 @@ onMounted(async () => {
     initialLoading.value = false
   } catch (error) {
     console.error('Error initializing OrderManagement:', error)
-    componentError.value = error.message || 'Failed to initialize page'
+    componentError.value = error?.message || error?.toString() || 'Failed to initialize page'
     initialLoading.value = false
   }
 })
 </script>
+
+<style scoped>
+/* Modal transition animations */
+.modal-enter-active,
+.modal-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+}
+
+.modal-enter-active > div,
+.modal-leave-active > div {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.modal-enter-from > div,
+.modal-leave-to > div {
+  transform: scale(0.95) translateY(-10px);
+  opacity: 0;
+}
+</style>
 

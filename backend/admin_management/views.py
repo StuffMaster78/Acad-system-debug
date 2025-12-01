@@ -187,6 +187,9 @@ class AdminDashboardView(viewsets.ViewSet):
             "resolved_disputes": 0,  # Add if you have disputes
             "open_tickets": summary.get("open_tickets_count", 0),
             "closed_tickets": summary.get("closed_tickets_count", 0),
+            # Include paid/unpaid counts in stats for consistency
+            "paid_orders_count": summary.get("paid_orders_count", 0),
+            "unpaid_orders_count": summary.get("unpaid_orders_count", 0),
         }
         
         # Get additional comprehensive metrics
@@ -389,6 +392,28 @@ class AdminDashboardView(viewsets.ViewSet):
             logger = logging.getLogger(__name__)
             logger.warning(f"DashboardSerializer failed, returning raw data: {e}")
             return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='analytics/enhanced')
+    def get_enhanced_analytics(self, request):
+        """Get enhanced analytics and insights."""
+        from .services.enhanced_analytics_service import EnhancedAnalyticsService
+        
+        days = int(request.query_params.get('days', 30))
+        analytics = EnhancedAnalyticsService.get_performance_insights(days)
+        
+        return Response(analytics)
+    
+    @action(detail=False, methods=['get'], url_path='analytics/compare')
+    def get_comparative_analytics(self, request):
+        """Get comparative analytics between two periods."""
+        from .services.enhanced_analytics_service import EnhancedAnalyticsService
+        
+        period1_days = int(request.query_params.get('period1_days', 30))
+        period2_days = int(request.query_params.get('period2_days', 30))
+        
+        comparison = EnhancedAnalyticsService.get_comparative_analytics(period1_days, period2_days)
+        
+        return Response(comparison)
     
     @action(detail=False, methods=['get'], url_path='metrics/summary')
     def get_summary(self, request):
@@ -1932,10 +1957,7 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
                 updated_at__lt=stuck_threshold,
                 status__in=['in_progress', 'assigned', 'on_revision', 'pending']
             ).select_related('client', 'assigned_writer', 'website').order_by('updated_at')
-            if request.user.role != 'superadmin':
-                website = getattr(request.user, 'website', None)
-                if website:
-                    stuck = stuck.filter(website=website)
+            # Both superadmin and admin should see all orders (no website filtering)
         
         stuck = stuck[:limit]
         

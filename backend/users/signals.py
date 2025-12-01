@@ -54,6 +54,40 @@ def save_user_profile(sender, instance, **kwargs):
         instance.user_main_profile.save()
 
 @receiver(post_save, sender=User)
+def assign_user_to_role_group(sender, instance, created, **kwargs):
+    """
+    Automatically assign users to appropriate groups based on their role.
+    """
+    if created and instance.role:
+        try:
+            from users.services.group_service import UserGroupService
+            UserGroupService.assign_user_to_group(instance, instance.role)
+        except Exception as e:
+            # Log but don't fail user creation
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to assign group to user {instance.username}: {e}")
+
+@receiver(pre_save, sender=User)
+def sync_user_groups_on_role_change(sender, instance, **kwargs):
+    """
+    Sync user groups when role changes.
+    """
+    if instance.pk:  # Only for existing users
+        try:
+            old_user = User.objects.get(pk=instance.pk)
+            if old_user.role != instance.role:
+                # Role changed - update groups
+                from users.services.group_service import UserGroupService
+                UserGroupService.update_user_groups(instance, instance.role)
+        except User.DoesNotExist:
+            pass
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Failed to sync groups for user {instance.username}: {e}")
+
+@receiver(post_save, sender=User)
 def create_role_based_profiles(sender, instance, created, **kwargs):
     """
     Automatically create profiles for specific roles when a new user is created.

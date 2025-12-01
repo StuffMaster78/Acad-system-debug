@@ -43,6 +43,17 @@ from .views_referrals import (
     AdminReferralCodeViewSet,
 )
 from .views_loyalty import AdminLoyaltyTrackingViewSet
+from .views_system_health import SystemHealthViewSet
+from .views.dashboard_endpoints import (
+    AdminDisputeDashboardViewSet,
+    AdminRefundDashboardViewSet,
+    AdminReviewModerationDashboardViewSet,
+    AdminOrderManagementDashboardViewSet,
+    AdminSpecialOrdersManagementDashboardViewSet,
+    AdminClassManagementDashboardViewSet,
+    AdminFinesManagementDashboardViewSet,
+    AdminAdvancedAnalyticsDashboardViewSet,
+)
 
 # DRF Router for ViewSets
 router = DefaultRouter()
@@ -70,25 +81,35 @@ router.register(r'emails/broadcasts', BroadcastMessageManagementViewSet, basenam
 
 # Dispute and Refund management
 router.register(r'disputes', AdminDisputeManagementViewSet, basename="admin_disputes")
+router.register(r'disputes/dashboard', AdminDisputeDashboardViewSet, basename="admin_disputes_dashboard")
 router.register(r'refunds', AdminRefundManagementViewSet, basename="admin_refunds")
+router.register(r'refunds/dashboard', AdminRefundDashboardViewSet, basename="admin_refunds_dashboard")
 
 # Review Moderation management
 router.register(r'reviews', AdminReviewModerationViewSet, basename="admin_reviews")
+router.register(r'reviews/dashboard', AdminReviewModerationDashboardViewSet, basename="admin_reviews_dashboard")
 
 # Order Management
 router.register(r'orders', AdminOrderManagementViewSet, basename="admin_orders")
+router.register(r'orders/dashboard', AdminOrderManagementDashboardViewSet, basename="admin_orders_dashboard")
 
 # Fines Management
 router.register(r'fines', AdminFinesManagementViewSet, basename="admin_fines")
+router.register(r'fines/dashboard', AdminFinesManagementDashboardViewSet, basename="admin_fines_dashboard")
+
+# Advanced Analytics Dashboard
+router.register(r'advanced-analytics', AdminAdvancedAnalyticsDashboardViewSet, basename="admin_advanced_analytics")
 
 # Writer Assignment
 router.register(r'writer-assignment', WriterAssignmentViewSet, basename="writer_assignment")
 
 # Special Orders Management
 router.register(r'special-orders', AdminSpecialOrdersManagementViewSet, basename="admin_special_orders")
+router.register(r'special-orders/dashboard', AdminSpecialOrdersManagementDashboardViewSet, basename="admin_special_orders_dashboard")
 
 # Class Bundles Management
 router.register(r'class-bundles', AdminClassBundlesManagementViewSet, basename="admin_class_bundles")
+router.register(r'class-bundles/dashboard', AdminClassManagementDashboardViewSet, basename="admin_class_bundles_dashboard")
 
 # Tip Management
 router.register(r'tips', AdminTipManagementViewSet, basename="admin_tips")
@@ -112,6 +133,9 @@ router.register(r'referrals/codes', AdminReferralCodeViewSet, basename="referral
 
 # Loyalty Points Tracking
 router.register(r'loyalty/tracking', AdminLoyaltyTrackingViewSet, basename="loyalty_tracking")
+
+# System Health Monitoring
+router.register(r'system-health', SystemHealthViewSet, basename="system_health")
 
 urlpatterns = [
     # Authentication APIs (JWT-Based)

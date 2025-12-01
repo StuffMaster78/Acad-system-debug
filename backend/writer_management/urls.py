@@ -52,6 +52,7 @@ except (ImportError, AttributeError):
             raise ImportError("Could not find writer_management/views.py")
 from writer_management.views_dashboard import WriterDashboardViewSet
 from writer_management.views_realtime import WriterDashboardRealtimeStream
+from writer_management.views_advance import WriterAdvancePaymentRequestViewSet
 # Import Tip views from views.tips module
 from writer_management.views.tips import TipViewSet, TipListView
 # Import pen name and resource views
@@ -89,6 +90,7 @@ if WriterDisciplineConfigViewSet:
 router.register(r'writer-deadline-extension-requests', WriterDeadlineExtensionRequestViewSet, basename='writer-deadline-extension-requests')
 router.register(r'writer-performance-snapshots', WriterPerformanceSnapshotViewSet, basename='writer-performance-snapshots')
 router.register(r'dashboard', WriterDashboardViewSet, basename='writer-dashboard')
+router.register(r'advance-payments', WriterAdvancePaymentRequestViewSet, basename='advance-payments')
 router.register(r'tips', TipViewSet, basename='tips')
 if WriterPenNameChangeRequestViewSet:
     router.register(r'pen-name-change-requests', WriterPenNameChangeRequestViewSet, basename='pen-name-change-requests')

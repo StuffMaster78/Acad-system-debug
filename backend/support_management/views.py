@@ -2,7 +2,7 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.shortcuts import get_object_or_404
-from django.db.models import F, Q
+from django.db.models import F, Q, Count
 from .models import (
     SupportProfile, SupportNotification, SupportOrderManagement,
     SupportMessage, SupportGlobalAccess, SupportPermission,
@@ -505,4 +505,131 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
         return Response({
             'breaches': serializer.data,
             'count': breaches.count()
+        })
+    
+    @action(detail=False, methods=["get"], url_path="orders")
+    def dashboard_orders(self, request):
+        """Get order management dashboard for support."""
+        from orders.models import Order
+        from orders.order_enums import OrderStatus
+        from orders.serializers import OrderSerializer
+        from refunds.models import Refund
+        from django.db.models import Q, Count
+        
+        if request.user.role not in ["support", "admin", "superadmin"]:
+            return Response(
+                {"detail": "Only support staff can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Orders requiring support attention
+        disputed_orders = Order.objects.filter(
+            status=OrderStatus.DISPUTED.value
+        ).select_related('client', 'writer', 'website')
+        
+        # Payment issues
+        payment_issue_orders = Order.objects.filter(
+            Q(payment_status='failed') | Q(payment_status='pending'),
+            status__in=[OrderStatus.PENDING_PAYMENT.value, OrderStatus.PAYMENT_FAILED.value]
+        ).select_related('client', 'writer', 'website')
+        
+        # Refund requests
+        pending_refunds = Refund.objects.filter(
+            status='pending'
+        ).select_related('order', 'order__client')
+        
+        # Orders with support tickets
+        from tickets.models import Ticket
+        orders_with_tickets = Order.objects.filter(
+            tickets__isnull=False
+        ).distinct().select_related('client', 'writer', 'website')
+        
+        return Response({
+            'disputed_orders': {
+                'count': disputed_orders.count(),
+                'orders': OrderSerializer(disputed_orders[:10], many=True).data,
+            },
+            'payment_issue_orders': {
+                'count': payment_issue_orders.count(),
+                'orders': OrderSerializer(payment_issue_orders[:10], many=True).data,
+            },
+            'pending_refunds': {
+                'count': pending_refunds.count(),
+                'refunds': [
+                    {
+                        'id': refund.id,
+                        'order_id': refund.order.id if refund.order else None,
+                        'amount': str(refund.amount),
+                        'reason': refund.reason,
+                        'status': refund.status,
+                        'created_at': refund.created_at.isoformat() if refund.created_at else None,
+                    }
+                    for refund in pending_refunds[:10]
+                ],
+            },
+            'orders_with_tickets': {
+                'count': orders_with_tickets.count(),
+                'orders': OrderSerializer(orders_with_tickets[:10], many=True).data,
+            },
+            'summary': {
+                'total_requiring_attention': (
+                    disputed_orders.count() + 
+                    payment_issue_orders.count() + 
+                    pending_refunds.count()
+                ),
+            }
+        })
+    
+    @action(detail=False, methods=["get"], url_path="escalations")
+    def dashboard_escalations(self, request):
+        """Get escalation management for support dashboard."""
+        from .models import EscalationLog
+        from .serializers import EscalationLogSerializer
+        from django.db.models import Q
+        
+        if request.user.role not in ["support", "admin", "superadmin"]:
+            return Response(
+                {"detail": "Only support staff can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get escalated tickets
+        if request.user.role == "support":
+            escalations = EscalationLog.objects.filter(
+                Q(escalated_to=request.user) | Q(escalated_by=request.user)
+            ).select_related('ticket', 'escalated_by', 'escalated_to', 'resolved_by')
+        else:
+            escalations = EscalationLog.objects.all().select_related(
+                'ticket', 'escalated_by', 'escalated_to', 'resolved_by'
+            )
+        
+        # Filter by status
+        status_filter = request.query_params.get('status', None)
+        if status_filter:
+            escalations = escalations.filter(status=status_filter)
+        
+        # Get unresolved escalations
+        unresolved = escalations.filter(status='pending')
+        
+        # Get resolved escalations
+        resolved = escalations.filter(status='resolved')
+        
+        # Get escalation reasons breakdown
+        reasons_breakdown = escalations.values('escalation_reason').annotate(
+            count=Count('id')
+        )
+        
+        return Response({
+            'escalations': EscalationLogSerializer(escalations[:50], many=True).data,
+            'unresolved_escalations': EscalationLogSerializer(unresolved[:20], many=True).data,
+            'resolved_escalations': EscalationLogSerializer(resolved[:20], many=True).data,
+            'counts': {
+                'total': escalations.count(),
+                'unresolved': unresolved.count(),
+                'resolved': resolved.count(),
+            },
+            'reasons_breakdown': {
+                item['escalation_reason']: item['count'] 
+                for item in reasons_breakdown
+            },
         })

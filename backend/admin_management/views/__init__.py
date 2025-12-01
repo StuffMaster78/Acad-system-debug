@@ -45,6 +45,16 @@ from .config_management import (
     BlogAuthorPersonaManagementViewSet,
 )
 from .duplicate_detection import DuplicateAccountDetectionViewSet
+from .dashboard_endpoints import (
+    AdminDisputeDashboardViewSet,
+    AdminRefundDashboardViewSet,
+    AdminReviewModerationDashboardViewSet,
+    AdminOrderManagementDashboardViewSet,
+    AdminSpecialOrdersManagementDashboardViewSet,
+    AdminClassManagementDashboardViewSet,
+    AdminFinesManagementDashboardViewSet,
+    AdminAdvancedAnalyticsDashboardViewSet,
+)
 
 __all__ = [
     'AdminDashboardView',
@@ -70,5 +80,13 @@ __all__ = [
     'ScreenedWordManagementViewSet',
     'BlogAuthorPersonaManagementViewSet',
     'DuplicateAccountDetectionViewSet',
+    'AdminDisputeDashboardViewSet',
+    'AdminRefundDashboardViewSet',
+    'AdminReviewModerationDashboardViewSet',
+    'AdminOrderManagementDashboardViewSet',
+    'AdminSpecialOrdersManagementDashboardViewSet',
+    'AdminClassManagementDashboardViewSet',
+    'AdminFinesManagementDashboardViewSet',
+    'AdminAdvancedAnalyticsDashboardViewSet',
 ]
 

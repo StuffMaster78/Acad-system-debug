@@ -40,5 +40,25 @@ urlpatterns = [
         CommunicationMessageViewSet.as_view({'get': 'available_recipients'}),
         name="communication-message-available-recipients"
     ),
+    path(
+        "communication-threads/<int:thread_pk>/communication-messages/<int:pk>/mark_as_read/",
+        CommunicationMessageViewSet.as_view({'post': 'mark_as_read'}),
+        name="communication-message-mark-as-read"
+    ),
+    path(
+        "communication-threads/<int:thread_pk>/communication-messages/<int:pk>/react/",
+        CommunicationMessageViewSet.as_view({'post': 'react', 'delete': 'react'}),
+        name="communication-message-react"
+    ),
+    path(
+        "communication-threads/<int:pk>/typing/",
+        CommunicationThreadViewSet.as_view({'post': 'typing'}),
+        name="communication-thread-typing"
+    ),
+    path(
+        "communication-threads/<int:pk>/typing_status/",
+        CommunicationThreadViewSet.as_view({'get': 'typing_status'}),
+        name="communication-thread-typing-status"
+    ),
     path("message-attachments/", MessageAttachmentUploadView.as_view(), name="message-attachment-upload"),
 ]

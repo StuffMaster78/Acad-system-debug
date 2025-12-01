@@ -792,6 +792,175 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             ],
         })
     
+    @action(detail=False, methods=['get'], url_path='payment-status')
+    def get_payment_status(self, request):
+        """Get comprehensive payment status dashboard for writer."""
+        profile = self.get_writer_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=404
+            )
+        
+        # Get payments from writer_payments_management
+        from writer_payments_management.models import WriterPayment, WriterPayoutRequest
+        
+        all_payments = WriterPayment.objects.filter(
+            writer=profile
+        ).select_related('order', 'special_order', 'website')
+        
+        # Payment status breakdown
+        status_breakdown = all_payments.values('status').annotate(
+            count=Count('id'),
+            total_amount=Sum('amount')
+        )
+        
+        # Pending payments
+        pending_payments = all_payments.filter(status='Pending')
+        pending_amount = pending_payments.aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        
+        # Delayed payments
+        delayed_payments = all_payments.filter(status='Delayed')
+        delayed_amount = delayed_payments.aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        
+        # Paid payments (last 30 days)
+        month_ago = timezone.now() - timedelta(days=30)
+        recent_paid = all_payments.filter(
+            status='Paid',
+            processed_at__gte=month_ago
+        )
+        recent_paid_amount = recent_paid.aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0.00')
+        
+        # Total earnings (all time)
+        total_earnings = all_payments.filter(
+            status='Paid'
+        ).aggregate(
+            total=Sum('amount'),
+            total_bonuses=Sum('bonuses'),
+            total_tips=Sum('tips'),
+            total_fines=Sum('fines')
+        )
+        
+        # Payment trends (last 12 weeks)
+        weeks_ago = timezone.now() - timedelta(weeks=12)
+        from django.db.models.functions import TruncWeek
+        
+        payment_trends = all_payments.filter(
+            processed_at__gte=weeks_ago
+        ).annotate(
+            week=TruncWeek('processed_at')
+        ).values('week', 'status').annotate(
+            count=Count('id'),
+            total_amount=Sum('amount')
+        ).order_by('week', 'status')
+        
+        # Payout requests
+        payout_requests = WriterPayoutRequest.objects.filter(
+            writer=profile
+        ).order_by('-requested_at')
+        
+        pending_payout_requests = payout_requests.filter(status='Pending')
+        pending_payout_amount = pending_payout_requests.aggregate(
+            total=Sum('amount_requested')
+        )['total'] or Decimal('0.00')
+        
+        # Payment method status (payout preferences)
+        payout_preferences = profile.payout_preferences.filter(verified=True)
+        has_verified_payout_method = payout_preferences.exists()
+        
+        # Recent payment activity
+        recent_payments = all_payments.order_by('-processed_at')[:10]
+        
+        # Payment schedule info (if available)
+        # This would typically come from writer config or website settings
+        payment_schedule = 'bi-weekly'  # Default, could be from config
+        
+        return Response({
+            'summary': {
+                'total_earnings': float(total_earnings['total'] or 0),
+                'total_bonuses': float(total_earnings['total_bonuses'] or 0),
+                'total_tips': float(total_earnings['total_tips'] or 0),
+                'total_fines': float(total_earnings['total_fines'] or 0),
+                'pending_amount': float(pending_amount),
+                'delayed_amount': float(delayed_amount),
+                'recent_paid_30d': float(recent_paid_amount),
+                'pending_payout_requests': pending_payout_requests.count(),
+                'pending_payout_amount': float(pending_payout_amount),
+                'has_verified_payout_method': has_verified_payout_method,
+                'payment_schedule': payment_schedule,
+            },
+            'status_breakdown': {
+                item['status']: {
+                    'count': item['count'],
+                    'total_amount': float(item['total_amount'] or 0),
+                }
+                for item in status_breakdown
+            },
+            'pending_payments': [
+                {
+                    'id': p.id,
+                    'order_id': p.order.id if p.order else None,
+                    'special_order_id': p.special_order.id if p.special_order else None,
+                    'amount': float(p.amount),
+                    'bonuses': float(p.bonuses or 0),
+                    'tips': float(p.tips or 0),
+                    'fines': float(p.fines or 0),
+                    'status': p.status,
+                    'processed_at': p.processed_at.isoformat() if p.processed_at else None,
+                }
+                for p in pending_payments[:20]
+            ],
+            'delayed_payments': [
+                {
+                    'id': p.id,
+                    'order_id': p.order.id if p.order else None,
+                    'amount': float(p.amount),
+                    'status': p.status,
+                    'processed_at': p.processed_at.isoformat() if p.processed_at else None,
+                    'updated_at': p.updated_at.isoformat() if p.updated_at else None,
+                }
+                for p in delayed_payments[:20]
+            ],
+            'payment_trends': [
+                {
+                    'week': item['week'].isoformat() if item['week'] else None,
+                    'status': item['status'],
+                    'count': item['count'],
+                    'total_amount': float(item['total_amount'] or 0),
+                }
+                for item in payment_trends
+            ],
+            'payout_requests': [
+                {
+                    'id': req.id,
+                    'amount_requested': float(req.amount_requested),
+                    'status': req.status,
+                    'requested_at': req.requested_at.isoformat() if req.requested_at else None,
+                    'processed_at': req.processed_at.isoformat() if req.processed_at else None,
+                }
+                for req in payout_requests[:10]
+            ],
+            'recent_payments': [
+                {
+                    'id': p.id,
+                    'order_id': p.order.id if p.order else None,
+                    'amount': float(p.amount),
+                    'bonuses': float(p.bonuses or 0),
+                    'tips': float(p.tips or 0),
+                    'fines': float(p.fines or 0),
+                    'status': p.status,
+                    'processed_at': p.processed_at.isoformat() if p.processed_at else None,
+                }
+                for p in recent_payments
+            ],
+        })
+    
     @action(detail=False, methods=['get'], url_path='level')
     def get_level(self, request):
         """Get writer level, earnings info, and progression requirements."""
@@ -1161,9 +1330,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         
         return response
     
-    @action(detail=False, methods=['get'], url_path='workload')
-    def get_workload(self, request):
-        """Get writer's current workload vs capacity."""
+    @action(detail=False, methods=['get'], url_path='workload-capacity')
+    def get_workload_capacity(self, request):
+        """Get comprehensive writer workload capacity indicator with recommendations."""
         profile = self.get_writer_profile(request)
         if not profile:
             return Response(
@@ -1178,7 +1347,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         # Count current active orders
         active_orders = Order.objects.filter(
             assigned_writer=request.user,
-            status__in=['in_progress', 'on_hold', 'revision_requested', 'submitted', 'under_editing']
+            status__in=['in_progress', 'on_hold', 'revision_requested', 'submitted', 'under_editing', 'on_revision']
         )
         
         current_count = active_orders.count()
@@ -1186,36 +1355,110 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         
         # Get orders by status breakdown
         status_breakdown = {}
-        for status in ['in_progress', 'on_hold', 'revision_requested', 'submitted', 'under_editing']:
+        for status in ['in_progress', 'on_hold', 'revision_requested', 'submitted', 'under_editing', 'on_revision']:
             status_breakdown[status] = active_orders.filter(status=status).count()
         
         # Calculate estimated completion time for current orders
-        # (simplified - could be enhanced with actual completion time estimates)
         total_pages = sum(self._get_order_pages(o) for o in active_orders)
         
         # Estimate: assume average writing speed (e.g., 2 pages per hour)
         estimated_hours = total_pages / 2 if total_pages > 0 else 0
         
-        # Get upcoming deadlines
+        # Get upcoming deadlines with urgency
         now = timezone.now()
         upcoming_deadlines = active_orders.filter(
             models.Q(writer_deadline__gte=now) |
-            models.Q(client_deadline__gte=now) |
-            models.Q(deadline__gte=now)
-        ).order_by('writer_deadline', 'client_deadline', 'deadline')[:5]
+            models.Q(client_deadline__gte=now)
+        ).order_by('writer_deadline', 'client_deadline')[:10]
         
         upcoming_deadlines_list = []
+        urgent_count = 0
         for order in upcoming_deadlines:
-            deadline = order.writer_deadline or order.client_deadline or getattr(order, 'deadline', None)
+            deadline = order.writer_deadline or order.client_deadline
             if deadline:
                 hours_remaining = (deadline - now).total_seconds() / 3600
+                days_remaining = hours_remaining / 24
+                is_urgent = hours_remaining < 24
+                is_critical = hours_remaining < 12
+                
+                if is_urgent:
+                    urgent_count += 1
+                
                 upcoming_deadlines_list.append({
                     'id': order.id,
                     'topic': order.topic or 'No topic',
+                    'status': order.status,
                     'deadline': deadline.isoformat(),
                     'hours_remaining': round(hours_remaining, 1),
+                    'days_remaining': round(days_remaining, 2),
                     'pages': self._get_order_pages(order),
+                    'is_urgent': is_urgent,
+                    'is_critical': is_critical,
                 })
+        
+        # Availability status
+        is_available = getattr(profile, 'is_available_for_auto_assignments', True)
+        availability_status = 'available' if is_available else 'unavailable'
+        if current_count >= max_orders:
+            availability_status = 'at_capacity'
+        elif capacity_percentage >= 90:
+            availability_status = 'near_capacity'
+        elif urgent_count > 0:
+            availability_status = 'busy'
+        
+        # Workload recommendations
+        recommendations = []
+        if current_count >= max_orders:
+            recommendations.append({
+                'type': 'warning',
+                'message': f'You are at maximum capacity ({current_count}/{max_orders} orders). Consider completing existing orders before taking new ones.',
+                'priority': 'high',
+            })
+        elif capacity_percentage >= 90:
+            recommendations.append({
+                'type': 'info',
+                'message': f'You are near capacity ({current_count}/{max_orders} orders). You have {max_orders - current_count} slot(s) remaining.',
+                'priority': 'medium',
+            })
+        
+        if urgent_count > 0:
+            recommendations.append({
+                'type': 'urgent',
+                'message': f'You have {urgent_count} order(s) with deadlines within 24 hours. Focus on completing these first.',
+                'priority': 'high',
+            })
+        
+        if estimated_hours > 40:  # More than a week of work
+            recommendations.append({
+                'type': 'info',
+                'message': f'Your current workload is estimated at {round(estimated_hours, 1)} hours. Plan your schedule accordingly.',
+                'priority': 'medium',
+            })
+        
+        if not is_available and current_count < max_orders:
+            recommendations.append({
+                'type': 'info',
+                'message': 'You have marked yourself as unavailable for auto-assignments. You can still manually request orders.',
+                'priority': 'low',
+            })
+        
+        # Calculate average pages per order
+        avg_pages_per_order = total_pages / current_count if current_count > 0 else 0
+        
+        # Estimate time to clear current workload
+        estimated_days_to_clear = round(estimated_hours / 8, 1) if estimated_hours > 0 else 0  # Assuming 8-hour workday
+        
+        # Capacity health indicator
+        if current_count >= max_orders:
+            capacity_health = 'overloaded'
+        elif capacity_percentage >= 90:
+            capacity_health = 'high'
+        elif capacity_percentage >= 70:
+            capacity_health = 'moderate'
+        elif capacity_percentage >= 50:
+            capacity_health = 'comfortable'
+        else:
+            capacity_health = 'light'
         
         return Response({
             'capacity': {
@@ -1223,16 +1466,27 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'max_orders': max_orders,
                 'available_slots': max(0, max_orders - current_count),
                 'capacity_percentage': round(capacity_percentage, 1),
+                'capacity_health': capacity_health,
                 'is_at_capacity': current_count >= max_orders,
                 'is_near_capacity': capacity_percentage >= 80,
+                'can_accept_more': current_count < max_orders and is_available,
+            },
+            'availability': {
+                'status': availability_status,
+                'is_available_for_auto_assignments': is_available,
+                'last_updated': getattr(profile, 'availability_last_changed', None).isoformat() if hasattr(profile, 'availability_last_changed') and getattr(profile, 'availability_last_changed') else None,
+                'message': getattr(profile, 'availability_message', None),
             },
             'status_breakdown': status_breakdown,
             'workload_estimate': {
                 'total_pages': total_pages,
+                'avg_pages_per_order': round(avg_pages_per_order, 1),
                 'estimated_hours': round(estimated_hours, 1),
-                'estimated_days': round(estimated_hours / 8, 1),  # Assuming 8-hour workday
+                'estimated_days': estimated_days_to_clear,
+                'urgent_orders_count': urgent_count,
             },
             'upcoming_deadlines': upcoming_deadlines_list,
+            'recommendations': recommendations,
             'writer_level': {
                 'name': writer_level.name if writer_level else 'None',
                 'max_orders': max_orders,

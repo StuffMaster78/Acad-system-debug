@@ -16,6 +16,7 @@ export default {
   getLevelAndRanking: () => apiClient.get('/writer-management/dashboard/level/'),
   getEstimatedEarnings: (params) => apiClient.get('/writer-management/dashboard/estimated-earnings/', { params }),
   getPayments: () => apiClient.get('/writer-management/dashboard/payments/'),
+  getPaymentStatus: () => apiClient.get('/writer-management/dashboard/payment-status/'),
       getCalendar: (params) => apiClient.get('/writer-management/dashboard/calendar/', { params }),
       exportCalendarICS: async (params) => {
         try {

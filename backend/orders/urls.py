@@ -17,6 +17,7 @@ from orders.views.writers.writer_requests_preview import WriterRequestPreviewVie
 from orders.views.orders.editing_admin import OrderEditingAdminView
 from orders.views.progress import WriterProgressViewSet
 from orders.views.draft_requests import DraftRequestViewSet, DraftFileViewSet
+from orders.views.order_templates import OrderTemplateViewSet
 
 
 app_name = 'orders'
@@ -31,6 +32,7 @@ router.register(
 router.register(r'progress', WriterProgressViewSet, basename='writer-progress')
 router.register(r'draft-requests', DraftRequestViewSet, basename='draft-request')
 router.register(r'draft-files', DraftFileViewSet, basename='draft-file')
+router.register(r'templates', OrderTemplateViewSet, basename='order-template')
 
 
 urlpatterns = [

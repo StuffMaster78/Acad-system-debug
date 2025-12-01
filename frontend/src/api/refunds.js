@@ -7,7 +7,7 @@ export default {
   create: (data) => apiClient.post('/refunds/refunds/', data),
   process: (id, data) => apiClient.post(`/refunds/refunds/${id}/process/`, data),
   retry: (id) => apiClient.post(`/refunds/refunds/${id}/retry/`),
-  cancel: (id) => apiClient.post(`/refunds/refunds/${id}/cancel/`),
+  cancel: (id, data) => apiClient.post(`/refunds/refunds/${id}/cancel/`, data),
   
   // Refund Logs
   listLogs: (params) => apiClient.get('/refunds/refund-logs/', { params }),

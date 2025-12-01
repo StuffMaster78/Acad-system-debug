@@ -73,18 +73,18 @@ class MessageService:
                 if has_order_access:
                     thread.participants.add(sender)
                 else:
-                    raise ValueError("Sender does not have access to this order.")
+                    raise ValueError("You don't have access to this order. Please contact support if you believe this is an error.")
             else:
-                raise ValueError("Sender is not a participant of this thread.")
+                raise ValueError("You are not a participant in this conversation. Please contact support if you need access.")
         
         # Enforce order restrictions, including special, archived, etc.
         CommunicationGuardService.assert_can_send_message(sender, thread)
 
         if not thread.is_active and not thread.admin_override:
-            raise ValueError("Messaging is disabled for this thread.")
+            raise ValueError("Messaging is disabled for this conversation. Please contact support if you need to send a message.")
 
         if not message or not message.strip():
-            raise ValueError("Empty messages are not allowed.")
+            raise ValueError("Please enter a message or attach a file.")
 
         if reply_to and reply_to.thread != thread:
             raise ValueError("Replied-to message must belong to the same thread.")

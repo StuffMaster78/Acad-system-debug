@@ -759,35 +759,10 @@
 
       <!-- Messages Tab -->
       <div v-if="activeTab === 'messages'" class="space-y-6">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h3 class="text-lg font-semibold">Messages</h3>
-            <p class="text-sm text-gray-500 mt-1">Communicate with order participants</p>
-          </div>
-          <router-link
-            :to="`/orders/${order.id}/messages`"
-            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
-          >
-            Open Full Messages →
-          </router-link>
-        </div>
-        
-        <!-- Separated Message Threads -->
-        <div v-if="loadingThreads" class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        </div>
-
-        <div v-else-if="threads.length === 0" class="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-          <div class="text-4xl mb-3">💬</div>
-          <p class="text-gray-700 font-medium mb-2">No Messages Yet</p>
-          <p class="text-sm text-gray-600 mb-4">Start a conversation with order participants</p>
-          <button
-            @click="openSendMessageModal"
-            class="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            Start Conversation
-          </button>
-        </div>
+        <OrderMessagesTabbed
+          :order-id="order.id"
+          :order-topic="order.topic"
+        />
 
         <div v-else class="space-y-6">
           <!-- Client-Writer Messages -->
@@ -2373,6 +2348,7 @@ import UserDisplayName from '@/components/common/UserDisplayName.vue'
 import ProgressBar from '@/components/orders/ProgressBar.vue'
 import ProgressReportForm from '@/components/orders/ProgressReportForm.vue'
 import ProgressHistory from '@/components/orders/ProgressHistory.vue'
+import OrderMessagesTabbed from '@/components/order/OrderMessagesTabbed.vue'
 import { useOnlineStatus } from '@/composables/useOnlineStatus'
 import progressAPI from '@/api/progress'
 import OrderActionModal from '@/components/order/OrderActionModal.vue'

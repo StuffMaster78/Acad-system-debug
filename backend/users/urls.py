@@ -8,13 +8,25 @@ from drf_spectacular.views import ( # type: ignore
     SpectacularSwaggerView
 )
 
-# Import ViewSets
-from users.views import (
-    UserViewSet,
-    AccountDeletionRequestViewSet,
-    AdminProfileRequestViewSet,
-    AdminUserManagementViewSet
-)
+# Import ViewSets from views.py (main file) - use importlib to avoid circular import
+import importlib.util
+import sys
+from pathlib import Path
+
+# Load views.py directly
+views_py_path = Path(__file__).parent / 'views.py'
+spec = importlib.util.spec_from_file_location("users.views_main", views_py_path)
+views_main = importlib.util.module_from_spec(spec)
+sys.modules["users.views_main"] = views_main
+spec.loader.exec_module(views_main)
+
+UserViewSet = views_main.UserViewSet
+AccountDeletionRequestViewSet = views_main.AccountDeletionRequestViewSet
+AdminProfileRequestViewSet = views_main.AdminProfileRequestViewSet
+AdminUserManagementViewSet = views_main.AdminUserManagementViewSet
+
+# Import AccountManagementViewSet from views package
+from users.views.account_management import AccountManagementViewSet
 
 # Initialize DRF Router
 router = DefaultRouter()
@@ -26,6 +38,9 @@ router = DefaultRouter()
 
 # User management (Profiles, Impersonation, Requests)
 router.register(r'users', UserViewSet, basename="users")
+
+# Unified Account Management (Password, 2FA, Profile Updates, Security)
+router.register(r'account', AccountManagementViewSet, basename="account")
 
 # Admin actions (Profile update approvals, Deletions)
 router.register(r'admin/profile-requests', AdminProfileRequestViewSet, basename="admin-profile-requests")

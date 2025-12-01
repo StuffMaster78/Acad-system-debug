@@ -151,14 +151,21 @@ class SessionManager {
         this.handleLogout()
       }
     } catch (error) {
+      // Handle network errors gracefully (connection refused, etc.)
+      if (!error.response) {
+        // Network error - likely dev server or backend is down
+        // Don't spam console, just silently fail and retry later
+        return
+      }
+      
       // If 401, try token refresh first before logging out
       if (error.response?.status === 401) {
         // Don't immediately logout on 401 - let the token refresh interceptor handle it
         // Only logout if token refresh also fails
         console.debug('Session status check returned 401, token refresh will handle')
       } else {
-        // Only log non-401 errors
-        console.error('Session status check failed:', error)
+        // Only log unexpected HTTP errors (not network errors)
+        console.error('Session status check failed:', error.response?.status, error.response?.data || error.message)
       }
     }
   }
@@ -202,13 +209,21 @@ class SessionManager {
       this.isWarningShown = false
       })
       .catch((error) => {
+        // Handle network errors gracefully (connection refused, etc.)
+        if (!error.response) {
+          // Network error - likely dev server or backend is down
+          // Don't spam console, just silently fail and retry later
+          return
+        }
+        
         if (error.response?.status === 401) {
           this.handleLogout()
         } else if (error.response?.status === 400) {
           console.warn('Session extend rejected:', error.response?.data || error.message)
         } else {
-      console.error('Failed to extend session:', error)
-    }
+          // Only log unexpected HTTP errors (not network errors)
+          console.error('Failed to extend session:', error.response?.status, error.response?.data || error.message)
+        }
       })
       .finally(() => {
         this.extendInFlight = null

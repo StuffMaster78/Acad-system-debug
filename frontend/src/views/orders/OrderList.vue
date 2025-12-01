@@ -31,6 +31,111 @@
       @filter-change="handleFilterChange"
     />
 
+    <div class="card p-4 space-y-3">
+      <div class="flex flex-wrap items-center gap-3">
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-for="group in quickStatusGroups"
+            :key="group.key"
+            type="button"
+            class="px-3 py-1.5 rounded-full border text-sm transition"
+            :class="isStatusGroupActive(group.key) ? 'bg-primary-600 text-white border-primary-600' : 'border-gray-300 text-gray-600 hover:border-primary-300'"
+            @click="toggleStatusGroup(group.key)"
+          >
+            {{ group.label }}
+          </button>
+        </div>
+        <div class="ml-auto flex items-center gap-2 relative" ref="savedFiltersMenuRef">
+          <button
+            type="button"
+            class="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+            @click.stop="toggleSavedFiltersMenu"
+          >
+            <span>Saved Filters</span>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          <div
+            v-if="savedFiltersMenuOpen"
+            class="absolute right-0 top-full mt-2 w-64 bg-white border border-gray-200 rounded-lg shadow-lg p-3 z-30"
+          >
+            <div v-if="!savedFilters.length" class="text-xs text-gray-500">
+              No saved filters yet.
+            </div>
+            <ul v-else class="space-y-1 max-h-40 overflow-y-auto">
+              <li
+                v-for="item in savedFilters"
+                :key="item.id"
+                class="flex items-center gap-2 text-sm"
+              >
+                <button
+                  type="button"
+                  class="flex-1 text-left text-gray-700 hover:text-primary-600"
+                  @click="applySavedFilter(item)"
+                >
+                  {{ item.name }}
+                </button>
+                <button
+                  type="button"
+                  class="text-gray-400 hover:text-red-500"
+                  @click="deleteSavedFilter(item.id)"
+                >
+                  ✕
+                </button>
+              </li>
+            </ul>
+            <div class="mt-3 space-y-2">
+              <input
+                v-model="newSavedFilterName"
+                type="text"
+                placeholder="Filter name"
+                class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
+              />
+              <button
+                type="button"
+                class="w-full px-3 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 text-sm disabled:opacity-50"
+                :disabled="!newSavedFilterName.trim()"
+                @click="saveCurrentFilters"
+              >
+                Save Current
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            class="px-3 py-2 rounded-lg border border-primary-600 text-primary-600 hover:bg-primary-50 text-sm"
+            @click="openAdvancedFilters = true"
+          >
+            Advanced Filters
+          </button>
+          <button
+            type="button"
+            class="px-3 py-2 rounded-lg text-sm text-gray-500 hover:text-gray-700"
+            @click="clearAllFilters"
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+      <div v-if="activeFilterChips.length" class="flex flex-wrap gap-2">
+        <span
+          v-for="chip in activeFilterChips"
+          :key="chip.key"
+          class="inline-flex items-center gap-2 bg-gray-100 text-gray-700 rounded-full px-3 py-1 text-sm"
+        >
+          {{ chip.label }}
+          <button
+            type="button"
+            class="text-gray-500 hover:text-gray-700"
+            @click="removeFilterChip(chip.key)"
+          >
+            ✕
+          </button>
+        </span>
+      </div>
+    </div>
+
     <!-- Bulk Actions (Admin Only) -->
     <div v-if="(authStore.isAdmin || authStore.isSuperAdmin) && selectedOrders.length > 0" class="card p-4 bg-blue-50 border border-blue-200">
       <div class="flex items-center justify-between">
@@ -258,7 +363,7 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { hasPermission } from '@/utils/permissions'
@@ -271,6 +376,8 @@ import { formatWriterName } from '@/utils/formatDisplay'
 import adminOrdersAPI from '@/api/admin-orders'
 import usersAPI from '@/api/users'
 import exportsAPI from '@/api/exports'
+import orderConfigsAPI from '@/api/orderConfigs'
+import AdvancedFiltersDrawer from '@/components/orders/AdvancedFiltersDrawer.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -292,13 +399,67 @@ const bulkActionForm = ref({
 })
 const writers = ref([])
 const processingBulk = ref(false)
-const filters = ref({ 
-  search: route.query.search || '', 
-  status: route.query.status || '', 
+const cloneFilters = (value) => JSON.parse(JSON.stringify(value || {}))
+
+const DEFAULT_FILTERS = {
+  search: route.query.search || '',
+  status: route.query.status || '',
   is_paid: route.query.is_paid || '',
   date_from: route.query.date_from || '',
-  date_to: route.query.date_to || ''
+  date_to: route.query.date_to || '',
+  status_group: route.query.status_group ? route.query.status_group.split(',').filter(Boolean) : [],
+  created_from: route.query.created_from || '',
+  created_to: route.query.created_to || '',
+  deadline_from: route.query.deadline_from || '',
+  deadline_to: route.query.deadline_to || '',
+  price_min: route.query.price_min || '',
+  price_max: route.query.price_max || '',
+  pages_min: route.query.pages_min || '',
+  pages_max: route.query.pages_max || '',
+  writer_query: route.query.writer_query || '',
+  client_query: route.query.client_query || '',
+  subject_id: route.query.subject_id || '',
+  paper_type_id: route.query.paper_type_id || '',
+  academic_level_id: route.query.academic_level_id || '',
+  type_of_work_id: route.query.type_of_work_id || '',
+  flags: route.query.flags ? route.query.flags.split(',').filter(Boolean) : [],
+  include_archived: route.query.include_archived === '1',
+  only_archived: route.query.only_archived === '1'
+}
+
+const filters = ref(cloneFilters(DEFAULT_FILTERS))
+
+const filterMetadata = ref({
+  status_groups: [],
+  flags: []
 })
+
+const subjectOptions = ref([])
+const paperTypes = ref([])
+const academicLevels = ref([])
+const typesOfWork = ref([])
+
+const quickStatusGroups = computed(() => {
+  if (!filterMetadata.value.status_groups?.length) {
+    return [
+      { key: 'active', label: 'Active' },
+      { key: 'pending', label: 'Pending' },
+      { key: 'needs_attention', label: 'Needs Attention' },
+      { key: 'completed', label: 'Completed' },
+      { key: 'archived', label: 'Archived' }
+    ]
+  }
+  return filterMetadata.value.status_groups.map((group) => ({
+    key: group.key,
+    label: group.label || group.key
+  }))
+})
+
+const openAdvancedFilters = ref(false)
+const savedFilters = ref([])
+const savedFiltersMenuOpen = ref(false)
+const newSavedFilterName = ref('')
+const savedFiltersMenuRef = ref(null)
 
 const pagination = ref({
   currentPage: 1,
@@ -359,6 +520,230 @@ const filterLabels = {
   is_paid: 'Payment Status',
   date_from: 'Date From',
   date_to: 'Date To'
+}
+
+const statusGroupLookup = computed(() => {
+  const map = {}
+  filterMetadata.value.status_groups?.forEach((group) => {
+    map[group.key] = group
+  })
+  return map
+})
+
+const flagLookup = computed(() => {
+  const map = {}
+  filterMetadata.value.flags?.forEach((flag) => {
+    map[flag.value] = flag.label || flag.value
+  })
+  return map
+})
+
+const optionToLookup = (collection) => {
+  const map = {}
+  collection.forEach((item) => {
+    map[item.id] = item.name || item.label || item.title || `#${item.id}`
+  })
+  return map
+}
+
+const subjectLookup = computed(() => optionToLookup(subjectOptions.value))
+const paperTypeLookup = computed(() => optionToLookup(paperTypes.value))
+const academicLevelLookup = computed(() => optionToLookup(academicLevels.value))
+const typeOfWorkLookup = computed(() => optionToLookup(typesOfWork.value))
+
+const activeFilterChips = computed(() => {
+  const chips = []
+  if (filters.value.status_group?.length) {
+    const labels = filters.value.status_group.map((key) => statusGroupLookup.value[key]?.label || key)
+    chips.push({ key: 'status_group', label: `Group: ${labels.join(', ')}` })
+  }
+  if (filters.value.created_from || filters.value.created_to) {
+    chips.push({
+      key: 'created_range',
+      label: `Created ${filters.value.created_from || '...' } → ${filters.value.created_to || '...' }`
+    })
+  }
+  if (filters.value.deadline_from || filters.value.deadline_to) {
+    chips.push({
+      key: 'deadline_range',
+      label: `Deadline ${filters.value.deadline_from || '...' } → ${filters.value.deadline_to || '...' }`
+    })
+  }
+  if (filters.value.price_min || filters.value.price_max) {
+    chips.push({
+      key: 'price_range',
+      label: `Price ${filters.value.price_min || '0'} - ${filters.value.price_max || '∞'}`
+    })
+  }
+  if (filters.value.pages_min || filters.value.pages_max) {
+    chips.push({
+      key: 'pages_range',
+      label: `Pages ${filters.value.pages_min || '0'} - ${filters.value.pages_max || '∞'}`
+    })
+  }
+  if (filters.value.subject_id) {
+    chips.push({ key: 'subject_id', label: `Subject: ${subjectLookup.value[filters.value.subject_id] || filters.value.subject_id}` })
+  }
+  if (filters.value.paper_type_id) {
+    chips.push({ key: 'paper_type_id', label: `Paper: ${paperTypeLookup.value[filters.value.paper_type_id] || filters.value.paper_type_id}` })
+  }
+  if (filters.value.academic_level_id) {
+    chips.push({ key: 'academic_level_id', label: `Level: ${academicLevelLookup.value[filters.value.academic_level_id] || filters.value.academic_level_id}` })
+  }
+  if (filters.value.type_of_work_id) {
+    chips.push({ key: 'type_of_work_id', label: `Work: ${typeOfWorkLookup.value[filters.value.type_of_work_id] || filters.value.type_of_work_id}` })
+  }
+  if (filters.value.writer_query) {
+    chips.push({ key: 'writer_query', label: `Writer: ${filters.value.writer_query}` })
+  }
+  if (filters.value.client_query) {
+    chips.push({ key: 'client_query', label: `Client: ${filters.value.client_query}` })
+  }
+  if (filters.value.flags?.length) {
+    const labels = filters.value.flags.map((flag) => flagLookup.value[flag] || flag)
+    chips.push({ key: 'flags', label: `Flags: ${labels.join(', ')}` })
+  }
+  if (filters.value.include_archived && !filters.value.only_archived) {
+    chips.push({ key: 'include_archived', label: 'Including archived' })
+  }
+  if (filters.value.only_archived) {
+    chips.push({ key: 'only_archived', label: 'Only archived' })
+  }
+  return chips
+})
+
+const ADVANCED_FILTER_KEYS = Object.keys(DEFAULT_FILTERS).filter((key) => !['search', 'status', 'is_paid', 'date_from', 'date_to'].includes(key))
+
+const statusGroupLabel = (key) => statusGroupLookup.value[key]?.label || key
+const isStatusGroupActive = (key) => filters.value.status_group.includes(key)
+
+const toggleStatusGroup = (key) => {
+  const current = new Set(filters.value.status_group)
+  if (current.has(key)) {
+    current.delete(key)
+  } else {
+    current.add(key)
+  }
+  filters.value.status_group = Array.from(current)
+  pagination.value.currentPage = 1
+  handleFilterChange()
+}
+
+const savedFilterStorageKey = 'orders:savedFilters'
+
+const loadSavedFilters = () => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(savedFilterStorageKey))
+    if (Array.isArray(stored)) {
+      savedFilters.value = stored
+    }
+  } catch (error) {
+    console.warn('Failed to load saved filters:', error)
+    savedFilters.value = []
+  }
+}
+
+const persistSavedFilters = () => {
+  localStorage.setItem(savedFilterStorageKey, JSON.stringify(savedFilters.value))
+}
+
+const toggleSavedFiltersMenu = () => {
+  savedFiltersMenuOpen.value = !savedFiltersMenuOpen.value
+}
+
+const saveCurrentFilters = () => {
+  if (!newSavedFilterName.value.trim()) return
+  const entry = {
+    id: Date.now().toString(),
+    name: newSavedFilterName.value.trim(),
+    filters: cloneFilters(filters.value),
+    created_at: new Date().toISOString()
+  }
+  savedFilters.value = [entry, ...savedFilters.value].slice(0, 25)
+  persistSavedFilters()
+  newSavedFilterName.value = ''
+  savedFiltersMenuOpen.value = false
+}
+
+const applySavedFilter = (entry) => {
+  filters.value = cloneFilters({ ...DEFAULT_FILTERS, ...entry.filters })
+  pagination.value.currentPage = 1
+  handleFilterChange()
+  savedFiltersMenuOpen.value = false
+}
+
+const deleteSavedFilter = (id) => {
+  savedFilters.value = savedFilters.value.filter((item) => item.id !== id)
+  persistSavedFilters()
+}
+
+const clearAllFilters = () => {
+  filters.value = cloneFilters(DEFAULT_FILTERS)
+  pagination.value.currentPage = 1
+  handleFilterChange()
+}
+
+const removeFilterChip = (key) => {
+  switch (key) {
+    case 'status_group':
+      filters.value.status_group = []
+      break
+    case 'created_range':
+      filters.value.created_from = ''
+      filters.value.created_to = ''
+      break
+    case 'deadline_range':
+      filters.value.deadline_from = ''
+      filters.value.deadline_to = ''
+      break
+    case 'price_range':
+      filters.value.price_min = ''
+      filters.value.price_max = ''
+      break
+    case 'pages_range':
+      filters.value.pages_min = ''
+      filters.value.pages_max = ''
+      break
+    case 'subject_id':
+    case 'paper_type_id':
+    case 'academic_level_id':
+    case 'type_of_work_id':
+      filters.value[key] = ''
+      break
+    case 'writer_query':
+      filters.value.writer_query = ''
+      break
+    case 'client_query':
+      filters.value.client_query = ''
+      break
+    case 'flags':
+      filters.value.flags = []
+      break
+    case 'include_archived':
+      filters.value.include_archived = false
+      break
+    case 'only_archived':
+      filters.value.only_archived = false
+      break
+  }
+  pagination.value.currentPage = 1
+  handleFilterChange()
+}
+
+const handleAdvancedApply = (advancedFilters) => {
+  filters.value = { ...filters.value, ...advancedFilters }
+  pagination.value.currentPage = 1
+  openAdvancedFilters.value = false
+  handleFilterChange()
+}
+
+const resetAdvancedFilters = () => {
+  const defaults = cloneFilters(DEFAULT_FILTERS)
+  ADVANCED_FILTER_KEYS.forEach((key) => {
+    filters.value[key] = cloneFilters(defaults[key])
+  })
+  pagination.value.currentPage = 1
+  handleFilterChange()
 }
 
 const canCreateOrder = computed(() => {
@@ -427,23 +812,111 @@ const badgeClass = (status) => {
   return statusClasses[status] || 'bg-gray-100 text-gray-700'
 }
 
+const buildQueryParams = () => {
+  const params = {
+    page: pagination.value.currentPage,
+    page_size: pagination.value.itemsPerPage
+  }
+  const assignIfValue = (key, value) => {
+    if (value !== undefined && value !== null && value !== '') {
+      params[key] = value
+    }
+  }
+  assignIfValue('search', filters.value.search)
+  assignIfValue('status', filters.value.status)
+  assignIfValue('is_paid', filters.value.is_paid)
+  assignIfValue('date_from', filters.value.date_from)
+  assignIfValue('date_to', filters.value.date_to)
+  assignIfValue('created_from', filters.value.created_from)
+  assignIfValue('created_to', filters.value.created_to)
+  assignIfValue('deadline_from', filters.value.deadline_from)
+  assignIfValue('deadline_to', filters.value.deadline_to)
+  assignIfValue('price_min', filters.value.price_min)
+  assignIfValue('price_max', filters.value.price_max)
+  assignIfValue('pages_min', filters.value.pages_min)
+  assignIfValue('pages_max', filters.value.pages_max)
+  assignIfValue('writer_query', filters.value.writer_query)
+  assignIfValue('client_query', filters.value.client_query)
+  assignIfValue('subject_id', filters.value.subject_id)
+  assignIfValue('paper_type_id', filters.value.paper_type_id)
+  assignIfValue('academic_level_id', filters.value.academic_level_id)
+  assignIfValue('type_of_work_id', filters.value.type_of_work_id)
+  if (filters.value.status_group?.length) {
+    params.status_group = filters.value.status_group.join(',')
+  }
+  if (filters.value.flags?.length) {
+    params.flags = filters.value.flags.join(',')
+  }
+  if (filters.value.include_archived) {
+    params.include_archived = 1
+  }
+  if (filters.value.only_archived) {
+    params.only_archived = 1
+  }
+  return params
+}
+
+let skipNextRouteSync = false
+
+const buildRouteQuery = () => {
+  const params = buildQueryParams()
+  const query = {}
+  const simpleKeys = [
+    'search',
+    'status',
+    'is_paid',
+    'date_from',
+    'date_to',
+    'created_from',
+    'created_to',
+    'deadline_from',
+    'deadline_to',
+    'price_min',
+    'price_max',
+    'pages_min',
+    'pages_max',
+    'writer_query',
+    'client_query',
+    'subject_id',
+    'paper_type_id',
+    'academic_level_id',
+    'type_of_work_id'
+  ]
+  simpleKeys.forEach((key) => {
+    if (params[key]) {
+      query[key] = params[key]
+    }
+  })
+  if (filters.value.status_group?.length) {
+    query.status_group = filters.value.status_group.join(',')
+  }
+  if (filters.value.flags?.length) {
+    query.flags = filters.value.flags.join(',')
+  }
+  if (filters.value.include_archived) {
+    query.include_archived = '1'
+  }
+  if (filters.value.only_archived) {
+    query.only_archived = '1'
+  }
+  query.page = String(pagination.value.currentPage)
+  if (pagination.value.itemsPerPage !== 100) {
+    query.page_size = String(pagination.value.itemsPerPage)
+  }
+  return query
+}
+
+const syncFiltersToRoute = () => {
+  skipNextRouteSync = true
+  router.replace({ query: buildRouteQuery() }).catch(() => {
+    skipNextRouteSync = false
+  })
+}
+
 const fetchOrders = async () => {
   loading.value = true
   try {
-    const params = {
-      page: pagination.value.currentPage,
-      page_size: pagination.value.itemsPerPage
-    }
-    
-    // Backend now uses LimitedPagination (100 items per page, max 500)
-    // Add filters
-    if (filters.value.search) params.search = filters.value.search
-    if (filters.value.status) params.status = filters.value.status
-    if (filters.value.is_paid) params.is_paid = filters.value.is_paid
-    if (filters.value.date_from) params.date_from = filters.value.date_from
-    if (filters.value.date_to) params.date_to = filters.value.date_to
-    
-    const res = await ordersAPI.list(params)
+    const res = await ordersAPI.list(buildQueryParams())
     
     // Handle paginated response (backend uses LimitedPagination)
     if (res.data?.results) {
@@ -478,25 +951,58 @@ const fetchOrders = async () => {
 
 const handleFilterChange = () => {
   pagination.value.currentPage = 1
+  syncFiltersToRoute()
   fetchOrders()
 }
 
 const handlePageChange = (page) => {
   pagination.value.currentPage = page
+  syncFiltersToRoute()
   fetchOrders()
-  // Scroll to top
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-watch(() => route.query, (q) => {
-  filters.value.search = q.search || ''
-  filters.value.status = q.status || ''
-  filters.value.is_paid = q.is_paid || ''
-  filters.value.date_from = q.date_from || ''
-  filters.value.date_to = q.date_to || ''
-  pagination.value.currentPage = parseInt(q.page) || 1
-  fetchOrders()
-}, { deep: true })
+watch(
+  () => route.query,
+  (q) => {
+    if (skipNextRouteSync) {
+      skipNextRouteSync = false
+      return
+    }
+    filters.value.search = q.search || ''
+    filters.value.status = q.status || ''
+    filters.value.is_paid = q.is_paid || ''
+    filters.value.date_from = q.date_from || ''
+    filters.value.date_to = q.date_to || ''
+    filters.value.created_from = q.created_from || ''
+    filters.value.created_to = q.created_to || ''
+    filters.value.deadline_from = q.deadline_from || ''
+    filters.value.deadline_to = q.deadline_to || ''
+    filters.value.price_min = q.price_min || ''
+    filters.value.price_max = q.price_max || ''
+    filters.value.pages_min = q.pages_min || ''
+    filters.value.pages_max = q.pages_max || ''
+    filters.value.writer_query = q.writer_query || ''
+    filters.value.client_query = q.client_query || ''
+    filters.value.subject_id = q.subject_id || ''
+    filters.value.paper_type_id = q.paper_type_id || ''
+    filters.value.academic_level_id = q.academic_level_id || ''
+    filters.value.type_of_work_id = q.type_of_work_id || ''
+    filters.value.status_group = q.status_group ? q.status_group.split(',').filter(Boolean) : []
+    filters.value.flags = q.flags ? q.flags.split(',').filter(Boolean) : []
+    filters.value.include_archived = q.include_archived === '1'
+    filters.value.only_archived = q.only_archived === '1'
+    pagination.value.currentPage = q.page ? parseInt(q.page, 10) || 1 : 1
+    if (q.page_size) {
+      const size = parseInt(q.page_size, 10)
+      if (!Number.isNaN(size) && size > 0) {
+        pagination.value.itemsPerPage = size
+      }
+    }
+    fetchOrders()
+  },
+  { deep: true }
+)
 
 const toggleSelectAll = () => {
   if (selectedOrders.value.length === orders.value.length) {
@@ -586,13 +1092,49 @@ const showMessage = (msg, success) => {
   }, 5000)
 }
 
+const extractResults = (res) => res.data?.results || res.data || []
+
+const loadFilterMetadata = async () => {
+  try {
+    const res = await ordersAPI.getFilterMetadata()
+    filterMetadata.value = res.data || {}
+  } catch (error) {
+    console.warn('Failed to load filter metadata:', error)
+  }
+}
+
+const loadOrderConfigOptions = async () => {
+  try {
+    const [subjectsRes, papersRes, levelsRes, workRes] = await Promise.all([
+      orderConfigsAPI.getSubjects(),
+      orderConfigsAPI.getPaperTypes(),
+      orderConfigsAPI.getAcademicLevels(),
+      orderConfigsAPI.getTypesOfWork()
+    ])
+    subjectOptions.value = extractResults(subjectsRes)
+    paperTypes.value = extractResults(papersRes)
+    academicLevels.value = extractResults(levelsRes)
+    typesOfWork.value = extractResults(workRes)
+  } catch (error) {
+    console.warn('Failed to load order config options:', error)
+  }
+}
+
+const handleDocumentClick = (event) => {
+  if (
+    savedFiltersMenuOpen.value &&
+    savedFiltersMenuRef.value &&
+    !savedFiltersMenuRef.value.contains(event.target)
+  ) {
+    savedFiltersMenuOpen.value = false
+  }
+}
+
 // Export functionality
 const exportParams = computed(() => {
-  const params = {}
-  if (filters.value.status) params.status = filters.value.status
-  if (filters.value.date_from) params.date_from = filters.value.date_from
-  if (filters.value.date_to) params.date_to = filters.value.date_to
-  if (filters.value.is_paid !== '') params.is_paid = filters.value.is_paid
+  const params = buildQueryParams()
+  delete params.page
+  delete params.page_size
   return params
 })
 
@@ -607,10 +1149,18 @@ const handleExportError = (error) => {
 }
 
 onMounted(() => {
-  fetchOrders()
+  document.addEventListener('click', handleDocumentClick)
+  loadSavedFilters()
+  loadFilterMetadata()
+  loadOrderConfigOptions()
   if (authStore.isAdmin || authStore.isSuperAdmin) {
     loadWriters()
   }
+  fetchOrders()
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleDocumentClick)
 })
 </script>
 

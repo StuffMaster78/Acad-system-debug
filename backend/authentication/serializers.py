@@ -293,9 +293,7 @@ class MFASettingsSerializer(serializers.ModelSerializer):
         """
         Create MFA settings for a user, ensuring they can choose from multiple MFA methods.
         """
-        mfa_settings, created = MFASettings.objects.get_or_create(
-            user=validated_data['user']
-        )
+        mfa_settings, created = MFASettings.get_or_create_for_user(validated_data['user'])
         mfa_settings.mfa_method = validated_data.get(
             'mfa_method', 'qr_code'
         )  # Default to QR code
@@ -1136,7 +1134,7 @@ class TOTPSetupSerializer(serializers.Serializer):
             issuer="YourApp"  # Replace with your app name
         )
 
-        mfa_settings, _ = MFASettings.objects.get_or_create(user=user)
+        mfa_settings, _ = MFASettings.get_or_create_for_user(user)
         mfa_settings.mfa_method = "qr_code"
         mfa_settings.mfa_secret = secret
         mfa_settings.save()

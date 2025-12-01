@@ -20,7 +20,7 @@ class NotificationSettings:
             "email": True,
             "sms": False,
             "push": True,
-            "webhook": False,
+            "webhook": True,
             "telegram": False,
             "whatsapp": False,
             "sse": True,

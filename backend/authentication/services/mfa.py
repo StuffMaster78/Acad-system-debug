@@ -21,7 +21,7 @@ class MFAService:
             user (User): The user for whom MFA is being managed.
         """
         self.user = user
-        self.settings, _ = MFASettings.objects.get_or_create(user=user)
+        self.settings, _ = MFASettings.get_or_create_for_user(user)
 
     def generate_email_otp(self):
         """

@@ -32,6 +32,9 @@ from notifications_system.models.notification_group import NotificationGroup
 from notifications_system.models.notifications_user_status import (
     NotificationsUserStatus,
 )
+from notifications_system.models.webhook_endpoint import (
+    NotificationWebhookEndpoint,
+)
 
 from notifications_system.utils.priority_mapper import (
     get_priority_from_label,
@@ -197,6 +200,69 @@ class UserNotificationPreferenceSerializer(serializers.ModelSerializer):
 class NotificationPreferencesSerializer(serializers.Serializer):
     """Serializer for updating multiple notification preferences at once."""
     preferences = UserNotificationPreferenceSerializer(many=True)
+
+
+class NotificationWebhookEndpointSerializer(serializers.ModelSerializer):
+    """CRUD serializer for webhook endpoints."""
+
+    secret_token = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        write_only=True,
+        help_text="Optional secret used to sign payloads.",
+    )
+    last_success_at = serializers.DateTimeField(read_only=True)
+    last_failure_at = serializers.DateTimeField(read_only=True)
+    failure_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = NotificationWebhookEndpoint
+        fields = [
+            "id",
+            "website",
+            "name",
+            "url",
+            "secret_token",
+            "signature_algorithm",
+            "include_rendered_fields",
+            "headers",
+            "timeout_seconds",
+            "enabled",
+            "subscribed_events",
+            "channel",
+            "last_success_at",
+            "last_failure_at",
+            "failure_count",
+            "created_at",
+            "updated_at",
+        ]
+        read_only_fields = [
+            "id",
+            "channel",
+            "last_success_at",
+            "last_failure_at",
+            "failure_count",
+            "created_at",
+            "updated_at",
+        ]
+
+    def validate_url(self, value):
+        if not value.startswith(("https://", "http://")):
+            raise serializers.ValidationError("Webhook URL must start with http:// or https://")
+        return value
+
+    def create(self, validated_data):
+        user = self.context["request"].user
+        validated_data.setdefault("channel", NotificationType.WEBHOOK)
+        return NotificationWebhookEndpoint.objects.create(
+            user=user,
+            **validated_data,
+        )
+
+    def update(self, instance, validated_data):
+        # channel must remain webhook
+        validated_data.pop("channel", None)
+        return super().update(instance, validated_data)
 
     def validate(self, data):
         if not data.get("preferences"):

@@ -434,9 +434,11 @@ class AuthenticationViewSet(viewsets.ViewSet):
             EditorProfileSerializer, SupportProfileSerializer,
             AdminProfileSerializer, SuperadminProfileSerializer
         )
-        from users.models import (
-            ClientProfile, WriterProfile, EditorProfile, SupportProfile
-        )
+        # Import profile models from their respective apps
+        from client_management.models import ClientProfile
+        from writer_management.models import WriterProfile
+        from editor_management.models import EditorProfile
+        from support_management.models import SupportProfile
         from django.shortcuts import get_object_or_404
         from rest_framework.exceptions import PermissionDenied
         

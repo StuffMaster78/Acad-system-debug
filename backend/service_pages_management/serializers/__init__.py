@@ -18,23 +18,23 @@ from .pdf_serializers import (
     ServicePagePDFSampleSerializer,
 )
 
-# Import legacy serializers from _legacy_serializers.py file
+# Import legacy serializers from serializers_legacy.py file
 def _import_legacy_serializers():
-    """Import legacy serializers from _legacy_serializers.py"""
+    """Import legacy serializers from serializers_legacy.py"""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     parent_dir = os.path.dirname(current_dir)  # service_pages_management/
-    legacy_serializers_path = os.path.join(parent_dir, '_legacy_serializers.py')
+    legacy_serializers_path = os.path.join(parent_dir, 'serializers_legacy.py')
     
     if not os.path.exists(legacy_serializers_path):
         return None
     
-    spec = importlib.util.spec_from_file_location("service_pages_management._legacy_serializers", legacy_serializers_path)
+    spec = importlib.util.spec_from_file_location("service_pages_management.serializers_legacy", legacy_serializers_path)
     if spec is None or spec.loader is None:
         return None
     
     module = importlib.util.module_from_spec(spec)
     module.__package__ = "service_pages_management"
-    module.__name__ = "service_pages_management._legacy_serializers"
+    module.__name__ = "service_pages_management.serializers_legacy"
     spec.loader.exec_module(module)
     
     return module

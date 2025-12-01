@@ -48,6 +48,18 @@ class UserFilter(filters.FilterSet):
         model = User
         fields = ["role", "is_suspended", "is_active", "date_joined"]
 
+class SuperadminProfileFilter(filters.FilterSet):
+    """Custom filtering for SuperadminProfile."""
+    username = filters.CharFilter(field_name="user__username", lookup_expr='icontains')
+    email = filters.CharFilter(field_name="user__email", lookup_expr='icontains')
+    role = filters.CharFilter(field_name="user__role")
+    is_active = filters.BooleanFilter(field_name="user__is_active")
+    is_suspended = filters.BooleanFilter(field_name="user__is_suspended")
+
+    class Meta:
+        model = SuperadminProfile
+        fields = ["username", "email", "role", "is_active", "is_suspended", "created_at"]
+
 ### 🔹 2️⃣ Superadmin Profile API
 class SuperadminProfileViewSet(viewsets.ModelViewSet):
     """API for managing Superadmin Profiles with pagination."""
@@ -55,8 +67,7 @@ class SuperadminProfileViewSet(viewsets.ModelViewSet):
     serializer_class = SuperadminProfileSerializer
     permission_classes = [IsSuperadmin]
     filter_backends = [DjangoFilterBackend]
-    filterset_class = UserFilter  # Custom filtering
-    filterset_fields = ['user__username', 'user__email', 'role', 'email', 'created_at']
+    filterset_class = SuperadminProfileFilter  # Use correct filterset for SuperadminProfile
     pagination_class = SuperadminPagination  # Enable pagination
 
 

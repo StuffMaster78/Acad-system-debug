@@ -62,6 +62,7 @@
         :writer-badges-data="writerBadgesData"
         :writer-level-data="writerLevelData"
         :writer-summary-data="writerSummaryData"
+        :writer-payment-status="writerPaymentStatus"
         :recent-orders="recentOrders"
         :recent-orders-loading="recentOrdersLoading"
         :loading="loading"
@@ -96,6 +97,7 @@ const writerQueueData = ref(null)
 const writerBadgesData = ref(null)
 const writerLevelData = ref(null)
 const writerSummaryData = ref(null)
+const writerPaymentStatus = ref(null)
 const recentOrders = ref([])
 const recentOrdersLoading = ref(false)
 const availabilityStatus = ref(null)
@@ -226,6 +228,7 @@ const refreshDashboard = async () => {
       fetchWriterBadges(),
       fetchWriterLevel(),
       fetchWriterSummary(),
+      fetchWriterPaymentStatus(),
       fetchRecentOrders(),
       loadAvailabilityStatus()
     ])
@@ -246,6 +249,7 @@ onMounted(async () => {
     fetchWriterBadges(),
     fetchWriterLevel(),
     fetchWriterSummary(),
+    fetchWriterPaymentStatus(),
     fetchRecentOrders(),
     loadAvailabilityStatus()
   ])

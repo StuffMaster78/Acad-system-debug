@@ -17,5 +17,9 @@ export default {
   getTasks: (params) => apiClient.get('/editor-management/tasks/', { params }),
   getAvailableTasks: () => apiClient.get('/editor-management/tasks/available_tasks/'),
   getPerformance: () => apiClient.get('/editor-management/performance/'),
+  getTaskAnalytics: (params = 30) =>
+    apiClient.get('/editor-management/profiles/dashboard/analytics/', { params: normalizeParams(params) }),
+  getWorkload: () => apiClient.get('/editor-management/profiles/dashboard/workload/'),
+  getActivity: (params) => apiClient.get('/editor-management/profiles/dashboard/activity/', { params }),
 }
 

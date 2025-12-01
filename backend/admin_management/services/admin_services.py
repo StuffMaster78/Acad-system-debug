@@ -6,6 +6,7 @@ from admin_management.models import AdminProfile, BlacklistedUser
 from orders.models import Dispute
 from admin_management.models import AdminActivityLog
 from notifications_system.services.core import NotificationService
+from users.services.group_service import UserGroupService
 
 User = get_user_model()
 
@@ -36,17 +37,24 @@ def assign_admin_permissions(user, admin_profile=None):
 
     admin_profile.save()
 
-    admin_group, _ = Group.objects.get_or_create(name="Admin")
-    perms = [
-        "add_user", "change_user", "delete_user",
-        "view_order", "change_order", "delete_order",
-        "resolve_disputes",
-        "approve_payouts", "view_payouts",
-        "manage_discounts", "manage_refunds",
-        "add_specialorder", "change_specialorder", "delete_specialorder",
-    ]
-    admin_group.permissions.add(*Permission.objects.filter(codename__in=perms))
-    user.groups.add(admin_group)
+    # Use refined group service for consistent group creation
+    try:
+        UserGroupService.assign_user_to_group(user, user.role)
+    except Exception as e:
+        # Fallback to old method if service fails
+        logger = __import__('logging').getLogger(__name__)
+        logger.warning(f"Failed to assign group using UserGroupService: {e}. Using fallback method.")
+        admin_group, _ = Group.objects.get_or_create(name="Admin")
+        perms = [
+            "add_user", "change_user", "delete_user",
+            "view_order", "change_order", "delete_order",
+            "resolve_disputes",
+            "approve_payouts", "view_payouts",
+            "manage_discounts", "manage_refunds",
+            "add_specialorder", "change_specialorder", "delete_specialorder",
+        ]
+        admin_group.permissions.add(*Permission.objects.filter(codename__in=perms))
+        user.groups.add(admin_group)
 
 def notify_superadmins_new_admin(user):
     if user.role == "admin":

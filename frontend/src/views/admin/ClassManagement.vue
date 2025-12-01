@@ -299,8 +299,8 @@
     </div>
 
     <!-- Bundle Detail Modal -->
-    <div v-if="viewingBundle" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-5xl w-full max-h-[90vh] overflow-y-auto">
+    <div v-if="viewingBundle" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-5xl w-full my-auto max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
             <h2 class="text-2xl font-bold">Class Bundle #{{ viewingBundle.id }}</h2>
@@ -400,8 +400,8 @@
     </div>
 
     <!-- Create Manual Bundle Modal -->
-    <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-2xl w-full p-6">
+    <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-2xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-xl font-bold">Create Manual Bundle</h3>
           <button @click="closeCreateModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
@@ -463,8 +463,8 @@
     </div>
 
     <!-- Installment Configuration Modal -->
-    <div v-if="showInstallmentConfigModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-md w-full p-6">
+    <div v-if="showInstallmentConfigModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-md w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-xl font-bold">Configure Installments</h3>
           <button @click="closeInstallmentConfigModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
@@ -487,8 +487,8 @@
     </div>
 
     <!-- Deposit Payment Modal -->
-    <div v-if="showDepositPaymentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-md w-full p-6">
+    <div v-if="showDepositPaymentModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-md w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-xl font-bold">Process Deposit Payment</h3>
           <button @click="closeDepositPaymentModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
@@ -515,8 +515,8 @@
     </div>
 
     <!-- Config Modal -->
-    <div v-if="showConfigModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-2xl w-full p-6">
+    <div v-if="showConfigModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-2xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-xl font-bold">{{ editingConfig ? 'Edit' : 'Create' }} Bundle Config</h3>
           <button @click="closeConfigModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
@@ -732,8 +732,12 @@ const loadConfigs = async () => {
     const res = await classManagementAPI.listConfigs()
     configs.value = res.data.results || res.data || []
   } catch (error) {
-    console.error('Error loading configs:', error)
-    showMessage('Failed to load configs: ' + (error.response?.data?.detail || error.message), false)
+    // Only log and show message if it's not a 404 (endpoint doesn't exist)
+    if (error?.response?.status !== 404) {
+      console.error('Error loading configs:', error)
+      showMessage('Failed to load configs: ' + (error.response?.data?.detail || error.message), false)
+    }
+    configs.value = []
   } finally {
     configsLoading.value = false
   }

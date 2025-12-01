@@ -37,6 +37,7 @@ export default {
   populateDefaults: (websiteId, defaultSet = 'general') => apiClient.post('/order-configs/api/management/populate-defaults/', { website_id: websiteId, default_set: defaultSet }),
   checkDefaults: (websiteId) => apiClient.get(`/order-configs/api/management/check-defaults/?website_id=${websiteId}`),
   getAvailableDefaultSets: () => apiClient.get('/order-configs/api/management/available-default-sets/'),
+  getDropdownOptions: (params) => apiClient.get('/order-configs/api/management/dropdown-options/', { params }),
   cloneFromDefaults: (websiteId, defaultSet, clearExisting = false) => apiClient.post('/order-configs/api/management/clone-from-defaults/', { 
     website_id: websiteId, 
     default_set: defaultSet,

@@ -671,7 +671,7 @@ class BlogAuthorPersonaManagementViewSet(viewsets.ModelViewSet):
         return queryset
     
     def get_serializer_class(self):
-        from blog_pages_management._legacy_serializers import AuthorProfileSerializer
+        from blog_pages_management.serializers_legacy import AuthorProfileSerializer
         return AuthorProfileSerializer
     
     def perform_create(self, serializer):
@@ -767,7 +767,7 @@ class BlogAuthorPersonaManagementViewSet(viewsets.ModelViewSet):
         """Get all posts attributed to this author."""
         author = self.get_object()
         from blog_pages_management._legacy_models import BlogPost
-        from blog_pages_management._legacy_serializers import BlogPostSerializer
+        from blog_pages_management.serializers_legacy import BlogPostSerializer
         
         posts = BlogPost.objects.filter(
             authors=author,
@@ -806,7 +806,7 @@ class BlogAuthorPersonaManagementViewSet(viewsets.ModelViewSet):
         errors = []
         
         from blog_pages_management._legacy_models import AuthorProfile
-        from blog_pages_management._legacy_serializers import AuthorProfileSerializer
+        from blog_pages_management.serializers_legacy import AuthorProfileSerializer
         
         for author_data in authors_data:
             if not isinstance(author_data, dict):

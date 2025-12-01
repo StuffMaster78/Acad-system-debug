@@ -176,13 +176,16 @@ class DashboardStatsSerializer(serializers.Serializer):
     resolved_disputes = serializers.IntegerField()
     open_tickets = serializers.IntegerField()
     closed_tickets = serializers.IntegerField()
+    paid_orders_count = serializers.IntegerField(required=False, allow_null=True)
+    unpaid_orders_count = serializers.IntegerField(required=False, allow_null=True)
 
     class Meta:
         fields = [
             "total_users", "active_users", "suspended_users",
             "total_orders", "completed_orders", "pending_orders",
             "total_revenue", "total_disputes", "resolved_disputes",
-            "open_tickets", "closed_tickets"
+            "open_tickets", "closed_tickets",
+            "paid_orders_count", "unpaid_orders_count"
         ]
 
 class AdminPromotionRequestSerializer(serializers.ModelSerializer):
@@ -205,9 +208,40 @@ class DashboardSerializer(serializers.Serializer):
     stats = DashboardStatsSerializer()
     recent_activities = AdminLogSerializer(many=True)
     pending_promotion_requests = AdminPromotionRequestSerializer(many=True)
+    # User statistics - flat fields for easy access
+    total_writers = serializers.IntegerField(required=False, allow_null=True)
+    total_editors = serializers.IntegerField(required=False, allow_null=True)
+    total_support = serializers.IntegerField(required=False, allow_null=True)
+    total_clients = serializers.IntegerField(required=False, allow_null=True)
+    suspended_users = serializers.IntegerField(required=False, allow_null=True)
+    # Additional flat fields for compatibility
+    total_orders = serializers.IntegerField(required=False, allow_null=True)
+    orders_by_status = serializers.DictField(required=False, allow_null=True)
+    total_revenue = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+    paid_orders_count = serializers.IntegerField(required=False, allow_null=True)
+    unpaid_orders_count = serializers.IntegerField(required=False, allow_null=True)
+    recent_orders_count = serializers.IntegerField(required=False, allow_null=True)
+    total_tickets = serializers.IntegerField(required=False, allow_null=True)
+    open_tickets_count = serializers.IntegerField(required=False, allow_null=True)
+    closed_tickets_count = serializers.IntegerField(required=False, allow_null=True)
+    orders_in_progress = serializers.IntegerField(required=False, allow_null=True)
+    orders_on_revision = serializers.IntegerField(required=False, allow_null=True)
+    disputed_orders = serializers.IntegerField(required=False, allow_null=True)
+    amount_paid_today = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+    income_this_week = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+    income_2weeks = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
+    income_monthly = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, allow_null=True)
 
     class Meta:
-        fields = ["stats", "recent_activities", "pending_promotion_requests"]
+        fields = [
+            "stats", "recent_activities", "pending_promotion_requests",
+            "total_writers", "total_editors", "total_support", "total_clients", "suspended_users",
+            "total_orders", "orders_by_status", "total_revenue",
+            "paid_orders_count", "unpaid_orders_count", "recent_orders_count",
+            "total_tickets", "open_tickets_count", "closed_tickets_count",
+            "orders_in_progress", "orders_on_revision", "disputed_orders",
+            "amount_paid_today", "income_this_week", "income_2weeks", "income_monthly"
+        ]
 
 class UserActivitySerializer(serializers.Serializer):
     user_id = serializers.IntegerField()

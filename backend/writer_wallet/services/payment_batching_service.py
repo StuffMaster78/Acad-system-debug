@@ -250,29 +250,74 @@ class PaymentBatchingService:
             
             # Only create payment if there are earnings
             if earnings_data['total'] > 0:
-                # Create scheduled payment
-                scheduled_payment = ScheduledWriterPayment.objects.create(
-                    website=website,
-                    batch=schedule,
-                    writer_wallet=writer_wallet,
-                    amount=earnings_data['total'],
-                    status='Pending'
-                )
+                # Apply advance deductions before creating payment
+                from writer_management.services.advance_payment_service import AdvancePaymentService
+                from writer_management.models import WriterProfile
                 
-                # Create order records
-                for order_data in earnings_data['orders']:
-                    try:
-                        order = Order.objects.get(id=order_data['order_id'])
-                        PaymentOrderRecord.objects.create(
+                try:
+                    writer_profile = WriterProfile.objects.get(
+                        user=writer_wallet.writer,
+                        website=website
+                    )
+                    
+                    # Process advance deductions using the service
+                    # We need to create actual payment records for deductions to work
+                    # So we'll create a temporary WriterPayment, process deductions, then create ScheduledWriterPayment
+                    from writer_wallet.models import WriterPayment
+                    
+                    # Create temporary payment to process deductions
+                    temp_payment = WriterPayment(
+                        website=website,
+                        writer_wallet=writer_wallet,
+                        amount=earnings_data['total'],
+                        status='Pending'
+                    )
+                    temp_payment.save()  # Save to get an ID
+                    
+                    # Process advance deductions (this creates deduction records)
+                    final_amount = AdvancePaymentService.process_advance_deductions(temp_payment)
+                    
+                    # Delete temp payment since we'll create ScheduledWriterPayment instead
+                    temp_payment.delete()
+                    
+                    # Only create scheduled payment if there's remaining amount after deductions
+                    if final_amount > 0:
+                        # Create scheduled payment with deducted amount
+                        scheduled_payment = ScheduledWriterPayment.objects.create(
                             website=website,
-                            payment=scheduled_payment,
-                            order=order,
-                            amount_paid=order_data['amount']
+                            batch=schedule,
+                            writer_wallet=writer_wallet,
+                            amount=final_amount,
+                            status='Pending'
                         )
-                    except Order.DoesNotExist:
+                    else:
+                        # No payment needed, all earnings went to advance repayment
+                        # Deductions have already been recorded by process_advance_deductions
                         continue
+                except WriterProfile.DoesNotExist:
+                    # No writer profile, create payment without advance deductions
+                    scheduled_payment = ScheduledWriterPayment.objects.create(
+                        website=website,
+                        batch=schedule,
+                        writer_wallet=writer_wallet,
+                        amount=earnings_data['total'],
+                        status='Pending'
+                    )
                 
-                total_batch_amount += earnings_data['total']
+                        # Create order records
+                        for order_data in earnings_data['orders']:
+                            try:
+                                order = Order.objects.get(id=order_data['order_id'])
+                                PaymentOrderRecord.objects.create(
+                                    website=website,
+                                    payment=scheduled_payment,
+                                    order=order,
+                                    amount_paid=order_data['amount']
+                                )
+                            except Order.DoesNotExist:
+                                continue
+                        
+                        total_batch_amount += final_amount
         
         return schedule
     

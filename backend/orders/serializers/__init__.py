@@ -31,4 +31,14 @@ from orders.serializers.progress import (
     WriterProgressSerializer,
     WriterProgressListSerializer
 )
+from orders.serializers.draft_requests import (
+    DraftRequestSerializer,
+    DraftRequestCreateSerializer,
+    DraftFileSerializer,
+)
+from orders.serializers.order_templates import (
+    OrderTemplateSerializer,
+    OrderTemplateCreateSerializer,
+    OrderFromTemplateSerializer,
+)
 
