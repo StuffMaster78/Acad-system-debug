@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Website, WebsiteStaticPage, WebsiteSettings
+from .models import Website, WebsiteStaticPage, WebsiteSettings, WebsiteTermsAcceptance
 from django.utils import timezone
 from django.utils.text import slugify
 from django.db.models import Q
@@ -76,7 +76,7 @@ class WebsiteAdmin(admin.ModelAdmin):
 
 
 class WebsiteStaticPageAdmin(admin.ModelAdmin):
-    list_display = ("title", "website", "last_updated")
+    list_display = ("title", "website", "language", "version", "last_updated")
     search_fields = ("title", "slug")
     prepopulated_fields = {"slug": ("title",)}
 
@@ -95,7 +95,12 @@ class WebsiteStaticPageAdmin(admin.ModelAdmin):
 # class WebsiteAdmin(admin.ModelAdmin):
 #     inlines = [WebsiteSettingsInline]
 
-# admin.site.unregister(Website)
-# admin.site.register(Website, WebsiteAdmin)
 admin.site.register(WebsiteSettings)  # assuming you don’t have a custom admin
 admin.site.register(WebsiteStaticPage, WebsiteStaticPageAdmin)
+
+
+@admin.register(WebsiteTermsAcceptance)
+class WebsiteTermsAcceptanceAdmin(admin.ModelAdmin):
+    list_display = ("user", "website", "static_page", "terms_version", "accepted_at")
+    list_filter = ("website", "terms_version")
+    search_fields = ("user__email", "user__username", "website__name", "website__domain")

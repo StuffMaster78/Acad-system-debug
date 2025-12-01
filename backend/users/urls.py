@@ -27,6 +27,8 @@ AdminUserManagementViewSet = views_main.AdminUserManagementViewSet
 
 # Import AccountManagementViewSet from views package
 from users.views.account_management import AccountManagementViewSet
+from users.views.privacy_controls import PrivacyControlsViewSet
+from users.views.security_activity import SecurityActivityViewSet
 
 # Initialize DRF Router
 router = DefaultRouter()
@@ -42,6 +44,16 @@ router.register(r'users', UserViewSet, basename="users")
 # Unified Account Management (Password, 2FA, Profile Updates, Security)
 router.register(r'account', AccountManagementViewSet, basename="account")
 
+# Privacy Controls (Privacy Settings, Data Access Log, Data Export)
+router.register(r'privacy', PrivacyControlsViewSet, basename="privacy")
+
+# GDPR Compliance (All GDPR rights)
+from users.views.gdpr_views import GDPRViewSet
+router.register(r'gdpr', GDPRViewSet, basename="gdpr")
+
+# Security Activity (Security Events Feed, Activity Summary)
+router.register(r'security-activity', SecurityActivityViewSet, basename="security-activity")
+
 # Admin actions (Profile update approvals, Deletions)
 router.register(r'admin/profile-requests', AdminProfileRequestViewSet, basename="admin-profile-requests")
 router.register(r'admin/user-management', AdminUserManagementViewSet, basename="admin-user-management")
@@ -52,6 +64,13 @@ router.register(r'account-deletion', AccountDeletionRequestViewSet, basename="ac
 # Define URL patterns
 urlpatterns = [
     path("", include(router.urls)),  # Include all router-based URLs
+    # Legacy alias for profile update requests to keep old frontend/tests working:
+    # /api/v1/users/users/profile-update-requests/
+    path(
+        "users/profile-update-requests/",
+        AccountManagementViewSet.as_view({"get": "get_profile_update_requests"}),
+        name="account-profile-update-requests-legacy",
+    ),
     # path("auth/token/refresh/", CustomTokenRefreshView.as_view(), name="token_refresh"),
 
 

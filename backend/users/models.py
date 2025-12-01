@@ -425,6 +425,208 @@ class User(AbstractUser, PermissionsMixin,
             models.Index(fields=['role', 'date_joined']),
         ]
 
+
+class PrivacySettings(models.Model):
+    """
+    User privacy settings and preferences.
+    Controls data visibility and sharing preferences.
+    """
+
+    VISIBILITY_CHOICES = [
+        ('public', 'Public'),
+        ('limited', 'Limited'),
+        ('private', 'Private'),
+        ('hidden', 'Hidden'),
+    ]
+
+    user = models.OneToOneField(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='privacy_settings',
+        help_text=_("User these privacy settings belong to")
+    )
+
+    # Profile Visibility
+    profile_visibility_to_writers = models.CharField(
+        max_length=20,
+        choices=VISIBILITY_CHOICES,
+        default='limited',
+        help_text=_("Profile visibility to writers")
+    )
+
+    profile_visibility_to_admins = models.CharField(
+        max_length=20,
+        choices=VISIBILITY_CHOICES,
+        default='public',
+        help_text=_("Profile visibility to administrators")
+    )
+
+    profile_visibility_to_support = models.CharField(
+        max_length=20,
+        choices=VISIBILITY_CHOICES,
+        default='public',
+        help_text=_("Profile visibility to support staff")
+    )
+
+    # Data Sharing Preferences
+    allow_analytics = models.BooleanField(
+        default=True,
+        help_text=_("Allow usage analytics")
+    )
+
+    allow_marketing = models.BooleanField(
+        default=False,
+        help_text=_("Allow marketing communications")
+    )
+
+    allow_third_party_sharing = models.BooleanField(
+        default=False,
+        help_text=_("Allow sharing data with third parties")
+    )
+
+    # Security Preferences
+    notify_on_login = models.BooleanField(
+        default=True,
+        help_text=_("Notify on new login")
+    )
+
+    notify_on_login_method = models.CharField(
+        max_length=10,
+        choices=[('email', 'Email'), ('sms', 'SMS'), ('both', 'Both')],
+        default='email',
+        help_text=_("Method for login notifications")
+    )
+
+    notify_on_suspicious_activity = models.BooleanField(
+        default=True,
+        help_text=_("Notify on suspicious activity")
+    )
+
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = _("Privacy Settings")
+        verbose_name_plural = _("Privacy Settings")
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Privacy Settings for {self.user.email}"
+
+    def calculate_privacy_score(self):
+        """
+        Calculate privacy score (0-100).
+        Higher score = more privacy.
+        """
+        score = 0
+
+        # Visibility settings (60 points)
+        visibility_scores = {
+            'hidden': 20,
+            'private': 15,
+            'limited': 10,
+            'public': 5
+        }
+
+        score += visibility_scores.get(self.profile_visibility_to_writers, 10)
+        score += visibility_scores.get(self.profile_visibility_to_admins, 5)
+        score += visibility_scores.get(self.profile_visibility_to_support, 5)
+
+        # Data sharing (30 points)
+        if not self.allow_analytics:
+            score += 10
+        if not self.allow_marketing:
+            score += 10
+        if not self.allow_third_party_sharing:
+            score += 10
+
+        # Security notifications (10 points)
+        if self.notify_on_login:
+            score += 5
+        if self.notify_on_suspicious_activity:
+            score += 5
+
+        return min(score, 100)
+
+    @classmethod
+    def get_or_create_for_user(cls, user):
+        """Get or create privacy settings for user."""
+        settings_obj, _created = cls.objects.get_or_create(user=user)
+        return settings_obj
+
+
+class DataAccessLog(models.Model):
+    """
+    Log of who accessed user's data and when.
+    Provides transparency for privacy compliance.
+    """
+
+    ACCESS_TYPE_CHOICES = [
+        ('profile_view', 'Profile View'),
+        ('order_access', 'Order Access'),
+        ('payment_access', 'Payment Access'),
+        ('message_access', 'Message Access'),
+        ('data_export', 'Data Export'),
+    ]
+
+    user = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        related_name='data_access_logs',
+        help_text=_("User whose data was accessed")
+    )
+
+    accessed_by = models.ForeignKey(
+        'users.User',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='data_access_actions',
+        help_text=_("User who accessed the data")
+    )
+
+    access_type = models.CharField(
+        max_length=20,
+        choices=ACCESS_TYPE_CHOICES,
+        help_text=_("Type of data access")
+    )
+
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text=_("IP address of the access")
+    )
+
+    user_agent = models.TextField(
+        null=True,
+        blank=True,
+        help_text=_("User agent of the access")
+    )
+
+    accessed_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text=_("When the data was accessed")
+    )
+
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text=_("Additional metadata about the access")
+    )
+
+    class Meta:
+        verbose_name = _("Data Access Log")
+        verbose_name_plural = _("Data Access Logs")
+        ordering = ['-accessed_at']
+        indexes = [
+            models.Index(fields=['user', '-accessed_at']),
+            models.Index(fields=['accessed_by', '-accessed_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.accessed_by} accessed {self.user}'s {self.access_type} at {self.accessed_at}"
+
 class UserProfile(models.Model):
     """
     Stores profile information about the user.

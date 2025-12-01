@@ -443,6 +443,8 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
             return []
 
         # Return list of readers and read times
+        # We no longer have a generic `profile` relation; `role` lives directly on `User`.
+        # Use `select_related("user")` only to avoid invalid join on non-existent `profile`.
         return [
             {
                 "username": receipt.user.username,
@@ -450,7 +452,7 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
                 "self": receipt.user == request.user,
                 "read_at": receipt.read_at.strftime("%Y-%m-%d %H:%M:%S"),
             }
-            for receipt in obj.messagereadreceipt_set.select_related("user__profile")
+            for receipt in obj.messagereadreceipt_set.select_related("user")
         ]
     
     def get_reactions(self, obj):

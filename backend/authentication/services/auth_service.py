@@ -61,6 +61,7 @@ class AuthenticationService:
         
         if not user:
             # Try to find user by email to log failed attempt (even if password is wrong)
+            failed_attempts_remaining = None
             try:
                 user_for_logging = User.objects.get(email=email)
                 # Log failed attempt only if user exists and website exists
@@ -71,10 +72,46 @@ class AuthenticationService:
                         ip=ip_address,
                         user_agent=user_agent
                     )
+                    
+                    # Log security event for failed login
+                    from authentication.models.security_events import SecurityEvent
+                    try:
+                        SecurityEvent.log_event(
+                            user=user_for_logging,
+                            website=website,
+                            event_type='login_failed',
+                            severity='medium',
+                            is_suspicious=False,
+                            ip_address=ip_address,
+                            user_agent=user_agent,
+                            metadata={'email_attempted': email}
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to log security event: {e}")
+                    
+                    # Get attempts remaining for user-friendly error
+                    from authentication.services.smart_lockout_service import SmartLockoutService
+                    smart_lockout = SmartLockoutService(user=user_for_logging, website=website)
+                    lockout_info = smart_lockout.get_lockout_info(ip_address, False)
+                    failed_attempts_remaining = lockout_info.get('attempts_remaining', 5)
             except User.DoesNotExist:
                 # User doesn't exist, skip logging failed attempt
                 pass
-            raise ValidationError("Invalid credentials.")
+            
+            # User-friendly error message
+            if failed_attempts_remaining is not None and failed_attempts_remaining > 0:
+                error_msg = f"The email or password you entered is incorrect. {failed_attempts_remaining} attempts remaining before your account is temporarily locked."
+                guidance = "Forgot your password? Click here to reset it."
+            else:
+                error_msg = "The email or password you entered is incorrect."
+                guidance = "Please check your credentials and try again."
+            
+            raise ValidationError({
+                "error": "Invalid credentials",
+                "message": error_msg,
+                "guidance": guidance,
+                "attempts_remaining": failed_attempts_remaining
+            })
         
         # Check if account is active
         if not user.is_active:
@@ -92,13 +129,34 @@ class AuthenticationService:
                 "No active website found. Please contact support to set up your account."
             )
         
-        # Check for account lockout using FailedLoginService
-        failed_login_service = FailedLoginService(user=user, website=website)
-        if failed_login_service.is_locked_out():
-            raise ValidationError(
-                "Account locked due to too many failed login attempts. "
-                "Please try again later or contact support."
-            )
+        # Check for account lockout using Smart Lockout Service
+        from authentication.services.smart_lockout_service import SmartLockoutService
+        from authentication.models.devices import TrustedDevice
+        
+        # Check if device is trusted
+        device_fingerprint = request.data.get('device_fingerprint') or request.headers.get('X-Device-Fingerprint')
+        is_trusted_device = False
+        if device_fingerprint:
+            is_trusted_device = TrustedDevice.objects.filter(
+                user=user,
+                website=website,
+                device_token=device_fingerprint,
+                expires_at__gt=timezone.now()
+            ).exists()
+        
+        smart_lockout = SmartLockoutService(user=user, website=website)
+        should_lock, lockout_reason = smart_lockout.should_lockout(ip_address, is_trusted_device)
+        
+        if should_lock:
+            lockout_info = smart_lockout.get_lockout_info(ip_address, is_trusted_device)
+            raise ValidationError({
+                "error": "Account temporarily locked",
+                "message": lockout_reason,
+                "lockout_until": lockout_info.get('lockout_until'),
+                "lockout_duration_minutes": lockout_info.get('lockout_duration_minutes'),
+                "unlock_options": lockout_info.get('unlock_options'),
+                "guidance": "You can request an unlock via email or wait for the lockout period to expire."
+            })
         
         # Check for impersonation (prevent impersonating while impersonating)
         if hasattr(request, 'session') and request.session.get('_impersonator_id'):
@@ -151,9 +209,32 @@ class AuthenticationService:
         user.last_login = timezone.now()
         user.save(update_fields=['last_login'])
         
+        # Log security event
+        from authentication.models.security_events import SecurityEvent
+        try:
+            SecurityEvent.log_event(
+                user=user,
+                website=website,
+                event_type='login',
+                severity='low',
+                is_suspicious=False,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                device=device_info.get('device_name') if device_info else None,
+                metadata={'remember_me': remember_me}
+            )
+        except Exception as e:
+            logger.warning(f"Failed to log security event: {e}")
+        
+        # Clear failed login attempts on successful login
+        try:
+            failed_login_service.clear_attempts()
+        except Exception as e:
+            logger.warning(f"Failed to clear failed attempts: {e}")
+        
         return {
-            "access_token": access_token,
-            "refresh_token": refresh_token,
+            "access": access_token,
+            "refresh": refresh_token,
             "user": {
                 "id": user.id,
                 "email": user.email,
@@ -162,7 +243,7 @@ class AuthenticationService:
                 "role": getattr(user, 'role', None),
             },
             "session_id": str(session.id),
-            "expires_in": 3600,  # 1 hour default
+            "expires_in": 3600 if not remember_me else 60 * 60 * 24 * 30
         }
     
     @staticmethod

@@ -1,4 +1,4 @@
-.PHONY: help setup run run-frontend run-celery run-celery-beat test check migrations migrate shell restart logs clean nuke-db
+.PHONY: help setup run run-frontend run-celery run-celery-beat test test-backend test-frontend test-coverage test-unit test-integration test-setup test-quick check migrations migrate shell restart logs clean nuke-db
 
 # Default target
 help:
@@ -10,7 +10,14 @@ help:
 	@echo "  make run-frontend   - Start Vue.js development server"
 	@echo "  make run-celery     - Start Celery worker"
 	@echo "  make run-celery-beat - Start Celery beat scheduler"
-	@echo "  make test           - Run all tests"
+	@echo "  make test           - Run all tests (backend + frontend)"
+	@echo "  make test-backend   - Run backend tests with pytest"
+	@echo "  make test-frontend  - Run frontend tests with Vitest"
+	@echo "  make test-coverage  - Run tests with coverage report"
+	@echo "  make test-unit      - Run only unit tests"
+	@echo "  make test-integration - Run only integration tests"
+	@echo "  make test-setup     - Set up local Python test environment"
+	@echo "  make test-quick    - Quick test run (frontend only)"
 	@echo "  make check           - Run code quality checks (linting, formatting)"
 	@echo "  make migrations      - Create new database migrations"
 	@echo "  make migrate         - Apply pending database migrations"
@@ -63,10 +70,51 @@ run-celery-beat:
 	@echo "🚀 Starting Celery beat scheduler..."
 	docker-compose up beat
 
-# Run tests
-test:
-	@echo "🧪 Running tests..."
-	docker-compose exec -T web python manage.py test
+# Run all tests
+test: test-backend test-frontend
+	@echo "✅ All tests completed!"
+
+# Run backend tests
+test-backend:
+	@echo "🧪 Running backend tests..."
+	@cd backend && pytest -v --tb=short
+
+# Run frontend tests
+test-frontend:
+	@echo "🧪 Running frontend tests..."
+	@cd frontend && npm run test:run
+
+# Run tests with coverage
+test-coverage:
+	@echo "🧪 Running tests with coverage..."
+	@echo "Backend coverage..."
+	@cd backend && pytest --cov=. --cov-report=html --cov-report=term
+	@echo "Frontend coverage..."
+	@cd frontend && npm run test:coverage
+	@echo "✅ Coverage reports generated!"
+	@echo "Backend: backend/htmlcov/index.html"
+	@echo "Frontend: frontend/coverage/index.html"
+
+# Run only unit tests
+test-unit:
+	@echo "🧪 Running unit tests..."
+	@cd backend && pytest -m unit -v
+	@cd frontend && npm run test:run -- --grep "unit"
+
+# Run only integration tests
+test-integration:
+	@echo "🧪 Running integration tests..."
+	@cd backend && pytest -m integration -v
+
+# Set up local Python test environment
+test-setup:
+	@echo "🔧 Setting up local Python test environment..."
+	@./scripts/setup-test-environment.sh
+
+# Quick test (frontend only, always works)
+test-quick:
+	@echo "🧪 Running quick tests (frontend)..."
+	@./scripts/quick-test.sh
 
 # Run code quality checks
 check:

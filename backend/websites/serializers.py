@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Website, WebsiteActionLog, WebsiteStaticPage
+from .models import Website, WebsiteActionLog, WebsiteStaticPage, WebsiteTermsAcceptance
 from django.utils.text import slugify
 from django.utils.timezone import now
 from django.utils import timezone
@@ -66,10 +66,42 @@ class WebsiteStaticPageSerializer(serializers.ModelSerializer):
     class Meta:
         model = WebsiteStaticPage
         fields = [
-            "title", "slug", "content", "meta_title", "meta_description", 
-            "language", "scheduled_publish_date", "views", "last_updated", "previous_versions"
+            "title",
+            "slug",
+            "content",
+            "meta_title",
+            "meta_description",
+            "language",
+            "version",
+            "scheduled_publish_date",
+            "views",
+            "last_updated",
+            "previous_versions",
         ]
         read_only_fields = ["views", "slug", "last_updated", "previous_versions"]
+
+
+class WebsiteTermsAcceptanceSerializer(serializers.ModelSerializer):
+    """Serializer for returning terms acceptance info (mainly read-only)."""
+
+    static_page_slug = serializers.CharField(source="static_page.slug", read_only=True)
+    website_domain = serializers.CharField(source="website.domain", read_only=True)
+
+    class Meta:
+        model = WebsiteTermsAcceptance
+        fields = [
+            "id",
+            "website",
+            "website_domain",
+            "user",
+            "static_page",
+            "static_page_slug",
+            "terms_version",
+            "accepted_at",
+            "ip_address",
+            "user_agent",
+        ]
+        read_only_fields = fields
 
     def validate_scheduled_publish_date(self, value):
         """Ensure scheduled publish date is in the future"""
@@ -112,3 +144,22 @@ class WebsiteSoftDeleteSerializer(serializers.ModelSerializer):
         instance.is_active = validated_data.get('is_active', False)
         instance.save()
         return instance
+
+
+class WebsiteTermsUpdateSerializer(serializers.Serializer):
+    """
+    Serializer for updating Terms & Conditions content per website.
+    This does NOT expose all WebsiteStaticPage fields, only what admins need.
+    """
+
+    title = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    content = serializers.CharField(required=True)
+    language = serializers.CharField(max_length=10, required=False, default="en")
+    meta_title = serializers.CharField(max_length=255, required=False, allow_blank=True)
+    meta_description = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_language(self, value):
+        # Basic guard; in practice you could validate against WebsiteStaticPage language choices
+        if not value:
+            return "en"
+        return value

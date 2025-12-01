@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.core.checks import register, Error, Warning
 from django.conf import settings
+import os
 
 from notifications_system.registry.notification_event_loader import load_event_configs
 from notifications_system.registry.main_registry import NOTIFICATION_REGISTRY
@@ -97,8 +98,12 @@ def check_notifications_redis(app_configs, **kwargs):
     """
     errors = []
 
+    # Allow disabling via Django settings or raw environment variable.
+    # This is useful in dev/docker where Redis may not be configured yet.
     if getattr(settings, "NOTIFICATIONS_DISABLE_REDIS_CHECK", False):
         return errors  # explicitly skipped
+    if os.environ.get("NOTIFICATIONS_DISABLE_REDIS_CHECK", "").lower() in ("1", "true", "yes"):
+        return errors  # skipped via env var
 
     try:
         from .redis_health import check_redis_health

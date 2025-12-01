@@ -36,7 +36,9 @@ class NotificationService:
         if not recipient or msg.is_hidden:
             return
 
-        role = getattr(recipient.profile, "role", None)
+        # Our User model already has a `role` field; older code expected `recipient.profile.role`.
+        # Fall back to `getattr(recipient, "role", None)` to avoid AttributeError.
+        role = getattr(getattr(recipient, "profile", None), "role", None) or getattr(recipient, "role", None)
 
         if role == "client" and "client" not in msg.visible_to_roles:
             return
@@ -87,7 +89,7 @@ class NotificationService:
         Args:
             msg (CommunicationMessage): The uploaded message.
         """
-        sender_role = getattr(msg.sender.profile, "role", None)
+        sender_role = getattr(getattr(msg.sender, "profile", None), "role", None) or getattr(msg.sender, "role", None)
         if sender_role not in {"client", "writer"}:
             return
 

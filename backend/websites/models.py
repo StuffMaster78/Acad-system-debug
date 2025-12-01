@@ -238,6 +238,11 @@ class WebsiteStaticPage(models.Model):
     )
     slug = models.SlugField(unique=True)
     content = models.TextField()
+    # Simple version number for legal/audit purposes (e.g. terms v1, v2, ...)
+    version = models.PositiveIntegerField(
+        default=1,
+        help_text="Version number for this page (useful for Terms & Conditions)."
+    )
     meta_title = models.CharField(
         max_length=255,
         blank=True
@@ -274,8 +279,11 @@ class WebsiteStaticPage(models.Model):
                     {
                         "content": old_instance.content,
                         "last_updated": old_instance.last_updated.isoformat(),
+                        "version": old_instance.version,
                     }
                 )
+                # Bump version when content changes
+                self.version = old_instance.version + 1
 
         is_new = self.pk is None
         super().save(*args, **kwargs)
@@ -290,6 +298,61 @@ class WebsiteStaticPage(models.Model):
 
     def __str__(self):
         return f"{self.website.name} - {self.title}"
+
+
+class WebsiteTermsAcceptance(models.Model):
+    """
+    Tracks which version of the Terms/Policies a user accepted per website.
+
+    This is critical for legal/audit trails:
+    - Which version was active?
+    - When did the user accept it?
+    - From which IP / device?
+    """
+
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="terms_acceptances",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="terms_acceptances",
+    )
+    static_page = models.ForeignKey(
+        WebsiteStaticPage,
+        on_delete=models.CASCADE,
+        related_name="terms_acceptances",
+        help_text="The static page (usually slug='terms') that was accepted.",
+    )
+    terms_version = models.PositiveIntegerField(
+        help_text="Version number of the terms page when accepted."
+    )
+    accepted_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the user accepted the terms."
+    )
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text="IP address from which terms were accepted."
+    )
+    user_agent = models.TextField(
+        null=True,
+        blank=True,
+        help_text="User agent string at the time of acceptance."
+    )
+
+    class Meta:
+        unique_together = ("website", "user", "static_page", "terms_version")
+        indexes = [
+            models.Index(fields=["website", "user"]),
+            models.Index(fields=["website", "static_page", "terms_version"]),
+        ]
+
+    def __str__(self):
+        return f"{self.user} accepted v{self.terms_version} for {self.website}"
 
 # website/models.py
 class WebsiteSettings(models.Model):

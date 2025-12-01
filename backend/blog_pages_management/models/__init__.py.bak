@@ -1,0 +1,131 @@
+"""
+Blog pages management models package.
+Exports both legacy models from models.py and new models from submodules.
+"""
+# Import new models from submodules
+from .content_blocks import (
+    CTABlock,
+    BlogCTAPlacement,
+    ContentBlockTemplate,
+    BlogContentBlock,
+    BlogEditHistory,
+)
+from .seo_models import (
+    BlogSEOMetadata,
+    FAQSchema,
+    AuthorSchema,
+)
+from .pdf_samples import (
+    PDFSampleSection,
+    PDFSample,
+    PDFSampleDownload,
+)
+from .draft_editing import (
+    BlogPostRevision,
+    BlogPostAutoSave,
+    BlogPostEditLock,
+    BlogPostPreview,
+)
+from .workflow_models import (
+    BlogPostWorkflow,
+    BlogPostReviewComment,
+    WorkflowTransition,
+    ContentTemplate,
+    ContentSnippet,
+)
+from .analytics_models import (
+    EditorAnalytics,
+    BlogPostAnalytics,
+    ContentPerformanceMetrics,
+)
+from .security_models import (
+    PreviewTokenRateLimit,
+    AuditTrail,
+)
+
+# Import legacy models from models.py
+# Use importlib to load the actual models.py file directly
+import os
+import sys
+import importlib.util
+
+def _load_legacy_models():
+    """Load models from the parent models.py file"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    parent_dir = os.path.dirname(current_dir)  # blog_pages_management/
+    models_py_path = os.path.join(parent_dir, 'models.py')
+    
+    if not os.path.exists(models_py_path):
+        raise FileNotFoundError(f"Could not find models.py at {models_py_path}")
+    
+    spec = importlib.util.spec_from_file_location("blog_pages_management_models_legacy", models_py_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not create spec for {models_py_path}")
+    
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    
+    return {
+        'BlogCategory': module.BlogCategory,
+        'BlogTag': module.BlogTag,
+        'BlogResource': module.BlogResource,
+        'BlogFAQ': module.BlogFAQ,
+        'AuthorProfile': module.AuthorProfile,
+        'BlogPost': module.BlogPost,
+        'BlogMediaFile': module.BlogMediaFile,
+        'BlogClick': module.BlogClick,
+        'BlogConversion': module.BlogConversion,
+        'NewsletterCategory': module.NewsletterCategory,
+        'NewsletterSubscriber': module.NewsletterSubscriber,
+        'Newsletter': module.Newsletter,
+        'NewsletterAnalytics': module.NewsletterAnalytics,
+        'BlogActionLog': module.BlogActionLog,
+        'AdminNotification': module.AdminNotification,
+        'BlogVideo': module.BlogVideo,
+        'BlogDarkModeImage': module.BlogDarkModeImage,
+        'BlogABTest': module.BlogABTest,
+        'SocialPlatform': module.SocialPlatform,
+        'BlogShare': module.BlogShare,
+        'BlogSlugHistory': module.BlogSlugHistory,
+    }
+
+# Load and assign legacy models
+_legacy = _load_legacy_models()
+BlogCategory = _legacy['BlogCategory']
+BlogTag = _legacy['BlogTag']
+BlogResource = _legacy['BlogResource']
+BlogFAQ = _legacy['BlogFAQ']
+AuthorProfile = _legacy['AuthorProfile']
+BlogPost = _legacy['BlogPost']
+BlogMediaFile = _legacy['BlogMediaFile']
+BlogClick = _legacy['BlogClick']
+BlogConversion = _legacy['BlogConversion']
+NewsletterCategory = _legacy['NewsletterCategory']
+NewsletterSubscriber = _legacy['NewsletterSubscriber']
+Newsletter = _legacy['Newsletter']
+NewsletterAnalytics = _legacy['NewsletterAnalytics']
+BlogActionLog = _legacy['BlogActionLog']
+AdminNotification = _legacy['AdminNotification']
+BlogVideo = _legacy['BlogVideo']
+BlogDarkModeImage = _legacy['BlogDarkModeImage']
+BlogABTest = _legacy['BlogABTest']
+SocialPlatform = _legacy['SocialPlatform']
+BlogShare = _legacy['BlogShare']
+BlogSlugHistory = _legacy['BlogSlugHistory']
+
+__all__ = [
+    # New models from submodules
+    'CTABlock', 'BlogCTAPlacement', 'ContentBlockTemplate', 'BlogContentBlock', 'BlogEditHistory',
+    'BlogSEOMetadata', 'FAQSchema', 'AuthorSchema',
+    'PDFSampleSection', 'PDFSample', 'PDFSampleDownload',
+    'BlogPostRevision', 'BlogPostAutoSave', 'BlogPostEditLock', 'BlogPostPreview',
+    'BlogPostWorkflow', 'BlogPostReviewComment', 'WorkflowTransition', 'ContentTemplate', 'ContentSnippet',
+    'EditorAnalytics', 'BlogPostAnalytics', 'ContentPerformanceMetrics',
+    'PreviewTokenRateLimit', 'AuditTrail',
+    # Legacy models from models.py
+    'BlogCategory', 'BlogTag', 'BlogResource', 'BlogFAQ', 'AuthorProfile',
+    'BlogPost', 'BlogMediaFile', 'BlogClick', 'BlogConversion',
+    'NewsletterCategory', 'NewsletterSubscriber', 'Newsletter', 'NewsletterAnalytics',
+    'BlogActionLog', 'AdminNotification', 'BlogVideo', 'BlogDarkModeImage',
+    'BlogABTest', 'SocialPlatform', 'BlogShare', 'BlogSlugHistory',
+]
