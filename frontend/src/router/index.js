@@ -41,6 +41,18 @@ const router = createRouter({
       component: () => import('@/views/auth/Impersonate.vue'),
       meta: { requiresAuth: false, title: 'Impersonate User' },
     },
+    {
+      path: '/terms',
+      name: 'Terms',
+      component: () => import('@/views/public/Terms.vue'),
+      meta: { requiresAuth: false, title: 'Terms & Conditions' },
+    },
+    {
+      path: '/auth/magic-link',
+      name: 'MagicLinkLogin',
+      component: () => import('@/views/auth/MagicLinkLogin.vue'),
+      meta: { requiresAuth: false, title: 'Passwordless Login' },
+    },
   {
     path: '/',
       component: () => import('@/layouts/DashboardLayout.vue'),
@@ -1110,6 +1122,26 @@ const router = createRouter({
     meta: {
       requiresAuth: true,
             title: 'Account Settings',
+            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+          },
+        },
+        {
+          path: 'account/privacy',
+          name: 'PrivacySettings',
+          component: () => import('@/views/account/PrivacySettings.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Privacy & Security',
+            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+          },
+        },
+        {
+          path: 'account/security',
+          name: 'SecurityActivity',
+          component: () => import('@/views/account/SecurityActivity.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Security Activity',
             roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
           },
         },

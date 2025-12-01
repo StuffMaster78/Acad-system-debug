@@ -58,58 +58,8 @@
             </div>
           </div>
 
-          <!-- Specific Recipient Selection -->
-          <div v-if="selectedRecipientType && availableRecipients.length > 0">
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Select Recipient <span class="text-red-500">*</span>
-            </label>
-            <div class="relative">
-              <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-              </div>
-              <input
-                v-model="recipientSearch"
-                type="text"
-                placeholder="Search recipients..."
-                class="w-full pl-10 pr-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white mb-3"
-              />
-            </div>
-            <div class="max-h-48 overflow-y-auto space-y-2">
-              <div
-                v-for="recipient in filteredRecipients"
-                :key="recipient.id"
-                @click="selectRecipient(recipient)"
-                :class="[
-                  'p-3 border-2 rounded-lg cursor-pointer transition-all',
-                  selectedRecipient?.id === recipient.id
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                    : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
-                ]"
-              >
-                <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
-                    {{ (recipient.username || recipient.email || 'U')[0].toUpperCase() }}
-                  </div>
-                  <div class="flex-1">
-                    <p class="font-medium text-gray-900 dark:text-white">{{ recipient.username || recipient.email }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ recipient.email }}</p>
-                  </div>
-                  <div v-if="selectedRecipient?.id === recipient.id" class="flex-shrink-0">
-                    <div class="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
-                      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Message Input -->
-          <div v-if="selectedRecipient">
+          <div v-if="selectedRecipientType">
             <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
               <span class="flex items-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -232,7 +182,7 @@ const filteredRecipients = computed(() => {
 })
 
 const canSend = computed(() => {
-  return selectedRecipient.value && message.value.trim().length > 0
+  return selectedRecipientType.value && message.value.trim().length > 0
 })
 
 const loadRecipients = async () => {

@@ -9,7 +9,7 @@
       <button
         v-for="tab in tabs"
         :key="tab.id"
-        @click="activeTab = tab.id"
+        @click="handleTabClick(tab)"
         :class="['tab', { active: activeTab === tab.id }]"
       >
         {{ tab.label }}
@@ -334,6 +334,8 @@ export default {
       tabs: [
         { id: 'profile', label: 'Profile' },
         { id: 'security', label: 'Security' },
+        { id: 'privacy', label: 'Privacy', route: '/account/privacy' },
+        { id: 'security-activity', label: 'Security Activity', route: '/account/security' },
         { id: 'sessions', label: 'Sessions' },
         { id: 'update-requests', label: 'Update Requests' }
       ],
@@ -388,6 +390,15 @@ export default {
     this.checkDeletionStatus()
   },
   methods: {
+    handleTabClick(tab) {
+      if (tab.route) {
+        // Navigate to separate page for Privacy and Security Activity
+        this.$router.push(tab.route)
+      } else {
+        // Regular tab switch
+        this.activeTab = tab.id
+      }
+    },
     async loadProfile() {
       this.loadingProfile = true
       this.error = null

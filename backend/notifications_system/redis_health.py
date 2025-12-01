@@ -12,6 +12,11 @@ def check_redis_health() -> bool:
     Returns:
         bool: True if Redis is healthy, False otherwise.
     """
+    # Allow disabling strict Redis checks in non-critical environments
+    if getattr(settings, "NOTIFICATIONS_REDIS_HEALTH_CHECK_ENABLED", True) is False:
+        logger.warning("Redis health check is disabled via NOTIFICATIONS_REDIS_HEALTH_CHECK_ENABLED.")
+        return True
+
     redis_url = getattr(settings, "REDIS_URL", "redis://localhost:6379/0")
 
     try:

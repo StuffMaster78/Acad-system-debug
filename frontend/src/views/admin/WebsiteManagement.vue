@@ -17,6 +17,94 @@
       </button>
     </div>
 
+    <!-- Terms & Conditions Modal -->
+    <div v-if="showTermsModal && selectedWebsite" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h2 class="text-2xl font-bold">Terms &amp; Conditions - {{ selectedWebsite.name }}</h2>
+              <p class="mt-1 text-sm text-gray-500">
+                This content is shown on <code>/terms</code> for this website.
+              </p>
+              <p v-if="termsForm.last_updated || termsForm.version" class="mt-1 text-xs text-gray-400">
+                <span v-if="termsForm.last_updated">
+                  Last changed: {{ formatDate(termsForm.last_updated) }}
+                </span>
+                <span v-if="termsForm.version" class="ml-2">
+                  Version: v{{ termsForm.version }}
+                </span>
+              </p>
+            </div>
+            <button @click="closeTermsModal" class="text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+
+          <form @submit.prevent="saveTerms" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium mb-1">Title</label>
+                <input
+                  v-model="termsForm.title"
+                  type="text"
+                  class="w-full border rounded px-3 py-2"
+                  placeholder="Terms & Conditions"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Language</label>
+                <select v-model="termsForm.language" class="w-full border rounded px-3 py-2">
+                  <option value="en">English</option>
+                  <option value="fr">French</option>
+                  <option value="es">Spanish</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1">Meta Title</label>
+              <input
+                v-model="termsForm.meta_title"
+                type="text"
+                class="w-full border rounded px-3 py-2"
+                placeholder="Terms & Conditions"
+              />
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium mb-1">Meta Description</label>
+              <textarea
+                v-model="termsForm.meta_description"
+                rows="2"
+                class="w-full border rounded px-3 py-2"
+                placeholder="Short description for SEO"
+              ></textarea>
+            </div>
+
+            <div>
+              <RichTextEditor
+                v-model="termsForm.content"
+                label="Terms &amp; Conditions Content"
+                :required="true"
+                toolbar="full"
+                height="400px"
+                :allow-images="false"
+                help-text="Paste or edit the full terms here. This supports basic formatting and links."
+              />
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4">
+              <button type="button" @click="closeTermsModal" class="btn btn-secondary">
+                Cancel
+              </button>
+              <button type="submit" :disabled="saving" class="btn btn-primary">
+                {{ saving ? 'Saving...' : 'Save Terms' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
@@ -151,6 +239,7 @@
                     <div v-if="actionsMenuOpen === website.id" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
                       <div class="py-1">
                         <button @click="viewSEOSettings(website)" class="block w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-gray-100">SEO Settings</button>
+                        <button @click="openTermsModal(website)" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-100">Edit Terms</button>
                         <button @click="viewActionLogs(website)" class="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100">Action Logs</button>
                         <button @click="toggleActive(website)" v-if="!website.is_deleted" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100">
                           {{ website.is_active ? 'Deactivate' : 'Activate' }}
@@ -404,6 +493,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import websitesAPI from '@/api/websites'
+import RichTextEditor from '@/components/common/RichTextEditor.vue'
 
 const authStore = useAuthStore()
 
@@ -412,6 +502,7 @@ const loading = ref(false)
 const saving = ref(false)
 const showCreateModal = ref(false)
 const showSEOModal = ref(false)
+const showTermsModal = ref(false)
 const editingWebsite = ref(null)
 const viewingWebsite = ref(null)
 const selectedWebsite = ref(null)
@@ -448,6 +539,16 @@ const seoForm = ref({
   google_analytics_id: '',
   google_search_console_id: '',
   bing_webmaster_id: '',
+})
+
+const termsForm = ref({
+  title: 'Terms & Conditions',
+  content: '',
+  language: 'en',
+  meta_title: '',
+  meta_description: '',
+  last_updated: null,
+  version: null,
 })
 
 const message = ref('')
@@ -639,6 +740,80 @@ const viewActionLogs = (website) => {
 
 const toggleActionsMenu = (websiteId) => {
   actionsMenuOpen.value = actionsMenuOpen.value === websiteId ? null : websiteId
+}
+
+const openTermsModal = async (website) => {
+  selectedWebsite.value = website
+  showTermsModal.value = true
+  message.value = ''
+
+  // Load existing terms page for this website (if any)
+  try {
+    const params = { website: website.domain?.replace(/^https?:\/\//, '').replace(/^www\./, '') }
+    const res = await websitesAPI.getStaticPage('terms', params)
+    const page = res.data
+    termsForm.value = {
+      title: page.title || 'Terms & Conditions',
+      content: page.content || '',
+      language: page.language || 'en',
+      meta_title: page.meta_title || page.title || 'Terms & Conditions',
+      meta_description: page.meta_description || '',
+      last_updated: page.last_updated || null,
+      version: page.version || null,
+    }
+  } catch (e) {
+    // If 404, initialize empty terms for this website
+    console.warn('No existing terms page found, starting fresh:', e?.response?.status)
+    termsForm.value = {
+      title: 'Terms & Conditions',
+      content: '',
+      language: 'en',
+      meta_title: '',
+      meta_description: '',
+      last_updated: null,
+      version: null,
+    }
+  }
+}
+
+const closeTermsModal = () => {
+  showTermsModal.value = false
+  selectedWebsite.value = null
+}
+
+const saveTerms = async () => {
+  if (!selectedWebsite.value) return
+
+  saving.value = true
+  message.value = ''
+
+  try {
+    const payload = {
+      title: termsForm.value.title,
+      content: termsForm.value.content,
+      language: termsForm.value.language || 'en',
+      meta_title: termsForm.value.meta_title || termsForm.value.title,
+      meta_description: termsForm.value.meta_description || '',
+    }
+
+    const res = await websitesAPI.updateTerms(selectedWebsite.value.id, payload)
+    const page = res.data?.page || {}
+
+    termsForm.value.last_updated = page.last_updated || null
+    termsForm.value.version = page.version || null
+
+    message.value = 'Terms & Conditions updated successfully'
+    messageSuccess.value = true
+    showTermsModal.value = false
+  } catch (e) {
+    console.error('Failed to save terms:', e)
+    message.value =
+      'Failed to save terms: ' +
+      (e.response?.data?.detail || e.response?.data?.error || e.message)
+    messageSuccess.value = false
+  } finally {
+    saving.value = false
+  }
 }
 
 const closeModal = () => {

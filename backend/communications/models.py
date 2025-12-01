@@ -266,6 +266,18 @@ class CommunicationMessage(models.Model):
     class Meta:
         ordering = ["-sent_at"]
         unique_together = ['visible_to_roles', 'is_deleted']
+        indexes = [
+            # Fast retrieval of messages in a thread, newest first
+            models.Index(fields=["thread", "-sent_at"]),
+            # Common filters: unread vs read in a thread
+            models.Index(fields=["thread", "is_read"]),
+            # Sender/recipient message lookups
+            models.Index(fields=["sender", "-sent_at"]),
+            models.Index(fields=["recipient", "-sent_at"]),
+            # Soft-delete / archive filters per thread
+            models.Index(fields=["thread", "is_deleted"]),
+            models.Index(fields=["thread", "is_archived"]),
+        ]
 
     def save(self, *args, **kwargs):
         """

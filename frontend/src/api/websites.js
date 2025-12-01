@@ -18,7 +18,26 @@ export default {
   getActionLogs: (params) => apiClient.get('/websites/website-logs/', { params }),
   
   // Static Pages
+  /**
+   * List static pages for a website.
+   * Expected params:
+   *  - website: domain (optional if X-Website header is set)
+   *  - lang: language code (e.g. 'en')
+   */
   listStaticPages: (params) => apiClient.get('/websites/static-pages/', { params }),
-  getStaticPage: (slug) => apiClient.get(`/websites/static-pages/${slug}/`),
+
+  /**
+   * Get a specific static page by slug.
+   * Optionally accepts params (e.g. website, lang).
+   */
+  getStaticPage: (slug, params = {}) =>
+    apiClient.get(`/websites/static-pages/${slug}/`, { params }),
+
+  /**
+   * Update Terms & Conditions (admin-only).
+   * This calls the backend WebsiteViewSet `update_terms` action.
+   */
+  updateTerms: (websiteId, data) =>
+    apiClient.post(`/websites/${websiteId}/update_terms/`, data),
 }
 

@@ -156,6 +156,30 @@
               <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">🎟️</span>
               Discounts
             </router-link>
+            <router-link
+              to="/account/privacy"
+              :class="[
+                'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
+                $route.name === 'PrivacySettings'
+                  ? 'bg-primary-50 text-primary-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              ]"
+            >
+              <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">🔒</span>
+              Privacy & Security
+            </router-link>
+            <router-link
+              to="/account/security"
+              :class="[
+                'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
+                $route.name === 'SecurityActivity'
+                  ? 'bg-primary-50 text-primary-700'
+                  : 'text-gray-700 hover:bg-gray-100'
+              ]"
+            >
+              <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">🛡️</span>
+              Security Activity
+            </router-link>
           </div>
 
           <!-- Writer Groups - Organized by category -->
@@ -994,10 +1018,25 @@
             </div>
           </template>
 
-          <!-- Other navigation items (non-admin) -->
+          <!-- Other navigation items (profile/settings/privacy/security for all, tickets/etc for non-admin) -->
           <template v-for="item in navigationItems">
             <router-link
-              v-if="(item.name === 'Tickets' || item.name === 'Notifications' || item.name === 'ActivityLogsGeneral' || item.name === 'Profile' || item.name === 'Settings') && !(authStore.isAdmin || authStore.isSuperAdmin)"
+              v-if="
+                (
+                  // Tickets / notifications / general activity only for non-admin users
+                  !authStore.isAdmin &&
+                  !authStore.isSuperAdmin &&
+                  (item.name === 'Tickets' || item.name === 'Notifications' || item.name === 'ActivityLogsGeneral')
+                )
+                ||
+                (
+                  // Profile & account links for all roles (including admin/superadmin)
+                  item.name === 'Profile' ||
+                  item.name === 'Settings' ||
+                  item.name === 'PrivacySettings' ||
+                  item.name === 'SecurityActivity'
+                )
+              "
               :key="item.name"
               :to="item.to"
               :class="[
@@ -1295,11 +1334,25 @@
                     </span>
                   </router-link>
                   <router-link
-                    to="/settings"
+                    to="/account/settings"
                     @click="closeProfileDropdown"
                     class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
                   >
                     Settings
+                  </router-link>
+                  <router-link
+                    to="/account/privacy"
+                    @click="closeProfileDropdown"
+                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                  >
+                    Privacy & Security
+                  </router-link>
+                  <router-link
+                    to="/account/security"
+                    @click="closeProfileDropdown"
+                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                  >
+                    Security Activity
                   </router-link>
                   <div class="border-t border-gray-200 my-1"></div>
                   <button
@@ -1728,9 +1781,23 @@ const navigationItems = computed(() => {
     },
     {
       name: 'Settings',
-      to: '/settings',
+      to: '/account/settings',
       label: 'Settings',
       icon: '🔧',
+      roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+    },
+    {
+      name: 'PrivacySettings',
+      to: '/account/privacy',
+      label: 'Privacy & Security',
+      icon: '🔒',
+      roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+    },
+    {
+      name: 'SecurityActivity',
+      to: '/account/security',
+      label: 'Security Activity',
+      icon: '🛡️',
       roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
     },
     // Payments - handled as collapsible section for admin/superadmin, regular link for clients

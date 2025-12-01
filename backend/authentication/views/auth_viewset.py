@@ -428,7 +428,6 @@ class AuthenticationViewSet(viewsets.ViewSet):
             ...
         }
         """
-        from users.views import UserViewSet
         from users.serializers import (
             ClientProfileSerializer, WriterProfileSerializer,
             EditorProfileSerializer, SupportProfileSerializer,

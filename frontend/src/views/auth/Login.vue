@@ -225,14 +225,18 @@
               Sign up
             </router-link>
           </p>
+          <p class="text-xs text-gray-500">
+            By signing in, you agree to our
+            <router-link to="/terms" class="text-primary-600 hover:text-primary-700 underline underline-offset-2">
+              Terms &amp; Conditions
+            </router-link>
+            and
+            <router-link to="/account/privacy" class="text-primary-600 hover:text-primary-700 underline underline-offset-2">
+              Privacy &amp; Security
+            </router-link>
+            .
+          </p>
         </div>
-      </div>
-
-      <!-- Additional Info -->
-      <div class="mt-6 text-center">
-        <p class="text-xs text-gray-500">
-          By signing in, you agree to our Terms of Service and Privacy Policy
-        </p>
       </div>
     </div>
   </div>
