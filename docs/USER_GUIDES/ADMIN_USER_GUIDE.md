@@ -117,6 +117,8 @@
 - Manually assign writers
 - Reassign orders
 - View writer availability
+- **Assign from Request**: Approve writer requests and assign orders directly
+- **Admin Workload Override**: Assign orders even when writer has reached max capacity (admin privilege)
 
 **Special Orders**
 - Create special orders
@@ -253,6 +255,47 @@
 - Revenue impact
 
 ---
+
+## 🔔 Notification Profiles Management
+
+### Managing Notification Profiles
+
+1. **Access Notification Profiles**
+   - Go to **"Settings"** → **"Notification Profiles"** in navigation
+   - View all notification profiles in a data table
+
+2. **Profile Management Features**
+   - **Search** - Search profiles by client name or email
+   - **Filters** - Filter by Default, DND status, Channel, or Website
+   - **Sort** - Sort by any column (client, channel, website, etc.)
+   - **View Details** - Click on a profile to see full details in modal
+   - **View Statistics** - See notification statistics for each profile
+
+3. **Profile Actions**
+   - View profile details and settings
+   - View notification statistics and history
+   - Edit profile settings (if needed)
+
+## 📁 File Type Configuration
+
+### Managing File Categories
+
+1. **Access File Management**
+   - Go to **"Settings"** → **"File Management"** in navigation
+   - Click on **"File Categories"** tab
+
+2. **File Category Management**
+   - **View Categories** - See all configured file types
+   - **Add Category** - Create new file type categories (e.g., "Order instructions", "Sample Paper", "Plagiarism Report")
+   - **Edit Category** - Update category details
+   - **Delete Category** - Remove unused categories
+
+3. **Category Configuration**
+   - **Website** - Select website for the category
+   - **Name** - Category name (e.g., "Order Instructions")
+   - **Allowed Extensions** - Specify file extensions (e.g., .pdf, .doc, .docx)
+   - **Final Draft Flag** - Mark if this is for final drafts
+   - **Extra Service Flag** - Mark if this is an extra service file
 
 ## 📊 Analytics & Reporting
 

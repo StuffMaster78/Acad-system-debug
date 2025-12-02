@@ -19,6 +19,13 @@ The Writing System Platform is a robust, scalable marketplace for writing servic
 ### Advanced Features
 - **Session Management**: Idle timeout with warning dialogs
 - **Notification System**: Real-time notifications via SSE (Server-Sent Events)
+- **Rush Mode/Urgent Orders**: Urgent order placement with deadline normalization and higher earnings
+- **Free Revision Eligibility**: Automatic tracking of revision windows with clear client messaging
+- **File Type Configuration**: Categorized file management (Order instructions, Sample papers, Plagiarism reports, etc.)
+- **Holiday & Special Days Management**: Admin management of holidays and promotional campaigns
+- **Notification Profiles UI**: Enhanced data-table-centric notification management
+- **Writer Profile Enhancements**: Auto-creation and default welcome messages
+- **Admin Workload Override**: Admins can override writer level workload restrictions
 - **Discount System**: Flexible discount codes and promotional campaigns
 - **Loyalty Program**: Points-based loyalty and redemption system
 - **Referral System**: User referral tracking and rewards

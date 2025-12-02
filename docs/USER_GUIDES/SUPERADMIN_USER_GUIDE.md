@@ -141,6 +141,25 @@
    - **Email Settings** - Email configuration
    - **Security Settings** - Security policies
    - **Feature Flags** - Enable/disable features
+   - **Holiday & Special Days** - Manage holidays and campaigns
+
+### Holiday & Special Days Management
+
+1. **Access Holiday Management**
+   - Go to **"Financial"** → **"Holidays & Campaigns"** in navigation
+   - Manage holidays and special promotional days
+
+2. **Holiday Management Features**
+   - **Create Holiday** - Add new holidays or special days
+   - **Edit Holiday** - Update holiday details
+   - **Delete Holiday** - Remove holidays
+   - **View Calendar** - See all holidays in calendar view
+
+3. **Holiday Configuration**
+   - **Name** - Holiday or campaign name
+   - **Date** - Holiday date
+   - **Type** - Holiday type (public holiday, campaign, etc.)
+   - **Impact** - How it affects operations (pricing, availability, etc.)
 
 ### Configuration Management
 
@@ -153,6 +172,11 @@
 - Enable/disable features
 - Control feature rollout
 - A/B testing support
+
+**Pricing Configuration**
+- Configure deadline multipliers
+- Set urgency levels (Rush ≤ 6h, Same-day ≤ 24h, Standard)
+- View urgency classification in deadline multipliers table
 
 ---
 
