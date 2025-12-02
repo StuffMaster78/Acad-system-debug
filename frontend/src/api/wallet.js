@@ -28,10 +28,10 @@ export default {
     getWallet: (id) => apiClient.get(`/wallet/api/admin/wallets/${id}/`),
     adjustWallet: (id, data) => apiClient.post(`/wallet/api/admin/wallets/${id}/adjust/`, data),
     // Writer wallet endpoints
-    listWriterWallets: (params) => apiClient.get('/api/v1/writer-wallet/writer-wallets/', { params }),
-    getWriterWallet: (id) => apiClient.get(`/api/v1/writer-wallet/writer-wallets/${id}/`),
-    adjustWriterWallet: (id, data) => apiClient.post(`/api/v1/writer-wallet/writer-wallets/${id}/adjust/`, data),
-    getWriterTransactions: (id) => apiClient.get(`/api/v1/writer-wallet/writer-wallets/${id}/transactions/`),
+    listWriterWallets: (params) => apiClient.get('/writer-wallet/writer-wallets/', { params }),
+    getWriterWallet: (id) => apiClient.get(`/writer-wallet/writer-wallets/${id}/`),
+    adjustWriterWallet: (id, data) => apiClient.post(`/writer-wallet/writer-wallets/${id}/adjust/`, data),
+    getWriterTransactions: (id) => apiClient.get(`/writer-wallet/writer-wallets/${id}/transactions/`),
   },
 }
 

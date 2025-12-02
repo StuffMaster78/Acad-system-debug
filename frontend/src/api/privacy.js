@@ -8,7 +8,7 @@ const privacyAPI = {
    * Get privacy settings
    */
   getSettings() {
-    return apiClient.get('/api/v1/users/privacy/settings/')
+    return apiClient.get('/users/privacy/settings/')
   },
 
   /**
@@ -16,7 +16,7 @@ const privacyAPI = {
    * @param {Object} visibility - { to_writers, to_admins, to_support }
    */
   updateVisibility(visibility) {
-    return apiClient.post('/api/v1/users/privacy/update-visibility/', visibility)
+    return apiClient.post('/users/privacy/update-visibility/', visibility)
   },
 
   /**
@@ -24,7 +24,7 @@ const privacyAPI = {
    * @param {Object} preferences - { analytics, marketing, third_party }
    */
   updateDataSharing(preferences) {
-    return apiClient.post('/api/v1/users/privacy/update-data-sharing/', preferences)
+    return apiClient.post('/users/privacy/update-data-sharing/', preferences)
   },
 
   /**
@@ -32,14 +32,14 @@ const privacyAPI = {
    * @param {Object} params - { limit, days }
    */
   getAccessLog(params = {}) {
-    return apiClient.get('/api/v1/users/privacy/access-log/', { params })
+    return apiClient.get('/users/privacy/access-log/', { params })
   },
 
   /**
    * Export all user data (GDPR)
    */
   exportData() {
-    return apiClient.get('/api/v1/users/privacy/export-data/')
+    return apiClient.get('/users/privacy/export-data/')
   }
 }
 

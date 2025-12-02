@@ -26,7 +26,7 @@ export default {
   regeneratePaymentLink: (id) => apiClient.post(`/order-payments/invoices/${id}/regenerate_payment_link/`),
   
   // Get invoice statistics
-  getStatistics: () => apiClient.get('/order-payments/invoices/statistics/'),
+  getStatistics: () => apiClient.get('/order-payments/invoices/stats/'),
   
   // Public payment endpoints (no auth required)
   getPaymentPage: (token) => apiClient.get(`/order-payments/invoices/pay/${token}/`),
