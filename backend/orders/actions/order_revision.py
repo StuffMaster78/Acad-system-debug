@@ -50,7 +50,7 @@ class DenyRevisionAction(BaseOrderAction):
                 metadata={
                     "denied_reason": reason,
                     "from_status": OrderStatus.COMPLETED.value,
-                    "to_status": OrderStatus.REVISION_DENIED.value,
+                    "to_status": OrderStatus.COMPLETED.value,
                 },
             )
         return result
@@ -76,7 +76,7 @@ class ProcessRevisionAction(BaseOrderAction):
                 target="orders.Order",
                 target_id=self.order.id,
                 metadata={
-                    "from_status": OrderStatus.IN_REVISION.value,
+                    "from_status": OrderStatus.ON_REVISION.value,
                     "to_status": OrderStatus.COMPLETED.value,
                     "revised_by": str(self.user),
                 },

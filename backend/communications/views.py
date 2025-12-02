@@ -101,6 +101,29 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         # Combine both and order by most recent first
         return (participant_threads | order_threads).distinct().order_by('-updated_at', '-id')
 
+    @action(detail=True, methods=['post'], url_path='typing')
+    def typing(self, request, pk=None):
+        """
+        Lightweight endpoint used by the frontend to signal that the user is typing.
+
+        Note:
+        - We intentionally do not persist typing state in the database here.
+        - The main goal is to provide a valid endpoint so clients and the schema
+          generator do not hit 500s when calling `/typing/`.
+        """
+        thread = self.get_object()
+        user = request.user
+
+        # Reuse existing guard to ensure only authorized participants can hit this.
+        if not CommunicationGuardService.can_send_message(user, thread):
+            return Response(
+                {"detail": "You do not have permission to send typing events in this thread."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # No-op success response
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
     def create(self, request, *args, **kwargs):
         """
         Override create to handle thread creation properly.

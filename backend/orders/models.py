@@ -1722,6 +1722,9 @@ class SoftDeletableMixin(models.Model):
         self.restored_by = user
 
 
+# Import models from submodules at the end to avoid circular imports
+# These will be imported after all main models are defined
+
 class OrderTemplate(models.Model):
     """Template for quick order creation."""
     
@@ -1793,3 +1796,28 @@ class OrderTemplate(models.Model):
         self.last_used_at = timezone.now()
         self.usage_count += 1
         self.save(update_fields=['last_used_at', 'usage_count'])
+
+
+# Import models from submodules at the end
+# Use importlib to import from the models subdirectory
+import importlib.util
+from pathlib import Path
+
+_models_dir = Path(__file__).parent / 'models'
+if _models_dir.exists():
+    for model_file in ['writer_acknowledgment', 'message_reminders', 'review_reminders']:
+        try:
+            spec = importlib.util.spec_from_file_location(
+                f"orders.models.{model_file}",
+                _models_dir / f"{model_file}.py"
+            )
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                # Import the model class
+                for name in dir(module):
+                    obj = getattr(module, name)
+                    if isinstance(obj, type) and hasattr(obj, '_meta') and name not in globals():
+                        globals()[name] = obj
+        except Exception:
+            pass
