@@ -73,7 +73,15 @@ class OrderFileCategory(models.Model):
 class OrderFile(models.Model):
     """
     Stores uploaded order files with admin & support-controlled download restrictions.
+    Enhanced with versioning and Final Paper marking.
     """
+    FILE_STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('revision', 'Revision'),
+        ('final', 'Final Paper'),
+        ('archived', 'Archived'),
+    ]
+    
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
@@ -97,6 +105,31 @@ class OrderFile(models.Model):
     file = models.FileField(upload_to="order_files/")
     created_at = models.DateTimeField(auto_now_add=True)
     is_downloadable = models.BooleanField(default=True)  # Admin can disable downloads per file
+    
+    # Versioning and status
+    version = models.PositiveIntegerField(default=1, help_text="File version number")
+    status = models.CharField(
+        max_length=20,
+        choices=FILE_STATUS_CHOICES,
+        default='draft',
+        help_text="File status (draft, revision, final, archived)"
+    )
+    is_final_paper = models.BooleanField(
+        default=False,
+        help_text="Mark this file as the final paper for submission"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Optional description or notes about this file version"
+    )
+    previous_version = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='next_versions',
+        help_text="Previous version of this file (for versioning chain)"
+    )
 
     def check_download_access(self, user):
         """
@@ -119,14 +152,59 @@ class OrderFile(models.Model):
 
         return self.is_downloadable  # Admin-controlled per file
 
+    class Meta:
+        ordering = ['-created_at', '-version']
+        indexes = [
+            models.Index(fields=['order', 'is_final_paper']),
+            models.Index(fields=['order', 'status']),
+            models.Index(fields=['order', 'version']),
+        ]
+    
     def __str__(self):
         category_name = self.category.name if self.category else "Uncategorized"
-        return f"{category_name} - Order {self.order.id}"
+        status_label = " (Final)" if self.is_final_paper else f" (v{self.version})"
+        return f"{category_name} - Order {self.order.id}{status_label}"
+    
+    def save(self, *args, **kwargs):
+        """Auto-increment version and handle Final Paper marking."""
+        if self.pk is None:  # New file
+            # Get the highest version for this order
+            max_version = OrderFile.objects.filter(
+                order=self.order
+            ).aggregate(models.Max('version'))['version__max'] or 0
+            self.version = max_version + 1
+        
+        # If marking as final, unmark other final papers for this order
+        if self.is_final_paper:
+            OrderFile.objects.filter(
+                order=self.order,
+                is_final_paper=True
+            ).exclude(pk=self.pk).update(is_final_paper=False)
+        
+        super().save(*args, **kwargs)
+    
+    def mark_as_final(self):
+        """Mark this file as the final paper."""
+        self.is_final_paper = True
+        self.status = 'final'
+        # Unmark other final papers
+        OrderFile.objects.filter(
+            order=self.order,
+            is_final_paper=True
+        ).exclude(pk=self.pk).update(is_final_paper=False)
+        self.save(update_fields=['is_final_paper', 'status'])
+    
+    @property
+    def is_latest_version(self):
+        """Check if this is the latest version for the order."""
+        latest = OrderFile.objects.filter(order=self.order).order_by('-version').first()
+        return latest and latest.id == self.id
 
 
 class FileDownloadLog(models.Model):
     """
     Tracks file downloads for security and audit purposes.
+    Enhanced to track who downloaded what and when.
     """
     website = models.ForeignKey(
         Website,
