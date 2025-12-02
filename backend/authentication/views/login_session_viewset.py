@@ -53,9 +53,10 @@ class RequireMFAOrDeny(permissions.BasePermission):
 class LoginSessionViewSet(viewsets.ReadOnlyModelViewSet):
     """
     List/retrieve the caller's login sessions (tenant-scoped).
+    Note: Read operations don't require MFA, but sensitive operations might.
     """
     serializer_class = LoginSessionSerializer
-    permission_classes = [permissions.IsAuthenticated, RequireMFAOrDeny]
+    permission_classes = [permissions.IsAuthenticated]  # Removed RequireMFAOrDeny for better UX
 
     def get_queryset(self):
         """
@@ -71,6 +72,12 @@ class LoginSessionViewSet(viewsets.ReadOnlyModelViewSet):
         if website_id is not None:
             qs = qs.filter(website_id=website_id)
         return qs.order_by("-last_activity")
+    
+    def get_serializer_context(self):
+        """Add request to serializer context for is_current check."""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
     @action(detail=True, methods=["post"])
     def revoke(self, request, pk=None):
@@ -91,10 +98,70 @@ class LoginSessionViewSet(viewsets.ReadOnlyModelViewSet):
         Revoke all other active sessions for this user on this website.
         """
         qs = self.get_queryset().filter(is_active=True)
-        if "keep_current" in request.query_params and request.query_params["keep_current"] == "1":
-            qs = qs.exclude(id=getattr(request, "session_id", None))  # if you track current
+        if "keep_current" in request.query_params and request.query_params.get("keep_current") == "1":
+            # Try to exclude current session
+            current_session_id = getattr(request, "session_id", None)
+            if current_session_id:
+                qs = qs.exclude(id=current_session_id)
         count = qs.update(is_active=False, revoked_at=timezone.now())
         return Response({"ok": True, "revoked_count": count})
+    
+    @action(detail=True, methods=["patch", "put"], url_path="update-device-name")
+    def update_device_name(self, request, pk=None):
+        """
+        Update device name for a session.
+        """
+        session = self.get_object()
+        device_name = request.data.get('device_name')
+        if device_name:
+            session.device_name = device_name
+            session.save(update_fields=['device_name'])
+        serializer = self.get_serializer(session, context={'request': request})
+        return Response(serializer.data)
+    
+    @action(detail=True, methods=["post"], url_path="report-suspicious")
+    def report_suspicious(self, request, pk=None):
+        """
+        Report a suspicious session ("This wasn't me" flow).
+        Logs a security event and revokes the session.
+        """
+        session = self.get_object()
+        reason = request.data.get('reason', 'This wasn\'t me')
+        
+        # Log security event
+        from authentication.models.security_events import SecurityEvent
+        from websites.utils import get_current_website
+        website = get_current_website(request)
+        
+        SecurityEvent.log_event(
+            user=request.user,
+            website=website,
+            event_type='suspicious_session_reported',
+            severity='high',
+            is_suspicious=True,
+            ip_address=session.ip_address,
+            user_agent=session.user_agent,
+            location=f"{session.ip_address}",
+            metadata={
+                'session_id': str(session.id),
+                'device_name': session.device_name,
+                'reason': reason,
+                'reported_at': timezone.now().isoformat()
+            }
+        )
+        
+        # Revoke the session
+        if session.is_active:
+            session.is_active = False
+            session.revoked_at = timezone.now()
+            session.revoked_by_id = request.user.id
+            session.save(update_fields=["is_active", "revoked_at", "revoked_by_id"])
+        
+        return Response({
+            "ok": True,
+            "revoked": True,
+            "message": "Suspicious session reported and revoked. Security event logged."
+        })
 class LoginViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]
 

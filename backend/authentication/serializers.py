@@ -194,13 +194,85 @@ class LoginUserSerializer(serializers.Serializer):
 
 
 class LoginSessionSerializer(serializers.ModelSerializer):
+    is_current = serializers.SerializerMethodField()
+    location = serializers.SerializerMethodField()
+    device_type = serializers.SerializerMethodField()
+    browser = serializers.SerializerMethodField()
+    os = serializers.SerializerMethodField()
+    
     class Meta:
         model = LoginSession
         fields = [
             "id", "user", "website", "ip_address", "user_agent",
-            "device_name", "logged_in_at", "is_active", "token"
+            "device_name", "logged_in_at", "last_activity", "is_active", 
+            "token", "revoked_at", "is_current", "location", "device_type",
+            "browser", "os"
         ]
-        read_only_fields = ["logged_in_at", "id", "user"]
+        read_only_fields = ["logged_in_at", "id", "user", "last_activity", "revoked_at"]
+    
+    def get_is_current(self, obj):
+        """Check if this is the current session."""
+        request = self.context.get('request')
+        if not request:
+            return False
+        # Try to match by token or session ID
+        current_token = getattr(request, 'auth', None)
+        if current_token and hasattr(current_token, 'token'):
+            return obj.token == current_token.token
+        return False
+    
+    def get_location(self, obj):
+        """Extract location from IP if available."""
+        # This would typically use a geolocation service
+        # For now, return IP-based location if we have country info
+        if hasattr(obj, 'country'):
+            return obj.country
+        return None
+    
+    def get_device_type(self, obj):
+        """Parse device type from user agent."""
+        if not obj.user_agent:
+            return 'unknown'
+        ua = obj.user_agent.lower()
+        if 'mobile' in ua or 'android' in ua or 'iphone' in ua:
+            return 'mobile'
+        if 'tablet' in ua or 'ipad' in ua:
+            return 'tablet'
+        return 'desktop'
+    
+    def get_browser(self, obj):
+        """Parse browser from user agent."""
+        if not obj.user_agent:
+            return 'Unknown'
+        ua = obj.user_agent.lower()
+        if 'chrome' in ua and 'edg' not in ua:
+            return 'Chrome'
+        if 'firefox' in ua:
+            return 'Firefox'
+        if 'safari' in ua and 'chrome' not in ua:
+            return 'Safari'
+        if 'edg' in ua:
+            return 'Edge'
+        if 'opera' in ua:
+            return 'Opera'
+        return 'Unknown'
+    
+    def get_os(self, obj):
+        """Parse OS from user agent."""
+        if not obj.user_agent:
+            return 'Unknown'
+        ua = obj.user_agent.lower()
+        if 'windows' in ua:
+            return 'Windows'
+        if 'mac' in ua or 'darwin' in ua:
+            return 'macOS'
+        if 'linux' in ua:
+            return 'Linux'
+        if 'android' in ua:
+            return 'Android'
+        if 'ios' in ua or 'iphone' in ua or 'ipad' in ua:
+            return 'iOS'
+        return 'Unknown'
 
 class LoginSerializer(serializers.Serializer):
     """ Serializer for user login."""
