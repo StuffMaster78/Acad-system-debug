@@ -85,11 +85,21 @@
           <div class="flex items-start justify-between gap-3">
             <div>
               <p class="text-xs text-gray-500">Order #{{ order.id }}</p>
-              <p class="text-base font-semibold text-gray-900">{{ order.topic || 'Untitled order' }}</p>
+              <p class="text-base font-semibold text-gray-900">
+                {{ order.topic || 'Untitled order' }}
+              </p>
             </div>
-            <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold">
-              Match {{ Math.round(order.match_score || 0) }}%
-            </span>
+            <div class="flex flex-col items-end gap-2">
+              <button
+                @click="viewOrder(order)"
+                class="text-xs text-primary-600 hover:text-primary-800 underline"
+              >
+                View details
+              </button>
+              <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold">
+                Match {{ Math.round(order.match_score || 0) }}%
+              </span>
+            </div>
           </div>
           <p class="text-sm text-gray-600 mt-1">{{ order.subject || order.service_type || 'General' }}</p>
 
@@ -114,25 +124,32 @@
             </span>
           </div>
 
-          <div class="flex gap-2 mt-5">
-            <button @click="viewOrder(order)" class="flex-1 btn btn-secondary text-sm">
-              View
-            </button>
+          <div class="flex flex-col sm:flex-row gap-2 mt-5">
             <button
               @click="takeOrder(order)"
               :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders || isOrderRequested(order)"
-              class="flex-1 btn btn-primary text-sm"
+              class="flex-1 btn btn-primary text-sm flex items-center justify-center gap-1 font-semibold"
+              :class="{
+                'bg-emerald-600 hover:bg-emerald-700': !takingOrder && canTakeOrders && !isOrderRequested(order),
+                'bg-gray-400 cursor-not-allowed': !canTakeOrders || isOrderRequested(order)
+              }"
               :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested(order) ? 'You have already requested this order' : 'Take this order immediately')"
             >
-              {{ takingOrder === order.id ? 'Taking...' : 'Take' }}
+              <span>{{ takingOrder === order.id ? '⏳' : '✅' }}</span>
+              <span>{{ takingOrder === order.id ? 'Taking...' : 'Take' }}</span>
             </button>
             <button
               @click="openRequestModal(order)"
               :disabled="isOrderRequested(order) || requestingOrder === order.id || takingOrder === order.id"
-              class="flex-1 btn btn-primary text-sm"
+              class="flex-1 btn btn-primary text-sm flex items-center justify-center gap-1"
+              :class="{
+                'bg-violet-600 hover:bg-violet-700': !isOrderRequested(order) && !requestingOrder,
+                'bg-gray-400 cursor-not-allowed': isOrderRequested(order)
+              }"
               :title="isOrderRequested(order) ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
             >
-              {{ isOrderRequested(order) ? 'Requested' : (requestingOrder === order.id ? 'Requesting...' : 'Request') }}
+              <span>{{ requestingOrder === order.id ? '⏳' : (isOrderRequested(order) ? '✓' : '📋') }}</span>
+              <span>{{ isOrderRequested(order) ? 'Requested' : (requestingOrder === order.id ? 'Requesting...' : 'Request') }}</span>
             </button>
           </div>
         </div>
@@ -226,8 +243,16 @@
             class="border rounded-lg p-4 hover:shadow-md transition-shadow"
           >
             <div class="flex items-start justify-between mb-2">
-              <h3 class="font-semibold text-gray-900">Order #{{ order.id }}</h3>
-              <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded">{{ order.service_type }}</span>
+              <div>
+                <h3 class="font-semibold text-gray-900">Order #{{ order.id }}</h3>
+                <p class="text-xs text-gray-500">{{ order.service_type }}</p>
+              </div>
+              <button
+                @click="viewOrder(order)"
+                class="text-xs text-primary-600 hover:text-primary-800 underline"
+              >
+                View details
+              </button>
             </div>
             <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ order.topic || 'No topic' }}</p>
             <div class="space-y-1 text-sm text-gray-500 mb-4">
@@ -257,21 +282,32 @@
                 {{ tag }}
               </span>
             </div>
-            <div class="flex space-x-2">
-              <button @click="viewOrder(order)" class="flex-1 btn btn-secondary text-sm">View</button>
-              <button 
-                @click="takeOrder(order)" 
-                :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders" 
-                class="flex-1 btn btn-primary text-sm"
+            <div class="flex flex-col sm:flex-row gap-2">
+              <button
+                @click="takeOrder(order)"
+                :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders || isOrderRequested(order)"
+                class="flex-1 btn btn-primary text-sm flex items-center justify-center gap-1 font-semibold"
+                :class="{
+                  'bg-emerald-600 hover:bg-emerald-700': !takingOrder && canTakeOrders && !isOrderRequested(order),
+                  'bg-gray-400 cursor-not-allowed': !canTakeOrders || isOrderRequested(order)
+                }"
+                :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested(order) ? 'You have already requested this order' : 'Take this order immediately')"
               >
-                {{ takingOrder === order.id ? 'Taking...' : 'Take Order' }}
+                <span>{{ takingOrder === order.id ? '⏳' : '✅' }}</span>
+                <span>{{ takingOrder === order.id ? 'Taking...' : 'Take Order' }}</span>
               </button>
-              <button 
-                @click="requestOrder(order)" 
-                :disabled="requestingOrder === order.id || takingOrder === order.id" 
-                class="flex-1 btn btn-primary text-sm"
+              <button
+                @click="openRequestModal(order)"
+                :disabled="isOrderRequested(order) || requestingOrder === order.id || takingOrder === order.id"
+                class="flex-1 btn btn-primary text-sm flex items-center justify-center gap-1"
+                :class="{
+                  'bg-violet-600 hover:bg-violet-700': !isOrderRequested(order) && !requestingOrder,
+                  'bg-gray-400 cursor-not-allowed': isOrderRequested(order)
+                }"
+                :title="isOrderRequested(order) ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
               >
-                {{ requestingOrder === order.id ? 'Requesting...' : 'Request' }}
+                <span>{{ requestingOrder === order.id ? '⏳' : (isOrderRequested(order) ? '✓' : '📋') }}</span>
+                <span>{{ isOrderRequested(order) ? 'Requested' : (requestingOrder === order.id ? 'Requesting...' : 'Request') }}</span>
               </button>
             </div>
           </div>
@@ -293,8 +329,16 @@
             class="border rounded-lg p-4 hover:shadow-md transition-shadow border-purple-200 bg-purple-50"
           >
             <div class="flex items-start justify-between mb-2">
-              <h3 class="font-semibold text-gray-900">Order #{{ order.id }}</h3>
-              <span class="text-xs px-2 py-1 bg-purple-100 text-purple-800 rounded">⭐ Preferred</span>
+              <div>
+                <h3 class="font-semibold text-gray-900">Order #{{ order.id }}</h3>
+                <p class="text-xs text-gray-500">⭐ Preferred</p>
+              </div>
+              <button
+                @click="viewOrder(order)"
+                class="text-xs text-primary-600 hover:text-primary-800 underline"
+              >
+                View details
+              </button>
             </div>
             <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ order.topic || 'No topic' }}</p>
             <div class="space-y-1 text-sm text-gray-500 mb-4">
@@ -324,21 +368,32 @@
                 {{ tag }}
               </span>
             </div>
-            <div class="flex space-x-2">
-              <button @click="viewOrder(order)" class="flex-1 btn btn-secondary text-sm">View</button>
+            <div class="flex flex-col sm:flex-row gap-2">
               <button 
                 @click="takeOrder(order)" 
-                :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders" 
-                class="flex-1 btn btn-primary text-sm"
+                :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders || isOrderRequested(order)" 
+                class="flex-1 btn btn-primary text-sm flex items-center justify-center gap-1 font-semibold"
+                :class="{
+                  'bg-emerald-600 hover:bg-emerald-700': !takingOrder && canTakeOrders && !isOrderRequested(order),
+                  'bg-gray-400 cursor-not-allowed': !canTakeOrders || isOrderRequested(order)
+                }"
+                :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested(order) ? 'You have already requested this order' : 'Take this order immediately')"
               >
-                {{ takingOrder === order.id ? 'Taking...' : 'Take Order' }}
+                <span>{{ takingOrder === order.id ? '⏳' : '✅' }}</span>
+                <span>{{ takingOrder === order.id ? 'Taking...' : 'Take Order' }}</span>
               </button>
               <button 
-                @click="requestOrder(order)" 
-                :disabled="requestingOrder === order.id || takingOrder === order.id" 
-                class="flex-1 btn btn-primary text-sm"
+                @click="openRequestModal(order)" 
+                :disabled="isOrderRequested(order) || requestingOrder === order.id || takingOrder === order.id" 
+                class="flex-1 btn btn-primary text-sm flex items-center justify-center gap-1"
+                :class="{
+                  'bg-violet-600 hover:bg-violet-700': !isOrderRequested(order) && !requestingOrder,
+                  'bg-gray-400 cursor-not-allowed': isOrderRequested(order)
+                }"
+                :title="isOrderRequested(order) ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
               >
-                {{ requestingOrder === order.id ? 'Requesting...' : 'Request' }}
+                <span>{{ requestingOrder === order.id ? '⏳' : (isOrderRequested(order) ? '✓' : '📋') }}</span>
+                <span>{{ isOrderRequested(order) ? 'Requested' : (requestingOrder === order.id ? 'Requesting...' : 'Request') }}</span>
               </button>
             </div>
           </div>
