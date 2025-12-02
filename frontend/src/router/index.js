@@ -77,6 +77,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'orders/drafts',
+          name: 'OrderDrafts',
+          component: () => import('@/views/orders/OrderDrafts.vue'),
+          meta: { 
+            requiresAuth: true, 
+            title: 'Order Drafts',
+            roles: ['client', 'admin', 'superadmin'],
+          },
+        },
+        {
           path: 'orders/new',
           name: 'OrderCreate',
           component: () => import('@/views/orders/OrderCreate.vue'),
@@ -220,6 +230,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'settings/login-alerts',
+          name: 'LoginAlerts',
+          component: () => import('@/views/settings/LoginAlerts.vue'),
+          meta: { 
+            requiresAuth: true, 
+            title: 'Login Alert Preferences',
+            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+          },
+        },
+        {
           path: 'payments',
           name: 'Payments',
           component: () => import('@/views/payments/PaymentHistory.vue'),
@@ -270,6 +290,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/holidays',
+          name: 'HolidayManagement',
+          component: () => import('@/views/admin/HolidayManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Holiday & Special Days Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'referrals',
           name: 'Referrals',
           component: () => import('@/views/referrals/Referrals.vue'),
@@ -296,6 +326,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Available Discounts',
+            roles: ['client', 'admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'my-discounts',
+          name: 'MyDiscounts',
+          component: () => import('@/views/discounts/MyDiscounts.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'My Discounts',
             roles: ['client', 'admin', 'superadmin'],
           },
         },
