@@ -112,7 +112,8 @@ class HolidayDiscountService:
         from discounts.models import Discount
         counter = 1
         original_code = code
-        while Discount.objects.filter(code=code).exists():
+        # Discount model uses 'discount_code' not 'code'
+        while Discount.objects.filter(discount_code=code).exists():
             code = f"{original_code}{counter}"
             counter += 1
         

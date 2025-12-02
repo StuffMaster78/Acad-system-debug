@@ -1760,6 +1760,49 @@ class WriterDisciplineConfigViewSet(viewsets.ModelViewSet):
             return obj
         return super().get_object()
 
+    def create(self, request, *args, **kwargs):
+        """Create or update discipline config for a website."""
+        website_id = request.data.get('website')
+        if not website_id:
+            return Response(
+                {'detail': 'Website ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if config already exists for this website
+        existing_config = self.queryset.filter(website_id=website_id).first()
+        if existing_config:
+            # Update existing config
+            serializer = self.get_serializer(existing_config, data=request.data, partial=False)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        
+        # Create new config
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, *args, **kwargs):
+        """Update discipline config by website ID."""
+        website_id = kwargs.get('website')
+        if not website_id:
+            return Response(
+                {'detail': 'Website ID is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        instance = get_object_or_404(self.queryset, website_id=website_id)
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Partial update discipline config by website ID."""
+        return self.update(request, *args, **kwargs)
+
     @action(detail=False, methods=['get'], url_path='by-website/(?P<website_id>[^/.]+)')
     def by_website(self, request, website_id=None):
         """Get discipline config for a specific website."""

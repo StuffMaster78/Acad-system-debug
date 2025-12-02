@@ -109,7 +109,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                     'rating': float(profile.average_rating) if profile.average_rating else 0,
                     'completed_orders': completed_orders,
                     'writer_level': writer_level,
-                    'is_available': profile.is_available,
+                    'is_available': getattr(profile, 'is_available_for_auto_assignments', True),
                     'pen_name': getattr(profile, 'pen_name', None),
                 },
                 'workload': {
