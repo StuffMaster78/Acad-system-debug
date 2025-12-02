@@ -54,6 +54,32 @@
 
     <!-- Dashboard Content -->
     <div v-else>
+      <!-- Engagement & reminders -->
+      <section class="space-y-4 mb-6">
+        <div v-if="writerAcknowledgments.length" class="bg-white rounded-lg border border-blue-100 p-4 shadow-sm">
+          <h2 class="text-sm font-semibold text-gray-800 mb-3">Order Engagement</h2>
+          <div class="space-y-3">
+            <WriterAcknowledgmentCard
+              v-for="ack in writerAcknowledgments"
+              :key="ack.id"
+              :acknowledgment="ack"
+              @updated="refreshEngagement"
+            />
+          </div>
+        </div>
+        <div v-if="messageReminders.length" class="bg-white rounded-lg border border-amber-100 p-4 shadow-sm">
+          <h2 class="text-sm font-semibold text-gray-800 mb-3">Message Reminders</h2>
+          <div class="space-y-3">
+            <MessageReminderCard
+              v-for="rem in messageReminders"
+              :key="rem.id"
+              :reminder="rem"
+              @updated="refreshEngagement"
+            />
+          </div>
+        </div>
+      </section>
+
       <!-- Use the WriterDashboard component with fetched data -->
       <WriterDashboardComponent
         :writer-earnings-data="writerEarningsData"
@@ -83,6 +109,9 @@ import writerDashboardAPI from '@/api/writer-dashboard'
 import ordersAPI from '@/api/orders'
 import WriterDashboardComponent from '@/views/dashboard/components/WriterDashboard.vue'
 import { useWriterDashboardRealtime } from '@/composables/useWriterDashboardRealtime'
+import { writerAcknowledgmentAPI, messageRemindersAPI } from '@/api'
+import WriterAcknowledgmentCard from '@/components/orders/WriterAcknowledgmentCard.vue'
+import MessageReminderCard from '@/components/orders/MessageReminderCard.vue'
 
 const authStore = useAuthStore()
 
@@ -102,6 +131,8 @@ const recentOrders = ref([])
 const recentOrdersLoading = ref(false)
 const availabilityStatus = ref(null)
 const realtimeWidgetData = ref(null)
+const writerAcknowledgments = ref([])
+const messageReminders = ref([])
 
 const { status: realtimeConnectionStatus } = useWriterDashboardRealtime({
   onMessage: (payload) => {
@@ -197,6 +228,30 @@ const fetchRecentOrders = async () => {
   }
 }
 
+const fetchWriterAcknowledgments = async () => {
+  try {
+    const res = await writerAcknowledgmentAPI.myAcknowledgments()
+    writerAcknowledgments.value = Array.isArray(res.data) ? res.data : []
+  } catch (err) {
+    console.error('Failed to fetch writer acknowledgments:', err)
+    writerAcknowledgments.value = []
+  }
+}
+
+const fetchMessageReminders = async () => {
+  try {
+    const res = await messageRemindersAPI.myReminders()
+    messageReminders.value = Array.isArray(res.data) ? res.data : []
+  } catch (err) {
+    console.error('Failed to fetch message reminders:', err)
+    messageReminders.value = []
+  }
+}
+
+const refreshEngagement = async () => {
+  await Promise.all([fetchWriterAcknowledgments(), fetchMessageReminders()])
+}
+
 const handleWidgetRefresh = async ({ scope }) => {
   switch (scope) {
     case 'queue':
@@ -230,7 +285,9 @@ const refreshDashboard = async () => {
       fetchWriterSummary(),
       fetchWriterPaymentStatus(),
       fetchRecentOrders(),
-      loadAvailabilityStatus()
+      loadAvailabilityStatus(),
+      fetchWriterAcknowledgments(),
+      fetchMessageReminders()
     ])
   } catch (err) {
     console.error('Failed to refresh dashboard:', err)
@@ -251,7 +308,9 @@ onMounted(async () => {
     fetchWriterSummary(),
     fetchWriterPaymentStatus(),
     fetchRecentOrders(),
-    loadAvailabilityStatus()
+    loadAvailabilityStatus(),
+    fetchWriterAcknowledgments(),
+    fetchMessageReminders()
   ])
   loading.value = false
 })
