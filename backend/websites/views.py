@@ -26,13 +26,14 @@ class LogPagination(PageNumberPagination):
 class WebsiteViewSet(viewsets.ModelViewSet):
     """Handles website CRUD, SEO updates, and soft deletion."""
     
-    queryset = Website.objects.all()
+    # Default ordering by id to avoid UnorderedObjectListWarning with pagination
+    queryset = Website.objects.all().order_by('id')
     serializer_class = WebsiteSerializer
     permission_classes = [IsAdminOrSuperadmin]  # 🔥 Restrict all actions to superadmins/admins
     
     def get_queryset(self):
         """Filter websites based on user's role and website assignment."""
-        queryset = Website.objects.all()
+        queryset = Website.objects.all().order_by('id')
         
         # Superadmins see all websites
         if self.request.user.role == 'superadmin':

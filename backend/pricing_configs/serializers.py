@@ -7,8 +7,9 @@ from .models import (
     WriterLevelOptionConfig,
     TypeOfWorkMultiplier,
     DeadlineMultiplier,
-    PreferredWriterConfig
+    PreferredWriterConfig,
 )
+from pricing.models.calculator_session import PricingCalculatorSession
 
 
 class PricingConfigurationSerializer(serializers.ModelSerializer):
@@ -95,6 +96,7 @@ class WriterLevelOptionConfigSerializer(serializers.ModelSerializer):
         fields = '__all__'
         read_only_fields = ['website', 'created_at', 'updated_at', 'website_name', 'website_domain']
 
+
 class PriceEstimationInputSerializer(serializers.Serializer):
     """Serializer for input data required to estimate the price of an order."""
     website = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -114,3 +116,35 @@ class PriceEstimationInputSerializer(serializers.Serializer):
     additional_services = serializers.ListField(
         child=serializers.SlugField(), required=False, default=[]
     )
+
+
+class PricingCalculatorSessionSerializer(serializers.ModelSerializer):
+    """Serializer for Pricing Calculator Session"""
+    
+    class Meta:
+        model = PricingCalculatorSession
+        fields = [
+            'id',
+            'session_key',
+            'user',
+            'order_data',
+            'calculated_price',
+            'base_price',
+            'adjustments',
+            'discount_code',
+            'discount_amount',
+            'final_price',
+            'created_at',
+            'expires_at',
+            'converted_to_order',
+            'order_id',
+            'is_expired',
+        ]
+        read_only_fields = [
+            'id',
+            'created_at',
+            'expires_at',
+            'converted_to_order',
+            'order_id',
+            'is_expired',
+        ]

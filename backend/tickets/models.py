@@ -76,6 +76,9 @@ class Ticket(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, help_text="When the ticket was created.")
     updated_at = models.DateTimeField(auto_now=True, help_text="When the ticket was last updated.")
     
+    # SLA tracking (will be created automatically)
+    has_sla = models.BooleanField(default=False, help_text="Whether SLA tracking is enabled")
+    
     # Generic foreign key for linking to different object types (orders, class bundles, etc.)
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
@@ -251,3 +254,8 @@ class TicketStatistics(models.Model):
 
     def __str__(self):
         return f"Stats for {self.website} - {self.created_at}"
+
+
+# Import TicketSLA from sla_timers module at the end to avoid circular import
+# This ensures Ticket is defined before TicketSLA tries to reference it
+from tickets import sla_timers  # Import the module, not the class directly
