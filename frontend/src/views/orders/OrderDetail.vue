@@ -1,14 +1,29 @@
 <template>
   <div class="space-y-6 p-6">
+    <!-- Header with Back Button -->
+    <div class="flex items-center gap-4 mb-2">
+      <router-link
+        :to="authStore.isWriter ? '/writer/orders' : '/orders'"
+        class="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+      >
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        <span class="text-sm font-medium">Back to Orders</span>
+      </router-link>
+    </div>
+    
     <div class="flex items-center justify-between">
       <div>
-      <h1 class="text-3xl font-bold text-gray-900">Order Details</h1>
-        <p v-if="order" class="text-sm text-gray-500 mt-1">Order #{{ order.id }} • {{ order.topic || 'N/A' }}</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Order Details</h1>
+        <p v-if="order" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          Order #{{ order.id }} • {{ order.topic || 'N/A' }}
+        </p>
       </div>
       <div v-if="order" class="flex gap-2">
         <router-link
           :to="`/orders/${order.id}/messages`"
-          class="relative px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+          class="relative px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-sm"
         >
           <span>💬</span>
           <span>Messages</span>
@@ -23,17 +38,17 @@
     </div>
 
     <!-- Tabs Navigation -->
-    <div v-if="order" class="border-b border-gray-200">
-      <nav class="flex space-x-8" aria-label="Tabs">
+    <div v-if="order" class="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-t-lg">
+      <nav class="flex space-x-1 overflow-x-auto" aria-label="Tabs">
         <button
           v-for="tab in tabs"
           :key="tab.id"
           @click="activeTab = tab.id"
           :class="[
-            'py-4 px-1 border-b-2 font-medium text-sm transition-colors relative',
+            'py-3 px-4 border-b-2 font-medium text-sm transition-all relative whitespace-nowrap',
             activeTab === tab.id
-              ? 'border-primary-500 text-primary-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
           ]"
         >
           <span class="flex items-center gap-2">
@@ -100,6 +115,57 @@
               >
                 View
               </button>
+            </div>
+          </div>
+          
+          <!-- Revision Eligibility Banner (client view) -->
+          <div
+            v-if="authStore.isClient && revisionEligibility"
+            class="mb-4"
+          >
+            <div
+              v-if="revisionEligibility.is_within_free_window"
+              class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-3"
+            >
+              <span class="text-xl">✅</span>
+              <div class="text-sm text-emerald-900">
+                <p class="font-semibold">
+                  Unlimited revisions available
+                </p>
+                <p v-if="revisionEligibility.free_revision_until" class="mt-0.5">
+                  Free revisions until
+                  <span class="font-medium">
+                    {{ formatDateTime(revisionEligibility.free_revision_until) }}
+                  </span>
+                  <span v-if="revisionEligibility.days_left && revisionEligibility.days_left > 0">
+                    (about {{ revisionEligibility.days_left }} day<span v-if="revisionEligibility.days_left > 1">s</span> left)
+                  </span>
+                </p>
+                <p class="mt-0.5 text-xs text-emerald-800">
+                  If something doesn’t feel right, you can still request changes at no extra cost.
+                </p>
+              </div>
+            </div>
+            <div
+              v-else
+              class="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3"
+            >
+              <span class="text-xl">ℹ️</span>
+              <div class="text-sm text-amber-900">
+                <p class="font-semibold">
+                  Free revision window has ended
+                </p>
+                <p class="mt-0.5">
+                  Revisions may be billed, but you can still
+                  <button
+                    type="button"
+                    class="underline font-medium"
+                    @click="activeTab = 'messages'"
+                  >
+                    ask a question about your order
+                  </button>.
+                </p>
+              </div>
             </div>
           </div>
           
@@ -552,25 +618,27 @@
           </div>
         </div>
 
-        <!-- Order Instructions & Notes -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div v-if="order.instructions || order.order_instructions" class="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 class="text-lg font-semibold mb-3 text-gray-900">Order Instructions</h3>
+        <!-- Order Instructions - Full Width -->
+        <div v-if="order.instructions || order.order_instructions" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Order Instructions</h3>
+          <div class="prose prose-sm max-w-none dark:prose-invert">
             <SafeHtml 
               :content="order.instructions || order.order_instructions"
-              container-class="text-gray-700 text-sm"
+              container-class="text-gray-700 dark:text-gray-300 text-sm leading-relaxed"
             />
-          </div>
-          <div v-if="order.completion_notes || (authStore.isAdmin || authStore.isSuperAdmin)" class="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 class="text-lg font-semibold mb-3 text-gray-900">Notes</h3>
-            <div v-if="order.completion_notes" class="text-gray-700 text-sm whitespace-pre-wrap">{{ order.completion_notes }}</div>
-            <div v-else class="text-gray-400 text-sm italic">No notes available</div>
           </div>
         </div>
         
+        <!-- Notes (if available) -->
+        <div v-if="order.completion_notes || (authStore.isAdmin || authStore.isSuperAdmin)" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Notes</h3>
+          <div v-if="order.completion_notes" class="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap">{{ order.completion_notes }}</div>
+          <div v-else class="text-gray-400 dark:text-gray-500 text-sm italic">No notes available</div>
+        </div>
+        
         <!-- Progress Bar (for clients) -->
-        <div v-if="authStore.isClient && order.assigned_writer" class="border-t pt-4">
-          <h3 class="text-lg font-semibold mb-3">Order Progress</h3>
+        <div v-if="authStore.isClient && order.assigned_writer" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Order Progress</h3>
           <ProgressBar
             :progress-percentage="latestProgressPercentage"
             :last-update="latestProgressUpdate"
@@ -608,14 +676,6 @@
         </div>
       </div>
 
-      <div v-if="order.instructions || order.order_instructions" class="border-t pt-4">
-        <h3 class="text-lg font-semibold mb-2">Instructions</h3>
-        <SafeHtml 
-          :content="order.instructions || order.order_instructions"
-          container-class="text-gray-700"
-        />
-      </div>
-
       <!-- Review Section (for completed orders) -->
       <div v-if="order.status === 'completed' && canSubmitReview" class="border-t pt-4" data-review-section>
         <h3 class="text-lg font-semibold mb-4">Submit Review</h3>
@@ -634,17 +694,101 @@
 
       <!-- Order Actions -->
       <div class="border-t pt-4">
-        <h3 class="text-lg font-semibold mb-3">Order Actions</h3>
+        <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Order Actions</h3>
         <div class="flex flex-wrap gap-2">
-          <!-- Writer Actions -->
-          <button
-            v-if="canSubmitOrder"
-            @click="submitOrder"
-            :disabled="processingAction"
-            class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {{ processingAction ? 'Processing...' : 'Submit Order' }}
-          </button>
+          <!-- Writer Actions Section -->
+          <div v-if="authStore.isWriter" class="flex flex-wrap gap-2 w-full">
+            <!-- Take Order (for available orders - not yet assigned) -->
+            <button
+              v-if="canTakeOrder"
+              @click="takeOrder"
+              :disabled="takingOrder || requestingOrder || !canTakeOrders"
+              class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested ? 'You have already requested this order' : 'Take this order immediately')"
+            >
+              <span>✅</span>
+              <span>{{ takingOrder ? 'Taking...' : 'Take Order' }}</span>
+            </button>
+            
+            <!-- Request Order (for available orders - not yet assigned) -->
+            <button
+              v-if="canRequestOrder"
+              @click="openRequestModal"
+              :disabled="isOrderRequested || requestingOrder || takingOrder"
+              class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              :title="isOrderRequested ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
+            >
+              <span>📋</span>
+              <span>{{ isOrderRequested ? 'Requested' : (requestingOrder ? 'Requesting...' : 'Request Order') }}</span>
+            </button>
+            
+            <!-- Assigned Writer Actions (only for assigned writers) -->
+            <template v-if="order.writer_id === userId || order.assigned_writer_id === userId || order.assigned_writer?.id === userId">
+              <!-- Start Order (for available/reassigned orders - already assigned) -->
+              <button
+                v-if="canStartOrder"
+                @click="startOrder"
+                :disabled="processingAction"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                <span>🚀</span>
+                <span>{{ processingAction ? 'Processing...' : 'Start Order' }}</span>
+              </button>
+            
+            <!-- Submit Order (for in_progress/revision_in_progress orders) -->
+            <button
+              v-if="canSubmitOrder"
+              @click="submitOrder"
+              :disabled="processingAction"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              <span>📤</span>
+              <span>{{ processingAction ? 'Processing...' : 'Submit Order' }}</span>
+            </button>
+            
+            <!-- Start Revision (for revision_requested orders) -->
+            <button
+              v-if="canStartRevision"
+              @click="startRevision"
+              :disabled="processingAction"
+              class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              <span>✏️</span>
+              <span>{{ processingAction ? 'Processing...' : 'Start Revision' }}</span>
+            </button>
+            
+            <!-- Resume Order (for on_hold orders) -->
+            <button
+              v-if="canResumeOrder"
+              @click="resumeOrder"
+              :disabled="processingAction"
+              class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              <span>▶️</span>
+              <span>{{ processingAction ? 'Processing...' : 'Resume Order' }}</span>
+            </button>
+            
+            <!-- Deadline Extension Request -->
+            <button
+              v-if="canRequestDeadlineExtension"
+              @click="showDeadlineExtensionModal = true"
+              class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
+            >
+              <span>⏰</span>
+              <span>Request Deadline Extension</span>
+            </button>
+            
+            <!-- Request Hold -->
+            <button
+              v-if="canRequestHold"
+              @click="showHoldRequestModal = true"
+              class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center gap-2"
+            >
+              <span>🛑</span>
+              <span>Request Hold</span>
+            </button>
+            </template>
+          </div>
           
           <!-- Admin/Superadmin/Support Actions - Use Modal -->
           <button
@@ -772,6 +916,28 @@
           <div>
           <h3 class="text-lg font-semibold">Files</h3>
             <p class="text-sm text-gray-500 mt-1">Upload and manage order files</p>
+
+            <div
+              v-if="finalPaperFile"
+              class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between"
+            >
+              <div>
+                <p class="text-sm font-semibold text-green-800">
+                  Final Paper is ready to download
+                </p>
+                <p class="text-xs text-green-700">
+                  Version {{ finalPaperFile.version || '1' }} •
+                  {{ formatDateTime(finalPaperFile.created_at) }}
+                </p>
+              </div>
+              <button
+                @click="downloadFile(finalPaperFile)"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm flex items-center gap-2"
+              >
+                <span>📥</span>
+                <span>Download Final Paper</span>
+              </button>
+            </div>
           </div>
           <button
             @click="loadFiles"
@@ -1556,7 +1722,7 @@
         </div>
 
         <!-- Writer: Upload Draft Section -->
-        <div v-if="authStore.isWriter && order.assigned_writer_id === authStore.user?.id" class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+        <div v-if="authStore.isWriter && (order.writer_id === userId || order.assigned_writer_id === userId || order.assigned_writer?.id === userId)" class="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
           <h4 class="text-lg font-semibold mb-4">Upload Draft for Client Request</h4>
           
           <div v-if="pendingDraftRequests.length === 0" class="text-center py-8 text-gray-500">
@@ -2062,6 +2228,128 @@
         </div>
       </div>
     </Modal>
+    
+    <!-- Deadline Extension Request Modal -->
+    <Modal
+      v-model:visible="showDeadlineExtensionModal"
+      title="Request Deadline Extension"
+      size="md"
+    >
+      <div class="space-y-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+          <p><strong>Note:</strong> Please provide a valid reason for the deadline extension. The client will review your request.</p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Current Deadline
+          </label>
+          <input
+            :value="formatDateTime(order.writer_deadline || order.deadline)"
+            type="text"
+            disabled
+            class="w-full border rounded-lg px-3 py-2 bg-gray-50 text-gray-600"
+          />
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            New Requested Deadline <span class="text-red-500">*</span>
+          </label>
+          <input
+            v-model="deadlineExtensionForm.requested_deadline"
+            type="datetime-local"
+            :min="getMinDeadlineDate()"
+            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            required
+          />
+          <p class="text-xs text-gray-500 mt-1">Select a date and time for the new deadline</p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Reason <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            v-model="deadlineExtensionForm.reason"
+            rows="4"
+            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            placeholder="Explain why you need a deadline extension..."
+            required
+          ></textarea>
+        </div>
+        
+        <div class="flex gap-2 justify-end">
+          <button
+            @click="closeDeadlineExtensionModal"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            :disabled="submittingDeadlineExtension"
+          >
+            Cancel
+          </button>
+          <button
+            @click="submitDeadlineExtension"
+            :disabled="submittingDeadlineExtension || !deadlineExtensionForm.reason.trim() || !deadlineExtensionForm.requested_deadline"
+            class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+          >
+            {{ submittingDeadlineExtension ? 'Submitting...' : 'Submit Request' }}
+          </button>
+        </div>
+      </div>
+    </Modal>
+    
+    <!-- Order Request Modal -->
+    <Modal
+      v-model:visible="showOrderRequestModal"
+      title="Request Order"
+      size="md"
+    >
+      <div class="space-y-4">
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+          <h3 class="font-semibold text-gray-900 mb-2">Order #{{ order?.id }}</h3>
+          <p class="text-sm text-gray-600">{{ order?.topic }}</p>
+          <div class="mt-2 text-sm text-gray-500">
+            <span>{{ order?.service_type || order?.type_of_work?.name || 'N/A' }}</span>
+            <span class="mx-2">•</span>
+            <span>{{ (order?.pages || order?.number_of_pages || 0) }} pages</span>
+            <span class="mx-2">•</span>
+            <span class="font-semibold text-green-600">${{ parseFloat(order?.total_cost || order?.price || 0).toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Reason for Request <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            v-model="orderRequestReason"
+            rows="4"
+            placeholder="Please explain why you're interested in this order (e.g., your expertise in this topic, availability, previous experience with similar orders, etc.)"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            required
+          ></textarea>
+          <p class="mt-1 text-xs text-gray-500">
+            This helps admins make informed assignment decisions.
+          </p>
+        </div>
+      </div>
+      
+      <template #footer>
+        <button
+          @click="closeOrderRequestModal"
+          class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          @click="submitOrderRequest"
+          :disabled="!orderRequestReason || !orderRequestReason.trim() || requestingOrder"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {{ requestingOrder ? 'Submitting...' : 'Submit Request' }}
+        </button>
+      </template>
+    </Modal>
   </div>
 </template>
 
@@ -2093,6 +2381,9 @@ import usersAPI from '@/api/users'
 import { getErrorMessage, getSuccessMessage } from '@/utils/errorHandler'
 import { useToast } from '@/composables/useToast'
 import draftRequestsAPI from '@/api/draft-requests'
+import writerManagementAPI from '@/api/writer-management'
+import writerOrderRequestsAPI from '@/api/writer-order-requests'
+import writerDashboardAPI from '@/api/writer-dashboard'
 
 const route = useRoute()
 const authStore = useAuthStore()
@@ -2172,7 +2463,8 @@ const canSubmitOrder = computed(() => {
   const status = order.value.status?.toLowerCase()
   const isWriter = userRole.value === 'writer'
   const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value
-  return isWriter && isAssignedWriter && ['in_progress', 'assigned', 'draft'].includes(status)
+  // Writer can only submit when a Final Paper file has been uploaded
+  return isWriter && isAssignedWriter && hasFinalPaperFile.value && ['in_progress', 'assigned', 'draft'].includes(status)
 })
 
 const canCompleteOrder = computed(() => {
@@ -2231,9 +2523,98 @@ const canTipWriter = computed(() => {
   return isClient && isOrderClient && hasWriter && ['completed', 'submitted', 'approved', 'closed'].includes(status)
 })
 
+const canRequestDeadlineExtension = computed(() => {
+  if (!order.value) return false
+  const isWriter = userRole.value === 'writer'
+  const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value || order.value.assigned_writer_id === userId.value
+  const status = order.value.status?.toLowerCase()
+  // Can request extension for in_progress, assigned, or draft orders
+  return isWriter && isAssignedWriter && ['in_progress', 'assigned', 'draft'].includes(status)
+})
+
+const canRequestHold = computed(() => {
+  if (!order.value) return false
+  const isWriter = userRole.value === 'writer'
+  const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value || order.value.assigned_writer_id === userId.value
+  const status = order.value.status?.toLowerCase()
+  // Can request hold for in_progress, assigned, or draft orders
+  return isWriter && isAssignedWriter && ['in_progress', 'assigned', 'draft'].includes(status)
+})
+
+const canStartOrder = computed(() => {
+  if (!order.value) return false
+  const isWriter = userRole.value === 'writer'
+  const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value || order.value.assigned_writer_id === userId.value
+  const status = order.value.status?.toLowerCase()
+  // Can start order when it's available or reassigned
+  return isWriter && isAssignedWriter && ['available', 'reassigned'].includes(status)
+})
+
+const canStartRevision = computed(() => {
+  if (!order.value) return false
+  const isWriter = userRole.value === 'writer'
+  const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value || order.value.assigned_writer_id === userId.value
+  const status = order.value.status?.toLowerCase()
+  // Can start revision when revision is requested
+  return isWriter && isAssignedWriter && status === 'revision_requested'
+})
+
+const revisionEligibility = computed(() => {
+  const rev = order.value?.revision_eligibility
+  if (!rev) return null
+  return rev
+})
+
+const canResumeOrder = computed(() => {
+  if (!order.value) return false
+  const isWriter = userRole.value === 'writer'
+  const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value || order.value.assigned_writer_id === userId.value
+  const status = order.value.status?.toLowerCase()
+  // Can resume order when it's on hold
+  return isWriter && isAssignedWriter && status === 'on_hold'
+})
+
+const canTakeOrder = computed(() => {
+  if (!order.value || !authStore.isWriter) return false
+  const status = order.value.status?.toLowerCase()
+  const isAssigned = order.value.writer_id || order.value.assigned_writer_id || order.value.assigned_writer?.id
+  // Can take order when it's available and not yet assigned
+  return status === 'available' && !isAssigned && !isOrderRequested.value
+})
+
+const canRequestOrder = computed(() => {
+  if (!order.value || !authStore.isWriter) return false
+  const status = order.value.status?.toLowerCase()
+  const isAssigned = order.value.writer_id || order.value.assigned_writer_id || order.value.assigned_writer?.id
+  // Can request order when it's available and not yet assigned
+  return status === 'available' && !isAssigned
+})
+
 const hasDownloadableFiles = computed(() => {
   if (!files.value || files.value.length === 0) return false
   return files.value.some(f => f.is_downloadable && canDownloadFile(f))
+})
+
+// Check if there is at least one file explicitly marked as Final Paper
+const hasFinalPaperFile = computed(() => {
+  if (!files.value || files.value.length === 0) return false
+  return files.value.some(f => f.is_final_paper)
+})
+
+// Get the latest Final Paper file (used for prominent download button)
+const finalPaperFile = computed(() => {
+  if (!files.value || files.value.length === 0) return null
+  const finals = files.value.filter(f => f.is_final_paper)
+  if (!finals.length) return null
+  // Prefer highest version, then most recent created_at
+  return finals
+    .slice()
+    .sort((a, b) => {
+      const av = a.version || 0
+      const bv = b.version || 0
+      if (av !== bv) return bv - av
+      return new Date(b.created_at) - new Date(a.created_at)
+    })[0]
 })
 
 // Last activity indicator
@@ -2414,6 +2795,22 @@ const tipAmount = ref(null)
 const tipReason = ref('')
 const tipPaymentMethod = ref('wallet')
 const tipping = ref(false)
+const showDeadlineExtensionModal = ref(false)
+const showHoldRequestModal = ref(false)
+const submittingDeadlineExtension = ref(false)
+const deadlineExtensionForm = ref({
+  requested_deadline: '',
+  reason: ''
+})
+const showOrderRequestModal = ref(false)
+const orderRequestReason = ref('')
+const takingOrder = ref(false)
+const requestingOrder = ref(false)
+const isOrderRequested = ref(false)
+const canTakeOrders = ref(true)
+const takesEnabled = ref(false)
+const writerProfile = ref(null)
+const activeAssignmentCount = ref(0)
 const paymentSummary = ref(null)
 const loadingPaymentSummary = ref(false)
 const paymentSummaryError = ref('')
@@ -2481,6 +2878,69 @@ const submitOrder = async () => {
     await loadOrder()
   } catch (error) {
     const errorMsg = getErrorMessage(error, 'Failed to submit order', 'Unable to submit order')
+    actionError.value = errorMsg
+    showErrorToast(errorMsg)
+  } finally {
+    processingAction.value = false
+  }
+}
+
+const startOrder = async () => {
+  if (!order.value) return
+  processingAction.value = true
+  actionError.value = ''
+  actionSuccess.value = ''
+  
+  try {
+    await ordersAPI.executeAction(order.value.id, 'start_order')
+    const message = 'Order started successfully'
+    actionSuccess.value = message
+    showSuccessToast(message)
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to start order', 'Unable to start order')
+    actionError.value = errorMsg
+    showErrorToast(errorMsg)
+  } finally {
+    processingAction.value = false
+  }
+}
+
+const startRevision = async () => {
+  if (!order.value) return
+  processingAction.value = true
+  actionError.value = ''
+  actionSuccess.value = ''
+  
+  try {
+    await ordersAPI.executeAction(order.value.id, 'start_revision')
+    const message = 'Revision started successfully'
+    actionSuccess.value = message
+    showSuccessToast(message)
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to start revision', 'Unable to start revision')
+    actionError.value = errorMsg
+    showErrorToast(errorMsg)
+  } finally {
+    processingAction.value = false
+  }
+}
+
+const resumeOrder = async () => {
+  if (!order.value) return
+  processingAction.value = true
+  actionError.value = ''
+  actionSuccess.value = ''
+  
+  try {
+    await ordersAPI.resumeOrder(order.value.id)
+    const message = 'Order resumed successfully'
+    actionSuccess.value = message
+    showSuccessToast(message)
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to resume order', 'Unable to resume order')
     actionError.value = errorMsg
     showErrorToast(errorMsg)
   } finally {
@@ -3938,6 +4398,202 @@ const pendingDraftRequests = computed(() => {
   return draftRequests.value.filter(r => r.status === 'pending' || r.status === 'in_progress')
 })
 
+// Deadline Extension Functions
+const getMinDeadlineDate = () => {
+  if (!order.value) return ''
+  const currentDeadline = order.value.writer_deadline || order.value.deadline
+  if (!currentDeadline) return ''
+  const date = new Date(currentDeadline)
+  date.setHours(date.getHours() + 1) // At least 1 hour from current deadline
+  return date.toISOString().slice(0, 16)
+}
+
+const closeDeadlineExtensionModal = () => {
+  showDeadlineExtensionModal.value = false
+  deadlineExtensionForm.value = {
+    requested_deadline: '',
+    reason: ''
+  }
+}
+
+const submitDeadlineExtension = async () => {
+  if (!order.value) return
+  
+  submittingDeadlineExtension.value = true
+  try {
+    const data = {
+      order: order.value.id,
+      old_deadline: order.value.writer_deadline || order.value.deadline,
+      requested_deadline: deadlineExtensionForm.value.requested_deadline,
+      reason: deadlineExtensionForm.value.reason
+    }
+    
+    await writerManagementAPI.createDeadlineExtensionRequest(data)
+    showSuccessToast('Deadline extension request submitted successfully!')
+    closeDeadlineExtensionModal()
+    await loadOrder() // Reload order to get updated info
+  } catch (error) {
+    showErrorToast(getErrorMessage(error, 'Failed to submit deadline extension request'))
+  } finally {
+    submittingDeadlineExtension.value = false
+  }
+}
+
+// Order Take/Request Functions
+const loadWriterContext = async () => {
+  if (!authStore.isWriter) return
+  
+  try {
+    const profileResponse = await writerManagementAPI.getMyProfile()
+    writerProfile.value = profileResponse.data
+    
+    // Load active assignments count
+    const response = await ordersAPI.list({
+      assigned_writer: true,
+      status__in: 'in_progress,under_editing,revision_requested,on_hold',
+      page_size: 1,
+    })
+    if (typeof response.data?.count === 'number') {
+      activeAssignmentCount.value = response.data.count
+    } else {
+      const results = response.data?.results || response.data || []
+      activeAssignmentCount.value = results.length
+    }
+    
+    // Check if takes are enabled and calculate capacity
+    const queueResponse = await writerDashboardAPI.getOrderQueue()
+    const queueData = queueResponse.data
+    takesEnabled.value = queueData.takes_enabled || false
+    
+    const levelDetails = writerProfile.value?.writer_level_details || null
+    const maxOrders = levelDetails?.max_orders || 0
+    const remaining = Math.max(0, maxOrders - activeAssignmentCount.value)
+    canTakeOrders.value = takesEnabled.value && remaining > 0
+    
+    // Check if this order is already requested
+    const requestedOrderIds = queueData.requested_order_ids || []
+    isOrderRequested.value = requestedOrderIds.includes(order.value?.id) || order.value?.is_requested || false
+  } catch (error) {
+    console.error('Failed to load writer context:', error)
+  }
+}
+
+const openRequestModal = () => {
+  if (!order.value) return
+  orderRequestReason.value = ''
+  showOrderRequestModal.value = true
+}
+
+const closeOrderRequestModal = () => {
+  showOrderRequestModal.value = false
+  orderRequestReason.value = ''
+}
+
+const submitOrderRequest = async () => {
+  if (!order.value) return
+  
+  const reason = orderRequestReason.value?.trim() || ''
+  if (!reason) {
+    showErrorToast('Please provide a reason for requesting this order.')
+    return
+  }
+  
+  if (reason.length < 10) {
+    showErrorToast('Please provide a more detailed reason (at least 10 characters).')
+    return
+  }
+  
+  if (reason.length > 2000) {
+    showErrorToast('Reason is too long (maximum 2000 characters).')
+    return
+  }
+  
+  if (isOrderRequested.value) {
+    showErrorToast('You have already requested this order. Please wait for admin review.')
+    closeOrderRequestModal()
+    return
+  }
+  
+  requestingOrder.value = true
+  
+  try {
+    await writerOrderRequestsAPI.create({
+      order: order.value.id,
+      reason: reason
+    })
+    
+    showSuccessToast('Order request submitted successfully! Waiting for admin review.')
+    isOrderRequested.value = true
+    closeOrderRequestModal()
+    await loadOrder() // Reload order to get updated info
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to submit order request. Please try again.')
+    showErrorToast(errorMsg)
+  } finally {
+    requestingOrder.value = false
+  }
+}
+
+const takeOrder = async () => {
+  if (!order.value) return
+  
+  // Check if already requested
+  if (isOrderRequested.value) {
+    showErrorToast('You have already requested this order. Please wait for admin review.')
+    return
+  }
+  
+  // Validate capacity
+  if (!canTakeOrders.value) {
+    if (!takesEnabled.value) {
+      showErrorToast('Taking orders directly is currently disabled. Please submit a request instead.')
+    } else {
+      showErrorToast(
+        `You have reached your current take limit. ` +
+        'Submit existing work or request a hold before taking another order.'
+      )
+    }
+    return
+  }
+  
+  // Confirm action
+  if (!confirm(
+    `Are you sure you want to take Order #${order.value.id}?\n\n` +
+    `This will assign it to you immediately and you'll be responsible for completing it by the deadline.`
+  )) {
+    return
+  }
+  
+  takingOrder.value = true
+  
+  try {
+    await writerOrderRequestsAPI.createTake({
+      order: order.value.id,
+    })
+    
+    showSuccessToast(`Order #${order.value.id} taken successfully! It has been assigned to you.`)
+    await loadOrder() // Reload order to get updated info
+    await loadWriterContext() // Refresh writer context
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to take order. Please try again.')
+    
+    // Provide more specific error messages
+    if (errorMsg.includes('already assigned') || errorMsg.includes('already taken')) {
+      showErrorToast(errorMsg)
+    } else if (errorMsg.includes('not available') || errorMsg.includes('status')) {
+      showErrorToast(errorMsg)
+    } else if (errorMsg.includes('limit') || errorMsg.includes('maximum')) {
+      showErrorToast(errorMsg)
+    } else if (errorMsg.includes('disabled')) {
+      showErrorToast(errorMsg)
+    } else {
+      showErrorToast(errorMsg)
+    }
+  } finally {
+    takingOrder.value = false
+  }
+}
+
 onMounted(async () => {
   await loadOrder()
   await loadOrderReview()
@@ -3948,6 +4604,9 @@ onMounted(async () => {
     await loadDraftRequests()
     if (authStore.isClient) {
       await checkDraftEligibility()
+    }
+    if (authStore.isWriter && order.value.status === 'available') {
+      await loadWriterContext()
     }
   }
 })
