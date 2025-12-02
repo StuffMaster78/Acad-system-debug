@@ -196,6 +196,22 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
         "task": "orders.tasks.progress_reminders.send_progress_reminders",
         "schedule": crontab(minute="*/60"),  # Every hour
     },
+    "send-writer-engagement-reminders": {
+        "task": "orders.tasks.reminder_tasks.send_writer_engagement_reminders",
+        "schedule": crontab(minute=0, hour=9),  # Daily at 9 AM
+    },
+    "send-message-reminders": {
+        "task": "orders.tasks.reminder_tasks.send_message_reminders",
+        "schedule": crontab(minute="*/60"),  # Every hour
+    },
+    "send-review-reminders": {
+        "task": "orders.tasks.reminder_tasks.send_review_reminders",
+        "schedule": crontab(minute=0, hour=10),  # Daily at 10 AM
+    },
+    "create-review-reminders-for-completed-orders": {
+        "task": "orders.tasks.reminder_tasks.create_review_reminders_for_completed_orders",
+        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+    },
     # Support Management Tasks
     "refresh-support-dashboards": {
         "task": "support_management.tasks.refresh_all_support_dashboards",
