@@ -2,6 +2,7 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.db import transaction
 from django.contrib.auth import get_user_model
 from orders.models import Order
+from orders.order_enums import OrderStatus
 from notifications_system.services.core import NotificationService
 from orders.services.order_access_service import OrderAccessService
 from django.core.exceptions import PermissionDenied
@@ -51,13 +52,48 @@ class OrderAssignmentService:
         can_assign = OrderAccessService.can_be_assigned(
             writer=writer,
             order=self.order,
-            by_admin=self.actor.is_staff
+            by_admin=self.actor.is_staff if hasattr(self, 'actor') else False
         )
 
         if not can_assign:
             raise PermissionDenied(
                 "Writer level too low for this order."
             )
+        
+        # Check workload limits (max orders) - admins can override
+        is_admin_override = hasattr(self, 'actor') and getattr(self.actor, 'is_staff', False)
+        
+        if not is_admin_override:
+            # Only check workload limits if not admin override
+            try:
+                writer_profile = writer.writer_profile
+                writer_level = writer_profile.writer_level
+                
+                if writer_level:
+                    max_allowed_orders = writer_level.max_orders
+                    
+                    # Count active assignments (in_progress, on_hold, revision_requested, under_editing)
+                    active_assignments = Order.objects.filter(
+                        assigned_writer=writer,
+                        status__in=[
+                            OrderStatus.IN_PROGRESS.value,
+                            OrderStatus.ON_HOLD.value,
+                            OrderStatus.REVISION_REQUESTED.value,
+                            OrderStatus.UNDER_EDITING.value,
+                        ]
+                    ).count()
+                    
+                    if active_assignments >= max_allowed_orders:
+                        raise ValidationError(
+                            f"Writer has reached their maximum order limit ({max_allowed_orders} active orders). "
+                            "Admin can override this restriction when assigning manually."
+                        )
+            except AttributeError:
+                # Writer profile or level not found - allow assignment if admin, otherwise warn
+                if not is_admin_override:
+                    raise ValidationError(
+                        "Writer profile or level not found. Admin can override this restriction."
+                    )
         
         old_writer = self.order.assigned_writer
         is_reassignment = bool(old_writer and old_writer != writer)
