@@ -890,6 +890,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/disputes',
+          name: 'DisputeManagement',
+          component: () => import('@/views/admin/DisputeManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Dispute Management',
+            roles: ['admin', 'superadmin', 'support'],
+          },
+        },
+        {
           path: 'admin/refunds',
           name: 'RefundManagement',
           component: () => import('@/views/admin/RefundManagement.vue'),

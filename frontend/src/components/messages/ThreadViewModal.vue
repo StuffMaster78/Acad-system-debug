@@ -171,6 +171,16 @@ const loadMessages = async () => {
   try {
     // Use shared cache store
     messages.value = await messagesStore.getThreadMessages(props.thread.id)
+    
+    // Mark all messages in thread as read when opening
+    try {
+      await communicationsAPI.markThreadAsRead(props.thread.id)
+      // Invalidate cache to refresh unread counts
+      messagesStore.invalidateThreadsCache()
+    } catch (error) {
+      // Silently fail - marking as read is not critical
+      console.warn('Failed to mark thread as read:', error)
+    }
   } catch (error) {
     console.error('Failed to load messages:', error)
   } finally {

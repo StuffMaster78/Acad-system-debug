@@ -209,6 +209,7 @@ class MessageService:
     def get_visible_messages(user, thread: CommunicationThread):
         """
         Fetch messages in a thread visible to the requesting user.
+        Shows messages where user is sender, recipient, or has role-based visibility.
 
         Args:
             user (User): Requesting user.
@@ -222,13 +223,21 @@ class MessageService:
         if role is None:
             return CommunicationMessage.objects.none()
 
+        from django.db.models import Q
     
         if role in {"admin", "superadmin", "support", "editor"}:
             return thread.messages.filter(is_deleted=False)
 
+        # For regular users, show messages where:
+        # 1. User is the sender OR
+        # 2. User is the recipient OR
+        # 3. Message is visible to user's role
         return thread.messages.filter(
-            is_deleted=False,
-            visible_to_roles__contains=[role]
+            is_deleted=False
+        ).filter(
+            Q(sender=user) | 
+            Q(recipient=user) | 
+            Q(visible_to_roles__contains=[role])
         )
     
 

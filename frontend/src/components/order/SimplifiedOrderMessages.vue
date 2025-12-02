@@ -265,6 +265,17 @@ const loadMessages = async (silent = false) => {
     const response = await communicationsAPI.listMessages(selectedThreadId.value)
     messages.value = (response.data.results || response.data || []).reverse() // Reverse to show oldest first
     
+    // Mark all messages in thread as read when opening (not during silent refresh)
+    if (!silent) {
+      try {
+        await communicationsAPI.markThreadAsRead(selectedThreadId.value)
+        await loadThreads() // Refresh thread list to update unread counts
+      } catch (error) {
+        // Silently fail - marking as read is not critical
+        console.warn('Failed to mark thread as read:', error)
+      }
+    }
+    
     await nextTick()
     scrollToBottom()
   } catch (error) {

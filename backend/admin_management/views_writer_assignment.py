@@ -106,7 +106,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                 'writer_id': f"WRTR{writer.id:06d}",  # Formatted ID
                 'profile': {
                     'id': profile.id,
-                    'rating': float(profile.rating) if profile.rating else 0,
+                    'rating': float(profile.average_rating) if profile.average_rating else 0,
                     'completed_orders': completed_orders,
                     'writer_level': writer_level,
                     'is_available': profile.is_available,

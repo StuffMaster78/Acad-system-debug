@@ -132,14 +132,21 @@ const typingStatusInterval = ref(null)
 const replyToMessage = ref(null)
 
 const loadMessages = async (silent = false) => {
-  // Mark messages as read when loading
-  if (!silent) {
-    await markMessagesAsRead()
-  }
   if (!silent) messagesLoading.value = true
   try {
     const res = await communicationsAPI.listMessages(props.thread.id)
     const newMessages = res.data.results || res.data || []
+    
+    // Mark all messages in thread as read when opening (not during silent refresh)
+    if (!silent) {
+      try {
+        await communicationsAPI.markThreadAsRead(props.thread.id)
+        emit('thread-updated') // Notify parent to refresh thread list
+      } catch (error) {
+        // Silently fail - marking as read is not critical
+        console.warn('Failed to mark thread as read:', error)
+      }
+    }
     
     // Check if we have new messages
     if (newMessages.length > 0 && lastMessageId.value) {
@@ -200,20 +207,6 @@ const loadTypingStatus = async () => {
   }
 }
 
-const markMessagesAsRead = async () => {
-  // Mark all unread messages as read
-  const unreadMessages = messages.value.filter(m => 
-    !m.is_read && m.recipient?.id === currentUserId
-  )
-  
-  for (const message of unreadMessages) {
-    try {
-      await communicationsAPI.markMessageAsRead(props.thread.id, message.id)
-    } catch (error) {
-      // Silently fail
-    }
-  }
-}
 
 const repliedToMessage = (messageId) => {
   return messages.value.find(m => m.id === messageId)

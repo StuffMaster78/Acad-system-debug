@@ -34,7 +34,7 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
     """
     queryset = SpecialOrder.objects.select_related(
         'client', 'writer', 'predefined_type'
-    )
+    ).order_by('-created_at')
     serializer_class = SpecialOrderSerializer
     permission_classes = [IsAuthenticated]
 
@@ -44,8 +44,8 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         if user.is_staff:
-            return SpecialOrder.objects.all()
-        return SpecialOrder.objects.filter(client=user)
+            return SpecialOrder.objects.all().order_by('-created_at')
+        return SpecialOrder.objects.filter(client=user).order_by('-created_at')
 
     def perform_create(self, serializer):
         """

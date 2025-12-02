@@ -80,6 +80,7 @@ export default {
   
   // Enhanced features
   markMessageAsRead: (threadId, messageId) => apiClient.post(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/mark_as_read/`),
+  markThreadAsRead: (threadId) => apiClient.post(`/order-communications/communication-threads/${threadId}/communication-messages/mark-thread-read/`),
   addReaction: (threadId, messageId, reaction) => apiClient.post(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/react/`, { reaction }),
   removeReaction: (threadId, messageId, reaction) => apiClient.delete(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/react/`, { data: { reaction } }),
   setTyping: (threadId) => apiClient.post(`/order-communications/communication-threads/${threadId}/typing/`),

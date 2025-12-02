@@ -341,7 +341,7 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
     """
     queryset = WriterOrderRequest.objects.all().select_related(
         'writer__user', 'order', 'website'
-    )
+    ).order_by('-requested_at')
     serializer_class = WriterOrderRequestSerializer
     permission_classes = [permissions.IsAuthenticated]
 

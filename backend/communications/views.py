@@ -825,6 +825,50 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
         instance.is_deleted = True
         instance.save()
     
+    @action(detail=False, methods=['post'], url_path='mark-thread-read')
+    def mark_thread_read(self, request, thread_pk=None):
+        """Mark all unread messages in a thread as read for the current user."""
+        from communications.services.read_receipt_service import ReadReceiptService
+        from django.utils import timezone
+        
+        thread = CommunicationThread.objects.get(pk=thread_pk)
+        user = request.user
+        
+        # Get all unread messages for this user in the thread
+        unread_messages = thread.messages.filter(
+            is_deleted=False,
+            recipient=user
+        ).exclude(read_by=user)
+        
+        # Mark each message as read
+        marked_count = 0
+        for message in unread_messages:
+            ReadReceiptService.mark_as_read(message, user)
+            marked_count += 1
+        
+        return Response({
+            'status': 'success',
+            'marked_count': marked_count
+        })
+    
+    @action(detail=True, methods=['post'], url_path='mark_as_read')
+    def mark_as_read(self, request, thread_pk=None, pk=None):
+        """Mark a specific message as read."""
+        from communications.services.read_receipt_service import ReadReceiptService
+        
+        message = self.get_object()
+        user = request.user
+        
+        # Only mark as read if user is the recipient
+        if message.recipient == user:
+            ReadReceiptService.mark_as_read(message, user)
+            return Response({'status': 'marked as read'})
+        else:
+            return Response(
+                {'detail': 'You are not the recipient of this message.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
     @action(detail=True, methods=['get'])
     def download_attachment(self, request, thread_pk=None, pk=None):
         """Download a message attachment."""
