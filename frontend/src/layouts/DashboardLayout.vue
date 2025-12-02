@@ -194,10 +194,52 @@
                 <span>{{ writerOrdersOpen ? '▾' : '▸' }}</span>
               </button>
               <div v-if="writerOrdersOpen" class="ml-6 space-y-1">
-                <router-link to="/writer/orders" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/orders')}">📋 My Orders</router-link>
-                <router-link to="/writer/queue" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/queue')}">📋 Order Queue</router-link>
-                <router-link to="/writer/order-requests" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/order-requests')}">📋 Order Requests</router-link>
-                <router-link to="/writer/orders?status=revision_requested" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.query.status === 'revision_requested'}">⚠️ Revision Requests</router-link>
+                <router-link
+                  to="/writer/orders"
+                  class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                  :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/orders')}"
+                >
+                  📋 My Orders
+                </router-link>
+                <router-link
+                  to="/writer/queue"
+                  class="flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-gray-100"
+                  :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/queue')}"
+                >
+                  <span>📋 Order Queue</span>
+                  <span
+                    v-if="writerQueueCounts.available + writerQueueCounts.preferred > 0"
+                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800"
+                  >
+                    {{ writerQueueCounts.available + writerQueueCounts.preferred }}
+                  </span>
+                </router-link>
+                <router-link
+                  to="/writer/order-requests"
+                  class="flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-gray-100"
+                  :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/order-requests')}"
+                >
+                  <span>📋 Order Requests</span>
+                  <span
+                    v-if="writerQueueCounts.requests > 0"
+                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800"
+                  >
+                    {{ writerQueueCounts.requests }}
+                  </span>
+                </router-link>
+                <router-link
+                  to="/writer/orders?status=revision_requested"
+                  class="flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-gray-100"
+                  :class="{'bg-primary-50 text-primary-700 font-medium': $route.query.status === 'revision_requested'}"
+                >
+                  <span>⚠️ Revision Requests</span>
+                  <span
+                    v-if="writerRevisionRequestsCount > 0"
+                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800"
+                  >
+                    {{ writerRevisionRequestsCount }}
+                  </span>
+                </router-link>
                 <router-link to="/writer/workload" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/workload')}">⚖️ Workload & Capacity</router-link>
                 <router-link to="/writer/calendar" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/calendar')}">📅 Deadline Calendar</router-link>
                 <router-link to="/writer/deadline-extensions" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/deadline-extensions')}">⏰ Deadline Extensions</router-link>
@@ -537,6 +579,19 @@
                 >
                   <span class="w-5 h-5 mr-3">🚫</span>
                   Fines
+                </router-link>
+                
+                <router-link
+                  to="/admin/holidays"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    isRouteActive({ to: '/admin/holidays' })
+                      ? 'bg-primary-50 text-primary-700'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  ]"
+                >
+                  <span class="w-5 h-5 mr-3">🎉</span>
+                  Holidays & Campaigns
                 </router-link>
                 
                 <router-link
@@ -1396,6 +1451,7 @@ import GlobalSearch from '@/components/common/GlobalSearch.vue'
 import SessionTimeoutWarning from '@/components/common/SessionTimeoutWarning.vue'
 import sessionManager from '@/services/sessionManager'
 import { useTheme } from '@/composables/useTheme'
+import writerDashboardAPI from '@/api/writer-dashboard'
 
 const router = useRouter()
 const route = useRoute()
@@ -1435,13 +1491,60 @@ watch(() => route.path, (newPath) => {
   }
 }, { immediate: true })
 
-// Writer sidebar groups
-const writerOrdersOpen = ref(false)
+// Writer sidebar groups - open Orders by default for better UX
+const writerOrdersOpen = ref(true)
 const writerFinancesOpen = ref(false)
 const writerReviewsOpen = ref(false)
 const writerUserManagementOpen = ref(false)
 const writerActivityOpen = ref(false)
 const writerDisciplineOpen = ref(false)
+
+// Writer sidebar smart counts
+const writerQueueCounts = ref({
+  available: 0,
+  preferred: 0,
+  requests: 0,
+})
+const writerRevisionRequestsCount = ref(0)
+
+const loadWriterSidebarMetrics = async () => {
+  if (!authStore.isWriter) return
+  try {
+    const [queueResp, summaryResp] = await Promise.all([
+      writerDashboardAPI.getOrderQueue().catch(() => null),
+      writerDashboardAPI.getDashboardSummary().catch(() => null),
+    ])
+
+    if (queueResp && queueResp.data) {
+      const data = queueResp.data
+      const available = Array.isArray(data.available_orders) ? data.available_orders.length : 0
+      const preferred = Array.isArray(data.preferred_orders) ? data.preferred_orders.length : 0
+      const orderRequests = Array.isArray(data.order_requests) ? data.order_requests : []
+      const writerRequests = Array.isArray(data.writer_requests) ? data.writer_requests : []
+      const allRequests = [...orderRequests, ...writerRequests]
+
+      writerQueueCounts.value = {
+        available,
+        preferred,
+        requests: allRequests.length,
+      }
+    }
+
+    if (summaryResp && summaryResp.data) {
+      const summary = summaryResp.data
+      if (Array.isArray(summary.revision_requests)) {
+        writerRevisionRequestsCount.value = summary.revision_requests.length
+      } else if (typeof summary.revision_requests_count === 'number') {
+        writerRevisionRequestsCount.value = summary.revision_requests_count
+      } else {
+        writerRevisionRequestsCount.value = 0
+      }
+    }
+  } catch (error) {
+    // Sidebar should fail silently if metrics can't be loaded
+    console.error('Failed to load writer sidebar metrics:', error)
+  }
+}
 
 // Notifications state
 const showNotificationsDropdown = ref(false)
@@ -1884,6 +1987,12 @@ const navigationItems = computed(() => {
   })
 })
 
+onMounted(() => {
+  // Existing mounted logic (session, notifications, etc.) is above;
+  // here we only trigger writer-specific sidebar metrics.
+  loadWriterSidebarMetrics()
+})
+
 // Helper function to check if a route is active
 const isRouteActive = (item) => {
   if (!item || !item.to) return false
@@ -1935,10 +2044,11 @@ const updateExpandedSections = (path) => {
   
   // Writer groups
   if (authStore.isWriter) {
-    // Orders group
+    // Orders group - expand for writer orders pages AND general order detail pages
     if (path.startsWith('/writer/orders') || path.startsWith('/writer/queue') || 
         path.startsWith('/writer/order-requests') || path.startsWith('/writer/workload') || 
-        path.startsWith('/writer/calendar') || path.includes('revision_requested')) {
+        path.startsWith('/writer/calendar') || path.includes('revision_requested') ||
+        (path.startsWith('/orders') && /^\/orders\/\d+/.test(path))) {
       writerOrdersOpen.value = true
     }
     // Finances group
