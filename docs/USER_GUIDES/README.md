@@ -69,11 +69,17 @@ The Writing System is a comprehensive platform for managing academic writing ser
 
 ### Key Features
 - **Order Management** - Create, track, and manage orders
+- **Rush Mode/Urgent Orders** - Urgent order placement with higher earnings for writers
+- **Free Revision Eligibility** - Clear visibility of revision windows and eligibility
+- **File Type Configuration** - Organized file management with categories
 - **Payment Processing** - Secure payment handling
-- **Communication** - Real-time messaging between users
+- **Communication** - Real-time messaging between users with welcome messages
+- **Holiday Management** - Admin management of holidays and special days
+- **Notification Profiles** - Enhanced notification management UI
 - **Quality Control** - Editor review and approval system
 - **Analytics** - Comprehensive dashboards and reports
 - **Multi-Tenant** - Support for multiple websites/brands
+- **Admin Workload Override** - Admins can override writer workload limits
 
 ### Getting Help
 - Check the FAQ section in your role's guide

@@ -75,6 +75,13 @@
   - Specify any sources or materials to use
   - Add formatting preferences
 
+#### Rush Mode / Urgent Orders
+- **Urgent Order Option** - Select if you need urgent delivery
+  - Rush orders (≤ 6 hours) - Higher pricing, visible countdown timer
+  - Same-day orders (≤ 24 hours) - Premium pricing
+  - System enforces minimum safe deadlines based on page count
+  - Higher earnings for writers on urgent orders
+
 ### Step 3: Review and Submit
 
 1. **Review Order Summary**
@@ -140,14 +147,38 @@
 
 #### Request Revision
 1. Open the order
-2. Click **"Request Revision"**
-3. Provide revision instructions
-4. Submit request
+2. Check **Revision Eligibility** banner:
+   - **Green Banner**: "Unlimited revisions available" - You're within the free revision window
+   - **Amber Banner**: "Free revision window has ended" - Revisions may incur charges
+3. Click **"Request Revision"**
+4. Provide revision instructions
+5. Submit request
+
+**Free Revision Window**
+- Revisions are free within a specified time period after order completion
+- Check the banner for exact expiry date and days remaining
+- After the window expires, revisions may require payment
 
 #### Download Files
 1. Open the order
 2. Go to **"Files"** section
-3. Click **"Download"** on any file
+3. Files are organized by category:
+   - Order Instructions
+   - Sample Papers
+   - Plagiarism Reports
+   - Final Drafts
+   - Other file types
+4. Click **"Download"** on any file
+
+#### Upload Files with Categories
+1. When uploading files, select the appropriate **File Type**:
+   - Order Instructions
+   - Sample Paper
+   - Plagiarism Report
+   - Final Draft
+   - Other (as configured by admin)
+2. Select your file
+3. Upload with category for better organization
 
 #### Rate and Review
 1. After order completion
@@ -351,7 +382,10 @@
 A: Orders can be cancelled before payment. After payment, contact support.
 
 **Q: How do I request a revision?**  
-A: Open the order, click "Request Revision", provide instructions, and submit.
+A: Open the order, check the revision eligibility banner (green = free, amber = may require payment), click "Request Revision", provide instructions, and submit.
+
+**Q: How long do I have for free revisions?**  
+A: Free revisions are available within a specified window after order completion. Check the revision eligibility banner on your order page for exact dates.
 
 **Q: What if I'm not satisfied with the work?**  
 A: Request a revision or open a dispute through the order page.

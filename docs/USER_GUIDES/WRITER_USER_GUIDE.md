@@ -68,11 +68,13 @@
    - Click on an order to view full details
    - Read instructions carefully
    - Check deadline and requirements
+   - **Check Urgency Level**: Rush orders (≤ 6h) and Same-day orders (≤ 24h) have higher earnings
 
 2. **Take Order**
    - Click **"Take Order"** button
    - Confirm you can complete on time
    - Order will be assigned to you
+   - **Note**: System enforces minimum safe deadlines based on page count
 
 ### Managing Assigned Orders
 
@@ -121,15 +123,22 @@
 1. Open the order
 2. Go to **"Files"** section
 3. Click **"Upload File"**
-4. Select file(s)
-5. Add description (optional)
-6. Click **"Upload"**
+4. Select **File Type** category:
+   - Order Instructions
+   - Sample Paper
+   - Plagiarism Report
+   - Final Draft
+   - Other (as configured)
+5. Select file(s)
+6. Add description (optional)
+7. Click **"Upload"**
 
 **File Types Supported**
 - Word documents (.doc, .docx)
 - PDF files (.pdf)
 - Text files (.txt)
 - Images (.jpg, .png)
+- Files are organized by category for better management
 
 ---
 
@@ -291,16 +300,22 @@ The system provides recommendations:
    - Go to **"Messages"** tab
    - Or use **"Messages"** in navigation
 
-2. **Send Message**
-   - Type your message
+2. **Welcome Message**
+   - When opening a new order's chat, your default welcome message will be pre-filled
+   - Edit or customize the message before sending
+   - This helps you greet clients professionally
+
+3. **Send Message**
+   - Type your message (or use pre-filled welcome message)
    - Attach files if needed
    - Click **"Send"**
 
-3. **Message Features**
+4. **Message Features**
    - Real-time notifications
    - File attachments
    - Message history
    - Read receipts
+   - Default welcome message support
 
 ### Communication Best Practices
 
