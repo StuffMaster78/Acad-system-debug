@@ -47,4 +47,7 @@ export default {
   
   // Bulk Operations
   bulkGenerate: (data) => apiClient.post('/discounts/discounts/bulk-generate/', data),
+  
+  // Client-specific endpoints
+  myDiscounts: () => apiClient.get('/discounts/discounts/my_discounts/'),
 }
