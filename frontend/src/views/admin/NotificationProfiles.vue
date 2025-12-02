@@ -36,98 +36,244 @@
 
     <!-- Search and Filters -->
     <div class="filters">
-      <input
-        v-model="searchQuery"
-        @input="handleSearch"
-        type="text"
-        placeholder="Search profiles by name..."
-        class="search-input"
-      />
+      <div class="filters-row">
+        <input
+          v-model="searchQuery"
+          @input="handleSearch"
+          type="text"
+          placeholder="Search profiles by name or description..."
+          class="search-input"
+        />
+
+        <div class="filters-inline">
+          <div class="filter-group">
+            <label class="filter-label">Default</label>
+            <select v-model="filters.default" class="filter-select">
+              <option value="all">All</option>
+              <option value="default">Default only</option>
+              <option value="non_default">Non‑default</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">DND</label>
+            <select v-model="filters.dnd" class="filter-select">
+              <option value="all">All</option>
+              <option value="enabled">Enabled</option>
+              <option value="disabled">Disabled</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <label class="filter-label">Channel</label>
+            <select v-model="filters.channel" class="filter-select">
+              <option value="all">All</option>
+              <option value="email">Email</option>
+              <option value="sms">SMS</option>
+              <option value="push">Push</option>
+              <option value="in_app">In‑App</option>
+            </select>
+          </div>
+
+          <div class="filter-group" v-if="websiteOptions.length">
+            <label class="filter-label">Website</label>
+            <select v-model="filters.website" class="filter-select">
+              <option value="all">All</option>
+              <option
+                v-for="site in websiteOptions"
+                :key="site"
+                :value="site"
+              >
+                {{ site }}
+              </option>
+            </select>
+          </div>
+
+          <button
+            v-if="hasActiveFilters"
+            class="btn btn-ghost-sm"
+            type="button"
+            @click="resetFilters"
+          >
+            Reset filters
+          </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Loading State -->
+    <!-- Loading / Error / Table -->
     <div v-if="loading && !profiles.length" class="loading">Loading profiles...</div>
-
-    <!-- Error State -->
-    <div v-if="error" class="error">{{ error }}</div>
-
-    <!-- Profiles List -->
-    <div v-else class="profiles-list">
-      <div v-if="profiles.length === 0" class="empty-state">
-        <p>No notification profiles found.</p>
-        <button @click="handleCreateClick" class="btn btn-primary">Create Your First Profile</button>
+    <div v-else-if="error" class="error">{{ error }}</div>
+    <div v-else class="profiles-table-wrapper">
+      <div v-if="displayedProfiles.length === 0" class="empty-state">
+        <p>No notification profiles match your filters.</p>
+        <button @click="handleCreateClick" class="btn btn-primary">
+          Create Your First Profile
+        </button>
       </div>
 
-      <div v-for="profile in profiles" :key="profile.id" class="profile-card">
-        <div class="profile-header">
-          <div class="profile-title">
-            <h3>{{ profile.name }}</h3>
-            <span v-if="profile.is_default" class="badge badge-primary">Default</span>
-          </div>
-          <div class="profile-actions">
-            <button @click="viewProfile(profile)" class="btn-icon" title="View Details">
-              👁️
-            </button>
-            <button @click="editProfile(profile)" class="btn-icon" title="Edit">
-              ✏️
-            </button>
-            <button @click="duplicateProfile(profile)" class="btn-icon" title="Duplicate">
-              📋
-            </button>
-            <button @click="deleteProfile(profile)" class="btn-icon btn-danger" title="Delete">
-              🗑️
-            </button>
-          </div>
-        </div>
-
-        <div class="profile-body">
-          <p v-if="profile.description" class="profile-description">{{ profile.description }}</p>
-          
-          <div class="profile-channels">
-            <div class="channel-item">
-              <span class="channel-label">Email:</span>
-              <span :class="['channel-status', profile.email_enabled ? 'enabled' : 'disabled']">
-                {{ profile.email_enabled ? '✓ Enabled' : '✗ Disabled' }}
-              </span>
-            </div>
-            <div class="channel-item">
-              <span class="channel-label">SMS:</span>
-              <span :class="['channel-status', profile.sms_enabled ? 'enabled' : 'disabled']">
-                {{ profile.sms_enabled ? '✓ Enabled' : '✗ Disabled' }}
-              </span>
-            </div>
-            <div class="channel-item">
-              <span class="channel-label">Push:</span>
-              <span :class="['channel-status', profile.push_enabled ? 'enabled' : 'disabled']">
-                {{ profile.push_enabled ? '✓ Enabled' : '✗ Disabled' }}
-              </span>
-            </div>
-            <div class="channel-item">
-              <span class="channel-label">In-App:</span>
-              <span :class="['channel-status', profile.in_app_enabled ? 'enabled' : 'disabled']">
-                {{ profile.in_app_enabled ? '✓ Enabled' : '✗ Disabled' }}
-              </span>
-            </div>
-          </div>
-
-          <div v-if="profile.dnd_enabled" class="profile-dnd">
-            <span class="dnd-label">Do-Not-Disturb:</span>
-            <span class="dnd-hours">{{ profile.dnd_start_hour }}:00 - {{ profile.dnd_end_hour }}:00</span>
-          </div>
-
-          <div v-if="profile.website_name" class="profile-website">
-            <span>Website: {{ profile.website_name }}</span>
-          </div>
-        </div>
-
-        <div class="profile-footer">
-          <button @click="applyToUsers(profile)" class="btn btn-sm btn-primary">
-            Apply to Users
-          </button>
-          <button @click="viewStatistics(profile)" class="btn btn-sm btn-secondary">
-            Statistics
-          </button>
-        </div>
+      <div v-else class="table-container">
+        <table class="profiles-table">
+          <thead>
+            <tr>
+              <th @click="setSort('name')">
+                <span>Name</span>
+                <span class="sort-indicator">{{ sortIcon('name') }}</span>
+              </th>
+              <th @click="setSort('website_name')">
+                <span>Website</span>
+                <span class="sort-indicator">{{ sortIcon('website_name') }}</span>
+              </th>
+              <th @click="setSort('is_default')">
+                <span>Default</span>
+                <span class="sort-indicator">{{ sortIcon('is_default') }}</span>
+              </th>
+              <th>Channels</th>
+              <th @click="setSort('dnd_enabled')">
+                <span>DND</span>
+                <span class="sort-indicator">{{ sortIcon('dnd_enabled') }}</span>
+              </th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="profile in displayedProfiles"
+              :key="profile.id"
+            >
+              <td>
+                <div class="cell-name">
+                  <div class="cell-title">
+                    <button
+                      type="button"
+                      class="link-button"
+                      @click="openDetail(profile)"
+                    >
+                      {{ profile.name }}
+                    </button>
+                    <span
+                      v-if="profile.is_default"
+                      class="badge badge-primary"
+                    >
+                      Default
+                    </span>
+                  </div>
+                  <div
+                    v-if="profile.description"
+                    class="cell-description"
+                  >
+                    {{ profile.description }}
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="cell-website">
+                  {{ profile.website_name || 'All / Default' }}
+                </span>
+              </td>
+              <td>
+                <span
+                  :class="[
+                    'pill',
+                    profile.is_default ? 'pill-success' : 'pill-muted'
+                  ]"
+                >
+                  {{ profile.is_default ? 'Yes' : 'No' }}
+                </span>
+              </td>
+              <td>
+                <div class="cell-channels">
+                  <span
+                    :class="['channel-pill', profile.email_enabled ? 'on' : 'off']"
+                    title="Email"
+                  >
+                    ✉️
+                  </span>
+                  <span
+                    :class="['channel-pill', profile.sms_enabled ? 'on' : 'off']"
+                    title="SMS"
+                  >
+                    📱
+                  </span>
+                  <span
+                    :class="['channel-pill', profile.push_enabled ? 'on' : 'off']"
+                    title="Push"
+                  >
+                    🔔
+                  </span>
+                  <span
+                    :class="['channel-pill', profile.in_app_enabled ? 'on' : 'off']"
+                    title="In‑App"
+                  >
+                    💬
+                  </span>
+                </div>
+              </td>
+              <td>
+                <div v-if="profile.dnd_enabled" class="cell-dnd">
+                  <span class="pill pill-warning">
+                    {{ profile.dnd_start_hour }}:00 – {{ profile.dnd_end_hour }}:00
+                  </span>
+                </div>
+                <span v-else class="pill pill-muted">
+                  Off
+                </span>
+              </td>
+              <td>
+                <div class="cell-actions">
+                  <button
+                    type="button"
+                    class="btn-link-sm"
+                    @click="openDetail(profile)"
+                    title="View details"
+                  >
+                    View
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-link-sm"
+                    @click="editProfile(profile)"
+                    title="Edit profile"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-link-sm"
+                    @click="duplicateProfile(profile)"
+                    title="Duplicate profile"
+                  >
+                    Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-link-sm"
+                    @click="applyToUsers(profile)"
+                    title="Apply to users"
+                  >
+                    Apply
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-link-sm"
+                    @click="openStatistics(profile)"
+                    title="View statistics"
+                  >
+                    Stats
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-link-sm text-danger"
+                    @click="deleteProfile(profile)"
+                    title="Delete profile"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -336,6 +482,166 @@
         </div>
       </div>
     </div>
+
+    <!-- Detail Modal -->
+    <div
+      v-if="showDetailModal && detailProfile"
+      class="modal-overlay"
+      @click="closeDetail"
+    >
+      <div class="modal-content large" @click.stop>
+        <div class="modal-header">
+          <h2>Profile Details – {{ detailProfile.name }}</h2>
+          <button @click="closeDetail" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body detail-body">
+          <div class="detail-section">
+            <h3>Overview</h3>
+            <p v-if="detailProfile.description" class="detail-description">
+              {{ detailProfile.description }}
+            </p>
+            <p v-else class="detail-description muted">
+              No description provided.
+            </p>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Website</span>
+                <span class="detail-value">
+                  {{ detailProfile.website_name || 'All / Default' }}
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Default Profile</span>
+                <span class="detail-value">
+                  {{ detailProfile.is_default ? 'Yes' : 'No' }}
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">DND</span>
+                <span class="detail-value">
+                  <template v-if="detailProfile.dnd_enabled">
+                    {{ detailProfile.dnd_start_hour }}:00 – {{ detailProfile.dnd_end_hour }}:00
+                  </template>
+                  <template v-else>
+                    Off
+                  </template>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <h3>Channels</h3>
+            <div class="detail-grid">
+              <div class="detail-item">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">
+                  {{ detailProfile.email_enabled ? 'Enabled' : 'Disabled' }}
+                  <span v-if="detailProfile.default_email" class="detail-tag">
+                    Default
+                  </span>
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">SMS</span>
+                <span class="detail-value">
+                  {{ detailProfile.sms_enabled ? 'Enabled' : 'Disabled' }}
+                  <span v-if="detailProfile.default_sms" class="detail-tag">
+                    Default
+                  </span>
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Push</span>
+                <span class="detail-value">
+                  {{ detailProfile.push_enabled ? 'Enabled' : 'Disabled' }}
+                  <span v-if="detailProfile.default_push" class="detail-tag">
+                    Default
+                  </span>
+                </span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">In‑App</span>
+                <span class="detail-value">
+                  {{ detailProfile.in_app_enabled ? 'Enabled' : 'Disabled' }}
+                  <span v-if="detailProfile.default_in_app" class="detail-tag">
+                    Default
+                  </span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-actions">
+            <button
+              class="btn btn-secondary"
+              type="button"
+              @click="openStatistics(detailProfile)"
+            >
+              View Statistics
+            </button>
+            <button
+              class="btn btn-primary"
+              type="button"
+              @click="applyToUsers(detailProfile)"
+            >
+              Apply to Users
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistics Modal -->
+    <div
+      v-if="showStatsModal && statsProfile"
+      class="modal-overlay"
+      @click="closeStatistics"
+    >
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h2>Profile Statistics – {{ statsProfile.name }}</h2>
+          <button @click="closeStatistics" class="btn-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="statsLoading" class="loading">
+            Loading statistics...
+          </div>
+          <div v-else-if="statsError" class="error">
+            {{ statsError }}
+          </div>
+          <div v-else-if="statsData" class="stats-grid">
+            <div class="stats-section">
+              <h3>Channels Enabled</h3>
+              <ul class="stats-list">
+                <li>Email: {{ statsData.channels_enabled?.email ? 'Yes' : 'No' }}</li>
+                <li>SMS: {{ statsData.channels_enabled?.sms ? 'Yes' : 'No' }}</li>
+                <li>Push: {{ statsData.channels_enabled?.push ? 'Yes' : 'No' }}</li>
+                <li>
+                  In‑App: {{ statsData.channels_enabled?.in_app ? 'Yes' : 'No' }}
+                </li>
+              </ul>
+            </div>
+            <div class="stats-section">
+              <h3>Profile Status</h3>
+              <ul class="stats-list">
+                <li>
+                  DND:
+                  <span v-if="statsData.dnd_enabled">
+                    Enabled ({{ statsData.dnd_hours }})
+                  </span>
+                  <span v-else>Disabled</span>
+                </li>
+                <li>Default: {{ statsData.is_default ? 'Yes' : 'No' }}</li>
+              </ul>
+            </div>
+          </div>
+          <div v-else class="muted">
+            No statistics available for this profile.
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -382,11 +688,110 @@ export default {
       selectedProfile: null,
       applyUserIds: '',
       overrideExisting: false,
+
+      // Table UX state
+      filters: {
+        default: 'all',
+        dnd: 'all',
+        channel: 'all',
+        website: 'all',
+      },
+      sortKey: 'name',
+      sortDirection: 'asc',
+
+      // Detail & statistics modals
+      showDetailModal: false,
+      detailProfile: null,
+      showStatsModal: false,
+      statsProfile: null,
+      statsData: null,
+      statsLoading: false,
+      statsError: null,
     }
   },
   mounted() {
     this.loadProfiles()
     this.loadSummary()
+  },
+  computed: {
+    websiteOptions() {
+      const names = new Set()
+      this.profiles.forEach(p => {
+        if (p.website_name) {
+          names.add(p.website_name)
+        }
+      })
+      return Array.from(names).sort()
+    },
+    hasActiveFilters() {
+      return (
+        this.filters.default !== 'all' ||
+        this.filters.dnd !== 'all' ||
+        this.filters.channel !== 'all' ||
+        this.filters.website !== 'all'
+      )
+    },
+    displayedProfiles() {
+      let items = [...this.profiles]
+
+      // Client-side filters (in addition to server search)
+      items = items.filter(profile => {
+        // Default filter
+        if (this.filters.default === 'default' && !profile.is_default) {
+          return false
+        }
+        if (this.filters.default === 'non_default' && profile.is_default) {
+          return false
+        }
+
+        // DND filter
+        if (this.filters.dnd === 'enabled' && !profile.dnd_enabled) {
+          return false
+        }
+        if (this.filters.dnd === 'disabled' && profile.dnd_enabled) {
+          return false
+        }
+
+        // Channel filter
+        if (this.filters.channel === 'email' && !profile.email_enabled) return false
+        if (this.filters.channel === 'sms' && !profile.sms_enabled) return false
+        if (this.filters.channel === 'push' && !profile.push_enabled) return false
+        if (this.filters.channel === 'in_app' && !profile.in_app_enabled) return false
+
+        // Website filter
+        if (
+          this.filters.website !== 'all' &&
+          (profile.website_name || '') !== this.filters.website
+        ) {
+          return false
+        }
+
+        return true
+      })
+
+      // Sorting
+      const key = this.sortKey
+      const dir = this.sortDirection === 'asc' ? 1 : -1
+
+      items.sort((a, b) => {
+        const av = a[key]
+        const bv = b[key]
+
+        // Boolean sort
+        if (typeof av === 'boolean' && typeof bv === 'boolean') {
+          return (av === bv ? 0 : av ? -1 : 1) * dir
+        }
+
+        // Fallback to string comparison
+        const as = (av ?? '').toString().toLowerCase()
+        const bs = (bv ?? '').toString().toLowerCase()
+        if (as < bs) return -1 * dir
+        if (as > bs) return 1 * dir
+        return 0
+      })
+
+      return items
+    },
   },
   methods: {
     handleCreateClick() {
@@ -428,6 +833,15 @@ export default {
       this.searchTimeout = setTimeout(() => {
         this.loadProfiles()
       }, 500)
+    },
+
+    resetFilters() {
+      this.filters = {
+        default: 'all',
+        dnd: 'all',
+        channel: 'all',
+        website: 'all',
+      }
     },
     
     resetForm() {
@@ -528,26 +942,59 @@ export default {
       }
     },
     
-    viewProfile(profile) {
-      // Could open a detailed view modal or navigate to detail page
-      alert(`Profile: ${profile.name}\nDescription: ${profile.description || 'N/A'}`)
+    // Sorting helpers
+    setSort(key) {
+      if (this.sortKey === key) {
+        this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc'
+      } else {
+        this.sortKey = key
+        this.sortDirection = 'asc'
+      }
     },
-    
-    async viewStatistics(profile) {
+
+    sortIcon(key) {
+      if (this.sortKey !== key) return '↕'
+      return this.sortDirection === 'asc' ? '↑' : '↓'
+    },
+
+    // Detail modal
+    openDetail(profile) {
+      this.detailProfile = profile
+      this.showDetailModal = true
+    },
+
+    closeDetail() {
+      this.showDetailModal = false
+      this.detailProfile = null
+    },
+
+    // Statistics modal
+    async openStatistics(profile) {
+      this.showStatsModal = true
+      this.statsProfile = profile
+      this.statsLoading = true
+      this.statsError = null
+      this.statsData = null
+
       try {
         const response = await notificationProfilesApi.getStatistics(profile.id)
-        const stats = response.data
-        alert(`Statistics for ${profile.name}:\n\n` +
-              `Channels Enabled:\n` +
-              `- Email: ${stats.channels_enabled.email ? 'Yes' : 'No'}\n` +
-              `- SMS: ${stats.channels_enabled.sms ? 'Yes' : 'No'}\n` +
-              `- Push: ${stats.channels_enabled.push ? 'Yes' : 'No'}\n` +
-              `- In-App: ${stats.channels_enabled.in_app ? 'Yes' : 'No'}\n` +
-              `\nDND: ${stats.dnd_enabled ? `Enabled (${stats.dnd_hours})` : 'Disabled'}\n` +
-              `Default: ${stats.is_default ? 'Yes' : 'No'}`)
+        this.statsData = response.data
       } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to load statistics')
+        this.statsError =
+          err.response?.data?.detail ||
+          err.response?.data?.error ||
+          'Failed to load statistics'
+      } finally {
+        this.statsLoading = false
       }
+    },
+
+    closeStatistics() {
+      this.showStatsModal = false
+      this.statsProfile = null
+      this.statsData = null
+      this.statsError = null
+      this.statsLoading = false
     },
     
     applyToUsers(profile) {
