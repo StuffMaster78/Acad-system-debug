@@ -83,7 +83,7 @@ class OrderRevisionService:
             return False
 
         self.order.revision_request = reason
-        self.order.status = OrderStatus.IN_REVISION.value
+        self.order.status = OrderStatus.ON_REVISION.value
         self.order.save(update_fields=["revision_request", "status"])
         return True
 
@@ -119,10 +119,10 @@ class OrderRevisionService:
         Returns:
             bool: True if the revision was denied, False otherwise.
         """
-        if self.order.status != OrderStatus.IN_REVISION.value:
+        if self.order.status != OrderStatus.ON_REVISION.value:
             return False
 
         self.order.revision_request_denied_reason = reason
-        self.order.status = OrderStatus.REVISION_DENIED.value
+        self.order.status = OrderStatus.COMPLETED.value
         self.order.save(update_fields=["revision_request_denied_reason", "status"])
         return True
