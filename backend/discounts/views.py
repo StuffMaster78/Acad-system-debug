@@ -318,6 +318,43 @@ class DiscountViewSet(viewsets.ModelViewSet):
         if stackable_discount:
             return {"code": stackable_discount.code}
         return None
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def my_discounts(self, request):
+        """
+        Get discounts available to the current logged-in user.
+        Shows general discounts, user-specific discounts, and stackable discounts.
+        """
+        from django.db.models import Q
+        
+        user = request.user
+        website = getattr(user, 'website', None)
+        
+        # Base queryset - active, not expired, not deleted
+        base_qs = Discount.objects.filter(
+            Q(is_active=True) & 
+            (Q(end_date__gte=now()) | Q(end_date__isnull=True)) & 
+            Q(is_deleted=False)
+        )
+        
+        if website:
+            base_qs = base_qs.filter(website=website)
+        
+        # Get discounts available to this user:
+        # 1. General discounts (is_general=True)
+        # 2. Discounts assigned to this client
+        # 3. Discounts assigned to this user via ManyToMany
+        user_discounts = base_qs.filter(
+            Q(is_general=True) |
+            Q(assigned_to_client=user) |
+            Q(assigned_to_users=user)
+        ).distinct()
+        
+        serializer = self.get_serializer(user_discounts, many=True)
+        return Response({
+            'results': serializer.data,
+            'count': user_discounts.count()
+        })
 
 
 class DiscountUsageViewSet(viewsets.ModelViewSet):
@@ -333,14 +370,14 @@ class DiscountUsageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Get the list of DiscountUsage entries for the authenticated user.
+        Base queryset for discount usage entries.
 
-        Optimizes the queryset by preloading related fields to reduce database
-        queries, ensuring the user, discount, and stackable discount are fetched
-        efficiently.
+        Use select_related only on real foreign keys that exist on
+        DiscountUsage: website, user, discount, order, special_order,
+        class_bundle.
         """
         return DiscountUsage.objects.select_related(
-            "user", "base_discount", "stackable_with"
+            "website", "user", "discount", "order", "special_order", "class_bundle"
         )
 
     def perform_create(self, serializer):
@@ -372,7 +409,8 @@ class DiscountUsageViewSet(viewsets.ModelViewSet):
         - The user's usage count for the discount
         - The stackable discount's usage rules
         """
-        discount = discount_usage.base_discount
+        # In the new DiscountUsage model the FK to the discount is `discount`
+        discount = discount_usage.discount
 
         # Ensure the discount can still be used
         if discount.max_uses and discount.used_count >= discount.max_uses:
@@ -382,7 +420,7 @@ class DiscountUsageViewSet(viewsets.ModelViewSet):
         # Ensure the user has not exceeded the max usage for this discount
         user_usage_count = DiscountUsage.objects.filter(
             user=discount_usage.user,
-            base_discount=discount_usage.base_discount
+            discount=discount_usage.discount
         ).count()
 
         if user_usage_count >= discount.max_uses:
@@ -391,27 +429,11 @@ class DiscountUsageViewSet(viewsets.ModelViewSet):
                 "times."
             )
 
-        # Ensure stacking limits are respected
-        if discount_usage.stackable_with:
-            stackable_discount = discount_usage.stackable_with
-            if not stackable_discount.stackable:
-                raise ValidationError(
-                    f"{stackable_discount.code} is not stackable with other "
-                    "discounts."
-                )
-
-            user_stack_count = DiscountUsage.objects.filter(
-                user=discount_usage.user,
-                base_discount=discount_usage.base_discount,
-                stackable_with=stackable_discount
-            ).count()
-
-            if user_stack_count >= stackable_discount.max_stackable_uses_per_customer:
-                raise ValidationError(
-                    f"You cannot stack {stackable_discount.code} more than "
-                    f"{stackable_discount.max_stackable_uses_per_customer} "
-                    "times."
-                )
+        # NOTE: The current DiscountUsage model does not track stackable
+        # discounts directly (no `stackable_with` FK). Stacking rules are
+        # enforced elsewhere (e.g. DiscountStackingRule), so we skip the
+        # per‑stackable usage checks here to avoid referencing non‑existent
+        # fields.
 
     def destroy(self, request, *args, **kwargs):
         """
