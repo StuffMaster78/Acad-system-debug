@@ -17,8 +17,13 @@ export const disputesAPI = {
    * Get a specific dispute
    * @param {number} id - Dispute ID
    */
-  get(id) {
-    return api.get(`/support-management/disputes/${id}/`)
+  async get(id) {
+    // Try orders endpoint first, fallback to support-management
+    try {
+      return await api.get(`/orders/disputes/${id}/`)
+    } catch {
+      return await api.get(`/support-management/disputes/${id}/`)
+    }
   },
 
   /**
@@ -54,6 +59,35 @@ export const disputesAPI = {
    */
   resolve(id, data) {
     return api.post(`/support-management/disputes/${id}/resolve/`, data)
+  },
+
+  /**
+   * Resolve dispute (orders endpoint - for admin)
+   * @param {number} id - Dispute ID
+   * @param {Object} data - Resolution data
+   */
+  resolveDispute(id, data) {
+    return api.post(`/orders/disputes/${id}/resolve_dispute/`, data)
+  },
+
+  /**
+   * Resolve dispute (orders endpoint)
+   * @param {number} id - Dispute ID
+   * @param {Object} data - Resolution data
+   */
+  resolveDispute(id, data) {
+    return api.post(`/orders/disputes/${id}/resolve_dispute/`, data)
+  },
+
+  /**
+   * Get dispute (orders endpoint)
+   * @param {number} id - Dispute ID
+   */
+  get(id) {
+    // Try orders endpoint first, fallback to support-management
+    return api.get(`/orders/disputes/${id}/`).catch(() => {
+      return api.get(`/support-management/disputes/${id}/`)
+    })
   },
 
   /**

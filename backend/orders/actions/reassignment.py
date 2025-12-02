@@ -30,7 +30,12 @@ class OrderReassignmentAction(BaseOrderAction):
     """
     def execute(self):
         service = OrderReassignmentService()
-        result = service.reassign(self.order_id, **self.params)
+        # Use force_reassign_order which takes order_id and optional writer_id
+        new_writer_id = self.params.get('new_writer_id') or self.params.get('writer_id')
+        result = service.force_reassign_order(
+            order_id=self.order_id,
+            writer_id=new_writer_id
+        )
 
         AuditLogService.log_auto(
             actor=self.user,

@@ -184,12 +184,13 @@ class StatusTransitionService:
         if log_action and self.user:
             AuditLogService.log_auto(
                 actor=self.user,
-                action="STATUS_TRANSITION",
+                action="UPDATE",  # Use valid action choice (max_length=10)
                 target=order,
                 metadata={
                     "old_status": current,
                     "new_status": target_status,
                     "reason": reason,
+                    "transition_type": "status_transition",
                     **(metadata or {})
                 },
             )
