@@ -66,10 +66,73 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['POST'], permission_classes=[permissions.IsAdminUser])
     def approve(self, request, pk=None):
+        """
+        Legacy simple approval (does not assign the order).
+        Kept for backward compatibility; prefer using `assign` action.
+        """
         request_obj = self.get_object()
+        if request_obj.approved:
+            return Response({"message": "This request has already been approved."}, status=status.HTTP_400_BAD_REQUEST)
         request_obj.approved = True
-        request_obj.save()
+        request_obj.reviewed_by = request.user
+        request_obj.save(update_fields=["approved", "reviewed_by"])
         return Response({"message": "Order request approved."}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['POST'], permission_classes=[permissions.IsAdminUser], url_path='assign')
+    def assign_from_request(self, request, pk=None):
+        """
+        Approve a writer's order request and assign the order to that writer.
+
+        This is used by the admin/superadmin/support "Assign from Request" button.
+        """
+        from django.db import transaction
+        from django.core.exceptions import ValidationError as DjangoValidationError, PermissionDenied
+        from orders.services.assignment import OrderAssignmentService
+
+        request_obj = self.get_object()
+        order = request_obj.order
+        writer_profile = request_obj.writer
+
+        if not writer_profile or not getattr(writer_profile, "user", None):
+            return Response(
+                {"error": "Writer profile is missing or invalid for this request."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        writer_user = writer_profile.user
+        reason = request.data.get("reason") or request_obj.reason or "Assigned from writer request"
+
+        try:
+            with transaction.atomic():
+                # Use the shared assignment service so notifications, logs, etc. stay consistent
+                service = OrderAssignmentService(order)
+                # Attach the acting admin/support user so access checks and logs work
+                service.actor = request.user  # type: ignore[attr-defined]
+
+                updated_order = service.assign_writer(writer_user.id, reason=reason)
+
+                # Mark the request as approved and reviewed
+                request_obj.approved = True
+                request_obj.reviewed_by = request.user
+                request_obj.save(update_fields=["approved", "reviewed_by"])
+
+            return Response(
+                {
+                    "message": "Writer assigned successfully from request.",
+                    "order_id": updated_order.id,
+                },
+                status=status.HTTP_200_OK,
+            )
+        except (DjangoValidationError, PermissionDenied) as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to assign writer from request: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 class WriterOrderTakeViewSet(viewsets.ModelViewSet):

@@ -55,6 +55,10 @@ from writer_management.views_realtime import WriterDashboardRealtimeStream
 from writer_management.views_advance import WriterAdvancePaymentRequestViewSet
 # Import Tip views from views.tips module
 from writer_management.views.tips import TipViewSet, TipListView
+# Import new feature ViewSets
+from writer_management.views.capacity import WriterCapacityViewSet, EditorWorkloadViewSet
+from writer_management.views.feedback import FeedbackViewSet, FeedbackHistoryViewSet
+from writer_management.views.portfolio import WriterPortfolioViewSet, PortfolioSampleViewSet
 # Import pen name and resource views
 try:
     from writer_management.views import (
@@ -98,6 +102,12 @@ if WriterResourceViewSet:
     router.register(r'writer-resources', WriterResourceViewSet, basename='writer-resources')
 if WriterResourceCategoryViewSet:
     router.register(r'writer-resource-categories', WriterResourceCategoryViewSet, basename='writer-resource-categories')
+router.register(r'writer-capacity', WriterCapacityViewSet, basename='writer-capacity')
+router.register(r'editor-workload', EditorWorkloadViewSet, basename='editor-workload')
+router.register(r'feedback', FeedbackViewSet, basename='feedback')
+router.register(r'feedback-history', FeedbackHistoryViewSet, basename='feedback-history')
+router.register(r'writer-portfolios', WriterPortfolioViewSet, basename='writer-portfolio')
+router.register(r'portfolio-samples', PortfolioSampleViewSet, basename='portfolio-sample')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -4,7 +4,8 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     SupportProfileViewSet, SupportNotificationViewSet, SupportOrderManagementViewSet,
     SupportMessageViewSet, EscalationLogViewSet, SupportWorkloadTrackerViewSet,
-    PaymentIssueLogViewSet, FAQManagementViewSet, SupportDashboardViewSet
+    PaymentIssueLogViewSet, FAQManagementViewSet, SupportDashboardViewSet,
+    OrderDisputeViewSet, DisputeMessageViewSet
 )
 
 # 📌 **Initialize Router for ViewSets**
@@ -18,6 +19,8 @@ router.register(r"workload-tracker", SupportWorkloadTrackerViewSet, basename="wo
 router.register(r"payment-issues", PaymentIssueLogViewSet, basename="payment-issues")
 router.register(r"faqs", FAQManagementViewSet, basename="faqs")
 router.register(r"dashboard", SupportDashboardViewSet, basename="support-dashboard")
+router.register(r"disputes", OrderDisputeViewSet, basename="order-dispute")
+router.register(r"dispute-messages", DisputeMessageViewSet, basename="dispute-message")
 
 # 📌 **Define API URL Patterns**
 urlpatterns = [

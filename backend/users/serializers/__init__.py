@@ -46,6 +46,10 @@ from .privacy import (
     PrivacyAwareClientSerializer,
     get_privacy_aware_serializer,
 )
+from .login_alerts import (
+    LoginAlertPreferenceSerializer,
+    LoginAlertPreferenceUpdateSerializer,
+)
 
 __all__ = [
     'SimpleUserSerializer',
@@ -55,4 +59,6 @@ __all__ = [
     'PrivacyAwareWriterSerializer',
     'PrivacyAwareClientSerializer',
     'get_privacy_aware_serializer',
+    'LoginAlertPreferenceSerializer',
+    'LoginAlertPreferenceUpdateSerializer',
 ]

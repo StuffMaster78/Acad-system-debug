@@ -87,7 +87,8 @@ urlpatterns = [
     path('api/v1/reviews/', include('reviews_system.urls')),  # Reviews System
     path('api/v1/class-management/', include('class_management.urls')),  # Class Management (bundles & express classes)
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
-    # path('api/v1/analytics/', include('analytics.urls')),  # Analytics app
+    path('api/v1/analytics/', include('analytics.urls')),  # Analytics app
+    path('api/v1/holidays/', include('holiday_management.urls')),  # Holiday Management app
     # path('api/v1/badge_management/', include('badge_management.urls')),  # Badges app
 
     # path('api/v1/admin/', include('notifications_system.admin_urls')), # Admin URLs for notifications
