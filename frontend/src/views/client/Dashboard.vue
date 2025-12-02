@@ -52,6 +52,34 @@
         
     <!-- Dashboard Content -->
     <div v-else>
+      <!-- Review reminders -->
+      <section v-if="reviewReminders.length" class="space-y-3 mb-6">
+        <div class="bg-white rounded-lg border border-yellow-100 p-4 shadow-sm">
+          <h2 class="text-sm font-semibold text-gray-800 mb-3">Pending Reviews</h2>
+          <ReviewReminderCard
+            v-for="rem in reviewReminders"
+            :key="rem.id"
+            :reminder="rem"
+            @updated="refreshReviewReminders"
+          />
+        </div>
+      </section>
+
+      <!-- Message reminders -->
+      <section v-if="messageReminders.length" class="space-y-3 mb-6">
+        <div class="bg-white rounded-lg border border-amber-100 p-4 shadow-sm">
+          <h2 class="text-sm font-semibold text-gray-800 mb-3">Message Reminders</h2>
+          <div class="space-y-3">
+            <MessageReminderCard
+              v-for="rem in messageReminders"
+              :key="rem.id"
+              :reminder="rem"
+              @updated="refreshMessageReminders"
+            />
+          </div>
+        </div>
+      </section>
+
       <!-- Use the ClientDashboard component with fetched data -->
       <ClientDashboardComponent
         :client-dashboard-data="clientDashboardData"
@@ -83,6 +111,9 @@ import notificationsAPI from '@/api/notifications'
 import communicationsAPI from '@/api/communications'
 import ticketsAPI from '@/api/tickets'
 import ClientDashboardComponent from '@/views/dashboard/components/ClientDashboard.vue'
+import { reviewRemindersAPI, messageRemindersAPI } from '@/api'
+import ReviewReminderCard from '@/components/orders/ReviewReminderCard.vue'
+import MessageReminderCard from '@/components/orders/MessageReminderCard.vue'
 
     const authStore = useAuthStore()
 
@@ -104,6 +135,8 @@ const recentCommunications = ref([])
 const recentCommunicationsLoading = ref(false)
 const recentTickets = ref([])
 const recentTicketsLoading = ref(false)
+const reviewReminders = ref([])
+const messageReminders = ref([])
 
 // Fetch functions
 const fetchClientDashboard = async () => {
@@ -217,6 +250,34 @@ const fetchRecentTickets = async () => {
   }
 }
 
+const fetchReviewReminders = async () => {
+  try {
+    const res = await reviewRemindersAPI.myReminders()
+    reviewReminders.value = Array.isArray(res.data) ? res.data : []
+  } catch (err) {
+    console.error('Failed to fetch review reminders:', err)
+    reviewReminders.value = []
+  }
+}
+
+const refreshReviewReminders = async () => {
+  await fetchReviewReminders()
+}
+
+const fetchMessageReminders = async () => {
+  try {
+    const res = await messageRemindersAPI.myReminders()
+    messageReminders.value = Array.isArray(res.data) ? res.data : []
+  } catch (err) {
+    console.error('Failed to fetch message reminders:', err)
+    messageReminders.value = []
+  }
+}
+
+const refreshMessageReminders = async () => {
+  await fetchMessageReminders()
+}
+
 const refreshDashboard = async () => {
   refreshing.value = true
   error.value = null
@@ -230,7 +291,9 @@ const refreshDashboard = async () => {
       fetchRecentOrders(),
       fetchRecentNotifications(),
       fetchRecentCommunications(),
-      fetchRecentTickets()
+      fetchRecentTickets(),
+      fetchReviewReminders(),
+      fetchMessageReminders()
     ])
   } catch (err) {
     console.error('Failed to refresh dashboard:', err)
@@ -251,7 +314,9 @@ onMounted(async () => {
     fetchRecentOrders(),
     fetchRecentNotifications(),
     fetchRecentCommunications(),
-    fetchRecentTickets()
+    fetchRecentTickets(),
+    fetchReviewReminders(),
+    fetchMessageReminders()
   ])
   loading.value = false
 })

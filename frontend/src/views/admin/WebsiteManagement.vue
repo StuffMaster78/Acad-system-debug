@@ -286,6 +286,18 @@
                 <input v-model="websiteForm.contact_email" type="email" class="w-full border rounded px-3 py-2" />
               </div>
               <div>
+                <label class="block text-sm font-medium mb-1">Admin Notifications Email</label>
+                <input
+                  v-model="websiteForm.admin_notifications_email"
+                  type="email"
+                  class="w-full border rounded px-3 py-2"
+                  placeholder="alerts@gmail.com (recommended)"
+                />
+                <p class="mt-1 text-xs text-gray-500">
+                  Critical order &amp; payment alerts for this website can be forwarded here for admins/superadmins.
+                </p>
+              </div>
+              <div>
                 <label class="block text-sm font-medium mb-1">Contact Phone</label>
                 <input v-model="websiteForm.contact_phone" type="tel" class="w-full border rounded px-3 py-2" />
               </div>
@@ -524,6 +536,7 @@ const websiteForm = ref({
   name: '',
   domain: '',
   contact_email: '',
+  admin_notifications_email: '',
   contact_phone: '',
   theme_color: '#000000',
   is_active: true,
@@ -620,6 +633,7 @@ const editWebsite = (website) => {
     name: website.name || '',
     domain: website.domain || '',
     contact_email: website.contact_email || '',
+    admin_notifications_email: website.admin_notifications_email || '',
     contact_phone: website.contact_phone || '',
     theme_color: website.theme_color || '#000000',
     is_active: website.is_active !== undefined ? website.is_active : true,
