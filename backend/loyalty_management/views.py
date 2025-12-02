@@ -141,7 +141,7 @@ class LoyaltySummaryView(APIView):
         config = LoyaltyPointsConversionConfig.objects.filter(website=website, active=True).first()
         data = {
             "loyalty_points": client.loyalty_points,
-            "wallet_balance": WalletTransactionService.get_balance(request.user),
+            "wallet_balance": WalletTransactionService.get_balance(request.user, website),  # Add website parameter
             "tier": client.tier.name if client.tier else "None",
             "conversion_rate": config.conversion_rate if config else "0.00"
         }
@@ -166,7 +166,8 @@ class LoyaltyTransactionListView(ListAPIView):
     serializer_class = LoyaltyTransactionSerializer
 
     def get_queryset(self):
-        return LoyaltyTransaction.objects.filter(client=self.request.user.client_profile).order_by("-created_at")
+        # LoyaltyTransaction model uses 'timestamp' not 'created_at'
+        return LoyaltyTransaction.objects.filter(client=self.request.user.client_profile).order_by("-timestamp")
     
 class AdminLoyaltyAwardView(APIView):
     permission_classes = [IsAdminUser]
@@ -250,7 +251,11 @@ class AdminLoyaltyConversionConfigView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
-        config = LoyaltyPointsConversionConfig.objects.filter(website=get_current_website(request)).first()
+        website = get_current_website(request)
+        if not website:
+            return Response({"detail": _("Website not found.")}, status=status.HTTP_400_BAD_REQUEST)
+        
+        config = LoyaltyPointsConversionConfig.objects.filter(website=website).first()
         if not config:
             return Response({"detail": _("No conversion configuration found.")}, status=status.HTTP_404_NOT_FOUND)
         
@@ -258,11 +263,15 @@ class AdminLoyaltyConversionConfigView(APIView):
         return Response(serializer.data)
 
     def post(self, request):
+        website = get_current_website(request)
+        if not website:
+            return Response({"detail": _("Website not found.")}, status=status.HTTP_400_BAD_REQUEST)
+        
         serializer = LoyaltyPointsConversionConfigSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         config, created = LoyaltyPointsConversionConfig.objects.update_or_create(
-            website=get_current_website(request),
+            website=website,
             defaults=serializer.validated_data
         )
 

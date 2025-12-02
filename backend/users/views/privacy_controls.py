@@ -44,7 +44,8 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
         }
         """
         user = request.user
-        settings, _ = PrivacySettings.get_or_create_for_user(user)
+        # get_or_create_for_user returns only the settings object, not a tuple
+        settings = PrivacySettings.get_or_create_for_user(user)
         
         return Response({
             "profile_visibility": {
@@ -78,7 +79,8 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
         }
         """
         user = request.user
-        settings, _ = PrivacySettings.get_or_create_for_user(user)
+        # get_or_create_for_user returns only the settings object, not a tuple
+        settings = PrivacySettings.get_or_create_for_user(user)
         
         if 'to_writers' in request.data:
             settings.profile_visibility_to_writers = request.data['to_writers']
@@ -120,7 +122,8 @@ class PrivacyControlsViewSet(viewsets.ViewSet):
         }
         """
         user = request.user
-        settings, _ = PrivacySettings.get_or_create_for_user(user)
+        # get_or_create_for_user returns only the settings object, not a tuple
+        settings = PrivacySettings.get_or_create_for_user(user)
         
         if 'analytics' in request.data:
             settings.allow_analytics = request.data['analytics']

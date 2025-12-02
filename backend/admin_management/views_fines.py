@@ -45,7 +45,8 @@ class AdminFinesManagementViewSet(viewsets.ViewSet):
         # Total statistics
         total_fines = all_fines.count()
         total_amount = all_fines.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-        pending_fines = all_fines.filter(status=FineStatus.PENDING).count()
+        # FineStatus doesn't have PENDING, use ISSUED for active/pending fines
+        pending_fines = all_fines.filter(status=FineStatus.ISSUED).count()
         resolved_fines = all_fines.filter(status=FineStatus.RESOLVED).count()
         waived_fines = all_fines.filter(status=FineStatus.WAIVED).count()
         voided_fines = all_fines.filter(status=FineStatus.VOIDED).count()
@@ -55,17 +56,18 @@ class AdminFinesManagementViewSet(viewsets.ViewSet):
         pending_appeals = FineAppeal.objects.filter(status='pending').count()
         
         # Recent fines (last 30 days)
+        # Fine model uses 'imposed_at' not 'issued_at'
         month_ago = timezone.now() - timedelta(days=30)
-        recent_fines = all_fines.filter(issued_at__gte=month_ago).count()
+        recent_fines = all_fines.filter(imposed_at__gte=month_ago).count()
         recent_amount = all_fines.filter(
-            issued_at__gte=month_ago
+            imposed_at__gte=month_ago
         ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
         
         # Monthly trends
         monthly_trends = all_fines.filter(
-            issued_at__gte=timezone.now() - timedelta(days=90)
+            imposed_at__gte=timezone.now() - timedelta(days=90)
         ).annotate(
-            month=TruncMonth('issued_at')
+            month=TruncMonth('imposed_at')
         ).values('month').annotate(
             count=Count('id'),
             total_amount=Sum('amount')
@@ -118,11 +120,12 @@ class AdminFinesManagementViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='pending')
     def pending_fines(self, request):
         """Get pending fines queue."""
+        # FineStatus doesn't have PENDING, use ISSUED for active/pending fines
         fines = Fine.objects.filter(
-            status=FineStatus.PENDING
+            status=FineStatus.ISSUED
         ).select_related(
             'order', 'order__assigned_writer', 'issued_by'
-        ).order_by('-issued_at')
+        ).order_by('-imposed_at')
         
         # Filter by website if applicable
         if request.user.role != 'superadmin':
@@ -166,12 +169,12 @@ class AdminFinesManagementViewSet(viewsets.ViewSet):
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
         
-        # Filter by date range
-        fines = all_fines.filter(issued_at__gte=date_from)
+        # Filter by date range - Fine model uses 'imposed_at' not 'issued_at'
+        fines = all_fines.filter(imposed_at__gte=date_from)
         
         # Daily trends
         daily_trends = fines.annotate(
-            date=TruncDate('issued_at')
+            date=TruncDate('imposed_at')
         ).values('date').annotate(
             count=Count('id'),
             total_amount=Sum('amount'),
@@ -197,8 +200,9 @@ class AdminFinesManagementViewSet(viewsets.ViewSet):
         )
         resolution_times = []
         for fine in resolved_fines:
-            if fine.resolved_at and fine.issued_at:
-                days_to_resolve = (fine.resolved_at - fine.issued_at).days
+            # Fine model uses 'imposed_at' not 'issued_at'
+            if fine.resolved_at and fine.imposed_at:
+                days_to_resolve = (fine.resolved_at - fine.imposed_at).days
                 resolution_times.append(days_to_resolve)
         
         avg_resolution_days = sum(resolution_times) / len(resolution_times) if resolution_times else 0

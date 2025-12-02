@@ -23,7 +23,8 @@ class SpecialDayViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing special days and holidays.
     """
-    queryset = SpecialDay.objects.prefetch_related('countries').all()
+    # Note: 'countries' is a JSONField, not a relationship, so it can't be prefetched
+    queryset = SpecialDay.objects.all()
     permission_classes = [permissions.IsAuthenticated, IsAdmin]
     
     def get_serializer_class(self):
@@ -39,8 +40,9 @@ class SpecialDayViewSet(viewsets.ModelViewSet):
         # Filter by country
         country = self.request.query_params.get('country')
         if country:
+            # For JSONField, use contains with list format
             qs = qs.filter(
-                Q(is_international=True) | Q(countries__contains=country)
+                Q(is_international=True) | Q(countries__contains=[country])
             ).distinct()
         
         # Filter by event type

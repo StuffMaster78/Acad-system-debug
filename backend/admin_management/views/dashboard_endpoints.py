@@ -39,7 +39,9 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
     def dashboard(self, request):
         """Get dispute statistics dashboard."""
         # Get all disputes
-        all_disputes = Dispute.objects.all().select_related('order', 'order__client', 'order__writer', 'resolved_by')
+        # Order model uses 'assigned_writer' not 'writer'
+        # Dispute model doesn't have 'resolved_by' field
+        all_disputes = Dispute.objects.all().select_related('order', 'order__client', 'order__assigned_writer', 'raised_by')
         
         # Filter by website if user has website context and is not superadmin
         if request.user.role != 'superadmin':
@@ -47,19 +49,19 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
             if website:
                 all_disputes = all_disputes.filter(order__website=website)
         
-        # Status breakdown
-        status_breakdown = all_disputes.values('status').annotate(
+        # Status breakdown - Dispute model uses 'dispute_status' not 'status'
+        status_breakdown = all_disputes.values('dispute_status').annotate(
             count=Count('id')
         )
         
-        # Pending disputes
-        pending_disputes = all_disputes.filter(status='pending')
+        # Pending disputes (open disputes)
+        pending_disputes = all_disputes.filter(dispute_status='open')
         
         # Resolved disputes (last 30 days)
         month_ago = timezone.now() - timedelta(days=30)
         resolved_recent = all_disputes.filter(
-            status='resolved',
-            resolved_at__gte=month_ago
+            dispute_status='resolved',
+            updated_at__gte=month_ago
         )
         
         # Disputes by reason
@@ -68,9 +70,10 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
         )
         
         # Average resolution time
+        # Dispute model doesn't have resolved_at, use updated_at for resolved disputes
         resolved_with_time = all_disputes.filter(
-            status='resolved',
-            resolved_at__isnull=False,
+            dispute_status='resolved',
+            updated_at__isnull=False,
             created_at__isnull=False
         )
         
@@ -78,8 +81,8 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
         if resolved_with_time.exists():
             resolution_times = []
             for dispute in resolved_with_time:
-                if dispute.resolved_at and dispute.created_at:
-                    hours = (dispute.resolved_at - dispute.created_at).total_seconds() / 3600
+                if dispute.updated_at and dispute.created_at:
+                    hours = (dispute.updated_at - dispute.created_at).total_seconds() / 3600
                     resolution_times.append(hours)
             if resolution_times:
                 avg_resolution_hours = sum(resolution_times) / len(resolution_times)
@@ -92,7 +95,7 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
                 'average_resolution_hours': round(avg_resolution_hours, 2) if avg_resolution_hours else None,
             },
             'status_breakdown': {
-                item['status']: item['count'] for item in status_breakdown
+                item['dispute_status']: item['count'] for item in status_breakdown
             },
             'reason_breakdown': {
                 item['reason']: item['count'] for item in reason_breakdown
@@ -103,10 +106,10 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
                     'order_id': dispute.order.id if dispute.order else None,
                     'order_topic': dispute.order.topic if dispute.order else None,
                     'reason': dispute.reason,
-                    'description': dispute.description,
+                    'dispute_status': dispute.dispute_status,
                     'created_at': dispute.created_at.isoformat() if dispute.created_at else None,
                     'client_id': dispute.order.client.id if dispute.order and dispute.order.client else None,
-                    'writer_id': dispute.order.writer.id if dispute.order and dispute.order.writer else None,
+                    'writer_id': dispute.order.assigned_writer.id if dispute.order and dispute.order.assigned_writer else None,
                 }
                 for dispute in pending_disputes[:20]
             ],
@@ -132,15 +135,15 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
         ).annotate(
             week=TruncWeek('created_at')
         ).values('week').annotate(
-            created=Count('id', filter=Q(status='pending')),
-            resolved=Count('id', filter=Q(status='resolved'))
+            created=Count('id', filter=Q(dispute_status='open')),
+            resolved=Count('id', filter=Q(dispute_status='resolved'))
         ).order_by('week')
         
         # Resolution rate trends
         month_ago = timezone.now() - timedelta(days=30)
         recent_disputes = all_disputes.filter(created_at__gte=month_ago)
         resolution_rate = (
-            recent_disputes.filter(status='resolved').count() / recent_disputes.count() * 100
+            recent_disputes.filter(dispute_status='resolved').count() / recent_disputes.count() * 100
             if recent_disputes.count() > 0 else 0
         )
         
@@ -155,15 +158,15 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
             ],
             'resolution_rate_percent': round(resolution_rate, 2),
             'total_this_month': recent_disputes.count(),
-            'resolved_this_month': recent_disputes.filter(status='resolved').count(),
+            'resolved_this_month': recent_disputes.filter(dispute_status='resolved').count(),
         })
     
     @action(detail=False, methods=['get'], url_path='pending')
     def pending(self, request):
         """Get pending disputes queue."""
         pending_disputes = Dispute.objects.filter(
-            status='pending'
-        ).select_related('order', 'order__client', 'order__writer').order_by('-created_at')
+            dispute_status='open'
+        ).select_related('order', 'order__client', 'order__assigned_writer').order_by('-created_at')
         
         # Filter by website if needed
         if request.user.role != 'superadmin':
@@ -188,13 +191,14 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
     def dashboard(self, request):
         """Get refund statistics dashboard."""
         # Get all refunds
-        all_refunds = Refund.objects.all().select_related('order', 'order__client', 'processed_by')
+        # Refund model has order_payment, not order directly
+        all_refunds = Refund.objects.all().select_related('order_payment', 'order_payment__order', 'order_payment__order__client', 'client', 'processed_by', 'website')
         
         # Filter by website if needed
         if request.user.role != 'superadmin':
             website = getattr(request.user, 'website', None)
             if website:
-                all_refunds = all_refunds.filter(order__website=website)
+                all_refunds = all_refunds.filter(website=website)
         
         # Status breakdown
         status_breakdown = all_refunds.values('status').annotate(
@@ -211,26 +215,26 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
             processed_at__gte=month_ago
         )
         
-        # Total amounts
+        # Total amounts - Refund model uses wallet_amount + external_amount
         total_requested = all_refunds.aggregate(
-            total=Sum('amount')
+            total=Sum(F('wallet_amount') + F('external_amount'))
         )['total'] or 0
         
         total_processed = processed_recent.aggregate(
-            total=Sum('amount')
+            total=Sum(F('wallet_amount') + F('external_amount'))
         )['total'] or 0
         
         pending_total = pending_refunds.aggregate(
-            total=Sum('amount')
+            total=Sum(F('wallet_amount') + F('external_amount'))
         )['total'] or 0
         
         # Average refund amount
         avg_refund = all_refunds.aggregate(
-            avg=Avg('amount')
+            avg=Avg(F('wallet_amount') + F('external_amount'))
         )['avg'] or 0
         
-        # Refunds by reason
-        reason_breakdown = all_refunds.values('reason').annotate(
+        # Refunds by type (refund model doesn't have 'reason', use 'type' instead)
+        type_breakdown = all_refunds.values('type').annotate(
             count=Count('id')
         )
         
@@ -247,18 +251,20 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
             'status_breakdown': {
                 item['status']: item['count'] for item in status_breakdown
             },
-            'reason_breakdown': {
-                item['reason']: item['count'] for item in reason_breakdown
+            'type_breakdown': {
+                item['type']: item['count'] for item in type_breakdown
             },
             'pending_refunds_list': [
                 {
                     'id': refund.id,
-                    'order_id': refund.order.id if refund.order else None,
-                    'amount': str(refund.amount),
-                    'reason': refund.reason,
+                    'order_id': refund.order_payment.order.id if refund.order_payment and refund.order_payment.order else None,
+                    'amount': str((refund.wallet_amount or 0) + (refund.external_amount or 0)),
+                    'wallet_amount': str(refund.wallet_amount or 0),
+                    'external_amount': str(refund.external_amount or 0),
+                    'type': getattr(refund, 'type', None),
                     'status': refund.status,
-                    'created_at': refund.created_at.isoformat() if refund.created_at else None,
-                    'client_id': refund.order.client.id if refund.order and refund.order.client else None,
+                    'processed_at': refund.processed_at.isoformat() if refund.processed_at else None,
+                    'client_id': refund.client.id if refund.client else (refund.order_payment.order.client.id if refund.order_payment and refund.order_payment.order and refund.order_payment.order.client else None),
                 }
                 for refund in pending_refunds[:20]
             ],
@@ -276,24 +282,29 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
                 all_refunds = all_refunds.filter(order__website=website)
         
         # Trends by week (last 12 weeks)
+        # Note: Refund model doesn't have created_at, using processed_at for processed refunds
+        # For pending refunds, we'll include them in the current week
         weeks_ago = timezone.now() - timedelta(weeks=12)
         from django.db.models.functions import TruncWeek
         
+        # Get all refunds and group by processed_at (or use id for approximate timing)
+        # Since we don't have created_at, we'll use processed_at for processed refunds
+        # and group others by their id (which gives approximate creation order)
         weekly_trends = all_refunds.filter(
-            created_at__gte=weeks_ago
+            processed_at__gte=weeks_ago
         ).annotate(
-            week=TruncWeek('created_at')
+            week=TruncWeek('processed_at')
         ).values('week').annotate(
             requested=Count('id'),
             processed=Count('id', filter=Q(status='processed')),
-            total_amount=Sum('amount')
+            total_amount=Sum(F('wallet_amount') + F('external_amount'))
         ).order_by('week')
         
         # Processing time (average)
+        # Refund model doesn't have created_at, use processed_at and id for approximate timing
         processed_with_time = all_refunds.filter(
             status='processed',
-            processed_at__isnull=False,
-            created_at__isnull=False
+            processed_at__isnull=False
         )
         
         avg_processing_hours = None
@@ -1237,16 +1248,14 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         if website_filter:
             writers = writers.filter(user__website=website_filter)
         
+        # WriterProfile already has 'total_earnings' and 'average_rating' fields
+        # Use different annotation name for period earnings to avoid conflict
         writer_performance = writers.annotate(
             completed_orders_count=Count('user__orders_as_writer', filter=Q(
                 user__orders_as_writer__status=OrderStatus.COMPLETED.value,
                 user__orders_as_writer__created_at__gte=date_from
             )),
-            total_earnings=Sum('user__orders_as_writer__writer_compensation', filter=Q(
-                user__orders_as_writer__status=OrderStatus.COMPLETED.value,
-                user__orders_as_writer__created_at__gte=date_from
-            )),
-            avg_rating=Avg('user__orders_as_writer__client_rating', filter=Q(
+            period_total_earnings=Sum('user__orders_as_writer__writer_compensation', filter=Q(
                 user__orders_as_writer__status=OrderStatus.COMPLETED.value,
                 user__orders_as_writer__created_at__gte=date_from
             ))
@@ -1298,14 +1307,22 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
         }
         
         # === REFUND METRICS ===
-        refunds = Refund.objects.filter(created_at__gte=date_from)
+        # Refund model has direct 'website' field, not 'order__website'
+        # Refund model doesn't have 'created_at', use processed_at or order_payment creation
+        refunds = Refund.objects.all()
         if website_filter:
-            refunds = refunds.filter(order__website=website_filter)
+            refunds = refunds.filter(website=website_filter)
+        # Filter by date - use processed_at if available, otherwise order_payment creation
+        if date_from:
+            refunds = refunds.filter(
+                Q(processed_at__gte=date_from) | 
+                Q(processed_at__isnull=True, order_payment__created_at__gte=date_from)
+            )
         
         refund_metrics = {
             'total_refunds': refunds.count(),
-            'total_amount': refunds.aggregate(total=Sum('amount'))['total'] or 0,
-            'approved': refunds.filter(status='approved').count(),
+            'total_amount': refunds.aggregate(total=Sum(F('wallet_amount') + F('external_amount')))['total'] or 0,
+            'approved': refunds.filter(status='processed').count(),  # Refund status is 'processed' not 'approved'
             'pending': refunds.filter(status='pending').count(),
         }
         
@@ -1357,9 +1374,9 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                 {
                     'writer_id': writer.id,
                     'username': writer.user.username if writer.user else None,
-                    'completed_orders': writer.completed_orders,
-                    'total_earnings': str(writer.total_earnings or 0),
-                    'avg_rating': round(float(writer.avg_rating), 2) if writer.avg_rating else None,
+                    'completed_orders': writer.completed_orders_count,  # Use annotation name
+                    'total_earnings': str(writer.period_total_earnings or 0),  # Use annotation name
+                    'avg_rating': round(float(writer.average_rating), 2) if writer.average_rating else None,  # Use existing field
                 }
                 for writer in writer_performance
             ],

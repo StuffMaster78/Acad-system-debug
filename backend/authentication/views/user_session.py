@@ -19,11 +19,12 @@ class UserSessionViewSet(mixins.ListModelMixin,
 
     def get_queryset(self):
         website = self.request.user.website  # assumes user is tied to website
+        # Add ordering to prevent UnorderedObjectListWarning
         return UserSession.objects.filter(
             user=self.request.user,
             website=website,
             is_active=True
-        )
+        ).order_by('-last_activity')
 
     def destroy(self, request, *args, **kwargs):
         """

@@ -522,15 +522,35 @@ class ClassBundleConfigViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminUser]
 
     def get_website(self):
-        domain = self.request.get_host()
-        return Website.objects.get(domain=domain)
+        """Get website from request, with fallback handling."""
+        from django.shortcuts import get_object_or_404
+        from websites.utils import get_current_website
+        
+        # Try to get website from header or user
+        website = get_current_website(self.request)
+        if website:
+            return website
+        
+        # Fallback: try to get from domain
+        try:
+            domain = self.request.get_host()
+            return get_object_or_404(Website, domain=domain)
+        except Exception:
+            # If all else fails, return first website or None
+            return Website.objects.first()
 
     def get_queryset(self):
         """
         Filter the configurations by the current website.
         """
-        website = self.get_website()
-        return self.queryset.filter(website=website)
+        try:
+            website = self.get_website()
+            if website:
+                return self.queryset.filter(website=website)
+        except Exception:
+            pass
+        # Return empty queryset if website can't be determined
+        return self.queryset.none()
 
     @action(detail=False, methods=['get'])
     def get_class_price(self, request):
