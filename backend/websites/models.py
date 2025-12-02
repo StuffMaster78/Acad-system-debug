@@ -141,6 +141,12 @@ class Website(models.Model):
         help_text="Used for support replies (e.g., support@site.com)"
     )
 
+    admin_notifications_email = models.EmailField(
+        null=True,
+        blank=True,
+        help_text="Email where critical order & payment notifications are forwarded for this website (e.g., a Gmail inbox for admins).",
+    )
+
     def validate_registration_allowed(self):
         """
         Validates if registration is allowed for this website.

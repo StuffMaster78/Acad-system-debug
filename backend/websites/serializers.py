@@ -14,6 +14,7 @@ class WebsiteSerializer(serializers.ModelSerializer):
             "is_active", "logo", "theme_color",
             "contact_email", "contact_phone",
             "meta_title", "meta_description",
+            "admin_notifications_email",
             "allow_registration", "allow_guest_checkout",
             "google_analytics_id", "google_search_console_id", "bing_webmaster_id",
             "is_deleted", "deleted_at",

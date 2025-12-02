@@ -143,10 +143,10 @@ class SystemHealthService:
         # Suspended users
         suspended = User.objects.filter(is_suspended=True).count()
         
-        # Writers with issues
+        # Writers with issues (use correct related names: strikes / suspensions)
         writers_with_issues = WriterProfile.objects.filter(
-            Q(writer_strikes__isnull=False) | 
-            Q(writer_suspensions__isnull=False)
+            Q(strikes__isnull=False) |
+            Q(suspensions__isnull=False)
         ).distinct().count()
         
         return {
