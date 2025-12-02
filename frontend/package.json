@@ -2,6 +2,8 @@
   "name": "writing-system-frontend",
   "version": "1.0.0",
   "description": "Writing System Frontend Application",
+  "author": "Erick Awino <rickawino@gmail.com>",
+  "license": "MIT",
   "private": true,
   "type": "module",
   "scripts": {
