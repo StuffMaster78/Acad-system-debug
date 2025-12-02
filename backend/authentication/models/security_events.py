@@ -25,6 +25,7 @@ class SecurityEvent(models.Model):
         ('session_created', 'Session Created'),
         ('session_revoked', 'Session Revoked'),
         ('suspicious_activity', 'Suspicious Activity'),
+        ('suspicious_session_reported', 'Suspicious Session Reported'),
         ('account_locked', 'Account Locked'),
         ('account_unlocked', 'Account Unlocked'),
         ('profile_updated', 'Profile Updated'),

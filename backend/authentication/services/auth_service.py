@@ -228,7 +228,7 @@ class AuthenticationService:
         
         # Clear failed login attempts on successful login
         try:
-            failed_login_service.clear_attempts()
+            FailedLoginService(user=user, website=website).clear_attempts()
         except Exception as e:
             logger.warning(f"Failed to clear failed attempts: {e}")
         

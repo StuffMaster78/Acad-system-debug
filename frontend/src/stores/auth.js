@@ -99,25 +99,29 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const response = await authApi.login(email, password, rememberMe)
+        const data = response.data || {}
         
         // Check if 2FA is required
-        if (response.data.requires_2fa) {
+        if (data.requires_2fa) {
           return {
             requires2FA: true,
-            sessionId: response.data.session_id
+            sessionId: data.session_id
           }
         }
 
-        // Set tokens and user
+        // Support both legacy (`access_token`/`refresh_token`) and new (`access`/`refresh`) keys.
+        const accessToken = data.access_token || data.access
+        const refreshToken = data.refresh_token || data.refresh
+
         await this.setTokens({
-          accessToken: response.data.access_token,
-          refreshToken: response.data.refresh_token
+          accessToken,
+          refreshToken
         })
-        await this.setUser(response.data.user)
+        await this.setUser(data.user)
         
         return {
           success: true,
-          user: response.data.user
+          user: data.user
         }
       } catch (error) {
         this.error = error.response?.data?.error || 
@@ -138,17 +142,21 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         const response = await authApi.verify2FA(code)
+        const data = response.data || {}
         
+        const accessToken = data.access_token || data.access
+        const refreshToken = data.refresh_token || data.refresh
+
         // Set tokens and user
         await this.setTokens({
-          accessToken: response.data.access_token,
-          refreshToken: response.data.refresh_token
+          accessToken,
+          refreshToken
         })
-        await this.setUser(response.data.user)
+        await this.setUser(data.user)
         
         return {
             success: true,
-            user: response.data.user
+            user: data.user
         }
       } catch (error) {
         this.error = error.response?.data?.error || 

@@ -173,6 +173,32 @@ export const authAPI = {
   revokeAllSessions: () => {
     return apiClient.post('/auth/user-sessions/revoke-all/')
   },
+  
+  // Login Sessions (LoginSession model)
+  getLoginSessions: () => {
+    // Try session-management first, fallback to user-login-sessions
+    return apiClient.get('/auth/user-login-sessions/').catch(() => {
+      return apiClient.get('/auth/session-management/current_sessions/')
+    })
+  },
+  revokeLoginSession: (sessionId) => {
+    return apiClient.post(`/auth/user-login-sessions/${sessionId}/revoke/`)
+  },
+  revokeAllLoginSessions: (keepCurrent = true) => {
+    return apiClient.post('/auth/user-login-sessions/revoke-all/', null, {
+      params: { keep_current: keepCurrent ? '1' : '0' }
+    })
+  },
+  updateDeviceName: (sessionId, deviceName) => {
+    return apiClient.patch(`/auth/user-login-sessions/${sessionId}/update-device-name/`, {
+      device_name: deviceName
+    })
+  },
+  reportSuspiciousSession: (sessionId, reason = 'This wasn\'t me') => {
+    return apiClient.post(`/auth/user-login-sessions/${sessionId}/report-suspicious/`, {
+      reason
+    })
+  },
 
   // Account unlock
   requestAccountUnlock: (email) => {
