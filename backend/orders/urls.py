@@ -18,6 +18,12 @@ from orders.views.orders.editing_admin import OrderEditingAdminView
 from orders.views.progress import WriterProgressViewSet
 from orders.views.draft_requests import DraftRequestViewSet, DraftFileViewSet
 from orders.views.order_templates import OrderTemplateViewSet
+from orders.views.order_drafts import OrderDraftViewSet
+from orders.views.order_presets import OrderPresetViewSet
+from orders.views.enhanced_revisions import RevisionRequestViewSet
+from orders.views.writer_acknowledgment import WriterAssignmentAcknowledgmentViewSet
+from orders.views.message_reminders import MessageReminderViewSet
+from orders.views.review_reminders import ReviewReminderViewSet
 
 
 app_name = 'orders'
@@ -33,6 +39,12 @@ router.register(r'progress', WriterProgressViewSet, basename='writer-progress')
 router.register(r'draft-requests', DraftRequestViewSet, basename='draft-request')
 router.register(r'draft-files', DraftFileViewSet, basename='draft-file')
 router.register(r'templates', OrderTemplateViewSet, basename='order-template')
+router.register(r'order-drafts', OrderDraftViewSet, basename='order-draft')
+router.register(r'order-presets', OrderPresetViewSet, basename='order-preset')
+router.register(r'revision-requests', RevisionRequestViewSet, basename='revision-request')
+router.register(r'writer-acknowledgments', WriterAssignmentAcknowledgmentViewSet, basename='writer-acknowledgment')
+router.register(r'message-reminders', MessageReminderViewSet, basename='message-reminder')
+router.register(r'review-reminders', ReviewReminderViewSet, basename='review-reminder')
 
 
 urlpatterns = [

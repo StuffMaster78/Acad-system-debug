@@ -76,6 +76,21 @@ try:
 except Exception:
     WriterAdvancePaymentRequest = None
     AdvanceDeduction = None
+try:
+    from .capacity import WriterCapacity, EditorWorkload
+except Exception:
+    WriterCapacity = None
+    EditorWorkload = None
+try:
+    from .feedback import Feedback, FeedbackHistory
+except Exception:
+    Feedback = None
+    FeedbackHistory = None
+try:
+    from .portfolio import WriterPortfolio, PortfolioSample
+except Exception:
+    WriterPortfolio = None
+    PortfolioSample = None
 
 __all__ = [
     "WriterProfile",
@@ -105,5 +120,11 @@ __all__ = [
     "WriterResourceView",
     "WriterAdvancePaymentRequest",
     "AdvanceDeduction",
+    "WriterCapacity",
+    "EditorWorkload",
+    "Feedback",
+    "FeedbackHistory",
+    "WriterPortfolio",
+    "PortfolioSample",
 ]
 

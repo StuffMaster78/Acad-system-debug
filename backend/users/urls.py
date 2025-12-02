@@ -29,6 +29,7 @@ AdminUserManagementViewSet = views_main.AdminUserManagementViewSet
 from users.views.account_management import AccountManagementViewSet
 from users.views.privacy_controls import PrivacyControlsViewSet
 from users.views.security_activity import SecurityActivityViewSet
+from users.views.login_alerts import LoginAlertPreferenceViewSet
 
 # Initialize DRF Router
 router = DefaultRouter()
@@ -53,6 +54,9 @@ router.register(r'gdpr', GDPRViewSet, basename="gdpr")
 
 # Security Activity (Security Events Feed, Activity Summary)
 router.register(r'security-activity', SecurityActivityViewSet, basename="security-activity")
+
+# Login Alert Preferences
+router.register(r'login-alerts', LoginAlertPreferenceViewSet, basename="login-alerts")
 
 # Admin actions (Profile update approvals, Deletions)
 router.register(r'admin/profile-requests', AdminProfileRequestViewSet, basename="admin-profile-requests")
