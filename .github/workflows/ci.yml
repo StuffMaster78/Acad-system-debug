@@ -162,3 +162,47 @@ jobs:
           docker build -t writing-system-backend:test .
           echo "Docker image built successfully"
 
+  frontend-lint:
+    name: Frontend Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ESLint
+        working-directory: frontend
+        run: pnpm run lint || echo "Linting issues found (non-blocking)"
+        continue-on-error: true
+
+      - name: Check for TypeScript errors
+        working-directory: frontend
+        run: |
+          if [ -f "tsconfig.json" ]; then
+            pnpm run type-check || echo "TypeScript errors found (non-blocking)"
+          else
+            echo "TypeScript not configured, skipping type check"
+          fi
+        continue-on-error: true
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build || echo "Build issues found (non-blocking)"
+        continue-on-error: true
+
