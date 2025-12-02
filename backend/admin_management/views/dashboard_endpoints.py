@@ -1238,7 +1238,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
             writers = writers.filter(user__website=website_filter)
         
         writer_performance = writers.annotate(
-            completed_orders=Count('user__orders_as_writer', filter=Q(
+            completed_orders_count=Count('user__orders_as_writer', filter=Q(
                 user__orders_as_writer__status=OrderStatus.COMPLETED.value,
                 user__orders_as_writer__created_at__gte=date_from
             )),
@@ -1250,7 +1250,7 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                 user__orders_as_writer__status=OrderStatus.COMPLETED.value,
                 user__orders_as_writer__created_at__gte=date_from
             ))
-        ).filter(completed_orders__gt=0).order_by('-completed_orders')[:10]
+        ).filter(completed_orders_count__gt=0).order_by('-completed_orders_count')[:10]
         
         # === CLIENT ANALYTICS ===
         from users.models import User
