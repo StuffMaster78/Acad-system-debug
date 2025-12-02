@@ -13,6 +13,7 @@ from rest_framework.exceptions import PermissionDenied
 from django.contrib.auth import get_user_model
 from orders.registry.decorator import get_all_registered_actions
 from django.utils import timezone
+from orders.services.revisions import OrderRevisionService
 from orders.models import WebhookDeliveryLog
 
 User = get_user_model()
@@ -35,6 +36,8 @@ class OrderSerializer(serializers.ModelSerializer):
     subject_is_technical = serializers.SerializerMethodField(read_only=True)
     # Writer deadline percentage config
     writer_deadline_percentage = serializers.SerializerMethodField(read_only=True)
+    # Revision eligibility info for clients
+    revision_eligibility = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Order
@@ -49,7 +52,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'created_by_admin', 'is_special_order', 'is_follow_up',
             'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent',
             'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',
-            'allow_unpaid_access', 'writer_deadline_percentage'
+            'allow_unpaid_access', 'writer_deadline_percentage', 'revision_eligibility'
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_price', 
@@ -117,6 +120,51 @@ class OrderSerializer(serializers.ModelSerializer):
                 'label': label or f"{config.writer_deadline_percentage}%"
             }
         return None
+
+    def get_revision_eligibility(self, obj):
+        """
+        Expose whether the order is still within the free revision window.
+        Used by client dashboards to show 'Unlimited Revisions' vs
+        'Past free revision period'.
+        """
+        # Only meaningful for completed orders
+        status = (obj.status or '').lower()
+        # Use submitted_at (writer finished) as primary completion timestamp,
+        # falling back to updated_at if needed.
+        completed_ts = getattr(obj, "submitted_at", None) or getattr(obj, "updated_at", None)
+        if status != 'completed' or not completed_ts:
+            return {
+                "is_within_free_window": False,
+                "free_revision_until": None,
+                "days_left": 0,
+            }
+
+        try:
+            service = OrderRevisionService(order=obj, user=obj.client)
+            deadline = service.get_revision_deadline()
+        except Exception:
+            return {
+                "is_within_free_window": False,
+                "free_revision_until": None,
+                "days_left": 0,
+            }
+
+        free_until = completed_ts + deadline
+        now_ts = timezone.now()
+        if now_ts >= free_until:
+            return {
+                "is_within_free_window": False,
+                "free_revision_until": free_until.isoformat(),
+                "days_left": 0,
+            }
+
+        delta = free_until - now_ts
+        days_left = max(0, delta.days)
+        return {
+            "is_within_free_window": True,
+            "free_revision_until": free_until.isoformat(),
+            "days_left": days_left,
+        }
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
