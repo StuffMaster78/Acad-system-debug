@@ -329,6 +329,201 @@
       </div>
     </div>
 
+    <!-- File Categories Tab -->
+    <div v-if="activeTab === 'categories'" class="space-y-4">
+      <div class="card p-4">
+        <div class="flex justify-between items-start gap-4 mb-4">
+          <div>
+            <h3 class="text-lg font-semibold">File Categories</h3>
+            <p class="text-sm text-gray-500">
+              Configure the file types clients and writers can choose from (e.g. Order instructions, Writing guide, Sample paper, AI draft, Outline, My draft, Plagiarism report, Final paper, etc.).
+            </p>
+          </div>
+          <button
+            type="button"
+            class="btn btn-primary"
+            @click="openCreateCategory"
+          >
+            Add Category
+          </button>
+        </div>
+
+        <div v-if="categoriesLoading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+
+        <table v-else class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Name
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Website
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Final Draft
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Extra Service
+              </th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Allowed Extensions
+              </th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-200">
+            <tr v-for="cat in categories" :key="cat.id" class="hover:bg-gray-50">
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ cat.name }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ cat.website_name || 'Default / All' }}
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                <span
+                  :class="[
+                    'px-2 py-1 text-xs font-semibold rounded-full',
+                    cat.is_final_draft ? 'bg-emerald-100 text-emerald-800' : 'bg-gray-100 text-gray-700'
+                  ]"
+                >
+                  {{ cat.is_final_draft ? 'Yes' : 'No' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm">
+                <span
+                  :class="[
+                    'px-2 py-1 text-xs font-semibold rounded-full',
+                    cat.is_extra_service ? 'bg-indigo-100 text-indigo-800' : 'bg-gray-100 text-gray-700'
+                  ]"
+                >
+                  {{ cat.is_extra_service ? 'Yes' : 'No' }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {{ (cat.allowed_extensions || []).join(', ') || 'Any' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div v-if="!categoriesLoading && categories.length === 0" class="text-center py-12 text-gray-500">
+          No categories defined yet. Click "Add Category" to create one.
+        </div>
+      </div>
+
+      <!-- Category Modal -->
+      <div
+        v-if="showCategoryModal"
+        class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      >
+        <div class="bg-white rounded-lg shadow-xl max-w-xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+          <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-semibold">
+                {{ editingCategory ? 'Edit File Category' : 'Add File Category' }}
+              </h3>
+              <button @click="closeCategoryModal" class="text-gray-400 hover:text-gray-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form @submit.prevent="saveCategory" class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Website *
+                </label>
+                <select
+                  v-model="categoryForm.website"
+                  required
+                  class="w-full border rounded px-3 py-2"
+                >
+                  <option value="">Select Website</option>
+                  <option
+                    v-for="site in websites"
+                    :key="site.id"
+                    :value="site.id"
+                  >
+                    {{ site.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Category Name *
+                </label>
+                <input
+                  v-model="categoryForm.name"
+                  type="text"
+                  required
+                  class="w-full border rounded px-3 py-2"
+                  placeholder="e.g., Order Instructions, Sample Paper, Final Paper"
+                />
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">
+                  Allowed Extensions
+                </label>
+                <input
+                  v-model="categoryForm.allowed_extensions_text"
+                  type="text"
+                  class="w-full border rounded px-3 py-2"
+                  placeholder="e.g., pdf,docx,txt (comma-separated, leave empty for any)"
+                />
+                <p class="text-xs text-gray-500 mt-1">
+                  These extensions are in addition to the global file config and are mainly for admin clarity.
+                </p>
+              </div>
+
+              <div class="flex items-center gap-6">
+                <label class="inline-flex items-center">
+                  <input
+                    v-model="categoryForm.is_final_draft"
+                    type="checkbox"
+                    class="mr-2"
+                  />
+                  <span class="text-sm font-medium text-gray-700">
+                    Final Paper / Final Draft
+                  </span>
+                </label>
+                <label class="inline-flex items-center">
+                  <input
+                    v-model="categoryForm.is_extra_service"
+                    type="checkbox"
+                    class="mr-2"
+                  />
+                  <span class="text-sm font-medium text-gray-700">
+                    Extra Service (e.g., Plagiarism Report)
+                  </span>
+                </label>
+              </div>
+
+              <div class="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  @click="closeCategoryModal"
+                  class="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  class="btn btn-primary"
+                  :disabled="savingCategory"
+                >
+                  {{ savingCategory ? 'Saving...' : (editingCategory ? 'Update' : 'Create') }}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Configuration Modal -->
     <div v-if="showConfigModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -432,6 +627,7 @@ const tabs = [
   { id: 'external-links', label: 'External Links' },
   { id: 'deletion-requests', label: 'Deletion Requests' },
   { id: 'config', label: 'Configuration' },
+  { id: 'categories', label: 'File Categories' },
 ]
 
 const componentError = ref(null)
@@ -444,6 +640,18 @@ const extraFiles = ref([])
 const externalLinks = ref([])
 const deletionRequests = ref([])
 const configs = ref([])
+const categories = ref([])
+const categoriesLoading = ref(false)
+const showCategoryModal = ref(false)
+const editingCategory = ref(null)
+const savingCategory = ref(false)
+const categoryForm = ref({
+  website: '',
+  name: '',
+  allowed_extensions_text: '',
+  is_final_draft: false,
+  is_extra_service: false,
+})
 
 const orderFilesLoading = ref(false)
 const extraFilesLoading = ref(false)
@@ -517,6 +725,98 @@ const loadOrderFiles = async () => {
     console.error('Failed to load order files:', error)
   } finally {
     orderFilesLoading.value = false
+  }
+}
+
+const loadCategories = async () => {
+  categoriesLoading.value = true
+  try {
+    const response = await orderFilesAPI.listCategories({})
+    categories.value = response.data.results || response.data || []
+  } catch (error) {
+    console.error('Failed to load file categories:', error)
+  } finally {
+    categoriesLoading.value = false
+  }
+}
+
+const resetCategoryForm = () => {
+  categoryForm.value = {
+    website: '',
+    name: '',
+    allowed_extensions_text: '',
+    is_final_draft: false,
+    is_extra_service: false,
+  }
+}
+
+const openCreateCategory = () => {
+  editingCategory.value = null
+  resetCategoryForm()
+  showCategoryModal.value = true
+}
+
+const openEditCategory = (cat) => {
+  editingCategory.value = cat
+  categoryForm.value = {
+    website: cat.website || '',
+    name: cat.name || '',
+    allowed_extensions_text: (cat.allowed_extensions || []).join(','),
+    is_final_draft: !!cat.is_final_draft,
+    is_extra_service: !!cat.is_extra_service,
+  }
+  showCategoryModal.value = true
+}
+
+const closeCategoryModal = () => {
+  showCategoryModal.value = false
+  editingCategory.value = null
+  resetCategoryForm()
+}
+
+const saveCategory = async () => {
+  if (!categoryForm.value.website || !categoryForm.value.name) return
+
+  savingCategory.value = true
+  try {
+    const payload = {
+      website: categoryForm.value.website,
+      name: categoryForm.value.name,
+      is_final_draft: categoryForm.value.is_final_draft,
+      is_extra_service: categoryForm.value.is_extra_service,
+    }
+    const rawExt = categoryForm.value.allowed_extensions_text || ''
+    const parsed = rawExt
+      .split(',')
+      .map((e) => e.trim())
+      .filter((e) => e.length > 0)
+    if (parsed.length) {
+      payload.allowed_extensions = parsed
+    }
+
+    if (editingCategory.value && editingCategory.value.id) {
+      await orderFilesAPI.updateCategory(editingCategory.value.id, payload)
+    } else {
+      await orderFilesAPI.createCategory(payload)
+    }
+
+    await loadCategories()
+    closeCategoryModal()
+  } catch (error) {
+    console.error('Failed to save category:', error)
+  } finally {
+    savingCategory.value = false
+  }
+}
+
+const deleteCategory = async (id) => {
+  if (!id) return
+  if (!confirm('Are you sure you want to delete this category?')) return
+  try {
+    await orderFilesAPI.deleteCategory(id)
+    await loadCategories()
+  } catch (error) {
+    console.error('Failed to delete category:', error)
   }
 }
 
@@ -770,7 +1070,12 @@ onMounted(async () => {
     await Promise.all([
       loadStats(),
       loadWebsites(),
-      loadOrderFiles()
+      loadOrderFiles(),
+      loadExtraFiles(),
+      loadExternalLinks(),
+      loadDeletionRequests(),
+      loadConfigs(),
+      loadCategories(),
     ])
     initialLoading.value = false
   } catch (error) {

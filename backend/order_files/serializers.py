@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import (
-    OrderFile, FileDeletionRequest, ExternalFileLink, ExtraServiceFile, OrderFilesConfig, OrderFileCategory
+    OrderFile, FileDeletionRequest, ExternalFileLink, ExtraServiceFile, OrderFilesConfig, OrderFileCategory, FileDownloadLog
 )
 
 class OrderFileSerializer(serializers.ModelSerializer):
@@ -92,6 +92,37 @@ class OrderFilesConfigSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class OrderFileCategorySerializer(serializers.ModelSerializer):
+    website_name = serializers.CharField(source='website.name', read_only=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True)
+
     class Meta:
         model = OrderFileCategory
         fields = "__all__"
+
+class FileDownloadLogSerializer(serializers.ModelSerializer):
+    """Serializer for File Download Logs"""
+    file_name = serializers.CharField(source='file.file.name', read_only=True)
+    file_id = serializers.IntegerField(source='file.id', read_only=True)
+    order_id = serializers.IntegerField(source='file.order.id', read_only=True)
+    order_title = serializers.CharField(source='file.order.title', read_only=True)
+    downloaded_by_username = serializers.CharField(source='downloaded_by.username', read_only=True)
+    downloaded_by_email = serializers.EmailField(source='downloaded_by.email', read_only=True)
+    downloaded_by_role = serializers.CharField(source='downloaded_by.role', read_only=True)
+    
+    class Meta:
+        model = FileDownloadLog
+        fields = [
+            'id',
+            'website',
+            'file',
+            'file_id',
+            'file_name',
+            'order_id',
+            'order_title',
+            'downloaded_by',
+            'downloaded_by_username',
+            'downloaded_by_email',
+            'downloaded_by_role',
+            'downloaded_at',
+        ]
+        read_only_fields = ['id', 'downloaded_at']

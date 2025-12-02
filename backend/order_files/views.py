@@ -1,13 +1,20 @@
 from rest_framework import viewsets, permissions, serializers, status  # Make sure serializers is imported here
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.http import FileResponse, Http404
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+
 from .models import (
-    OrderFile, FileDeletionRequest, ExternalFileLink, ExtraServiceFile, OrderFilesConfig, OrderFileCategory
+    OrderFile, FileDeletionRequest, ExternalFileLink, ExtraServiceFile,
+    OrderFilesConfig, OrderFileCategory, FileDownloadLog,
 )
 from .serializers import (
-    OrderFileSerializer, FileDeletionRequestSerializer, ExternalFileLinkSerializer, ExtraServiceFileSerializer, OrderFilesConfigSerializer, OrderFileCategorySerializer
+    OrderFileSerializer, FileDeletionRequestSerializer, ExternalFileLinkSerializer,
+    ExtraServiceFileSerializer, OrderFilesConfigSerializer, OrderFileCategorySerializer,
+    FileDownloadLogSerializer,
 )
 from .permissions import (
     CanDownloadFile, IsAdminOrSupport, IsEditorOrSupport, CanUploadFile
@@ -69,6 +76,8 @@ class OrderFileViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["get"])
     def download(self, request, pk=None):
         """Download a file if user has access."""
+        from .models import FileDownloadLog
+        
         file = get_object_or_404(OrderFile, pk=pk)
         
         if not file.check_download_access(request.user):
@@ -78,6 +87,23 @@ class OrderFileViewSet(viewsets.ModelViewSet):
             raise Http404("File not found")
         
         try:
+            # Log the download
+            FileDownloadLog.objects.create(
+                website=file.website,
+                file=file,
+                downloaded_by=request.user
+            )
+            
+            # If writer downloaded, mark in acknowledgment
+            if getattr(request.user, "role", None) == 'writer' and getattr(file.order, "assigned_writer", None) == request.user:
+                from orders.models import WriterAssignmentAcknowledgment
+                acknowledgment = WriterAssignmentAcknowledgment.objects.filter(
+                    order=file.order,
+                    writer=request.user
+                ).first()
+                if acknowledgment:
+                    acknowledgment.mark_file_downloaded()
+            
             response = FileResponse(file.file.open(), content_type='application/octet-stream')
             file_name = file.file.name.split('/')[-1] if '/' in file.file.name else file.file.name
             response['Content-Disposition'] = f'attachment; filename="{file_name}"'
@@ -190,12 +216,25 @@ class OrderFilesConfigViewSet(viewsets.ModelViewSet):
         """Allow Admins to create or update order files config."""
         serializer.save()
 
-class OrderFileCategoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """ViewSet for listing file categories (read-only for all authenticated users)."""
+class OrderFileCategoryViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing file categories.
+
+    - Admins/superadmins can create/update/delete categories.
+    - All authenticated users can list categories (for upload dropdowns).
+    """
     queryset = OrderFileCategory.objects.all()
     serializer_class = OrderFileCategorySerializer
-    permission_classes = [permissions.IsAuthenticated]
-    
+
+    def get_permissions(self):
+        # Safe methods (GET, HEAD, OPTIONS) → any authenticated user
+        if self.request.method in ('GET', 'HEAD', 'OPTIONS'):
+            return [permissions.IsAuthenticated()]
+        # Mutating methods → admin / superadmin / staff only
+        if getattr(self.request.user, 'role', None) in ['admin', 'superadmin'] or self.request.user.is_staff:
+            return [permissions.IsAuthenticated()]
+        return [permissions.IsAdminUser()]
+
     def get_queryset(self):
         """Filter categories by website if available."""
         queryset = super().get_queryset()
@@ -203,3 +242,99 @@ class OrderFileCategoryViewSet(viewsets.ReadOnlyModelViewSet):
         if website_id:
             queryset = queryset.filter(website_id=website_id)
         return queryset
+
+
+class FileDownloadLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet for viewing file download logs.
+    Only accessible to admin, superadmin, and support staff.
+    """
+    serializer_class = FileDownloadLogSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['file__order', 'downloaded_by', 'file']
+    search_fields = ['file__order__id', 'downloaded_by__username', 'downloaded_by__email']
+    ordering_fields = ['downloaded_at']
+    ordering = ['-downloaded_at']
+    
+    def get_queryset(self):
+        """Only staff can view download logs."""
+        user = self.request.user
+        
+        if not (user.is_staff or getattr(user, "role", None) in ['admin', 'superadmin', 'support']):
+            return FileDownloadLog.objects.none()
+        
+        queryset = FileDownloadLog.objects.select_related(
+            'file', 'file__order', 'downloaded_by', 'website'
+        )
+        
+        # Filter by order if specified
+        order_id = self.request.query_params.get('order_id')
+        if order_id:
+            queryset = queryset.filter(file__order_id=order_id)
+        
+        # Filter by writer if specified
+        writer_id = self.request.query_params.get('writer_id')
+        if writer_id:
+            queryset = queryset.filter(downloaded_by_id=writer_id)
+        
+        return queryset
+    
+    @action(detail=False, methods=['get'], url_path='by-order/(?P<order_id>[^/.]+)')
+    def by_order(self, request, order_id=None):
+        """Get all download logs for a specific order."""
+        logs = self.get_queryset().filter(file__order_id=order_id)
+        serializer = self.get_serializer(logs, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='by-writer/(?P<writer_id>[^/.]+)')
+    def by_writer(self, request, writer_id=None):
+        """Get all download logs for a specific writer."""
+        logs = self.get_queryset().filter(downloaded_by_id=writer_id)
+        serializer = self.get_serializer(logs, many=True)
+        return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'], url_path='statistics')
+    def statistics(self, request):
+        """Get download statistics."""
+        from django.db.models import Count
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        queryset = self.get_queryset()
+        
+        # Total downloads
+        total_downloads = queryset.count()
+        
+        # Downloads in last 24 hours
+        last_24h = queryset.filter(
+            downloaded_at__gte=timezone.now() - timedelta(hours=24)
+        ).count()
+        
+        # Downloads in last 7 days
+        last_7d = queryset.filter(
+            downloaded_at__gte=timezone.now() - timedelta(days=7)
+        ).count()
+        
+        # Downloads by user role
+        downloads_by_role = queryset.values(
+            'downloaded_by__role'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        # Most downloaded files
+        most_downloaded = queryset.values(
+            'file__id',
+            'file__order__id'
+        ).annotate(
+            count=Count('id')
+        ).order_by('-count')[:10]
+        
+        return Response({
+            'total_downloads': total_downloads,
+            'last_24_hours': last_24h,
+            'last_7_days': last_7d,
+            'downloads_by_role': list(downloads_by_role),
+            'most_downloaded_files': list(most_downloaded),
+        })

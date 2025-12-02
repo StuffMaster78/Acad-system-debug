@@ -47,5 +47,8 @@ export default {
   // File Categories
   listCategories: (params) => apiClient.get('/order-files/file-categories/', { params }),
   getCategory: (id) => apiClient.get(`/order-files/file-categories/${id}/`),
+  createCategory: (data) => apiClient.post('/order-files/file-categories/', data),
+  updateCategory: (id, data) => apiClient.patch(`/order-files/file-categories/${id}/`, data),
+  deleteCategory: (id) => apiClient.delete(`/order-files/file-categories/${id}/`),
 }
 
