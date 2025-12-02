@@ -111,6 +111,7 @@ INSTALLED_APPS = [
     'order_files',
     'order_configs',
     'pricing_configs',
+    'pricing',
     'special_orders',
     'class_management',
     # 'orders.apps.OrdersConfig',  # Custom AppConfig for Orders
@@ -122,6 +123,8 @@ INSTALLED_APPS = [
     'notifications_system',
     'tickets',
     'mass_emails',
+    'analytics',
+    'holiday_management',  # Holiday and special day management
 
     # Users Management Apps
     'superadmin_management',

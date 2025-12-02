@@ -140,7 +140,6 @@ class WriterLevelProgressionService:
         from orders.models import OrderTransitionLog
         revision_statuses = [
             OrderStatus.REVISED.value,
-            OrderStatus.IN_REVISION.value,
             OrderStatus.ON_REVISION.value,
             OrderStatus.REVISION_REQUESTED.value,
         ]
