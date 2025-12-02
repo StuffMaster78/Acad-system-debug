@@ -51,6 +51,15 @@
     </div>
     <div v-if="error" class="mb-4 p-4 rounded bg-red-50 text-red-700">{{ error }}</div>
 
+    <!-- Template Selector (shown before form) -->
+    <div v-if="currentStep === 1" class="mb-6">
+      <TemplateSelector
+        ref="templateSelector"
+        @template-selected="handleTemplateSelected"
+        @create-template="goToTemplates"
+      />
+    </div>
+
     <!-- Main Content with Summary Sidebar -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <!-- Main Form Content -->
@@ -794,6 +803,7 @@ import pricingAPI from '@/api/pricing'
 import walletAPI from '@/api/wallet'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import Tooltip from '@/components/common/Tooltip.vue'
+import TemplateSelector from '@/components/orders/TemplateSelector.vue'
 import { formatWriterName } from '@/utils/formatDisplay'
 
 const router = useRouter()
@@ -864,6 +874,10 @@ const createdOrder = ref(null)
 const paying = ref(false)
 const paymentMessage = ref('')
 const paymentSuccess = ref(false)
+
+// Template selector
+const templateSelector = ref(null)
+const selectedTemplate = ref(null)
 
 // Computed
 const minDeadline = computed(() => {
@@ -1192,6 +1206,46 @@ const formatDateTime = (dateString) => {
     hour: '2-digit',
     minute: '2-digit'
   })
+}
+
+// Template handlers
+const handleTemplateSelected = (template) => {
+  if (!template) {
+    selectedTemplate.value = null
+    return
+  }
+  
+  selectedTemplate.value = template
+  
+  // Pre-fill form with template data
+  form.value.topic = template.topic || form.value.topic
+  form.value.paper_type_id = template.paper_type || form.value.paper_type_id
+  form.value.academic_level_id = template.academic_level || form.value.academic_level_id
+  form.value.subject_id = template.subject || form.value.subject_id
+  form.value.number_of_pages = template.number_of_pages || form.value.number_of_pages
+  form.value.order_instructions = template.order_instructions || form.value.order_instructions
+  
+  // Set deadline if template has preferred_deadline_days
+  if (template.preferred_deadline_days) {
+    const deadline = new Date()
+    deadline.setDate(deadline.getDate() + template.preferred_deadline_days)
+    form.value.client_deadline = deadline.toISOString().slice(0, 16)
+  }
+  
+  // Set preferred writer if available
+  if (template.preferred_writer_id) {
+    form.value.preferred_writer_id = template.preferred_writer_id
+  }
+  
+  message.value = `Template "${template.name}" applied successfully! You can modify any fields as needed.`
+  messageSuccess.value = true
+  setTimeout(() => {
+    message.value = ''
+  }, 5000)
+}
+
+const goToTemplates = () => {
+  router.push('/orders/templates')
 }
 
 // Watch for changes that affect pricing - auto-calculate for summary panel

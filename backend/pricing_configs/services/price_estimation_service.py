@@ -10,6 +10,7 @@ from pricing_configs.models import (
     TypeOfWorkMultiplier
 )
 from pricing_configs.services.deadline_multiplier_service import DeadlineMultiplierService
+from pricing_configs.services.urgency_service import UrgencyService
 
 
 class PricingEstimationService:
@@ -115,8 +116,16 @@ class PricingEstimationService:
         base_price *= tech_multiplier
         breakdown["multipliers"]["technical"] = float(tech_multiplier)
 
-        # Deadline Multiplier
-        deadline_hours = order_input.get("deadline_hours", 24)
+        # Deadline & Urgency
+        raw_deadline_hours = float(order_input.get("deadline_hours", 24))
+        pages = int(order_input.get("num_pages", 0) or 0)
+
+        urgency_result = UrgencyService.normalize_deadline(
+            pages=pages,
+            requested_hours=raw_deadline_hours,
+        )
+        deadline_hours = urgency_result.normalized_hours
+
         deadline_multiplier = DeadlineMultiplierService.get_multiplier_for_hours(
             website=website,
             hours=deadline_hours
@@ -124,12 +133,13 @@ class PricingEstimationService:
         base_price *= deadline_multiplier
         breakdown["multipliers"]["deadline"] = float(deadline_multiplier)
         
-        # Add deadline info to breakdown
+        # Add deadline & urgency info to breakdown
         deadline_info = DeadlineMultiplierService.get_multiplier_info(
             website=website,
             hours=deadline_hours
         )
         breakdown["deadline_info"] = deadline_info
+        breakdown["urgency"] = UrgencyService.to_dict(urgency_result)
 
         return base_price
 

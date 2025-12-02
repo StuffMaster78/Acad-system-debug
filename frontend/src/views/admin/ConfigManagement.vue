@@ -252,8 +252,17 @@
 
       <!-- Deadline Multipliers -->
       <div v-if="activePricingSubTab === 'deadline-multipliers'" class="space-y-4">
-        <div class="flex justify-between items-center">
-          <h2 class="text-xl font-semibold">Deadline Multipliers</h2>
+        <div class="flex justify-between items-start gap-4">
+          <div>
+            <h2 class="text-xl font-semibold">Deadline Multipliers & Rush Mode</h2>
+            <p class="mt-1 text-sm text-gray-600 max-w-3xl">
+              These multipliers control price and writer earnings based on how soon the client needs the paper.
+              Deadlines under <span class="font-semibold">6 hours</span> are treated as
+              <span class="font-semibold text-rose-600">Rush</span>, and under
+              <span class="font-semibold">24 hours</span> as
+              <span class="font-semibold text-amber-600">Same‑day</span> in the order wizard and pricing breakdown.
+            </p>
+          </div>
           <button 
             @click="createDeadlineMultiplier" 
             class="btn btn-primary"
@@ -273,6 +282,7 @@
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Label</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hours</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Multiplier</th>
+                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Urgency</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Updated</th>
                   <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -289,6 +299,20 @@
                   <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ multiplier.label }}</td>
                   <td class="px-6 py-4">{{ multiplier.hours }}h</td>
                   <td class="px-6 py-4">{{ parseFloat(multiplier.multiplier || 1).toFixed(2) }}x</td>
+                  <td class="px-6 py-4">
+                    <span
+                      :class="[
+                        'px-2 py-1 rounded-full text-xs font-semibold',
+                        classifyUrgency(multiplier.hours) === 'rush'
+                          ? 'bg-rose-100 text-rose-800'
+                          : classifyUrgency(multiplier.hours) === 'same_day'
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-gray-100 text-gray-700'
+                      ]"
+                    >
+                      {{ formatUrgencyLabel(multiplier.hours) }}
+                    </span>
+                  </td>
                   <td class="px-6 py-4 text-sm text-gray-500">{{ formatDate(multiplier.updated_at) }}</td>
                   <td class="px-6 py-4">
                     <button @click="editDeadlineMultiplier(multiplier)" class="text-blue-600 hover:underline mr-2">Edit</button>
@@ -1891,6 +1915,21 @@ const editingPreferredWriterConfig = ref(null)
 const editingWriterLevelOption = ref(null)
 const editingDeadlineMultiplier = ref(null)
 const saving = ref(false)
+
+// Rush / Same‑day classification mirrors backend UrgencyService
+const classifyUrgency = (hours) => {
+  const h = Number(hours || 0)
+  if (h <= 6) return 'rush'
+  if (h <= 24) return 'same_day'
+  return 'standard'
+}
+
+const formatUrgencyLabel = (hours) => {
+  const level = classifyUrgency(hours)
+  if (level === 'rush') return 'Rush'
+  if (level === 'same_day') return 'Same‑day'
+  return 'Standard'
+}
 
 const pricingForm = ref({
   base_price_per_page: 0,
