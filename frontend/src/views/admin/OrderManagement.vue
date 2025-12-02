@@ -111,6 +111,23 @@
         >
           Stuck Orders
         </button>
+        <button
+          @click="activeQuickTab = 'writer-requests'"
+          :class="[
+            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+            activeQuickTab === 'writer-requests'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+          ]"
+        >
+          Writer Requests
+          <span
+            v-if="writerRequests.length"
+            class="ml-2 bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full"
+          >
+            {{ writerRequests.length }}
+          </span>
+        </button>
       </nav>
     </div>
 
@@ -210,6 +227,67 @@
               <p class="text-sm text-yellow-600">Last Updated: {{ formatDate(order.updated_at) }}</p>
             </div>
             <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">Stuck</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Writer Order Requests -->
+    <div v-if="activeQuickTab === 'writer-requests'" class="card p-4">
+      <h2 class="text-xl font-bold mb-4">Writer Order Requests</h2>
+      <p class="text-sm text-gray-600 mb-4">
+        Review and manage orders that writers have requested to work on.
+      </p>
+
+      <div v-if="loadingWriterRequests" class="text-center py-8">
+        Loading writer requests...
+      </div>
+      <div v-else-if="writerRequests.length === 0" class="text-center py-8 text-gray-500">
+        <p>No writer requests found.</p>
+      </div>
+      <div v-else class="space-y-2">
+        <div
+          v-for="req in writerRequests"
+          :key="req.id"
+          class="border rounded p-4 hover:bg-gray-50 cursor-pointer"
+          @click="viewOrder({ id: req.order_id || req.order?.id })"
+        >
+          <div class="flex justify-between items-start">
+            <div class="space-y-1">
+              <p class="font-semibold">
+                Order #{{ req.order_id || req.order?.id }} -
+                {{ req.order_topic || req.order?.topic || 'No topic' }}
+              </p>
+              <p class="text-sm text-gray-600">
+                <span class="inline-flex items-center gap-1">
+                  <span
+                    class="w-2 h-2 rounded-full"
+                    :class="getWebsiteColorClass(req.website || req.website_name || (req.order && req.order.website))"
+                  ></span>
+                  {{ req.website_name || getWebsiteName(req.order || {}) }}
+                </span>
+                · Writer:
+                {{ req.writer_name || req.writer_username || req.writer?.user?.username || 'Unknown' }}
+              </p>
+              <p class="text-xs text-gray-500">
+                Requested: {{ formatDateTime(req.requested_at || req.created_at) }}
+              </p>
+            </div>
+            <div class="flex flex-col gap-2 items-end">
+              <span
+                class="px-2 py-1 rounded-full text-xs font-semibold"
+                :class="req.approved ? 'bg-green-100 text-green-800' : (req.rejected ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800')"
+              >
+                {{ req.approved ? 'Approved' : (req.rejected ? 'Rejected' : 'Pending') }}
+              </span>
+              <button
+                v-if="!req.approved && !req.rejected"
+                @click.stop="openAssignModalFromRequest(req)"
+                class="btn btn-primary btn-sm"
+              >
+                Assign from Request
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -738,10 +816,10 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { ordersAPI, usersAPI, adminOrdersAPI } from '@/api'
+import { ordersAPI, usersAPI, adminOrdersAPI, writerOrderRequestsAPI } from '@/api'
 import { formatWriterName } from '@/utils/formatDisplay'
-  import OrderThreadsModal from '@/components/order/OrderThreadsModal.vue'
-  import OrderActionModal from '@/components/order/OrderActionModal.vue'
+import OrderThreadsModal from '@/components/order/OrderThreadsModal.vue'
+import OrderActionModal from '@/components/order/OrderActionModal.vue'
 
 const loading = ref(false)
 const orders = ref([])
@@ -790,6 +868,8 @@ const loadingDashboard = ref(false)
 const loadingAssignment = ref(false)
 const loadingOverdue = ref(false)
 const loadingStuck = ref(false)
+const writerRequests = ref([])
+const loadingWriterRequests = ref(false)
 
 const assignForm = ref({
   writerId: '',
@@ -851,6 +931,21 @@ const debouncedSearch = () => {
   searchTimeout = setTimeout(() => {
     loadOrders()
   }, 500)
+}
+
+const loadWriterRequests = async () => {
+  loadingWriterRequests.value = true
+  try {
+    const res = await writerOrderRequestsAPI.list({ page_size: 100 })
+    // Support both paginated and non-paginated responses
+    const data = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
+    writerRequests.value = data
+  } catch (error) {
+    console.error('Error loading writer order requests:', error)
+    showMessage('Failed to load writer requests: ' + (error.response?.data?.detail || error.message), false)
+  } finally {
+    loadingWriterRequests.value = false
+  }
 }
 
 const loadDashboard = async () => {
@@ -1223,6 +1318,41 @@ const bulkStatusChange = () => {
   showMessage('Bulk status change not yet implemented', false)
 }
 
+const openAssignModalFromRequest = async (req) => {
+  // Confirm with the admin before assigning
+  const writerLabel =
+    req.writer_name ||
+    req.writer_username ||
+    (req.writer && req.writer.user && req.writer.user.username) ||
+    'this writer'
+
+  if (!window.confirm(`Assign order #${req.order_id || req.order?.id} to ${writerLabel}?`)) {
+    return
+  }
+
+  try {
+    // Let the backend both approve the request and assign the order
+    await writerOrderRequestsAPI.assignFromRequest(req.id, {
+      reason: `Approved from writer request: ${req.reason || ''}`.trim(),
+    })
+
+    showMessage('Writer assigned successfully from request.', true)
+
+    // Refresh relevant data
+    await Promise.all([
+      loadWriterRequests(),
+      loadOrders(),
+      loadAssignmentQueue(),
+    ])
+  } catch (error) {
+    console.error('Failed to assign from writer request:', error)
+    showMessage(
+      'Failed to assign from writer request: ' + (error.response?.data?.error || error.message),
+      false
+    )
+  }
+}
+
 const getStatusClass = (status) => {
   const classes = {
     'created': 'bg-gray-100 text-gray-800',
@@ -1265,6 +1395,8 @@ watch(activeQuickTab, (newTab) => {
     loadOverdueOrders()
   } else if (newTab === 'stuck') {
     loadStuckOrders()
+  } else if (newTab === 'writer-requests') {
+    loadWriterRequests()
   } else if (newTab === 'all') {
     loadOrders()
   }
