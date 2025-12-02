@@ -9,14 +9,16 @@ const securityActivityAPI = {
    * @param {Object} params - { limit, days, event_type, suspicious_only }
    */
   getActivityFeed(params = {}) {
-    return apiClient.get('/api/v1/users/security-activity/feed/', { params })
+    // Remove duplicate /api/v1/ prefix as apiClient already includes it
+    return apiClient.get('/users/security-activity/feed/', { params })
   },
 
   /**
    * Get security activity summary
    */
   getSummary() {
-    return apiClient.get('/api/v1/users/security-activity/summary/')
+    // Remove duplicate /api/v1/ prefix as apiClient already includes it
+    return apiClient.get('/users/security-activity/summary/')
   }
 }
 
