@@ -1,45 +1,54 @@
 <template>
-  <div class="space-y-6 p-6" v-if="!componentError && !initialLoading">
-    <div class="flex items-center justify-between">
+  <div class="space-y-6 p-4 md:p-6" v-if="!componentError && !initialLoading">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Refund Management</h1>
-        <p class="mt-2 text-gray-600">Manage refund requests, approvals, and processing</p>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Refund Management</h1>
+        <p class="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">Manage refund requests, approvals, and processing</p>
       </div>
-      <button @click="createNewRefund" class="btn btn-primary">+ Create Refund</button>
+      <button 
+        @click="createNewRefund" 
+        class="w-full sm:w-auto px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        Create Refund
+      </button>
     </div>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
-        <p class="text-sm font-medium text-yellow-700 mb-1">Pending Refunds</p>
-        <p class="text-3xl font-bold text-yellow-900">{{ stats.pending || 0 }}</p>
+      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-800">
+        <p class="text-xs sm:text-sm font-medium text-yellow-700 dark:text-yellow-300 mb-1">Pending Refunds</p>
+        <p class="text-2xl sm:text-3xl font-bold text-yellow-900 dark:text-yellow-100">{{ stats.pending || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
-        <p class="text-sm font-medium text-green-700 mb-1">Processed</p>
-        <p class="text-3xl font-bold text-green-900">{{ stats.processed || 0 }}</p>
+      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800">
+        <p class="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300 mb-1">Processed</p>
+        <p class="text-2xl sm:text-3xl font-bold text-green-900 dark:text-green-100">{{ stats.processed || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
-        <p class="text-sm font-medium text-red-700 mb-1">Rejected</p>
-        <p class="text-3xl font-bold text-red-900">{{ stats.rejected || 0 }}</p>
+      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border border-red-200 dark:border-red-800">
+        <p class="text-xs sm:text-sm font-medium text-red-700 dark:text-red-300 mb-1">Rejected</p>
+        <p class="text-2xl sm:text-3xl font-bold text-red-900 dark:text-red-100">{{ stats.rejected || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-        <p class="text-sm font-medium text-blue-700 mb-1">Total Amount</p>
-        <p class="text-3xl font-bold text-blue-900">${{ stats.total_amount.toFixed(2) }}</p>
+      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800">
+        <p class="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Total Amount</p>
+        <p class="text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-100">${{ stats.total_amount.toFixed(2) }}</p>
       </div>
     </div>
 
     <!-- Tabs -->
-    <div class="border-b border-gray-200">
-      <nav class="-mb-px flex space-x-8">
+    <div class="border-b border-gray-200 dark:border-gray-700 overflow-x-auto">
+      <nav class="-mb-px flex space-x-4 sm:space-x-8 min-w-max">
         <button
           v-for="tab in tabs"
           :key="tab.id"
           @click="activeTab = tab.id"
           :class="[
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+            'whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors',
             activeTab === tab.id
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-primary-500 text-primary-600 dark:text-primary-400'
+              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
           ]"
         >
           {{ tab.label }}
@@ -51,10 +60,10 @@
     <div v-if="activeTab === 'refunds'" class="space-y-4">
       <!-- Filters -->
       <div class="card p-4">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Status</label>
-            <select v-model="filters.status" @change="loadRefunds" class="w-full border rounded px-3 py-2">
+            <label class="block text-xs sm:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Status</label>
+            <select v-model="filters.status" @change="loadRefunds" class="w-full border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm">
               <option value="">All Statuses</option>
               <option value="pending">Pending</option>
               <option value="processed">Processed</option>
@@ -62,32 +71,32 @@
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Refund Method</label>
-            <select v-model="filters.refund_method" @change="loadRefunds" class="w-full border rounded px-3 py-2">
+            <label class="block text-xs sm:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Refund Method</label>
+            <select v-model="filters.refund_method" @change="loadRefunds" class="w-full border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm">
               <option value="">All Methods</option>
               <option value="wallet">Wallet</option>
               <option value="external">External</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Website</label>
-            <select v-model="filters.website" @change="loadRefunds" class="w-full border rounded px-3 py-2">
+            <label class="block text-xs sm:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Website</label>
+            <select v-model="filters.website" @change="loadRefunds" class="w-full border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm">
               <option value="">All Websites</option>
               <option v-for="site in websites" :key="site.id" :value="site.id">{{ site.name }}</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Search</label>
+            <label class="block text-xs sm:text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Search</label>
             <input
               v-model="filters.search"
               @input="debouncedSearch"
               type="text"
               placeholder="Client, order ID..."
-              class="w-full border rounded px-3 py-2"
+              class="w-full border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded px-3 py-2 text-sm"
             />
           </div>
           <div class="flex items-end">
-            <button @click="resetFilters" class="btn btn-secondary w-full">Reset</button>
+            <button @click="resetFilters" class="w-full px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium">Reset</button>
           </div>
         </div>
       </div>
@@ -99,82 +108,86 @@
         </div>
         
         <div v-else>
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Order Payment</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Processed</th>
-                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="refund in refunds" :key="refund.id" class="hover:bg-gray-50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  #{{ refund.id }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {{ refund.client?.username || refund.client?.email || 'N/A' }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  Payment #{{ typeof refund.order_payment === 'object' ? refund.order_payment?.id : refund.order_payment || 'N/A' }}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-                  ${{ parseFloat(refund.total_amount || (parseFloat(refund.wallet_amount || 0) + parseFloat(refund.external_amount || 0))).toFixed(2) }}
-                  <span v-if="refund.wallet_amount > 0 && refund.external_amount > 0" class="text-xs text-gray-500 block">
-                    (${{ parseFloat(refund.wallet_amount || 0).toFixed(2) }} wallet + ${{ parseFloat(refund.external_amount || 0).toFixed(2) }} external)
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span class="capitalize">{{ refund.refund_method || 'wallet' }}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                  <span :class="getStatusClass(refund.status)" class="px-2 py-1 rounded-full text-xs font-medium">
-                    {{ refund.status || 'pending' }}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div v-if="refund.processed_at">
-                    <div>{{ formatDate(refund.processed_at) }}</div>
-                    <div class="text-xs text-gray-400" v-if="refund.processed_by">
-                      by {{ typeof refund.processed_by === 'object' ? refund.processed_by?.username : 'Admin' }}
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+              <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                  <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">ID</th>
+                  <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Client</th>
+                  <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Order Payment</th>
+                  <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Amount</th>
+                  <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Method</th>
+                  <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
+                  <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Processed</th>
+                  <th class="px-4 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
+                <tr v-for="refund in refunds" :key="refund.id" class="hover:bg-gray-50 dark:hover:bg-gray-800">
+                  <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                    #{{ refund.id }}
+                  </td>
+                  <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    {{ refund.client?.username || refund.client?.email || 'N/A' }}
+                  </td>
+                  <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    Payment #{{ typeof refund.order_payment === 'object' ? refund.order_payment?.id : refund.order_payment || 'N/A' }}
+                  </td>
+                  <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-semibold">
+                    ${{ parseFloat(refund.total_amount || (parseFloat(refund.wallet_amount || 0) + parseFloat(refund.external_amount || 0))).toFixed(2) }}
+                    <span v-if="refund.wallet_amount > 0 && refund.external_amount > 0" class="text-xs text-gray-500 dark:text-gray-400 block">
+                      (${{ parseFloat(refund.wallet_amount || 0).toFixed(2) }} wallet + ${{ parseFloat(refund.external_amount || 0).toFixed(2) }} external)
+                    </span>
+                  </td>
+                  <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <span class="capitalize">{{ refund.refund_method || 'wallet' }}</span>
+                  </td>
+                  <td class="px-4 sm:px-6 py-4 whitespace-nowrap">
+                    <span :class="getStatusClass(refund.status)" class="px-2 py-1 rounded-full text-xs font-medium">
+                      {{ refund.status || 'pending' }}
+                    </span>
+                  </td>
+                  <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                    <div v-if="refund.processed_at">
+                      <div>{{ formatDate(refund.processed_at) }}</div>
+                      <div class="text-xs text-gray-400 dark:text-gray-500" v-if="refund.processed_by">
+                        by {{ typeof refund.processed_by === 'object' ? refund.processed_by?.username : 'Admin' }}
+                      </div>
                     </div>
-                  </div>
-                  <span v-else class="text-gray-400">Not processed</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                  <button @click="viewRefund(refund)" class="text-blue-600 hover:underline mr-2">View</button>
-                  <button
-                    v-if="refund.status === 'pending'"
-                    @click="processRefund(refund)"
-                    class="text-green-600 hover:underline mr-2"
-                  >
-                    Process
-                  </button>
-                  <button
-                    v-if="refund.status === 'pending'"
-                    @click="cancelRefund(refund)"
-                    class="text-red-600 hover:underline mr-2"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    v-if="refund.status === 'rejected'"
-                    @click="retryRefund(refund)"
-                    class="text-yellow-600 hover:underline"
-                  >
-                    Retry
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    <span v-else class="text-gray-400 dark:text-gray-500">Not processed</span>
+                  </td>
+                  <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex flex-wrap gap-2">
+                      <button @click="viewRefund(refund)" class="text-blue-600 dark:text-blue-400 hover:underline">View</button>
+                      <button
+                        v-if="refund.status === 'pending'"
+                        @click="processRefund(refund)"
+                        class="text-green-600 dark:text-green-400 hover:underline"
+                      >
+                        Process
+                      </button>
+                      <button
+                        v-if="refund.status === 'pending'"
+                        @click="cancelRefund(refund)"
+                        class="text-red-600 dark:text-red-400 hover:underline"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        v-if="refund.status === 'rejected'"
+                        @click="retryRefund(refund)"
+                        class="text-yellow-600 dark:text-yellow-400 hover:underline"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
           
-          <div v-if="!refunds.length" class="text-center py-12 text-gray-500">
+          <div v-if="!refunds.length" class="text-center py-12 text-gray-500 dark:text-gray-400">
             No refunds found.
           </div>
         </div>
@@ -285,10 +298,10 @@
 
     <!-- Refund Detail Modal -->
     <div v-if="viewingRefund" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-white rounded-lg max-w-3xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
+      <div class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full my-auto p-4 md:p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-6">
-          <h3 class="text-2xl font-bold">Refund Details</h3>
-          <button @click="viewingRefund = null" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+          <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Refund Details</h3>
+          <button @click="viewingRefund = null" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-2xl">✕</button>
         </div>
 
         <div class="space-y-4">
@@ -387,43 +400,43 @@
 
     <!-- Create Refund Modal -->
     <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-white rounded-lg max-w-2xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
+      <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full my-auto p-4 md:p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold">Create Refund</h3>
-          <button @click="closeCreateModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white">Create Refund</h3>
+          <button @click="closeCreateModal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-2xl">✕</button>
         </div>
         <form @submit.prevent="saveRefund" class="space-y-4">
           <div>
-            <label class="block text-sm font-medium mb-1">Order Payment ID *</label>
-            <input v-model.number="refundForm.order_payment" type="number" required class="w-full border rounded px-3 py-2" placeholder="Enter order payment ID" />
+            <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Order Payment ID *</label>
+            <input v-model.number="refundForm.order_payment" type="number" required class="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 text-sm" placeholder="Enter order payment ID" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium mb-1">Wallet Amount ($)</label>
-              <input v-model.number="refundForm.wallet_amount" type="number" step="0.01" min="0" class="w-full border rounded px-3 py-2" />
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Wallet Amount ($)</label>
+              <input v-model.number="refundForm.wallet_amount" type="number" step="0.01" min="0" class="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 text-sm" />
             </div>
             <div>
-              <label class="block text-sm font-medium mb-1">External Amount ($)</label>
-              <input v-model.number="refundForm.external_amount" type="number" step="0.01" min="0" class="w-full border rounded px-3 py-2" />
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">External Amount ($)</label>
+              <input v-model.number="refundForm.external_amount" type="number" step="0.01" min="0" class="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 text-sm" />
             </div>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Refund Method *</label>
-            <select v-model="refundForm.refund_method" required class="w-full border rounded px-3 py-2">
+            <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Refund Method *</label>
+            <select v-model="refundForm.refund_method" required class="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 text-sm">
               <option value="wallet">Wallet</option>
               <option value="external">External</option>
             </select>
           </div>
           <div>
-            <label class="block text-sm font-medium mb-1">Refund Type</label>
-            <select v-model="refundForm.type" class="w-full border rounded px-3 py-2">
+            <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Refund Type</label>
+            <select v-model="refundForm.type" class="w-full border dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded px-3 py-2 text-sm">
               <option value="manual">Manual</option>
               <option value="automated">Automated</option>
             </select>
           </div>
           <div class="flex justify-end gap-2 pt-4">
-            <button type="button" @click="closeCreateModal" class="btn btn-secondary">Cancel</button>
-            <button type="submit" :disabled="saving" class="btn btn-primary">
+            <button type="button" @click="closeCreateModal" class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium">Cancel</button>
+            <button type="submit" :disabled="saving" class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors text-sm font-medium">
               {{ saving ? 'Creating...' : 'Create Refund' }}
             </button>
           </div>
@@ -432,7 +445,7 @@
     </div>
 
     <!-- Messages -->
-    <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
+    <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'">
       {{ message }}
     </div>
 
@@ -452,10 +465,10 @@
   </div>
   <!-- Error Display -->
   <div v-else-if="componentError" class="p-6">
-    <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
-      <h2 class="text-xl font-bold text-red-900 mb-2">Error Loading Page</h2>
-      <p class="text-red-700 mb-4">{{ componentError }}</p>
-      <button @click="location.reload()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+    <div class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-6 text-center">
+      <h2 class="text-xl font-bold text-red-900 dark:text-red-300 mb-2">Error Loading Page</h2>
+      <p class="text-red-700 dark:text-red-300 mb-4">{{ componentError }}</p>
+      <button @click="location.reload()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors">
         Reload Page
       </button>
     </div>
@@ -463,7 +476,7 @@
   <!-- Loading State -->
   <div v-else-if="initialLoading" class="p-6 text-center">
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-    <p class="mt-4 text-gray-600">Loading...</p>
+    <p class="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
   </div>
 </template>
 
@@ -800,9 +813,9 @@ const handlePasswordCancel = () => {
 }
 
 const getStatusClass = (status) => {
-  if (status === 'processed') return 'bg-green-100 text-green-800'
-  if (status === 'rejected') return 'bg-red-100 text-red-800'
-  return 'bg-yellow-100 text-yellow-800'
+  if (status === 'processed') return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+  if (status === 'rejected') return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
+  return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
 }
 
 const formatDate = (date) => {
@@ -851,4 +864,18 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  border: 1px solid rgb(229 231 235);
+}
+
+.dark .card {
+  background-color: rgb(31 41 55);
+  border-color: rgb(55 65 81);
+}
+</style>
 
