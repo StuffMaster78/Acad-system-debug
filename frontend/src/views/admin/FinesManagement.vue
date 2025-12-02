@@ -604,7 +604,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { finesAPI, websitesAPI } from '@/api'
 import adminManagementAPI from '@/api/admin-management'
 import { useToast } from '@/composables/useToast'
@@ -780,7 +780,7 @@ const loadFines = async () => {
     if (filters.value.status) params.status = filters.value.status
     if (filters.value.fine_type) params.fine_type = filters.value.fine_type
     
-    const response = await finesAPI.list(params)
+    const response = await finesAPI.listFines(params)
     fines.value = response.data.results || response.data || []
   } catch (error) {
     console.error('Failed to load fines:', error)
@@ -1213,6 +1213,17 @@ watch(activeTab, (newTab) => {
 })
 
 onMounted(async () => {
+  // Set a timeout to ensure page doesn't stay blank forever
+  const timeout = setTimeout(() => {
+    if (initialLoading.value) {
+      console.warn('FinesManagement initialization timeout')
+      initialLoading.value = false
+      if (!componentError.value) {
+        componentError.value = 'Page took too long to load. Please refresh.'
+      }
+    }
+  }, 10000) // 10 second timeout
+
   try {
     await Promise.all([
       loadWebsites(),
@@ -1220,10 +1231,12 @@ onMounted(async () => {
       loadFines(),
       loadFineTypes()
     ])
+    clearTimeout(timeout)
     initialLoading.value = false
   } catch (error) {
+    clearTimeout(timeout)
     console.error('Error initializing FinesManagement:', error)
-    componentError.value = error.message || 'Failed to initialize page'
+    componentError.value = error.response?.data?.detail || error.message || 'Failed to initialize page'
     initialLoading.value = false
   }
 })
