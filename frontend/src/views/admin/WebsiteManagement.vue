@@ -348,33 +348,83 @@
     <div v-if="showSEOModal && selectedWebsite" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-lg max-w-2xl w-full p-6">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-2xl font-bold">SEO Settings - {{ selectedWebsite.name }}</h2>
-          <button @click="closeSEOModal" class="text-gray-500 hover:text-gray-700">✕</button>
+          <div>
+            <h2 class="text-2xl font-bold">SEO & Analytics – {{ selectedWebsite.name }}</h2>
+            <p class="mt-1 text-sm text-gray-500">
+              Configure how this site appears in search results and connect it to your analytics / webmaster tools.
+            </p>
+          </div>
+          <button @click="closeSEOModal" class="text-gray-500 hover:text-gray-700 text-2xl leading-none">✕</button>
         </div>
         
-        <form @submit.prevent="saveSEOSettings" class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Meta Title</label>
-            <input v-model="seoForm.meta_title" type="text" class="w-full border rounded px-3 py-2" />
+        <form @submit.prevent="saveSEOSettings" class="space-y-6">
+          <!-- Search appearance -->
+          <div class="border border-gray-200 rounded-lg p-4 space-y-3">
+            <h3 class="text-sm font-semibold text-gray-900">Search appearance</h3>
+            <p class="text-xs text-gray-500">
+              These values are used for default meta tags on the main site (can be overridden per page).
+            </p>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-sm font-medium mb-1">Meta Title</label>
+                <input
+                  v-model="seoForm.meta_title"
+                  type="text"
+                  class="w-full border rounded px-3 py-2 text-sm"
+                  placeholder="e.g. Affordable Academic Writing Services | {{ selectedWebsite.name }}"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Meta Description</label>
+                <textarea
+                  v-model="seoForm.meta_description"
+                  rows="3"
+                  class="w-full border rounded px-3 py-2 text-sm"
+                  placeholder="Short summary that will appear under your site title in Google and Bing results."
+                ></textarea>
+              </div>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Meta Description</label>
-            <textarea v-model="seoForm.meta_description" rows="3" class="w-full border rounded px-3 py-2"></textarea>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Google Analytics ID</label>
-            <input v-model="seoForm.google_analytics_id" type="text" class="w-full border rounded px-3 py-2" placeholder="G-XXXXXXXXXX" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Google Search Console ID</label>
-            <input v-model="seoForm.google_search_console_id" type="text" class="w-full border rounded px-3 py-2" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Bing Webmaster ID</label>
-            <input v-model="seoForm.bing_webmaster_id" type="text" class="w-full border rounded px-3 py-2" />
+
+          <!-- Verification & tracking -->
+          <div class="border border-gray-200 rounded-lg p-4 space-y-4">
+            <h3 class="text-sm font-semibold text-gray-900">Verification & tracking IDs</h3>
+            <p class="text-xs text-gray-500">
+              Paste only the ID/token from each service (no full script tags). These are usually found in the admin
+              dashboard of each tool.
+            </p>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-sm font-medium mb-1">Google Analytics Measurement ID</label>
+                <input
+                  v-model="seoForm.google_analytics_id"
+                  type="text"
+                  class="w-full border rounded px-3 py-2 text-sm"
+                  placeholder="G-XXXXXXXXXX"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Google Search Console Verification ID</label>
+                <input
+                  v-model="seoForm.google_search_console_id"
+                  type="text"
+                  class="w-full border rounded px-3 py-2 text-sm"
+                  placeholder="e.g. your GSC HTML meta content value"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium mb-1">Bing Webmaster Verification ID</label>
+                <input
+                  v-model="seoForm.bing_webmaster_id"
+                  type="text"
+                  class="w-full border rounded px-3 py-2 text-sm"
+                  placeholder="e.g. your Bing meta content value"
+                />
+              </div>
+            </div>
           </div>
           
-          <div class="flex justify-end gap-2 pt-4">
+          <div class="flex justify-end gap-2 pt-2">
             <button type="button" @click="closeSEOModal" class="btn btn-secondary">Cancel</button>
             <button type="submit" :disabled="saving" class="btn btn-primary">Save SEO Settings</button>
           </div>

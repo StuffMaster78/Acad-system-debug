@@ -455,9 +455,14 @@
             ></textarea>
           </div>
 
-          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-4">Channel Settings</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-4">
+            <div>
+              <h3 class="text-lg font-medium text-gray-900 dark:text-white">Channel Settings</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                Choose which channels are enabled and which ones should act as defaults for this profile.
+              </p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 dark:bg-gray-900/40 rounded-lg p-4">
               <div class="space-y-3">
                 <label class="flex items-center gap-3 cursor-pointer">
                 <input

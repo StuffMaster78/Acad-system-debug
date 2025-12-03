@@ -1278,17 +1278,9 @@
                 ref="notificationsDropdownRef"
                 class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col"
               >
-                <div class="p-4 border-b border-gray-200 flex items-center justify-between">
-                  <h3 class="font-semibold text-gray-900">Notifications</h3>
-                  <div class="flex items-center gap-2">
-                    <button
-                      v-if="unreadCount > 0"
-                      @click="markAllNotificationsRead"
-                      :disabled="markingAllRead"
-                      class="text-xs text-primary-600 hover:text-primary-700 disabled:opacity-50"
-                    >
-                      {{ markingAllRead ? 'Marking...' : 'Mark all read' }}
-                    </button>
+                <div class="p-3 border-b border-gray-200">
+                  <div class="flex items-center justify-between mb-2">
+                    <h3 class="font-semibold text-gray-900 text-sm">Notifications</h3>
                     <button
                       @click="closeNotificationsDropdown"
                       class="text-gray-400 hover:text-gray-600"
@@ -1298,8 +1290,34 @@
                       </svg>
                     </button>
                   </div>
+                  <div class="flex items-center justify-between">
+                    <div class="inline-flex bg-gray-100 rounded-full p-0.5 text-xs">
+                      <button
+                        class="px-3 py-1 rounded-full transition-colors"
+                        :class="notificationsFilter === 'unread' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-800'"
+                        @click="() => { notificationsFilter = 'unread'; loadRecentNotifications(); }"
+                      >
+                        Unread
+                      </button>
+                      <button
+                        class="px-3 py-1 rounded-full transition-colors"
+                        :class="notificationsFilter === 'all' ? 'bg-white shadow text-gray-900' : 'text-gray-500 hover:text-gray-800'"
+                        @click="() => { notificationsFilter = 'all'; loadRecentNotifications(); }"
+                      >
+                        All
+                      </button>
+                    </div>
+                    <button
+                      v-if="unreadCount > 0"
+                      @click="markAllNotificationsRead"
+                      :disabled="markingAllRead"
+                      class="text-[11px] text-primary-600 hover:text-primary-700 disabled:opacity-50"
+                    >
+                      {{ markingAllRead ? 'Marking...' : 'Mark all read' }}
+                    </button>
+                  </div>
                 </div>
-                
+
                 <div class="overflow-y-auto flex-1">
                   <div v-if="notificationsLoading" class="flex items-center justify-center py-8">
                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
@@ -1336,6 +1354,16 @@
                 </div>
                 
                 <div class="p-3 border-t border-gray-200 bg-gray-50">
+                  <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                    <span>
+                      <span class="font-medium">{{ unreadCount }}</span>
+                      <span> unread</span>
+                      <span v-if="totalNotificationCount > 0">
+                        <span class="mx-1">·</span>
+                        <span>{{ totalNotificationCount }} total</span>
+                      </span>
+                    </span>
+                  </div>
                   <router-link
                     to="/notifications"
                     @click="closeNotificationsDropdown"
@@ -1550,6 +1578,8 @@ const loadWriterSidebarMetrics = async () => {
 const showNotificationsDropdown = ref(false)
 const showProfileDropdown = ref(false)
 const unreadCount = ref(0)
+const totalNotificationCount = ref(0)
+const notificationsFilter = ref<'unread' | 'all'>('unread')
 const recentNotifications = ref([])
 const notificationsLoading = ref(false)
 const markingAllRead = ref(false)
@@ -2149,7 +2179,8 @@ const loadRecentNotifications = async () => {
   notificationsLoading.value = true
   try {
     const response = await notificationsAPI.getNotifications({
-      limit: 5
+      limit: 5,
+      status: notificationsFilter.value === 'unread' ? 'unread' : 'all',
     })
     
     // Handle both paginated (results) and non-paginated (array) responses
@@ -2160,6 +2191,7 @@ const loadRecentNotifications = async () => {
     } else if (response.data.results && Array.isArray(response.data.results)) {
       // Paginated response
       feedItems = response.data.results
+      totalNotificationCount.value = response.data.count || response.data.total || feedItems.length
     } else if (response.data && typeof response.data === 'object') {
       // Single item or unexpected structure, try to extract
       feedItems = [response.data]

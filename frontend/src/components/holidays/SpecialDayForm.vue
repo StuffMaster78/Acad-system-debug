@@ -1,5 +1,8 @@
 <template>
-  <form @submit.prevent="handleSubmit" class="special-day-form">
+  <form
+    @submit.prevent="handleSubmit"
+    class="special-day-form space-y-6"
+  >
     <FormField
       label="Name *"
       :error="errors.name"
@@ -9,6 +12,7 @@
         type="text"
         placeholder="e.g., Thanksgiving Day"
         required
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
       />
     </FormField>
 
@@ -20,15 +24,20 @@
         v-model="formData.description"
         rows="3"
         placeholder="Description of the special day"
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
       />
     </FormField>
 
-    <div class="form-row">
+    <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
       <FormField
         label="Event Type *"
         :error="errors.event_type"
       >
-        <select v-model="formData.event_type" required>
+        <select
+          v-model="formData.event_type"
+          required
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+        >
           <option value="holiday">Holiday</option>
           <option value="special_day">Special Day</option>
           <option value="anniversary">Anniversary</option>
@@ -45,13 +54,18 @@
           v-model="formData.date"
           type="date"
           required
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
       </FormField>
     </div>
 
-    <div class="form-row">
+    <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
       <FormField label="Priority *">
-        <select v-model="formData.priority" required>
+        <select
+          v-model="formData.priority"
+          required
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+        >
           <option value="low">Low</option>
           <option value="medium">Medium</option>
           <option value="high">High</option>
@@ -66,55 +80,61 @@
           min="1"
           max="30"
           required
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
       </FormField>
     </div>
 
-    <div class="form-checkboxes">
-      <label>
+    <div class="form-checkboxes grid grid-cols-1 sm:grid-cols-2 gap-3 bg-gray-50 border border-gray-200 rounded-lg p-4">
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
         <input
           type="checkbox"
           v-model="formData.is_annual"
+          class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
         />
         Repeats Annually
       </label>
-      <label>
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
         <input
           type="checkbox"
           v-model="formData.is_international"
+          class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
         />
         International Event
       </label>
-      <label>
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
         <input
           type="checkbox"
           v-model="formData.send_broadcast_reminder"
+          class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
         />
         Send Broadcast Reminder
       </label>
-      <label>
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
         <input
           type="checkbox"
           v-model="formData.auto_generate_discount"
+          class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
         />
         Auto-Generate Discount
       </label>
-      <label>
+      <label class="inline-flex items-center gap-2 text-sm text-gray-700">
         <input
           type="checkbox"
           v-model="formData.is_active"
+          class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
         />
         Active
       </label>
     </div>
 
-    <div v-if="!formData.is_international" class="form-field">
-      <label>Countries</label>
-      <div class="country-selector">
+    <div v-if="!formData.is_international" class="form-field space-y-2">
+      <label class="block text-sm font-medium text-gray-700">Countries</label>
+      <div class="country-selector space-y-2">
         <select
           v-model="selectedCountry"
           @change="addCountry"
-          class="country-select"
+          class="country-select w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
         >
           <option value="">Select Country</option>
           <option value="US">United States</option>
@@ -124,17 +144,17 @@
           <option value="NZ">New Zealand</option>
           <option value="IE">Ireland</option>
         </select>
-        <div class="selected-countries">
+        <div class="selected-countries flex flex-wrap gap-2">
           <span
             v-for="country in formData.countries"
             :key="country"
-            class="country-tag"
+            class="country-tag inline-flex items-center gap-1 px-2 py-1 rounded-full bg-primary-50 text-primary-700 text-xs"
           >
             {{ getCountryName(country) }}
             <button
               type="button"
               @click="removeCountry(country)"
-              class="remove-country"
+              class="remove-country text-xs text-gray-500 hover:text-red-600"
             >
               ×
             </button>
@@ -143,9 +163,9 @@
       </div>
     </div>
 
-    <div v-if="formData.auto_generate_discount" class="discount-settings">
-      <h3>Discount Settings</h3>
-      <div class="form-row">
+    <div v-if="formData.auto_generate_discount" class="discount-settings space-y-4 border-t border-gray-200 pt-4">
+      <h3 class="text-sm font-semibold text-gray-900">Discount Settings</h3>
+      <div class="form-row grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           label="Discount Percentage *"
           :error="errors.discount_percentage"
@@ -157,6 +177,7 @@
             max="100"
             step="0.01"
             required
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
         </FormField>
 
@@ -169,6 +190,7 @@
             type="text"
             placeholder="e.g., THANKS"
             maxlength="20"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           />
         </FormField>
       </div>
@@ -183,6 +205,7 @@
           min="1"
           max="365"
           required
+          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
       </FormField>
     </div>
@@ -195,15 +218,24 @@
         v-model="formData.broadcast_message_template"
         rows="4"
         placeholder="Template for broadcast message. Use {name}, {date}, {code}, {discount} as variables."
+        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
       />
-      <small>Variables: {name}, {date}, {code}, {discount}</small>
+      <small class="text-xs text-gray-500">Variables: {name}, {date}, {code}, {discount}</small>
     </FormField>
 
-    <div class="form-actions">
-      <button type="button" @click="$emit('cancel')" class="btn btn-secondary">
+    <div class="form-actions flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+      <button
+        type="button"
+        @click="$emit('cancel')"
+        class="btn btn-secondary px-4 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
+      >
         Cancel
       </button>
-      <button type="submit" class="btn btn-primary" :disabled="saving">
+      <button
+        type="submit"
+        class="btn btn-primary px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+        :disabled="saving"
+      >
         {{ saving ? 'Saving...' : 'Save' }}
       </button>
     </div>
