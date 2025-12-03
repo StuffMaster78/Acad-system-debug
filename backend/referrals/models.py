@@ -115,13 +115,23 @@ class Referral(SoftDeleteModel):
         """
         Applies referral discount for the referee when it's their first order.
         This function is placed inside the Referral model.
+        
+        NOTE: A client only becomes eligible after approving their first order.
+        This method should check for approved orders, not just order count.
         """
-        # Check if it's client's first order
+        # Check if it's client's first approved order
         # Order model uses 'client' field for the client who placed the order
         order_client = getattr(order, 'client', None) or getattr(order, 'user', None)
         if not order_client:
             return 0
         
+        # Check if this is the first approved order (not just first order)
+        # A client only becomes eligible after approving their first order to avoid abuse
+        previous_approved_orders = order_client.orders_as_client.exclude(id=order.id).filter(status='approved')
+        if previous_approved_orders.exists():
+            return 0  # Not the first approved order
+        
+        # Check if this is the referee's first order (before approval)
         if order_client.orders_as_client.count() == 1:  # The referee is placing their first order
             # Check if the order is linked to the current referral
             if self.referee == order_client:

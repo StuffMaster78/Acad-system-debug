@@ -30,6 +30,9 @@ from users.views.account_management import AccountManagementViewSet
 from users.views.privacy_controls import PrivacyControlsViewSet
 from users.views.security_activity import SecurityActivityViewSet
 from users.views.login_alerts import LoginAlertPreferenceViewSet
+from users.views.profile_change_viewset import ProfileChangeRequestViewSet, WriterAvatarViewSet
+from users.views.subscription_viewset import SubscriptionViewSet
+from users.views.privacy_security_viewset import PrivacySecurityViewSet
 
 # Initialize DRF Router
 router = DefaultRouter()
@@ -64,6 +67,16 @@ router.register(r'admin/user-management', AdminUserManagementViewSet, basename="
 
 # Account deletion requests (Clients & Writers)
 router.register(r'account-deletion', AccountDeletionRequestViewSet, basename="account-deletion")
+
+# Profile change requests (Writers - requires admin approval)
+router.register(r'profile-changes', ProfileChangeRequestViewSet, basename="profile-changes")
+router.register(r'avatar-uploads', WriterAvatarViewSet, basename="avatar-uploads")
+
+# Subscription Management (Clients)
+router.register(r'subscriptions', SubscriptionViewSet, basename="subscriptions")
+
+# Privacy & Security Information
+router.register(r'privacy-security', PrivacySecurityViewSet, basename="privacy-security")
 
 # Define URL patterns
 urlpatterns = [

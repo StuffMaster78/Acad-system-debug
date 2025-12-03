@@ -13,6 +13,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from django.core.exceptions import ValidationError
 from orders.models import Order
 from orders.order_enums import OrderFlags, OrderStatus
 from orders.permissions import IsOrderOwnerOrSupport
@@ -428,6 +429,71 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
         return base_qs
     
     def list(self, request, *args, **kwargs):
+        """
+        Override list to ensure queryset is not filtered by object permissions.
+        DRF doesn't filter list results by object permissions by default,
+        but we want to make sure our queryset filtering works correctly.
+        Also includes phone reminder info for clients.
+        """
+        try:
+            queryset = self.filter_queryset(self.get_queryset())
+            
+            page = self.paginate_queryset(queryset)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                response = self.get_paginated_response(serializer.data)
+            else:
+                serializer = self.get_serializer(queryset, many=True)
+                response = Response(serializer.data)
+            
+            # Add phone reminder info for clients
+            if request.user.role in ['client', 'customer']:
+                from users.services.phone_reminder_service import PhoneReminderService
+                phone_service = PhoneReminderService(request.user)
+                
+                # Check if reminder should be shown (user has active orders)
+                active_orders = queryset.filter(
+                    status__in=['pending', 'in_progress', 'submitted', 'reviewed', 
+                               'rated', 'revision_requested', 'on_revision', 'revised']
+                ).exists()
+                
+                if active_orders and phone_service.should_show_reminder_in_order_context():
+                    reminder_info = phone_service.get_reminder_info()
+                    if isinstance(response.data, dict):
+                        response.data['phone_reminder'] = reminder_info
+            
+            return response
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error in OrderBaseViewSet.list: {str(e)}", exc_info=True)
+            # Return empty result instead of 500 error
+            return Response({
+                'count': 0,
+                'next': None,
+                'previous': None,
+                'results': [],
+                'total_pages': 0,
+            })
+    
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Retrieve a single order with phone reminder info for clients.
+        """
+        response = super().retrieve(request, *args, **kwargs)
+        
+        # Add phone reminder info for clients viewing orders
+        if request.user.role in ['client', 'customer']:
+            from users.services.phone_reminder_service import PhoneReminderService
+            phone_service = PhoneReminderService(request.user)
+            
+            order = self.get_object()
+            if phone_service.should_show_reminder_in_order_context(order):
+                reminder_info = phone_service.get_reminder_info()
+                if isinstance(response.data, dict):
+                    response.data['phone_reminder'] = reminder_info
+        
+        return response
         """
         Override list to ensure queryset is not filtered by object permissions.
         DRF doesn't filter list results by object permissions by default,

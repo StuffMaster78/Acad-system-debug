@@ -50,6 +50,15 @@ from .login_alerts import (
     LoginAlertPreferenceSerializer,
     LoginAlertPreferenceUpdateSerializer,
 )
+from .subscriptions import (
+    ClientSubscriptionSerializer,
+    SubscriptionPreferenceSerializer,
+    SubscriptionListSerializer,
+    SubscribeRequestSerializer,
+    UnsubscribeRequestSerializer,
+    UpdateFrequencySerializer,
+    UpdateChannelsSerializer,
+)
 
 __all__ = [
     'SimpleUserSerializer',
@@ -61,4 +70,11 @@ __all__ = [
     'get_privacy_aware_serializer',
     'LoginAlertPreferenceSerializer',
     'LoginAlertPreferenceUpdateSerializer',
+    'ClientSubscriptionSerializer',
+    'SubscriptionPreferenceSerializer',
+    'SubscriptionListSerializer',
+    'SubscribeRequestSerializer',
+    'UnsubscribeRequestSerializer',
+    'UpdateFrequencySerializer',
+    'UpdateChannelsSerializer',
 ]

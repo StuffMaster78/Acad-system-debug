@@ -139,7 +139,7 @@ def release_stale_preferred_orders():
 
 
 @shared_task
-def archive_approved_orders_task():
+def archive_approved_orders():
     """
     Archive orders that are in 'approved' state older than 2 weeks.
     """
@@ -148,7 +148,7 @@ def archive_approved_orders_task():
 
 
 @shared_task
-def move_complete_to_approved_task():
+def move_complete_orders_to_approved():
     """
     Move orders from 'complete' to 'approved' if they are older than 3 weeks.
     """

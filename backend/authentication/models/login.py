@@ -51,5 +51,14 @@ class LoginSession(models.Model):
             models.Index(fields=['token']),
         ]
 
+    def revoke(self, revoked_by=None):
+        """Revoke this session."""
+        from django.utils import timezone
+        self.is_active = False
+        self.revoked_at = timezone.now()
+        if revoked_by:
+            self.revoked_by = revoked_by
+        self.save(update_fields=['is_active', 'revoked_at', 'revoked_by'])
+    
     def __str__(self):
         return f"{self.user} - {self.ip_address} - {self.device_name}"

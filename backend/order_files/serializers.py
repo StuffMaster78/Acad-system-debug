@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import (
-    OrderFile, FileDeletionRequest, ExternalFileLink, ExtraServiceFile, OrderFilesConfig, OrderFileCategory, FileDownloadLog
+    OrderFile, FileDeletionRequest, ExternalFileLink, ExtraServiceFile, OrderFilesConfig, OrderFileCategory, FileDownloadLog,
+    StyleReferenceFile
 )
 
 class OrderFileSerializer(serializers.ModelSerializer):
@@ -126,3 +127,54 @@ class FileDownloadLogSerializer(serializers.ModelSerializer):
             'downloaded_at',
         ]
         read_only_fields = ['id', 'downloaded_at']
+
+
+class StyleReferenceFileSerializer(serializers.ModelSerializer):
+    """Serializer for Style Reference Files"""
+    uploaded_by_username = serializers.CharField(source='uploaded_by.username', read_only=True)
+    uploaded_by_email = serializers.EmailField(source='uploaded_by.email', read_only=True)
+    reference_type_display = serializers.CharField(source='get_reference_type_display', read_only=True)
+    order_topic = serializers.CharField(source='order.topic', read_only=True)
+    can_access = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = StyleReferenceFile
+        fields = [
+            'id',
+            'website',
+            'order',
+            'order_topic',
+            'uploaded_by',
+            'uploaded_by_username',
+            'uploaded_by_email',
+            'file',
+            'reference_type',
+            'reference_type_display',
+            'description',
+            'file_name',
+            'file_size',
+            'uploaded_at',
+            'is_visible_to_writer',
+            'can_access',
+        ]
+        read_only_fields = ['id', 'uploaded_at', 'file_name', 'file_size']
+    
+    def get_can_access(self, obj):
+        """Check if the current user can access this file."""
+        request = self.context.get('request')
+        if request and request.user:
+            return obj.can_access(request.user)
+        return False
+    
+    def validate(self, data):
+        """Validate that the user uploading is the client of the order."""
+        request = self.context.get('request')
+        if request and request.user:
+            order = data.get('order')
+            if order:
+                # Only allow client who owns the order to upload style references
+                if order.client != request.user and not (request.user.is_staff or request.user.role in ['admin', 'superadmin']):
+                    raise serializers.ValidationError(
+                        "Only the client who placed the order can upload style reference files."
+                    )
+        return data
