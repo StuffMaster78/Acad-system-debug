@@ -1,11 +1,11 @@
 <template>
-  <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">All Writer Payments</h1>
         <p class="mt-2 text-gray-600">Complete payment history from system start</p>
       </div>
-      <div class="flex gap-2">
+      <div class="flex gap-2 flex-wrap md:justify-end">
         <router-link
           to="/admin/payments/batched"
           class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
@@ -23,7 +23,7 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow-sm p-4">
-      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div>
           <label class="block text-sm font-medium mb-1">Status</label>
           <select v-model="filters.status" @change="loadPayments" class="w-full border rounded px-3 py-2">
@@ -84,15 +84,17 @@
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
       
-      <div v-else>
-        <table class="min-w-full divide-y divide-gray-200">
+      <div v-else class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200 text-sm">
           <thead class="bg-gray-50">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment ID</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Email</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orders</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client Total</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer Amount</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Platform Margin</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tips</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fines</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
@@ -110,9 +112,17 @@
                 <div>{{ payment.writer.name }}</div>
                 <div class="text-xs text-gray-500">{{ payment.writer.registration_id }}</div>
               </td>
-              <td class="px-6 py-4 text-sm text-gray-600">{{ payment.writer.email }}</td>
+              <td class="px-6 py-4 text-sm text-gray-600 hidden md:table-cell">{{ payment.writer.email }}</td>
               <td class="px-6 py-4 text-sm text-center">{{ payment.number_of_orders }}</td>
-              <td class="px-6 py-4 text-sm font-medium">${{ formatCurrency(payment.amount) }}</td>
+              <td class="px-6 py-4 text-sm font-medium">
+                ${{ formatCurrency(payment.client_total) }}
+              </td>
+              <td class="px-6 py-4 text-sm font-medium">
+                ${{ formatCurrency(payment.amount) }}
+              </td>
+              <td class="px-6 py-4 text-sm" :class="payment.platform_margin >= 0 ? 'text-green-600' : 'text-red-600'">
+                ${{ formatCurrency(payment.platform_margin) }}
+              </td>
               <td class="px-6 py-4 text-sm text-green-600">${{ formatCurrency(payment.tips) }}</td>
               <td class="px-6 py-4 text-sm text-red-600">${{ formatCurrency(payment.fines) }}</td>
               <td class="px-6 py-4 text-sm font-bold">${{ formatCurrency(payment.total_earnings) }}</td>

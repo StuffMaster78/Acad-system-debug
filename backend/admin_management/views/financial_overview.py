@@ -311,6 +311,19 @@ class FinancialOverviewViewSet(ViewSet):
             except Exception:
                 pass
             
+            # Calculate client total and platform margin for this payment
+            client_total = Decimal('0.00')
+            try:
+                for record in order_records:
+                    order = getattr(record, 'order', None)
+                    if order and getattr(order, 'total_price', None):
+                        client_total += order.total_price
+            except Exception:
+                # Don't break the endpoint if any order is missing or invalid
+                client_total = Decimal('0.00')
+
+            platform_margin = client_total - (payment.amount or Decimal('0.00')) - tips_total
+            
             writer = payment.writer_wallet.writer
             user = writer.user
             
@@ -324,6 +337,8 @@ class FinancialOverviewViewSet(ViewSet):
                     'registration_id': writer.registration_id or '',
                 },
                 'number_of_orders': order_count,
+                'client_total': float(client_total),
+                'platform_margin': float(platform_margin),
                 'amount': float(payment.amount),
                 'tips': float(tips_total),
                 'fines': float(fines_total),

@@ -1,11 +1,11 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">My Payments</h1>
         <p class="text-gray-600 mt-1">View your payment history and upcoming payments</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap justify-end">
         <router-link
           to="/writer/advance-payments"
           class="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold shadow-sm hover:shadow-md"
@@ -82,7 +82,7 @@
             Reset
           </button>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 justify-end">
           <button
             @click="downloadPaymentsCsv"
             type="button"
@@ -127,8 +127,12 @@
           <p class="text-sm text-blue-700 mt-1">Completed orders awaiting payment processing</p>
         </div>
         <div class="text-right">
-          <div class="text-3xl font-bold text-blue-900">${{ formatCurrency(upcomingPayments.total_amount) }}</div>
-          <div class="text-sm text-blue-700">{{ upcomingPayments.order_count }} order(s)</div>
+          <div class="text-3xl font-bold text-blue-900">
+            ${{ formatCurrency(upcomingPayments.total_amount) }}
+          </div>
+          <div class="text-sm text-blue-700">
+            {{ upcomingPayments.order_count }} order(s)
+          </div>
         </div>
       </div>
 
@@ -148,9 +152,15 @@
             <div class="text-xs text-gray-500 mt-1">
               Completed: {{ formatDate(order.completed_at || order.created_at) }}
             </div>
+            <div v-if="order.expected_payment_window_label" class="text-xs text-blue-700 mt-1">
+              Official payout window:
+              <span class="font-semibold">{{ order.expected_payment_window_label }}</span>
+            </div>
           </div>
           <div class="text-right">
-            <div class="font-semibold text-blue-900">${{ formatCurrency(order.total_price) }}</div>
+            <div class="font-semibold text-blue-900">
+              ${{ formatCurrency(order.expected_earning) }}
+            </div>
             <div class="text-xs text-blue-600 capitalize">{{ order.status }}</div>
           </div>
         </div>

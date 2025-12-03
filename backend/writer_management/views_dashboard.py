@@ -666,9 +666,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         
         # Upcoming payments: completed paid orders that don't have a WriterPayment record yet
         upcoming_order_ids = [oid for oid in completed_paid_order_ids if oid not in processed_order_ids]
-        upcoming_orders = Order.objects.filter(
-            id__in=upcoming_order_ids
-        ).select_related('client', 'website').order_by('-submitted_at', '-created_at', '-updated_at') if upcoming_order_ids else Order.objects.none()
+        upcoming_orders = (
+            Order.objects.filter(id__in=upcoming_order_ids)
+            .select_related('client', 'website')
+            .order_by('-submitted_at', '-created_at', '-updated_at')
+            if upcoming_order_ids
+            else Order.objects.none()
+        )
         
         # Group historical payments by month
         monthly_payments = historical_payments.annotate(
@@ -682,7 +686,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         ).order_by('-month')
         
         # Group historical payments by fortnight (2-week periods)
-        # Fortnight periods: 1-14 and 15-end of month
+        # Fortnight periods: 1-14 and 15-end of month (for historical display only)
         fortnightly_payments = []
         payments_by_date = {}
         for payment in historical_payments:
@@ -741,9 +745,105 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         )
         
         # Calculate upcoming payment totals
-        # For upcoming payments, we need to calculate writer's expected earnings
-        # This would typically be based on writer level pay rates, but for now use order price as estimate
-        upcoming_total = sum(float(o.total_price or 0) for o in upcoming_orders)
+        # For upcoming payments, we calculate writer's expected earnings based on writer level,
+        # NOT the client total price (writers should never see client totals).
+        from writer_management.services.earnings_calculator import WriterEarningsCalculator
+
+        def _get_official_payment_window(completed_ts):
+            """
+            Determine the official payment window for a completed order based on:
+            - Writer's payment_schedule (bi-weekly or monthly)
+            - Business rules:
+              * Orders completed 1st–15th → paid 17th–21st same month
+              * Orders completed 16th–end of month → paid 5th–7th next month
+            """
+            if not completed_ts:
+                return None
+
+            from datetime import date
+
+            completed_date = completed_ts.date()
+            schedule = getattr(profile, 'payment_schedule', 'bi-weekly')
+
+            if schedule == 'monthly':
+                # Monthly: all orders in month N are scheduled 5–7 of month N+1
+                year = completed_date.year
+                month = completed_date.month + 1
+                if month > 12:
+                    month = 1
+                    year += 1
+                start = date(year, month, 5)
+                end = date(year, month, 7)
+            else:
+                # Bi-weekly schedule with fixed official windows
+                if completed_date.day <= 15:
+                    # Window A: 1–15 → 17–21 same month
+                    start = date(completed_date.year, completed_date.month, 17)
+                    end = date(completed_date.year, completed_date.month, 21)
+                else:
+                    # Window B: 16–end → 5–7 of next month
+                    year = completed_date.year
+                    month = completed_date.month + 1
+                    if month > 12:
+                        month = 1
+                        year += 1
+                    start = date(year, month, 5)
+                    end = date(year, month, 7)
+
+            label = f"{start.strftime('%d %b')} – {end.strftime('%d %b %Y')}"
+            return {
+                "start": start,
+                "end": end,
+                "label": label,
+            }
+
+        upcoming_orders_payload = []
+        upcoming_total = Decimal('0.00')
+
+        for o in upcoming_orders:
+            completed_ts = self._get_completed_timestamp(o)
+
+            # Determine urgency and technicality similar to WriterPayment.process_payment
+            is_urgent = False
+            writer_level = getattr(profile, 'writer_level', None)
+            if getattr(o, 'writer_deadline', None) or getattr(o, 'client_deadline', None):
+                deadline = getattr(o, 'writer_deadline', None) or getattr(o, 'client_deadline', None)
+                if deadline and writer_level and getattr(writer_level, 'urgent_order_deadline_hours', None) is not None:
+                    hours_until_deadline = (deadline - timezone.now()).total_seconds() / 3600
+                    is_urgent = hours_until_deadline <= writer_level.urgent_order_deadline_hours
+
+            is_technical = getattr(o, 'is_technical', False) or (
+                hasattr(o, 'subject') and getattr(getattr(o, 'subject'), 'is_technical', False)
+            )
+
+            if writer_level:
+                expected_earning = WriterEarningsCalculator.calculate_earnings(
+                    writer_level,
+                    o,
+                    is_urgent=is_urgent,
+                    is_technical=is_technical,
+                )
+            else:
+                expected_earning = Decimal('0.00')
+
+            window = _get_official_payment_window(completed_ts)
+
+            upcoming_total += expected_earning
+
+            upcoming_orders_payload.append(
+                {
+                    "id": o.id,
+                    "topic": o.topic,
+                    # Writer-facing: show only what the writer will earn for this order
+                    "expected_earning": float(expected_earning),
+                    "completed_at": completed_ts.isoformat() if completed_ts else None,
+                    "created_at": o.created_at.isoformat() if o.created_at else None,
+                    "status": o.status,
+                    "expected_payment_window_start": window["start"].isoformat() if window else None,
+                    "expected_payment_window_end": window["end"].isoformat() if window else None,
+                    "expected_payment_window_label": window["label"] if window else None,
+                }
+            )
         
         return Response({
             'historical_payments': {
@@ -761,21 +861,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'fortnightly': fortnightly_payments,
             },
             'upcoming_payments': {
-                'total_amount': upcoming_total,
-                'order_count': upcoming_orders.count(),
-                'orders': [
-                    {
-                        'id': o.id,
-                        'topic': o.topic,
-                        'total_price': float(o.total_price or 0),
-                        'completed_at': (
-                            completed_ts.isoformat() if (completed_ts := self._get_completed_timestamp(o)) else None
-                        ),
-                        'created_at': o.created_at.isoformat() if o.created_at else None,
-                        'status': o.status,
-                    }
-                    for o in upcoming_orders[:50]
-                ],
+                'total_amount': float(upcoming_total),
+                'order_count': len(upcoming_orders_payload),
+                'orders': upcoming_orders_payload[:50],
             },
             'recent_payments': [
                 {
