@@ -1195,6 +1195,26 @@ const router = createRouter({
             roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
           },
         },
+        {
+          path: 'account/subscriptions',
+          name: 'Subscriptions',
+          component: () => import('@/views/account/Subscriptions.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Communication Preferences',
+            roles: ['client', 'customer'],
+          },
+        },
+        {
+          path: 'account/privacy-security',
+          name: 'PrivacySecurity',
+          component: () => import('@/views/account/PrivacySecurity.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Privacy & Security',
+            roles: ['client', 'writer', 'admin', 'superadmin'],
+          },
+        },
       ],
     },
   {
