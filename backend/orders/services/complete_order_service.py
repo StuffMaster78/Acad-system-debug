@@ -21,24 +21,15 @@ class CompleteOrderService:
     @staticmethod
     @transaction.atomic
     def _award_referral_bonus(order):
-        """ Check if the order qualifies for a referral bonus and award it if applicable."""
-        # Order model uses is_paid, not payment_status
-        is_paid = getattr(order, 'is_paid', False) or getattr(order, 'payment_status', None) == 'paid'
-        if order.status != 'completed' or not is_paid:
-            return
-
-        try:
-            referral = Referral.objects.filter(
-                referee=order.user,
-                website=order.website
-            ).first()
-            if not referral:
-                return
-
-            service = ReferralService(referral)
-            service.award_bonus()
-        except Exception as e:
-            logger.warning(f"Failed to award referral bonus for Order {order.id}: {str(e)}")
+        """
+        NOTE: Referral bonuses are now awarded when orders are APPROVED, not completed.
+        This method is kept for backward compatibility but should not award bonuses.
+        A client only becomes eligible for referral rewards after ordering 
+        and approving their first order to avoid abuse.
+        """
+        # Referral bonuses are now awarded in ApproveOrderService
+        # This method is kept for backward compatibility but does nothing
+        return
 
     def complete_order(self, order_id: int, user) -> Order:
         """

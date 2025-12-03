@@ -15,6 +15,7 @@ from rest_framework.exceptions import ValidationError as DRFValidationError
 from django.core.exceptions import ValidationError
 
 from users.services.account_service import AccountService
+from users.services.phone_reminder_service import PhoneReminderService
 from users.serializers.account_serializers import (
     ChangePasswordSerializer,
     CompletePasswordResetSerializer,
@@ -32,6 +33,24 @@ class AccountManagementViewSet(viewsets.ViewSet):
     def get_service(self):
         """Get account service instance for current user."""
         return AccountService(self.request.user)
+    
+    @action(detail=False, methods=['get'], url_path='phone-reminder')
+    def get_phone_reminder(self, request):
+        """
+        Get phone number reminder information for the current user.
+        
+        Response:
+        {
+            "needs_reminder": true,
+            "has_phone_number": false,
+            "phone_number": null,
+            "message": "Please update your phone number...",
+            "reasons": ["Order fulfillment coordination", ...]
+        }
+        """
+        service = PhoneReminderService(request.user)
+        reminder_info = service.get_reminder_info()
+        return Response(reminder_info, status=status.HTTP_200_OK)
     
     # ==================== Password Management ====================
     

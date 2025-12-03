@@ -129,6 +129,46 @@ class AuthenticationService:
                 "No active website found. Please contact support to set up your account."
             )
         
+        # Check account suspension
+        from authentication.services.account_suspension_service import AccountSuspensionService
+        suspension_service = AccountSuspensionService(user=user, website=website)
+        if suspension_service.is_suspended():
+            suspension_info = suspension_service.get_suspension_info()
+            raise ValidationError({
+                "error": "Account suspended",
+                "message": "Your account has been suspended. Please contact support.",
+                "suspension_info": suspension_info
+            })
+        
+        # Check IP whitelist
+        from authentication.services.ip_whitelist_service import IPWhitelistService
+        ip_whitelist_service = IPWhitelistService(user=user, website=website)
+        ip_check = ip_whitelist_service.check_login_allowed(ip_address)
+        if not ip_check.get('allowed', True):
+            if ip_check.get('emergency_bypass_available', False):
+                raise ValidationError({
+                    "error": "IP not whitelisted",
+                    "message": ip_check.get('message'),
+                    "emergency_bypass_available": True
+                })
+            else:
+                raise ValidationError({
+                    "error": "IP not whitelisted",
+                    "message": ip_check.get('message')
+                })
+        
+        # Check password expiration
+        from authentication.services.password_expiration_service import PasswordExpirationService
+        expiration_service = PasswordExpirationService(user=user, website=website)
+        expiration_status = expiration_service.check_expiration_status()
+        if expiration_status.get('is_expired', False):
+            raise ValidationError({
+                "error": "Password expired",
+                "requires_password_change": True,
+                "expiration_info": expiration_status,
+                "message": "Your password has expired. Please change it to continue."
+            })
+        
         # Check for account lockout using Smart Lockout Service
         from authentication.services.smart_lockout_service import SmartLockoutService
         from authentication.models.devices import TrustedDevice
@@ -158,6 +198,44 @@ class AuthenticationService:
                 "guidance": "You can request an unlock via email or wait for the lockout period to expire."
             })
         
+        # Check account suspension
+        suspension_service = AccountSuspensionService(user=user, website=website)
+        if suspension_service.is_suspended():
+            suspension_info = suspension_service.get_suspension_info()
+            raise ValidationError({
+                "error": "Account suspended",
+                "message": "Your account has been suspended. Please contact support.",
+                "suspension_info": suspension_info
+            })
+        
+        # Check IP whitelist
+        ip_whitelist_service = IPWhitelistService(user=user, website=website)
+        ip_check = ip_whitelist_service.check_login_allowed(ip_address)
+        if not ip_check.get('allowed', True):
+            if ip_check.get('emergency_bypass_available', False):
+                raise ValidationError({
+                    "error": "IP not whitelisted",
+                    "message": ip_check.get('message'),
+                    "emergency_bypass_available": True
+                })
+            else:
+                raise ValidationError({
+                    "error": "IP not whitelisted",
+                    "message": ip_check.get('message')
+                })
+        
+        # Check password expiration
+        from authentication.services.password_expiration_service import PasswordExpirationService
+        expiration_service = PasswordExpirationService(user=user, website=website)
+        expiration_status = expiration_service.check_expiration_status()
+        if expiration_status.get('is_expired', False):
+            raise ValidationError({
+                "error": "Password expired",
+                "requires_password_change": True,
+                "expiration_info": expiration_status,
+                "message": "Your password has expired. Please change it to continue."
+            })
+        
         # Check for impersonation (prevent impersonating while impersonating)
         if hasattr(request, 'session') and request.session.get('_impersonator_id'):
             raise PermissionDenied(
@@ -170,6 +248,11 @@ class AuthenticationService:
             from users.models import UserProfile
             UserProfile.objects.get_or_create(user=user, defaults={'avatar': 'avatars/universal.png'})
         
+        # Enforce session limits before creating new session
+        from authentication.services.session_limit_service import SessionLimitService
+        session_limit_service = SessionLimitService(user=user, website=website)
+        session_limit_service.enforce_session_limit()
+        
         # Create login session (website is now guaranteed to exist)
         session = LoginSessionService.start_session(
             user=user,
@@ -178,6 +261,9 @@ class AuthenticationService:
             user_agent=user_agent,
             device_info=device_info
         )
+        
+        # Enforce session limit after creating session (revoke oldest if needed)
+        session_limit_service.enforce_session_limit(session)
         
         # Check for 2FA requirement
         # Try both methods of checking 2FA

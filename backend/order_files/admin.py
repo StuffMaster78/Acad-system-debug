@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     OrderFile, FileDeletionRequest, ExternalFileLink,
-    ExtraServiceFile, OrderFilesConfig, OrderFileCategory
+    ExtraServiceFile, OrderFilesConfig, OrderFileCategory, StyleReferenceFile
 )
 
 @admin.register(OrderFilesConfig)
@@ -36,3 +36,10 @@ class ExtraServiceFileAdmin(admin.ModelAdmin):
     list_display = ["id", "file", "order", "uploaded_by", "created_at", "is_downloadable"]
     list_filter = []
     search_fields = ["order__id", "uploaded_by__username"]
+
+@admin.register(StyleReferenceFile)
+class StyleReferenceFileAdmin(admin.ModelAdmin):
+    list_display = ["id", "order", "reference_type", "uploaded_by", "file_name", "uploaded_at", "is_visible_to_writer"]
+    list_filter = ["reference_type", "is_visible_to_writer", "uploaded_at"]
+    search_fields = ["order__id", "order__topic", "uploaded_by__username", "file_name", "description"]
+    readonly_fields = ["uploaded_at", "file_size"]

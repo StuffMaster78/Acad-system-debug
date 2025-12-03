@@ -340,3 +340,117 @@ class ExtraServiceFile(models.Model):
     def __str__(self):
         category_name = self.category.name if self.category else "Unknown"
         return f"Extra Service File - {category_name} (Order {self.order.id})"
+
+
+class StyleReferenceFile(models.Model):
+    """
+    Stores style reference files uploaded by clients to help writers match their writing style.
+    These are optional files that clients can upload with previous papers or instructor feedback.
+    """
+    REFERENCE_TYPE_CHOICES = [
+        ('previous_paper', 'Previous Paper'),
+        ('instructor_feedback', 'Instructor Feedback'),
+        ('style_guide', 'Style Guide'),
+        ('sample_work', 'Sample Work'),
+    ]
+    
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='style_reference_files'
+    )
+    order = models.ForeignKey(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="style_reference_files",
+        help_text="The order this style reference is associated with"
+    )
+    uploaded_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="uploaded_style_references",
+        help_text="Client who uploaded this style reference"
+    )
+    file = models.FileField(
+        upload_to="style_references/",
+        help_text="The style reference file (PDF, DOCX, etc.)"
+    )
+    reference_type = models.CharField(
+        max_length=50,
+        choices=REFERENCE_TYPE_CHOICES,
+        default='previous_paper',
+        help_text="Type of style reference (previous paper, instructor feedback, etc.)"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optional description or notes about this style reference"
+    )
+    file_name = models.CharField(
+        max_length=255,
+        help_text="Original filename"
+    )
+    file_size = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="File size in bytes"
+    )
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the style reference was uploaded"
+    )
+    is_visible_to_writer = models.BooleanField(
+        default=True,
+        help_text="Whether the writer can view this style reference"
+    )
+    
+    class Meta:
+        ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['order', 'uploaded_at']),
+            models.Index(fields=['order', 'reference_type']),
+        ]
+        verbose_name = "Style Reference File"
+        verbose_name_plural = "Style Reference Files"
+    
+    def __str__(self):
+        return f"Style Reference - {self.get_reference_type_display()} (Order {self.order.id})"
+    
+    def save(self, *args, **kwargs):
+        """Auto-set file_name and file_size if not provided."""
+        if self.file and not self.file_name:
+            self.file_name = self.file.name.split('/')[-1] if '/' in self.file.name else self.file.name
+        if self.file and not self.file_size:
+            try:
+                self.file_size = self.file.size
+            except (AttributeError, FileNotFoundError):
+                pass
+        
+        # Auto-set website from order if not set
+        if not self.website and self.order:
+            self.website = self.order.website
+        
+        super().save(*args, **kwargs)
+    
+    def can_access(self, user):
+        """
+        Check if a user can access this style reference file.
+        - Clients who uploaded it can always access
+        - Writers assigned to the order can access if is_visible_to_writer is True
+        - Admins, editors, and support can always access
+        """
+        # Admins, editors, and support can always access
+        if user.is_staff or user.groups.filter(name__in=["Support", "Editor"]).exists():
+            return True
+        
+        # Client who uploaded can access
+        if self.uploaded_by == user:
+            return True
+        
+        # Writer assigned to the order can access if visible
+        if hasattr(user, 'role') and user.role == 'writer':
+            if self.order.assigned_writer == user and self.is_visible_to_writer:
+                return True
+        
+        return False

@@ -61,9 +61,10 @@ class ReferralAdmin(admin.ModelAdmin):
 
             bonus_amount = bonus_config.first_order_bonus if bonus_config else 0
 
-            # Check if the referral bonus should be awarded based on first paid order
-            first_paid_order = referral.referee.orders.filter(status='completed', payment_status='paid').first()
-            if first_paid_order:
+            # Check if the referral bonus should be awarded based on first approved order
+            # A client only becomes eligible after approving their first order to avoid abuse
+            first_approved_order = referral.referee.orders_as_client.filter(status='approved').first()
+            if first_approved_order:
                 # Add bonus to wallet
                 ClientWalletTransaction.objects.create(
                     wallet=client_wallet,

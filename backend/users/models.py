@@ -53,6 +53,10 @@ class User(AbstractUser, PermissionsMixin,
     Includes impersonation, suspension, probation, and audit tracking.
     """
     email = models.EmailField(unique=True)
+    email_verified = models.BooleanField(
+        default=False,
+        help_text="Whether the user has verified their email address"
+    )
     notification_profile = models.ForeignKey(
         NotificationPreferenceProfile,
         null=True,

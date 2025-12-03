@@ -9,12 +9,12 @@ from rest_framework import filters
 
 from .models import (
     OrderFile, FileDeletionRequest, ExternalFileLink, ExtraServiceFile,
-    OrderFilesConfig, OrderFileCategory, FileDownloadLog,
+    OrderFilesConfig, OrderFileCategory, FileDownloadLog, StyleReferenceFile,
 )
 from .serializers import (
     OrderFileSerializer, FileDeletionRequestSerializer, ExternalFileLinkSerializer,
     ExtraServiceFileSerializer, OrderFilesConfigSerializer, OrderFileCategorySerializer,
-    FileDownloadLogSerializer,
+    FileDownloadLogSerializer, StyleReferenceFileSerializer,
 )
 from .permissions import (
     CanDownloadFile, IsAdminOrSupport, IsEditorOrSupport, CanUploadFile
@@ -338,3 +338,119 @@ class FileDownloadLogViewSet(viewsets.ReadOnlyModelViewSet):
             'downloads_by_role': list(downloads_by_role),
             'most_downloaded_files': list(most_downloaded),
         })
+
+
+class StyleReferenceFileViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing style reference files uploaded by clients.
+    
+    - Clients can upload style reference files for their orders
+    - Writers assigned to the order can view and download these files
+    - Admins and support can manage all style reference files
+    """
+    queryset = StyleReferenceFile.objects.all()
+    serializer_class = StyleReferenceFileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ['order', 'reference_type', 'uploaded_by']
+    search_fields = ['file_name', 'description', 'order__topic']
+    ordering_fields = ['uploaded_at', 'file_name']
+    ordering = ['-uploaded_at']
+    
+    def get_serializer_context(self):
+        """Add request to serializer context."""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
+    def get_queryset(self):
+        """Filter style references based on user permissions."""
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Admins, editors, and support can see all
+        if user.is_staff or user.groups.filter(name__in=["Support", "Editor"]).exists():
+            return queryset
+        
+        # Filter by order if specified
+        order_id = self.request.query_params.get('order')
+        if order_id:
+            queryset = queryset.filter(order_id=order_id)
+        
+        # Clients can see their own uploads
+        if hasattr(user, 'role') and user.role == 'client':
+            queryset = queryset.filter(uploaded_by=user)
+        
+        # Writers can see style references for orders they're assigned to
+        if hasattr(user, 'role') and user.role == 'writer':
+            queryset = queryset.filter(
+                order__assigned_writer=user,
+                is_visible_to_writer=True
+            )
+        
+        return queryset
+    
+    def perform_create(self, serializer):
+        """Ensure only clients can upload style references for their orders."""
+        order = serializer.validated_data.get('order')
+        user = self.request.user
+        
+        # Validate that user is the client or admin
+        if order and order.client != user:
+            if not (user.is_staff or user.role in ['admin', 'superadmin']):
+                raise serializers.ValidationError(
+                    "Only the client who placed the order can upload style reference files."
+                )
+        
+        # Auto-set file_name and file_size
+        file_obj = self.request.FILES.get('file')
+        if file_obj:
+            serializer.validated_data['file_name'] = file_obj.name
+            serializer.validated_data['file_size'] = file_obj.size
+        
+        serializer.save(uploaded_by=user)
+    
+    @action(detail=True, methods=["get"])
+    def download(self, request, pk=None):
+        """Download a style reference file if user has access."""
+        style_ref = get_object_or_404(StyleReferenceFile, pk=pk)
+        
+        if not style_ref.can_access(request.user):
+            return Response(
+                {"error": "You do not have permission to download this file."},
+                status=403
+            )
+        
+        if not style_ref.file:
+            raise Http404("File not found")
+        
+        try:
+            response = FileResponse(
+                style_ref.file.open(),
+                content_type='application/octet-stream'
+            )
+            file_name = style_ref.file_name or style_ref.file.name.split('/')[-1]
+            response['Content-Disposition'] = f'attachment; filename="{file_name}"'
+            return response
+        except Exception as e:
+            return Response(
+                {"error": f"Failed to download file: {str(e)}"},
+                status=500
+            )
+    
+    @action(detail=True, methods=["post"])
+    def toggle_visibility(self, request, pk=None):
+        """Allow clients to toggle visibility of style reference to writer."""
+        style_ref = get_object_or_404(StyleReferenceFile, pk=pk)
+        user = request.user
+        
+        # Only the client who uploaded or admin can toggle visibility
+        if style_ref.uploaded_by == user or user.is_staff or user.role in ['admin', 'superadmin']:
+            style_ref.is_visible_to_writer = not style_ref.is_visible_to_writer
+            style_ref.save()
+            return Response({
+                "message": "Visibility updated!",
+                "is_visible_to_writer": style_ref.is_visible_to_writer
+            })
+        
+        return Response({"error": "Unauthorized"}, status=403)

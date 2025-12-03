@@ -38,6 +38,8 @@ class OrderSerializer(serializers.ModelSerializer):
     writer_deadline_percentage = serializers.SerializerMethodField(read_only=True)
     # Revision eligibility info for clients
     revision_eligibility = serializers.SerializerMethodField(read_only=True)
+    # Style reference files uploaded by client
+    style_reference_files = serializers.SerializerMethodField(read_only=True)
     
     class Meta:
         model = Order
@@ -52,7 +54,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'created_by_admin', 'is_special_order', 'is_follow_up',
             'previous_order', 'requires_editing', 'editing_skip_reason', 'is_urgent',
             'is_unattributed', 'fake_client_id', 'external_contact_name', 'external_contact_email', 'external_contact_phone',
-            'allow_unpaid_access', 'writer_deadline_percentage', 'revision_eligibility'
+            'allow_unpaid_access', 'writer_deadline_percentage', 'revision_eligibility', 'style_reference_files'
         ]
         read_only_fields = [
             'id', 'client_username', 'writer_username', 'total_price', 
@@ -165,6 +167,35 @@ class OrderSerializer(serializers.ModelSerializer):
             "free_revision_until": free_until.isoformat(),
             "days_left": days_left,
         }
+    
+    def get_style_reference_files(self, obj):
+        """Get style reference files for this order."""
+        try:
+            from order_files.models import StyleReferenceFile
+            from order_files.serializers import StyleReferenceFileSerializer
+            
+            # Get style reference files visible to the current user
+            user = self.context.get('request').user if self.context.get('request') else None
+            style_refs = StyleReferenceFile.objects.filter(order=obj)
+            
+            # Filter based on user permissions
+            if user:
+                # Filter to only show files the user can access
+                style_refs = [ref for ref in style_refs if ref.can_access(user)]
+            else:
+                # If no user, return empty list
+                style_refs = []
+            
+            # Serialize the files
+            serializer = StyleReferenceFileSerializer(
+                style_refs,
+                many=True,
+                context=self.context
+            )
+            return serializer.data
+        except Exception:
+            # If there's any error (e.g., model not migrated yet), return empty list
+            return []
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

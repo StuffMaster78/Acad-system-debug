@@ -204,6 +204,10 @@ class AuthenticationViewSet(viewsets.ViewSet):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR
                     )
                 
+                # Set email_verified to False for new users
+                user.email_verified = False
+                user.save(update_fields=['email_verified'])
+                
                 # Handle referral code from request data or query parameters
                 referral_code = request.data.get("referral_code") or request.query_params.get("ref")
                 if referral_code:
@@ -341,6 +345,34 @@ class AuthenticationViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Check password history (prevent reuse)
+        from authentication.services.password_history_service import PasswordHistoryService
+        from websites.utils import get_current_website
+        website = get_current_website(request)
+        password_history_service = PasswordHistoryService(request.user, website)
+        
+        try:
+            password_history_service.validate_password_not_in_history(new_password)
+        except DjangoValidationError as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check password breach
+        from authentication.services.password_breach_service import PasswordBreachService
+        password_breach_service = PasswordBreachService(request.user, website)
+        breach_result = password_breach_service.check_password_breach(new_password)
+        if breach_result.get('is_breached', False):
+            breach_count = breach_result.get('breach_count', 0)
+            return Response(
+                {
+                    "error": f"This password has been found in {breach_count} data breach(es). Please choose a different password.",
+                    "breach_info": breach_result
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
         # Validate new password strength
         try:
             validate_password(new_password, user=request.user)
@@ -350,10 +382,17 @@ class AuthenticationViewSet(viewsets.ViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
         
+        # Save current password to history before changing
+        password_history_service.save_password_to_history(request.user.password)
+        
         # Update password
         try:
             request.user.set_password(new_password)
             request.user.save()
+            
+            # Update password expiration policy
+            expiration_service = PasswordExpirationService(request.user, website)
+            expiration_service.update_password_changed()
             
             # Update session to prevent logout
             update_session_auth_hash(request, request.user)

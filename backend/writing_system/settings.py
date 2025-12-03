@@ -629,7 +629,7 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': crontab(hour=8, minute=0),
     },
         'backfill-group-notification-profiles-every-night': {
-        'task': 'notifications.tasks.backfill_profiles.backfill_group_notification_profiles',
+        'task': 'notifications_system.tasks.backfill_profiles.backfill_group_notification_profiles',
         'schedule': crontab(hour=3, minute=0),  # Run at 3 AM daily
     },
 }

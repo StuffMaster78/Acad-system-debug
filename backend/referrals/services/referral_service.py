@@ -36,8 +36,14 @@ class ReferralService:
         return bool(first_order)
 
     def _get_qualifying_order(self):
-        # Order model uses 'client' field and 'is_paid' boolean field
-        return self.referral.referee.orders_as_client.filter(status='completed', is_paid=True).first()
+        """
+        Get the first approved order for the referee.
+        A client only becomes eligible for referral rewards after ordering 
+        and approving their first order to avoid abuse.
+        """
+        # Order model uses 'client' field
+        # Check for approved status - this means the client has approved their first order
+        return self.referral.referee.orders_as_client.filter(status='approved').first()
     
     def get_referral_link(self):
         """Dynamically generates a referral link."""
@@ -91,8 +97,10 @@ class ReferralService:
         if not order_client or order_client != self.referral.referee:
             return Decimal('0.00')
 
-        previous_orders = order_client.orders_as_client.exclude(id=order.id).filter(status='completed')
-        if previous_orders.exists():
+        # Check if this is truly the first order (no previous approved orders)
+        # A client only becomes eligible after approving their first order
+        previous_approved_orders = order_client.orders_as_client.exclude(id=order.id).filter(status='approved')
+        if previous_approved_orders.exists():
             return Decimal('0.00')
 
         if self.config.first_order_discount_type == 'percentage':
@@ -143,8 +151,10 @@ class ReferralService:
         if not order_client or order_client != self.referral.referee:
             return Decimal('0.00')
 
-        previous_orders = order_client.orders_as_client.exclude(id=order.id).filter(status='completed')
-        if previous_orders.exists():
+        # Check if this is truly the first order (no previous approved orders)
+        # A client only becomes eligible after approving their first order
+        previous_approved_orders = order_client.orders_as_client.exclude(id=order.id).filter(status='approved')
+        if previous_approved_orders.exists():
             return Decimal('0.00')
 
         if self.config.first_order_discount_type == 'percentage':

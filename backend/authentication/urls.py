@@ -21,7 +21,8 @@ from authentication.views import (
     admin_account_unlock_view,
     account_unlock_confirm_view,
     auth_viewset,
-    password_reset_views
+    password_reset_views,
+    security_features_viewset
 )
 
 router = DefaultRouter()
@@ -74,6 +75,41 @@ router.register(
     r"magic-link-verification",
     magic_links_viewsets.MagicLinkVerifyViewSet,
     basename="magic-link-verify"
+)
+
+# Security Features
+router.register(
+    r"security/password",
+    security_features_viewset.PasswordSecurityViewSet,
+    basename="password-security"
+)
+router.register(
+    r"security/account",
+    security_features_viewset.AccountSecurityViewSet,
+    basename="account-security"
+)
+router.register(
+    r"security/email-change",
+    security_features_viewset.EmailChangeViewSet,
+    basename="email-change"
+)
+router.register(
+    r"security/phone-verification",
+    security_features_viewset.PhoneVerificationViewSet,
+    basename="phone-verification"
+)
+router.register(
+    r"security/session-limits",
+    security_features_viewset.SessionLimitViewSet,
+    basename="session-limits"
+)
+
+# Security Questions
+from authentication.views.security_questions_viewset import SecurityQuestionsViewSet
+router.register(
+    r"security/questions",
+    SecurityQuestionsViewSet,
+    basename="security-questions"
 )
 # Admin account unlock
 router.register(

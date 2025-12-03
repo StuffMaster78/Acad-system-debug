@@ -68,6 +68,7 @@ from authentication.throttling import LoginRateThrottle, MagicLinkThrottle
 from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import ViewSet
 import uuid
+import pytz
 from rest_framework.exceptions import APIException
 
 logger = logging.getLogger(__name__)
@@ -530,6 +531,63 @@ class UserViewSet(viewsets.ModelViewSet):
                 "unknown"
             )
         })
+
+    @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated], url_path='update-timezone')
+    def update_timezone(self, request):
+        """
+        Update the user's timezone based on client/browser detection.
+
+        - Accepts an IANA timezone string (e.g., \"America/New_York\").
+        - Validates the timezone.
+        - Persists it on the appropriate role profile (client or writer).
+        - Also updates `detected_timezone` on the User model if present.
+        """
+        timezone_str = request.data.get('timezone')
+
+        if not timezone_str or not isinstance(timezone_str, str):
+            return Response(
+                {"error": "Field 'timezone' is required and must be a string."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        timezone_str = timezone_str.strip()
+        try:
+            # Validate that it's a known timezone
+            pytz.timezone(timezone_str)
+        except Exception:
+            return Response(
+                {"error": "Invalid timezone identifier."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user = request.user
+        updated_fields = []
+
+        # Update role-specific profiles if present
+        if hasattr(user, 'client_profile'):
+            user.client_profile.timezone = timezone_str
+            user.client_profile.save(update_fields=['timezone'])
+            updated_fields.append('client_profile')
+
+        if hasattr(user, 'writer_profile'):
+            user.writer_profile.timezone = timezone_str
+            user.writer_profile.save(update_fields=['timezone'])
+            updated_fields.append('writer_profile')
+
+        # Also update detected_timezone if the field exists on the User model
+        if hasattr(user, 'detected_timezone'):
+            user.detected_timezone = timezone_str
+            user.save(update_fields=['detected_timezone'])
+            updated_fields.append('detected_timezone')
+
+        return Response(
+            {
+                "timezone": timezone_str,
+                "updated": bool(updated_fields),
+                "updated_fields": updated_fields,
+            },
+            status=status.HTTP_200_OK,
+        )
 
     @method_decorator(ratelimit(key="user", rate="3/m", method="POST", block=True))
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAdminUser])

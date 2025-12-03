@@ -24,6 +24,10 @@ from django.contrib.auth import password_validation
 from django.core.exceptions import ValidationError
 from authentication.models.sessions import UserSession
 from authentication.models.tokens import SecureToken, SecureTokenManager
+from authentication.models.security_questions import (
+    SecurityQuestion,
+    UserSecurityQuestion,
+)
 from django.contrib.auth import authenticate
 from django.contrib.auth.tokens import default_token_generator
 from authentication.utils.jwt import decode_password_reset_token
@@ -48,6 +52,12 @@ from authentication.services.registration_token_service import (
 from rest_framework.permissions import AllowAny
 from authentication.services.totp_service import TOTPService
 from authentication.models.tokens import SecureToken, EncryptedRefreshToken
+from authentication.models.password_security import PasswordHistory, PasswordExpirationPolicy, PasswordBreachCheck
+from authentication.models.account_security import (
+    AccountSuspension, IPWhitelist, UserIPWhitelistSettings,
+    EmailChangeRequest, PhoneVerification
+)
+from authentication.models.session_limits import SessionLimitPolicy
 from authentication.models.magic_links import MagicLink
 from authentication.services.magic_link_service import MagicLinkService
 
@@ -1364,4 +1374,188 @@ class MagicLinkVerifySerializer(serializers.Serializer):
         user = service.consume_token(token)
         return user
 
+
+# Security Features Serializers
+
+class PasswordHistorySerializer(serializers.ModelSerializer):
+    """Serializer for password history."""
+    class Meta:
+        model = PasswordHistory
+        fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at']
+
+
+class PasswordExpirationPolicySerializer(serializers.ModelSerializer):
+    """Serializer for password expiration policy."""
+    expires_at = serializers.SerializerMethodField()
+    is_expired = serializers.SerializerMethodField()
+    is_expiring_soon = serializers.SerializerMethodField()
+    days_until_expiration = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PasswordExpirationPolicy
+        fields = [
+            'id', 'password_changed_at', 'expires_in_days', 'warning_days_before',
+            'is_exempt', 'last_warning_sent', 'expires_at', 'is_expired',
+            'is_expiring_soon', 'days_until_expiration'
+        ]
+        read_only_fields = ['id', 'password_changed_at', 'last_warning_sent']
+    
+    def get_expires_at(self, obj):
+        return obj.expires_at.isoformat() if obj.expires_at else None
+    
+    def get_is_expired(self, obj):
+        return obj.is_expired
+    
+    def get_is_expiring_soon(self, obj):
+        return obj.is_expiring_soon
+    
+    def get_days_until_expiration(self, obj):
+        return obj.days_until_expiration
+
+
+class PasswordBreachCheckSerializer(serializers.ModelSerializer):
+    """Serializer for password breach checks."""
+    class Meta:
+        model = PasswordBreachCheck
+        fields = [
+            'id', 'password_hash_prefix', 'is_breached', 'breach_count',
+            'checked_at', 'action_taken'
+        ]
+        read_only_fields = ['id', 'checked_at']
+
+
+class AccountSuspensionSerializer(serializers.ModelSerializer):
+    """Serializer for account suspension."""
+    class Meta:
+        model = AccountSuspension
+        fields = [
+            'id', 'is_suspended', 'suspended_at', 'suspension_reason',
+            'scheduled_reactivation', 'reactivated_at'
+        ]
+        read_only_fields = ['id', 'suspended_at', 'reactivated_at']
+
+
+class IPWhitelistSerializer(serializers.ModelSerializer):
+    """Serializer for IP whitelist entries."""
+    class Meta:
+        model = IPWhitelist
+        fields = [
+            'id', 'ip_address', 'label', 'created_at', 'last_used', 'is_active'
+        ]
+        read_only_fields = ['id', 'created_at', 'last_used']
+
+
+class UserIPWhitelistSettingsSerializer(serializers.ModelSerializer):
+    """Serializer for IP whitelist settings."""
+    class Meta:
+        model = UserIPWhitelistSettings
+        fields = [
+            'id', 'is_enabled', 'allow_emergency_bypass', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+
+class EmailChangeRequestSerializer(serializers.ModelSerializer):
+    """Serializer for email change requests."""
+    is_expired = serializers.SerializerMethodField()
+    is_valid = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    user_email = serializers.CharField(source='user.email', read_only=True)
+    approved_by_email = serializers.CharField(source='approved_by.email', read_only=True, allow_null=True)
+    
+    class Meta:
+        model = EmailChangeRequest
+        fields = [
+            'id', 'user', 'user_email', 'old_email', 'new_email', 'status', 'status_display',
+            'verified', 'old_email_confirmed', 'admin_approved', 'approved_by', 'approved_by_email',
+            'approved_at', 'rejection_reason', 'created_at', 'expires_at', 'completed_at',
+            'is_expired', 'is_valid'
+        ]
+        read_only_fields = [
+            'id', 'user', 'created_at', 'expires_at', 'completed_at',
+            'admin_approved', 'approved_by', 'approved_at'
+        ]
+    
+    def get_is_expired(self, obj):
+        return obj.is_expired
+    
+    def get_is_valid(self, obj):
+        return obj.is_valid
+
+
+class PhoneVerificationSerializer(serializers.ModelSerializer):
+    """Serializer for phone verification."""
+    is_expired = serializers.SerializerMethodField()
+    is_exhausted = serializers.SerializerMethodField()
+    attempts_remaining = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = PhoneVerification
+        fields = [
+            'id', 'phone_number', 'is_verified', 'verified_at',
+            'created_at', 'expires_at', 'attempts', 'max_attempts',
+            'is_expired', 'is_exhausted', 'attempts_remaining'
+        ]
+        read_only_fields = [
+            'id', 'verification_code', 'created_at', 'expires_at',
+            'attempts', 'verified_at'
+        ]
+    
+    def get_is_expired(self, obj):
+        return obj.is_expired
+    
+    def get_is_exhausted(self, obj):
+        return obj.is_exhausted
+    
+    def get_attempts_remaining(self, obj):
+        return max(0, obj.max_attempts - obj.attempts)
+
+
+class SessionLimitPolicySerializer(serializers.ModelSerializer):
+    """Serializer for session limit policy."""
+    active_sessions = serializers.SerializerMethodField()
+    remaining_sessions = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = SessionLimitPolicy
+        fields = [
+            'id', 'max_concurrent_sessions', 'allow_unlimited_trusted',
+            'revoke_oldest_on_limit', 'active_sessions', 'remaining_sessions',
+            'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_active_sessions(self, obj):
+        from authentication.services.session_limit_service import SessionLimitService
+        service = SessionLimitService(obj.user)
+        return service.get_active_session_count()
+    
+    def get_remaining_sessions(self, obj):
+        active = self.get_active_sessions(obj)
+        return max(0, obj.max_concurrent_sessions - active)
+
+
+class SecurityQuestionSerializer(serializers.ModelSerializer):
+    """Serializer for security questions."""
+    class Meta:
+        model = SecurityQuestion
+        fields = ['id', 'question_text', 'is_active']
+        read_only_fields = ['id']
+
+
+class UserSecurityQuestionSerializer(serializers.ModelSerializer):
+    """Serializer for user security questions."""
+    question_text = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = UserSecurityQuestion
+        fields = [
+            'id', 'question', 'custom_question', 'question_text',
+            'is_active', 'created_at', 'updated_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+    
+    def get_question_text(self, obj):
+        return obj.get_question_text()
 

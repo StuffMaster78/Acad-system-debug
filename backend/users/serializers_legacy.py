@@ -53,6 +53,7 @@ class UserDetailSerializer(serializers.ModelSerializer):
     phone_number = serializers.SerializerMethodField()
     avatar = serializers.SerializerMethodField()
     profile_picture = serializers.SerializerMethodField()
+    phone_reminder = serializers.SerializerMethodField()
     website = serializers.SlugRelatedField(
         slug_field='domain',
         read_only=True
@@ -65,7 +66,8 @@ class UserDetailSerializer(serializers.ModelSerializer):
             'phone_number', 'avatar', 'profile_picture',
             'role', 'website', 'display_avatar', 'profile_data',
             'is_available', 'is_impersonated', 'is_suspended',
-            'is_on_probation', 'is_blacklisted', 'date_joined'
+            'is_on_probation', 'is_blacklisted', 'date_joined',
+            'phone_reminder'
         ]
         read_only_fields = ['id', 'role', 'email', 'date_joined']
 
@@ -93,6 +95,12 @@ class UserDetailSerializer(serializers.ModelSerializer):
             if obj.user_main_profile.profile_picture:
                 return obj.user_main_profile.profile_picture.url
         return None
+    
+    def get_phone_reminder(self, obj):
+        """Get phone number reminder information."""
+        from users.services.phone_reminder_service import PhoneReminderService
+        service = PhoneReminderService(obj)
+        return service.get_reminder_info()
 
 class ClientProfileSerializer(serializers.ModelSerializer):
     """
@@ -444,6 +452,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     country = CountrySerializerField(required=False, allow_null=True)
     avatar_url = serializers.SerializerMethodField()
     full_bio = serializers.SerializerMethodField()
+    phone_reminder = serializers.SerializerMethodField()
     website = serializers.PrimaryKeyRelatedField(
         queryset=Website.objects.all(),
         required=False,
@@ -465,6 +474,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'bio',
             'full_bio',
             'phone_number',
+            'phone_reminder',
             'is_deleted',
             'deletion_reason',
             'date_joined',
@@ -477,6 +487,12 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_full_bio(self, obj):
         return obj.get_full_bio()
+    
+    def get_phone_reminder(self, obj):
+        """Get phone number reminder information for the user."""
+        from users.services.phone_reminder_service import PhoneReminderService
+        service = PhoneReminderService(obj.user)
+        return service.get_reminder_info()
 
 class ProfilePictureUpdateSerializer(serializers.ModelSerializer):
     """
