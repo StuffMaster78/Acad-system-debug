@@ -87,6 +87,25 @@ class Website(models.Model):
         default=False,
         help_text="Allow guest checkout without account registration"
     )
+    guest_requires_email_verification = models.BooleanField(
+        default=True,
+        help_text="Require guests to verify email before creating an order"
+    )
+    guest_max_order_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Maximum total price allowed for guest orders. Leave blank for no explicit cap."
+    )
+    guest_block_urgent_before_hours = models.PositiveIntegerField(
+        default=12,
+        help_text="Disallow guest checkout for deadlines sooner than this many hours."
+    )
+    guest_magic_link_ttl_hours = models.PositiveIntegerField(
+        default=72,
+        help_text="Lifetime of guest magic-link access tokens in hours."
+    )
 
     is_deleted = models.BooleanField(
         default=False,
@@ -359,6 +378,84 @@ class WebsiteTermsAcceptance(models.Model):
 
     def __str__(self):
         return f"{self.user} accepted v{self.terms_version} for {self.website}"
+
+
+class GuestAccessToken(models.Model):
+    """
+    Secure, scoped access token for guest clients.
+
+    - We store only a hash of the raw token.
+    - Scope can be limited to a single order or a lightweight guest dashboard.
+    """
+
+    SCOPE_ORDER = "order"
+    SCOPE_DASHBOARD = "dashboard"
+
+    SCOPE_CHOICES = [
+        (SCOPE_ORDER, "Single Order"),
+        (SCOPE_DASHBOARD, "Guest Dashboard"),
+    ]
+
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="guest_tokens",
+    )
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="guest_tokens",
+    )
+    order = models.ForeignKey(
+        "orders.Order",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="guest_tokens",
+        help_text="Optional: limit this token to a single order.",
+    )
+    token_hash = models.CharField(
+        max_length=128,
+        unique=True,
+        help_text="Hashed value of the raw guest access token.",
+    )
+    scope = models.CharField(
+        max_length=20,
+        choices=SCOPE_CHOICES,
+        default=SCOPE_ORDER,
+        help_text="Controls what the guest session can access.",
+    )
+    expires_at = models.DateTimeField(
+        help_text="When this token stops being valid.",
+    )
+    used_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When this token was last redeemed (for rotation / auditing).",
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+    )
+    created_ip = models.GenericIPAddressField(
+        null=True,
+        blank=True,
+        help_text="IP address that initiated this token.",
+    )
+    user_agent = models.TextField(
+        null=True,
+        blank=True,
+        help_text="User-agent string for additional auditing / anomaly detection.",
+    )
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["website", "user"]),
+            models.Index(fields=["website", "order"]),
+            models.Index(fields=["expires_at"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"Guest token for {self.user} on {self.website} (scope={self.scope})"
 
 # website/models.py
 class WebsiteSettings(models.Model):
