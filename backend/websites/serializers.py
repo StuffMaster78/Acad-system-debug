@@ -16,6 +16,10 @@ class WebsiteSerializer(serializers.ModelSerializer):
             "meta_title", "meta_description",
             "admin_notifications_email",
             "allow_registration", "allow_guest_checkout",
+            "guest_requires_email_verification",
+            "guest_max_order_amount",
+            "guest_block_urgent_before_hours",
+            "guest_magic_link_ttl_hours",
             "google_analytics_id", "google_search_console_id", "bing_webmaster_id",
             "is_deleted", "deleted_at",
         ]

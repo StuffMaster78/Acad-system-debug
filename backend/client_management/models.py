@@ -133,6 +133,10 @@ class ClientProfile(models.Model):
         default=True,
         help_text=_("Indicates whether the client account is active.")
     )
+    is_guest = models.BooleanField(
+        default=False,
+        help_text=_("Indicates this client was created via guest checkout and may be feature-limited.")
+    )
     is_suspended = models.BooleanField(
         default=False,
         help_text=_("Indicates whether the client account is suspended.")
