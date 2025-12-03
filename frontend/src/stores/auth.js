@@ -8,6 +8,8 @@
 import { defineStore } from 'pinia'
 import { authApi } from '@/api/auth'
 import router from '@/router'
+import usersApi from '@/api/users'
+import { detectAndStoreTimezone, getBrowserTimezone } from '@/composables/useTimezone'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -57,6 +59,26 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    async syncTimezoneWithBackend() {
+      try {
+        const timezone = await detectAndStoreTimezone()
+        if (!timezone) {
+          return
+        }
+
+        // Avoid unnecessary API calls if we already know backend uses this timezone
+        const userTimezone = this.user?.timezone || this.user?.client_timezone || this.user?.writer_timezone
+        if (userTimezone === timezone) {
+          return
+        }
+
+        await usersApi.updateTimezone(timezone)
+      } catch (error) {
+        // Non-fatal: timezone sync should never break auth flow
+        console.warn('Failed to sync timezone with backend', error)
+      }
+    },
+
     /**
      * Set authentication tokens
      */
@@ -87,6 +109,12 @@ export const useAuthStore = defineStore('auth', {
         if (user.website_id) {
           localStorage.setItem('website_id', user.website_id)
         }
+      }
+
+      // Best-effort timezone sync whenever we have a user
+      if (user) {
+        // Fire and forget
+        this.syncTimezoneWithBackend()
       }
     },
 

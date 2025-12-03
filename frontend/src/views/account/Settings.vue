@@ -100,31 +100,47 @@
           </div>
 
           <div class="form-row">
-          <div class="form-group">
-            <label class="flex items-center gap-1">
-              Country
-              <Tooltip text="Your country helps us provide localized services and comply with regional regulations." />
-            </label>
-            <input
-              v-model="profileForm.country"
-              type="text"
-              :disabled="loading"
-              placeholder="Country"
-            />
+            <div class="form-group">
+              <label class="flex items-center gap-1">
+                Country
+                <Tooltip text="Your country helps us provide localized services and comply with regional regulations." />
+              </label>
+              <input
+                v-model="profileForm.country"
+                type="text"
+                :disabled="loading"
+                placeholder="Country"
+              />
+            </div>
+
+            <div class="form-group">
+              <label class="flex items-center gap-1">
+                State/Province
+                <Tooltip text="Your state or province helps us provide more accurate regional support and services." />
+              </label>
+              <input
+                v-model="profileForm.state"
+                type="text"
+                :disabled="loading"
+                placeholder="State or Province"
+              />
+            </div>
           </div>
 
           <div class="form-group">
             <label class="flex items-center gap-1">
-              State/Province
-              <Tooltip text="Your state or province helps us provide more accurate regional support and services." />
+              Timezone
+              <Tooltip text="We use your timezone to show deadlines, schedules, and notifications in your local time." />
             </label>
             <input
-              v-model="profileForm.state"
+              v-model="profileForm.timezone"
               type="text"
               :disabled="loading"
-              placeholder="State or Province"
+              placeholder="e.g. America/New_York"
             />
-          </div>
+            <p class="help-text">
+              Detected: <strong>{{ detectedTimezone || 'Unknown' }}</strong>
+            </p>
           </div>
 
           <div v-if="error" class="error-message">{{ error }}</div>
@@ -354,8 +370,10 @@ export default {
         bio: '',
         country: '',
         state: '',
-        avatar: ''
+        avatar: '',
+        timezone: ''
       },
+      detectedTimezone: null,
       twoFAEnabled: false,
       show2FASetup: false,
       twoFASecret: null,
@@ -423,8 +441,16 @@ export default {
           bio: userData.bio || data.bio || '',
           country: userData.country || data.country || '',
           state: userData.state || data.state || '',
-          avatar: userData.avatar || data.avatar || ''
+          avatar: userData.avatar || data.avatar || '',
+          timezone: userData.timezone || data.timezone || ''
         }
+
+        // Try to infer detected timezone from existing sources
+        this.detectedTimezone =
+          data.timezone ||
+          userData.timezone ||
+          localStorage.getItem('timezone') ||
+          null
         
         // Update profileData with avatar_url if available
         const avatarUrl = userData.avatar_url || data.avatar_url
@@ -464,6 +490,7 @@ export default {
         if (this.profileForm.bio !== undefined) updateData.bio = this.profileForm.bio || null
         if (this.profileForm.country !== undefined) updateData.country = this.profileForm.country || null
         if (this.profileForm.state !== undefined) updateData.state = this.profileForm.state || null
+        if (this.profileForm.timezone !== undefined) updateData.timezone = this.profileForm.timezone || null
         if (this.profileForm.avatar) updateData.avatar = this.profileForm.avatar
         
         const response = await authApi.updateProfile(updateData)

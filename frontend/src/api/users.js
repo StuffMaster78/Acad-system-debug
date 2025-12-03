@@ -23,6 +23,9 @@ export default {
   update: (id, data) => apiClient.put(`/users/${id}/`, data),
   // Location info endpoint
   getLocationInfo: () => apiClient.get('/users/location-info/'),
+  // Timezone update – called after login / on settings change
+  updateTimezone: (timezone) =>
+    apiClient.post('/users/users/update-timezone/', { timezone }),
   // Impersonation - generate token for user
   generateImpersonationToken: (userId) => apiClient.post(`/users/${userId}/impersonate/`),
 }
