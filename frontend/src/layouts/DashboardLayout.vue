@@ -1,17 +1,17 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden">
+  <div class="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors duration-300 overflow-hidden">
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transform transition-transform duration-300 ease-in-out',
+        'fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-[#111111] border-r border-gray-200 dark:border-gray-800 transform transition-all duration-300 ease-in-out',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         'lg:translate-x-0'
       ]"
     >
       <div class="flex flex-col h-full">
         <!-- Logo -->
-        <div class="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-          <h1 class="text-xl font-bold text-primary-600">{{ appName }}</h1>
+        <div class="flex items-center justify-between h-16 px-6 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
+          <h1 class="text-xl font-bold text-primary-600 dark:text-primary-400 transition-colors duration-300">{{ appName }}</h1>
           <button
             @click="sidebarOpen = false"
             class="lg:hidden text-gray-500 hover:text-gray-700"
@@ -23,161 +23,202 @@
         </div>
 
         <!-- Navigation -->
-        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+        <nav class="flex-1 px-5 py-6 space-y-1 overflow-y-auto">
           <!-- Dashboard - Always at top -->
           <router-link
             to="/dashboard"
             :class="[
-              'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors mb-4',
+              'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 mb-5 group',
               $route.name === 'Dashboard' || $route.path === '/dashboard'
-                ? 'bg-primary-50 text-primary-700'
-                : 'text-gray-700 hover:bg-gray-100'
+                ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
             ]"
           >
-            <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">📊</span>
+            <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
             Dashboard
           </router-link>
 
           <!-- Place New Order Button - Prominent at top (Client) -->
-          <div v-if="authStore.isClient" class="mb-4">
+          <div v-if="authStore.isClient" class="mb-5">
             <router-link
               to="/orders/wizard"
-              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-lg transition-colors bg-primary-600 text-white hover:bg-primary-700 shadow-sm"
+              class="flex items-center justify-center w-full px-4 py-3.5 text-sm font-semibold rounded-lg transition-all duration-200 bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] shadow-sm"
             >
-              <span class="mr-2">🛒</span>
+              <svg class="w-5 h-5 mr-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
               Place New Order
               <span class="ml-2 px-2 py-0.5 text-xs bg-yellow-400 text-yellow-900 rounded-full font-bold">NEW</span>
             </router-link>
           </div>
 
           <!-- Create Order Button - Prominent at top (Admin/SuperAdmin) -->
-          <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="mb-4">
+          <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="mb-5">
             <router-link
               to="/admin/orders/create"
-              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-lg transition-colors bg-primary-600 text-white hover:bg-primary-700 shadow-sm"
+              class="flex items-center justify-center w-full px-4 py-3.5 text-sm font-semibold rounded-lg transition-all duration-200 bg-primary-600 text-white hover:bg-primary-700 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] shadow-sm"
             >
-              <span class="mr-2">➕</span>
+              <svg class="w-5 h-5 mr-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
               Create Order
               <span class="ml-2 px-2 py-0.5 text-xs bg-yellow-400 text-yellow-900 rounded-full font-bold">NEW</span>
             </router-link>
           </div>
 
           <!-- Orders section - Simplified and at top -->
-          <div v-if="authStore.isClient" class="space-y-1 mb-4">
-            <button @click="ordersOpen = !ordersOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+          <div v-if="authStore.isClient" class="space-y-1 mb-5">
+            <button @click="ordersOpen = !ordersOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm active:scale-[0.98]">
               <span class="flex items-center">
-                <span class="w-5 h-5 mr-3">📝</span>
+                <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
                 Orders
               </span>
-              <span>{{ ordersOpen ? '▾' : '▸' }}</span>
+              <ChevronIcon :is-open="ordersOpen" size="sm" class="text-gray-400" />
             </button>
-            <div v-if="ordersOpen" class="ml-6 space-y-1">
+            <div v-if="ordersOpen" class="ml-7 space-y-0.5 animate-fade-in mt-2">
               <!-- Quick Access -->
-              <router-link to="/orders" class="block px-3 py-2 text-sm rounded hover:bg-gray-100 font-medium">📋 All Orders</router-link>
-              <router-link to="/orders?is_paid=false" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">💳 Unpaid</router-link>
-              <router-link to="/orders?is_paid=true" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">✅ Paid</router-link>
-              
-              <div class="border-t my-2"></div>
-              
-              <!-- Most Common Statuses Only -->
-              <div class="px-3 py-1 text-xs font-semibold text-gray-500 uppercase tracking-wider">Quick Filters</div>
-              <router-link to="/orders?status=pending" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">⏳ Pending</router-link>
-              <router-link to="/orders?status=in_progress" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">⚙️ In Progress</router-link>
-              <router-link to="/orders?status=submitted" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">📤 Submitted</router-link>
-              <router-link to="/orders?status=completed" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">🎉 Completed</router-link>
-              <router-link to="/orders?status=revision_requested" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">🔁 Revision Requested</router-link>
-              <router-link to="/orders?status=disputed" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">⚠️ Disputed</router-link>
-              <router-link to="/orders?status=cancelled" class="block px-3 py-2 text-sm rounded hover:bg-gray-100">❌ Cancelled</router-link>
-              
-              <div class="border-t my-2"></div>
-              
-              <!-- Link to view all statuses on orders page -->
-              <router-link to="/orders" class="block px-3 py-2 text-sm rounded hover:bg-gray-100 text-primary-600 font-medium">
-                🔍 View All Statuses →
+              <router-link to="/orders" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
+                  <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View all your orders" />
+                      All Orders
+              </router-link>
+              <router-link to="/orders?is_paid=false" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
+                <SidebarIcon icon-name="credit-card" size="sm" icon-class="text-gray-500 group-hover:text-orange-600 mr-3" tooltip="Orders awaiting payment" />
+                Unpaid
+              </router-link>
+              <router-link to="/orders?is_paid=true" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
+                <SidebarIcon icon-name="check-circle" size="sm" icon-class="text-gray-500 group-hover:text-green-600 mr-3" tooltip="Paid orders" />
+                Paid
               </router-link>
               
-              <div class="border-t my-2"></div>
+              <div class="border-t border-gray-200 dark:border-gray-700 my-3"></div>
+              
+              <!-- Most Common Statuses Only -->
+              <div class="px-3 py-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Quick Filters</div>
+              <router-link to="/orders?status=pending" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
+                <SidebarIcon icon-name="clock" size="sm" icon-class="text-gray-500 group-hover:text-yellow-600 mr-3" tooltip="Pending orders" />
+                Pending
+              </router-link>
+              <router-link to="/orders?status=in_progress" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+                <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-500 group-hover:text-blue-600 mr-3 animate-spin-slow" tooltip="Orders in progress" />
+                In Progress
+              </router-link>
+              <router-link to="/orders?status=submitted" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+                <SidebarIcon icon-name="paper-airplane" size="sm" icon-class="text-gray-500 group-hover:text-indigo-600 mr-3" tooltip="Submitted orders" />
+                Submitted
+              </router-link>
+              <router-link to="/orders?status=completed" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+                <SidebarIcon icon-name="check-circle" size="sm" icon-class="text-gray-500 group-hover:text-green-600 mr-3" tooltip="Completed orders" />
+                Completed
+              </router-link>
+              <router-link to="/orders?status=revision_requested" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+                <SidebarIcon icon-name="arrow-left" size="sm" icon-class="text-gray-500 group-hover:text-orange-600 mr-3" tooltip="Orders requiring revision" />
+                Revision Requested
+              </router-link>
+              <router-link to="/orders?status=disputed" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+                <SidebarIcon icon-name="exclamation-triangle" size="sm" icon-class="text-gray-500 group-hover:text-red-600 mr-3" tooltip="Disputed orders" />
+                Disputed
+              </router-link>
+              <router-link to="/orders?status=cancelled" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+                <SidebarIcon icon-name="ban" size="sm" icon-class="text-gray-500 group-hover:text-gray-600 mr-3" tooltip="Cancelled orders" />
+                Cancelled
+              </router-link>
+              
+              <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+              
+              <!-- Link to view all statuses on orders page -->
+              <router-link to="/orders" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-primary-50 hover:translate-x-1 text-primary-600 font-medium group">
+                <SidebarIcon icon-name="search" size="sm" icon-class="text-primary-600 mr-3" tooltip="View all order statuses" />
+                View All Statuses
+                <SidebarIcon icon-name="arrow-right" size="sm" icon-class="text-primary-600 ml-auto" />
+              </router-link>
+              
+              <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
               
               <!-- Order Templates -->
-              <router-link to="/orders/templates" class="block px-3 py-2 text-sm rounded hover:bg-gray-100 font-medium text-primary-600">
-                📋 Order Templates
+              <router-link to="/orders/templates" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-primary-50 hover:translate-x-1 font-medium text-primary-600 group">
+                <SidebarIcon icon-name="template" size="sm" icon-class="text-primary-600 mr-3" tooltip="Manage order templates" />
+                  Order Templates
               </router-link>
             </div>
           </div>
 
           <!-- Client Account section (Wallet, Referrals, Loyalty) -->
-          <div v-if="authStore.isClient" class="space-y-1 mb-4 pb-4 border-b border-gray-200">
-            <div class="px-4 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Account</div>
+          <div v-if="authStore.isClient" class="space-y-1 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">Account</div>
             <router-link
               to="/wallet"
               :class="[
-                'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
+                'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
                 $route.name === 'Wallet'
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
               ]"
             >
-              <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">💼</span>
+              <SidebarIcon icon-name="wallet" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Manage your wallet and balance" />
               My Wallet
             </router-link>
             <router-link
               to="/referrals"
               :class="[
-                'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
+                'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
                 $route.name === 'Referrals'
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
               ]"
             >
-              <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">🎁</span>
+              <SidebarIcon icon-name="gift" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Refer friends and earn rewards" />
               Referrals
             </router-link>
             <router-link
               to="/loyalty"
               :class="[
-                'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
+                'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
                 $route.name === 'Loyalty'
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
               ]"
             >
-              <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">⭐</span>
+              <SidebarIcon icon-name="star" size="md" icon-class="text-gray-600 group-hover:text-yellow-500" tooltip="View loyalty points and rewards" />
               Loyalty Program
             </router-link>
             <router-link
               to="/discounts"
               :class="[
-                'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
+                'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
                 $route.name === 'ClientDiscounts'
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
               ]"
             >
-              <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">🎟️</span>
+              <SidebarIcon icon-name="discount" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Available discounts and coupons" />
               Discounts
             </router-link>
             <router-link
               to="/account/privacy"
               :class="[
-                'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
+                'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
                 $route.name === 'PrivacySettings'
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
               ]"
             >
-              <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">🔒</span>
+              <SidebarIcon icon-name="shield" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Privacy and security settings" />
               Privacy & Security
             </router-link>
             <router-link
               to="/account/security"
               :class="[
-                'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
+                'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
                 $route.name === 'SecurityActivity'
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
               ]"
             >
-              <span class="w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none">🛡️</span>
+              <SidebarIcon icon-name="shield" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="View security and activity logs" />
               Security Activity
             </router-link>
           </div>
@@ -186,148 +227,239 @@
           <template v-if="authStore.isWriter">
             <!-- Orders Group -->
             <div class="space-y-1 mb-4">
-              <button @click="writerOrdersOpen = !writerOrdersOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+              <button @click="writerOrdersOpen = !writerOrdersOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">📝</span>
+                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
                   Orders
                 </span>
-                <span>{{ writerOrdersOpen ? '▾' : '▸' }}</span>
+                <ChevronIcon :is-open="writerOrdersOpen" size="sm" class="text-gray-400" />
               </button>
-              <div v-if="writerOrdersOpen" class="ml-6 space-y-1">
+              <div v-if="writerOrdersOpen" class="ml-6 space-y-1 animate-fade-in">
                 <router-link
                   to="/writer/orders"
-                  class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                  class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                   :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/orders')}"
                 >
-                  📋 My Orders
+                  <SidebarIcon icon-name="clipboard" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View all your orders" />
+                  My Orders
                 </router-link>
                 <router-link
                   to="/writer/queue"
-                  class="flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-gray-100"
+                  class="flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                   :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/queue')}"
                 >
-                  <span>📋 Order Queue</span>
+                  <div class="flex items-center">
+                    <SidebarIcon icon-name="clipboard" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Available orders in queue" />
+                    Order Queue
+                  </div>
                   <span
                     v-if="writerQueueCounts.available + writerQueueCounts.preferred > 0"
-                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800"
+                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 animate-pulse"
                   >
                     {{ writerQueueCounts.available + writerQueueCounts.preferred }}
                   </span>
                 </router-link>
                 <router-link
                   to="/writer/order-requests"
-                  class="flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-gray-100"
+                  class="flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                   :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/order-requests')}"
                 >
-                  <span>📋 Order Requests</span>
+                  <div class="flex items-center">
+                    <SidebarIcon icon-name="clipboard" size="sm" icon-class="text-gray-500 group-hover:text-indigo-600 mr-3" tooltip="Order requests from clients" />
+                    Order Requests
+                  </div>
                   <span
                     v-if="writerQueueCounts.requests > 0"
-                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800"
+                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800 animate-pulse"
                   >
                     {{ writerQueueCounts.requests }}
                   </span>
                 </router-link>
                 <router-link
                   to="/writer/orders?status=revision_requested"
-                  class="flex items-center justify-between px-3 py-2 text-sm rounded hover:bg-gray-100"
+                  class="flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                   :class="{'bg-primary-50 text-primary-700 font-medium': $route.query.status === 'revision_requested'}"
                 >
-                  <span>⚠️ Revision Requests</span>
+                  <div class="flex items-center">
+                    <SidebarIcon icon-name="exclamation-triangle" size="sm" icon-class="text-gray-500 group-hover:text-amber-600 mr-3" tooltip="Orders requiring revision" />
+                    Revision Requests
+                  </div>
                   <span
                     v-if="writerRevisionRequestsCount > 0"
-                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800"
+                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 animate-pulse"
                   >
                     {{ writerRevisionRequestsCount }}
                   </span>
                 </router-link>
-                <router-link to="/writer/workload" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/workload')}">⚖️ Workload & Capacity</router-link>
-                <router-link to="/writer/calendar" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/calendar')}">📅 Deadline Calendar</router-link>
-                <router-link to="/writer/deadline-extensions" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/deadline-extensions')}">⏰ Deadline Extensions</router-link>
-                <router-link to="/writer/order-holds" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/order-holds')}">🛑 Hold Requests</router-link>
+                <router-link to="/writer/workload" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/workload')}">
+                  <SidebarIcon icon-name="scale" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage workload and capacity" />
+                  Workload & Capacity
+                </router-link>
+                <router-link to="/writer/calendar" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/calendar')}">
+                  <SidebarIcon icon-name="calendar" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View deadline calendar" />
+                  Deadline Calendar
+                </router-link>
+                <router-link to="/writer/deadline-extensions" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/deadline-extensions')}">
+                  <SidebarIcon icon-name="clock-alarm" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Request deadline extensions" />
+                  Deadline Extensions
+                </router-link>
+                <router-link to="/writer/order-holds" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/order-holds')}">
+                  <SidebarIcon icon-name="stop" size="sm" icon-class="text-gray-500 group-hover:text-red-600 mr-3" tooltip="Request order holds" />
+                  Hold Requests
+                </router-link>
               </div>
             </div>
 
             <!-- Finances Group -->
             <div class="space-y-1 mb-4">
-              <button @click="writerFinancesOpen = !writerFinancesOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+              <button @click="writerFinancesOpen = !writerFinancesOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">💰</span>
+                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
                   Finances
                 </span>
-                <span>{{ writerFinancesOpen ? '▾' : '▸' }}</span>
+                <ChevronIcon :is-open="writerFinancesOpen" size="sm" class="text-gray-400" />
               </button>
-              <div v-if="writerFinancesOpen" class="ml-6 space-y-1">
-                <router-link to="/writer/payments" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payments')}">💳 Payments</router-link>
-                <router-link to="/writer/payment-request" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payment-request')}">💳 Payment Requests</router-link>
-                <router-link to="/writer/advance-payments" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/advance-payments')}">💸 Advance Payments</router-link>
-                <router-link to="/writer/tips" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tips')}">💰 Tips</router-link>
-                <router-link to="/writer/fines" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-red-50 text-red-700 font-medium': $route.path.startsWith('/writer/fines')}">🚫 Fines & Appeals</router-link>
+              <div v-if="writerFinancesOpen" class="ml-6 space-y-1 animate-fade-in">
+                <router-link to="/writer/payments" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payments')}">
+                  <SidebarIcon icon-name="credit-card" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View payment history" />
+                  Payments
+                </router-link>
+                <router-link to="/writer/payment-request" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payment-request')}">
+                  <SidebarIcon icon-name="credit-card" size="sm" icon-class="text-gray-500 group-hover:text-indigo-600 mr-3" tooltip="Request payments" />
+                  Payment Requests
+                </router-link>
+                <router-link to="/writer/advance-payments" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/advance-payments')}">
+                  <SidebarIcon icon-name="dollar-sign" size="sm" icon-class="text-gray-500 group-hover:text-green-600 mr-3" tooltip="Request advance payments" />
+                  Advance Payments
+                </router-link>
+                <router-link to="/writer/tips" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tips')}">
+                  <SidebarIcon icon-name="star" size="sm" icon-class="text-gray-500 group-hover:text-yellow-500 mr-3" tooltip="View tips received" />
+                  Tips
+                </router-link>
+                <router-link to="/writer/fines" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-red-50 hover:translate-x-1 group" :class="{'bg-red-50 text-red-700 font-medium': $route.path.startsWith('/writer/fines')}">
+                  <SidebarIcon icon-name="ban" size="sm" icon-class="text-gray-500 group-hover:text-red-600 mr-3" tooltip="View fines and submit appeals" />
+                  Fines & Appeals
+                </router-link>
               </div>
             </div>
 
             <!-- Reviews & Ratings Group -->
             <div class="space-y-1 mb-4">
-              <button @click="writerReviewsOpen = !writerReviewsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+              <button @click="writerReviewsOpen = !writerReviewsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">⭐</span>
+                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
                   Reviews & Ratings
                 </span>
-                <span>{{ writerReviewsOpen ? '▾' : '▸' }}</span>
+                <ChevronIcon :is-open="writerReviewsOpen" size="sm" class="text-gray-400" />
               </button>
-              <div v-if="writerReviewsOpen" class="ml-6 space-y-1">
-                <router-link to="/writer/reviews" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/reviews')}">⭐ My Reviews</router-link>
-                <router-link to="/writer/performance" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/performance')}">📊 Performance</router-link>
-                <router-link to="/writer/badges" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/badges')}">🏆 Badges</router-link>
-                <router-link to="/writer/badge-analytics" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/badge-analytics')}">📈 Badge Analytics</router-link>
-                <router-link to="/writer/level-details" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/level-details')}">🏅 Level Details</router-link>
+              <div v-if="writerReviewsOpen" class="ml-6 space-y-1 animate-fade-in">
+                <router-link to="/writer/reviews" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/reviews')}">
+                  <SidebarIcon icon-name="star" size="sm" icon-class="text-gray-500 group-hover:text-yellow-500 mr-3" tooltip="View your reviews" />
+                  My Reviews
+                </router-link>
+                <router-link to="/writer/performance" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/performance')}">
+                  <SidebarIcon icon-name="presentation-chart" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Performance metrics" />
+                      Performance
+                    </router-link>
+                    <router-link to="/writer/badges" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/badges')}">
+                      <SidebarIcon icon-name="badge-check" size="sm" icon-class="text-gray-500 group-hover:text-yellow-600 mr-3" tooltip="View earned badges" />
+                      Badges
+                    </router-link>
+                    <router-link to="/writer/badge-analytics" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/badge-analytics')}">
+                      <SidebarIcon icon-name="fire" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Badge analytics and insights" />
+                      Badge Analytics
+                    </router-link>
+                    <router-link to="/writer/level-details" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/level-details')}">
+                      <SidebarIcon icon-name="academic-cap" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Writer level details" />
+                      Level Details
+                </router-link>
               </div>
             </div>
 
             <!-- User Management Group -->
             <div class="space-y-1 mb-4">
-              <button @click="writerUserManagementOpen = !writerUserManagementOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+              <button @click="writerUserManagementOpen = !writerUserManagementOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">👤</span>
+                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
                   User Management
                 </span>
-                <span>{{ writerUserManagementOpen ? '▾' : '▸' }}</span>
+                <ChevronIcon :is-open="writerUserManagementOpen" size="sm" class="text-gray-400" />
               </button>
-              <div v-if="writerUserManagementOpen" class="ml-6 space-y-1">
-                <router-link to="/writer/profile-settings" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/profile-settings')}">⚙️ Profile Settings</router-link>
-                <router-link to="/writer/pen-name" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/pen-name')}">✏️ Pen Name Management</router-link>
-                <router-link to="/writer/resources" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/resources')}">📚 Resources & Guides</router-link>
+              <div v-if="writerUserManagementOpen" class="ml-6 space-y-1 animate-fade-in">
+                <router-link to="/writer/profile-settings" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/profile-settings')}">
+                  <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage profile settings" />
+                  Profile Settings
+                </router-link>
+                <router-link to="/writer/pen-name" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/pen-name')}">
+                  <SidebarIcon icon-name="pencil" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage pen names" />
+                  Pen Name Management
+                </router-link>
+                <router-link to="/writer/resources" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/resources')}">
+                  <SidebarIcon icon-name="book" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Resources and guides" />
+                  Resources & Guides
+                </router-link>
               </div>
             </div>
 
             <!-- Activity Group -->
             <div class="space-y-1 mb-4">
-              <button @click="writerActivityOpen = !writerActivityOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+              <button @click="writerActivityOpen = !writerActivityOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">📊</span>
+                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                   Activity
                 </span>
-                <span>{{ writerActivityOpen ? '▾' : '▸' }}</span>
+                <ChevronIcon :is-open="writerActivityOpen" size="sm" class="text-gray-400" />
               </button>
-              <div v-if="writerActivityOpen" class="ml-6 space-y-1">
-                <router-link to="/writer/dashboard-summary" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/dashboard-summary')}">📊 Dashboard Summary</router-link>
-                <router-link to="/writer/communications" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/communications')}">💬 Communications</router-link>
-                <router-link to="/writer/tickets" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tickets')}">🎫 My Tickets</router-link>
-                <router-link to="/activity" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/activity')}">📊 Activity Logs</router-link>
+              <div v-if="writerActivityOpen" class="ml-6 space-y-1 animate-fade-in">
+                <router-link to="/writer/dashboard-summary" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/dashboard-summary')}">
+                  <SidebarIcon icon-name="view-grid" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Dashboard summary" />
+                      Dashboard Summary
+                    </router-link>
+                    <router-link to="/writer/communications" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/communications')}">
+                      <SidebarIcon icon-name="inbox" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Communications" />
+                      Communications
+                    </router-link>
+                    <router-link to="/writer/tickets" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tickets')}">
+                      <SidebarIcon icon-name="ticket" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Support tickets" />
+                      My Tickets
+                    </router-link>
+                    <router-link to="/activity" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/activity')}">
+                      <SidebarIcon icon-name="table" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Activity logs" />
+                      Activity Logs
+                </router-link>
               </div>
             </div>
 
             <!-- Discipline Group -->
             <div class="space-y-1 mb-4">
-              <button @click="writerDisciplineOpen = !writerDisciplineOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100">
+              <button @click="writerDisciplineOpen = !writerDisciplineOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
                 <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">⚖️</span>
+                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                  </svg>
                   Discipline
                 </span>
-                <span>{{ writerDisciplineOpen ? '▾' : '▸' }}</span>
+                <ChevronIcon :is-open="writerDisciplineOpen" size="sm" class="text-gray-400" />
               </button>
-              <div v-if="writerDisciplineOpen" class="ml-6 space-y-1">
-                <router-link to="/writer/discipline-status" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/discipline-status')}">📜 Status & History</router-link>
-                <router-link to="/writer/tickets" class="block px-3 py-2 text-sm rounded hover:bg-gray-100" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tickets')}">📝 Submit Appeal</router-link>
+              <div v-if="writerDisciplineOpen" class="ml-6 space-y-1 animate-fade-in">
+                <router-link to="/writer/discipline-status" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/discipline-status')}">
+                  <SidebarIcon icon-name="scroll" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Discipline status and history" />
+                  Status & History
+                </router-link>
+                <router-link to="/writer/tickets" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tickets')}">
+                  <SidebarIcon icon-name="annotation" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Submit an appeal" />
+                      Submit Appeal
+                </router-link>
               </div>
             </div>
           </template>
@@ -347,45 +479,52 @@
                 <div class="space-y-1">
                   <button 
                     @click="adminGroups.orders = !adminGroups.orders" 
-                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100"
+                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                   >
                 <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">📝</span>
+                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
                   Orders
                 </span>
-                    <span class="text-xs">{{ adminGroups.orders ? '▾' : '▸' }}</span>
+                    <ChevronIcon :is-open="adminGroups.orders" size="sm" class="text-gray-400" />
               </button>
-                  <div v-if="adminGroups.orders" class="ml-6 space-y-1">
+                  <div v-if="adminGroups.orders" class="ml-7 space-y-0.5 animate-fade-in mt-2">
                     <router-link 
                       to="/admin/orders" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
-                      :class="isRouteActive({ to: '/admin/orders' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
+                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
+                      :class="isRouteActive({ to: '/admin/orders' }) ? 'bg-primary-50 text-primary-700 font-semibold' : ''"
                     >
-                      📋 All Orders
+                      <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View all orders" />
+                      All Orders
                     </router-link>
                     <router-link 
                       to="/admin/orders?status=pending" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
                     >
-                      ⏳ Pending
+                      <SidebarIcon icon-name="clock" size="sm" icon-class="text-gray-500 group-hover:text-yellow-600 mr-3" tooltip="Pending orders" />
+                      Pending
                     </router-link>
                     <router-link 
                       to="/admin/orders?status=in_progress" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
                     >
-                      ⚙️ In Progress
+                      <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-500 group-hover:text-blue-600 mr-3 animate-spin-slow" tooltip="Orders in progress" />
+                      In Progress
                     </router-link>
                     <router-link 
                       to="/admin/orders?status=completed" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
                     >
-                      ✅ Completed
+                      <SidebarIcon icon-name="clipboard-check" size="sm" icon-class="text-gray-500 group-hover:text-green-600 mr-3" tooltip="Completed orders" />
+                      Completed
                     </router-link>
                     <router-link 
                       to="/admin/orders?status=disputed" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
                     >
-                      ⚠️ Disputed
+                      <SidebarIcon icon-name="exclamation-triangle" size="sm" icon-class="text-gray-500 group-hover:text-red-600 mr-3" tooltip="Disputed orders" />
+                      Disputed
                 </router-link>
               </div>
             </div>
@@ -394,13 +533,13 @@
                 <router-link
                   to="/admin/special-orders"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed',
                     isRouteActive({ to: '/admin/special-orders' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">⭐</span>
+                  <SidebarIcon icon-name="sparkles" size="md" icon-class="text-gray-600 group-hover:text-yellow-500" tooltip="Manage special orders" />
                   Special Orders
                 </router-link>
                 
@@ -408,52 +547,60 @@
                 <div class="space-y-1">
                   <button 
                     @click="adminGroups.users = !adminGroups.users" 
-                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100"
+                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm active:scale-[0.98]"
                   >
                 <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">👥</span>
+                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                  </svg>
                   Users
                 </span>
-                    <span class="text-xs">{{ adminGroups.users ? '▾' : '▸' }}</span>
+                    <ChevronIcon :is-open="adminGroups.users" size="sm" class="text-gray-400" />
               </button>
-                  <div v-if="adminGroups.users" class="ml-6 space-y-1">
+                  <div v-if="adminGroups.users" class="ml-6 space-y-1 animate-fade-in">
                     <router-link 
                       to="/admin/users" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                       :class="isRouteActive({ to: '/admin/users' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
                     >
+                      <SidebarIcon icon-name="users" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View all users" />
                       All Users
                     </router-link>
                     <router-link 
                       to="/admin/users?role=client" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
-                      👤 Clients
+                      <SidebarIcon icon-name="user" size="sm" icon-class="text-gray-500 group-hover:text-blue-600 mr-3" tooltip="Client users" />
+                      Clients
                     </router-link>
                     <router-link 
                       to="/admin/users?role=writer" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
-                      ✍️ Writers
+                      <SidebarIcon icon-name="pencil" size="sm" icon-class="text-gray-500 group-hover:text-green-600 mr-3" tooltip="Writer users" />
+                      Writers
                     </router-link>
                     <router-link 
                       to="/admin/users?role=editor" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
-                      📝 Editors
+                      <SidebarIcon icon-name="pencil" size="sm" icon-class="text-gray-500 group-hover:text-indigo-600 mr-3" tooltip="Editor users" />
+                      Editors
                     </router-link>
                     <router-link 
                       to="/admin/users?role=support" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
-                      🎧 Support
+                      <SidebarIcon icon-name="headphones" size="sm" icon-class="text-gray-500 group-hover:text-yellow-600 mr-3" tooltip="Support users" />
+                      Support
                     </router-link>
                     <router-link 
                       v-if="authStore.isSuperAdmin"
                       to="/admin/users?role=admin" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
-                      👔 Admins
+                      <SidebarIcon icon-name="user-circle" size="sm" icon-class="text-gray-500 group-hover:text-purple-600 mr-3" tooltip="Admin users" />
+                      Admins
                     </router-link>
               </div>
             </div>
@@ -462,23 +609,23 @@
               <router-link
                   to="/admin/support-tickets"
                 :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/support-tickets' })
-                    ? 'bg-primary-50 text-primary-700'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                 ]"
               >
-                  <span class="w-5 h-5 mr-3">🎫</span>
+                  <SidebarIcon icon-name="ticket" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Manage support tickets" />
                   Support Tickets
               </router-link>
               </div>
             </div>
             
             <!-- Financial Management Group -->
-            <div class="mb-6">
-              <div class="px-4 py-2 mb-2">
-                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                  <span>💰</span>
+            <div class="mb-8">
+              <div class="px-4 pt-5 pb-3 mb-4">
+                <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
+                  <SidebarIcon icon-name="wallet" size="sm" icon-class="text-gray-500 dark:text-gray-400" />
                   Financial
                 </h3>
               </div>
@@ -486,44 +633,71 @@
                 <div class="space-y-1">
                   <button 
                     @click="adminGroups.payments = !adminGroups.payments" 
-                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100"
+                    class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-[0.98]"
                   >
                 <span class="flex items-center">
-                  <span class="w-5 h-5 mr-3">💳</span>
+                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
                   Payments
                 </span>
-                    <span class="text-xs">{{ adminGroups.payments ? '▾' : '▸' }}</span>
+                    <ChevronIcon :is-open="adminGroups.payments" size="sm" class="text-gray-400" />
               </button>
-                  <div v-if="adminGroups.payments" class="ml-6 space-y-1">
-                <router-link
-                  to="/admin/payments/writer-payments"
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
-                      :class="isRouteActive({ to: '/admin/payments/writer-payments' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
+                  <div v-if="adminGroups.payments" class="ml-7 space-y-0.5 animate-fade-in mt-2">
+                    <router-link
+                      to="/admin/payments/writer-payments"
+                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
+                      :class="isRouteActive({ to: '/admin/payments/writer-payments' }) ? 'bg-primary-50 text-primary-700 font-semibold' : ''"
                     >
+                      <SidebarIcon icon-name="cash" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage writer payments" />
                       Writer Payments
                     </router-link>
                     <router-link 
-                      to="/admin/payments/batched" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      to="/admin/invoices" 
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
+                      :class="isRouteActive({ to: '/admin/invoices' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
                     >
+                      <SidebarIcon icon-name="receipt-tax" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View and manage invoices" />
+                      Invoices
+                    </router-link>
+                    <router-link 
+                      to="/admin/wallets" 
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
+                      :class="isRouteActive({ to: '/admin/wallets' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
+                    >
+                      <SidebarIcon icon-name="wallet" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage user wallets" />
+                      Wallets
+                    </router-link>
+                    <router-link 
+                      to="/admin/payments/batched" 
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
+                      :class="isRouteActive({ to: '/admin/payments/batched' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
+                    >
+                      <SidebarIcon icon-name="view-grid" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Batch payment management" />
                       Payment Management
                     </router-link>
                     <router-link 
                       to="/admin/payments/all" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
+                      :class="isRouteActive({ to: '/admin/payments/all' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
                     >
+                      <SidebarIcon icon-name="currency-dollar" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View all payments" />
                       All Payments
                     </router-link>
                     <router-link 
                       to="/admin/payments/logs" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
+                      :class="isRouteActive({ to: '/admin/payments/logs' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
                     >
+                      <SidebarIcon icon-name="archive" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Payment transaction logs" />
                       Payment Logs
                     </router-link>
                     <router-link 
                       to="/admin/financial-overview" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
+                      :class="isRouteActive({ to: '/admin/financial-overview' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
                     >
+                      <SidebarIcon icon-name="calculator" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Financial overview and analytics" />
                       Financial Overview
                     </router-link>
                   </div>
@@ -532,114 +706,114 @@
                 <router-link
                   to="/admin/refunds"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed',
                     isRouteActive({ to: '/admin/refunds' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">↩️</span>
+                  <SidebarIcon icon-name="arrow-left" size="md" icon-class="text-gray-600 group-hover:text-orange-600" tooltip="Manage refunds" />
                   Refunds
                 </router-link>
                 
                 <router-link
                   to="/admin/disputes"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/disputes' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">⚖️</span>
+                  <SidebarIcon icon-name="scale" size="md" icon-class="text-gray-600 group-hover:text-red-600" tooltip="Manage disputes" />
                   Disputes
                 </router-link>
                 
                 <router-link
                   to="/admin/tips"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/tips' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">💸</span>
+                  <SidebarIcon icon-name="dollar-sign" size="md" icon-class="text-gray-600 group-hover:text-green-600" tooltip="Manage tips" />
                   Tips
                 </router-link>
                 
                 <router-link
                   to="/admin/fines"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/fines' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🚫</span>
+                  <SidebarIcon icon-name="ban" size="md" icon-class="text-gray-600 group-hover:text-red-600" tooltip="Manage fines" />
                   Fines
                 </router-link>
                 
                 <router-link
                   to="/admin/holidays"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/holidays' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🎉</span>
+                  <SidebarIcon icon-name="star" size="md" icon-class="text-gray-600 group-hover:text-yellow-500" tooltip="Manage holidays and campaigns" />
                   Holidays & Campaigns
                 </router-link>
                 
                 <router-link
                   to="/admin/advance-payments"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/advance-payments' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">💵</span>
+                  <SidebarIcon icon-name="dollar-sign" size="md" icon-class="text-gray-600 group-hover:text-green-600" tooltip="Manage advance payments" />
                   Advance Payments
                 </router-link>
                 
                 <router-link
                   to="/admin/wallets"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/wallets' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">💼</span>
+                  <SidebarIcon icon-name="wallet" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Manage user wallets" />
                   Wallets
                 </router-link>
                 
                 <router-link
                   to="/admin/invoices"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/invoices' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📄</span>
+                  <SidebarIcon icon-name="receipt-tax" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="View and manage invoices" />
                   Invoices
                 </router-link>
               </div>
             </div>
             
             <!-- Content & Services Group -->
-            <div class="mb-6">
-              <div class="px-4 py-2 mb-2">
-                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                  <span>📝</span>
+            <div class="mb-8">
+              <div class="px-4 pt-5 pb-3 mb-4">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
+                  <SidebarIcon icon-name="newspaper" size="sm" icon-class="text-gray-500" />
                   Content & Services
                 </h3>
               </div>
@@ -647,31 +821,36 @@
                 <div class="space-y-1">
                   <button 
                     @click="adminGroups.reviews = !adminGroups.reviews" 
-                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-700 hover:bg-gray-100"
+                    class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-[0.98]"
                   >
-                <span class="flex items-center">
-                      <span class="w-5 h-5 mr-3">💬</span>
+                    <span class="flex items-center">
+                      <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
                       Reviews
-                </span>
-                    <span class="text-xs">{{ adminGroups.reviews ? '▾' : '▸' }}</span>
-              </button>
-                  <div v-if="adminGroups.reviews" class="ml-6 space-y-1">
+                    </span>
+                    <ChevronIcon :is-open="adminGroups.reviews" size="sm" class="text-gray-400" />
+                  </button>
+                  <div v-if="adminGroups.reviews" class="ml-7 space-y-0.5 animate-fade-in mt-2">
                     <router-link 
                       to="/admin/reviews" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
                     >
+                      <SidebarIcon icon-name="star" size="sm" icon-class="text-gray-500 group-hover:text-yellow-500 mr-3" tooltip="View all reviews" />
                       All Reviews
                     </router-link>
                     <router-link 
                       to="/admin/reviews/moderation" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
+                      <SidebarIcon icon-name="shield-check" size="sm" icon-class="text-gray-500 group-hover:text-blue-600 mr-3" tooltip="Review moderation" />
                       Moderation
                     </router-link>
                     <router-link 
                       to="/admin/review-aggregation" 
-                      class="block px-3 py-2 text-sm rounded hover:bg-gray-100"
+                      class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
+                      <SidebarIcon icon-name="collection" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Review aggregation" />
                       Aggregation
                     </router-link>
                   </div>
@@ -680,75 +859,126 @@
                 <router-link
                   to="/admin/class-management"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/class-management' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📚</span>
+                  <SidebarIcon icon-name="book" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Manage classes" />
                   Class Management
                 </router-link>
                 
                 <router-link
                   to="/admin/express-classes"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/express-classes' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">⚡</span>
+                  <SidebarIcon icon-name="lightning" size="md" icon-class="text-gray-600 group-hover:text-yellow-500" tooltip="Manage express classes" />
                   Express Classes
                 </router-link>
-                
+              </div>
+            </div>
+
+            <!-- Content Management Group -->
+            <div class="mb-6">
+              <button
+                @click="adminGroups.contentManagement = !adminGroups.contentManagement"
+                class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-[0.98]"
+              >
+                <span class="flex items-center">
+                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Content Management
+                </span>
+                <ChevronIcon :is-open="adminGroups.contentManagement" size="sm" class="text-gray-400" />
+              </button>
+              <div v-if="adminGroups.contentManagement" class="ml-6 space-y-1 animate-fade-in">
                 <router-link
                   to="/admin/blog"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
                     isRouteActive({ to: '/admin/blog' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                      : 'text-gray-700 dark:text-gray-300'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📝</span>
+                  <SidebarIcon icon-name="newspaper" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage blog posts" />
                   Blog Pages
                 </router-link>
-                
                 <router-link
                   to="/admin/seo-pages"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
                     isRouteActive({ to: '/admin/seo-pages' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                      : 'text-gray-700 dark:text-gray-300'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🔍</span>
-                  SEO Pages
+                  <SidebarIcon icon-name="globe" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage SEO service pages" />
+                  SEO Pages (Service)
                 </router-link>
-                
+                <router-link
+                  to="/admin/seo-pages-blocks"
+                  :class="[
+                    'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
+                    isRouteActive({ to: '/admin/seo-pages-blocks' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                      : 'text-gray-700 dark:text-gray-300'
+                  ]"
+                >
+                  <SidebarIcon icon-name="template" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage SEO landing pages" />
+                  SEO Landing Pages
+                </router-link>
+                <router-link
+                  to="/admin/blog-authors"
+                  :class="[
+                    'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
+                    isRouteActive({ to: '/admin/blog-authors' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                      : 'text-gray-700 dark:text-gray-300'
+                  ]"
+                >
+                  <SidebarIcon icon-name="identification" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage blog authors" />
+                  Blog Authors
+                </router-link>
+                <router-link
+                  to="/admin/media-library"
+                  :class="[
+                    'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
+                    isRouteActive({ to: '/admin/media-library' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                      : 'text-gray-700 dark:text-gray-300'
+                  ]"
+                >
+                  <SidebarIcon icon-name="photograph" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage media library" />
+                  Media Library
+                </router-link>
                 <router-link
                   to="/admin/files"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
                     isRouteActive({ to: '/admin/files' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                      : 'text-gray-700 dark:text-gray-300'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📁</span>
+                  <SidebarIcon icon-name="folder" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="File management" />
                   File Management
                 </router-link>
               </div>
             </div>
 
             <!-- Analytics & Reporting Group -->
-            <div class="mb-6">
-              <div class="px-4 py-2 mb-2">
-                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                  <span>📊</span>
+            <div class="mb-8">
+              <div class="px-4 pt-5 pb-3 mb-4">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
+                  <SidebarIcon icon-name="chart-bar" size="sm" icon-class="text-gray-500" />
                   Analytics
                 </h3>
               </div>
@@ -756,127 +986,153 @@
                 <router-link
                   to="/admin/advanced-analytics"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed',
                     isRouteActive({ to: '/admin/advanced-analytics' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📈</span>
+                  <SidebarIcon icon-name="trending-up" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Advanced analytics dashboard" />
                   Advanced Analytics
                 </router-link>
                 
                 <router-link
                   to="/admin/enhanced-analytics"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/enhanced-analytics' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📉</span>
+                  <SidebarIcon icon-name="presentation-chart" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Enhanced analytics dashboard" />
                   Enhanced Analytics
                 </router-link>
                 
                 <router-link
                   to="/admin/pricing-analytics"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/pricing-analytics' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">💰</span>
+                  <SidebarIcon icon-name="dollar-sign" size="md" icon-class="text-gray-600 group-hover:text-green-600" tooltip="Pricing analytics" />
                   Pricing Analytics
                 </router-link>
                 
                 <router-link
                   to="/admin/discount-analytics"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/discount-analytics' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🎟️</span>
+                  <SidebarIcon icon-name="discount" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Discount analytics" />
                   Discount Analytics
                 </router-link>
                 
                 <router-link
                   to="/admin/writer-performance"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/writer-performance' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">👤</span>
+                  <SidebarIcon icon-name="user" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Writer performance metrics" />
                   Writer Performance
                 </router-link>
                 
                 <router-link
                   to="/admin/referral-tracking"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/referral-tracking' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🎁</span>
+                  <SidebarIcon icon-name="gift" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Referral tracking and analytics" />
                   Referral Tracking
                 </router-link>
                 
                 <router-link
                   to="/admin/loyalty-tracking"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/loyalty-tracking' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">⭐</span>
+                  <SidebarIcon icon-name="star" size="md" icon-class="text-gray-600 group-hover:text-yellow-500" tooltip="Loyalty tracking and analytics" />
                   Loyalty Tracking
                 </router-link>
                 
                 <router-link
                   to="/admin/loyalty-management"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/loyalty-management' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🏆</span>
+                  <SidebarIcon icon-name="trophy" size="md" icon-class="text-gray-600 group-hover:text-yellow-600" tooltip="Loyalty program management" />
                   Loyalty Management
                 </router-link>
                 
                 <router-link
                   to="/admin/campaigns"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/campaigns' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📢</span>
+                  <SidebarIcon icon-name="megaphone" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Campaign analytics" />
                   Campaign Analytics
+                </router-link>
+                
+                <router-link
+                  to="/admin/content-metrics-report"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                    isRouteActive({ to: '/admin/content-metrics-report' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                  ]"
+                >
+                  <SidebarIcon icon-name="document-text" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Content metrics and reporting" />
+                  Content Reporting
+                </router-link>
+                
+                <router-link
+                  to="/admin/order-status-metrics"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                    isRouteActive({ to: '/admin/order-status-metrics' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                  ]"
+                >
+                  <SidebarIcon icon-name="clipboard-list" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Order status metrics and analytics" />
+                  Order Status Metrics
                 </router-link>
               </div>
             </div>
 
             <!-- System Management Group -->
-            <div class="mb-6">
-              <div class="px-4 py-2 mb-2">
-                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                  <span>⚙️</span>
+            <div class="mb-8">
+              <div class="px-4 pt-5 pb-3 mb-4">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
+                  <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-500" />
                   System
                 </h3>
               </div>
@@ -884,101 +1140,101 @@
                 <router-link
                   to="/admin/configs"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/configs' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🎛️</span>
+                  <SidebarIcon icon-name="adjustments" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="System configurations" />
                   Configurations
                 </router-link>
                 
                 <router-link
                   to="/admin/system-health"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/system-health' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🏥</span>
+                  <SidebarIcon icon-name="shield" size="md" icon-class="text-gray-600 group-hover:text-green-600" tooltip="System health monitoring" />
                   System Health
                 </router-link>
                 
                 <router-link
                   to="/admin/activity-logs"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/activity-logs' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📋</span>
+                  <SidebarIcon icon-name="table" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="View activity logs" />
                   Activity Logs
                 </router-link>
                 
                 <router-link
                   to="/admin/emails"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/emails' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📧</span>
+                  <SidebarIcon icon-name="mail" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Email management" />
                   Email Management
                 </router-link>
                 
                 <router-link
                   to="/admin/notification-profiles"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/notification-profiles' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🔔</span>
+                  <SidebarIcon icon-name="bell" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Notification profiles" />
                   Notification Profiles
                 </router-link>
                 
                 <router-link
                   to="/admin/notification-groups"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/notification-groups' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">👥</span>
+                  <SidebarIcon icon-name="users" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Notification groups" />
                   Notification Groups
                 </router-link>
                 
                 <router-link
                   to="/admin/duplicate-detection"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/duplicate-detection' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🔍</span>
+                  <SidebarIcon icon-name="search" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Duplicate content detection" />
                   Duplicate Detection
                 </router-link>
               </div>
             </div>
 
             <!-- Discipline & Appeals Group -->
-            <div class="mb-6">
-              <div class="px-4 py-2 mb-2">
-                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                  <span>⚖️</span>
+            <div class="mb-8">
+              <div class="px-4 pt-5 pb-3 mb-4">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
+                  <SidebarIcon icon-name="scale" size="sm" icon-class="text-gray-500" />
                   Discipline
                 </h3>
               </div>
@@ -986,49 +1242,62 @@
                 <router-link
                   to="/admin/writer-discipline"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/writer-discipline' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📜</span>
+                  <SidebarIcon icon-name="scroll" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Writer discipline management" />
                   Writer Discipline
                 </router-link>
                 
                 <router-link
                   to="/admin/appeals"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/appeals' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">📝</span>
+                  <SidebarIcon icon-name="annotation" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Manage appeals" />
                   Appeals
                 </router-link>
                 
                 <router-link
                   to="/admin/discipline-config"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/discipline-config' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">⚙️</span>
+                  <SidebarIcon icon-name="adjustments" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Discipline configuration" />
                   Discipline Config
+                </router-link>
+                
+                <router-link
+                  to="/admin/client-email-blacklist"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                    isRouteActive({ to: '/admin/client-email-blacklist' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                  ]"
+                >
+                  <SidebarIcon icon-name="ban" size="md" icon-class="text-gray-600 group-hover:text-red-600" tooltip="Manage blacklisted client emails" />
+                  Client Email Blacklist
                 </router-link>
               </div>
             </div>
 
             <!-- Multi-Tenant Group -->
-            <div class="mb-6">
-              <div class="px-4 py-2 mb-2">
-                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                  <span>🌐</span>
+            <div class="mb-8">
+              <div class="px-4 pt-5 pb-3 mb-4">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
+                  <SidebarIcon icon-name="home" size="sm" icon-class="text-gray-500" />
                   Multi-Tenant
                 </h3>
               </div>
@@ -1036,23 +1305,23 @@
                 <router-link
                   to="/websites"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/websites' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">🌐</span>
+                  <SidebarIcon icon-name="home" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Manage websites" />
                   Websites
                 </router-link>
               </div>
             </div>
 
             <!-- Superadmin Only -->
-            <div v-if="authStore.isSuperAdmin" class="mb-6">
-              <div class="px-4 py-2 mb-2">
-                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                  <span>👑</span>
+            <div v-if="authStore.isSuperAdmin" class="mb-8">
+              <div class="px-4 pt-5 pb-3 mb-4">
+                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
+                  <SidebarIcon icon-name="star" size="sm" icon-class="text-gray-500" />
                   Superadmin
                 </h3>
               </div>
@@ -1060,13 +1329,13 @@
                 <router-link
                   to="/admin/superadmin"
                   :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-colors',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/superadmin' })
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-700 hover:bg-gray-100'
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <span class="w-5 h-5 mr-3">👑</span>
+                  <SidebarIcon icon-name="star" size="md" icon-class="text-gray-600 group-hover:text-yellow-500" tooltip="Superadmin dashboard" />
                   Superadmin Dashboard
                 </router-link>
               </div>
@@ -1095,20 +1364,18 @@
               :key="item.name"
               :to="item.to"
               :class="[
-                'flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors',
+                'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed',
                 isRouteActive(item)
-                  ? 'bg-primary-50 text-primary-700'
-                  : 'text-gray-700 hover:bg-gray-100'
+                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
               ]"
             >
-              <span 
-                :class="[
-                  'w-5 h-5 mr-3 flex items-center justify-center text-base leading-none select-none',
-                  isRouteActive(item)
-                    ? 'opacity-100'
-                    : 'opacity-75 hover:opacity-100'
-                ]"
-              >{{ item.icon || '📋' }}</span>
+              <SidebarIcon 
+                :icon-name="getIconNameFromEmoji(item.icon)" 
+                size="md" 
+                :icon-class="isRouteActive(item) ? 'text-primary-600' : 'text-gray-600 group-hover:text-primary-600'" 
+                :tooltip="item.label"
+              />
               {{ item.label }}
             </router-link>
           </template>
@@ -1147,7 +1414,7 @@
     <!-- Main content -->
     <div class="lg:pl-64 h-screen overflow-hidden flex flex-col">
       <!-- Top bar -->
-      <header class="sticky top-0 z-40 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+      <header class="sticky top-0 z-40 bg-white dark:bg-[#111111] border-b border-gray-200 dark:border-gray-800 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
         <div class="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
           <button
             @click="sidebarOpen = !sidebarOpen"
@@ -1168,15 +1435,8 @@
                 <GlobalSearch />
               </div>
             <!-- Activity & Theme -->
-            <div class="relative">
-              <button
-                @click="toggleTheme"
-                class="mr-3 text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
-                :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-              >
-                <span v-if="isDark">🌙</span>
-                <span v-else>☀️</span>
-              </button>
+            <div class="relative flex items-center gap-3">
+              <ThemeToggle />
               <button 
                 @click="toggleActivitiesDropdown"
                 class="relative text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100 focus:outline-none"
@@ -1191,7 +1451,7 @@
               <div
                 v-if="showActivitiesDropdown"
                 ref="activitiesDropdownRef"
-                class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 max-h-96 overflow-hidden flex flex-col"
+                class="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 z-50 max-h-96 overflow-hidden flex flex-col backdrop-blur-sm"
               >
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                   <h3 class="font-semibold text-gray-900 dark:text-gray-100">Activities</h3>
@@ -1209,14 +1469,14 @@
                   <div v-if="activitiesLoading" class="flex items-center justify-center py-8">
                     <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
                   </div>
-                  <div v-else-if="recentActivities.length === 0" class="text-center py-8 text-gray-500 text-sm">
+                  <div v-else-if="recentActivities.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400 text-sm">
                     No activities
                   </div>
-                  <div v-else class="divide-y divide-gray-100">
+                  <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
                     <div
                       v-for="activity in recentActivities"
                       :key="activity.id"
-                      class="p-3 hover:bg-gray-50 transition-colors"
+                      class="p-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
                       <div class="flex items-start gap-2">
                         <div class="flex-1 min-w-0">
@@ -1227,14 +1487,14 @@
                             >
                               {{ activity.user_role || 'user' }}
                             </span>
-                            <span class="text-xs text-gray-500 truncate">
+                            <span class="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {{ activity.user_email || 'N/A' }}
                             </span>
                           </div>
-                          <p class="text-sm text-gray-900 line-clamp-2">
+                          <p class="text-sm text-gray-900 dark:text-gray-100 line-clamp-2">
                             {{ activity.display_description || activity.description || 'No description' }}
                           </p>
-                          <p class="text-xs text-gray-400 mt-1">
+                          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
                             {{ formatActivityDate(activity.timestamp || activity.formatted_timestamp) }}
                           </p>
                         </div>
@@ -1243,7 +1503,7 @@
                   </div>
                 </div>
                 
-                <div class="p-3 border-t border-gray-200 bg-gray-50">
+                <div class="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1a1a1a]">
                   <router-link
                     to="/activity"
                     @click="closeActivitiesDropdown"
@@ -1338,13 +1598,13 @@
                       <div class="flex items-start gap-2">
                         <div v-if="!notif.is_read" class="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
                         <div class="flex-1 min-w-0">
-                          <p class="text-sm font-medium text-gray-900 line-clamp-1">
+                          <p class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-1">
                             {{ notif.title }}
                           </p>
-                          <p class="text-xs text-gray-600 mt-1 line-clamp-2">
+                          <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
                             {{ notif.message }}
                           </p>
-                          <p class="text-xs text-gray-400 mt-1">
+                          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
                             {{ notif.time_ago || formatNotificationDate(notif.created_at) }}
                           </p>
                         </div>
@@ -1353,8 +1613,8 @@
                   </div>
                 </div>
                 
-                <div class="p-3 border-t border-gray-200 bg-gray-50">
-                  <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                <div class="p-3 border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-[#1a1a1a]">
+                  <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2">
                     <span>
                       <span class="font-medium">{{ unreadCount }}</span>
                       <span> unread</span>
@@ -1379,10 +1639,10 @@
             <div class="relative">
               <button
                 @click="toggleProfileDropdown"
-                class="flex items-center text-sm text-gray-700 hover:text-gray-900 focus:outline-none"
+                class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 focus:outline-none"
               >
-                <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center relative">
-                  <span class="text-primary-600 text-sm font-medium">
+                <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center relative">
+                  <span class="text-primary-600 dark:text-primary-400 text-sm font-medium">
                     {{ userInitials }}
                   </span>
                   <span 
@@ -1396,20 +1656,20 @@
               <div
                 v-if="showProfileDropdown"
                 ref="profileDropdownRef"
-                class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+                class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 z-50 backdrop-blur-sm"
               >
                 <div class="p-2">
                   <router-link
                     :to="authStore.isWriter ? '/writer/profile-settings' : '/profile'"
                     @click="closeProfileDropdown"
-                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
                     Profile Settings
                   </router-link>
                   <router-link
                     to="/notifications"
                     @click="closeProfileDropdown"
-                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg flex items-center justify-between"
+                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center justify-between"
                   >
                     <span>Notifications</span>
                     <span v-if="unreadCount > 0" class="px-2 py-0.5 text-xs font-bold text-white bg-red-600 rounded-full">
@@ -1419,28 +1679,28 @@
                   <router-link
                     to="/account/settings"
                     @click="closeProfileDropdown"
-                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
                     Settings
                   </router-link>
                   <router-link
                     to="/account/privacy"
                     @click="closeProfileDropdown"
-                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
                     Privacy & Security
                   </router-link>
                   <router-link
                     to="/account/security"
                     @click="closeProfileDropdown"
-                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
                     Security Activity
                   </router-link>
-                  <div class="border-t border-gray-200 my-1"></div>
+                  <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
                   <button
                     @click="handleLogout"
-                    class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg"
+                    class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
                   >
                     Sign Out
                   </button>
@@ -1453,7 +1713,7 @@
       </header>
 
       <!-- Page content -->
-      <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+      <main class="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
         <router-view />
       </main>
     </div>
@@ -1477,6 +1737,9 @@ import notificationsAPI from '@/api/notifications'
 import activityAPI from '@/api/activity-logs'
 import GlobalSearch from '@/components/common/GlobalSearch.vue'
 import SessionTimeoutWarning from '@/components/common/SessionTimeoutWarning.vue'
+import ChevronIcon from '@/components/common/ChevronIcon.vue'
+import SidebarIcon from '@/components/common/SidebarIcon.vue'
+import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import sessionManager from '@/services/sessionManager'
 import { useTheme } from '@/composables/useTheme'
 import writerDashboardAPI from '@/api/writer-dashboard'
@@ -1484,7 +1747,6 @@ import writerDashboardAPI from '@/api/writer-dashboard'
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
-const { isDark, toggleTheme } = useTheme()
 const sidebarOpen = ref(false)
 const ordersOpen = ref(true)
 const orderManagementOpen = ref(false)
@@ -1498,6 +1760,7 @@ const adminGroups = ref({
   users: false,
   payments: false,
   reviews: false,
+  contentManagement: false,
 })
 
 // Auto-expand admin groups based on current route
@@ -1515,6 +1778,10 @@ watch(() => route.path, (newPath) => {
     }
     if (newPath.startsWith('/admin/reviews')) {
       adminGroups.value.reviews = true
+    }
+    if (newPath.startsWith('/admin/blog') || newPath.startsWith('/admin/seo-pages') || 
+        newPath.startsWith('/admin/media-library') || newPath.startsWith('/admin/files')) {
+      adminGroups.value.contentManagement = true
     }
   }
 }, { immediate: true })
@@ -1893,6 +2160,41 @@ const navigationItems = computed(() => {
       roles: ['admin', 'superadmin'],
     },
     {
+      name: 'BlogAuthors',
+      to: '/admin/blog-authors',
+      label: 'Blog Authors',
+      icon: '🖊️',
+      roles: ['admin', 'superadmin'],
+    },
+    {
+      name: 'MediaLibrary',
+      to: '/admin/media-library',
+      label: 'Media Library',
+      icon: '🖼️',
+      roles: ['admin', 'superadmin'],
+    },
+    {
+      name: 'ContentMetricsDashboard',
+      to: '/admin/content-metrics',
+      label: 'Content Metrics',
+      icon: '📈',
+      roles: ['admin', 'superadmin'],
+    },
+    {
+      name: 'ContentMetricsReport',
+      to: '/admin/content-metrics-report',
+      label: 'Content Reporting',
+      icon: '📊',
+      roles: ['admin', 'superadmin'],
+    },
+    {
+      name: 'OrderStatusMetrics',
+      to: '/admin/order-status-metrics',
+      label: 'Order Status Metrics',
+      icon: '📋',
+      roles: ['admin', 'superadmin'],
+    },
+    {
       name: 'WalletManagement',
       to: '/admin/wallets',
       label: 'Wallet Management',
@@ -2066,6 +2368,10 @@ const updateExpandedSections = (path) => {
   }
   if (path.startsWith('/admin/configs')) {
     configsOpen.value = true
+  }
+  if (path.startsWith('/admin/blog') || path.startsWith('/admin/seo-pages') || 
+      path.startsWith('/admin/media-library') || path.startsWith('/admin/files')) {
+    adminGroups.value.contentManagement = true
   }
   // Also expand orders section for client orders
   if (path.startsWith('/orders') && authStore.isClient) {
@@ -2440,6 +2746,58 @@ const getRoleBadgeClass = (role) => {
   return classes[role?.toLowerCase()] || 'bg-gray-100 text-gray-700'
 }
 
+// Map emoji icons to SidebarIcon icon names
+const getIconNameFromEmoji = (emoji) => {
+  const emojiToIconMap = {
+    '📊': 'chart-bar',
+    '📝': 'document',
+    '📋': 'clipboard',
+    '💰': 'wallet',
+    '💳': 'credit-card',
+    '⭐': 'star',
+    '📚': 'book',
+    '⚡': 'lightning',
+    '⚖️': 'scale',
+    '💸': 'dollar-sign',
+    '🚫': 'ban',
+    '🎉': 'star',
+    '💵': 'dollar-sign',
+    '💼': 'wallet',
+    '📄': 'document',
+    '↩️': 'arrow-left',
+    '👤': 'user',
+    '👥': 'users',
+    '✍️': 'pencil',
+    '🎧': 'headphones',
+    '👔': 'user-circle',
+    '🎫': 'ticket',
+    '📈': 'trending-up',
+    '📉': 'trending-down',
+    '🏆': 'trophy',
+    '🏅': 'academic-cap',
+    '⚙️': 'cog',
+    '✏️': 'pencil',
+    '🛡️': 'shield',
+    '🛑': 'stop',
+    '⏰': 'clock-alarm',
+    '📅': 'calendar',
+    '📜': 'scroll',
+    '💬': 'chat',
+    '🎁': 'gift',
+    '🎟️': 'discount',
+    '🔒': 'shield',
+    '🔍': 'search',
+    '🌐': 'home',
+    '👑': 'star',
+    '📧': 'chat',
+    '🔔': 'chat',
+    '📢': 'chat',
+    '🏥': 'shield',
+    '🎛️': 'cog',
+  }
+  return emojiToIconMap[emoji] || 'document'
+}
+
 const handleLogout = async () => {
   closeNotificationsDropdown()
   closeActivitiesDropdown()
@@ -2523,4 +2881,118 @@ onUnmounted(() => {
   sessionManager.stop() // Stop session monitoring
 })
 </script>
+
+<style scoped>
+/* Animation for fade-in */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out;
+}
+
+/* Slow spin animation for in-progress items */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 3s linear infinite;
+}
+
+/* Improved typography and spacing */
+.sidebar-section-title {
+  letter-spacing: 0.05em;
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1.5;
+}
+
+/* Better line height for navigation items */
+nav a,
+nav button {
+  line-height: 1.6;
+}
+
+/* Improved spacing for nested items */
+.animate-fade-in {
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Better font rendering */
+nav {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "kern" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Improved readability for small text */
+.text-xs {
+  font-size: 0.6875rem; /* 11px */
+  line-height: 1.5;
+}
+
+/* Better spacing for section dividers */
+.border-t {
+  border-top-width: 1px;
+}
+
+/* Smooth transitions for sidebar items */
+.sidebar-item {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-item:hover {
+  transform: translateX(2px);
+}
+
+/* Improved spacing for nested items */
+.sidebar-nested {
+  margin-left: 1.5rem;
+  padding-left: 0.5rem;
+  border-left: 2px solid transparent;
+  transition: border-color 0.2s;
+}
+
+.sidebar-nested:hover {
+  border-left-color: rgb(59 130 246);
+}
+
+/* Enhanced visual hierarchy */
+.sidebar-section-title {
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(107 114 128);
+  margin-bottom: 0.5rem;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+</style>
 
