@@ -42,6 +42,17 @@ from .analytics_models import (
     BlogPostAnalytics,
     ContentPerformanceMetrics,
 )
+from .editor_usage_tracking import (
+    EditorSession,
+    EditorAction,
+    EditorProductivityMetrics,
+)
+from .collaborative_editing import (
+    CollaborativeSession,
+    CollaborativeEditor,
+    CollaborativeChange,
+    CollaborativePresence,
+)
 from .security_models import (
     PreviewTokenRateLimit,
     AuditTrail,
@@ -124,6 +135,8 @@ __all__ = [
     'BlogPostRevision', 'BlogPostAutoSave', 'BlogPostEditLock', 'BlogPostPreview',
     'BlogPostWorkflow', 'BlogPostReviewComment', 'WorkflowTransition', 'ContentTemplate', 'ContentSnippet',
     'EditorAnalytics', 'BlogPostAnalytics', 'ContentPerformanceMetrics',
+    'EditorSession', 'EditorAction', 'EditorProductivityMetrics',
+    'CollaborativeSession', 'CollaborativeEditor', 'CollaborativeChange', 'CollaborativePresence',
     'PreviewTokenRateLimit', 'AuditTrail',
     # Legacy models from _legacy_models.py
     'BlogCategory', 'BlogTag', 'BlogResource', 'BlogFAQ', 'AuthorProfile',

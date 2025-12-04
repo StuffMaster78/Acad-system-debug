@@ -6,6 +6,7 @@ import logging
 from typing import Optional
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from authentication.models.account_security import AccountSuspension
 from authentication.models.login import LoginSession
 from websites.utils import get_current_website
@@ -30,14 +31,37 @@ class AccountSuspensionService:
         if not self.website:
             raise ValueError("Website context required for account suspension")
         
-        suspension, created = AccountSuspension.objects.get_or_create(
-            user=self.user,
-            website=self.website,
-            defaults={
-                'is_suspended': False,
-            }
-        )
-        return suspension
+        # Since AccountSuspension has OneToOneField on user, there can only be one per user
+        # Try to get existing record first (by user only, since that's the unique constraint)
+        try:
+            suspension = AccountSuspension.objects.get(user=self.user)
+            # Update website if it changed (though this shouldn't happen often)
+            if suspension.website != self.website:
+                suspension.website = self.website
+                suspension.save(update_fields=['website'])
+            return suspension
+        except AccountSuspension.DoesNotExist:
+            # Record doesn't exist, try to create it
+            try:
+                suspension = AccountSuspension.objects.create(
+                    user=self.user,
+                    website=self.website,
+                    is_suspended=False,
+                )
+                return suspension
+            except IntegrityError:
+                # Race condition: another request created it between our get() and create()
+                # The IntegrityError means the record exists (unique constraint violation)
+                # Retry the get - we need to refresh from a new transaction
+                logger.warning(f"Race condition detected for AccountSuspension (user={self.user.id}), retrying get")
+                # Get the record in a new transaction (the failed transaction was rolled back)
+                # Since IntegrityError occurred, the record must exist
+                suspension = AccountSuspension.objects.get(user=self.user)
+                # Update website if needed
+                if suspension.website != self.website:
+                    suspension.website = self.website
+                    suspension.save(update_fields=['website'])
+                return suspension
     
     def suspend(self, reason: str = "", scheduled_reactivation=None):
         """

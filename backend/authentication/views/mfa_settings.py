@@ -24,7 +24,7 @@ class MFASettingsView(APIView):
         return Response(serializer.data)
 
     def put(self, request, *args, **kwargs):
-        mfa_settings, _ = MFASettings.objects.get_or_create(user=request.user)
+        mfa_settings, _ = MFASettings.get_or_create_for_user(request.user)
         serializer = MFASettingsSerializer(mfa_settings, data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -32,7 +32,7 @@ class MFASettingsView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     def patch(self, request, *args, **kwargs):
-        mfa_settings, _ = MFASettings.objects.get_or_create(user=request.user)
+        mfa_settings, _ = MFASettings.get_or_create_for_user(request.user)
         serializer = MFASettingsSerializer(mfa_settings, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()

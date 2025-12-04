@@ -2,6 +2,10 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.utils import timezone
+from django.db import IntegrityError
+import logging
+
+logger = logging.getLogger(__name__)
 
 class MFASettings(models.Model):
     """
@@ -125,13 +129,34 @@ class MFASettings(models.Model):
         if not website:
             raise ValueError("User must have a website associated for MFA settings.")
         
-        mfa_settings, created = cls.objects.get_or_create(
-            user=user,
-            defaults={'website': website}
-        )
-        # Ensure website is set even if object already exists
-        if mfa_settings.website != website:
-            mfa_settings.website = website
-            mfa_settings.save(update_fields=['website'])
-        
-        return mfa_settings, created
+        # Since MFASettings has OneToOneField on user, there can only be one per user
+        # Try to get existing record first (by user only, since that's the unique constraint)
+        try:
+            mfa_settings = cls.objects.get(user=user)
+            created = False
+            # Update website if it changed (though this shouldn't happen often)
+            if mfa_settings.website != website:
+                mfa_settings.website = website
+                mfa_settings.save(update_fields=['website'])
+            return mfa_settings, created
+        except cls.DoesNotExist:
+            # Record doesn't exist, try to create it
+            try:
+                mfa_settings = cls.objects.create(
+                    user=user,
+                    website=website
+                )
+                return mfa_settings, True
+            except IntegrityError:
+                # Race condition: another request created it between our get() and create()
+                # The IntegrityError means the record exists (unique constraint violation)
+                # Retry the get - we need to refresh from a new transaction
+                logger.warning(f"Race condition detected for MFASettings (user={user.id}), retrying get")
+                # Get the record in a new transaction (the failed transaction was rolled back)
+                # Since IntegrityError occurred, the record must exist
+                mfa_settings = cls.objects.get(user=user)
+                # Update website if needed
+                if mfa_settings.website != website:
+                    mfa_settings.website = website
+                    mfa_settings.save(update_fields=['website'])
+                return mfa_settings, False

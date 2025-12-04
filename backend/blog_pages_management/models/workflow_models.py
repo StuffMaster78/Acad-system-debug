@@ -6,6 +6,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.db.models import JSONField
 from django.utils import timezone
+from django.core.validators import MaxLengthValidator
 
 User = get_user_model()
 
@@ -234,10 +235,14 @@ class ContentTemplate(models.Model):
     )
     meta_title_template = models.CharField(
         max_length=255,
-        blank=True
+        blank=True,
+        help_text="Template for meta title (recommended max 60 characters)",
+        validators=[MaxLengthValidator(60)],
     )
     meta_description_template = models.TextField(
-        blank=True
+        blank=True,
+        help_text="Template for meta description (recommended max 160 characters)",
+        validators=[MaxLengthValidator(160)],
     )
     
     # Default values
@@ -266,6 +271,21 @@ class ContentTemplate(models.Model):
     usage_count = models.PositiveIntegerField(
         default=0,
         help_text="Number of times template has been used"
+    )
+    
+    # Template inheritance
+    parent_template = models.ForeignKey(
+        'self',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='child_templates',
+        help_text="Parent template for inheritance"
+    )
+    template_variables = JSONField(
+        default=dict,
+        blank=True,
+        help_text="Available template variables and their descriptions"
     )
     
     created_by = models.ForeignKey(

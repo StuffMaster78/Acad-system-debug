@@ -1,7 +1,11 @@
 import uuid
-from authentication.models.login import LoginSession
-from django.utils.timezone import now
+from datetime import timedelta
 from typing import Optional, Dict, Any
+
+from django.conf import settings
+from django.utils.timezone import now
+
+from authentication.models.login import LoginSession
 
 
 class LoginSessionService:
@@ -49,6 +53,10 @@ class LoginSessionService:
         if device_info:
             device_name = device_info.get('device_name')
         
+        # Derive expiry from SESSION_COOKIE_AGE to keep behaviour consistent
+        max_age_seconds = getattr(settings, "SESSION_COOKIE_AGE", 1209600)  # default 14 days
+        expires_at = now() + timedelta(seconds=max_age_seconds)
+
         session = LoginSession.objects.create(
             user=user,
             website=website,
@@ -57,6 +65,7 @@ class LoginSessionService:
             device_name=device_name,
             token=token,
             logged_in_at=now(),
+            expires_at=expires_at,
             is_active=True
         )
         

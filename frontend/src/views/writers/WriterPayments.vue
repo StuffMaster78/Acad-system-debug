@@ -119,6 +119,69 @@
       </div>
     </div>
 
+    <!-- Payout Overview -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-semibold text-gray-900">Payout Overview</h2>
+          <p class="text-sm text-gray-600 mt-1">
+            Quickly see when your next payments are due and how much you can request as an advance.
+          </p>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full md:w-auto">
+          <div class="bg-gray-50 rounded-lg px-4 py-3">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Next payout window
+            </div>
+            <div class="mt-1 text-sm text-gray-900">
+              <span
+                v-if="upcomingPayments.orders.length && upcomingPayments.orders[0].expected_payment_window_label"
+              >
+                {{ upcomingPayments.orders[0].expected_payment_window_label }}
+              </span>
+              <span v-else>
+                Check the “Official payout window” shown under your upcoming orders below.
+              </span>
+            </div>
+            <div class="mt-1 text-xs text-gray-500">
+              Payments are processed automatically within the official window.
+            </div>
+          </div>
+          <div class="bg-gray-50 rounded-lg px-4 py-3">
+            <div class="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              Advance eligibility
+            </div>
+            <div class="mt-1 text-sm text-gray-900">
+              <span v-if="loadingAdvanceEligibility">Calculating…</span>
+              <span v-else-if="advanceEligibility">
+                You can currently request up to
+                <span class="font-semibold">
+                  ${{ formatCurrency(advanceEligibility.available_advance) }}
+                </span>
+                in advance.
+              </span>
+              <span v-else>
+                Open the Advance Payments page to see your current eligibility.
+              </span>
+            </div>
+            <div class="mt-1 text-xs text-gray-500">
+              This is based on your expected earnings and any outstanding advances.
+            </div>
+            <router-link
+              to="/writer/advance-payments"
+              class="mt-2 inline-flex items-center text-xs font-semibold text-primary-600 hover:text-primary-700"
+            >
+              Manage advance payments →
+            </router-link>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 text-xs text-gray-500">
+        Please avoid messaging admins about payments that are still inside the official payout window.
+        If there is any delay beyond the normal schedule, admins will send a broadcast update to all writers.
+      </div>
+    </div>
+
     <!-- Upcoming Payments Card -->
     <div class="bg-blue-50 rounded-lg shadow-sm border border-blue-200 p-6">
       <div class="flex items-center justify-between mb-4">
@@ -197,7 +260,7 @@
               <div class="text-xs text-gray-500 mt-1">
                 <span v-if="period.total_bonuses > 0" class="text-green-600">+${{ formatCurrency(period.total_bonuses) }} bonuses</span>
                 <span v-if="period.total_tips > 0" class="text-blue-600 ml-2">+${{ formatCurrency(period.total_tips) }} tips</span>
-                <span v-if="period.total_fines > 0" class="text-red-600 ml-2">-${{ formatCurrency(period.total_fines) }} fines</span>
+                <span v-if="period.total_fines > 0" class="text-red-600 ml-2">-{{ formatCurrency(period.total_fines) }} fines</span>
               </div>
             </div>
           </div>
@@ -232,12 +295,12 @@
           </div>
           <div class="text-right">
             <div class="font-semibold text-gray-900">
-              ${{ formatCurrency(payment.amount) }}
+              {{ formatCurrency(payment.amount) }}
             </div>
             <div class="text-xs text-gray-500 mt-1">
-              <span v-if="payment.bonuses > 0" class="text-green-600">+${{ formatCurrency(payment.bonuses) }} bonus</span>
-              <span v-if="payment.tips > 0" class="text-blue-600 ml-2">+${{ formatCurrency(payment.tips) }} tip</span>
-              <span v-if="payment.fines > 0" class="text-red-600 ml-2">-${{ formatCurrency(payment.fines) }} fine</span>
+              <span v-if="payment.bonuses > 0" class="text-green-600">+{{ formatCurrency(payment.bonuses) }} bonus</span>
+              <span v-if="payment.tips > 0" class="text-blue-600 ml-2">+{{ formatCurrency(payment.tips) }} tip</span>
+              <span v-if="payment.fines > 0" class="text-red-600 ml-2">-{{ formatCurrency(payment.fines) }} fine</span>
             </div>
             <button
               @click="downloadReceipt(payment)"
@@ -260,12 +323,15 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import writerManagementAPI from '@/api/writer-management'
+import writerAdvanceAPI from '@/api/writer-advance'
 import { useToast } from '@/composables/useToast'
 import { getErrorMessage } from '@/utils/errorHandler'
 
 const { error: showError, success: showSuccess } = useToast()
+const authStore = useAuthStore()
 
 const loading = ref(false)
 const downloadingReceipt = ref(null)
@@ -288,6 +354,50 @@ const paymentsData = ref({
   },
   recent_payments: [],
 })
+
+// Advance eligibility (for quick view on this page)
+const loadingAdvanceEligibility = ref(false)
+const advanceEligibility = ref(null)
+
+// Resolve website context for advance eligibility (same logic as AdvancePayments)
+const getWebsiteId = () => {
+  const user = authStore.user
+  if (user) {
+    if (user.website_id) {
+      return String(user.website_id)
+    }
+    if (user.website?.id) {
+      return String(user.website.id)
+    }
+    if (typeof user.website === 'number') {
+      return String(user.website)
+    }
+    if (typeof user.website === 'string') {
+      const parsed = parseInt(user.website)
+      if (!isNaN(parsed)) {
+        return String(parsed)
+      }
+    }
+    if (user.writer_profile?.website_id) {
+      return String(user.writer_profile.website_id)
+    }
+    if (user.writer_profile?.website?.id) {
+      return String(user.writer_profile.website.id)
+    }
+  }
+
+  const storedWebsite = localStorage.getItem('current_website')
+  if (storedWebsite) {
+    return storedWebsite
+  }
+
+  const storedWebsiteId = localStorage.getItem('website_id')
+  if (storedWebsiteId) {
+    return storedWebsiteId
+  }
+
+  return null
+}
 
 const upcomingPayments = computed(() => paymentsData.value.upcoming_payments)
 const recentPayments = computed(() => paymentsData.value.recent_payments || [])
@@ -357,6 +467,44 @@ const loadPayments = async () => {
   }
 }
 
+const loadAdvanceEligibility = async () => {
+  loadingAdvanceEligibility.value = true
+  try {
+    let websiteId = getWebsiteId()
+
+    // Fallback: fetch writer profile if website not found yet
+    if (!websiteId) {
+      try {
+        const profileResponse = await writerManagementAPI.getMyProfile()
+        const profile = profileResponse.data
+        if (profile?.website_id) {
+          websiteId = String(profile.website_id)
+          localStorage.setItem('current_website', websiteId)
+        } else if (profile?.website?.id) {
+          websiteId = String(profile.website.id)
+          localStorage.setItem('current_website', websiteId)
+        }
+      } catch (e) {
+        console.warn('Could not fetch writer profile for website ID (payments page):', e)
+      }
+    }
+
+    if (!websiteId) {
+      // Soft-fail: show hint but don't block the page
+      showError('We could not determine your website for advance eligibility. Please refresh or contact support.')
+      return
+    }
+
+    const response = await writerAdvanceAPI.getEligibility({ website: websiteId })
+    advanceEligibility.value = response.data
+  } catch (error) {
+    console.error('Advance eligibility error (payments page):', error)
+    // Do not spam toasts on failure; writers can still open the Advance Payments page
+  } finally {
+    loadingAdvanceEligibility.value = false
+  }
+}
+
 const formatCurrency = (amount) => {
   if (!amount) return '0.00'
   return parseFloat(amount).toFixed(2)
@@ -393,6 +541,7 @@ const formatPeriod = (startDate, endDate) => {
 
 onMounted(() => {
   loadPayments()
+  loadAdvanceEligibility()
 })
 
 const resetFilters = () => {

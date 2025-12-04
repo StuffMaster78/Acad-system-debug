@@ -30,6 +30,11 @@ class LoginSession(models.Model):
     )
     logged_in_at = models.DateTimeField(default=now)
     last_activity = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Absolute expiry for this login session (idle/absolute timeout).",
+    )
     revoked_at = models.DateTimeField(null=True, blank=True)
     revoked_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,

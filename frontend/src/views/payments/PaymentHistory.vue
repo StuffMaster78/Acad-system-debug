@@ -28,11 +28,11 @@
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Total Paid</p>
-        <p class="text-2xl font-bold text-green-900">${{ formatCurrency(stats.totalPaid) }}</p>
+        <p class="text-2xl font-bold text-green-900">{{ formatCurrency(stats.totalPaid) }}</p>
       </div>
       <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">This Month</p>
-        <p class="text-2xl font-bold text-blue-900">${{ formatCurrency(stats.thisMonth) }}</p>
+        <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(stats.thisMonth) }}</p>
       </div>
       <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">Total Transactions</p>
@@ -141,7 +141,7 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <span class="text-sm font-medium text-gray-600">Amount:</span>
-                <p class="text-lg font-bold text-gray-900">${{ formatCurrency(transaction.amount) }}</p>
+                <p class="text-lg font-bold text-gray-900">{{ formatCurrency(transaction.amount) }}</p>
               </div>
               <div v-if="transaction.order_id">
                 <span class="text-sm font-medium text-gray-600">Order:</span>
@@ -221,7 +221,7 @@
           </div>
           <div>
             <span class="text-sm font-medium text-gray-600">Amount:</span>
-            <p class="text-lg font-bold text-gray-900">${{ formatCurrency(selectedTransaction.amount) }}</p>
+            <p class="text-lg font-bold text-gray-900">{{ formatCurrency(selectedTransaction.amount) }}</p>
           </div>
           <div>
             <span class="text-sm font-medium text-gray-600">Payment Method:</span>

@@ -6,6 +6,7 @@ import logging
 from typing import Optional, List
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from authentication.models.login import LoginSession
 from authentication.models.session_limits import SessionLimitPolicy
 from websites.utils import get_current_website
@@ -32,28 +33,53 @@ class SessionLimitService:
         if not self.website:
             raise ValueError("Website context required for session limit policy")
         
-        policy, created = SessionLimitPolicy.objects.get_or_create(
-            user=self.user,
-            website=self.website,
-            defaults={
-                'max_concurrent_sessions': self.DEFAULT_MAX_SESSIONS,
-                'allow_unlimited_trusted': False,
-                'revoke_oldest_on_limit': True,
-            }
-        )
-        return policy
+        # Since SessionLimitPolicy has OneToOneField on user, there can only be one per user
+        # Try to get existing record first (by user only, since that's the unique constraint)
+        try:
+            policy = SessionLimitPolicy.objects.get(user=self.user)
+            # Update website if it changed (though this shouldn't happen often)
+            if policy.website != self.website:
+                policy.website = self.website
+                policy.save(update_fields=['website'])
+            return policy
+        except SessionLimitPolicy.DoesNotExist:
+            # Record doesn't exist, try to create it
+            try:
+                policy = SessionLimitPolicy.objects.create(
+                    user=self.user,
+                    website=self.website,
+                    max_concurrent_sessions=self.DEFAULT_MAX_SESSIONS,
+                    allow_unlimited_trusted=False,
+                    revoke_oldest_on_limit=True,
+                )
+                return policy
+            except IntegrityError:
+                # Race condition: another request created it between our get() and create()
+                # The IntegrityError means the record exists (unique constraint violation)
+                # Retry the get - we need to refresh from a new transaction
+                logger.warning(f"Race condition detected for SessionLimitPolicy (user={self.user.id}), retrying get")
+                # Get the record in a new transaction (the failed transaction was rolled back)
+                # Since IntegrityError occurred, the record must exist
+                policy = SessionLimitPolicy.objects.get(user=self.user)
+                # Update website if needed
+                if policy.website != self.website:
+                    policy.website = self.website
+                    policy.save(update_fields=['website'])
+                return policy
     
     def get_active_sessions(self) -> List[LoginSession]:
         """Get all active sessions for user."""
         if not self.website:
             return []
         
-        return list(LoginSession.objects.filter(
+        qs = LoginSession.objects.filter(
             user=self.user,
             website=self.website,
             is_active=True,
-            expires_at__gt=timezone.now()
-        ).order_by('last_activity'))
+        ).exclude(
+            expires_at__lte=timezone.now()
+        )
+        return list(qs.order_by('last_activity'))
     
     def get_active_session_count(self) -> int:
         """Get count of active sessions."""

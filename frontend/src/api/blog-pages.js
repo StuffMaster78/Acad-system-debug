@@ -77,6 +77,85 @@ export default {
   // Analytics
   getBlogAnalytics: (id) => apiClient.get(`/blog_pages_management/blog-analytics/${id}/`),
   getContentMetrics: (params) => apiClient.get('/blog_pages_management/content-metrics/', { params }),
+  getWebsiteMetricsLatest: (params) => apiClient.get('/blog_pages_management/website-metrics/latest/', { params }),
+  getWebsiteMetricsByCategory: (params) => apiClient.get('/blog_pages_management/website-metrics/by_category/', { params }),
+  getWebsiteMetricsByTag: (params) => apiClient.get('/blog_pages_management/website-metrics/by_tag/', { params }),
+  getContentAuditOverview: (params) => apiClient.get('/blog_pages_management/content-audit/audit_overview/', { params }),
+  
+  // Publishing Targets & Reminders
+  getPublishingTargets: (params) => apiClient.get('/blog_pages_management/publishing-targets/', { params }),
+  getPublishingTarget: (id) => apiClient.get(`/blog_pages_management/publishing-targets/${id}/`),
+  createPublishingTarget: (data) => apiClient.post('/blog_pages_management/publishing-targets/', data),
+  updatePublishingTarget: (id, data) => apiClient.put(`/blog_pages_management/publishing-targets/${id}/`, data),
+  getOrCreatePublishingTarget: (params) => apiClient.get('/blog_pages_management/publishing-targets/get_or_create/', { params }),
+  getMonthlyStats: (params) => apiClient.get('/blog_pages_management/publishing-targets/monthly_stats/', { params }),
+  
+  // Content Freshness Reminders
+  getContentFreshnessReminders: (params) => apiClient.get('/blog_pages_management/content-freshness-reminders/', { params }),
+  getStaleContent: (params) => apiClient.get('/blog_pages_management/content-freshness-reminders/stale_content/', { params }),
+  acknowledgeFreshnessReminder: (id) => apiClient.post(`/blog_pages_management/content-freshness-reminders/${id}/acknowledge/`),
+  refreshFreshnessReminders: (data) => apiClient.post('/blog_pages_management/content-freshness-reminders/refresh_reminders/', data),
+  
+  // Content Calendar
+  getContentCalendar: (params) => apiClient.get('/blog_pages_management/content-calendar/calendar_data/', { params }),
+  getMonthlySummary: (params) => apiClient.get('/blog_pages_management/content-calendar/monthly_summary/', { params }),
+  bulkRescheduleContent: (data) => apiClient.post('/blog_pages_management/content-calendar/bulk_reschedule/', data),
+  exportCalendarICal: (params) => apiClient.get('/blog_pages_management/content-calendar/export_ical/', { params, responseType: 'blob' }),
+  
+  // Category Publishing Targets
+  getCategoryPublishingTargets: (params) => apiClient.get('/blog_pages_management/category-publishing-targets/', { params }),
+  createCategoryPublishingTarget: (data) => apiClient.post('/blog_pages_management/category-publishing-targets/', data),
+  updateCategoryPublishingTarget: (id, data) => apiClient.put(`/blog_pages_management/category-publishing-targets/${id}/`, data),
+  getCategoryTargetsByWebsite: (params) => apiClient.get('/blog_pages_management/category-publishing-targets/by_website/', { params }),
+  deleteCategoryPublishingTarget: (id) => apiClient.delete(`/blog_pages_management/category-publishing-targets/${id}/`),
+  
+  // Publishing Target Threshold
+  updatePublishingTargetThreshold: (id, data) => apiClient.patch(`/blog_pages_management/publishing-targets/${id}/update_threshold/`, data),
+  
+  // Historical Trends
+  getPublishingHistory: (params) => apiClient.get('/blog_pages_management/publishing-targets/historical_trends/', { params }),
+  
+  // Editor Tooling
+  healthCheck: (data) => apiClient.post('/blog_pages_management/editor-tooling/health_check/', data),
+  getQuickTemplates: (params) => apiClient.get('/blog_pages_management/editor-tooling/quick_templates/', { params }),
+  getQuickSnippets: (params) => apiClient.get('/blog_pages_management/editor-tooling/quick_snippets/', { params }),
+  getQuickBlocks: (params) => apiClient.get('/blog_pages_management/editor-tooling/quick_blocks/', { params }),
+  insertSnippet: (data) => apiClient.post('/blog_pages_management/editor-tooling/insert_snippet/', data),
+  insertBlock: (data) => apiClient.post('/blog_pages_management/editor-tooling/insert_block/', data),
+  instantiateTemplate: (id, data) => apiClient.post(`/blog_pages_management/content-templates/${id}/instantiate/`, data),
+  
+  // Content Templates
+  listContentTemplates: (params) => apiClient.get('/blog_pages_management/content-templates/', { params }),
+  getContentTemplate: (id) => apiClient.get(`/blog_pages_management/content-templates/${id}/`),
+  createContentTemplate: (data) => apiClient.post('/blog_pages_management/content-templates/', data),
+  updateContentTemplate: (id, data) => apiClient.put(`/blog_pages_management/content-templates/${id}/`, data),
+  deleteContentTemplate: (id) => apiClient.delete(`/blog_pages_management/content-templates/${id}/`),
+  applyTemplate: (id, data) => apiClient.post(`/blog_pages_management/content-templates/${id}/apply/`, data),
+  
+  // Content Snippets
+  listContentSnippets: (params) => apiClient.get('/blog_pages_management/content-snippets/', { params }),
+  getContentSnippet: (id) => apiClient.get(`/blog_pages_management/content-snippets/${id}/`),
+  createContentSnippet: (data) => apiClient.post('/blog_pages_management/content-snippets/', data),
+  updateContentSnippet: (id, data) => apiClient.put(`/blog_pages_management/content-snippets/${id}/`, data),
+  deleteContentSnippet: (id) => apiClient.delete(`/blog_pages_management/content-snippets/${id}/`),
+  renderSnippet: (id, data) => apiClient.post(`/blog_pages_management/content-snippets/${id}/render/`, data),
+  
+  // Editor Tracking & Analytics
+  startEditorSession: (data) => apiClient.post('/blog_pages_management/editor-sessions/start/', data),
+  endEditorSession: (id) => apiClient.post(`/blog_pages_management/editor-sessions/${id}/end/`),
+  trackEditorAction: (id, data) => apiClient.post(`/blog_pages_management/editor-sessions/${id}/track_action/`, data),
+  listEditorSessions: (params) => apiClient.get('/blog_pages_management/editor-sessions/', { params }),
+  getMyProductivityMetrics: (params) => apiClient.get('/blog_pages_management/editor-productivity/my_metrics/', { params }),
+  calculateProductivityMetrics: (data) => apiClient.post('/blog_pages_management/editor-productivity/calculate/', data),
+  
+  // Editorial Workflow Filters
+  getMyDrafts: (params) => apiClient.get('/blog_pages_management/blogs/', { params: { ...params, my_drafts: true } }),
+  getNeedsReview: (params) => apiClient.get('/blog_pages_management/blogs/', { params: { ...params, needs_review: true } }),
+  getScheduled: (params) => apiClient.get('/blog_pages_management/blogs/', { params: { ...params, scheduled: true } }),
+  getStalePublished: (params) => apiClient.get('/blog_pages_management/blogs/', { params: { ...params, stale_published: true } }),
+  
+  // Revision Diff
+  getRevisionDiff: (id, params) => apiClient.get(`/blog_pages_management/blogs/${id}/revision_diff/`, { params }),
   
   // Internal Linking & Recommendations
   suggestInternalLinks: (data) => apiClient.post('/blog_pages_management/blogs/suggest-internal-links/', data),

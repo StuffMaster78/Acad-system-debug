@@ -161,7 +161,7 @@ class DraftEditingService:
     
     @staticmethod
     @transaction.atomic
-    def auto_save_draft(blog: BlogPost, user, data: Dict) -> BlogPostAutoSave:
+    def auto_save_draft(blog: BlogPost, user, data: Dict, run_health_check: bool = False) -> BlogPostAutoSave:
         """
         Auto-save a draft of a blog post.
         
@@ -169,9 +169,10 @@ class DraftEditingService:
             blog: BlogPost instance (can be new/unsaved)
             user: User saving the draft
             data: Dict with draft data (title, content, etc.)
+            run_health_check: Whether to run content health check during auto-save
         
         Returns:
-            BlogPostAutoSave instance
+            BlogPostAutoSave instance with optional health_check_results
         """
         # If blog is new, save it first
         if not blog.pk:
@@ -191,6 +192,19 @@ class DraftEditingService:
             except Exception:
                 tags_data = []
         
+        # Run health check if requested
+        health_check_results = None
+        if run_health_check:
+            from ..services.content_health_service import ContentHealthService
+            health_check_results = ContentHealthService.check_full_content(
+                title=data.get('title', blog.title or ''),
+                meta_title=data.get('meta_title', blog.meta_title or ''),
+                meta_description=data.get('meta_description', blog.meta_description or ''),
+                content=data.get('content', blog.content or ''),
+                slug=data.get('slug', blog.slug or ''),
+                min_words=300
+            )
+        
         autosave = BlogPostAutoSave.objects.create(
             blog=blog,
             title=data.get('title', blog.title or ''),
@@ -202,6 +216,11 @@ class DraftEditingService:
             category_id=data.get('category', blog.category_id),
             saved_by=user
         )
+        
+        # Store health check results in autosave metadata if available
+        if health_check_results and hasattr(autosave, 'metadata'):
+            autosave.metadata = {'health_check': health_check_results}
+            autosave.save()
         
         return autosave
     

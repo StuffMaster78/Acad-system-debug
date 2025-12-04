@@ -39,46 +39,61 @@
       </div>
     </div>
 
-    <FilterBar
-      :filters="filters"
-      :loading="loading"
-      @update:filter="updateFilter"
-      @clear="clearFilters"
-    >
-      <template #filters>
-        <select
-          v-model="filters.website_id"
-          class="border rounded px-3 py-2 text-sm"
-          @change="loadPayments"
-        >
-          <option value="">All Websites</option>
-          <option v-for="website in websites" :key="website.id" :value="website.id">
-            {{ website.name }}
-          </option>
-        </select>
-        <select
-          v-model="filters.period_type"
-          class="border rounded px-3 py-2 text-sm"
-          @change="loadPayments"
-        >
-          <option value="both">Both Periods</option>
-          <option value="biweekly">Bi-Weekly Only</option>
-          <option value="monthly">Monthly Only</option>
-        </select>
-        <input
-          v-model="filters.date_from"
-          type="date"
-          class="border rounded px-3 py-2 text-sm"
-          @change="loadPayments"
-        />
-        <input
-          v-model="filters.date_to"
-          type="date"
-          class="border rounded px-3 py-2 text-sm"
-          @change="loadPayments"
-        />
-      </template>
-    </FilterBar>
+    <div class="bg-white p-4 rounded-lg shadow border border-gray-200 mb-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Website</label>
+          <select
+            v-model="filters.website_id"
+            class="w-full border rounded px-3 py-2 text-sm"
+            @change="loadPayments"
+          >
+            <option value="">All Websites</option>
+            <option v-for="website in websites" :key="website.id" :value="website.id">
+              {{ website.name }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Period Type</label>
+          <select
+            v-model="filters.period_type"
+            class="w-full border rounded px-3 py-2 text-sm"
+            @change="loadPayments"
+          >
+            <option value="both">Both Periods</option>
+            <option value="biweekly">Bi-Weekly Only</option>
+            <option value="monthly">Monthly Only</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Date From</label>
+          <input
+            v-model="filters.date_from"
+            type="date"
+            class="w-full border rounded px-3 py-2 text-sm"
+            @change="loadPayments"
+          />
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Date To</label>
+          <input
+            v-model="filters.date_to"
+            type="date"
+            class="w-full border rounded px-3 py-2 text-sm"
+            @change="loadPayments"
+          />
+        </div>
+        <div class="flex items-end">
+          <button
+            @click="clearFilters"
+            class="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+    </div>
 
     <div class="space-y-6">
       <!-- Bi-Weekly Payments -->
@@ -505,7 +520,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import PageHeader from '@/components/common/PageHeader.vue'
-import FilterBar from '@/components/common/FilterBar.vue'
 import paymentsAPI from '@/api/payments'
 import apiClient from '@/api/client'
 

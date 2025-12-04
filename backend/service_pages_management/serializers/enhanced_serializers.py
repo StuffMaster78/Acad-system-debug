@@ -5,7 +5,7 @@ from rest_framework import serializers
 from ..models import ServicePage, ServicePageClick, ServicePageConversion
 from ..models.enhanced_models import (
     ServicePageFAQ, ServicePageResource, ServicePageCTA,
-    ServicePageSEOMetadata, ServicePageEditHistory
+    ServicePageSEOMetadata, ServicePageEditHistory, ServicePageContentBlock
 )
 from ..models.pdf_samples import ServicePagePDFSampleSection
 from ..serializers.pdf_serializers import ServicePagePDFSampleSectionSerializer
@@ -150,4 +150,22 @@ class EnhancedServicePageSerializer(serializers.ModelSerializer):
             return ServicePageConversion.objects.filter(service_page=obj).count()
         except Exception:
             return 0
+
+
+class ServicePageContentBlockSerializer(serializers.ModelSerializer):
+    """Serializer for content blocks in service pages."""
+    template = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = ServicePageContentBlock
+        fields = [
+            'id', 'service_page', 'template', 'position',
+            'auto_insert', 'custom_data', 'is_active', 'created_at'
+        ]
+        read_only_fields = ['created_at']
+    
+    def get_template(self, obj):
+        """Get template details."""
+        from blog_pages_management.serializers.enhanced_serializers import ContentBlockTemplateSerializer
+        return ContentBlockTemplateSerializer(obj.template).data
 

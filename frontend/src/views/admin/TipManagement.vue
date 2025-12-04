@@ -16,73 +16,73 @@
     </div>
 
     <!-- Stats Cards -->
-    <div v-if="dashboardData && dashboardData.summary" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
-        <p class="text-sm font-medium text-purple-700 mb-1">Total Tips</p>
-        <p class="text-3xl font-bold text-purple-900">{{ dashboardData.summary?.total_tips || 0 }}</p>
+    <div v-if="dashboardData && dashboardData.summary" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+      <div class="card p-5 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+        <p class="text-sm font-medium text-purple-700 mb-2">Total Tips</p>
+        <p class="text-2xl sm:text-3xl font-bold text-purple-900 break-words">{{ dashboardData.summary?.total_tips || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-        <p class="text-sm font-medium text-blue-700 mb-1">Total Amount</p>
-        <p class="text-3xl font-bold text-blue-900">${{ formatCurrency(dashboardData.summary?.total_tip_amount) }}</p>
+      <div class="card p-5 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+        <p class="text-sm font-medium text-blue-700 mb-2">Total Amount</p>
+        <p class="text-2xl sm:text-3xl font-bold text-blue-900 break-words">${{ formatCurrency(dashboardData.summary?.total_tip_amount) }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
-        <p class="text-sm font-medium text-green-700 mb-1">Writer Earnings</p>
-        <p class="text-3xl font-bold text-green-900">${{ formatCurrency(dashboardData.summary?.total_writer_earnings) }}</p>
+      <div class="card p-5 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+        <p class="text-sm font-medium text-green-700 mb-2">Writer Earnings</p>
+        <p class="text-2xl sm:text-3xl font-bold text-green-900 break-words">${{ formatCurrency(dashboardData.summary?.total_writer_earnings) }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
-        <p class="text-sm font-medium text-indigo-700 mb-1">Platform Profit</p>
-        <p class="text-3xl font-bold text-indigo-900">${{ formatCurrency(dashboardData.summary?.total_platform_profit) }}</p>
+      <div class="card p-5 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+        <p class="text-sm font-medium text-indigo-700 mb-2">Platform Profit</p>
+        <p class="text-2xl sm:text-3xl font-bold text-indigo-900 break-words">${{ formatCurrency(dashboardData.summary?.total_platform_profit) }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
-        <p class="text-sm font-medium text-yellow-700 mb-1">Avg Tip</p>
-        <p class="text-3xl font-bold text-yellow-900">${{ formatCurrency(dashboardData.summary?.avg_tip_amount) }}</p>
+      <div class="card p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+        <p class="text-sm font-medium text-yellow-700 mb-2">Avg Tip</p>
+        <p class="text-2xl sm:text-3xl font-bold text-yellow-900 break-words">${{ formatCurrency(dashboardData.summary?.avg_tip_amount) }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200">
-        <p class="text-sm font-medium text-pink-700 mb-1">Avg Writer %</p>
-        <p class="text-3xl font-bold text-pink-900">{{ (dashboardData.summary?.avg_writer_percentage || 0).toFixed(1) }}%</p>
+      <div class="card p-5 bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200">
+        <p class="text-sm font-medium text-pink-700 mb-2">Avg Writer %</p>
+        <p class="text-2xl sm:text-3xl font-bold text-pink-900 break-words">{{ (dashboardData.summary?.avg_writer_percentage || 0).toFixed(1) }}%</p>
       </div>
     </div>
 
     <!-- Recent Summary -->
     <div v-if="dashboardData && dashboardData.recent_summary" class="card p-6 bg-gradient-to-r from-purple-500 to-indigo-600 text-white">
       <h2 class="text-xl font-bold mb-4">Last {{ dashboardData.recent_summary.days }} Days Summary</h2>
-      <div class="grid grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
-          <p class="text-sm opacity-90">Tips</p>
-          <p class="text-3xl font-bold">{{ dashboardData.recent_summary.total_tips }}</p>
+          <p class="text-sm opacity-90 mb-2">Tips</p>
+          <p class="text-2xl sm:text-3xl font-bold break-words">{{ dashboardData.recent_summary.total_tips }}</p>
         </div>
         <div>
-          <p class="text-sm opacity-90">Total Amount</p>
-          <p class="text-3xl font-bold">${{ formatCurrency(dashboardData.recent_summary.total_tip_amount) }}</p>
+          <p class="text-sm opacity-90 mb-2">Total Amount</p>
+          <p class="text-2xl sm:text-3xl font-bold break-words">${{ formatCurrency(dashboardData.recent_summary.total_tip_amount) }}</p>
         </div>
         <div>
-          <p class="text-sm opacity-90">Writer Earnings</p>
-          <p class="text-3xl font-bold">${{ formatCurrency(dashboardData.recent_summary.total_writer_earnings) }}</p>
+          <p class="text-sm opacity-90 mb-2">Writer Earnings</p>
+          <p class="text-2xl sm:text-3xl font-bold break-words">${{ formatCurrency(dashboardData.recent_summary.total_writer_earnings) }}</p>
         </div>
         <div>
-          <p class="text-sm opacity-90">Platform Profit</p>
-          <p class="text-3xl font-bold">${{ formatCurrency(dashboardData.recent_summary.total_platform_profit) }}</p>
+          <p class="text-sm opacity-90 mb-2">Platform Profit</p>
+          <p class="text-2xl sm:text-3xl font-bold break-words">${{ formatCurrency(dashboardData.recent_summary.total_platform_profit) }}</p>
         </div>
       </div>
     </div>
 
     <!-- Payment Status Cards -->
-    <div v-if="dashboardData && dashboardData.payment_status" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-      <div class="card p-4 bg-green-50 border border-green-200">
-        <p class="text-sm font-medium text-green-700 mb-1">Completed</p>
-        <p class="text-2xl font-bold text-green-900">{{ dashboardData.payment_status.completed || 0 }}</p>
+    <div v-if="dashboardData && dashboardData.payment_status" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div class="card p-5 bg-green-50 border border-green-200">
+        <p class="text-sm font-medium text-green-700 mb-2">Completed</p>
+        <p class="text-2xl font-bold text-green-900 break-words">{{ dashboardData.payment_status.completed || 0 }}</p>
       </div>
-      <div class="card p-4 bg-yellow-50 border border-yellow-200">
-        <p class="text-sm font-medium text-yellow-700 mb-1">Pending</p>
-        <p class="text-2xl font-bold text-yellow-900">{{ dashboardData.payment_status.pending || 0 }}</p>
+      <div class="card p-5 bg-yellow-50 border border-yellow-200">
+        <p class="text-sm font-medium text-yellow-700 mb-2">Pending</p>
+        <p class="text-2xl font-bold text-yellow-900 break-words">{{ dashboardData.payment_status.pending || 0 }}</p>
       </div>
-      <div class="card p-4 bg-blue-50 border border-blue-200">
-        <p class="text-sm font-medium text-blue-700 mb-1">Processing</p>
-        <p class="text-2xl font-bold text-blue-900">{{ dashboardData.payment_status.processing || 0 }}</p>
+      <div class="card p-5 bg-blue-50 border border-blue-200">
+        <p class="text-sm font-medium text-blue-700 mb-2">Processing</p>
+        <p class="text-2xl font-bold text-blue-900 break-words">{{ dashboardData.payment_status.processing || 0 }}</p>
       </div>
-      <div class="card p-4 bg-red-50 border border-red-200">
-        <p class="text-sm font-medium text-red-700 mb-1">Failed</p>
-        <p class="text-2xl font-bold text-red-900">{{ dashboardData.payment_status.failed || 0 }}</p>
+      <div class="card p-5 bg-red-50 border border-red-200">
+        <p class="text-sm font-medium text-red-700 mb-2">Failed</p>
+        <p class="text-2xl font-bold text-red-900 break-words">{{ dashboardData.payment_status.failed || 0 }}</p>
       </div>
     </div>
 
@@ -228,7 +228,7 @@
                   ${{ formatCurrency(tip.amount_received || tip.writer_earning) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-indigo-600">
-                  ${{ formatCurrency((tip.full_tip_amount || tip.tip_amount) - (tip.amount_received || tip.writer_earning)) }}
+                  {{ formatCurrency((tip.full_tip_amount || tip.tip_amount) - (tip.amount_received || tip.writer_earning)) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {{ tip.writer_percentage_display || (tip.writer_percentage ? tip.writer_percentage + '%' : 'N/A') }}
@@ -368,23 +368,23 @@
         <!-- Overall Earnings -->
         <div v-if="earningsData && earningsData.overall" class="card p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
           <h3 class="text-xl font-bold mb-4">Overall Earnings Summary</h3>
-          <div class="grid grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
-              <p class="text-sm opacity-90">Total Tips</p>
-              <p class="text-2xl font-bold">{{ earningsData.overall?.total_tips || 0 }}</p>
+              <p class="text-sm opacity-90 mb-2">Total Tips</p>
+              <p class="text-xl sm:text-2xl font-bold break-words">{{ earningsData.overall?.total_tips || 0 }}</p>
             </div>
             <div>
-              <p class="text-sm opacity-90">Total Amount</p>
-              <p class="text-2xl font-bold">${{ formatCurrency(earningsData.overall?.total_tip_amount) }}</p>
+              <p class="text-sm opacity-90 mb-2">Total Amount</p>
+              <p class="text-xl sm:text-2xl font-bold break-words">${{ formatCurrency(earningsData.overall?.total_tip_amount) }}</p>
             </div>
             <div>
-              <p class="text-sm opacity-90">Writer Earnings</p>
-              <p class="text-2xl font-bold">${{ formatCurrency(earningsData.overall?.total_writer_earnings) }}</p>
+              <p class="text-sm opacity-90 mb-2">Writer Earnings</p>
+              <p class="text-xl sm:text-2xl font-bold break-words">${{ formatCurrency(earningsData.overall?.total_writer_earnings) }}</p>
             </div>
             <div>
-              <p class="text-sm opacity-90">Platform Profit</p>
-              <p class="text-2xl font-bold">${{ formatCurrency(earningsData.overall?.total_platform_profit) }}</p>
-              <p class="text-sm opacity-75">({{ (earningsData.overall?.platform_profit_percentage || 0).toFixed(1) }}%)</p>
+              <p class="text-sm opacity-90 mb-2">Platform Profit</p>
+              <p class="text-xl sm:text-2xl font-bold break-words">${{ formatCurrency(earningsData.overall?.total_platform_profit) }}</p>
+              <p class="text-xs sm:text-sm opacity-75 mt-1">({{ (earningsData.overall?.platform_profit_percentage || 0).toFixed(1) }}%)</p>
             </div>
           </div>
         </div>
@@ -599,6 +599,7 @@ onMounted(() => {
   border-radius: 0.5rem;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   border: 1px solid #e5e7eb;
+  min-width: 0; /* Prevents flex/grid items from overflowing */
 }
 
 .btn {
@@ -626,6 +627,29 @@ onMounted(() => {
 
 .btn-secondary:hover {
   background-color: #d1d5db;
+}
+
+/* Ensure numbers wrap properly and don't overflow */
+.break-words {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Responsive font sizing for large numbers */
+@media (max-width: 640px) {
+  .card p.text-2xl,
+  .card p.text-3xl {
+    font-size: 1.5rem;
+    line-height: 1.75rem;
+  }
+}
+
+/* Better number formatting for very large values */
+@media (min-width: 1024px) {
+  .card p.text-2xl,
+  .card p.text-3xl {
+    font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+  }
 }
 </style>
 

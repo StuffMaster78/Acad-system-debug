@@ -5,7 +5,7 @@
       <span v-if="required" class="text-red-500">*</span>
     </label>
     
-    <div :id="editorId" class="rich-text-editor-container"></div>
+    <div :id="editorId" class="rich-text-editor-container" :style="{ minHeight: height }"></div>
     
     <div v-if="error" class="mt-2 text-sm text-red-600">{{ error }}</div>
     <div v-if="helpText" class="mt-2 text-sm text-gray-500">{{ helpText }}</div>
@@ -16,10 +16,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import { stripHtml } from '@/utils/htmlUtils'
+
+console.log('RichTextEditor: Script setup executed')
 
 const props = defineProps({
   modelValue: {
@@ -146,102 +148,156 @@ const handleImageUpload = async (file) => {
 }
 
 const initializeEditor = () => {
+  console.log(`RichTextEditor: Attempting to initialize editor with ID: ${editorId.value}`)
   const container = document.getElementById(editorId.value)
-  if (!container) return
-
-  const toolbarConfig = getToolbarConfig()
-  
-  quillInstance.value = new Quill(container, {
-    theme: 'snow',
-    placeholder: props.placeholder,
-    readOnly: props.disabled,
-    modules: {
-      toolbar: {
-        container: toolbarConfig,
-        handlers: props.allowImages ? {
-          image: function() {
-            const input = document.createElement('input')
-            input.setAttribute('type', 'file')
-            input.setAttribute('accept', 'image/*')
-            input.click()
-            
-            input.onchange = async () => {
-              const file = input.files?.[0]
-              if (!file) return
-              
-              // Check file size (max 5MB)
-              if (file.size > 5 * 1024 * 1024) {
-                alert('Image size must be less than 5MB')
-                return
-              }
-              
-              // Get current selection
-              const range = quillInstance.value.getSelection(true)
-              
-              // Show loading indicator
-              quillInstance.value.insertText(range.index, 'Uploading image...', 'user')
-              quillInstance.value.setSelection(range.index + 20, 0)
-              
-              try {
-                const imageUrl = await handleImageUpload(file)
-                if (imageUrl) {
-                  // Remove loading text
-                  quillInstance.value.deleteText(range.index, 20)
-                  // Insert image
-                  quillInstance.value.insertEmbed(range.index, 'image', imageUrl)
-                  // Move cursor after image
-                  quillInstance.value.setSelection(range.index + 1, 0)
-                } else {
-                  // Remove loading text on error
-                  quillInstance.value.deleteText(range.index, 20)
-                  alert('Failed to upload image')
-                }
-              } catch (error) {
-                quillInstance.value.deleteText(range.index, 20)
-                alert('Error uploading image: ' + error.message)
-              }
-            }
-          }
-        } : {}
+  if (!container) {
+    console.warn(`RichTextEditor: Container not found for ID ${editorId.value}, retrying...`)
+    // Retry after a short delay if element not found (common in modals)
+    setTimeout(() => {
+      const retryContainer = document.getElementById(editorId.value)
+      if (!retryContainer) {
+        console.error(`RichTextEditor: Container still not found after retry for ID ${editorId.value}`)
+        return
       }
-    }
-  })
+      console.log(`RichTextEditor: Container found on retry, initializing Quill...`)
+      initializeQuill(retryContainer)
+    }, 100)
+    return
+  }
+  
+  console.log(`RichTextEditor: Container found, initializing Quill...`)
+  initializeQuill(container)
+}
 
-  // Set initial content
-  if (props.modelValue) {
-    quillInstance.value.root.innerHTML = props.modelValue
+const initializeQuill = (container) => {
+  // Don't reinitialize if already initialized
+  if (quillInstance.value) {
+    console.log('RichTextEditor: Already initialized, skipping')
+    return
   }
 
-  // Update character count
-  updateCharCount()
+  if (!container) {
+    console.error('RichTextEditor: Container is null or undefined')
+    return
+  }
 
-  // Listen for text changes
-  quillInstance.value.on('text-change', () => {
-    const html = quillInstance.value.root.innerHTML
-    const text = quillInstance.value.getText()
+  try {
+    const toolbarConfig = getToolbarConfig()
     
-    // Check max length
-    if (props.maxLength && text.length > props.maxLength) {
-      // Truncate if needed
-      const delta = quillInstance.value.getContents()
-      const length = quillInstance.value.getLength()
-      quillInstance.value.deleteText(props.maxLength, length - props.maxLength)
-      return
+    quillInstance.value = new Quill(container, {
+      theme: 'snow',
+      placeholder: props.placeholder,
+      readOnly: props.disabled,
+      modules: {
+        toolbar: {
+          container: toolbarConfig,
+          handlers: {
+            ...(props.allowImages ? {
+              image: function() {
+                const input = document.createElement('input')
+              input.setAttribute('type', 'file')
+              input.setAttribute('accept', 'image/*')
+              input.click()
+              
+              input.onchange = async () => {
+                const file = input.files?.[0]
+                if (!file) return
+                
+                // Check file size (max 5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                  alert('Image size must be less than 5MB')
+                  return
+                }
+                
+                // Get current selection
+                const range = quillInstance.value.getSelection(true)
+                
+                // Show loading indicator
+                quillInstance.value.insertText(range.index, 'Uploading image...', 'user')
+                quillInstance.value.setSelection(range.index + 20, 0)
+                
+                try {
+                  const imageUrl = await handleImageUpload(file)
+                  if (imageUrl) {
+                    // Remove loading text
+                    quillInstance.value.deleteText(range.index, 20)
+                    // Insert image
+                    quillInstance.value.insertEmbed(range.index, 'image', imageUrl)
+                    // Move cursor after image
+                    quillInstance.value.setSelection(range.index + 1, 0)
+                  } else {
+                    // Remove loading text on error
+                    quillInstance.value.deleteText(range.index, 20)
+                    alert('Failed to upload image')
+                  }
+                } catch (error) {
+                  quillInstance.value.deleteText(range.index, 20)
+                  alert('Error uploading image: ' + error.message)
+                }
+              }
+            }
+          } : {})
+        }
+      }
     }
-    
+    })
+
+    // Add keyboard shortcuts
+    container.addEventListener('keydown', (e) => {
+      // Ctrl+S or Cmd+S - Save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        const event = new CustomEvent('editor-save', { bubbles: true })
+        container.dispatchEvent(event)
+      }
+      // Ctrl+H or Cmd+H - Health Check
+      if ((e.ctrlKey || e.metaKey) && e.key === 'h') {
+        e.preventDefault()
+        const event = new CustomEvent('editor-health-check', { bubbles: true })
+        container.dispatchEvent(event)
+      }
+    })
+
+    // Set initial content
+    if (props.modelValue) {
+      quillInstance.value.root.innerHTML = props.modelValue
+    }
+
+    // Update character count
     updateCharCount()
-    
-    // Strip HTML if requested (for fields that should be plain text)
-    const output = props.stripHtml ? stripHtml(html) : html
-    emit('update:modelValue', output)
-  })
 
-  // Listen for selection changes (for formatting)
-  quillInstance.value.on('selection-change', (range) => {
-    if (range) {
-      // Selection active
-    }
-  })
+    // Listen for text changes
+    quillInstance.value.on('text-change', () => {
+      const html = quillInstance.value.root.innerHTML
+      const text = quillInstance.value.getText()
+      
+      // Check max length
+      if (props.maxLength && text.length > props.maxLength) {
+        // Truncate if needed
+        const delta = quillInstance.value.getContents()
+        const length = quillInstance.value.getLength()
+        quillInstance.value.deleteText(props.maxLength, length - props.maxLength)
+        return
+      }
+      
+      updateCharCount()
+      
+      // Strip HTML if requested (for fields that should be plain text)
+      const output = props.stripHtml ? stripHtml(html) : html
+      emit('update:modelValue', output)
+    })
+
+    // Listen for selection changes (for formatting)
+    quillInstance.value.on('selection-change', (range) => {
+      if (range) {
+        // Selection active
+      }
+    })
+    
+    console.log('RichTextEditor: Quill initialized successfully', editorId.value)
+  } catch (error) {
+    console.error('RichTextEditor: Failed to initialize Quill', error)
+  }
 }
 
 const updateCharCount = () => {
@@ -273,8 +329,29 @@ watch(() => props.disabled, (newValue) => {
   setDisabled(newValue)
 })
 
-onMounted(() => {
-  initializeEditor()
+onMounted(async () => {
+  console.log(`RichTextEditor: Component mounted, editorId: ${editorId.value}`)
+  // Use nextTick to ensure DOM element is available (especially for modals)
+  await nextTick()
+  // Retry initialization multiple times for modals
+  let retries = 0
+  const maxRetries = 10
+  const tryInit = () => {
+    const container = document.getElementById(editorId.value)
+    const isVisible = container && container.offsetParent !== null
+    console.log(`RichTextEditor: Retry ${retries}/${maxRetries} - Container found: ${!!container}, Visible: ${isVisible}, Already initialized: ${!!quillInstance.value}`)
+    
+    if (container && isVisible && !quillInstance.value) {
+      console.log(`RichTextEditor: Conditions met, calling initializeEditor()`)
+      initializeEditor()
+    } else if (retries < maxRetries) {
+      retries++
+      setTimeout(tryInit, 100)
+    } else {
+      console.error(`RichTextEditor: Failed to initialize after ${maxRetries} retries. Container: ${!!container}, Visible: ${isVisible}`)
+    }
+  }
+  setTimeout(tryInit, 100)
 })
 
 onBeforeUnmount(() => {
@@ -316,7 +393,24 @@ defineExpose({
 }
 
 .rich-text-editor-container {
-  min-height: v-bind(height);
+  width: 100%;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  min-height: 150px;
+}
+
+/* Show loading state only while container is empty (before Quill mounts) */
+.rich-text-editor-container:empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 14px;
+}
+
+.rich-text-editor-container:empty::after {
+  content: 'Loading editor...';
 }
 
 /* Override Quill styles to match our design */

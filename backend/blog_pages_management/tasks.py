@@ -436,3 +436,343 @@ def update_trending_blogs():
 
     cache.set("engagement_stats", engagement_stats, timeout=3600)  # Cache for 1 hour
     return "Updated trending blog cache."
+
+
+@shared_task
+def aggregate_content_metrics():
+    """
+    Periodically aggregates ContentEvent data and updates cached metrics on BlogPosts.
+    Runs every 6 hours to keep metrics fresh without overloading the system.
+    """
+    from .services.content_metrics_service import ContentMetricsService
+    
+    try:
+        ContentMetricsService.update_all_blog_posts()
+        return "Successfully updated content metrics for all published blog posts."
+    except Exception as e:
+        return f"Error updating content metrics: {str(e)}"
+
+
+@shared_task
+def recalculate_website_content_metrics():
+    """
+    Recalculates WebsiteContentMetrics for all websites.
+    Runs daily to keep aggregated metrics fresh.
+    """
+    from websites.models import Website
+    from .models.analytics_models import WebsiteContentMetrics
+    
+    try:
+        websites = Website.objects.filter(is_active=True)
+        results = []
+        
+        for website in websites:
+            try:
+                metrics = WebsiteContentMetrics.calculate_for_website(website)
+                results.append({
+                    'website_id': website.id,
+                    'website_name': website.name,
+                    'status': 'success',
+                    'metrics_id': metrics.id
+                })
+            except Exception as e:
+                results.append({
+                    'website_id': website.id,
+                    'website_name': website.name,
+                    'status': 'error',
+                    'error': str(e)
+                })
+        
+        return {
+            'total_websites': websites.count(),
+            'successful': len([r for r in results if r['status'] == 'success']),
+            'failed': len([r for r in results if r['status'] == 'error']),
+            'results': results
+        }
+    except Exception as e:
+        return f"Error recalculating website content metrics: {str(e)}"
+
+
+@shared_task
+def recalculate_service_website_content_metrics():
+    """
+    Recalculates ServiceWebsiteContentMetrics for all websites.
+    Runs daily to keep aggregated service page metrics fresh.
+    """
+    from websites.models import Website
+    from service_pages_management.models.enhanced_models import ServiceWebsiteContentMetrics
+    
+    try:
+        websites = Website.objects.filter(is_active=True)
+        results = []
+        
+        for website in websites:
+            try:
+                metrics = ServiceWebsiteContentMetrics.calculate_for_website(website)
+                results.append({
+                    'website_id': website.id,
+                    'website_name': website.name,
+                    'status': 'success',
+                    'metrics_id': metrics.id
+                })
+            except Exception as e:
+                results.append({
+                    'website_id': website.id,
+                    'website_name': website.name,
+                    'status': 'error',
+                    'error': str(e)
+                })
+        
+        return {
+            'total_websites': websites.count(),
+            'successful': len([r for r in results if r['status'] == 'success']),
+            'failed': len([r for r in results if r['status'] == 'error']),
+            'results': results
+        }
+    except Exception as e:
+        return f"Error recalculating service website content metrics: {str(e)}"
+
+
+@shared_task
+def send_content_freshness_reminders():
+    """
+    Send reminders to admins/superadmins about content that hasn't been updated.
+    Uses website-specific thresholds if set, otherwise defaults to 3 months.
+    Runs weekly.
+    """
+    from .models.analytics_models import ContentFreshnessReminder, WebsitePublishingTarget
+    from websites.models import Website
+    from django.contrib.auth import get_user_model
+    from notifications_system.models import Notification
+    from notifications_system.enums import NotificationType, NotificationCategory, EventType
+    
+    User = get_user_model()
+    
+    try:
+        websites = Website.objects.filter(is_active=True)
+        all_reminders = []
+        
+        # Process each website with its custom threshold
+        for website in websites:
+            try:
+                target = WebsitePublishingTarget.objects.get(website=website)
+                threshold = target.freshness_threshold_months
+            except WebsitePublishingTarget.DoesNotExist:
+                threshold = 3  # Default
+            
+            # Refresh reminders for this website
+            reminders = ContentFreshnessReminder.create_or_update_reminders(
+                months_threshold=threshold,
+                website=website
+            )
+            all_reminders.extend(reminders)
+        
+        # Get all admins and superadmins
+        admins = User.objects.filter(role__in=['admin', 'superadmin'], is_active=True)
+        
+        notifications_sent = 0
+        for reminder in all_reminders:
+            if reminder.is_acknowledged:
+                continue
+            
+            # Check if we should send (not sent in last 7 days)
+            from django.utils import timezone
+            from datetime import timedelta
+            if reminder.last_reminder_sent and reminder.last_reminder_sent > timezone.now() - timedelta(days=7):
+                continue
+            
+            # Create notifications for all admins
+            for admin in admins:
+                # Filter by website if admin is website-specific
+                if hasattr(admin, 'website') and admin.website != reminder.blog_post.website:
+                    continue
+                
+                Notification.objects.create(
+                    website=reminder.blog_post.website,
+                    user=admin,
+                    type=NotificationType.IN_APP,
+                    title=f"Content Needs Updating: {reminder.blog_post.title}",
+                    message=f"This blog post hasn't been updated in {reminder.days_since_update} days. Consider refreshing the content.",
+                    link=f"/admin/blog/{reminder.blog_post.id}/",
+                    category=NotificationCategory.WARNING,
+                    event=EventType.CONTENT_FRESHNESS_REMINDER,
+                    payload={
+                        'blog_post_id': reminder.blog_post.id,
+                        'blog_title': reminder.blog_post.title,
+                        'days_since_update': reminder.days_since_update,
+                    },
+                    is_critical=False,
+                )
+                notifications_sent += 1
+            
+            # Update reminder
+            reminder.last_reminder_sent = timezone.now()
+            reminder.reminder_count += 1
+            reminder.save()
+        
+        return f"Sent {notifications_sent} content freshness reminders for {len(all_reminders)} stale posts."
+    except Exception as e:
+        return f"Error sending content freshness reminders: {str(e)}"
+
+
+@shared_task
+def send_monthly_publishing_reminders():
+    """
+    Send reminders to admins about monthly publishing targets.
+    Runs daily to check progress.
+    """
+    from .models.analytics_models import WebsitePublishingTarget
+    from django.contrib.auth import get_user_model
+    from notifications_system.models import Notification
+    from notifications_system.enums import NotificationType, NotificationCategory, EventType
+    from websites.models import Website
+    
+    User = get_user_model()
+    
+    try:
+        websites = Website.objects.filter(is_active=True)
+        notifications_sent = 0
+        
+        for website in websites:
+            target = WebsitePublishingTarget.get_or_create_for_website(website)
+            stats = target.get_current_month_stats()
+            
+            # Only send reminder if we're past mid-month and below target
+            from datetime import datetime
+            now = datetime.now()
+            if now.day < 15:  # Don't remind in first half of month
+                continue
+            
+            published = stats['published']
+            target_count = stats['target']
+            percentage = stats['percentage']
+            
+            # Send reminder if below 50% of target and past mid-month
+            if published == 0:
+                message = f"You have not published any content this month for {website.name}. Target: {target_count} posts/month."
+            elif percentage < 50:
+                message = f"You only published {published} article(s) this month for {website.name}. Target: {target_count} posts/month. Please strive to add more."
+            else:
+                continue  # Skip if doing well
+            
+            # Get admins for this website
+            admins = User.objects.filter(
+                role__in=['admin', 'superadmin'],
+                is_active=True
+            )
+            
+            for admin in admins:
+                # Filter by website if admin is website-specific
+                if hasattr(admin, 'website') and admin.website != website:
+                    continue
+                
+                Notification.objects.create(
+                    website=website,
+                    user=admin,
+                    type=NotificationType.IN_APP,
+                    title=f"Monthly Publishing Target: {website.name}",
+                    message=message,
+                    link="/admin/content-metrics",
+                    category=NotificationCategory.INFO,
+                    event=EventType.MONTHLY_PUBLISHING_REMINDER,
+                    payload={
+                        'website_id': website.id,
+                        'website_name': website.name,
+                        'published': published,
+                        'target': target_count,
+                        'percentage': percentage,
+                    },
+                    is_critical=False,
+                )
+                notifications_sent += 1
+        
+        return f"Sent {notifications_sent} monthly publishing reminders."
+    except Exception as e:
+        return f"Error sending monthly publishing reminders: {str(e)}"
+
+
+@shared_task
+def send_content_reminder_email_digest():
+    """
+    Send weekly email digest of content reminders to admins.
+    Includes stale content and publishing target progress.
+    """
+    from .models.analytics_models import ContentFreshnessReminder, WebsitePublishingTarget
+    from websites.models import Website
+    from django.contrib.auth import get_user_model
+    from django.core.mail import send_mail
+    from django.template.loader import render_to_string
+    
+    User = get_user_model()
+    
+    try:
+        websites = Website.objects.filter(is_active=True)
+        emails_sent = 0
+        
+        for website in websites:
+            # Get stale content
+            try:
+                target = WebsitePublishingTarget.objects.get(website=website)
+                threshold = target.freshness_threshold_months
+            except WebsitePublishingTarget.DoesNotExist:
+                threshold = 3
+            
+            stale_posts = ContentFreshnessReminder.get_stale_content(
+                months_threshold=threshold,
+                website=website
+            )[:10]  # Limit to 10 most stale
+            
+            # Get monthly stats
+            target = WebsitePublishingTarget.get_or_create_for_website(website)
+            stats = target.get_current_month_stats()
+            
+            # Only send if there are issues
+            if stale_posts.count() == 0 and stats['percentage'] >= 50:
+                continue
+            
+            # Get admins for this website
+            admins = User.objects.filter(
+                role__in=['admin', 'superadmin'],
+                is_active=True,
+                email__isnull=False
+            )
+            
+            for admin in admins:
+                if hasattr(admin, 'website') and admin.website != website:
+                    continue
+                
+                # Prepare email content
+                subject = f"Content Reminder Digest: {website.name}"
+                
+                # Simple text email (can be enhanced with HTML template)
+                message = f"""
+Content Reminder Digest for {website.name}
+
+Monthly Publishing Progress:
+- Published: {stats['published']} / {stats['target']} ({stats['percentage']:.1f}%)
+- Remaining: {stats['remaining']} posts needed
+
+Stale Content ({stale_posts.count()} items):
+"""
+                for post in stale_posts:
+                    days_old = (timezone.now() - post.updated_at).days
+                    message += f"- {post.title} (not updated in {days_old} days)\n"
+                
+                message += f"\nView full details: /admin/content-metrics"
+                
+                try:
+                    send_mail(
+                        subject,
+                        message,
+                        None,  # Use DEFAULT_FROM_EMAIL
+                        [admin.email],
+                        fail_silently=False,
+                    )
+                    emails_sent += 1
+                except Exception as e:
+                    # Log error but continue
+                    print(f"Failed to send email to {admin.email}: {e}")
+        
+        return f"Sent {emails_sent} content reminder email digests."
+    except Exception as e:
+        return f"Error sending email digests: {str(e)}"

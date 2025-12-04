@@ -97,8 +97,21 @@ class BlogPostAutoSaveViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['post'])
     def save_draft(self, request):
-        """Auto-save a draft."""
+        """
+        Auto-save a draft.
+        
+        Body:
+        {
+            "blog_id": 123,
+            "title": "...",
+            "content": "...",
+            "meta_title": "...",
+            "meta_description": "...",
+            "run_health_check": true (optional)
+        }
+        """
         blog_id = request.data.get('blog_id')
+        run_health_check = request.data.get('run_health_check', False)
         
         if not blog_id:
             return Response(
@@ -117,11 +130,18 @@ class BlogPostAutoSaveViewSet(viewsets.ModelViewSet):
         autosave = DraftEditingService.auto_save_draft(
             blog=blog,
             user=request.user,
-            data=request.data
+            data=request.data,
+            run_health_check=run_health_check
         )
         
         serializer = self.get_serializer(autosave)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        response_data = serializer.data
+        
+        # Include health check results if available
+        if run_health_check and hasattr(autosave, 'metadata') and autosave.metadata:
+            response_data['health_check'] = autosave.metadata.get('health_check')
+        
+        return Response(response_data, status=status.HTTP_201_CREATED)
     
     @action(detail=False, methods=['get'])
     def latest(self, request):

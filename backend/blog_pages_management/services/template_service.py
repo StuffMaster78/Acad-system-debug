@@ -11,61 +11,170 @@ except ImportError:
     from blog_pages_management.models import BlogPost
     from blog_pages_management.models.workflow_models import ContentTemplate, ContentSnippet
 
+try:
+    from service_pages_management.models import ServicePage
+except ImportError:
+    # Allow using TemplateService in blog-only contexts
+    ServicePage = None  # type: ignore[misc]
+
 
 class TemplateService:
     """Service for managing content templates."""
     
     @staticmethod
+    def _build_variables(
+        template: ContentTemplate, template_variables: Optional[Dict[str, str]] = None
+    ) -> Dict[str, str]:
+        """Merge default_values with explicit template_variables."""
+        variables = template.default_values.copy()
+        if template_variables:
+            variables.update(template_variables)
+        return variables
+
+    @staticmethod
+    def _substitute(text: str, variables: Dict[str, str]) -> str:
+        """Simple {{var}} substitution helper."""
+        if not text:
+            return ""
+        result = text
+        for key, value in variables.items():
+            result = result.replace(f"{{{{{key}}}}}", str(value))
+        return result
+    
+    @staticmethod
+    def _resolve_template_inheritance(template: ContentTemplate) -> ContentTemplate:
+        """
+        Resolve template inheritance chain and merge templates.
+        Returns a composite template with all parent templates merged.
+        """
+        if not template.parent_template:
+            return template
+        
+        # Recursively resolve parent
+        parent = TemplateService._resolve_template_inheritance(template.parent_template)
+        
+        # Create a merged template (virtual, not saved)
+        merged = ContentTemplate()
+        merged.name = template.name
+        merged.description = template.description or parent.description
+        merged.template_type = template.template_type
+        
+        # Merge templates (child overrides parent)
+        merged.title_template = template.title_template or parent.title_template
+        merged.content_template = template.content_template or parent.content_template
+        merged.meta_title_template = template.meta_title_template or parent.meta_title_template
+        merged.meta_description_template = template.meta_description_template or parent.meta_description_template
+        
+        # Merge default values (child overrides parent)
+        merged.default_values = {**parent.default_values, **template.default_values}
+        
+        # Merge template variables
+        parent_vars = parent.template_variables or {}
+        child_vars = template.template_variables or {}
+        merged.template_variables = {**parent_vars, **child_vars}
+        
+        # Use child's category/tags if set, otherwise parent's
+        merged.category = template.category or parent.category
+        
+        return merged
+
+    @staticmethod
     def create_from_template(
         blog_post: BlogPost,
         template: ContentTemplate,
-        template_variables: Dict[str, str] = None
+        template_variables: Dict[str, str] = None,
+        use_inheritance: bool = True,
     ) -> BlogPost:
         """
         Create or update a blog post from a template.
         
         Args:
-            blog_post: BlogPost instance (can be new)
-            template: ContentTemplate to use
-            template_variables: Variables to substitute in template
+            blog_post: BlogPost instance to update
+            template: ContentTemplate to apply
+            template_variables: Optional variables to substitute
+            use_inheritance: Whether to resolve template inheritance
         
         Returns:
             Updated BlogPost instance
         """
-        variables = template.default_values.copy()
-        if template_variables:
-            variables.update(template_variables)
+        # Resolve inheritance if enabled
+        if use_inheritance and template.parent_template:
+            template = TemplateService._resolve_template_inheritance(template)
         
-        # Substitute variables in templates
-        def substitute(text: str) -> str:
-            if not text:
-                return ""
-            result = text
-            for key, value in variables.items():
-                result = result.replace(f"{{{{{key}}}}}", str(value))
-            return result
-        
+        variables = TemplateService._build_variables(template, template_variables)
+
         # Apply template
         if template.title_template:
-            blog_post.title = substitute(template.title_template)
+            blog_post.title = TemplateService._substitute(
+                template.title_template, variables
+            )
         if template.content_template:
-            blog_post.content = substitute(template.content_template)
+            blog_post.content = TemplateService._substitute(
+                template.content_template, variables
+            )
         if template.meta_title_template:
-            blog_post.meta_title = substitute(template.meta_title_template)
+            blog_post.meta_title = TemplateService._substitute(
+                template.meta_title_template, variables
+            )
         if template.meta_description_template:
-            blog_post.meta_description = substitute(template.meta_description_template)
-        
+            blog_post.meta_description = TemplateService._substitute(
+                template.meta_description_template, variables
+            )
+
         # Apply category and tags
         if template.category:
             blog_post.category = template.category
         if template.tags.exists():
             blog_post.save()  # Need to save first to set M2M
             blog_post.tags.set(template.tags.all())
-        
+
         # Increment template usage
         template.increment_usage()
-        
+
         return blog_post
+
+    @staticmethod
+    def create_service_page_from_template(
+        service_page: "ServicePage",
+        template: ContentTemplate,
+        template_variables: Dict[str, str] = None,
+    ):
+        """
+        Create or update a service page from a template.
+
+        Applies title/header/content/meta fields using the same variable
+        substitution logic as blog templates.
+        """
+        if ServicePage is None:
+            raise RuntimeError("ServicePage model is not available")
+
+        variables = TemplateService._build_variables(template, template_variables)
+
+        # Title & header (default header = title if not customized)
+        if template.title_template:
+            title_value = TemplateService._substitute(
+                template.title_template, variables
+            )
+            service_page.title = title_value
+            # Only override header if it is empty; allows manual headers
+            if not getattr(service_page, "header", ""):
+                service_page.header = title_value
+
+        if template.content_template:
+            service_page.content = TemplateService._substitute(
+                template.content_template, variables
+            )
+        if template.meta_title_template:
+            service_page.meta_title = TemplateService._substitute(
+                template.meta_title_template, variables
+            )
+        if template.meta_description_template:
+            service_page.meta_description = TemplateService._substitute(
+                template.meta_description_template, variables
+            )
+
+        template.increment_usage()
+        return service_page
     
     @staticmethod
     def insert_snippet(content: str, snippet: ContentSnippet, position: int = -1) -> str:

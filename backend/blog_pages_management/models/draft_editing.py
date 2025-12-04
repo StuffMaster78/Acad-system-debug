@@ -109,6 +109,11 @@ class BlogPostAutoSave(models.Model):
         default=False,
         help_text="Whether this autosave was recovered/used"
     )
+    metadata = JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional metadata (e.g., health check results)"
+    )
     
     class Meta:
         ordering = ['-saved_at']
