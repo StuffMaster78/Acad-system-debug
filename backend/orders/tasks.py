@@ -11,6 +11,7 @@ from datetime import timedelta
 from django.db.models import Avg, Count
 
 from orders.services.archive_order_service import ArchiveOrderService
+from orders.services.auto_archive_service import AutoArchiveService
 from orders.services.status_transition_service import StatusTransitionService
 
 from orders.models import OrderRequest
@@ -144,7 +145,7 @@ def archive_approved_orders():
     Archive orders that are in 'approved' state older than 2 weeks.
     """
     cutoff_date = now() - timedelta(weeks=2)
-    ArchiveOrderService.archive_approved_orders_older_than(cutoff_date)
+    AutoArchiveService.archive_orders_older_than(cutoff_date, status="approved")
 
 
 @shared_task

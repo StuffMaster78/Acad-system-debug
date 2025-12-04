@@ -25,6 +25,10 @@ export default {
   holdOrder: (id, reason = '') => apiClient.post(`/orders/orders/${id}/action/`, { action: 'hold_order', reason }),
   resumeOrder: (id) => apiClient.post(`/orders/orders/${id}/action/`, { action: 'resume_order' }),
   archiveOrder: (id) => apiClient.post(`/orders/orders/${id}/action/`, { action: 'archive_order' }),
+  
+  // Guest Checkout
+  startGuestOrder: (data) => apiClient.post('/orders/guest-orders/start/', data),
+  verifyGuestEmail: (data) => apiClient.post('/orders/guest-orders/verify-email/', data),
   reopenOrder: (id) => apiClient.post(`/orders/orders/${id}/action/`, { action: 'reopen_order' }),
   markCritical: (id) => apiClient.post(`/orders/orders/${id}/action/`, { action: 'mark_critical' }),
   extendDeadline: (id, newDeadline) => apiClient.post(`/orders/orders/${id}/extend-deadline/`, { new_deadline: newDeadline }),

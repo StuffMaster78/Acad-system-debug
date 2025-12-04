@@ -374,7 +374,21 @@
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Message *</label>
+            <div class="flex items-center justify-between mb-2">
+              <p class="text-xs text-gray-500">
+                Use this message for in‑app and email broadcasts. You can embed images and links.
+              </p>
+              <button
+                type="button"
+                @click="openMediaPicker"
+                class="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg border border-gray-200"
+              >
+                <span>📚</span>
+                <span>Insert from Media Library</span>
+              </button>
+            </div>
             <RichTextEditor
+              ref="broadcastEditorRef"
               v-model="broadcastForm.message"
               :required="true"
               placeholder="Write your broadcast message..."
@@ -434,6 +448,122 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Media Picker Modal for Broadcasts -->
+    <div
+      v-if="showMediaPicker"
+      class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+      @click.self="showMediaPicker = false"
+    >
+      <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+          <div>
+            <h2 class="text-xl font-semibold text-gray-900">Insert from Media Library</h2>
+            <p class="text-xs text-gray-500 mt-1">
+              Choose an asset to insert into the broadcast message. Images will be embedded; other files will be added as links.
+            </p>
+          </div>
+          <button
+            type="button"
+            @click="showMediaPicker = false"
+            class="text-gray-400 hover:text-gray-600"
+          >
+            ✕
+          </button>
+        </div>
+        <div class="px-6 py-4 space-y-4">
+          <div class="flex items-center justify-between gap-3">
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                @click="setMediaTypeAndReload('image')"
+                :class="[
+                  'px-3 py-1.5 text-xs rounded-full border',
+                  mediaTypeFilter === 'image'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-gray-100 text-gray-700 border-gray-200'
+                ]"
+              >
+                Images
+              </button>
+              <button
+                type="button"
+                @click="setMediaTypeAndReload('video')"
+                :class="[
+                  'px-3 py-1.5 text-xs rounded-full border',
+                  mediaTypeFilter === 'video'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-gray-100 text-gray-700 border-gray-200'
+                ]"
+              >
+                Videos
+              </button>
+              <button
+                type="button"
+                @click="setMediaTypeAndReload('file')"
+                :class="[
+                  'px-3 py-1.5 text-xs rounded-full border',
+                  mediaTypeFilter === 'file'
+                    ? 'bg-blue-600 text-white border-blue-600'
+                    : 'bg-gray-100 text-gray-700 border-gray-200'
+                ]"
+              >
+                Documents / Infographics
+              </button>
+            </div>
+          </div>
+
+          <div v-if="mediaLoading" class="py-12 text-center text-gray-500">
+            Loading media…
+          </div>
+          <div v-else-if="!mediaAssets.length" class="py-12 text-center text-gray-500">
+            No media found for this filter. Try a different type or upload assets via the Media Library page.
+          </div>
+          <div
+            v-else
+            class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
+          >
+            <button
+              v-for="asset in mediaAssets"
+              :key="asset.id"
+              type="button"
+              @click="insertMediaIntoBroadcast(asset)"
+              class="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow text-left"
+            >
+              <div class="aspect-square bg-gray-100 flex items-center justify-center">
+                <img
+                  v-if="asset.type === 'image' && asset.url"
+                  :src="asset.url"
+                  :alt="asset.alt_text || asset.title"
+                  class="w-full h-full object-cover"
+                />
+                <div v-else class="flex flex-col items-center justify-center text-xs text-gray-500 p-3">
+                  <span v-if="asset.type === 'video'">🎥 Video</span>
+                  <span v-else>📎 File</span>
+                </div>
+              </div>
+              <div class="px-3 py-2">
+                <p class="text-xs font-medium text-gray-900 truncate">
+                  {{ asset.title || asset.filename || 'Untitled' }}
+                </p>
+                <p class="text-[11px] text-gray-500 mt-0.5 capitalize">
+                  {{ asset.type }}
+                </p>
+              </div>
+            </button>
+          </div>
+        </div>
+        <div class="px-6 py-3 border-t border-gray-200 text-right">
+          <button
+            type="button"
+            @click="showMediaPicker = false"
+            class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
 
@@ -507,6 +637,7 @@ import DataTable from '@/components/common/DataTable.vue'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import emailsAPI from '@/api/emails'
 import apiClient from '@/api/client'
+import mediaAPI from '@/api/media'
 
 const activeTab = ref('mass-emails')
 const tabs = [
@@ -564,6 +695,13 @@ const broadcastPagination = ref({
   next: null,
   previous: null,
 })
+
+// Broadcast editor + media picker
+const broadcastEditorRef = ref(null)
+const showMediaPicker = ref(false)
+const mediaAssets = ref([])
+const mediaLoading = ref(false)
+const mediaTypeFilter = ref('image')
 
 const websites = ref([])
 
@@ -870,6 +1008,61 @@ const handleBroadcastPageChange = (url) => {
 const handleBroadcastPageSizeChange = () => {
   broadcastFilters.value.page = 1
   loadBroadcasts()
+}
+
+// Media picker for broadcasts
+const loadMediaAssets = async () => {
+  mediaLoading.value = true
+  try {
+    const params = {
+      page: 1,
+      page_size: 30,
+      type: mediaTypeFilter.value || undefined,
+    }
+    if (broadcastForm.value.website) {
+      params.website_id = broadcastForm.value.website
+    }
+    const res = await mediaAPI.list(params)
+    mediaAssets.value = res.data?.results || res.data || []
+  } catch (e) {
+    console.error('Failed to load media assets for picker:', e)
+  } finally {
+    mediaLoading.value = false
+  }
+}
+
+const openMediaPicker = () => {
+  showMediaPicker.value = true
+  loadMediaAssets()
+}
+
+const setMediaTypeAndReload = (type) => {
+  mediaTypeFilter.value = type
+  loadMediaAssets()
+}
+
+const insertMediaIntoBroadcast = (asset) => {
+  if (!asset || !asset.url) return
+  const editorApi = broadcastEditorRef.value
+  const quill = editorApi?.getQuillInstance?.()
+  if (!quill) {
+    console.warn('Broadcast editor Quill instance not available')
+    return
+  }
+
+  const range = quill.getSelection(true) || { index: quill.getLength(), length: 0 }
+
+  if (asset.type === 'image') {
+    quill.insertEmbed(range.index, 'image', asset.url)
+    quill.setSelection(range.index + 1, 0)
+  } else {
+    const label = asset.title || asset.filename || asset.url
+    const linkText = `[${asset.type}] ${label}`
+    quill.insertText(range.index, linkText + ' ', 'link', asset.url)
+    quill.setSelection(range.index + linkText.length + 1, 0)
+  }
+
+  showMediaPicker.value = false
 }
 
 // Actions

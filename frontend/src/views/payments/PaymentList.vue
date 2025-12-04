@@ -25,7 +25,7 @@
         <ul class="divide-y divide-gray-200">
           <li v-for="p in payments" :key="p.id" class="py-3 flex items-center justify-between">
             <div>
-              <div class="font-medium">#{{ p.id }} · ${{ p.amount }} <span :class="badgeClass(p.status)" class="inline-block px-2 py-0.5 rounded ml-2">{{ p.status }}</span></div>
+              <div class="font-medium">#{{ p.id }} · ${{ parseFloat(p.amount || 0).toFixed(2) }} <span :class="badgeClass(p.status)" class="inline-block px-2 py-0.5 rounded ml-2">{{ p.status }}</span></div>
               <div class="text-xs text-gray-500">Order: #{{ p.order }} · Ref: {{ p.reference || p.identifier || '—' }} · {{ toDT(p.created_at) }}</div>
             </div>
           </li>

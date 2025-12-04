@@ -2,7 +2,7 @@
 Enhanced models for service pages - FAQs, Resources, CTAs, SEO.
 """
 from django.db import models
-from django.db.models import JSONField
+from django.db.models import JSONField, Sum
 from websites.models import Website
 from django.contrib.auth import get_user_model
 
@@ -248,4 +248,126 @@ class ServicePageEditHistory(models.Model):
     
     def __str__(self):
         return f"{self.service_page.title} - Edited {self.edited_at}"
+
+
+class ServicePageContentBlock(models.Model):
+    """
+    Links content blocks to specific service pages at specific positions.
+    Similar to BlogContentBlock but for service pages.
+    """
+    service_page = models.ForeignKey(
+        'service_pages_management.ServicePage',
+        on_delete=models.CASCADE,
+        related_name='content_blocks'
+    )
+    template = models.ForeignKey(
+        'blog_pages_management.ContentBlockTemplate',
+        on_delete=models.CASCADE,
+        related_name='service_page_blocks'
+    )
+    position = models.IntegerField(
+        help_text="Position in content (paragraph/heading index)"
+    )
+    auto_insert = models.BooleanField(
+        default=False,
+        help_text="Whether this was auto-inserted"
+    )
+    custom_data = JSONField(
+        default=dict,
+        blank=True,
+        help_text="Service page-specific data overriding template data"
+    )
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        ordering = ['position']
+        indexes = [
+            models.Index(fields=['service_page', 'is_active']),
+        ]
+    
+    def __str__(self):
+        return f"{self.service_page.title} - {self.template.name}"
+
+
+class ServiceWebsiteContentMetrics(models.Model):
+    """
+    Aggregated metrics for service pages per website.
+    Designed to power a \"Service Pages\" metrics dashboard.
+    """
+
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name="service_website_content_metrics",
+    )
+    calculated_at = models.DateTimeField(auto_now_add=True)
+
+    total_pages = models.PositiveIntegerField(default=0)
+    published_pages = models.PositiveIntegerField(default=0)
+
+    # Aggregated engagement
+    total_clicks = models.PositiveIntegerField(default=0)
+    total_conversions = models.PositiveIntegerField(default=0)
+
+    # Optional per-page breakdown:
+    # {
+    #   service_page_id: {
+    #       "title": "...",
+    #       "slug": "...",
+    #       "click_count": 10,
+    #       "conversion_count": 2
+    #   },
+    #   ...
+    # }
+    page_metrics = JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-calculated_at"]
+        indexes = [
+            models.Index(fields=["website", "calculated_at"]),
+        ]
+
+    def __str__(self):
+        return f"Service metrics for {self.website.name} at {self.calculated_at}"
+
+    @classmethod
+    def calculate_for_website(cls, website):
+        """
+        Calculate a metrics snapshot for service pages on a website.
+        """
+        from ..models import ServicePage, ServicePageClick, ServicePageConversion
+
+        pages = ServicePage.objects.filter(website=website, is_deleted=False)
+        total_pages = pages.count()
+        published_pages = pages.filter(is_published=True).count()
+
+        # Aggregate clicks and conversions overall
+        clicks_qs = ServicePageClick.objects.filter(website=website)
+        conversions_qs = ServicePageConversion.objects.filter(website=website)
+
+        total_clicks = clicks_qs.count()
+        total_conversions = conversions_qs.count()
+
+        # Per-page metrics
+        page_metrics = {}
+        for page in pages:
+            page_clicks = clicks_qs.filter(service_page=page).count()
+            page_conversions = conversions_qs.filter(service_page=page).count()
+            page_metrics[page.id] = {
+                "title": page.title,
+                "slug": page.slug,
+                "click_count": page_clicks,
+                "conversion_count": page_conversions,
+            }
+
+        snapshot = cls.objects.create(
+            website=website,
+            total_pages=total_pages,
+            published_pages=published_pages,
+            total_clicks=total_clicks,
+            total_conversions=total_conversions,
+            page_metrics=page_metrics,
+        )
+        return snapshot
 

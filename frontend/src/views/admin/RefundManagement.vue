@@ -134,7 +134,7 @@
                     Payment #{{ typeof refund.order_payment === 'object' ? refund.order_payment?.id : refund.order_payment || 'N/A' }}
                   </td>
                   <td class="px-4 sm:px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white font-semibold">
-                    ${{ parseFloat(refund.total_amount || (parseFloat(refund.wallet_amount || 0) + parseFloat(refund.external_amount || 0))).toFixed(2) }}
+                    ${{ formatRefundAmount(refund) }}
                     <span v-if="refund.wallet_amount > 0 && refund.external_amount > 0" class="text-xs text-gray-500 dark:text-gray-400 block">
                       (${{ parseFloat(refund.wallet_amount || 0).toFixed(2) }} wallet + ${{ parseFloat(refund.external_amount || 0).toFixed(2) }} external)
                     </span>
@@ -335,7 +335,7 @@
             <div>
               <span class="text-sm font-medium text-gray-600">Total Amount:</span>
               <p class="text-gray-900 font-semibold text-lg">
-                ${{ parseFloat(viewingRefund.total_amount || (parseFloat(viewingRefund.wallet_amount || 0) + parseFloat(viewingRefund.external_amount || 0))).toFixed(2) }}
+                ${{ formatRefundAmount(viewingRefund) }}
               </p>
             </div>
             <div>
@@ -816,6 +816,12 @@ const getStatusClass = (status) => {
   if (status === 'processed') return 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
   if (status === 'rejected') return 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300'
   return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300'
+}
+
+const formatRefundAmount = (refund) => {
+  if (!refund) return '0.00'
+  const amount = refund.total_amount || (parseFloat(refund.wallet_amount || 0) + parseFloat(refund.external_amount || 0))
+  return parseFloat(amount).toFixed(2)
 }
 
 const formatDate = (date) => {

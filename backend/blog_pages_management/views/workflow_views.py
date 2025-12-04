@@ -200,6 +200,91 @@ class ContentTemplateViewSet(viewsets.ModelViewSet):
         serializer = BlogPostSerializer(blog)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @action(detail=True, methods=['post'])
+    def instantiate(self, request, pk=None):
+        """
+        Instantiate a new draft blog post or service page from this template.
+
+        Body:
+        {
+            "target": "blog_post" | "service_page",
+            "website_id": ...,
+            "variables": { ...optional substitutions... }
+        }
+        """
+        template = self.get_object()
+        target = request.data.get('target')
+        website_id = request.data.get('website_id')
+        template_variables = request.data.get('variables', {})
+
+        if target not in ['blog_post', 'service_page']:
+            return Response(
+                {'error': 'target must be "blog_post" or "service_page".'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not website_id:
+            return Response(
+                {'error': 'website_id is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from websites.models import Website
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {'error': 'Website not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        from ..services.template_service import TemplateService
+
+        if target == 'blog_post':
+            if template.template_type != 'blog_post':
+                return Response(
+                    {'error': 'Template is not a blog_post template.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            # Create new draft blog post
+            blog = BlogPost.objects.create(
+                website=website,
+                status='draft',
+                is_published=False,
+            )
+            blog = TemplateService.create_from_template(blog, template, template_variables)
+            blog.save()
+            from ..serializers import BlogPostSerializer
+            serializer = BlogPostSerializer(blog)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+        # Service page target
+        if template.template_type != 'service_page':
+            return Response(
+                {'error': 'Template is not a service_page template.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from service_pages_management.models import ServicePage
+
+        page = ServicePage.objects.create(
+            website=website,
+            is_published=False,
+            created_by=request.user,
+            updated_by=request.user,
+            title='',
+            header='',
+            content='',
+        )
+        page = TemplateService.create_service_page_from_template(
+            page, template, template_variables
+        )
+        page.save()
+
+        from service_pages_management.serializers import ServicePageSerializer
+        serializer = ServicePageSerializer(page)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 class ContentSnippetViewSet(viewsets.ModelViewSet):
     """ViewSet for managing content snippets."""
@@ -212,5 +297,31 @@ class ContentSnippetViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return super().get_queryset().filter(
             website__id=self.request.query_params.get('website_id')
+        )
+
+    @action(detail=True, methods=['post'])
+    def render(self, request, pk=None):
+        """
+        Render a snippet for insertion into an editor.
+
+        Body:
+        {
+            "format": "html" | "markdown"  # currently returns raw snippet.content
+        }
+        """
+        snippet = self.get_object()
+        format_type = request.data.get('format', 'html')
+
+        # For now, we simply return the raw content; frontends can decide
+        # how to insert it into their editors.
+        return Response(
+            {
+                'id': snippet.id,
+                'name': snippet.name,
+                'snippet_type': snippet.snippet_type,
+                'content': snippet.content,
+                'format': format_type,
+            },
+            status=status.HTTP_200_OK,
         )
 

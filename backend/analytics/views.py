@@ -9,15 +9,24 @@ from django.utils import timezone
 from datetime import timedelta
 
 from analytics.models import (
-    ClientAnalytics, ClientAnalyticsSnapshot,
-    WriterAnalytics, WriterAnalyticsSnapshot,
-    ClassAnalytics, ClassPerformanceReport
+    ClientAnalytics,
+    ClientAnalyticsSnapshot,
+    WriterAnalytics,
+    WriterAnalyticsSnapshot,
+    ClassAnalytics,
+    ClassPerformanceReport,
+    ContentEvent,
 )
 from analytics.serializers import (
-    ClientAnalyticsSerializer, ClientAnalyticsSnapshotSerializer,
-    WriterAnalyticsSerializer, WriterAnalyticsSnapshotSerializer,
-    ClassAnalyticsSerializer, ClassAnalyticsCreateSerializer,
-    ClassPerformanceReportSerializer, ClassPerformanceReportCreateSerializer
+    ClientAnalyticsSerializer,
+    ClientAnalyticsSnapshotSerializer,
+    WriterAnalyticsSerializer,
+    WriterAnalyticsSnapshotSerializer,
+    ClassAnalyticsSerializer,
+    ClassAnalyticsCreateSerializer,
+    ClassPerformanceReportSerializer,
+    ClassPerformanceReportCreateSerializer,
+    ContentEventSerializer,
 )
 from admin_management.permissions import IsAdmin
 
@@ -256,6 +265,18 @@ class ClassAnalyticsViewSet(viewsets.ModelViewSet):
             qs = qs.filter(period_end__lte=period_end)
         
         return qs.order_by('-period_start')
+
+
+class ContentEventViewSet(viewsets.ModelViewSet):
+    """
+    Write-only endpoint for recording generic content engagement events.
+    """
+
+    queryset = ContentEvent.objects.all()
+    serializer_class = ContentEventSerializer
+    permission_classes = [permissions.AllowAny]
+    http_method_names = ['post', 'head', 'options']
+
     
     @action(detail=True, methods=['post'])
     def recalculate(self, request, pk=None):

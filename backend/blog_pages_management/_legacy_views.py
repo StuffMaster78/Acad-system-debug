@@ -3,8 +3,9 @@ from rest_framework.response import Response
 from rest_framework import generics
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from authentication.permissions import IsAdminOrSuperAdmin
 from django_filters.rest_framework import DjangoFilterBackend
-from django.utils.timezone import now, timedelta
+from django.utils.timezone import now, timedelta, timezone
 from django.db.models import Count
 from .models import (
     BlogPost, BlogCategory, BlogTag, AuthorProfile, BlogClick, BlogConversion,
@@ -187,9 +188,48 @@ class BlogTagViewSet(viewsets.ModelViewSet):
 
 class AuthorProfileViewSet(viewsets.ModelViewSet):
     """ViewSet for managing author profiles."""
-    queryset = AuthorProfile.objects.all()
     serializer_class = AuthorProfileSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminOrSuperAdmin]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'designation', 'expertise', 'bio']
+    ordering_fields = ['name', 'display_order', 'created_at']
+    ordering = ['display_order', 'name']
+    pagination_class = None  # Disable pagination for author list
+    
+    def get_queryset(self):
+        """Filter authors by website and active status."""
+        queryset = AuthorProfile.objects.all().select_related('website')
+        
+        # Filter by website if provided
+        website_id = self.request.query_params.get('website_id')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        
+        # Filter by active status if provided
+        is_active = self.request.query_params.get('is_active')
+        if is_active is not None:
+            is_active_bool = is_active.lower() == 'true'
+            queryset = queryset.filter(is_active=is_active_bool)
+        
+        # Filter by website for non-superadmin users
+        if self.request.user.role != 'superadmin':
+            user_website = getattr(self.request.user, 'website', None)
+            if user_website:
+                queryset = queryset.filter(website=user_website)
+        
+        return queryset
+    
+    def perform_create(self, serializer):
+        """Set website automatically for non-superadmin users."""
+        if self.request.user.role != 'superadmin':
+            user_website = getattr(self.request.user, 'website', None)
+            if user_website:
+                serializer.save(website=user_website)
+            else:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError({"website": "Website is required."})
+        else:
+            serializer.save()
 
 
 # ------------------ BLOG POST VIEWSET ------------------
@@ -211,7 +251,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         queryset = BlogPost.objects.filter(
             is_deleted=False
         ).select_related(
-            "category", "website"
+            "category", "website", "last_edited_by"
         ).prefetch_related(
             "authors", "tags", "media_files"
         ).defer(
@@ -225,6 +265,23 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             website = getattr(self.request.user, 'website', None)
             if website:
                 queryset = queryset.filter(website=website)
+        
+        # Editorial UX filters
+        my_drafts = self.request.query_params.get('my_drafts', '').lower() == 'true'
+        needs_review = self.request.query_params.get('needs_review', '').lower() == 'true'
+        
+        if my_drafts:
+            queryset = queryset.filter(
+                status='draft',
+                last_edited_by=self.request.user
+            )
+        
+        if needs_review:
+            from ..models.workflow_models import BlogPostWorkflow
+            queryset = queryset.filter(
+                workflow__status='in_review',
+                workflow__assigned_reviewer=self.request.user
+            )
         
         return queryset
 
@@ -401,6 +458,23 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def publish(self, request, pk=None):
         """Publish a blog post (change status to published)."""
         blog = self.get_object()
+        force_publish = bool(request.data.get('force_publish', False))
+
+        # Soft duplicate guard: warn if similar published posts exist
+        if not force_publish:
+            try:
+                duplicates = blog.find_potential_duplicates()
+            except AttributeError:
+                duplicates = []
+            if duplicates:
+                return Response(
+                    {
+                        "detail": "Potential duplicate content detected. Call again with force_publish=true to proceed.",
+                        "duplicates": duplicates,
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
+
         blog.status = "published"
         blog.is_published = True
         if not blog.publish_date:
@@ -451,6 +525,7 @@ class BlogPostViewSet(viewsets.ModelViewSet):
     def bulk_publish(self, request):
         """Bulk publish multiple blog posts."""
         blog_ids = request.data.get('blog_ids', [])
+        force_publish = bool(request.data.get('force_publish', False))
         if not blog_ids:
             return Response(
                 {'error': 'blog_ids is required'},
@@ -459,10 +534,28 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         
         blogs = BlogPost.objects.filter(id__in=blog_ids)
         published_count = 0
+        blocked = []
         
         from ..services.draft_editing_service import DraftEditingService
         
         for blog in blogs:
+            if not force_publish:
+                try:
+                    duplicates = blog.find_potential_duplicates()
+                except AttributeError:
+                    duplicates = []
+                if duplicates:
+                    blocked.append(
+                        {
+                            "id": blog.id,
+                            "title": blog.title,
+                            "slug": blog.slug,
+                            "website_id": blog.website_id,
+                            "duplicates": duplicates,
+                        }
+                    )
+                    continue
+
             blog.status = "published"
             blog.is_published = True
             if not blog.publish_date:
@@ -471,10 +564,13 @@ class BlogPostViewSet(viewsets.ModelViewSet):
             DraftEditingService.create_revision(blog, request.user, "Bulk published")
             published_count += 1
         
-        return Response({
-            'message': f'Published {published_count} blog posts',
-            'published_count': published_count
-        }, status=status.HTTP_200_OK)
+        response_data = {
+            "message": f"Published {published_count} blog posts",
+            "published_count": published_count,
+        }
+        if blocked:
+            response_data["blocked"] = blocked
+        return Response(response_data, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['post'])
     def bulk_archive(self, request):

@@ -7,15 +7,15 @@
         <p class="mt-2 text-sm md:text-base text-gray-600 dark:text-gray-400">Manage holidays, special events, and automated marketing campaigns</p>
       </div>
       <div class="flex flex-wrap gap-2 w-full sm:w-auto">
-        <button 
-          @click="showCreateModal = true"
+        <router-link
+          to="/admin/holidays/create"
           class="flex-1 sm:flex-none px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
           </svg>
           Add Special Day
-        </button>
+        </router-link>
         <button 
           @click="checkReminders"
           class="flex-1 sm:flex-none px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -477,6 +477,7 @@
           </button>
         </div>
         <SpecialDayForm
+          :key="`special-day-form-${showCreateModal ? 'create' : 'edit'}-${editingSpecialDay?.id || 'new'}`"
           :special-day="editingSpecialDay"
           @save="handleSaveSpecialDay"
           @cancel="closeModal"
@@ -533,12 +534,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useToast } from '@/composables/useToast'
 import { holidaysAPI } from '@/api'
 import SpecialDayForm from '@/components/holidays/SpecialDayForm.vue'
 import SpecialDayDetail from '@/components/holidays/SpecialDayDetail.vue'
 
 const { success: showSuccess, error: showError } = useToast()
+const router = useRouter()
 
 // State
 const activeTab = ref('special-days')
@@ -670,9 +673,7 @@ const viewSpecialDay = (day) => {
 }
 
 const editSpecialDay = (day) => {
-  editingSpecialDay.value = day
-  selectedSpecialDay.value = null
-  showCreateModal.value = true
+  router.push(`/admin/holidays/edit/${day.id}`)
 }
 
 const handleSaveSpecialDay = async (data) => {

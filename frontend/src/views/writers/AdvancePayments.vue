@@ -15,25 +15,25 @@
         <div class="bg-gray-50 dark:bg-gray-700 rounded p-4">
           <div class="text-sm text-gray-600 dark:text-gray-400">Expected Earnings</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">
-            ${{ formatCurrency(eligibility.expected_earnings) }}
+            {{ formatCurrency(eligibility.expected_earnings) }}
           </div>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700 rounded p-4">
           <div class="text-sm text-gray-600 dark:text-gray-400">Max Advance ({{ eligibility.max_percentage }}%)</div>
           <div class="text-2xl font-bold text-gray-900 dark:text-white">
-            ${{ formatCurrency(eligibility.max_advance_amount) }}
+            {{ formatCurrency(eligibility.max_advance_amount) }}
           </div>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700 rounded p-4">
           <div class="text-sm text-gray-600 dark:text-gray-400">Outstanding Advances</div>
           <div class="text-2xl font-bold text-orange-600 dark:text-orange-400">
-            ${{ formatCurrency(eligibility.outstanding_advances) }}
+            {{ formatCurrency(eligibility.outstanding_advances) }}
           </div>
         </div>
         <div class="bg-gray-50 dark:bg-gray-700 rounded p-4">
           <div class="text-sm text-gray-600 dark:text-gray-400">Available Advance</div>
           <div class="text-2xl font-bold text-green-600 dark:text-green-400">
-            ${{ formatCurrency(eligibility.available_advance) }}
+            {{ formatCurrency(eligibility.available_advance) }}
           </div>
         </div>
       </div>
@@ -59,7 +59,7 @@
             required
           />
           <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Maximum: ${{ formatCurrency(eligibility?.available_advance || 0) }}
+            Maximum: {{ formatCurrency(eligibility?.available_advance || 0) }}
           </p>
         </div>
         <div>
@@ -109,23 +109,23 @@
               <div class="flex items-center gap-3 mb-2">
                 <StatusBadge :status="request.status" />
                 <span class="text-lg font-semibold dark:text-white">
-                  ${{ formatCurrency(request.requested_amount) }}
+                  {{ formatCurrency(request.requested_amount) }}
                 </span>
                 <span v-if="request.approved_amount && request.approved_amount < request.requested_amount" 
                       class="text-sm text-blue-600 dark:text-blue-400">
-                  (Counteroffer: ${{ formatCurrency(request.approved_amount) }})
+                  (Counteroffer: {{ formatCurrency(request.approved_amount) }})
                 </span>
               </div>
               <div class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
                 <div>Requested: {{ formatDate(request.requested_at) }}</div>
                 <div v-if="request.approved_amount">
-                  Approved: ${{ formatCurrency(request.approved_amount) }}
+                  Approved: {{ formatCurrency(request.approved_amount) }}
                 </div>
                 <div v-if="request.disbursed_amount">
-                  Disbursed: ${{ formatCurrency(request.disbursed_amount) }}
+                  Disbursed: {{ formatCurrency(request.disbursed_amount) }}
                 </div>
                 <div v-if="request.outstanding_amount > 0" class="text-orange-600 dark:text-orange-400">
-                  Outstanding: ${{ formatCurrency(request.outstanding_amount) }}
+                  Outstanding: {{ formatCurrency(request.outstanding_amount) }}
                 </div>
                 <div v-if="request.reason" class="mt-2 italic">
                   "{{ request.reason }}"
@@ -150,7 +150,7 @@
                 :key="deduction.id"
                 class="text-sm text-gray-600 dark:text-gray-400"
               >
-                ${{ formatCurrency(deduction.amount_deducted) }} deducted on {{ formatDate(deduction.deducted_at) }}
+                {{ formatCurrency(deduction.amount_deducted) }} deducted on {{ formatDate(deduction.deducted_at) }}
                 <span v-if="deduction.order_number" class="text-gray-500 dark:text-gray-500">
                   (Order #{{ deduction.order_number }})
                 </span>

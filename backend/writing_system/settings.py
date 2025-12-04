@@ -141,6 +141,10 @@ INSTALLED_APPS = [
     # Content Management Apps
     'blog_pages_management',
     'service_pages_management',
+    'seo_pages',
+
+    # Media & Content Assets
+    'media_management',
 
      # Shared Utilities App
     #  "common",
@@ -631,6 +635,10 @@ CELERY_BEAT_SCHEDULE = {
         'backfill-group-notification-profiles-every-night': {
         'task': 'notifications_system.tasks.backfill_profiles.backfill_group_notification_profiles',
         'schedule': crontab(hour=3, minute=0),  # Run at 3 AM daily
+    },
+    'aggregate-content-metrics': {
+        'task': 'blog_pages_management.tasks.aggregate_content_metrics',
+        'schedule': timedelta(hours=6),  # Run every 6 hours
     },
 }
 RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW", "default")

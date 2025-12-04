@@ -15,6 +15,8 @@ from .serializers import (
     ServicePageSerializer,
     ServicePageAnalyticsSerializer
 )
+from .serializers.enhanced_serializers import ServicePageContentBlockSerializer
+from .models.enhanced_models import ServicePageContentBlock
 from .permissions import IsAdminOrSuperAdmin
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -107,6 +109,47 @@ class ServicePageViewSet(viewsets.ModelViewSet):
             serializer.save(website=new_website, updated_by=user)
         else:
             serializer.save(updated_by=user)
+    
+    @action(detail=True, methods=['post'])
+    def apply_template(self, request, pk=None):
+        """
+        Apply a content template (template_type='service_page') to this service page.
+
+        Body:
+        {
+            "template_id": ...,
+            "variables": { ...optional substitutions... }
+        }
+        """
+        page = self.get_object()
+        template_id = request.data.get('template_id')
+        if not template_id:
+            return Response(
+                {"detail": "template_id is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from blog_pages_management.models.workflow_models import ContentTemplate
+        try:
+            template = ContentTemplate.objects.get(
+                id=template_id, website=page.website, template_type='service_page'
+            )
+        except ContentTemplate.DoesNotExist:
+            return Response(
+                {"detail": "Template not found or not a service_page template."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        from blog_pages_management.services.template_service import TemplateService
+        template_variables = request.data.get('variables', {})
+
+        page = TemplateService.create_service_page_from_template(
+            page, template, template_variables
+        )
+        page.save()
+
+        serializer = self.get_serializer(page)
+        return Response(serializer.data, status=status.HTTP_200_OK)
     
     @action(detail=False, methods=['get'])
     def available_websites(self, request):
@@ -201,6 +244,45 @@ class ServicePageViewSet(viewsets.ModelViewSet):
             referral_url=request.data.get("referral_url", "")
         )
         return Response({"status": "conversion recorded"})
+    
+    @action(detail=True, methods=['get'])
+    def content_blocks(self, request, pk=None):
+        """Get all content blocks for this service page."""
+        page = self.get_object()
+        blocks = ServicePageContentBlock.objects.filter(
+            service_page=page, is_active=True
+        ).order_by('position')
+        serializer = ServicePageContentBlockSerializer(blocks, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def insert_content_block(self, request, pk=None):
+        """Insert a content block into this service page."""
+        page = self.get_object()
+        template_id = request.data.get('template_id')
+        position = request.data.get('position', 0)
+        custom_data = request.data.get('custom_data', {})
+        
+        try:
+            from blog_pages_management.models.content_blocks import ContentBlockTemplate
+            template = ContentBlockTemplate.objects.get(
+                id=template_id, website=page.website
+            )
+        except Exception as e:
+            return Response(
+                {'error': f'Content block template not found: {str(e)}'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        block = ServicePageContentBlock.objects.create(
+            service_page=page,
+            template=template,
+            position=position,
+            custom_data=custom_data
+        )
+        
+        serializer = ServicePageContentBlockSerializer(block)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @extend_schema(
         summary="View analytics for this service page",

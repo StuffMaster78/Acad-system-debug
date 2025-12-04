@@ -38,10 +38,21 @@ from .views.workflow_views import (
     ContentTemplateViewSet,
     ContentSnippetViewSet,
 )
+from .views.editor_views import EditorToolingViewSet
+from .views.editor_tracking_views import EditorSessionViewSet, EditorProductivityMetricsViewSet
 from .views.analytics_views import (
     EditorAnalyticsViewSet,
     BlogPostAnalyticsViewSet,
     ContentPerformanceMetricsViewSet,
+)
+from .views.content_audit_views import ContentAuditViewSet
+from .views.enhanced_views import MediaBrowserViewSet
+from .views.metrics_views import (
+    WebsiteContentMetricsViewSet,
+    WebsitePublishingTargetViewSet,
+    CategoryPublishingTargetViewSet,
+    ContentFreshnessReminderViewSet,
+    ContentCalendarViewSet,
 )
 from .seo import robots_txt, sitemap_index, blog_sitemap
 from .views import blog_redirect
@@ -110,10 +121,24 @@ router.register(r"workflow-transitions", WorkflowTransitionViewSet, basename="wo
 router.register(r"content-templates", ContentTemplateViewSet, basename="content-template")
 router.register(r"content-snippets", ContentSnippetViewSet, basename="content-snippet")
 
+# Editor Tooling routes
+router.register(r"editor-tooling", EditorToolingViewSet, basename="editor-tooling")
+router.register(r"editor-sessions", EditorSessionViewSet, basename="editor-session")
+router.register(r"editor-productivity", EditorProductivityMetricsViewSet, basename="editor-productivity")
+
 # Analytics routes
 router.register(r"editor-analytics", EditorAnalyticsViewSet, basename="editor-analytics")
 router.register(r"blog-analytics", BlogPostAnalyticsViewSet, basename="blog-analytics")
 router.register(r"content-metrics", ContentPerformanceMetricsViewSet, basename="content-metrics")
+
+# Content audit & media browser
+router.register(r"content-audit", ContentAuditViewSet, basename="content-audit")
+router.register(r"media-browser", MediaBrowserViewSet, basename="media-browser")
+router.register(r"website-metrics", WebsiteContentMetricsViewSet, basename="website-metrics")
+router.register(r"publishing-targets", WebsitePublishingTargetViewSet, basename="publishing-targets")
+router.register(r"category-publishing-targets", CategoryPublishingTargetViewSet, basename="category-publishing-targets")
+router.register(r"content-freshness-reminders", ContentFreshnessReminderViewSet, basename="content-freshness-reminders")
+router.register(r"content-calendar", ContentCalendarViewSet, basename="content-calendar")
 
 # Combine urlpatterns properly to prevent overwrites
 urlpatterns = [

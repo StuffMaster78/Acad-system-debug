@@ -24,6 +24,7 @@ from orders.views.enhanced_revisions import RevisionRequestViewSet
 from orders.views.writer_acknowledgment import WriterAssignmentAcknowledgmentViewSet
 from orders.views.message_reminders import MessageReminderViewSet
 from orders.views.review_reminders import ReviewReminderViewSet
+from orders.views.guest_orders import GuestOrderViewSet
 
 
 app_name = 'orders'
@@ -45,6 +46,7 @@ router.register(r'revision-requests', RevisionRequestViewSet, basename='revision
 router.register(r'writer-acknowledgments', WriterAssignmentAcknowledgmentViewSet, basename='writer-acknowledgment')
 router.register(r'message-reminders', MessageReminderViewSet, basename='message-reminder')
 router.register(r'review-reminders', ReviewReminderViewSet, basename='review-reminder')
+router.register(r'guest-orders', GuestOrderViewSet, basename='guest-order')
 
 
 urlpatterns = [

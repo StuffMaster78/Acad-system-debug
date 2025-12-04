@@ -3,9 +3,13 @@ Analytics Serializers
 """
 from rest_framework import serializers
 from analytics.models import (
-    ClientAnalytics, ClientAnalyticsSnapshot,
-    WriterAnalytics, WriterAnalyticsSnapshot,
-    ClassAnalytics, ClassPerformanceReport
+    ClientAnalytics,
+    ClientAnalyticsSnapshot,
+    WriterAnalytics,
+    WriterAnalyticsSnapshot,
+    ClassAnalytics,
+    ClassPerformanceReport,
+    ContentEvent,
 )
 
 
@@ -132,4 +136,35 @@ class ClassPerformanceReportCreateSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['generated_by'] = self.context['request'].user
         return super().create(validated_data)
+
+
+class ContentEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContentEvent
+        fields = [
+            "id",
+            "website",
+            "user",
+            "session_id",
+            "content_type",
+            "object_id",
+            "event_type",
+            "metadata",
+            "path",
+            "referrer",
+            "ip_address",
+            "user_agent",
+            "created_at",
+        ]
+        read_only_fields = ["id", "user", "ip_address", "user_agent", "created_at"]
+
+    def create(self, validated_data):
+        request = self.context.get("request")
+        if request and request.user.is_authenticated:
+            validated_data["user"] = request.user
+        if request:
+            validated_data["ip_address"] = request.META.get("REMOTE_ADDR")
+            validated_data["user_agent"] = request.META.get("HTTP_USER_AGENT", "")[:1000]
+        return super().create(validated_data)
+
 

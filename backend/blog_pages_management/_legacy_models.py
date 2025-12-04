@@ -13,6 +13,7 @@ from django.utils.crypto import get_random_string
 from bs4 import BeautifulSoup  # Extract headings
 import json
 from django.core.exceptions import ValidationError
+from django.core.validators import MaxLengthValidator
 from PIL import Image
 from io import BytesIO
 from django.core.files.base import ContentFile
@@ -256,11 +257,17 @@ class BlogPost(models.Model):
     )
     uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     meta_title = models.CharField(
-        max_length=255, blank=True, null=True,
-        help_text="SEO-friendly title for search engines"
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="SEO-friendly title for search engines (recommended max 60 characters)",
+        validators=[MaxLengthValidator(60)],
     )
     meta_description = models.TextField(
-        blank=True, null=True, help_text="SEO-friendly description"
+        blank=True,
+        null=True,
+        help_text="SEO-friendly description (recommended max 160 characters)",
+        validators=[MaxLengthValidator(160)],
     )
     title = models.CharField(max_length=255)
     slug = models.SlugField(
@@ -316,6 +323,13 @@ class BlogPost(models.Model):
     semi_annual_clicks = models.PositiveIntegerField(default=0)
     annual_clicks = models.PositiveIntegerField(default=0)
     conversion_count = models.PositiveIntegerField(default=0, db_index=True)
+    
+    # Cached ContentEvent metrics (aggregated from analytics.ContentEvent)
+    view_count = models.PositiveIntegerField(default=0, db_index=True, help_text="Total views from ContentEvent")
+    like_count = models.PositiveIntegerField(default=0, db_index=True, help_text="Total likes from ContentEvent")
+    dislike_count = models.PositiveIntegerField(default=0, db_index=True, help_text="Total dislikes from ContentEvent")
+    avg_scroll_percent = models.FloatField(default=0.0, help_text="Average scroll depth percentage (0-100)")
+    primary_cta_clicks = models.PositiveIntegerField(default=0, help_text="Total CTA clicks from ContentEvent")
 
     class Meta:
         indexes = [
@@ -349,6 +363,75 @@ class BlogPost(models.Model):
         """Detects duplicate blog content across different websites."""
         similar_blogs = BlogPost.objects.exclude(id=self.id).filter(content=self.content)
         return similar_blogs.exists()
+
+    def find_potential_duplicates(self):
+        """
+        Find already-published posts that might be duplicates of this one.
+
+        Signals possible duplicates based on:
+        - Same slug across any website
+        - Same canonical_url
+        - Identical content
+
+        Returns:
+            List of dicts with: id, title, slug, website_id, reasons[]
+        """
+        candidates = []
+        # Only compare against published (and non-deleted) posts
+        qs = BlogPost.objects.exclude(id=self.id).filter(is_published=True, is_deleted=False)
+
+        # Track matches per blog id to accumulate reasons
+        by_id = {}
+
+        # Same slug (URL path) – cross-website check
+        if self.slug:
+            for blog in qs.filter(slug=self.slug):
+                entry = by_id.setdefault(
+                    blog.id,
+                    {
+                        "id": blog.id,
+                        "title": blog.title,
+                        "slug": blog.slug,
+                        "website_id": blog.website_id,
+                        "reasons": [],
+                    },
+                )
+                entry["reasons"].append("same_slug")
+
+        # Same canonical URL (republished or syndicated content)
+        if self.canonical_url:
+            for blog in qs.filter(canonical_url=self.canonical_url):
+                entry = by_id.setdefault(
+                    blog.id,
+                    {
+                        "id": blog.id,
+                        "title": blog.title,
+                        "slug": blog.slug,
+                        "website_id": blog.website_id,
+                        "reasons": [],
+                    },
+                )
+                entry["reasons"].append("same_canonical_url")
+
+        # Identical content
+        if self.content:
+            for blog in qs.filter(content=self.content):
+                entry = by_id.setdefault(
+                    blog.id,
+                    {
+                        "id": blog.id,
+                        "title": blog.title,
+                        "slug": blog.slug,
+                        "website_id": blog.website_id,
+                        "reasons": [],
+                    },
+                )
+                entry["reasons"].append("identical_content")
+
+        # Flatten to list
+        for entry in by_id.values():
+            candidates.append(entry)
+        return candidates
 
     def clean_slug(self, slug):
         """Ensures the slug is lowercase and only contains letters, numbers, and hyphens."""
@@ -429,6 +512,9 @@ class BlogPost(models.Model):
         self.generate_toc()
 
         super().save(*args, **kwargs)
+        
+        # Track media usage for featured_image
+        self._track_featured_image_usage()
         
         # Create edit history entry if content changed
         if previous_content and previous_content != self.content and fields_changed:
@@ -589,6 +675,50 @@ class BlogPost(models.Model):
         """Suggests blogs based on user engagement history."""
         favorite_tags = user.blogclick_set.values_list("blog__tags", flat=True)
         return BlogPost.objects.filter(tags__in=favorite_tags).order_by("-click_count")[:5]
+    
+    def _track_featured_image_usage(self):
+        """Track usage of featured_image in this blog post."""
+        try:
+            from media_management.models import MediaUsage
+            
+            # Remove old usage if featured_image changed
+            if self.pk:
+                try:
+                    old_instance = BlogPost.objects.get(pk=self.pk)
+                    if old_instance.featured_image and old_instance.featured_image != self.featured_image:
+                        # Try to track old image removal
+                        try:
+                            from blog_pages_management.models import BlogMediaFile
+                            if hasattr(old_instance.featured_image, 'id'):
+                                # If it's a BlogMediaFile
+                                MediaUsage.remove_usage(
+                                    old_instance.featured_image,
+                                    self,
+                                    'featured_image'
+                                )
+                        except Exception:
+                            pass
+                except BlogPost.DoesNotExist:
+                    pass
+            
+            # Track new featured_image
+            if self.featured_image:
+                try:
+                    from blog_pages_management.models import BlogMediaFile
+                    # Check if it's a BlogMediaFile
+                    if isinstance(self.featured_image, BlogMediaFile) or hasattr(self.featured_image, 'website'):
+                        MediaUsage.track_usage(
+                            self.featured_image,
+                            self,
+                            'featured_image',
+                            website=self.website
+                        )
+                except Exception:
+                    # Silently fail if media_management not available
+                    pass
+        except ImportError:
+            # media_management app not installed
+            pass
 
 
     def __str__(self):

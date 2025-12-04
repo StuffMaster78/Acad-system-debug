@@ -33,7 +33,7 @@
     </div>
 
     <!-- Blog Posts Tab -->
-    <div v-if="activeTab === 'posts'" class="space-y-4">
+    <div v-if="activeTab === 'posts' || activeTab === 'my-drafts' || activeTab === 'needs-review' || activeTab === 'scheduled' || activeTab === 'stale'" class="space-y-4">
       <!-- Filters -->
       <div class="card p-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -84,6 +84,7 @@
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Author</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Engagement</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Published</th>
                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
@@ -113,6 +114,23 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {{ blog.authors?.map(a => a.username || a.name).join(', ') || 'N/A' }}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm">
+                  <div class="flex flex-col gap-1">
+                    <div class="flex items-center gap-2 text-gray-600">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      <span>{{ blog.view_count || 0 }}</span>
+                    </div>
+                    <div class="flex items-center gap-2 text-green-600">
+                      <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/>
+                      </svg>
+                      <span>{{ blog.like_count || 0 }}</span>
+                    </div>
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {{ formatDate(blog.publish_date || blog.created_at) }}
@@ -312,6 +330,33 @@
               <p v-if="!blogForm.website_id" class="text-xs text-gray-500 mt-1">Please select a website first to see available authors</p>
             </div>
             
+            <!-- Featured Image -->
+            <div>
+              <label class="block text-sm font-medium mb-1">Featured Image</label>
+              <MediaPicker
+                v-model="blogForm.featured_image_asset"
+                :website-id="blogForm.website_id"
+                :accept-types="'image/*'"
+                trigger-label="Select Featured Image"
+                modal-title="Select Featured Image"
+                @selected="handleFeaturedImageSelected"
+              />
+              <div v-if="blogForm.featured_image || blogForm.featured_image_asset" class="mt-2">
+                <img
+                  :src="blogForm.featured_image || blogForm.featured_image_asset?.url"
+                  alt="Featured image preview"
+                  class="w-32 h-32 object-cover rounded border"
+                />
+                <button
+                  type="button"
+                  @click="removeFeaturedImage"
+                  class="mt-2 text-sm text-red-600 hover:text-red-800"
+                >
+                  Remove Image
+                </button>
+              </div>
+            </div>
+            
             <div>
               <label class="block text-sm font-medium mb-1">Tags</label>
               <div class="flex flex-wrap gap-2 mb-2">
@@ -353,6 +398,34 @@
               </button>
             </div>
             
+            <!-- Editor Toolbar -->
+            <EditorToolbar
+              v-if="blogForm.website_id"
+              :website-id="blogForm.website_id"
+              content-type="blog_post"
+              :editor-instance="editorInstance"
+              :current-content="blogForm.content"
+              :meta-title="blogForm.meta_title"
+              :meta-description="blogForm.meta_description"
+              :slug="blogForm.slug"
+              @content-inserted="handleContentInserted"
+              @template-applied="handleTemplateApplied"
+              @template-used="handleTemplateUsed"
+              @snippet-used="handleSnippetUsed"
+              @block-used="handleBlockUsed"
+              @health-check="handleHealthCheck"
+              @health-check-run="handleHealthCheckRun"
+            />
+
+            <!-- Editor Session Tracker (hidden, tracks usage) -->
+            <EditorSessionTracker
+              v-if="blogForm.website_id && editingBlog?.id"
+              :website-id="blogForm.website_id"
+              content-type="blog_post"
+              :content-id="editingBlog.id"
+              ref="sessionTrackerRef"
+            />
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <div class="lg:col-span-2">
                 <label class="block text-sm font-medium mb-1">Content *</label>
@@ -605,6 +678,65 @@
       </div>
     </div>
 
+    <!-- Revision Diff Modal -->
+    <div v-if="showRevisionDiffModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-bold">Compare Revisions</h2>
+            <button @click="showRevisionDiffModal = false" class="text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+          
+          <div v-if="revisionDiffLoading && !revisionDiffData" class="flex items-center justify-center py-12">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+          
+          <div v-else-if="revisionDiffData" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-2">Select Revision to Compare</label>
+              <select 
+                v-model="revisionDiffData.selectedRevisionId" 
+                @change="loadRevisionDiff(revisionDiffData.selectedRevisionId)"
+                class="w-full border rounded px-3 py-2"
+              >
+                <option value="">Select a revision...</option>
+                <option 
+                  v-for="rev in revisionDiffData.revisions" 
+                  :key="rev.id" 
+                  :value="rev.id"
+                >
+                  Revision #{{ rev.revision_number }} - {{ formatDate(rev.created_at) }}
+                </option>
+              </select>
+            </div>
+            
+            <div v-if="revisionDiffData.diff" class="border rounded p-4">
+              <h3 class="font-semibold mb-2">Differences</h3>
+              <div class="space-y-2">
+                <div v-for="(diff, index) in revisionDiffData.diff.diffs" :key="index" class="border-b pb-2">
+                  <div class="font-medium text-sm text-gray-700 mb-1">{{ diff.field }}</div>
+                  <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div class="text-xs text-gray-500 mb-1">Current</div>
+                      <div class="bg-red-50 p-2 rounded">{{ diff.current || '(empty)' }}</div>
+                    </div>
+                    <div>
+                      <div class="text-xs text-gray-500 mb-1">Revision</div>
+                      <div class="bg-green-50 p-2 rounded">{{ diff.revision || '(empty)' }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div v-else-if="revisionDiffData.selectedRevisionId" class="text-center py-8 text-gray-500">
+              Select a revision to see differences
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Messages -->
     <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
       {{ message }}
@@ -617,11 +749,18 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import blogPagesAPI from '@/api/blog-pages'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import InternalLinkingWidget from '@/components/blog/InternalLinkingWidget.vue'
+import MediaPicker from '@/components/media/MediaPicker.vue'
+import EditorToolbar from '@/components/editor/EditorToolbar.vue'
+import EditorSessionTracker from '@/components/editor/EditorSessionTracker.vue'
 import { formatWebsiteName } from '@/utils/formatDisplay'
 
 const activeTab = ref('posts')
 const tabs = [
   { id: 'posts', label: 'Blog Posts' },
+  { id: 'my-drafts', label: 'My Drafts' },
+  { id: 'needs-review', label: 'Needs Review' },
+  { id: 'scheduled', label: 'Scheduled' },
+  { id: 'stale', label: 'Stale Published' },
   { id: 'categories', label: 'Categories' },
   { id: 'tags', label: 'Tags' },
 ]
@@ -666,6 +805,8 @@ const blogForm = ref({
   meta_description: '',
   faqs_data: [],
   resources_data: [],
+  featured_image: null,
+  featured_image_asset: null,
 })
 
 const selectedTags = ref([])
@@ -691,6 +832,7 @@ const message = ref('')
 const messageSuccess = ref(false)
 const editorRef = ref(null)
 const editorInstance = ref(null)
+const sessionTrackerRef = ref(null)
 
 let searchTimeout = null
 
@@ -709,7 +851,20 @@ const loadBlogs = async () => {
     if (filters.value.status) params.is_published = filters.value.status === 'published'
     if (filters.value.search) params.search = filters.value.search
     
-    const res = await blogPagesAPI.listBlogs(params)
+    let res
+    // Use editorial workflow filters based on active tab
+    if (activeTab.value === 'my-drafts') {
+      res = await blogPagesAPI.getMyDrafts(params)
+    } else if (activeTab.value === 'needs-review') {
+      res = await blogPagesAPI.getNeedsReview(params)
+    } else if (activeTab.value === 'scheduled') {
+      res = await blogPagesAPI.getScheduled(params)
+    } else if (activeTab.value === 'stale') {
+      res = await blogPagesAPI.getStalePublished(params)
+    } else {
+      res = await blogPagesAPI.listBlogs(params)
+    }
+    
     blogs.value = Array.isArray(res.data?.results) ? res.data.results : (res.data || [])
   } catch (e) {
     message.value = 'Failed to load blogs: ' + (e.response?.data?.detail || e.message)
@@ -806,15 +961,31 @@ const removeAuthor = (authorId) => {
   blogForm.value.author_ids = selectedAuthors.value.map(a => a.id)
 }
 
+const handleFeaturedImageSelected = (asset) => {
+  blogForm.value.featured_image_asset = asset
+  blogForm.value.featured_image = asset?.url || null
+}
+
+const removeFeaturedImage = () => {
+  blogForm.value.featured_image_asset = null
+  blogForm.value.featured_image = null
+}
+
 const saveBlog = async () => {
   saving.value = true
   message.value = ''
   try {
+    const formData = { ...blogForm.value }
+    // Include featured_image URL if asset is selected
+    if (formData.featured_image_asset?.url) {
+      formData.featured_image = formData.featured_image_asset.url
+    }
+    
     if (editingBlog.value) {
-      await blogPagesAPI.updateBlog(editingBlog.value.id, blogForm.value)
+      await blogPagesAPI.updateBlog(editingBlog.value.id, formData)
       message.value = 'Blog post updated successfully'
     } else {
-      await blogPagesAPI.createBlog(blogForm.value)
+      await blogPagesAPI.createBlog(formData)
       message.value = 'Blog post created successfully'
     }
     messageSuccess.value = true
@@ -850,6 +1021,8 @@ const editBlog = async (blog) => {
       url: resource.url || '',
       description: resource.description || ''
     })) || [],
+    featured_image: blog.featured_image || null,
+    featured_image_asset: blog.featured_image ? { url: blog.featured_image } : null,
   }
   selectedTags.value = blog.tags || []
   selectedAuthors.value = blog.authors || []
@@ -924,6 +1097,48 @@ const viewSEO = (blog) => {
 const viewRevisions = (blog) => {
   // TODO: Open revisions modal
   console.log('View revisions for:', blog)
+}
+
+const showRevisionDiffModal = ref(false)
+const revisionDiffData = ref(null)
+const revisionDiffLoading = ref(false)
+
+const viewRevisionDiff = async (blog) => {
+  showRevisionDiffModal.value = true
+  revisionDiffLoading.value = true
+  revisionDiffData.value = null
+  
+  try {
+    // First, get list of revisions to show in selector
+    const revisionsRes = await blogPagesAPI.listRevisions({ blog: blog.id })
+    revisionDiffData.value = {
+      blog,
+      revisions: revisionsRes.data?.results || revisionsRes.data || [],
+      selectedRevisionId: null,
+      diff: null
+    }
+  } catch (e) {
+    message.value = 'Failed to load revisions: ' + (e.response?.data?.detail || e.message)
+    messageSuccess.value = false
+  } finally {
+    revisionDiffLoading.value = false
+  }
+  actionsMenuOpen.value = null
+}
+
+const loadRevisionDiff = async (revisionId) => {
+  if (!revisionDiffData.value?.blog) return
+  
+  revisionDiffLoading.value = true
+  try {
+    const res = await blogPagesAPI.getRevisionDiff(revisionDiffData.value.blog.id, { revision_id: revisionId })
+    revisionDiffData.value.diff = res.data
+  } catch (e) {
+    message.value = 'Failed to load diff: ' + (e.response?.data?.detail || e.message)
+    messageSuccess.value = false
+  } finally {
+    revisionDiffLoading.value = false
+  }
 }
 
 const deleteBlogAction = async (blog) => {
@@ -1087,6 +1302,34 @@ const removeResource = (index) => {
   blogForm.value.resources_data.splice(index, 1)
 }
 
+// Editor toolbar handlers
+const handleContentInserted = (data) => {
+  // Content was inserted via toolbar (snippet or block)
+  if (editorRef.value) {
+    editorInstance.value = editorRef.value.getQuillInstance?.() || null
+  }
+}
+
+const handleTemplateApplied = (templateData) => {
+  // Template was applied - update form with template data
+  if (templateData) {
+    blogForm.value.title = templateData.title || blogForm.value.title
+    blogForm.value.content = templateData.content || blogForm.value.content
+    blogForm.value.meta_title = templateData.meta_title || blogForm.value.meta_title
+    blogForm.value.meta_description = templateData.meta_description || blogForm.value.meta_description
+  }
+}
+
+const handleHealthCheck = (healthData) => {
+  // Health check results received
+  console.log('Health check results:', healthData)
+  // Could show notifications or update UI based on health score
+  if (healthData.overall_score < 60) {
+    // Show warning if score is low
+    console.warn('Content health score is low:', healthData.overall_score)
+  }
+}
+
 const closeModal = () => {
   showCreateModal.value = false
   editingBlog.value = null
@@ -1133,6 +1376,8 @@ watch(activeTab, () => {
     loadCategories()
   } else if (activeTab.value === 'tags' && !tags.value.length) {
     loadTags()
+  } else if (['posts', 'my-drafts', 'needs-review', 'scheduled', 'stale'].includes(activeTab.value)) {
+    loadBlogs()
   }
 })
 

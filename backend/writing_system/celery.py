@@ -237,6 +237,28 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
         "task": "support_management.tasks.calculate_support_performance_metrics",
         "schedule": crontab(minute=0, hour=2),  # Daily at 2 AM
     },
+    # Content Management Metrics
+    "recalculate-website-content-metrics": {
+        "task": "blog_pages_management.tasks.recalculate_website_content_metrics",
+        "schedule": crontab(minute=0, hour=3),  # Daily at 3 AM
+    },
+    "recalculate-service-website-content-metrics": {
+        "task": "blog_pages_management.tasks.recalculate_service_website_content_metrics",
+        "schedule": crontab(minute=15, hour=3),  # Daily at 3:15 AM
+    },
+    # Content Reminders
+    "send-content-freshness-reminders": {
+        "task": "blog_pages_management.tasks.send_content_freshness_reminders",
+        "schedule": crontab(minute=0, hour=9, day_of_week="monday"),  # Weekly on Monday at 9 AM
+    },
+    "send-monthly-publishing-reminders": {
+        "task": "blog_pages_management.tasks.send_monthly_publishing_reminders",
+        "schedule": crontab(minute=0, hour=10),  # Daily at 10 AM
+    },
+    "send-content-reminder-email-digest": {
+        "task": "blog_pages_management.tasks.send_content_reminder_email_digest",
+        "schedule": crontab(minute=0, hour=8, day_of_week="monday"),  # Weekly on Monday at 8 AM
+    },
 }
 
 # ---------- Dynamic schedule via django-celery-beat (guarded) ---------------

@@ -5,9 +5,9 @@ import { hasRole } from '@/utils/permissions'
 const router = createRouter({
   history: createWebHistory(),
   routes: [
-  {
-    path: '/login',
-    name: 'Login',
+    {
+      path: '/login',
+      name: 'Login',
       component: () => import('@/views/auth/Login.vue'),
       meta: { requiresAuth: false, title: 'Login' },
     },
@@ -22,9 +22,9 @@ const router = createRouter({
       name: 'PasswordResetConfirm',
       component: () => import('@/views/auth/PasswordResetConfirm.vue'),
       meta: { requiresAuth: false, title: 'Set New Password' },
-  },
-  {
-    path: '/forgot-password',
+    },
+    {
+      path: '/forgot-password',
       name: 'ForgotPassword',
       component: () => import('@/views/auth/PasswordResetRequest.vue'),
       meta: { requiresAuth: false, title: 'Forgot Password' },
@@ -48,13 +48,25 @@ const router = createRouter({
       meta: { requiresAuth: false, title: 'Terms & Conditions' },
     },
     {
+      path: '/blog/:slug',
+      name: 'PublicBlogPost',
+      component: () => import('@/views/public/BlogPost.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: '/page/:slug',
+      name: 'PublicSeoPage',
+      component: () => import('@/views/public/SeoPage.vue'),
+      meta: { requiresAuth: false },
+    },
+    {
       path: '/auth/magic-link',
       name: 'MagicLinkLogin',
       component: () => import('@/views/auth/MagicLinkLogin.vue'),
       meta: { requiresAuth: false, title: 'Passwordless Login' },
     },
-  {
-    path: '/',
+    {
+      path: '/',
       component: () => import('@/layouts/DashboardLayout.vue'),
       redirect: '/dashboard',
       meta: { requiresAuth: true },
@@ -296,6 +308,26 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Holiday & Special Days Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/holidays/create',
+          name: 'SpecialDayCreate',
+          component: () => import('@/views/admin/SpecialDayCreate.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Create Special Day',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/holidays/edit/:id',
+          name: 'SpecialDayEdit',
+          component: () => import('@/views/admin/SpecialDayCreate.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Edit Special Day',
             roles: ['admin', 'superadmin'],
           },
         },
@@ -683,8 +715,8 @@ const router = createRouter({
           path: 'admin/users',
           name: 'UserManagement',
           component: () => import('@/views/admin/UserManagement.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'User Management',
             roles: ['admin', 'superadmin'],
           },
@@ -693,8 +725,8 @@ const router = createRouter({
           path: 'admin/writer-discipline',
           name: 'WriterDisciplineManagement',
           component: () => import('@/views/admin/WriterDisciplineManagement.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'Writer Discipline Management',
             roles: ['admin', 'superadmin'],
           },
@@ -703,8 +735,8 @@ const router = createRouter({
           path: 'admin/appeals',
           name: 'AppealsManagement',
           component: () => import('@/views/admin/AppealsManagement.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'Appeals Management',
             roles: ['admin', 'superadmin'],
           },
@@ -720,11 +752,21 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/client-email-blacklist',
+          name: 'ClientEmailBlacklist',
+          component: () => import('@/views/admin/ClientEmailBlacklist.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Client Email Blacklist',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/duplicate-detection',
           name: 'DuplicateAccountDetection',
           component: () => import('@/views/admin/DuplicateAccountDetection.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'Duplicate Account Detection',
             roles: ['admin', 'superadmin'],
           },
@@ -733,8 +775,8 @@ const router = createRouter({
           path: 'admin/referral-tracking',
           name: 'ReferralTracking',
           component: () => import('@/views/admin/ReferralTracking.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'Referral Tracking',
             roles: ['admin', 'superadmin'],
           },
@@ -743,8 +785,8 @@ const router = createRouter({
           path: 'admin/loyalty-tracking',
           name: 'LoyaltyTracking',
           component: () => import('@/views/admin/LoyaltyTracking.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'Loyalty Points Tracking',
             roles: ['admin', 'superadmin'],
           },
@@ -753,8 +795,8 @@ const router = createRouter({
           path: 'admin/deletion-requests',
           name: 'DeletionRequests',
           component: () => import('@/views/admin/DeletionRequests.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'Deletion Requests',
             roles: ['admin', 'superadmin'],
           },
@@ -763,18 +805,18 @@ const router = createRouter({
           path: 'admin/configs',
           name: 'ConfigManagement',
           component: () => import('@/views/admin/ConfigManagement.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'Configuration Management',
             roles: ['admin', 'superadmin'],
           },
         },
         {
           path: 'admin/notification-profiles',
-    name: 'NotificationProfiles',
-    component: () => import('@/views/admin/NotificationProfiles.vue'),
-    meta: {
-      requiresAuth: true,
+          name: 'NotificationProfiles',
+          component: () => import('@/views/admin/NotificationProfiles.vue'),
+          meta: {
+            requiresAuth: true,
             title: 'Notification Profiles',
             roles: ['admin', 'superadmin'],
           },
@@ -810,12 +852,112 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/blog-authors',
+          name: 'BlogAuthors',
+          component: () => import('@/views/admin/BlogAuthors.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Authors',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/seo-pages',
           name: 'SEOPagesManagement',
           component: () => import('@/views/admin/SEOPagesManagement.vue'),
           meta: {
             requiresAuth: true,
             title: 'SEO Pages Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/content-metrics',
+          name: 'ContentMetricsDashboard',
+          component: () => import('@/views/admin/ContentMetricsDashboard.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Content Metrics & SEO Health',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/content-metrics-report',
+          name: 'ContentMetricsReport',
+          component: () => import('@/views/admin/ContentMetricsReport.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Content Metrics & Reporting',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/order-status-metrics',
+          name: 'OrderStatusMetrics',
+          component: () => import('@/views/admin/OrderStatusMetrics.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Order Status Metrics',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/seo-pages-blocks',
+          name: 'SeoPagesBlockEditor',
+          component: () => import('@/views/admin/SeoPagesBlockEditor.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'SEO Landing Pages (Blocks)',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/content-calendar',
+          name: 'ContentCalendar',
+          component: () => import('@/views/admin/ContentCalendar.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Content Calendar',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/category-publishing-targets',
+          name: 'CategoryPublishingTargets',
+          component: () => import('@/views/admin/CategoryPublishingTargets.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Category Publishing Targets',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/templates-snippets',
+          name: 'TemplateSnippetManager',
+          component: () => import('@/views/admin/TemplateSnippetManager.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Templates & Snippets Manager',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/editor-analytics',
+          name: 'EditorAnalyticsDashboard',
+          component: () => import('@/views/admin/EditorAnalyticsDashboard.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Editor Analytics Dashboard',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/media-library',
+          name: 'MediaLibrary',
+          component: () => import('@/views/admin/MediaLibrary.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Media Library',
             roles: ['admin', 'superadmin'],
           },
         },
@@ -1143,8 +1285,8 @@ const router = createRouter({
           path: 'websites',
           name: 'WebsiteManagement',
           component: () => import('@/views/admin/WebsiteManagement.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'Website Management',
             roles: ['admin', 'superadmin'],
           },
@@ -1169,8 +1311,8 @@ const router = createRouter({
           path: 'account/settings',
           name: 'AccountSettings',
           component: () => import('@/views/account/Settings.vue'),
-    meta: {
-      requiresAuth: true,
+          meta: {
+            requiresAuth: true,
             title: 'Account Settings',
             roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
           },
@@ -1217,9 +1359,9 @@ const router = createRouter({
         },
       ],
     },
-  {
-    path: '/:pathMatch(.*)*',
-    name: 'NotFound',
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
       component: () => import('@/views/errors/NotFound.vue'),
       meta: { title: '404 - Not Found' },
     },

@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from django_filters.rest_framework import DjangoFilterBackend
+from django.db import models
 
 from ..models.content_blocks import (
     CTABlock, BlogCTAPlacement, ContentBlockTemplate, BlogContentBlock, BlogEditHistory
@@ -213,6 +214,28 @@ class EnhancedBlogPostViewSet(viewsets.ModelViewSet):
         history = BlogEditHistory.objects.filter(blog=blog).order_by('-edited_at')
         serializer = BlogEditHistorySerializer(history, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['get'])
+    def duplicate_check(self, request, pk=None):
+        """
+        Check for already-published posts that might be duplicates of this one.
+
+        Uses BlogPost.find_potential_duplicates() to compare against:
+        - same slug
+        - same canonical_url
+        - identical content
+
+        This is intended to be called before publishing or scheduling.
+        """
+        blog = self.get_object()
+        from ..models import BlogPost  # ensure we have the legacy model bound
+
+        if not isinstance(blog, BlogPost):
+            # In case of proxy/wrapper, refetch as BlogPost
+            blog = BlogPost.objects.get(pk=blog.pk)
+
+        duplicates = blog.find_potential_duplicates()
+        return Response({"duplicates": duplicates}, status=status.HTTP_200_OK)
     
     @action(detail=True, methods=['post'])
     def place_cta(self, request, pk=None):
@@ -265,4 +288,54 @@ class EnhancedBlogPostViewSet(viewsets.ModelViewSet):
         
         serializer = BlogContentBlockSerializer(block)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class MediaBrowserViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet for browsing reusable media files (images, videos, etc.)."""
+    from ..models import BlogMediaFile
+    queryset = BlogMediaFile.objects.all()
+    permission_classes = [IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['website', 'file_type']
+    
+    def get_serializer_class(self):
+        from ..serializers import BlogMediaFileSerializer
+        return BlogMediaFileSerializer
+    
+    def get_queryset(self):
+        """Filter by website and optional search."""
+        queryset = super().get_queryset()
+        website_id = self.request.query_params.get('website_id')
+        search = self.request.query_params.get('search', '').strip()
+        
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        
+        if search:
+            queryset = queryset.filter(
+                models.Q(alt_text__icontains=search) |
+                models.Q(caption__icontains=search) |
+                models.Q(file__icontains=search)
+            )
+        
+        return queryset.order_by('-uploaded_at')
+    
+    @action(detail=False, methods=['get'])
+    def by_type(self, request):
+        """Get media files grouped by type."""
+        website_id = request.query_params.get('website_id')
+        queryset = self.get_queryset()
+        
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        
+        from django.db.models import Count
+        grouped = queryset.values('file_type').annotate(
+            count=Count('id')
+        ).order_by('file_type')
+        
+        return Response({
+            'by_type': list(grouped),
+            'total': queryset.count()
+        }, status=status.HTTP_200_OK)
 

@@ -86,6 +86,9 @@ urlpatterns = [
     path('api/v1/fines/', include('fines.urls')),
     path('api/v1/reviews/', include('reviews_system.urls')),  # Reviews System
     path('api/v1/class-management/', include('class_management.urls')),  # Class Management (bundles & express classes)
+    path('api/v1/media/', include('media_management.urls')),  # Media assets (images, videos, documents)
+    path('api/v1/seo-pages/', include('seo_pages.urls')),  # SEO landing pages
+    path('api/v1/public/', include('seo_pages.urls')),  # Public SEO pages endpoint
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
     path('api/v1/analytics/', include('analytics.urls')),  # Analytics app
     path('api/v1/holidays/', include('holiday_management.urls')),  # Holiday Management app
