@@ -15,11 +15,14 @@ const applyTheme = (value) => {
   const effectiveDark =
     value === 'dark' || (value === 'system' && prefersDark())
 
-  if (effectiveDark) {
-    root.classList.add('dark')
-  } else {
-    root.classList.remove('dark')
-  }
+  // Use requestAnimationFrame for smoother transitions
+  requestAnimationFrame(() => {
+    if (effectiveDark) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  })
 }
 
 export const initTheme = () => {

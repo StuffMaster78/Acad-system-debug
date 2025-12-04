@@ -4,7 +4,7 @@
     <div class="flex items-center justify-between">
       <div>
         <div class="flex items-center gap-3">
-          <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
           <div v-if="!isOnline" class="flex items-center gap-2 px-3 py-1 bg-red-50 border border-red-200 rounded-lg">
             <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
@@ -12,7 +12,7 @@
             <span class="text-xs font-medium text-red-600">Offline</span>
           </div>
         </div>
-        <p class="mt-2 text-gray-600">Welcome back, {{ authStore.user?.email }}</p>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Welcome back, {{ authStore.user?.email }}</p>
       </div>
       <div class="flex items-center gap-3">
         <button
@@ -56,7 +56,7 @@
     </div>
 
     <!-- Error Banner -->
-    <div v-if="error" class="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg">
+    <div v-if="error" class="bg-red-50 border-l-4 border-red-400 p-4 rounded-lg mb-6">
       <div class="flex items-center justify-between">
         <div class="flex items-center">
           <svg class="w-5 h-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -72,6 +72,14 @@
         >
           Retry
         </button>
+      </div>
+    </div>
+
+    <!-- Loading State for Admin/Superadmin -->
+    <div v-if="(authStore.isAdmin || authStore.isSuperAdmin) && loading.summary && !error" class="flex items-center justify-center py-12">
+      <div class="text-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+        <p class="text-gray-600">Loading dashboard data...</p>
       </div>
     </div>
 
@@ -269,6 +277,22 @@
       </div>
     </div>
 
+    <!-- Content Metrics Quick Link (Admin/Superadmin) -->
+    <router-link
+      v-if="authStore.isAdmin || authStore.isSuperAdmin"
+      to="/admin/content-metrics-report"
+      class="block mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer relative z-10 no-underline"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Content Metrics & Reporting</h3>
+          <p class="text-sm text-gray-600 mt-1">View content performance, publishing targets, and freshness metrics</p>
+        </div>
+        <svg class="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </div>
+    </router-link>
 
     <!-- Summary Stats Grid (Admin/Superadmin) - Primary Metrics -->
     <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -371,22 +395,22 @@
       </div>
     </div>
 
-    <!-- Order Status Breakdown (Admin/Superadmin) -->
-    <div v-if="(authStore.isAdmin || authStore.isSuperAdmin) && orderStatusBreakdown.length" class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
-      <div
-        v-for="status in orderStatusBreakdown"
-        :key="status.name"
-        class="card bg-white rounded-lg shadow-sm p-4 border-l-4 hover:shadow-md transition-shadow"
-        :class="status.borderColor"
-      >
-        <div class="flex items-center justify-between mb-1">
-          <p class="text-xs font-medium text-gray-600">{{ status.name }}</p>
-          <span class="text-sm" :class="status.textColor">{{ status.icon }}</span>
+    <!-- Order Status Metrics Quick Link (Admin/Superadmin) -->
+    <router-link
+      v-if="authStore.isAdmin || authStore.isSuperAdmin"
+      to="/admin/order-status-metrics"
+      class="block mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer relative z-10 no-underline"
+    >
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-semibold text-gray-900">Order Status Metrics</h3>
+          <p class="text-sm text-gray-600 mt-1">View order status distribution and workflow metrics</p>
         </div>
-        <p class="text-xl font-bold" :class="status.textColor">{{ status.value }}</p>
-        <p v-if="status.percentage" class="text-xs text-gray-500 mt-1">{{ status.percentage }}%</p>
+        <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
       </div>
-    </div>
+    </router-link>
 
 
     <!-- Tickets Overview (Admin/Superadmin) -->
@@ -622,6 +646,7 @@ import notificationsAPI from '@/api/notifications'
 import ClientDashboard from './components/ClientDashboard.vue'
 import WriterDashboard from './components/WriterDashboard.vue'
 import EditorDashboard from './components/EditorDashboard.vue'
+// ContentRemindersWidget moved to ContentMetricsReport page
 import SupportDashboard from './components/SupportDashboard.vue'
 import { useReliableOrders } from '@/composables/useReliableOrders'
 import { useConnectionStatus } from '@/composables/useConnectionStatus'
@@ -1426,7 +1451,7 @@ const fetchSummary = async (forceRefresh = false) => {
     }
   } catch (err) {
     console.error('Failed to fetch dashboard summary:', err)
-    const errorMessage = err?.response?.data?.detail || err?.message || 'Failed to load dashboard data'
+    const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to load dashboard data'
     
     // Fallback: try individual summary endpoint
     try {
