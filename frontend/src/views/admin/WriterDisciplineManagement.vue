@@ -6,19 +6,48 @@
         <h1 class="text-3xl font-bold text-gray-900">Writer Discipline Management</h1>
         <p class="mt-2 text-gray-600">Manage strikes, warnings, and view discipline history for writers</p>
       </div>
-      <button
-        @click="showIssueStrikeModal = true"
-        class="btn btn-primary"
-      >
-        <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-        </svg>
-        Issue Strike
-      </button>
+      <div class="flex gap-2 flex-wrap">
+        <button
+          @click="showIssueStrikeModal = true"
+          class="btn btn-primary"
+        >
+          <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
+          Issue Strike
+        </button>
+        <button
+          @click="showIssueProbationModal = true"
+          class="btn btn-secondary"
+        >
+          <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+          Place on Probation
+        </button>
+        <button
+          @click="showSuspendModal = true"
+          class="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors duration-150 flex items-center"
+        >
+          <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+          Suspend Writer
+        </button>
+        <button
+          @click="showBlacklistModal = true"
+          class="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors duration-150 flex items-center"
+        >
+          <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+          </svg>
+          Blacklist Writer
+        </button>
+      </div>
     </div>
 
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       <div class="card p-4 bg-red-50 border border-red-200">
         <p class="text-sm font-medium text-red-700 mb-1">Total Active Strikes</p>
         <p class="text-2xl font-bold text-red-900">{{ stats.totalStrikes || 0 }}</p>
@@ -26,6 +55,10 @@
       <div class="card p-4 bg-yellow-50 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Active Warnings</p>
         <p class="text-2xl font-bold text-yellow-900">{{ stats.totalWarnings || 0 }}</p>
+      </div>
+      <div class="card p-4 bg-amber-50 border border-amber-200">
+        <p class="text-sm font-medium text-amber-700 mb-1">Writers on Probation</p>
+        <p class="text-2xl font-bold text-amber-900">{{ stats.writersOnProbation || 0 }}</p>
       </div>
       <div class="card p-4 bg-orange-50 border border-orange-200">
         <p class="text-sm font-medium text-orange-700 mb-1">Suspended Writers</p>
@@ -62,6 +95,7 @@
           <select v-model="activeTab" @change="loadData" class="w-full border rounded px-3 py-2">
             <option value="strikes">Strikes</option>
             <option value="warnings">Warnings</option>
+            <option value="probation">Probation</option>
             <option value="status">Writer Status</option>
           </select>
         </div>
@@ -183,6 +217,71 @@
       </div>
     </div>
 
+    <!-- Probation Tab -->
+    <div v-if="activeTab === 'probation'" class="card overflow-hidden">
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+      <div v-else>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reason</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Start Date</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">End Date</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Placed By</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="probation in probations" :key="probation.id" class="hover:bg-gray-50">
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <div>
+                    <div class="font-medium text-gray-900">{{ probation.writer?.user?.username || probation.writer_username || 'N/A' }}</div>
+                    <div class="text-sm text-gray-500">{{ probation.writer?.user?.email || probation.writer_email || '' }}</div>
+                  </div>
+                </td>
+                <td class="px-4 py-3">
+                  <div class="text-sm text-gray-900 max-w-md truncate">{{ probation.reason }}</div>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  {{ formatDate(probation.start_date) }}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  {{ formatDate(probation.end_date) }}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  {{ probation.placed_by?.username || 'System' }}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span :class="probation.is_active ? 'bg-amber-100 text-amber-800' : 'bg-gray-100 text-gray-800'" class="px-2 py-1 rounded text-xs font-medium">
+                    {{ probation.is_active ? 'Active' : 'Expired' }}
+                  </span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <button
+                    v-if="probation.is_active"
+                    @click="endProbation(probation)"
+                    class="text-red-600 hover:text-red-800 text-sm"
+                    title="End probation early"
+                  >
+                    End Probation
+                  </button>
+                  <span v-else class="text-sm text-gray-400">Completed</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-if="!probations.length" class="text-center py-12 text-gray-500">
+          No probation records found.
+        </div>
+      </div>
+    </div>
+
     <!-- Writer Status Tab -->
     <div v-if="activeTab === 'status'" class="card overflow-hidden">
       <div v-if="loading" class="flex items-center justify-center py-12">
@@ -217,12 +316,48 @@
                   {{ status.last_strike_at ? formatDate(status.last_strike_at) : 'Never' }}
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
-                  <button
-                    @click="viewWriterDetails(status.writer)"
-                    class="text-blue-600 hover:text-blue-800 text-sm"
-                  >
-                    View Details
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <button
+                      @click="viewWriterDetails(status.writer)"
+                      class="text-blue-600 hover:text-blue-800 text-sm"
+                    >
+                      View Details
+                    </button>
+                    <span v-if="!status.is_suspended && !status.is_blacklisted" class="text-gray-300">|</span>
+                    <button
+                      v-if="!status.is_suspended"
+                      @click="openSuspendWriterModal(status.writer)"
+                      class="text-orange-600 hover:text-orange-800 text-sm font-medium"
+                      title="Suspend this writer immediately"
+                    >
+                      Suspend
+                    </button>
+                    <button
+                      v-else
+                      @click="unsuspendWriter(status.writer)"
+                      class="text-green-600 hover:text-green-800 text-sm font-medium"
+                      title="Unsuspend this writer"
+                    >
+                      Unsuspend
+                    </button>
+                    <span v-if="!status.is_blacklisted" class="text-gray-300">|</span>
+                    <button
+                      v-if="!status.is_blacklisted"
+                      @click="openBlacklistWriterModal(status.writer)"
+                      class="text-red-600 hover:text-red-800 text-sm font-medium"
+                      title="Blacklist this writer immediately"
+                    >
+                      Blacklist
+                    </button>
+                    <button
+                      v-else
+                      @click="unblacklistWriter(status.writer)"
+                      class="text-green-600 hover:text-green-800 text-sm font-medium"
+                      title="Remove from blacklist"
+                    >
+                      Unblacklist
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -281,6 +416,261 @@
             </button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Issue Probation Modal -->
+    <div v-if="showIssueProbationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-2xl w-full p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-2xl font-bold">Place Writer on Probation</h2>
+          <button @click="closeProbationModal" class="text-gray-500 hover:text-gray-700">✕</button>
+        </div>
+        
+        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+          <h3 class="font-semibold text-amber-900 mb-2">What is Probation?</h3>
+          <p class="text-sm text-amber-800">
+            Probation is a disciplinary period where a writer is monitored closely. Writers on probation 
+            may have restrictions on their account and will be reviewed at the end of the probation period. 
+            Probation can be set for a specific duration and will automatically expire.
+          </p>
+        </div>
+
+        <form @submit.prevent="issueProbation" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Select Writer *</label>
+            <select v-model="probationForm.writer" required class="w-full border rounded px-3 py-2">
+              <option value="">Choose a writer...</option>
+              <option v-for="writer in availableWriters" :key="writer.id" :value="writer.id">
+                {{ formatWriterName(writer) }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Reason for Probation *</label>
+            <textarea
+              v-model="probationForm.reason"
+              rows="4"
+              required
+              placeholder="Describe why this writer is being placed on probation..."
+              class="w-full border rounded px-3 py-2"
+            ></textarea>
+            <p class="text-xs text-gray-500 mt-1">
+              Be specific and clear. This reason will be visible to the writer and used for records.
+            </p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Duration (Days) *</label>
+            <input
+              v-model.number="probationForm.duration_days"
+              type="number"
+              min="1"
+              max="365"
+              required
+              placeholder="30"
+              class="w-full border rounded px-3 py-2"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              Number of days the probation will last. Default is 30 days.
+            </p>
+          </div>
+          <div class="flex justify-end gap-2 pt-4">
+            <button type="button" @click="closeProbationModal" class="btn btn-secondary">Cancel</button>
+            <button type="submit" :disabled="saving" class="btn btn-primary">
+              {{ saving ? 'Placing...' : 'Place on Probation' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Suspend Writer Modal -->
+    <div v-if="showSuspendModal || showSuspendWriterModal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] my-auto flex flex-col shadow-xl">
+        <!-- Header - Fixed -->
+        <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Suspend Writer</h2>
+          <button 
+            @click="closeSuspendModal" 
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label="Close modal"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Scrollable Content -->
+        <div class="overflow-y-auto flex-1 px-6 py-4">
+          <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-4">
+            <h3 class="font-semibold text-orange-900 dark:text-orange-200 mb-2">⚠️ Immediate Suspension</h3>
+            <p class="text-sm text-orange-800 dark:text-orange-200">
+              Suspending a writer will immediately prevent them from:
+              <ul class="list-disc list-inside mt-2 space-y-1">
+                <li>Accessing their account</li>
+                <li>Receiving new orders</li>
+                <li>Submitting work</li>
+                <li>Withdrawing payments</li>
+              </ul>
+              This action overrides automatic discipline rules and takes effect immediately.
+            </p>
+          </div>
+
+          <form @submit.prevent="suspendWriter" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Select Writer *</label>
+              <select 
+                v-model="suspendForm.writer" 
+                required 
+                :disabled="selectedWriterForSuspend"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
+              >
+                <option value="">Choose a writer...</option>
+                <option v-for="writer in availableWriters" :key="writer.id" :value="writer.id">
+                  {{ formatWriterName(writer) }}
+                </option>
+              </select>
+              <p v-if="selectedWriterForSuspend" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Writer: {{ selectedWriterForSuspend?.user?.username || 'N/A' }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Reason for Suspension *</label>
+              <textarea
+                v-model="suspendForm.reason"
+                rows="4"
+                required
+                placeholder="Describe why this writer is being suspended..."
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+              ></textarea>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Be specific and clear. This reason will be visible to the writer and used for records.
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Duration (Days)</label>
+              <input
+                v-model.number="suspendForm.duration_days"
+                type="number"
+                min="1"
+                placeholder="30"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Number of days the suspension will last. Leave empty for indefinite suspension.
+              </p>
+            </div>
+          </form>
+        </div>
+
+        <!-- Footer - Fixed -->
+        <div class="flex justify-end gap-2 p-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <button 
+            type="button" 
+            @click="closeSuspendModal" 
+            class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-150"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            @click="suspendWriter"
+            :disabled="saving" 
+            class="px-4 py-2 bg-orange-600 text-white rounded-lg font-medium hover:bg-orange-700 transition-colors duration-150 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {{ saving ? 'Suspending...' : 'Suspend Writer' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Blacklist Writer Modal -->
+    <div v-if="showBlacklistModal || showBlacklistWriterModal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] my-auto flex flex-col shadow-xl">
+        <!-- Header - Fixed -->
+        <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Blacklist Writer</h2>
+          <button 
+            @click="closeBlacklistModal" 
+            class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700"
+            aria-label="Close modal"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <!-- Scrollable Content -->
+        <div class="overflow-y-auto flex-1 px-6 py-4">
+          <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
+            <h3 class="font-semibold text-red-900 dark:text-red-200 mb-2">🚫 Permanent Blacklist</h3>
+            <p class="text-sm text-red-800 dark:text-red-200">
+              Blacklisting a writer will permanently:
+              <ul class="list-disc list-inside mt-2 space-y-1">
+                <li>Prevent them from accessing the system</li>
+                <li>Block their email from registering again</li>
+                <li>Cancel all pending orders</li>
+                <li>Freeze their account and payments</li>
+              </ul>
+              <strong>This is a permanent action and should only be used for serious violations.</strong>
+              This action overrides automatic discipline rules and takes effect immediately.
+            </p>
+          </div>
+
+          <form @submit.prevent="blacklistWriter" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Select Writer *</label>
+              <select 
+                v-model="blacklistForm.writer" 
+                required 
+                :disabled="selectedWriterForBlacklist"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-800 disabled:cursor-not-allowed"
+              >
+                <option value="">Choose a writer...</option>
+                <option v-for="writer in availableWriters" :key="writer.id" :value="writer.id">
+                  {{ formatWriterName(writer) }}
+                </option>
+              </select>
+              <p v-if="selectedWriterForBlacklist" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Writer: {{ selectedWriterForBlacklist?.user?.username || 'N/A' }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Reason for Blacklisting *</label>
+              <textarea
+                v-model="blacklistForm.reason"
+                rows="4"
+                required
+                placeholder="Describe why this writer is being blacklisted (e.g., fraud, policy violation, etc.)..."
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+              ></textarea>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Be specific and clear. This reason will be used for records and auditing.
+              </p>
+            </div>
+          </form>
+        </div>
+
+        <!-- Footer - Fixed -->
+        <div class="flex justify-end gap-2 p-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <button 
+            type="button" 
+            @click="closeBlacklistModal" 
+            class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-150"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            @click="blacklistWriter"
+            :disabled="saving" 
+            class="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors duration-150 disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {{ saving ? 'Blacklisting...' : 'Blacklist Writer' }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -362,7 +752,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { writerManagementAPI, appealsAPI } from '@/api'
+import { writerManagementAPI, appealsAPI, adminManagementAPI } from '@/api'
 import apiClient from '@/api/client'
 import { useToast } from '@/composables/useToast'
 import { formatWriterName } from '@/utils/formatDisplay'
@@ -374,6 +764,7 @@ const saving = ref(false)
 const activeTab = ref('strikes')
 const strikes = ref([])
 const warnings = ref([])
+const probations = ref([])
 const writerStatuses = ref([])
 const availableWriters = ref([])
 const websites = ref([])
@@ -382,10 +773,18 @@ const messageSuccess = ref(false)
 
 const showIssueStrikeModal = ref(false)
 const showIssueWarningModal = ref(false)
+const showIssueProbationModal = ref(false)
+const showSuspendModal = ref(false)
+const showBlacklistModal = ref(false)
+const showSuspendWriterModal = ref(false)
+const showBlacklistWriterModal = ref(false)
+const selectedWriterForSuspend = ref(null)
+const selectedWriterForBlacklist = ref(null)
 
 const stats = ref({
   totalStrikes: 0,
   totalWarnings: 0,
+  writersOnProbation: 0,
   suspendedWriters: 0,
   blacklistedWriters: 0,
 })
@@ -407,6 +806,23 @@ const warningForm = ref({
   expires_at: '',
 })
 
+const probationForm = ref({
+  writer: '',
+  reason: '',
+  duration_days: 30,
+})
+
+const suspendForm = ref({
+  writer: '',
+  reason: '',
+  duration_days: 30,
+})
+
+const blacklistForm = ref({
+  writer: '',
+  reason: '',
+})
+
 let searchTimeout = null
 
 const debouncedSearch = () => {
@@ -423,6 +839,8 @@ const loadData = async () => {
       await loadStrikes()
     } else if (activeTab.value === 'warnings') {
       await loadWarnings()
+    } else if (activeTab.value === 'probation') {
+      await loadProbations()
     } else if (activeTab.value === 'status') {
       await loadWriterStatuses()
     }
@@ -461,12 +879,32 @@ const loadWarnings = async () => {
   }
 }
 
+const loadProbations = async () => {
+  try {
+    // Try to load probations from writer-management API first
+    let res
+    try {
+      res = await apiClient.get('/writer-management/probations/', { params: { is_active: true } })
+    } catch (e) {
+      // If that fails, try admin-management API
+      res = await apiClient.get('/admin-management/probations/', { params: { is_active: true } })
+    }
+    probations.value = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
+    stats.value.writersOnProbation = probations.value.filter(p => p.is_active).length
+  } catch (e) {
+    console.error('Failed to load probations:', e)
+    // Also count from writer statuses
+    stats.value.writersOnProbation = writerStatuses.value.filter(s => s.is_on_probation).length
+  }
+}
+
 const loadWriterStatuses = async () => {
   try {
     const res = await writerManagementAPI.listWriterStatuses()
     writerStatuses.value = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
     stats.value.suspendedWriters = writerStatuses.value.filter(s => s.is_suspended).length
     stats.value.blacklistedWriters = writerStatuses.value.filter(s => s.is_blacklisted).length
+    stats.value.writersOnProbation = writerStatuses.value.filter(s => s.is_on_probation).length
   } catch (e) {
     console.error('Failed to load writer statuses:', e)
   }
@@ -568,6 +1006,59 @@ const deactivateWarning = async (warning) => {
   }
 }
 
+const issueProbation = async () => {
+  saving.value = true
+  message.value = ''
+  try {
+    // Find the writer's user ID
+    const writer = availableWriters.value.find(w => w.id === probationForm.value.writer)
+    if (!writer || !writer.user?.id) {
+      throw new Error('Writer not found or invalid')
+    }
+    
+    await adminManagementAPI.placeOnProbation(
+      writer.user.id,
+      probationForm.value.reason,
+      probationForm.value.duration_days
+    )
+    message.value = 'Writer placed on probation successfully'
+    messageSuccess.value = true
+    closeProbationModal()
+    await loadProbations()
+    await loadWriterStatuses()
+    showToast('Writer placed on probation successfully', 'success')
+  } catch (e) {
+    message.value = 'Failed to place writer on probation: ' + (e.response?.data?.detail || e.message)
+    messageSuccess.value = false
+    showToast(message.value, 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const endProbation = async (probation) => {
+  if (!confirm(`Are you sure you want to end this probation early?\n\nReason: ${probation.reason}\n\nThis action cannot be undone.`)) return
+  
+  try {
+    // Find the writer's user ID
+    const writerId = probation.writer?.user?.id || probation.writer_id
+    if (!writerId) {
+      throw new Error('Writer ID not found')
+    }
+    
+    await adminManagementAPI.removeFromProbation(writerId)
+    message.value = 'Probation ended successfully'
+    messageSuccess.value = true
+    await loadProbations()
+    await loadWriterStatuses()
+    showToast('Probation ended successfully', 'success')
+  } catch (e) {
+    message.value = 'Failed to end probation: ' + (e.response?.data?.detail || e.message)
+    messageSuccess.value = false
+    showToast(message.value, 'error')
+  }
+}
+
 const viewWriterDetails = (writer) => {
   // Navigate to writer detail page or show modal
   window.location.href = `/admin/user-management?role=writer&search=${writer?.user?.username || ''}`
@@ -581,6 +1072,150 @@ const closeStrikeModal = () => {
 const closeWarningModal = () => {
   showIssueWarningModal.value = false
   warningForm.value = { writer: '', warning_type: 'minor', reason: '', expires_at: '' }
+}
+
+const closeProbationModal = () => {
+  showIssueProbationModal.value = false
+  probationForm.value = { writer: '', reason: '', duration_days: 30 }
+}
+
+const openSuspendWriterModal = (writer) => {
+  selectedWriterForSuspend.value = writer
+  suspendForm.value.writer = writer?.user?.id || writer?.id || ''
+  showSuspendWriterModal.value = true
+}
+
+const openBlacklistWriterModal = (writer) => {
+  selectedWriterForBlacklist.value = writer
+  blacklistForm.value.writer = writer?.user?.id || writer?.id || ''
+  showBlacklistWriterModal.value = true
+}
+
+const closeSuspendModal = () => {
+  showSuspendModal.value = false
+  showSuspendWriterModal.value = false
+  selectedWriterForSuspend.value = null
+  suspendForm.value = { writer: '', reason: '', duration_days: 30 }
+}
+
+const closeBlacklistModal = () => {
+  showBlacklistModal.value = false
+  showBlacklistWriterModal.value = false
+  selectedWriterForBlacklist.value = null
+  blacklistForm.value = { writer: '', reason: '' }
+}
+
+const suspendWriter = async () => {
+  saving.value = true
+  message.value = ''
+  try {
+    // Find the writer's user ID
+    let userId
+    if (selectedWriterForSuspend.value) {
+      userId = selectedWriterForSuspend.value.user?.id || selectedWriterForSuspend.value.id
+    } else {
+      const writer = availableWriters.value.find(w => w.id === suspendForm.value.writer)
+      if (!writer || !writer.user?.id) {
+        throw new Error('Writer not found or invalid')
+      }
+      userId = writer.user.id
+    }
+    
+    await adminManagementAPI.suspendUser(
+      userId,
+      suspendForm.value.reason.trim(),
+      suspendForm.value.duration_days || 30
+    )
+    message.value = 'Writer suspended successfully'
+    messageSuccess.value = true
+    closeSuspendModal()
+    await loadWriterStatuses()
+    showToast('Writer suspended successfully', 'success')
+  } catch (e) {
+    message.value = 'Failed to suspend writer: ' + (e.response?.data?.detail || e.message)
+    messageSuccess.value = false
+    showToast(message.value, 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const unsuspendWriter = async (writer) => {
+  if (!confirm(`Are you sure you want to unsuspend ${writer?.user?.username || 'this writer'}?`)) return
+  
+  try {
+    const userId = writer?.user?.id || writer?.id
+    if (!userId) {
+      throw new Error('Writer ID not found')
+    }
+    
+    await adminManagementAPI.unsuspendUser(userId)
+    message.value = 'Writer unsuspended successfully'
+    messageSuccess.value = true
+    await loadWriterStatuses()
+    showToast('Writer unsuspended successfully', 'success')
+  } catch (e) {
+    message.value = 'Failed to unsuspend writer: ' + (e.response?.data?.detail || e.message)
+    messageSuccess.value = false
+    showToast(message.value, 'error')
+  }
+}
+
+const blacklistWriter = async () => {
+  saving.value = true
+  message.value = ''
+  try {
+    // Find the writer's user ID
+    let userId
+    if (selectedWriterForBlacklist.value) {
+      userId = selectedWriterForBlacklist.value.user?.id || selectedWriterForBlacklist.value.id
+    } else {
+      const writer = availableWriters.value.find(w => w.id === blacklistForm.value.writer)
+      if (!writer || !writer.user?.id) {
+        throw new Error('Writer not found or invalid')
+      }
+      userId = writer.user.id
+    }
+    
+    await adminManagementAPI.blacklistUser(
+      userId,
+      blacklistForm.value.reason.trim()
+    )
+    message.value = 'Writer blacklisted successfully'
+    messageSuccess.value = true
+    closeBlacklistModal()
+    await loadWriterStatuses()
+    showToast('Writer blacklisted successfully', 'success')
+  } catch (e) {
+    message.value = 'Failed to blacklist writer: ' + (e.response?.data?.detail || e.message)
+    messageSuccess.value = false
+    showToast(message.value, 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const unblacklistWriter = async (writer) => {
+  if (!confirm(`Are you sure you want to remove ${writer?.user?.username || 'this writer'} from the blacklist?\n\nThis will allow them to access the system again.`)) return
+  
+  try {
+    const userId = writer?.user?.id || writer?.id
+    if (!userId) {
+      throw new Error('Writer ID not found')
+    }
+    
+    // Note: There might not be an unblacklist endpoint, so we may need to use a different approach
+    // For now, we'll try to update the user's blacklist status
+    await adminManagementAPI.patchUser(userId, { is_blacklisted: false })
+    message.value = 'Writer removed from blacklist successfully'
+    messageSuccess.value = true
+    await loadWriterStatuses()
+    showToast('Writer removed from blacklist successfully', 'success')
+  } catch (e) {
+    message.value = 'Failed to remove writer from blacklist: ' + (e.response?.data?.detail || e.message)
+    messageSuccess.value = false
+    showToast(message.value, 'error')
+  }
 }
 
 const formatDate = (dateString) => {
