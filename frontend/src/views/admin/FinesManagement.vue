@@ -108,97 +108,110 @@
       </div>
 
       <!-- Fines Table -->
-      <div class="card overflow-hidden">
-        <div v-if="finesLoading" class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-        <table v-else class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Writer</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Issued</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="fine in fines" :key="fine.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fine.id }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <router-link :to="`/orders/${fine.order}`" class="text-blue-600 hover:underline">
-                  Order #{{ fine.order }}
-                </router-link>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fine.order?.assigned_writer?.username || 'N/A' }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ fine.fine_type_config?.name || fine.fine_type || 'N/A' }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">${{ fine.amount || '0.00' }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="getStatusBadgeClass(fine.status)">
-                  {{ fine.status || 'issued' }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(fine.issued_at) }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                <button @click="viewFine(fine)" class="text-blue-600 hover:text-blue-900">View</button>
-                <button v-if="fine.status === 'issued'" @click="waiveFine(fine.id)" class="text-green-600 hover:text-green-900">Waive</button>
-                <button v-if="fine.status === 'issued'" @click="voidFine(fine.id)" class="text-red-600 hover:text-red-900">Void</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="!finesLoading && fines.length === 0" class="text-center py-12 text-gray-500">
-          No fines found
-        </div>
-      </div>
+      <EnhancedDataTable
+        :items="fines"
+        :columns="finesColumns"
+        :loading="finesLoading"
+        :searchable="true"
+        search-placeholder="Search fines by order ID, writer, type..."
+        :search-fields="['order', 'fine_type_config.name', 'fine_type']"
+        :sortable="true"
+        :striped="true"
+        empty-message="No fines found"
+        empty-description="Try adjusting your filters or issue a new fine"
+        empty-icon="💰"
+      >
+        <template #cell-status="{ value }">
+          <span :class="getStatusBadgeClass(value || 'issued')" class="px-2 py-1 text-xs font-semibold rounded-full">
+            {{ (value || 'issued').charAt(0).toUpperCase() + (value || 'issued').slice(1) }}
+          </span>
+        </template>
+        <template #cell-order="{ value, item }">
+          <router-link :to="`/orders/${item.order || value}`" class="text-blue-600 hover:text-blue-800 font-medium hover:underline">
+            Order #{{ item.order || value }}
+          </router-link>
+        </template>
+        <template #cell-amount="{ value }">
+          <span class="font-semibold text-gray-900">${{ formatCurrency(value) }}</span>
+        </template>
+        <template #cell-actions="{ item }">
+          <div class="flex items-center gap-2">
+            <button
+              @click="viewFine(item)"
+              class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+              title="View Details"
+            >
+              View
+            </button>
+            <button
+              v-if="item.status === 'issued'"
+              @click="waiveFine(item.id)"
+              class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors"
+              title="Waive Fine"
+            >
+              Waive
+            </button>
+            <button
+              v-if="item.status === 'issued'"
+              @click="voidFine(item.id)"
+              class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+              title="Void Fine"
+            >
+              Void
+            </button>
+          </div>
+        </template>
+      </EnhancedDataTable>
     </div>
 
-    <!-- Appeals Tab -->
+      <!-- Appeals Tab -->
     <div v-if="activeTab === 'appeals'" class="space-y-4">
-      <div class="card overflow-hidden">
-        <div v-if="appealsLoading" class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-        <table v-else class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fine</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appealed By</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reason</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="appeal in appeals" :key="appeal.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ appeal.id }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                Fine #{{ appeal.fine }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ appeal.appealed_by?.username || 'N/A' }}</td>
-              <td class="px-6 py-4 text-sm text-gray-900">{{ appeal.reason || 'N/A' }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="getAppealStatusBadgeClass(appeal.status)">
-                  {{ appeal.status || 'pending' }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(appeal.created_at) }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                <button @click="viewAppeal(appeal)" class="text-blue-600 hover:text-blue-900">View</button>
-                <button v-if="appeal.status === 'pending'" @click="reviewAppeal(appeal.id)" class="text-green-600 hover:text-green-900">Review</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="!appealsLoading && appeals.length === 0" class="text-center py-12 text-gray-500">
-          No appeals found
-        </div>
-      </div>
+      <EnhancedDataTable
+        :items="appeals"
+        :columns="appealsColumns"
+        :loading="appealsLoading"
+        :searchable="true"
+        search-placeholder="Search appeals by fine ID, reason..."
+        :search-fields="['fine', 'reason', 'appealed_by.username']"
+        :sortable="true"
+        :striped="true"
+        empty-message="No appeals found"
+        empty-description="All appeals have been reviewed or no appeals have been submitted yet"
+        empty-icon="📝"
+      >
+        <template #cell-status="{ value }">
+          <span :class="getAppealStatusBadgeClass(value || 'pending')" class="px-2 py-1 text-xs font-semibold rounded-full">
+            {{ (value || 'pending').charAt(0).toUpperCase() + (value || 'pending').slice(1) }}
+          </span>
+        </template>
+        <template #cell-fine="{ value }">
+          <span class="font-medium text-gray-900">Fine #{{ value }}</span>
+        </template>
+        <template #cell-reason="{ value }">
+          <div class="max-w-md truncate" :title="value || 'N/A'">
+            {{ value || 'N/A' }}
+          </div>
+        </template>
+        <template #cell-actions="{ item }">
+          <div class="flex items-center gap-2">
+            <button
+              @click="viewAppeal(item)"
+              class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+              title="View Details"
+            >
+              View
+            </button>
+            <button
+              v-if="item.status === 'pending'"
+              @click="reviewAppeal(item.id)"
+              class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors"
+              title="Review Appeal"
+            >
+              Review
+            </button>
+          </div>
+        </template>
+      </EnhancedDataTable>
     </div>
 
     <!-- Fine Types Tab -->
@@ -243,6 +256,193 @@
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- Analytics Tab -->
+    <div v-if="activeTab === 'analytics'" class="space-y-4">
+      <div class="card p-4">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">Fines Analytics</h3>
+          <div class="flex items-center gap-4">
+            <select v-model="analyticsDays" @change="loadAnalytics" class="border rounded px-3 py-2">
+              <option :value="7">Last 7 days</option>
+              <option :value="30">Last 30 days</option>
+              <option :value="90">Last 90 days</option>
+              <option :value="365">Last year</option>
+            </select>
+            <button @click="loadAnalytics" :disabled="analyticsLoading" class="btn btn-secondary">
+              {{ analyticsLoading ? 'Loading...' : 'Refresh' }}
+            </button>
+          </div>
+        </div>
+        <div v-if="analyticsLoading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+        <div v-else-if="analyticsData" class="space-y-6">
+          <!-- Analytics Charts/Stats -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div class="text-sm text-gray-600 mb-1">Total Fines Issued</div>
+              <div class="text-2xl font-bold text-blue-600">{{ analyticsData.total_fines || 0 }}</div>
+            </div>
+            <div class="p-4 bg-green-50 rounded-lg border border-green-200">
+              <div class="text-sm text-gray-600 mb-1">Total Amount</div>
+              <div class="text-2xl font-bold text-green-600">${{ formatCurrency(analyticsData.total_amount || 0) }}</div>
+            </div>
+            <div class="p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <div class="text-sm text-gray-600 mb-1">Average Fine</div>
+              <div class="text-2xl font-bold text-orange-600">${{ formatCurrency(analyticsData.average_fine || 0) }}</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 bg-white rounded-lg border border-gray-200">
+              <h4 class="font-semibold text-gray-900 mb-3">Fines by Type</h4>
+              <div v-if="analyticsData.fines_by_type?.length" class="space-y-2">
+                <div v-for="item in analyticsData.fines_by_type" :key="item.type" class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <span class="text-sm text-gray-700">{{ item.type || 'Unknown' }}</span>
+                  <span class="text-sm font-semibold text-gray-900">{{ item.count }} (${{ formatCurrency(item.amount) }})</span>
+                </div>
+              </div>
+              <div v-else class="text-sm text-gray-500">No data available</div>
+            </div>
+            <div class="p-4 bg-white rounded-lg border border-gray-200">
+              <h4 class="font-semibold text-gray-900 mb-3">Fines by Status</h4>
+              <div v-if="analyticsData.fines_by_status?.length" class="space-y-2">
+                <div v-for="item in analyticsData.fines_by_status" :key="item.status" class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <span class="text-sm text-gray-700">{{ formatStatus(item.status) }}</span>
+                  <span class="text-sm font-semibold text-gray-900">{{ item.count }} (${{ formatCurrency(item.amount) }})</span>
+                </div>
+              </div>
+              <div v-else class="text-sm text-gray-500">No data available</div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="text-center py-12 text-gray-500">
+          No analytics data available
+        </div>
+      </div>
+    </div>
+
+    <!-- Dispute Queue Tab -->
+    <div v-if="activeTab === 'dispute-queue'" class="space-y-4">
+      <div class="card p-4">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">Dispute Queue</h3>
+          <button @click="loadDisputeQueue" :disabled="disputeQueueLoading" class="btn btn-secondary">
+            {{ disputeQueueLoading ? 'Loading...' : 'Refresh' }}
+          </button>
+        </div>
+        <div v-if="disputeQueueLoading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+        <EnhancedDataTable
+          v-else
+          :items="disputeQueue"
+          :columns="disputeQueueColumns"
+          :loading="disputeQueueLoading"
+          :searchable="true"
+          search-placeholder="Search disputes..."
+          :sortable="true"
+          :striped="true"
+          empty-message="No disputes in queue"
+          empty-description="All disputes have been resolved"
+          empty-icon="✅"
+        >
+          <template #cell-status="{ value }">
+            <span :class="getStatusBadgeClass(value || 'pending')" class="px-2 py-1 text-xs font-semibold rounded-full">
+              {{ (value || 'pending').charAt(0).toUpperCase() + (value || 'pending').slice(1) }}
+            </span>
+          </template>
+          <template #cell-order="{ value, item }">
+            <router-link :to="`/orders/${item.order || value}`" class="text-blue-600 hover:text-blue-800 font-medium hover:underline">
+              Order #{{ item.order || value }}
+            </router-link>
+          </template>
+          <template #cell-amount="{ value }">
+            <span class="font-semibold text-gray-900">${{ formatCurrency(value) }}</span>
+          </template>
+          <template #cell-actions="{ item }">
+            <div class="flex items-center gap-2">
+              <button
+                @click="viewFine(item)"
+                class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                title="View Details"
+              >
+                View
+              </button>
+              <button
+                v-if="item.status === 'disputed'"
+                @click="resolveDispute(item.id)"
+                class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors"
+                title="Resolve Dispute"
+              >
+                Resolve
+              </button>
+            </div>
+          </template>
+        </EnhancedDataTable>
+      </div>
+    </div>
+
+    <!-- Active Fines Tab -->
+    <div v-if="activeTab === 'active-fines'" class="space-y-4">
+      <div class="card p-4">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-lg font-semibold">Active Fines</h3>
+          <button @click="loadActiveFines" :disabled="activeFinesLoading" class="btn btn-secondary">
+            {{ activeFinesLoading ? 'Loading...' : 'Refresh' }}
+          </button>
+        </div>
+        <div v-if="activeFinesLoading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+        <EnhancedDataTable
+          v-else
+          :items="activeFines"
+          :columns="finesColumns"
+          :loading="activeFinesLoading"
+          :searchable="true"
+          search-placeholder="Search active fines..."
+          :sortable="true"
+          :striped="true"
+          empty-message="No active fines"
+          empty-description="All fines have been resolved or waived"
+          empty-icon="✅"
+        >
+          <template #cell-status="{ value }">
+            <span :class="getStatusBadgeClass(value || 'issued')" class="px-2 py-1 text-xs font-semibold rounded-full">
+              {{ (value || 'issued').charAt(0).toUpperCase() + (value || 'issued').slice(1) }}
+            </span>
+          </template>
+          <template #cell-order="{ value, item }">
+            <router-link :to="`/orders/${item.order || value}`" class="text-blue-600 hover:text-blue-800 font-medium hover:underline">
+              Order #{{ item.order || value }}
+            </router-link>
+          </template>
+          <template #cell-amount="{ value }">
+            <span class="font-semibold text-gray-900">${{ formatCurrency(value) }}</span>
+          </template>
+          <template #cell-actions="{ item }">
+            <div class="flex items-center gap-2">
+              <button
+                @click="viewFine(item)"
+                class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 transition-colors"
+                title="View Details"
+              >
+                View
+              </button>
+              <button
+                v-if="item.status === 'issued'"
+                @click="waiveFine(item.id)"
+                class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors"
+                title="Waive Fine"
+              >
+                Waive
+              </button>
+            </div>
+          </template>
+        </EnhancedDataTable>
       </div>
     </div>
 
@@ -332,54 +532,75 @@
     </div>
 
     <!-- Fine Type Modal -->
-    <div v-if="showFineTypeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-        <div class="p-6">
-          <div class="flex justify-between items-center mb-4">
-            <h3 class="text-xl font-semibold">{{ editingFineType ? 'Edit Fine Type' : 'Add Fine Type' }}</h3>
-            <button @click="closeFineTypeModal" class="text-gray-400 hover:text-gray-600">
+    <div v-if="showFineTypeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeFineTypeModal">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-gray-700 dark:to-gray-800">
+          <div class="flex justify-between items-center">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ editingFineType ? 'Edit Fine Type' : 'Create Fine Type' }}</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ editingFineType ? 'Update fine type configuration' : 'Configure a new fine type' }}</p>
+            </div>
+            <button 
+              @click="closeFineTypeModal" 
+              class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
               <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
           <form @submit.prevent="saveFineType" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Code <span class="text-red-500">*</span>
+                </label>
                 <input
                   v-model="fineTypeForm.code"
                   type="text"
                   required
                   :disabled="editingFineType"
-                  class="w-full border rounded px-3 py-2"
+                  class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   placeholder="e.g., quality_issue"
                 />
-                <p class="text-xs text-gray-500 mt-1">Unique identifier (cannot be changed after creation)</p>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Unique identifier (cannot be changed after creation)</p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Name <span class="text-red-500">*</span>
+                </label>
                 <input
                   v-model="fineTypeForm.name"
                   type="text"
                   required
-                  class="w-full border rounded px-3 py-2"
+                  class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                   placeholder="e.g., Quality Issue"
                 />
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
               <textarea
                 v-model="fineTypeForm.description"
-                class="w-full border rounded px-3 py-2"
-                rows="2"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                rows="3"
                 placeholder="Description of when this fine applies"
               ></textarea>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Calculation Type *</label>
-              <select v-model="fineTypeForm.calculation_type" required class="w-full border rounded px-3 py-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Calculation Type <span class="text-red-500">*</span>
+              </label>
+              <select 
+                v-model="fineTypeForm.calculation_type" 
+                required 
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+              >
                 <option value="fixed">Fixed Amount</option>
                 <option value="percentage">Percentage of Base Amount</option>
                 <option value="progressive_hourly">Progressive Hourly (Late Submission Only)</option>
@@ -387,32 +608,48 @@
             </div>
             <div v-if="fineTypeForm.calculation_type === 'fixed'" class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Fixed Amount *</label>
-                <input
-                  v-model.number="fineTypeForm.fixed_amount"
-                  type="number"
-                  step="0.01"
-                  required
-                  class="w-full border rounded px-3 py-2"
-                  placeholder="0.00"
-                />
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Fixed Amount <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                  <input
+                    v-model.number="fineTypeForm.fixed_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    required
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg pl-8 pr-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="0.00"
+                  />
+                </div>
               </div>
             </div>
             <div v-if="fineTypeForm.calculation_type === 'percentage'" class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Percentage *</label>
-                <input
-                  v-model.number="fineTypeForm.percentage"
-                  type="number"
-                  step="0.01"
-                  required
-                  class="w-full border rounded px-3 py-2"
-                  placeholder="0.00"
-                />
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Percentage <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                  <input
+                    v-model.number="fineTypeForm.percentage"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    required
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="0.00"
+                  />
+                  <span class="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">%</span>
+                </div>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Base Amount</label>
-                <select v-model="fineTypeForm.base_amount" class="w-full border rounded px-3 py-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Base Amount</label>
+                <select 
+                  v-model="fineTypeForm.base_amount" 
+                  class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                >
                   <option value="writer_compensation">Writer Compensation</option>
                   <option value="total_price">Order Total Price</option>
                 </select>
@@ -420,46 +657,74 @@
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Min Amount</label>
-                <input
-                  v-model.number="fineTypeForm.min_amount"
-                  type="number"
-                  step="0.01"
-                  class="w-full border rounded px-3 py-2"
-                  placeholder="Optional"
-                />
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Min Amount</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                  <input
+                    v-model.number="fineTypeForm.min_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg pl-8 pr-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="Optional"
+                  />
+                </div>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">Max Amount</label>
-                <input
-                  v-model.number="fineTypeForm.max_amount"
-                  type="number"
-                  step="0.01"
-                  class="w-full border rounded px-3 py-2"
-                  placeholder="Optional"
-                />
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Max Amount</label>
+                <div class="relative">
+                  <span class="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400">$</span>
+                  <input
+                    v-model.number="fineTypeForm.max_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg pl-8 pr-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="Optional"
+                  />
+                </div>
               </div>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Website</label>
-              <select v-model="fineTypeForm.website" class="w-full border rounded px-3 py-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Website</label>
+              <select 
+                v-model="fineTypeForm.website" 
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+              >
                 <option value="">All Websites (Global)</option>
                 <option v-for="site in websites" :key="site.id" :value="site.id">{{ site.name }}</option>
               </select>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty to apply to all websites</p>
             </div>
-            <div class="flex items-center">
+            <div class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
               <input
                 v-model="fineTypeForm.active"
                 type="checkbox"
                 id="fine_type_active"
-                class="mr-2"
+                class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
               />
-              <label for="fine_type_active" class="text-sm font-medium text-gray-700">Active</label>
+              <label for="fine_type_active" class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                Active
+              </label>
+              <p class="ml-auto text-xs text-gray-500 dark:text-gray-400">Only active fine types can be used</p>
             </div>
-            <div class="flex justify-end space-x-3 pt-4">
-              <button type="button" @click="closeFineTypeModal" class="btn btn-secondary">Cancel</button>
-              <button type="submit" class="btn btn-primary" :disabled="savingFineType">
-                {{ savingFineType ? 'Saving...' : (editingFineType ? 'Update' : 'Create') }}
+            
+            <!-- Form Footer -->
+            <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button 
+                type="button" 
+                @click="closeFineTypeModal" 
+                class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                :disabled="savingFineType"
+                class="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+              >
+                <span v-if="savingFineType" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+                {{ savingFineType ? 'Saving...' : (editingFineType ? 'Update Fine Type' : 'Create Fine Type') }}
               </button>
             </div>
           </form>
@@ -600,17 +865,276 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      :show="confirmProps.show"
+      :title="confirmProps.title"
+      :message="confirmProps.message"
+      :details="confirmProps.details"
+      :variant="confirmProps.variant"
+      :confirm-text="confirmProps.confirmText"
+      :cancel-text="confirmProps.cancelText"
+      :icon="confirmProps.icon"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+      @update:show="(val) => confirm.show.value = val"
+    />
+
+    <!-- Input Modal - Only render when explicitly shown -->
+    <InputModal
+      v-if="inputModalProps.show"
+      :show="inputModalProps.show"
+      :title="inputModalProps.title || 'Input Required'"
+      :message="inputModalProps.message"
+      :label="inputModalProps.label"
+      :placeholder="inputModalProps.placeholder"
+      :hint="inputModalProps.hint"
+      :multiline="inputModalProps.multiline"
+      :rows="inputModalProps.rows"
+      :required="inputModalProps.required"
+      :default-value="typeof inputModalProps.defaultValue === 'string' ? inputModalProps.defaultValue : ''"
+      :confirm-text="inputModalProps.confirmText"
+      :cancel-text="inputModalProps.cancelText"
+      @submit="inputModal.onSubmit"
+      @cancel="inputModal.onCancel"
+      @update:show="(val) => inputModal.show.value = val"
+    />
+
+    <!-- Fine Detail Modal -->
+    <div v-if="showFineDetailModal && selectedFine" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showFineDetailModal = false">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-gray-700 dark:to-gray-800">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Fine Details</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Fine ID: #{{ selectedFine.id }}</p>
+            </div>
+            <button 
+              @click="showFineDetailModal = false" 
+              class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Left Column -->
+            <div class="space-y-4">
+              <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Order ID</label>
+                <router-link 
+                  :to="`/orders/${selectedFine.order || selectedFine.order_id}`" 
+                  class="text-lg font-semibold text-blue-600 dark:text-blue-400 hover:underline"
+                >
+                  Order #{{ selectedFine.order || selectedFine.order_id }}
+                </router-link>
+              </div>
+              
+              <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Amount</label>
+                <p class="text-2xl font-bold text-gray-900 dark:text-white">${{ formatCurrency(selectedFine.amount) }}</p>
+              </div>
+              
+              <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Status</label>
+                <span :class="getStatusBadgeClass(selectedFine.status)" class="inline-block px-3 py-1.5 text-sm font-semibold rounded-full">
+                  {{ (selectedFine.status || 'issued').charAt(0).toUpperCase() + (selectedFine.status || 'issued').slice(1) }}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="space-y-4">
+              <div v-if="selectedFine.fine_type || selectedFine.fine_type_config" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Fine Type</label>
+                <p class="text-lg font-medium text-gray-900 dark:text-white">
+                  {{ selectedFine.fine_type_config?.name || selectedFine.fine_type?.name || selectedFine.fine_type?.code || 'N/A' }}
+                </p>
+              </div>
+              
+              <div v-if="selectedFine.reason" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Reason</label>
+                <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{{ selectedFine.reason }}</p>
+              </div>
+              
+              <div v-if="selectedFine.issued_at || selectedFine.created_at" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Issued Date</label>
+                <p class="text-sm text-gray-900 dark:text-white">{{ formatDate(selectedFine.issued_at || selectedFine.created_at) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer Actions -->
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-end gap-3">
+          <button 
+            @click="showFineDetailModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            v-if="selectedFine.status === 'issued'"
+            @click="waiveFine(selectedFine.id); showFineDetailModal = false"
+            class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Waive Fine
+          </button>
+          <button
+            v-if="selectedFine.status === 'issued'"
+            @click="voidFine(selectedFine.id); showFineDetailModal = false"
+            class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+          >
+            Void Fine
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Appeal Detail Modal -->
+    <div v-if="showAppealDetailModal && selectedAppeal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showAppealDetailModal = false">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-gray-700 dark:to-gray-800">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Appeal Details</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Appeal ID: #{{ selectedAppeal.id }}</p>
+            </div>
+            <button 
+              @click="showAppealDetailModal = false" 
+              class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Left Column -->
+            <div class="space-y-4">
+              <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Fine ID</label>
+                <p class="text-lg font-semibold text-gray-900 dark:text-white">Fine #{{ selectedAppeal.fine || selectedAppeal.fine_id }}</p>
+              </div>
+              
+              <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Status</label>
+                <span :class="getAppealStatusBadgeClass(selectedAppeal.status)" class="inline-block px-3 py-1.5 text-sm font-semibold rounded-full">
+                  {{ (selectedAppeal.status || 'pending').charAt(0).toUpperCase() + (selectedAppeal.status || 'pending').slice(1) }}
+                </span>
+              </div>
+              
+              <div v-if="selectedAppeal.appealed_by" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Appealed By</label>
+                <p class="text-sm font-medium text-gray-900 dark:text-white">{{ selectedAppeal.appealed_by.username || selectedAppeal.appealed_by }}</p>
+              </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="space-y-4">
+              <div v-if="selectedAppeal.reason" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Reason</label>
+                <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{{ selectedAppeal.reason }}</p>
+              </div>
+              
+              <div v-if="selectedAppeal.notes" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Review Notes</label>
+                <p class="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{{ selectedAppeal.notes }}</p>
+              </div>
+              
+              <div v-if="selectedAppeal.created_at" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                <label class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1 block">Created Date</label>
+                <p class="text-sm text-gray-900 dark:text-white">{{ formatDate(selectedAppeal.created_at) }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Footer Actions -->
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-end gap-3">
+          <button 
+            @click="showAppealDetailModal = false"
+            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            v-if="selectedAppeal.status === 'pending'"
+            @click="reviewAppeal(selectedAppeal.id); showAppealDetailModal = false"
+            class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+          >
+            Review Appeal
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { finesAPI, websitesAPI } from '@/api'
 import adminManagementAPI from '@/api/admin-management'
 import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import { useInputModal } from '@/composables/useInputModal'
 import { getErrorMessage } from '@/utils/errorHandler'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import InputModal from '@/components/common/InputModal.vue'
+import ErrorDisplay from '@/components/common/ErrorDisplay.vue'
+import EnhancedDataTable from '@/components/common/EnhancedDataTable.vue'
 
 const { error: showError, success: showSuccess } = useToast()
+const confirm = useConfirmDialog()
+const inputModal = useInputModal()
+
+// Create computed properties to unwrap refs for template usage
+const confirmProps = computed(() => ({
+  show: confirm.show.value,
+  title: confirm.title.value,
+  message: confirm.message.value,
+  details: confirm.details.value,
+  variant: confirm.variant.value,
+  confirmText: confirm.confirmText.value,
+  cancelText: confirm.cancelText.value,
+  icon: confirm.icon.value
+}))
+
+const inputModalProps = computed(() => ({
+  show: inputModal.show.value,
+  title: inputModal.title.value,
+  message: inputModal.message.value,
+  label: inputModal.label.value,
+  placeholder: inputModal.placeholder.value,
+  hint: inputModal.hint.value,
+  multiline: inputModal.multiline.value,
+  rows: inputModal.rows.value,
+  required: inputModal.required.value,
+  defaultValue: inputModal.defaultValue.value,
+  confirmText: inputModal.confirmText.value,
+  cancelText: inputModal.cancelText.value
+}))
+
+// Ensure modal is hidden on initialization and reset all values
+// Use nextTick to ensure this happens after component setup
+nextTick(() => {
+  inputModal.show.value = false
+  inputModal.message.value = null
+  inputModal.title.value = 'Input Required'
+  inputModal.defaultValue.value = ''
+})
 
 const tabs = [
   { id: 'fines', label: 'Fines' },
@@ -706,7 +1230,13 @@ const debouncedSearch = () => {
 
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
-  return new Date(dateString).toLocaleDateString()
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const getStatusBadgeClass = (status) => {
@@ -720,6 +1250,60 @@ const getStatusBadgeClass = (status) => {
   return classes[status] || classes.issued
 }
 
+// Column definitions for EnhancedDataTable
+const finesColumns = computed(() => [
+  {
+    key: 'id',
+    label: 'ID',
+    sortable: true,
+    class: 'w-20'
+  },
+  {
+    key: 'order',
+    label: 'Order',
+    sortable: true
+  },
+  {
+    key: 'order.assigned_writer.username',
+    label: 'Writer',
+    sortable: false,
+    format: (value, item) => item.order?.assigned_writer?.username || 'N/A'
+  },
+  {
+    key: 'fine_type_config.name',
+    label: 'Type',
+    sortable: true,
+    format: (value, item) => item.fine_type_config?.name || item.fine_type || 'N/A'
+  },
+  {
+    key: 'amount',
+    label: 'Amount',
+    sortable: true,
+    align: 'right',
+    class: 'w-32'
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    sortable: true,
+    class: 'w-28'
+  },
+  {
+    key: 'issued_at',
+    label: 'Issued',
+    sortable: true,
+    format: (value) => formatDate(value),
+    class: 'w-40'
+  },
+  {
+    key: 'actions',
+    label: 'Actions',
+    sortable: false,
+    align: 'right',
+    class: 'w-40'
+  }
+])
+
 const getAppealStatusBadgeClass = (status) => {
   const classes = {
     pending: 'px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800',
@@ -729,6 +1313,63 @@ const getAppealStatusBadgeClass = (status) => {
   }
   return classes[status] || classes.pending
 }
+
+// Column definitions for Appeals table
+const disputeQueueColumns = computed(() => [
+  { key: 'id', label: 'ID', sortable: true },
+  { key: 'order', label: 'Order', sortable: true },
+  { key: 'fine_type', label: 'Fine Type', sortable: true },
+  { key: 'amount', label: 'Amount', sortable: true },
+  { key: 'status', label: 'Status', sortable: true },
+  { key: 'created_at', label: 'Created', sortable: true },
+  { key: 'actions', label: 'Actions', sortable: false },
+])
+
+const appealsColumns = computed(() => [
+  {
+    key: 'id',
+    label: 'ID',
+    sortable: true,
+    class: 'w-20'
+  },
+  {
+    key: 'fine',
+    label: 'Fine ID',
+    sortable: true
+  },
+  {
+    key: 'appealed_by.username',
+    label: 'Appealed By',
+    sortable: false,
+    format: (value, item) => item.appealed_by?.username || 'N/A'
+  },
+  {
+    key: 'reason',
+    label: 'Reason',
+    sortable: false,
+    format: (value) => value || 'N/A'
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    sortable: true,
+    class: 'w-28'
+  },
+  {
+    key: 'created_at',
+    label: 'Created',
+    sortable: true,
+    format: (value) => formatDate(value),
+    class: 'w-40'
+  },
+  {
+    key: 'actions',
+    label: 'Actions',
+    sortable: false,
+    align: 'right',
+    class: 'w-32'
+  }
+])
 
 const loadStats = async () => {
   try {
@@ -748,7 +1389,6 @@ const loadStats = async () => {
       recent_amount: dashboard.recent?.amount || '0.00',
     }
   } catch (error) {
-    console.error('Failed to load dashboard stats:', error)
     // Fallback to manual calculation if dashboard endpoint fails
     try {
       const [finesRes, appealsRes] = await Promise.all([
@@ -767,7 +1407,8 @@ const loadStats = async () => {
         total_amount: totalAmount.toFixed(2),
       }
     } catch (fallbackError) {
-      console.error('Failed to load stats (fallback):', fallbackError)
+      const errorMsg = getErrorMessage(fallbackError, 'Failed to load statistics.')
+      showError(errorMsg)
     }
   }
 }
@@ -783,7 +1424,8 @@ const loadFines = async () => {
     const response = await finesAPI.listFines(params)
     fines.value = response.data.results || response.data || []
   } catch (error) {
-    console.error('Failed to load fines:', error)
+    const errorMsg = getErrorMessage(error, 'Failed to load fines. Please try again.')
+    showError(errorMsg)
   } finally {
     finesLoading.value = false
   }
@@ -796,13 +1438,13 @@ const loadAppeals = async () => {
     const response = await adminManagementAPI.getAppealsQueue()
     appeals.value = response.data || []
   } catch (error) {
-    console.error('Failed to load appeals:', error)
     // Fallback to regular API
     try {
       const fallbackResponse = await finesAPI.listAppeals()
       appeals.value = fallbackResponse.data.results || fallbackResponse.data || []
     } catch (fallbackError) {
-      console.error('Failed to load appeals (fallback):', fallbackError)
+      const errorMsg = getErrorMessage(fallbackError, 'Failed to load appeals. Please try again.')
+      showError(errorMsg)
     }
   } finally {
     appealsLoading.value = false
@@ -815,7 +1457,8 @@ const loadFineTypes = async () => {
     const response = await finesAPI.listFineTypes()
     fineTypes.value = response.data.results || response.data || []
   } catch (error) {
-    console.error('Failed to load fine types:', error)
+    const errorMsg = getErrorMessage(error, 'Failed to load fine types. Please try again.')
+    showError(errorMsg)
   } finally {
     fineTypesLoading.value = false
   }
@@ -827,7 +1470,8 @@ const loadLatenessRules = async () => {
     const response = await finesAPI.listLatenessRules()
     latenessRules.value = response.data.results || response.data || []
   } catch (error) {
-    console.error('Failed to load lateness rules:', error)
+    const errorMsg = getErrorMessage(error, 'Failed to load lateness rules. Please try again.')
+    showError(errorMsg)
   } finally {
     latenessRulesLoading.value = false
   }
@@ -842,13 +1486,27 @@ const resetFilters = () => {
   loadFines()
 }
 
+const selectedFine = ref(null)
+const showFineDetailModal = ref(false)
+
 const viewFine = (fine) => {
-  // TODO: Implement fine detail modal
-  alert(`Fine #${fine.id} details coming soon`)
+  selectedFine.value = fine
+  showFineDetailModal.value = true
 }
 
 const waiveFine = async (id) => {
-  const reason = prompt('Enter reason for waiving this fine:')
+  const reason = await inputModal.showModal(
+    'Enter reason for waiving this fine',
+    'Waive Fine',
+    { 
+      label: 'Reason',
+      placeholder: 'Enter reason for waiving...',
+      multiline: true,
+      rows: 4,
+      required: true
+    }
+  )
+  
   if (!reason) return
   
   try {
@@ -857,48 +1515,84 @@ const waiveFine = async (id) => {
     await loadStats()
     showSuccess('Fine waived successfully')
   } catch (error) {
-    console.error('Failed to waive fine:', error)
     const errorMsg = getErrorMessage(error, 'Failed to waive fine. Please try again.')
     showError(errorMsg)
   }
 }
 
 const voidFine = async (id) => {
-  const reason = prompt('Enter reason for voiding this fine:') || 'Fine voided by admin'
+  const reason = await inputModal.showModal(
+    'Enter reason for voiding this fine',
+    'Void Fine',
+    { 
+      label: 'Reason',
+      placeholder: 'Enter reason for voiding...',
+      multiline: true,
+      rows: 4,
+      defaultValue: 'Fine voided by admin',
+      required: false
+    }
+  )
+  
+  if (reason === null) return // User cancelled
+  
+  const finalReason = reason || 'Fine voided by admin'
   
   try {
-    await adminManagementAPI.voidFine(id, { reason })
+    await adminManagementAPI.voidFine(id, { reason: finalReason })
     await loadFines()
     await loadStats()
     showSuccess('Fine voided successfully')
   } catch (error) {
-    console.error('Failed to void fine:', error)
     const errorMsg = getErrorMessage(error, 'Failed to void fine. Please try again.')
     showError(errorMsg)
   }
 }
 
+const selectedAppeal = ref(null)
+const showAppealDetailModal = ref(false)
+
 const viewAppeal = (appeal) => {
-  // TODO: Implement appeal detail modal
-  alert(`Appeal #${appeal.id} details coming soon`)
+  selectedAppeal.value = appeal
+  showAppealDetailModal.value = true
 }
 
 const reviewAppeal = async (id) => {
-  const accept = confirm('Do you want to approve this appeal?')
-  const reviewNotes = prompt('Enter review notes:') || ''
+  const accept = await confirm.showDialog(
+    'Do you want to approve this appeal?',
+    'Review Appeal',
+    {
+      variant: 'default',
+      confirmText: 'Approve',
+      cancelText: 'Reject'
+    }
+  )
+  
+  const reviewNotes = await inputModal.showModal(
+    'Enter review notes (optional)',
+    'Review Notes',
+    { 
+      label: 'Notes',
+      placeholder: 'Enter review notes...',
+      multiline: true,
+      rows: 4,
+      required: false
+    }
+  )
+  
+  if (reviewNotes === null) return // User cancelled
   
   try {
     if (accept) {
-      await adminManagementAPI.approveAppeal(id, { notes: reviewNotes })
+      await adminManagementAPI.approveAppeal(id, { notes: reviewNotes || '' })
       showSuccess('Appeal approved successfully')
     } else {
-      await adminManagementAPI.rejectAppeal(id, { notes: reviewNotes })
+      await adminManagementAPI.rejectAppeal(id, { notes: reviewNotes || '' })
       showSuccess('Appeal rejected')
     }
     await loadAppeals()
     await loadStats()
   } catch (error) {
-    console.error('Failed to review appeal:', error)
     const errorMsg = getErrorMessage(error, 'Failed to review appeal. Please try again.')
     showError(errorMsg)
   }
@@ -909,7 +1603,9 @@ const loadWebsites = async () => {
     const response = await websitesAPI.listWebsites()
     websites.value = response.data.results || response.data || []
   } catch (error) {
-    console.error('Failed to load websites:', error)
+    // Silently fail - websites are not critical for page functionality
+    const errorMsg = getErrorMessage(error, 'Failed to load websites.')
+    showError(errorMsg)
   }
 }
 
@@ -979,21 +1675,28 @@ const saveFineType = async () => {
     await loadFineTypes()
     closeFineTypeModal()
   } catch (error) {
-    console.error('Failed to save fine type:', error)
-    alert(error.response?.data?.detail || error.response?.data?.message || 'Failed to save fine type')
+    const errorMsg = getErrorMessage(error, 'Failed to save fine type. Please try again.')
+    showError(errorMsg)
   } finally {
     savingFineType.value = false
   }
 }
 
 const deleteFineType = async (id) => {
-  if (!confirm('Are you sure you want to delete this fine type?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this fine type? This action cannot be undone.',
+    'Delete Fine Type'
+  )
+  
+  if (!confirmed) return
+  
   try {
     await finesAPI.deleteFineType(id)
     await loadFineTypes()
+    showSuccess('Fine type deleted successfully')
   } catch (error) {
-    console.error('Failed to delete fine type:', error)
-    alert('Failed to delete fine type')
+    const errorMsg = getErrorMessage(error, 'Failed to delete fine type. Please try again.')
+    showError(errorMsg)
   }
 }
 
@@ -1059,21 +1762,28 @@ const saveLatenessRule = async () => {
     await loadLatenessRules()
     closeLatenessRuleModal()
   } catch (error) {
-    console.error('Failed to save lateness rule:', error)
-    alert(error.response?.data?.detail || error.response?.data?.message || 'Failed to save lateness rule')
+    const errorMsg = getErrorMessage(error, 'Failed to save lateness rule. Please try again.')
+    showError(errorMsg)
   } finally {
     savingLatenessRule.value = false
   }
 }
 
 const deleteLatenessRule = async (id) => {
-  if (!confirm('Are you sure you want to delete this lateness rule?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this lateness rule? This action cannot be undone.',
+    'Delete Lateness Rule'
+  )
+  
+  if (!confirmed) return
+  
   try {
     await finesAPI.deleteLatenessRule(id)
     await loadLatenessRules()
+    showSuccess('Lateness rule deleted successfully')
   } catch (error) {
-    console.error('Failed to delete lateness rule:', error)
-    alert('Failed to delete lateness rule')
+    const errorMsg = getErrorMessage(error, 'Failed to delete lateness rule. Please try again.')
+    showError(errorMsg)
   }
 }
 
@@ -1104,8 +1814,8 @@ const submitIssueFine = async () => {
     await loadStats()
     closeIssueFineModal()
   } catch (error) {
-    console.error('Failed to issue fine:', error)
-    alert(error.response?.data?.detail || 'Failed to issue fine')
+    const errorMsg = getErrorMessage(error, 'Failed to issue fine. Please try again.')
+    showError(errorMsg)
   } finally {
     issuingFine.value = false
   }
@@ -1117,8 +1827,8 @@ const loadAnalytics = async () => {
     const response = await adminManagementAPI.getFinesDashboardAnalytics({ days: analyticsDays.value })
     analyticsData.value = response?.data || null
   } catch (err) {
-    console.error('Failed to load analytics:', err)
-    showError('Failed to load analytics')
+    const errorMsg = getErrorMessage(err, 'Failed to load analytics. Please try again.')
+    showError(errorMsg)
   } finally {
     analyticsLoading.value = false
   }
@@ -1130,8 +1840,8 @@ const loadDisputeQueue = async () => {
     const response = await adminManagementAPI.getFinesDisputeQueue({})
     disputeQueue.value = response?.data?.disputes || []
   } catch (err) {
-    console.error('Failed to load dispute queue:', err)
-    showError('Failed to load dispute queue')
+    const errorMsg = getErrorMessage(err, 'Failed to load dispute queue. Please try again.')
+    showError(errorMsg)
   } finally {
     disputeQueueLoading.value = false
   }
@@ -1143,8 +1853,8 @@ const loadActiveFines = async () => {
     const response = await adminManagementAPI.getFinesActiveFines({})
     activeFines.value = response?.data?.fines || []
   } catch (err) {
-    console.error('Failed to load active fines:', err)
-    showError('Failed to load active fines')
+    const errorMsg = getErrorMessage(err, 'Failed to load active fines. Please try again.')
+    showError(errorMsg)
   } finally {
     activeFinesLoading.value = false
   }
@@ -1194,17 +1904,16 @@ const finesTrendsOptions = computed(() => ({
 }))
 
 watch(activeTab, (newTab) => {
-  if (newTab === 'fines') {
-    loadFines()
-    loadFineTypes() // Need fine types for filter dropdown
-  } else if (newTab === 'appeals') {
-    loadAppeals()
-  } else if (newTab === 'analytics') {
+  if (newTab === 'analytics') {
     loadAnalytics()
   } else if (newTab === 'dispute-queue') {
     loadDisputeQueue()
   } else if (newTab === 'active-fines') {
     loadActiveFines()
+  } else if (newTab === 'fines') {
+    loadFines()
+  } else if (newTab === 'appeals') {
+    loadAppeals()
   } else if (newTab === 'fine-types') {
     loadFineTypes()
   } else if (newTab === 'lateness-rules') {
@@ -1212,11 +1921,45 @@ watch(activeTab, (newTab) => {
   }
 })
 
+const resolveDispute = async (fineId) => {
+  try {
+    const result = await inputModal.showModal(
+      'Enter resolution notes:',
+      'Resolve Dispute',
+      {
+        label: 'Resolution Notes',
+        placeholder: 'Resolution details...',
+        multiline: true,
+        rows: 4
+      }
+    )
+    if (result) {
+      // Call API to resolve dispute
+      await adminManagementAPI.waiveFine(fineId, { reason: result, resolve_dispute: true })
+      showSuccess('Dispute resolved successfully')
+      loadDisputeQueue()
+      loadFines()
+    }
+  } catch (err) {
+    if (err !== 'cancelled' && err !== null) {
+      const errorMsg = getErrorMessage(err, 'Failed to resolve dispute')
+      showError(errorMsg)
+    }
+  }
+}
+
+const formatStatus = (status) => {
+  if (!status) return 'Unknown'
+  return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
 onMounted(async () => {
+  // Ensure InputModal is hidden on mount
+  inputModal.show.value = false
+  
   // Set a timeout to ensure page doesn't stay blank forever
   const timeout = setTimeout(() => {
     if (initialLoading.value) {
-      console.warn('FinesManagement initialization timeout')
       initialLoading.value = false
       if (!componentError.value) {
         componentError.value = 'Page took too long to load. Please refresh.'
@@ -1235,9 +1978,15 @@ onMounted(async () => {
     initialLoading.value = false
   } catch (error) {
     clearTimeout(timeout)
-    console.error('Error initializing FinesManagement:', error)
-    componentError.value = error.response?.data?.detail || error.message || 'Failed to initialize page'
+    const errorMsg = getErrorMessage(error, 'Failed to initialize page. Please refresh and try again.')
+    componentError.value = errorMsg
     initialLoading.value = false
+  }
+  
+  // Final check to ensure modal is hidden
+  if (inputModal.show.value) {
+    console.warn('InputModal was showing after mount, hiding it now')
+    inputModal.show.value = false
   }
 })
 </script>
