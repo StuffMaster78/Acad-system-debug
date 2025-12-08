@@ -44,6 +44,9 @@ from .views_referrals import (
 )
 from .views_loyalty import AdminLoyaltyTrackingViewSet
 from .views_system_health import SystemHealthViewSet
+from .views.performance_monitoring import PerformanceMonitoringViewSet
+from .views.rate_limiting import RateLimitingViewSet
+from .views.compression_monitoring import CompressionMonitoringViewSet
 from .views.dashboard_endpoints import (
     AdminDisputeDashboardViewSet,
     AdminRefundDashboardViewSet,
@@ -136,6 +139,15 @@ router.register(r'loyalty/tracking', AdminLoyaltyTrackingViewSet, basename="loya
 
 # System Health Monitoring
 router.register(r'system-health', SystemHealthViewSet, basename="system_health")
+
+# Performance Monitoring
+router.register(r'performance', PerformanceMonitoringViewSet, basename="performance_monitoring")
+
+# Rate Limiting Monitoring
+router.register(r'rate-limiting', RateLimitingViewSet, basename="rate_limiting")
+
+# Compression Monitoring
+router.register(r'compression', CompressionMonitoringViewSet, basename="compression_monitoring")
 
 urlpatterns = [
     # Authentication APIs (JWT-Based)

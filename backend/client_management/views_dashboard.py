@@ -914,4 +914,170 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             'total_unpaid_orders': len(unpaid_orders_list),
             'total_reminders_sent': len(reminders_list),
         })
+    
+    @action(detail=False, methods=['post'], url_path='payment-reminders/create')
+    def create_payment_reminder_preference(self, request):
+        """Create a payment reminder preference for a specific order."""
+        profile = self.get_client_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Client profile not found."},
+                status=404
+            )
+        
+        order_id = request.data.get('order_id')
+        reminder_config_id = request.data.get('reminder_config_id')
+        custom_message = request.data.get('custom_message')
+        
+        if not order_id:
+            return Response(
+                {"detail": "order_id is required."},
+                status=400
+            )
+        
+        try:
+            order = Order.objects.get(id=order_id, client=request.user)
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=404
+            )
+        
+        # Check if order is unpaid
+        if order.is_paid:
+            return Response(
+                {"detail": "Order is already paid."},
+                status=400
+            )
+        
+        try:
+            from order_payments_management.models.payment_reminders import (
+                PaymentReminderConfig, PaymentReminderSent
+            )
+        except ImportError:
+            return Response({
+                'detail': 'Payment reminder system not available.',
+            }, status=503)
+        
+        # If reminder_config_id is provided, use it; otherwise create a default preference
+        if reminder_config_id:
+            try:
+                reminder_config = PaymentReminderConfig.objects.get(
+                    id=reminder_config_id,
+                    website=request.user.website,
+                    is_active=True
+                )
+            except PaymentReminderConfig.DoesNotExist:
+                return Response(
+                    {"detail": "Reminder configuration not found."},
+                    status=404
+                )
+        else:
+            # Get the first active reminder config for the website
+            reminder_config = PaymentReminderConfig.objects.filter(
+                website=request.user.website,
+                is_active=True
+            ).first()
+            
+            if not reminder_config:
+                return Response(
+                    {"detail": "No active reminder configurations available."},
+                    status=404
+                )
+        
+        # Check if reminder already sent for this order and config
+        existing = PaymentReminderSent.objects.filter(
+            order=order,
+            reminder_config=reminder_config,
+            client=request.user
+        ).first()
+        
+        if existing:
+            return Response(
+                {"detail": "Reminder already sent for this order and configuration."},
+                status=400
+            )
+        
+        # Create reminder sent record (this marks the preference)
+        reminder_sent = PaymentReminderSent.objects.create(
+            reminder_config=reminder_config,
+            order=order,
+            client=request.user,
+            sent_as_notification=reminder_config.send_as_notification,
+            sent_as_email=reminder_config.send_as_email
+        )
+        
+        return Response({
+            'id': reminder_sent.id,
+            'order_id': order.id,
+            'reminder_config_id': reminder_config.id,
+            'reminder_name': reminder_config.name,
+            'created_at': reminder_sent.sent_at.isoformat(),
+            'message': 'Payment reminder preference created successfully.',
+        }, status=201)
+    
+    @action(detail=False, methods=['patch'], url_path='payment-reminders/(?P<reminder_id>[^/.]+)/update')
+    def update_payment_reminder_preference(self, request, reminder_id=None):
+        """Update a payment reminder preference."""
+        profile = self.get_client_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Client profile not found."},
+                status=404
+            )
+        
+        try:
+            from order_payments_management.models.payment_reminders import (
+                PaymentReminderSent
+            )
+        except ImportError:
+            return Response({
+                'detail': 'Payment reminder system not available.',
+            }, status=503)
+        
+        try:
+            reminder_sent = PaymentReminderSent.objects.get(
+                id=reminder_id,
+                client=request.user
+            )
+        except PaymentReminderSent.DoesNotExist:
+            return Response(
+                {"detail": "Reminder preference not found."},
+                status=404
+            )
+        
+        # Update preferences if provided
+        if 'reminder_config_id' in request.data:
+            try:
+                from order_payments_management.models.payment_reminders import PaymentReminderConfig
+                new_config = PaymentReminderConfig.objects.get(
+                    id=request.data['reminder_config_id'],
+                    website=request.user.website,
+                    is_active=True
+                )
+                reminder_sent.reminder_config = new_config
+            except PaymentReminderConfig.DoesNotExist:
+                return Response(
+                    {"detail": "Reminder configuration not found."},
+                    status=404
+                )
+        
+        if 'send_as_notification' in request.data:
+            reminder_sent.sent_as_notification = request.data['send_as_notification']
+        
+        if 'send_as_email' in request.data:
+            reminder_sent.sent_as_email = request.data['send_as_email']
+        
+        reminder_sent.save()
+        
+        return Response({
+            'id': reminder_sent.id,
+            'order_id': reminder_sent.order.id if reminder_sent.order else None,
+            'reminder_config_id': reminder_sent.reminder_config.id,
+            'reminder_name': reminder_sent.reminder_config.name,
+            'send_as_notification': reminder_sent.sent_as_notification,
+            'send_as_email': reminder_sent.sent_as_email,
+            'updated_at': reminder_sent.sent_at.isoformat(),
+            'message': 'Payment reminder preference updated successfully.',
+        })
 

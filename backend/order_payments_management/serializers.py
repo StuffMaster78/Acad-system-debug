@@ -22,10 +22,215 @@ from special_orders.models import SpecialOrder
 from class_management.models import ClassPurchase
 
 class OrderPaymentSerializer(serializers.ModelSerializer):
+    """
+    Serializer for OrderPayment with privacy-aware masking.
+    
+    Masks sensitive payment information based on user role:
+    - Admins/Superadmins: See all payment details
+    - Clients: See masked payment method details (last 4 digits for cards)
+    - Other roles: See minimal payment information
+    """
+    payment_method_display = serializers.SerializerMethodField()
+    masked_stripe_id = serializers.SerializerMethodField()
+    
     class Meta:
         model = OrderPayment
         fields = "__all__"
         depth = 1
+        extra_kwargs = {
+            'stripe_payment_intent_id': {'write_only': False}  # Read-only in masked form
+        }
+    
+    def get_payment_method_display(self, obj):
+        """
+        Returns masked payment method information based on viewer's role.
+        For card payments, shows only last 4 digits: **** **** **** 1234
+        """
+        request = self.context.get('request')
+        if not request or not request.user:
+            return self._mask_payment_method(obj.payment_method)
+        
+        user = request.user
+        role = getattr(user, 'role', None)
+        
+        # Admins and superadmins see full payment method
+        if role in ['admin', 'superadmin', 'support']:
+            return obj.payment_method
+        
+        # Client who made the payment sees masked details
+        if role == 'client' and obj.client_id == user.id:
+            return self._mask_payment_method(obj.payment_method)
+        
+        # Other users see generic payment method
+        return self._mask_payment_method(obj.payment_method, full_mask=True)
+    
+    def get_masked_stripe_id(self, obj):
+        """
+        Masks Stripe payment intent ID, showing only last 4 characters.
+        """
+        request = self.context.get('request')
+        if not request or not request.user:
+            return self._mask_string(obj.stripe_payment_intent_id) if obj.stripe_payment_intent_id else None
+        
+        user = request.user
+        role = getattr(user, 'role', None)
+        
+        # Admins and superadmins see full Stripe ID
+        if role in ['admin', 'superadmin', 'support']:
+            return obj.stripe_payment_intent_id
+        
+        # Mask for all other users
+        return self._mask_string(obj.stripe_payment_intent_id) if obj.stripe_payment_intent_id else None
+    
+    def _mask_payment_method(self, payment_method, full_mask=False):
+        """
+        Masks payment method information.
+        
+        Args:
+            payment_method: The payment method string (e.g., 'stripe', 'card_1234', etc.)
+            full_mask: If True, completely masks the method (returns generic 'Card' or method type)
+        
+        Returns:
+            Masked payment method string
+        """
+        if not payment_method:
+            return None
+        
+        payment_method_lower = payment_method.lower()
+        
+        # Wallet payments - no masking needed
+        if 'wallet' in payment_method_lower:
+            return 'Wallet'
+        
+        # Card payments - mask with last 4 digits if available
+        if any(keyword in payment_method_lower for keyword in ['card', 'stripe', 'credit', 'debit']):
+            # Try to extract last 4 digits from payment method string
+            import re
+            last4_match = re.search(r'(\d{4})', payment_method)
+            if last4_match and not full_mask:
+                last4 = last4_match.group(1)
+                return f"Card ending in {last4}"
+            return 'Card' if full_mask else 'Card •••• •••• •••• ••••'
+        
+        # PayPal
+        if 'paypal' in payment_method_lower:
+            return 'PayPal'
+        
+        # Bank transfer
+        if any(keyword in payment_method_lower for keyword in ['bank', 'transfer', 'ach']):
+            return 'Bank Transfer'
+        
+        # Manual/admin payments
+        if 'manual' in payment_method_lower:
+            return 'Manual Payment'
+        
+        # Generic masking for unknown methods
+        if full_mask:
+            return 'Payment'
+        
+        # Try to extract any numbers and mask
+        import re
+        numbers = re.findall(r'\d+', payment_method)
+        if numbers and len(numbers[-1]) >= 4:
+            last4 = numbers[-1][-4:]
+            return f"{payment_method.split('_')[0].title()} ending in {last4}"
+        
+        # Default: show method type but mask details
+        method_type = payment_method.split('_')[0].title() if '_' in payment_method else payment_method.title()
+        return f"{method_type} ••••"
+    
+    def _mask_string(self, value, visible_chars=4):
+        """
+        Masks a string, showing only the last N characters.
+        
+        Args:
+            value: String to mask
+            visible_chars: Number of characters to show at the end
+        
+        Returns:
+            Masked string like "****1234"
+        """
+        if not value:
+            return None
+        
+        if len(value) <= visible_chars:
+            return '*' * len(value)
+        
+        return '*' * (len(value) - visible_chars) + value[-visible_chars:]
+    
+    def to_representation(self, instance):
+        """
+        Override to apply masking based on user role.
+        """
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        
+        if not request or not request.user:
+            # No user context - apply full masking
+            return self._apply_masking(data, full_mask=True)
+        
+        user = request.user
+        role = getattr(user, 'role', None)
+        
+        # Admins and superadmins see everything
+        if role in ['admin', 'superadmin', 'support']:
+            return data
+        
+        # Client who made the payment sees masked details
+        if role == 'client' and instance.client_id == user.id:
+            return self._apply_masking(data, full_mask=False)
+        
+        # Other users see minimal information
+        return self._apply_masking(data, full_mask=True)
+    
+    def _apply_masking(self, data, full_mask=False):
+        """
+        Applies masking to sensitive payment fields.
+        
+        Args:
+            data: Serialized data dictionary
+            full_mask: If True, completely hides sensitive fields
+        """
+        # Store original payment method before masking
+        original_payment_method = data.get('payment_method', '')
+        
+        # Mask payment method
+        if 'payment_method' in data and data['payment_method']:
+            data['payment_method'] = self._mask_payment_method(data['payment_method'], full_mask=full_mask)
+        
+        # Set masked payment method display
+        data['payment_method_display'] = self._mask_payment_method(original_payment_method, full_mask=full_mask)
+        
+        # Store original Stripe ID before masking
+        original_stripe_id = data.get('stripe_payment_intent_id')
+        
+        # Mask Stripe payment intent ID
+        if 'stripe_payment_intent_id' in data:
+            if full_mask:
+                data['stripe_payment_intent_id'] = None  # Hide completely
+            elif original_stripe_id:
+                data['stripe_payment_intent_id'] = self._mask_string(original_stripe_id)
+        
+        # Set masked Stripe ID
+        if original_stripe_id:
+            if full_mask:
+                data['masked_stripe_id'] = None
+            else:
+                data['masked_stripe_id'] = self._mask_string(original_stripe_id)
+        else:
+            data['masked_stripe_id'] = None
+        
+        # Hide sensitive transaction details for non-admins
+        if full_mask:
+            # Keep only essential fields visible
+            allowed_fields = [
+                'id', 'amount', 'discounted_amount', 'status', 'payment_method_display',
+                'payment_type', 'created_at', 'confirmed_at', 'order', 'client',
+                'masked_stripe_id', 'transaction_id', 'reference_id'
+            ]
+            return {k: v for k, v in data.items() if k in allowed_fields or not k.startswith('stripe')}
+        
+        return data
         
 class TransactionSerializer(serializers.Serializer):
     """

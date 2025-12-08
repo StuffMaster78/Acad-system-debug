@@ -21,6 +21,8 @@ from authentication.permissions import IsSuperadminOrAdmin
 from rest_framework.permissions import IsAuthenticated
 from client_wallet.models import ClientWalletTransaction
 from writer_wallet.models import WalletTransaction
+from writer_management.models.tipping import Tip
+from special_orders.models import WriterBonus
 
 logger = logging.getLogger(__name__)
 
@@ -126,11 +128,28 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
                 Q(client__username__icontains=search)
             )
         
-        for payment in order_payments.select_related('client', 'website', 'order'):
+        for payment in order_payments.select_related('client', 'website', 'order', 'special_order', 'class_purchase'):
+            # Determine the payment type label
+            payment_type_label = payment.get_payment_type_display() if hasattr(payment, 'get_payment_type_display') else payment.payment_type
+            
+            # Get related object ID based on payment type
+            related_id = None
+            related_type = None
+            if payment.order:
+                related_id = payment.order.id
+                related_type = 'order'
+            elif payment.special_order:
+                related_id = payment.special_order.id
+                related_type = 'special_order'
+            elif payment.class_purchase:
+                related_id = payment.class_purchase.id
+                related_type = 'class_purchase'
+            
             transactions.append({
                 'id': f'order_payment_{payment.id}',
                 'type': 'order_payment',
                 'payment_type': payment.payment_type,
+                'payment_type_label': payment_type_label,
                 'amount': float(payment.amount),
                 'status': payment.status,
                 'payment_method': payment.payment_method or 'N/A',
@@ -145,13 +164,17 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
                     'domain': payment.website.domain
                 },
                 'order_id': payment.order.id if payment.order else None,
+                'special_order_id': payment.special_order.id if payment.special_order else None,
+                'class_purchase_id': payment.class_purchase.id if payment.class_purchase else None,
+                'related_id': related_id,
+                'related_type': related_type,
                 'reference_id': payment.reference_id,
                 'transaction_id': payment.transaction_id,
                 'created_at': payment.created_at,
                 'confirmed_at': payment.confirmed_at,
             })
         
-        # Get Client Wallet Transactions
+        # Get Client Wallet Transactions (new model)
         client_wallet_transactions = ClientWalletTransaction.objects.all()
         if website_id:
             client_wallet_transactions = client_wallet_transactions.filter(wallet__website_id=website_id)
@@ -171,8 +194,9 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
                 'id': f'client_wallet_{transaction.id}',
                 'type': 'client_wallet',
                 'payment_type': 'wallet_transaction',
+                'payment_type_label': transaction.transaction_type.replace('_', ' ').title() if hasattr(transaction, 'transaction_type') else 'Wallet Transaction',
                 'amount': float(transaction.amount),
-                'status': 'completed' if transaction.is_credit else 'completed',
+                'status': 'completed',
                 'payment_method': 'wallet',
                 'client': {
                     'id': transaction.wallet.user.id,
@@ -189,9 +213,55 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
                 'transaction_id': f'wallet_{transaction.id}',
                 'created_at': transaction.created_at,
                 'confirmed_at': transaction.created_at,
-                'is_credit': transaction.is_credit,
-                'source': transaction.source,
+                'is_credit': transaction.is_credit if hasattr(transaction, 'is_credit') else None,
+                'source': transaction.source if hasattr(transaction, 'source') else None,
+                'description': transaction.description if hasattr(transaction, 'description') else None,
             })
+        
+        # Get Client Wallet Transactions (old model - wallet app)
+        try:
+            from wallet.models import WalletTransaction as OldWalletTransaction
+            old_wallet_transactions = OldWalletTransaction.objects.all()
+            if website_id:
+                old_wallet_transactions = old_wallet_transactions.filter(website_id=website_id)
+            if date_from:
+                old_wallet_transactions = old_wallet_transactions.filter(created_at__gte=date_from)
+            if date_to:
+                old_wallet_transactions = old_wallet_transactions.filter(created_at__lte=date_to)
+            if search:
+                old_wallet_transactions = old_wallet_transactions.filter(
+                    Q(wallet__user__email__icontains=search) |
+                    Q(wallet__user__username__icontains=search)
+                )
+            
+            for transaction in old_wallet_transactions.select_related('wallet__user', 'website'):
+                transactions.append({
+                    'id': f'old_wallet_{transaction.id}',
+                    'type': 'client_wallet',
+                    'payment_type': 'wallet_transaction',
+                    'payment_type_label': transaction.transaction_type.replace('_', ' ').title() if hasattr(transaction, 'transaction_type') else 'Wallet Transaction',
+                    'amount': float(transaction.amount),
+                    'status': 'completed',
+                    'payment_method': 'wallet',
+                    'client': {
+                        'id': transaction.wallet.user.id,
+                        'email': transaction.wallet.user.email,
+                        'username': transaction.wallet.user.username
+                    },
+                    'website': {
+                        'id': transaction.website.id,
+                        'name': transaction.website.name,
+                        'domain': transaction.website.domain
+                    } if transaction.website else None,
+                    'order_id': None,
+                    'reference_id': f'wallet_{transaction.id}',
+                    'transaction_id': f'old_wallet_{transaction.id}',
+                    'created_at': transaction.created_at,
+                    'confirmed_at': transaction.created_at,
+                    'description': transaction.description if hasattr(transaction, 'description') else None,
+                })
+        except Exception:
+            pass  # Old model might not exist
         
         # Get Writer Wallet Transactions
         writer_wallet_transactions = WalletTransaction.objects.all()
@@ -208,11 +278,12 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
                 Q(reference_code__icontains=search)
             )
         
-        for transaction in writer_wallet_transactions.select_related('writer_wallet__writer', 'writer_wallet__website'):
+        for transaction in writer_wallet_transactions.select_related('writer_wallet__writer', 'writer_wallet__website', 'order'):
             transactions.append({
                 'id': f'writer_wallet_{transaction.id}',
                 'type': 'writer_wallet',
-                'payment_type': transaction.transaction_type,
+                'payment_type': transaction.transaction_type.lower().replace(' ', '_'),
+                'payment_type_label': transaction.transaction_type,
                 'amount': float(transaction.amount),
                 'status': 'completed',
                 'payment_method': 'wallet',
@@ -226,11 +297,101 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
                     'name': transaction.writer_wallet.website.name,
                     'domain': transaction.writer_wallet.website.domain
                 } if transaction.writer_wallet.website else None,
-                'order_id': None,
+                'order_id': transaction.order.id if transaction.order else None,
                 'reference_id': transaction.reference_code or f'writer_wallet_{transaction.id}',
                 'transaction_id': f'writer_wallet_{transaction.id}',
                 'created_at': transaction.created_at,
                 'confirmed_at': transaction.created_at,
+            })
+        
+        # Get Tips
+        tips = Tip.objects.all()
+        if website_id:
+            tips = tips.filter(website_id=website_id)
+        if date_from:
+            tips = tips.filter(sent_at__gte=date_from) if hasattr(Tip, 'sent_at') else tips.filter(created_at__gte=date_from)
+        if date_to:
+            tips = tips.filter(sent_at__lte=date_to) if hasattr(Tip, 'sent_at') else tips.filter(created_at__lte=date_to)
+        if search:
+            tips = tips.filter(
+                Q(client__email__icontains=search) |
+                Q(client__username__icontains=search) |
+                Q(writer__email__icontains=search) |
+                Q(writer__username__icontains=search)
+            )
+        
+        for tip in tips.select_related('client', 'writer', 'website', 'order'):
+            tip_date = tip.sent_at if hasattr(tip, 'sent_at') and tip.sent_at else (tip.created_at if hasattr(tip, 'created_at') else timezone.now())
+            transactions.append({
+                'id': f'tip_{tip.id}',
+                'type': 'tip',
+                'payment_type': 'tip',
+                'payment_type_label': f'Tip ({tip.get_tip_type_display() if hasattr(tip, "get_tip_type_display") else tip.tip_type})',
+                'amount': float(tip.tip_amount),
+                'status': 'completed',
+                'payment_method': 'tip',
+                'client': {
+                    'id': tip.client.id,
+                    'email': tip.client.email,
+                    'username': tip.client.username
+                },
+                'writer': {
+                    'id': tip.writer.id,
+                    'email': tip.writer.email,
+                    'username': tip.writer.username
+                },
+                'website': {
+                    'id': tip.website.id,
+                    'name': tip.website.name,
+                    'domain': tip.website.domain
+                } if tip.website else None,
+                'order_id': tip.order.id if tip.order else None,
+                'reference_id': f'tip_{tip.id}',
+                'transaction_id': f'tip_{tip.id}',
+                'created_at': tip_date,
+                'confirmed_at': tip_date,
+                'tip_reason': tip.tip_reason if hasattr(tip, 'tip_reason') else None,
+            })
+        
+        # Get Writer Bonuses
+        bonuses = WriterBonus.objects.all()
+        if website_id:
+            bonuses = bonuses.filter(website_id=website_id)
+        if date_from:
+            bonuses = bonuses.filter(granted_at__gte=date_from)
+        if date_to:
+            bonuses = bonuses.filter(granted_at__lte=date_to)
+        if search:
+            bonuses = bonuses.filter(
+                Q(writer__email__icontains=search) |
+                Q(writer__username__icontains=search)
+            )
+        
+        for bonus in bonuses.select_related('writer', 'website', 'special_order'):
+            transactions.append({
+                'id': f'bonus_{bonus.id}',
+                'type': 'bonus',
+                'payment_type': 'bonus',
+                'payment_type_label': f'Bonus ({bonus.get_category_display() if hasattr(bonus, "get_category_display") else bonus.category})',
+                'amount': float(bonus.amount),
+                'status': 'completed' if bonus.is_paid else 'pending',
+                'payment_method': 'bonus',
+                'writer': {
+                    'id': bonus.writer.id,
+                    'email': bonus.writer.email,
+                    'username': bonus.writer.username
+                },
+                'website': {
+                    'id': bonus.website.id,
+                    'name': bonus.website.name,
+                    'domain': bonus.website.domain
+                } if bonus.website else None,
+                'special_order_id': bonus.special_order.id if bonus.special_order else None,
+                'reference_id': f'bonus_{bonus.id}',
+                'transaction_id': f'bonus_{bonus.id}',
+                'created_at': bonus.granted_at,
+                'confirmed_at': bonus.granted_at if bonus.is_paid else None,
+                'bonus_reason': bonus.reason if hasattr(bonus, 'reason') else None,
             })
         
         # Sort by created_at descending
@@ -238,6 +399,256 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
         
         # Paginate
         paginator = PaymentLogPagination()
+        page = paginator.paginate_queryset(transactions, request)
+        
+        if page is not None:
+            return paginator.get_paginated_response(page)
+        
+        return Response({
+            'results': transactions,
+            'count': len(transactions),
+            'next': None,
+            'previous': None
+        })
+    
+    @action(detail=False, methods=['get'], url_path='client-payments')
+    def client_payments(self, request):
+        """
+        Get all client payment transactions only (excludes writer transactions).
+        Returns order payments, client wallet transactions, tips given, and wallet top-ups.
+        """
+        from rest_framework.pagination import PageNumberPagination
+        
+        class ClientPaymentPagination(PageNumberPagination):
+            page_size = 50
+            page_size_query_param = 'page_size'
+            max_page_size = 200
+        
+        # Get query parameters
+        website_id = request.query_params.get('website_id')
+        payment_type = request.query_params.get('payment_type')
+        status_filter = request.query_params.get('status')
+        search = request.query_params.get('search')
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        client_id = request.query_params.get('client_id')
+        
+        # Build combined transactions list (CLIENT PAYMENTS ONLY)
+        transactions = []
+        
+        # Get OrderPayments (all client payments)
+        order_payments = OrderPayment.objects.all()
+        if website_id:
+            order_payments = order_payments.filter(website_id=website_id)
+        if client_id:
+            order_payments = order_payments.filter(client_id=client_id)
+        if payment_type:
+            order_payments = order_payments.filter(payment_type=payment_type)
+        if status_filter:
+            order_payments = order_payments.filter(status=status_filter)
+        if date_from:
+            order_payments = order_payments.filter(created_at__gte=date_from)
+        if date_to:
+            order_payments = order_payments.filter(created_at__lte=date_to)
+        if search:
+            order_payments = order_payments.filter(
+                Q(transaction_id__icontains=search) |
+                Q(reference_id__icontains=search) |
+                Q(client__email__icontains=search) |
+                Q(client__username__icontains=search)
+            )
+        
+        for payment in order_payments.select_related('client', 'website', 'order', 'special_order', 'class_purchase'):
+            payment_type_label = payment.get_payment_type_display() if hasattr(payment, 'get_payment_type_display') else payment.payment_type
+            
+            related_id = None
+            related_type = None
+            if payment.order:
+                related_id = payment.order.id
+                related_type = 'order'
+            elif payment.special_order:
+                related_id = payment.special_order.id
+                related_type = 'special_order'
+            elif payment.class_purchase:
+                related_id = payment.class_purchase.id
+                related_type = 'class_purchase'
+            
+            transactions.append({
+                'id': f'order_payment_{payment.id}',
+                'type': 'order_payment',
+                'payment_type': payment.payment_type,
+                'payment_type_label': payment_type_label,
+                'amount': float(payment.amount),
+                'status': payment.status,
+                'payment_method': payment.payment_method or 'N/A',
+                'client': {
+                    'id': payment.client.id,
+                    'email': payment.client.email,
+                    'username': payment.client.username
+                },
+                'website': {
+                    'id': payment.website.id,
+                    'name': payment.website.name,
+                    'domain': payment.website.domain
+                },
+                'order_id': payment.order.id if payment.order else None,
+                'special_order_id': payment.special_order.id if payment.special_order else None,
+                'class_purchase_id': payment.class_purchase.id if payment.class_purchase else None,
+                'related_id': related_id,
+                'related_type': related_type,
+                'reference_id': payment.reference_id,
+                'transaction_id': payment.transaction_id,
+                'created_at': payment.created_at,
+                'confirmed_at': payment.confirmed_at,
+            })
+        
+        # Get Client Wallet Transactions
+        client_wallet_transactions = ClientWalletTransaction.objects.all()
+        if website_id:
+            client_wallet_transactions = client_wallet_transactions.filter(wallet__website_id=website_id)
+        if client_id:
+            client_wallet_transactions = client_wallet_transactions.filter(wallet__user_id=client_id)
+        if date_from:
+            client_wallet_transactions = client_wallet_transactions.filter(created_at__gte=date_from)
+        if date_to:
+            client_wallet_transactions = client_wallet_transactions.filter(created_at__lte=date_to)
+        if search:
+            client_wallet_transactions = client_wallet_transactions.filter(
+                Q(wallet__user__email__icontains=search) |
+                Q(wallet__user__username__icontains=search) |
+                Q(reference_id__icontains=search)
+            )
+        
+        for transaction in client_wallet_transactions.select_related('wallet__user', 'wallet__website'):
+            transactions.append({
+                'id': f'client_wallet_{transaction.id}',
+                'type': 'client_wallet',
+                'payment_type': 'wallet_transaction',
+                'payment_type_label': transaction.transaction_type.replace('_', ' ').title() if hasattr(transaction, 'transaction_type') else 'Wallet Transaction',
+                'amount': float(transaction.amount),
+                'status': 'completed',
+                'payment_method': 'wallet',
+                'client': {
+                    'id': transaction.wallet.user.id,
+                    'email': transaction.wallet.user.email,
+                    'username': transaction.wallet.user.username
+                },
+                'website': {
+                    'id': transaction.wallet.website.id,
+                    'name': transaction.wallet.website.name,
+                    'domain': transaction.wallet.website.domain
+                } if transaction.wallet.website else None,
+                'order_id': None,
+                'reference_id': transaction.reference_id or f'wallet_{transaction.id}',
+                'transaction_id': f'wallet_{transaction.id}',
+                'created_at': transaction.created_at,
+                'confirmed_at': transaction.created_at,
+                'description': transaction.description if hasattr(transaction, 'description') else None,
+            })
+        
+        # Get Tips (given by clients)
+        tips = Tip.objects.all()
+        if website_id:
+            tips = tips.filter(website_id=website_id)
+        if client_id:
+            tips = tips.filter(client_id=client_id)
+        if date_from:
+            tips = tips.filter(sent_at__gte=date_from) if hasattr(Tip, 'sent_at') else tips.filter(created_at__gte=date_from)
+        if date_to:
+            tips = tips.filter(sent_at__lte=date_to) if hasattr(Tip, 'sent_at') else tips.filter(created_at__lte=date_to)
+        if search:
+            tips = tips.filter(
+                Q(client__email__icontains=search) |
+                Q(client__username__icontains=search) |
+                Q(writer__email__icontains=search) |
+                Q(writer__username__icontains=search)
+            )
+        
+        for tip in tips.select_related('client', 'writer', 'website', 'order'):
+            tip_date = tip.sent_at if hasattr(tip, 'sent_at') and tip.sent_at else (tip.created_at if hasattr(tip, 'created_at') else timezone.now())
+            transactions.append({
+                'id': f'tip_{tip.id}',
+                'type': 'tip',
+                'payment_type': 'tip',
+                'payment_type_label': f'Tip ({tip.get_tip_type_display() if hasattr(tip, "get_tip_type_display") else tip.tip_type})',
+                'amount': float(tip.tip_amount),
+                'status': 'completed',
+                'payment_method': 'tip',
+                'client': {
+                    'id': tip.client.id,
+                    'email': tip.client.email,
+                    'username': tip.client.username
+                },
+                'writer': {
+                    'id': tip.writer.id,
+                    'email': tip.writer.email,
+                    'username': tip.writer.username
+                },
+                'website': {
+                    'id': tip.website.id,
+                    'name': tip.website.name,
+                    'domain': tip.website.domain
+                } if tip.website else None,
+                'order_id': tip.order.id if tip.order else None,
+                'reference_id': f'tip_{tip.id}',
+                'transaction_id': f'tip_{tip.id}',
+                'created_at': tip_date,
+                'confirmed_at': tip_date,
+                'tip_reason': tip.tip_reason if hasattr(tip, 'tip_reason') else None,
+            })
+        
+        # Get Client Wallet Transactions (old model - wallet app)
+        try:
+            from wallet.models import WalletTransaction as OldWalletTransaction
+            old_wallet_transactions = OldWalletTransaction.objects.all()
+            if website_id:
+                old_wallet_transactions = old_wallet_transactions.filter(website_id=website_id)
+            if client_id:
+                old_wallet_transactions = old_wallet_transactions.filter(wallet__user_id=client_id)
+            if date_from:
+                old_wallet_transactions = old_wallet_transactions.filter(created_at__gte=date_from)
+            if date_to:
+                old_wallet_transactions = old_wallet_transactions.filter(created_at__lte=date_to)
+            if search:
+                old_wallet_transactions = old_wallet_transactions.filter(
+                    Q(wallet__user__email__icontains=search) |
+                    Q(wallet__user__username__icontains=search)
+                )
+            
+            for transaction in old_wallet_transactions.select_related('wallet__user', 'website'):
+                transactions.append({
+                    'id': f'old_wallet_{transaction.id}',
+                    'type': 'client_wallet',
+                    'payment_type': 'wallet_transaction',
+                    'payment_type_label': transaction.transaction_type.replace('_', ' ').title() if hasattr(transaction, 'transaction_type') else 'Wallet Transaction',
+                    'amount': float(transaction.amount),
+                    'status': 'completed',
+                    'payment_method': 'wallet',
+                    'client': {
+                        'id': transaction.wallet.user.id,
+                        'email': transaction.wallet.user.email,
+                        'username': transaction.wallet.user.username
+                    },
+                    'website': {
+                        'id': transaction.website.id,
+                        'name': transaction.website.name,
+                        'domain': transaction.website.domain
+                    } if transaction.website else None,
+                    'order_id': None,
+                    'reference_id': f'wallet_{transaction.id}',
+                    'transaction_id': f'old_wallet_{transaction.id}',
+                    'created_at': transaction.created_at,
+                    'confirmed_at': transaction.created_at,
+                    'description': transaction.description if hasattr(transaction, 'description') else None,
+                })
+        except Exception:
+            pass  # Old model might not exist
+        
+        # Sort by created_at descending
+        transactions.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        # Paginate
+        paginator = ClientPaymentPagination()
         page = paginator.paginate_queryset(transactions, request)
         
         if page is not None:

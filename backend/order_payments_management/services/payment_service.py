@@ -181,17 +181,23 @@ class OrderPaymentService:
         Mark payment as pending external processing.
         
         This is used when payment will be processed via gateway/webhook later.
+        The payment is made on an external payment gateway website, which will
+        send a webhook to confirm the payment on the client website.
         
         Args:
             payment: OrderPayment instance
-            external_id: External payment ID (e.g., Stripe PaymentIntent ID)
+            external_id: External payment ID (e.g., Stripe PaymentIntent ID, PayPal transaction ID)
             
         Returns:
             OrderPayment: Updated payment
         """
         payment.status = 'pending'
         if external_id:
-            payment.stripe_payment_intent_id = external_id
+            # Store external_id for webhook lookup
+            payment.external_id = external_id
+            # Also store in stripe_payment_intent_id if it looks like a Stripe ID
+            if external_id.startswith('pi_'):
+                payment.stripe_payment_intent_id = external_id
         payment.save()
         return payment
 
