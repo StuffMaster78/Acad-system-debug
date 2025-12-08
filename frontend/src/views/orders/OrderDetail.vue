@@ -646,6 +646,11 @@
         </div>
       </div>
 
+      <!-- Enhanced Status Tab -->
+      <div v-if="activeTab === 'enhanced-status'" class="space-y-6">
+        <EnhancedOrderStatus :order-id="order.id" />
+      </div>
+
       <!-- Unattributed Order Info (Admin Only) -->
       <div v-if="order.is_unattributed && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)" class="border-t pt-4">
         <h3 class="text-lg font-semibold mb-3 text-orange-600">Unattributed Order Information</h3>
@@ -2415,6 +2420,7 @@ import { useToast } from '@/composables/useToast'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { useInputModal } from '@/composables/useInputModal'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import EnhancedOrderStatus from '@/components/client/EnhancedOrderStatus.vue'
 import InputModal from '@/components/common/InputModal.vue'
 import draftRequestsAPI from '@/api/draft-requests'
 import writerManagementAPI from '@/api/writer-management'
@@ -2435,6 +2441,7 @@ let unreadMessageInterval = null
 // Tabs configuration
 const tabs = [
   { id: 'overview', label: 'Overview', icon: '📋' },
+  { id: 'enhanced-status', label: 'Enhanced Status', icon: '📈' },
   { id: 'progress', label: 'Progress', icon: '📊' },
   { id: 'messages', label: 'Messages', icon: '💬' },
   { id: 'files', label: 'Files', icon: '📁' },
