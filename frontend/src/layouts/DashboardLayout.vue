@@ -645,6 +645,58 @@
               </button>
                   <div v-if="adminGroups.payments" class="ml-7 space-y-0.5 animate-fade-in mt-2">
                     <router-link
+                      to="/admin/payments/client-payments"
+                      class="flex items-center px-4 py-3 text-sm rounded-xl transition-all duration-300 hover:scale-[1.02] group leading-relaxed border-2"
+                      :class="isRouteActive({ to: '/admin/payments/client-payments' }) 
+                        ? 'bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-bold shadow-lg border-blue-400' 
+                        : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 font-semibold shadow-sm'"
+                    >
+                      <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-3"
+                           :class="isRouteActive({ to: '/admin/payments/client-payments' }) 
+                             ? 'bg-white/20' 
+                             : 'bg-blue-100 group-hover:bg-blue-200'">
+                        <SidebarIcon 
+                          icon-name="credit-card" 
+                          size="sm" 
+                          :icon-class="isRouteActive({ to: '/admin/payments/client-payments' }) 
+                            ? 'text-white' 
+                            : 'text-blue-600 group-hover:text-blue-700'" 
+                          tooltip="View all client payments and transactions" 
+                        />
+                      </div>
+                      <span class="tracking-wide" :class="isRouteActive({ to: '/admin/payments/client-payments' }) ? 'font-bold text-base' : 'font-semibold'">
+                        Client Payments
+                      </span>
+                      <span v-if="!isRouteActive({ to: '/admin/payments/client-payments' })" class="ml-auto text-xs font-medium text-blue-500 opacity-75">
+                        💳
+                      </span>
+                    </router-link>
+                    <router-link
+                      to="/admin/payments/payment-requests"
+                      class="flex items-center px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-amber-50 hover:translate-x-1 group leading-relaxed shadow-sm"
+                      :class="isRouteActive({ to: '/admin/payments/payment-requests' }) ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold shadow-md' : 'text-amber-700 hover:text-amber-800'"
+                    >
+                      <div class="w-8 h-8 flex items-center justify-center rounded-lg mr-3 transition-colors"
+                           :class="isRouteActive({ to: '/admin/payments/payment-requests' }) 
+                             ? 'bg-white/20' 
+                             : 'bg-amber-100 group-hover:bg-amber-200'">
+                        <SidebarIcon 
+                          icon-name="file-text" 
+                          size="sm" 
+                          :icon-class="isRouteActive({ to: '/admin/payments/payment-requests' }) 
+                            ? 'text-white' 
+                            : 'text-amber-600 group-hover:text-amber-700'" 
+                          tooltip="Manage writer payment requests" 
+                        />
+                      </div>
+                      <span class="tracking-wide" :class="isRouteActive({ to: '/admin/payments/payment-requests' }) ? 'font-bold text-base' : 'font-semibold'">
+                        Payment Requests
+                      </span>
+                      <span v-if="!isRouteActive({ to: '/admin/payments/payment-requests' })" class="ml-auto text-xs font-medium text-amber-500 opacity-75">
+                        📋
+                      </span>
+                    </router-link>
+                    <router-link
                       to="/admin/payments/writer-payments"
                       class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
                       :class="isRouteActive({ to: '/admin/payments/writer-payments' }) ? 'bg-primary-50 text-primary-700 font-semibold' : ''"
@@ -1007,6 +1059,19 @@
                 >
                   <SidebarIcon icon-name="presentation-chart" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Enhanced analytics dashboard" />
                   Enhanced Analytics
+                </router-link>
+                
+                <router-link
+                  to="/admin/analytics-reports"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                    isRouteActive({ to: '/admin/analytics-reports' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                  ]"
+                >
+                  <SidebarIcon icon-name="chart-bar" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Comprehensive yearly analytics and reports" />
+                  Analytics & Reports
                 </router-link>
                 
                 <router-link
@@ -2136,6 +2201,13 @@ const navigationItems = computed(() => {
       to: '/admin/enhanced-analytics',
       label: 'Enhanced Analytics',
       icon: '📊',
+      roles: ['admin', 'superadmin'],
+    },
+    {
+      name: 'AnalyticsReports',
+      to: '/admin/analytics-reports',
+      label: 'Analytics & Reports',
+      icon: '📈',
       roles: ['admin', 'superadmin'],
     },
     {

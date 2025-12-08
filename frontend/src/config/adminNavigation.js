@@ -46,6 +46,13 @@ export const adminNavigationGroups = [
     icon: '💰',
     items: [
       {
+        name: 'ClientPayments',
+        to: '/admin/payments/client-payments',
+        label: 'Client Payments',
+        icon: '💳',
+        description: 'View all client payments, transactions, and top-ups',
+      },
+      {
         name: 'Payments',
         to: '/admin/payments/writer-payments',
         label: 'Writer Payments',
@@ -212,6 +219,13 @@ export const adminNavigationGroups = [
         label: 'Enhanced Analytics',
         icon: '📉',
         description: 'Enhanced performance metrics',
+      },
+      {
+        name: 'AnalyticsReports',
+        to: '/admin/analytics-reports',
+        label: 'Analytics & Reports',
+        icon: '📊',
+        description: 'Comprehensive yearly analytics comparing orders, classes, income, and more',
       },
       {
         name: 'PricingAnalytics',
