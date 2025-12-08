@@ -924,7 +924,7 @@
     <div v-if="activeTab === 'notifications'" class="space-y-4">
       <div class="flex justify-between items-center">
         <h2 class="text-xl font-semibold">Notification Profiles</h2>
-        <button @click="showNotificationModal = true" class="btn btn-primary">Create Profile</button>
+        <button @click="createNotificationConfig" class="btn btn-primary">Create Profile</button>
       </div>
       
       <div class="card">
@@ -1469,6 +1469,122 @@
       </div>
     </div>
 
+    <!-- Notification Config Modal -->
+    <div v-if="showNotificationModal || editingNotificationConfig" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-bold">{{ editingNotificationConfig ? 'Edit' : 'Create' }} Notification Profile</h2>
+            <button @click="closeNotificationModal" class="text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+          
+          <form @submit.prevent="saveNotificationConfig" class="space-y-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="col-span-2">
+                <label class="block text-sm font-medium mb-1">Website</label>
+                <select v-model="notificationForm.website" class="w-full border rounded px-3 py-2" required>
+                  <option value="">Select Website</option>
+                  <option v-for="website in notificationWebsites" :key="website.id" :value="website.id">
+                    {{ website.name }} ({{ website.domain }})
+                  </option>
+                </select>
+              </div>
+              
+              <div class="col-span-2">
+                <label class="block text-sm font-medium mb-1">Name <span class="text-red-500">*</span></label>
+                <input v-model="notificationForm.name" type="text" required class="w-full border rounded px-3 py-2" placeholder="e.g., Default Profile, Quiet Hours" />
+              </div>
+              
+              <div class="col-span-2">
+                <label class="block text-sm font-medium mb-1">Description</label>
+                <textarea v-model="notificationForm.description" rows="2" class="w-full border rounded px-3 py-2" placeholder="Optional description"></textarea>
+              </div>
+            </div>
+            
+            <div class="border-t pt-4">
+              <h3 class="text-lg font-semibold mb-3">Default Channel Settings</h3>
+              <div class="grid grid-cols-2 gap-4">
+                <label class="flex items-center">
+                  <input v-model="notificationForm.default_email" type="checkbox" class="mr-2" />
+                  <span class="text-sm">Default Email</span>
+                </label>
+                <label class="flex items-center">
+                  <input v-model="notificationForm.default_sms" type="checkbox" class="mr-2" />
+                  <span class="text-sm">Default SMS</span>
+                </label>
+                <label class="flex items-center">
+                  <input v-model="notificationForm.default_push" type="checkbox" class="mr-2" />
+                  <span class="text-sm">Default Push</span>
+                </label>
+                <label class="flex items-center">
+                  <input v-model="notificationForm.default_in_app" type="checkbox" class="mr-2" />
+                  <span class="text-sm">Default In-App</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="border-t pt-4">
+              <h3 class="text-lg font-semibold mb-3">Channel Enablement</h3>
+              <div class="grid grid-cols-2 gap-4">
+                <label class="flex items-center">
+                  <input v-model="notificationForm.email_enabled" type="checkbox" class="mr-2" />
+                  <span class="text-sm">Email Enabled</span>
+                </label>
+                <label class="flex items-center">
+                  <input v-model="notificationForm.sms_enabled" type="checkbox" class="mr-2" />
+                  <span class="text-sm">SMS Enabled</span>
+                </label>
+                <label class="flex items-center">
+                  <input v-model="notificationForm.push_enabled" type="checkbox" class="mr-2" />
+                  <span class="text-sm">Push Enabled</span>
+                </label>
+                <label class="flex items-center">
+                  <input v-model="notificationForm.in_app_enabled" type="checkbox" class="mr-2" />
+                  <span class="text-sm">In-App Enabled</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="border-t pt-4">
+              <h3 class="text-lg font-semibold mb-3">Do Not Disturb (DND)</h3>
+              <div class="space-y-4">
+                <label class="flex items-center">
+                  <input v-model="notificationForm.dnd_enabled" type="checkbox" class="mr-2" />
+                  <span class="text-sm">Enable Do Not Disturb</span>
+                </label>
+                
+                <div v-if="notificationForm.dnd_enabled" class="grid grid-cols-2 gap-4 ml-6">
+                  <div>
+                    <label class="block text-sm font-medium mb-1">Start Hour (0-23)</label>
+                    <input v-model.number="notificationForm.dnd_start_hour" type="number" min="0" max="23" class="w-full border rounded px-3 py-2" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium mb-1">End Hour (0-23)</label>
+                    <input v-model.number="notificationForm.dnd_end_hour" type="number" min="0" max="23" class="w-full border rounded px-3 py-2" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="border-t pt-4">
+              <label class="flex items-center">
+                <input v-model="notificationForm.is_default" type="checkbox" class="mr-2" />
+                <span class="text-sm font-medium">Set as Default Profile</span>
+              </label>
+              <p class="text-xs text-gray-500 mt-1">Default profiles are automatically applied to new users</p>
+            </div>
+            
+            <div class="flex justify-end gap-2 pt-4 border-t">
+              <button type="button" @click="closeNotificationModal" class="btn btn-secondary">Cancel</button>
+              <button type="submit" :disabled="saving" class="btn btn-primary">
+                {{ saving ? 'Saving...' : (editingNotificationConfig ? 'Update' : 'Create') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Order Config Create/Edit Modal -->
     <div v-if="showOrderConfigModal || editingOrderConfig" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -1909,6 +2025,7 @@ const showWriterLevelOptionModal = ref(false)
 const showDeadlineMultiplierModal = ref(false)
 const editingPricingConfig = ref(null)
 const editingWriterConfig = ref(null)
+const editingNotificationConfig = ref(null)
 const editingReferralConfig = ref(null)
 const editingAdditionalService = ref(null)
 const editingPreferredWriterConfig = ref(null)
@@ -1941,6 +2058,26 @@ const pricingForm = ref({
 const writerForm = ref({
   takes_enabled: true,
 })
+
+const notificationForm = ref({
+  website: '',
+  name: '',
+  description: '',
+  default_email: true,
+  default_sms: false,
+  default_push: false,
+  default_in_app: true,
+  email_enabled: true,
+  sms_enabled: false,
+  push_enabled: false,
+  in_app_enabled: true,
+  dnd_enabled: false,
+  dnd_start_hour: 22,
+  dnd_end_hour: 6,
+  is_default: false,
+})
+
+const notificationWebsites = ref([])
 
 const referralForm = ref({
   website: '',
@@ -3435,9 +3572,104 @@ const closeWriterModal = () => {
   }
 }
 
+const createNotificationConfig = () => {
+  editingNotificationConfig.value = null
+  notificationForm.value = {
+    website: '',
+    name: '',
+    description: '',
+    default_email: true,
+    default_sms: false,
+    default_push: false,
+    default_in_app: true,
+    email_enabled: true,
+    sms_enabled: false,
+    push_enabled: false,
+    in_app_enabled: true,
+    dnd_enabled: false,
+    dnd_start_hour: 22,
+    dnd_end_hour: 6,
+    is_default: false,
+  }
+  showNotificationModal.value = true
+}
+
 const editNotificationConfig = (config) => {
-  // TODO: Implement edit modal
-  console.log('Edit notification config:', config)
+  editingNotificationConfig.value = config
+  notificationForm.value = {
+    website: config.website_id || config.website || '',
+    name: config.name || '',
+    description: config.description || '',
+    default_email: config.default_email !== false,
+    default_sms: config.default_sms === true,
+    default_push: config.default_push === true,
+    default_in_app: config.default_in_app !== false,
+    email_enabled: config.email_enabled !== false,
+    sms_enabled: config.sms_enabled === true,
+    push_enabled: config.push_enabled === true,
+    in_app_enabled: config.in_app_enabled !== false,
+    dnd_enabled: config.dnd_enabled === true,
+    dnd_start_hour: config.dnd_start_hour || 22,
+    dnd_end_hour: config.dnd_end_hour || 6,
+    is_default: config.is_default === true,
+  }
+  showNotificationModal.value = true
+}
+
+const saveNotificationConfig = async () => {
+  saving.value = true
+  message.value = ''
+  try {
+    if (editingNotificationConfig.value) {
+      await adminManagementAPI.updateNotificationConfig(
+        editingNotificationConfig.value.id,
+        notificationForm.value
+      )
+      message.value = 'Notification profile updated successfully'
+    } else {
+      await adminManagementAPI.createNotificationConfig(notificationForm.value)
+      message.value = 'Notification profile created successfully'
+    }
+    messageSuccess.value = true
+    closeNotificationModal()
+    await loadNotificationConfigs()
+  } catch (e) {
+    message.value = 'Failed to save: ' + (e.response?.data?.detail || JSON.stringify(e.response?.data) || e.message)
+    messageSuccess.value = false
+  } finally {
+    saving.value = false
+  }
+}
+
+const closeNotificationModal = () => {
+  showNotificationModal.value = false
+  editingNotificationConfig.value = null
+  notificationForm.value = {
+    website: '',
+    name: '',
+    description: '',
+    default_email: true,
+    default_sms: false,
+    default_push: false,
+    default_in_app: true,
+    email_enabled: true,
+    sms_enabled: false,
+    push_enabled: false,
+    in_app_enabled: true,
+    dnd_enabled: false,
+    dnd_start_hour: 22,
+    dnd_end_hour: 6,
+    is_default: false,
+  }
+}
+
+const loadNotificationWebsites = async () => {
+  try {
+    const res = await websitesAPI.list()
+    notificationWebsites.value = res.data.results || res.data || []
+  } catch (e) {
+    console.error('Failed to load websites:', e)
+  }
 }
 
 const formatDate = (dateString) => {
@@ -3877,8 +4109,13 @@ watch([activeTab, activePricingSubTab], async () => {
       loadOrderConfigWebsites()
     }
     loadOrderConfigs()
-  } else if (activeTab.value === 'notifications' && !notificationConfigs.value.length) {
-    loadNotificationConfigs()
+  } else if (activeTab.value === 'notifications') {
+    if (!notificationConfigs.value.length) {
+      loadNotificationConfigs()
+    }
+    if (!notificationWebsites.value.length) {
+      loadNotificationWebsites()
+    }
   } else if (activeTab.value === 'referrals') {
     if (!referralWebsites.value.length) {
       loadReferralWebsites()
