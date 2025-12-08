@@ -1,0 +1,142 @@
+name: Pull Request Checks
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+env:
+  PYTHON_VERSION: '3.11'
+  NODE_VERSION: '18'
+
+jobs:
+  # PR Validation
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Validate PR title
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            chore
+            ci
+          scopes: |
+            backend
+            frontend
+            api
+            auth
+            orders
+            payments
+            admin
+            writer
+            client
+            editor
+            support
+          requireScope: false
+        continue-on-error: true
+      
+      - name: Check for merge conflicts
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          if git merge-tree $(git merge-base HEAD origin/${{ github.base_ref }}) HEAD origin/${{ github.base_ref }} | grep -q '<<<<<<<'; then
+            echo "❌ Merge conflicts detected!"
+            exit 1
+          else
+            echo "✅ No merge conflicts"
+          fi
+        continue-on-error: true
+      
+      - name: Check file sizes
+        run: |
+          MAX_SIZE=5242880  # 5MB
+          LARGE_FILES=$(find . -type f -size +${MAX_SIZE}c ! -path './.git/*' ! -path './node_modules/*' ! -path './venv/*' ! -path './dist/*')
+          if [ -n "$LARGE_FILES" ]; then
+            echo "⚠️ Large files detected:"
+            echo "$LARGE_FILES"
+            echo "Consider using Git LFS for large files"
+          fi
+        continue-on-error: true
+
+  # Code Review Checklist
+  review-checklist:
+    name: Review Checklist
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check for TODO/FIXME comments
+        run: |
+          echo "## TODO/FIXME Comments Found" >> $GITHUB_STEP_SUMMARY
+          TODOS=$(grep -r "TODO\|FIXME" --include="*.py" --include="*.js" --include="*.vue" --include="*.ts" . | grep -v node_modules | grep -v venv | grep -v ".git" || true)
+          if [ -n "$TODOS" ]; then
+            echo "$TODOS" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Consider addressing TODO/FIXME comments before merging"
+          else
+            echo "✅ No TODO/FIXME comments found" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+      
+      - name: Check for console.log statements
+        run: |
+          echo "## Console.log Statements Found" >> $GITHUB_STEP_SUMMARY
+          CONSOLE_LOGS=$(grep -r "console\.log\|console\.error\|console\.warn" --include="*.js" --include="*.vue" --include="*.ts" ./frontend/src | grep -v node_modules || true)
+          if [ -n "$CONSOLE_LOGS" ]; then
+            echo "$CONSOLE_LOGS" >> $GITHUB_STEP_SUMMARY
+            echo "⚠️ Consider removing console.log statements for production code"
+          else
+            echo "✅ No console.log statements found" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+      
+      - name: Check for hardcoded secrets
+        run: |
+          echo "## Potential Secrets Check" >> $GITHUB_STEP_SUMMARY
+          SECRETS=$(grep -riE "(password|secret|api_key|token)\s*=\s*['\"][^'\"]+['\"]" --include="*.py" --include="*.js" --include="*.vue" --include="*.ts" . | grep -v node_modules | grep -v venv | grep -v ".git" | grep -v "test" || true)
+          if [ -n "$SECRETS" ]; then
+            echo "⚠️ Potential hardcoded secrets found. Please review:" >> $GITHUB_STEP_SUMMARY
+            echo "$SECRETS" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ No obvious hardcoded secrets found" >> $GITHUB_STEP_SUMMARY
+          fi
+        continue-on-error: true
+
+  # Dependency Check
+  dependency-check:
+    name: Dependency Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Check backend dependencies
+        working-directory: ./backend
+        run: |
+          pip install safety
+          safety check --file requirements.txt || true
+        continue-on-error: true
+      
+      - name: Check frontend dependencies
+        working-directory: ./frontend
+        run: |
+          npm audit --audit-level=moderate || true
+        continue-on-error: true
+
