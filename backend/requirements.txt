@@ -17,6 +17,7 @@ Automat==25.4.16
 autopep8==2.3.2
 backcall==0.2.0
 bcrypt==4.3.0
+argon2-cffi==25.1.0
 beautifulsoup4==4.13.4
 billiard==4.2.1
 bleach==6.2.0

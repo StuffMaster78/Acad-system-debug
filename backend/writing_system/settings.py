@@ -162,9 +162,10 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'superadmin_management.middleware.BlacklistMiddleware',
-    'django.middleware.gzip.GZipMiddleware',  # Compress API responses'
+    'core.middleware.compression.EnhancedCompressionMiddleware',  # Enhanced compression with better control
     "activity.middleware.ActivityAuditMiddleware",
-    "notifications_system.middleware.sse_middleware.SSEAuthMiddleware"
+    "notifications_system.middleware.sse_middleware.SSEAuthMiddleware",
+    "core.middleware.performance_monitoring.PerformanceMonitoringMiddleware",  # Performance monitoring
 ]
 
 ROOT_URLCONF = 'writing_system.urls'
@@ -209,6 +210,20 @@ print("User:", os.getenv("POSTGRES_USER_NAME"))
 print("DATABASE PASSWORD:", os.getenv('POSTGRES_PASSWORD'))
 print("DATABASE HOST:", os.getenv('DB_HOST', 'db'))
 print("DATABASE PORT:", os.getenv('DB_PORT', 5432))
+
+# Password hashing
+# https://docs.djangoproject.com/en/4.2/topics/auth/passwords/#password-hashing
+# Argon2 is the winner of the Password Hashing Competition (2015) and is the most secure option
+PASSWORD_HASHERS = [
+    # Note: Argon2 requires argon2-cffi package. If not installed, Django will fall back to PBKDF2
+    # To install: docker-compose exec -u root web pip install argon2-cffi==25.1.0
+    # Or rebuild container: docker-compose build web && docker-compose up -d
+    'django.contrib.auth.hashers.Argon2PasswordHasher',  # Best security - memory-hard algorithm
+    'django.contrib.auth.hashers.PBKDF2PasswordHasher',  # Fallback for existing passwords and if argon2 not available
+    'django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher',
+    'django.contrib.auth.hashers.BCryptSHA256PasswordHasher',
+    'django.contrib.auth.hashers.BCryptPasswordHasher',
+]
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
@@ -541,26 +556,61 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ),
     'DEFAULT_THROTTLE_CLASSES': [
+        'core.throttling.rate_limiter.BurstRateThrottle',
+        'core.throttling.rate_limiter.SustainedRateThrottle',
+        'core.throttling.rate_limiter.WriteOperationThrottle',
+        'core.throttling.rate_limiter.IPRateThrottle',
+        # Keep DRF defaults as fallback
         'rest_framework.throttling.UserRateThrottle',
         'rest_framework.throttling.AnonRateThrottle',
-        # Removed LoginRateThrottle and MagicLinkThrottle from default - they should only apply to auth endpoints
-        # 'authentication.throttling.LoginRateThrottle',
-        # 'authentication.throttling.MagicLinkThrottle',
-        # Removed notification throttles from default - they should only apply to notification endpoints
-        # 'notifications_system.throttles.NotificationWriteBurstThrottle',
-        # 'notifications_system.throttles.NotificationWriteSustainedThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        # Development-friendly rates (increase for production)
-        'user': '5000/hour',  # Authenticated users - significantly increased to handle activity tracking scripts (~83/min)
-        'anon': '500/hour',  # Unauthenticated users - increased from 5/hour for development
-        'login': '10/minute',  # Limit login attempts to 10 per minute (increased from 5)
-        'login_sustained': '200/day',  # Limit sustained login attempts to 200 per day (increased from 100)
-        'password_reset': '10/hour',  # Limit password reset to 10 per hour (increased from 3)
-        'magic_link': '5/minute',  # Limit magic link requests to 5 per minute (increased from 1)
-        'mfa_challenge': '20/hour',  # Limit MFA challenges (increased from 5)
-        'notifications_write_burst': '100/min',  # Notification writes per minute (increased from 20)
-        'notifications_write_sustained': '1000/day',  # Notification writes per day (increased from 200)
+        # Core rate limits
+        'user': '5000/hour',  # Authenticated users - general limit (~83/min)
+        'anon': '500/hour',  # Unauthenticated users (~8/min)
+        
+        # Burst limits (short-term)
+        'burst': '100/minute',  # Burst limit for rapid requests
+        'sustained': '10000/day',  # Sustained limit over 24 hours
+        
+        # Operation-based limits
+        'write': '200/hour',  # Write operations (POST, PUT, PATCH, DELETE)
+        'read': '10000/hour',  # Read operations (GET, HEAD, OPTIONS)
+        
+        # IP-based limits
+        'ip': '1000/hour',  # Per IP address limit
+        
+        # Admin limits (higher for admins)
+        'admin': '20000/hour',  # Admin users get higher limits
+        
+        # Public endpoint limits
+        'public': '200/hour',  # Public endpoints (no auth)
+        
+        # Endpoint-specific limits
+        'endpoint': '1000/hour',  # Per-endpoint limit
+        
+        # Authentication-specific limits
+        'login': '10/minute',  # Login attempts
+        'login_sustained': '200/day',  # Sustained login attempts
+        'password_reset': '10/hour',  # Password reset requests
+        'magic_link': '5/minute',  # Magic link requests
+        'mfa_challenge': '20/hour',  # MFA challenges
+        
+        # Notification limits
+        'notifications_write_burst': '100/min',  # Notification writes per minute
+        'notifications_write_sustained': '1000/day',  # Notification writes per day
+        
+        # Communication limits (from communications/throttles.py)
+        'communication_message': '60/minute',
+        'communication_thread': '60/minute',
+        'communication_notification': '30/minute',
+        'order_message': '60/minute',
+        'order_message_read_receipt': '10/minute',
+        'order_message_search': '10/minute',
+        
+        # Audit limits
+        'audit_log': '10/minute',
+        'superadmin_audit': '100/minute',
     },
     'EXCEPTION_HANDLER': 'authentication.exceptions.custom_exception_handler',
     'DEFAULT_VERSIONING_CLASS': 'rest_framework.versioning.URLPathVersioning',
@@ -723,6 +773,46 @@ NOTIFY_DIGEST_CONFIG_FILE = (
 NOTIFY_BROADCAST_CONFIG_FILE = (
     BASE_DIR / "notifications_system" / "registry" / "configs" / "broadcast_event_config.json"
 )
+
+# --- Response Compression Settings ---
+# Minimum response size (in bytes) to compress
+COMPRESS_MIN_LENGTH = 200  # Compress responses larger than 200 bytes
+
+# Compression level (1-9, where 6 is a good balance between speed and size)
+# Higher values = better compression but slower
+COMPRESS_LEVEL = 6
+
+# MIME types to compress
+COMPRESS_MIMETYPES = [
+    'text/html',
+    'text/css',
+    'text/xml',
+    'text/javascript',
+    'application/javascript',
+    'application/json',
+    'application/xml',
+    'application/xml+rss',
+    'application/rss+xml',
+    'application/atom+xml',
+    'application/vnd.api+json',  # JSON API format
+    'text/plain',
+    'text/csv',
+    'application/vnd.ms-excel',
+]
+
+# Content types to exclude from compression (already compressed or binary)
+COMPRESS_EXCLUDE_TYPES = [
+    'image/',
+    'video/',
+    'audio/',
+    'application/pdf',
+    'application/zip',
+    'application/gzip',
+    'application/x-gzip',
+    'application/x-tar',
+    'application/octet-stream',
+    'font/',
+]
 
 # --- Role wiring ---
 NOTIFICATION_AUTOREGISTER_COMMON_ROLES = True
