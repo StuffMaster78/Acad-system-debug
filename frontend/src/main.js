@@ -1,25 +1,23 @@
 import { createApp } from 'vue'
-import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import './style.css'
-import VueApexCharts from 'vue3-apexcharts'
-import { useAuthStore } from './stores/auth'
-import { initTheme } from './composables/useTheme'
+import { createPinia } from 'pinia'
+import './assets/main.css'
 
-// Initialize theme before mounting app so initial paint uses correct mode
-initTheme()
+// Register lazy image directive
+import lazyImageDirective from './directives/lazyImage'
+
+// Register ApexCharts
+import VueApexCharts from 'vue3-apexcharts'
 
 const app = createApp(App)
-const pinia = createPinia()
 
-app.use(pinia)
+// Use plugins
+app.use(createPinia())
 app.use(router)
 app.use(VueApexCharts)
 
-// Load auth state from localStorage before mounting
-// This ensures the user stays logged in after page refresh
-const authStore = useAuthStore()
-authStore.loadFromStorage()
+// Register global directive
+app.directive('lazy-image', lazyImageDirective)
 
 app.mount('#app')

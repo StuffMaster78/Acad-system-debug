@@ -272,6 +272,26 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/payments/client-payments',
+          name: 'ClientPayments',
+          component: () => import('@/views/admin/payments/ClientPayments.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Client Payments',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/payments/payment-requests',
+          name: 'PaymentRequests',
+          component: () => import('@/views/admin/payments/PaymentRequests.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Payment Requests',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/payments/writer-payments',
           name: 'AdminWriterPayments',
           component: () => import('@/views/admin/payments/WriterPayments.vue'),
@@ -1278,6 +1298,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Enhanced Analytics',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/analytics-reports',
+          name: 'AnalyticsReports',
+          component: () => import('@/views/admin/AnalyticsReports.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Analytics & Reports',
             roles: ['admin', 'superadmin'],
           },
         },
