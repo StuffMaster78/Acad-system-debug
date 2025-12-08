@@ -514,6 +514,173 @@
       </div>
     </div>
 
+    <!-- Assign Writer Modal -->
+    <div v-if="showAssignWriterModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-3xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold">Assign Writer to Bundle #{{ currentBundleForAction?.id }}</h3>
+          <button @click="closeAssignWriterModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+        </div>
+        
+        <div v-if="currentBundleForAction" class="mb-4 p-4 bg-gray-50 rounded">
+          <p class="text-sm text-gray-600">
+            <strong>Client:</strong> {{ currentBundleForAction.client?.username || currentBundleForAction.client?.email || 'N/A' }}<br>
+            <strong>Classes:</strong> {{ currentBundleForAction.number_of_classes || 0 }}<br>
+            <strong>Status:</strong> {{ getStatusLabel(currentBundleForAction.status) }}
+          </p>
+        </div>
+        
+        <div v-if="writersLoading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span class="ml-3 text-gray-600">Loading available writers...</span>
+        </div>
+        
+        <div v-else-if="availableWriters.length === 0" class="text-center py-12 text-gray-500">
+          <p>No available writers found</p>
+        </div>
+        
+        <div v-else class="space-y-3">
+          <div class="mb-4">
+            <input
+              v-model="writerSearchQuery"
+              type="text"
+              placeholder="Search writers by name, email, or username..."
+              class="w-full border rounded px-3 py-2"
+            />
+          </div>
+          
+          <div class="max-h-96 overflow-y-auto space-y-2">
+            <div
+              v-for="writer in filteredWriters"
+              :key="writer.id"
+              class="p-4 border rounded hover:bg-gray-50 cursor-pointer transition-colors"
+              :class="{ 'bg-blue-50 border-blue-300': selectedWriterId === writer.id }"
+              @click="selectedWriterId = writer.id"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      :id="`writer-${writer.id}`"
+                      :value="writer.id"
+                      v-model="selectedWriterId"
+                      class="cursor-pointer"
+                    />
+                    <label :for="`writer-${writer.id}`" class="cursor-pointer flex-1">
+                      <div class="font-medium text-gray-900">
+                        {{ writer.username || writer.email || `Writer #${writer.id}` }}
+                      </div>
+                      <div class="text-sm text-gray-600 mt-1">
+                        <span v-if="writer.email">{{ writer.email }}</span>
+                        <span v-if="writer.writer_profile">
+                          <span v-if="writer.writer_profile.rating">
+                            ⭐ {{ parseFloat(writer.writer_profile.rating).toFixed(1) }}
+                          </span>
+                          <span v-if="writer.active_orders !== undefined" class="ml-2">
+                            Active Orders: {{ writer.active_orders }}
+                          </span>
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                <button
+                  @click.stop="assignWriter(writer.id)"
+                  :disabled="assigningWriter"
+                  class="btn btn-primary btn-sm"
+                >
+                  {{ assigningWriter ? 'Assigning...' : 'Assign' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex gap-2 pt-4 border-t mt-4">
+          <button
+            @click="selectedWriterId && assignWriter(selectedWriterId)"
+            :disabled="!selectedWriterId || assigningWriter"
+            class="btn btn-primary flex-1"
+          >
+            {{ assigningWriter ? 'Assigning...' : 'Assign Selected Writer' }}
+          </button>
+          <button @click="closeAssignWriterModal" class="btn btn-secondary flex-1">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Bundle Modal -->
+    <div v-if="showEditBundleModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-2xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-xl font-bold">Edit Bundle #{{ editingBundle?.id }}</h3>
+          <button @click="closeEditBundleModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+        </div>
+        
+        <div v-if="editingBundle" class="mb-4 p-4 bg-gray-50 rounded">
+          <p class="text-sm text-gray-600">
+            <strong>Client:</strong> {{ editingBundle.client?.username || editingBundle.client?.email || 'N/A' }}<br>
+            <strong>Website:</strong> {{ editingBundle.website?.name || 'N/A' }}<br>
+            <strong>Pricing Source:</strong> {{ editingBundle.pricing_source === 'config' ? 'From Config' : 'Manual' }}
+          </p>
+        </div>
+        
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Number of Classes *</label>
+            <input v-model.number="editBundleForm.number_of_classes" type="number" min="1" class="w-full border rounded px-3 py-2" required />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Total Price *</label>
+            <input v-model.number="editBundleForm.total_price" type="number" step="0.01" min="0" class="w-full border rounded px-3 py-2" required />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Deposit Required</label>
+            <input v-model.number="editBundleForm.deposit_required" type="number" step="0.01" min="0" :max="editBundleForm.total_price" class="w-full border rounded px-3 py-2" />
+            <p class="text-xs text-gray-500 mt-1">Cannot exceed total price</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Status</label>
+            <select v-model="editBundleForm.status" class="w-full border rounded px-3 py-2">
+              <option value="not_started">Not Started</option>
+              <option value="in_progress">In Progress</option>
+              <option value="exhausted">Exhausted</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Level</label>
+            <input v-model="editBundleForm.level" type="text" class="w-full border rounded px-3 py-2" placeholder="e.g., Beginner, Intermediate, Advanced" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Duration</label>
+            <input v-model="editBundleForm.duration" type="text" class="w-full border rounded px-3 py-2" placeholder="e.g., 3 months, 6 weeks" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">Start Date</label>
+            <input v-model="editBundleForm.start_date" type="date" class="w-full border rounded px-3 py-2" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1">End Date</label>
+            <input v-model="editBundleForm.end_date" type="date" class="w-full border rounded px-3 py-2" />
+          </div>
+          <div class="flex items-center gap-2">
+            <input v-model="editBundleForm.installments_enabled" type="checkbox" id="edit_installments_enabled" />
+            <label for="edit_installments_enabled" class="text-sm">Enable Installments</label>
+          </div>
+          <div v-if="editBundleForm.installments_enabled">
+            <label class="block text-sm font-medium mb-1">Installment Count</label>
+            <input v-model.number="editBundleForm.installment_count" type="number" min="1" class="w-full border rounded px-3 py-2" />
+          </div>
+          <div class="flex gap-2 pt-4 border-t">
+            <button @click="saveEditBundle" class="btn btn-primary flex-1">Save Changes</button>
+            <button @click="closeEditBundleModal" class="btn btn-secondary flex-1">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Config Modal -->
     <div v-if="showConfigModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div class="bg-white rounded-lg max-w-2xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
@@ -581,7 +748,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { classManagementAPI, usersAPI } from '@/api'
+import { classManagementAPI, usersAPI, writerAssignmentAPI } from '@/api'
 import apiClient from '@/api/client'
 
 const componentError = ref(null)
@@ -598,7 +765,27 @@ const showCreateModal = ref(false)
 const showInstallmentConfigModal = ref(false)
 const showDepositPaymentModal = ref(false)
 const showConfigModal = ref(false)
+const showAssignWriterModal = ref(false)
+const availableWriters = ref([])
+const writersLoading = ref(false)
+const assigningWriter = ref(false)
+const selectedWriterId = ref(null)
+const writerSearchQuery = ref('')
+
+const filteredWriters = computed(() => {
+  if (!writerSearchQuery.value) return availableWriters.value
+  
+  const query = writerSearchQuery.value.toLowerCase()
+  return availableWriters.value.filter(writer => {
+    const username = (writer.username || '').toLowerCase()
+    const email = (writer.email || '').toLowerCase()
+    const fullName = (writer.full_name || writer.get_full_name || '').toLowerCase()
+    return username.includes(query) || email.includes(query) || fullName.includes(query)
+  })
+})
 const showBundleThreadsModal = ref(false)
+const showEditBundleModal = ref(false)
+const editingBundle = ref(null)
 const editingConfig = ref(null)
 const currentBundleForAction = ref(null)
 
@@ -643,6 +830,19 @@ const createForm = ref({
   installment_count: 0,
 })
 
+const editBundleForm = ref({
+  number_of_classes: 0,
+  total_price: 0,
+  deposit_required: 0,
+  level: '',
+  duration: '',
+  start_date: '',
+  end_date: '',
+  status: 'in_progress',
+  installments_enabled: false,
+  installment_count: 0,
+})
+
 const installmentConfigForm = ref({
   installment_count: 0,
   interval_weeks: 2,
@@ -651,6 +851,19 @@ const installmentConfigForm = ref({
 const depositPaymentForm = ref({
   payment_method: 'wallet',
   discount_code: '',
+})
+
+const editBundleForm = ref({
+  number_of_classes: 0,
+  total_price: 0,
+  deposit_required: 0,
+  level: '',
+  duration: '',
+  start_date: '',
+  end_date: '',
+  status: 'in_progress',
+  installments_enabled: false,
+  installment_count: 0,
 })
 
 const configForm = ref({
@@ -963,14 +1176,110 @@ const deleteConfig = async (config) => {
   }
 }
 
-const openAssignWriterModal = (bundle) => {
-  // TODO: Implement writer assignment modal
-  showMessage('Writer assignment feature coming soon', false)
+const openAssignWriterModal = async (bundle) => {
+  currentBundleForAction.value = bundle
+  showAssignWriterModal.value = true
+  await loadAvailableWriters()
+}
+
+const closeAssignWriterModal = () => {
+  showAssignWriterModal.value = false
+  currentBundleForAction.value = null
+  availableWriters.value = []
+  selectedWriterId.value = null
+  writerSearchQuery.value = ''
+}
+
+const loadAvailableWriters = async () => {
+  writersLoading.value = true
+  try {
+    const response = await writerAssignmentAPI.getAvailableWriters()
+    availableWriters.value = response.data.results || response.data || []
+  } catch (error) {
+    console.error('Failed to load available writers:', error)
+    showMessage('Failed to load available writers: ' + (error.response?.data?.detail || error.message), false)
+  } finally {
+    writersLoading.value = false
+  }
+}
+
+const assignWriter = async (writerId) => {
+  if (!currentBundleForAction.value) return
+  
+  assigningWriter.value = true
+  try {
+    await classManagementAPI.updateBundle(currentBundleForAction.value.id, {
+      assigned_writer: writerId
+    })
+    showMessage('Writer assigned successfully', true)
+    closeAssignWriterModal()
+    // Refresh bundles and viewing bundle if open
+    await loadBundles()
+    if (viewingBundle.value && viewingBundle.value.id === currentBundleForAction.value.id) {
+      const updated = await classManagementAPI.getBundle(currentBundleForAction.value.id)
+      viewingBundle.value = updated.data
+    }
+  } catch (error) {
+    showMessage('Failed to assign writer: ' + (error.response?.data?.detail || error.message), false)
+  } finally {
+    assigningWriter.value = false
+  }
 }
 
 const openEditBundleModal = (bundle) => {
-  // TODO: Implement bundle edit modal
-  showMessage('Bundle editing feature coming soon', false)
+  editingBundle.value = bundle
+  editBundleForm.value = {
+    number_of_classes: bundle.number_of_classes || 0,
+    total_price: parseFloat(bundle.total_price || 0),
+    deposit_required: parseFloat(bundle.deposit_required || 0),
+    level: bundle.level || '',
+    duration: bundle.duration || '',
+    start_date: bundle.start_date ? new Date(bundle.start_date).toISOString().split('T')[0] : '',
+    end_date: bundle.end_date ? new Date(bundle.end_date).toISOString().split('T')[0] : '',
+    status: bundle.status || 'in_progress',
+    installments_enabled: bundle.installments_enabled || false,
+    installment_count: bundle.installment_count || 0,
+  }
+  showEditBundleModal.value = true
+}
+
+const closeEditBundleModal = () => {
+  showEditBundleModal.value = false
+  editingBundle.value = null
+  editBundleForm.value = {
+    number_of_classes: 0,
+    total_price: 0,
+    deposit_required: 0,
+    level: '',
+    duration: '',
+    start_date: '',
+    end_date: '',
+    status: 'in_progress',
+    installments_enabled: false,
+    installment_count: 0,
+  }
+}
+
+const saveEditBundle = async () => {
+  if (!editingBundle.value) return
+  
+  try {
+    const data = { ...editBundleForm.value }
+    if (data.start_date) data.start_date = new Date(data.start_date).toISOString().split('T')[0]
+    if (data.end_date) data.end_date = new Date(data.end_date).toISOString().split('T')[0]
+    
+    await classManagementAPI.updateBundle(editingBundle.value.id, data)
+    showMessage('Bundle updated successfully', true)
+    closeEditBundleModal()
+    // Refresh bundles and viewing bundle if open
+    await loadBundles()
+    if (viewingBundle.value && viewingBundle.value.id === editingBundle.value.id) {
+      const updated = await classManagementAPI.getBundle(editingBundle.value.id)
+      viewingBundle.value = updated.data
+    }
+  } catch (error) {
+    showMessage('Failed to update bundle: ' + (error.response?.data?.detail || error.message), false)
+  }
 }
 
 const getStatusClass = (status) => {
