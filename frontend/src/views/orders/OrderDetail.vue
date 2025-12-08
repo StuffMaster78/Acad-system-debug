@@ -2350,6 +2350,38 @@
         </button>
       </template>
     </Modal>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show"
+      :title="confirm.title"
+      :message="confirm.message"
+      :details="confirm.details"
+      :variant="confirm.variant"
+      :confirm-text="confirm.confirmText"
+      :cancel-text="confirm.cancelText"
+      :icon="confirm.icon"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
+
+    <!-- Input Modal -->
+    <InputModal
+      v-model:show="inputModal.show"
+      :title="inputModal.title"
+      :message="inputModal.message"
+      :label="inputModal.label"
+      :placeholder="inputModal.placeholder"
+      :hint="inputModal.hint"
+      :multiline="inputModal.multiline"
+      :rows="inputModal.rows"
+      :required="inputModal.required"
+      :default-value="inputModal.defaultValue"
+      :confirm-text="inputModal.confirmText"
+      :cancel-text="inputModal.cancelText"
+      @submit="inputModal.onSubmit"
+      @cancel="inputModal.onCancel"
+    />
   </div>
 </template>
 
@@ -2380,6 +2412,10 @@ import OrderActionModal from '@/components/order/OrderActionModal.vue'
 import usersAPI from '@/api/users'
 import { getErrorMessage, getSuccessMessage } from '@/utils/errorHandler'
 import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import { useInputModal } from '@/composables/useInputModal'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import InputModal from '@/components/common/InputModal.vue'
 import draftRequestsAPI from '@/api/draft-requests'
 import writerManagementAPI from '@/api/writer-management'
 import writerOrderRequestsAPI from '@/api/writer-order-requests'
@@ -2388,6 +2424,8 @@ import writerDashboardAPI from '@/api/writer-dashboard'
 const route = useRoute()
 const authStore = useAuthStore()
 const { success: showSuccessToast, error: showErrorToast } = useToast()
+const confirm = useConfirmDialog()
+const inputModal = useInputModal()
 const order = ref(null)
 const loading = ref(true)
 const activeTab = ref('overview')
@@ -2950,7 +2988,18 @@ const resumeOrder = async () => {
 
 const completeOrder = async () => {
   if (!order.value) return
-  if (!confirm('Are you sure you want to mark this order as complete?')) return
+  
+  const confirmed = await confirm.showDialog(
+    'Are you sure you want to mark this order as complete?',
+    'Complete Order',
+    {
+      variant: 'default',
+      confirmText: 'Complete Order',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   processingAction.value = true
   actionError.value = ''
@@ -2973,8 +3022,29 @@ const completeOrder = async () => {
 
 const cancelOrder = async () => {
   if (!order.value) return
-  const reason = prompt('Please provide a reason for cancellation (optional):')
-  if (reason === null) return // User cancelled prompt
+  
+  // First confirm cancellation
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to cancel Order #${order.value.id}? This action cannot be undone.`,
+    'Cancel Order'
+  )
+  
+  if (!confirmed) return
+  
+  // Then ask for reason (optional)
+  const reason = await inputModal.showModal(
+    'Please provide a reason for cancellation (optional)',
+    'Cancellation Reason',
+    {
+      label: 'Reason',
+      placeholder: 'Enter reason for cancellation...',
+      multiline: true,
+      rows: 4,
+      required: false
+    }
+  )
+  
+  if (reason === null) return // User cancelled
   
   processingAction.value = true
   actionError.value = ''

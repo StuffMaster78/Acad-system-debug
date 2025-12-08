@@ -359,6 +359,20 @@
     >
       {{ message }}
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show"
+      :title="confirm.title"
+      :message="confirm.message"
+      :details="confirm.details"
+      :variant="confirm.variant"
+      :confirm-text="confirm.confirmText"
+      :cancel-text="confirm.cancelText"
+      :icon="confirm.icon"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -378,8 +392,11 @@ import usersAPI from '@/api/users'
 import exportsAPI from '@/api/exports'
 import orderConfigsAPI from '@/api/orderConfigs'
 import AdvancedFiltersDrawer from '@/components/orders/AdvancedFiltersDrawer.vue'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const authStore = useAuthStore()
+const confirm = useConfirmDialog()
 const router = useRouter()
 const route = useRoute()
 
@@ -1061,6 +1078,21 @@ const submitBulkAssign = async () => {
 const submitBulkAction = async () => {
   if (!bulkActionForm.value.action || selectedOrders.value.length === 0) return
 
+  // Require confirmation for destructive actions
+  if (bulkActionForm.value.action === 'cancel') {
+    const confirmed = await confirm.showDestructive(
+      `Are you sure you want to cancel ${selectedOrders.value.length} order(s)? This action cannot be undone.`,
+      'Cancel Orders',
+      {
+        details: `You are about to cancel ${selectedOrders.value.length} order(s). This will permanently cancel these orders and cannot be undone.`
+      }
+    )
+    
+    if (!confirmed) {
+      return
+    }
+  }
+
   processingBulk.value = true
   try {
     const res = await adminOrdersAPI.bulkAction({
@@ -1099,7 +1131,7 @@ const loadFilterMetadata = async () => {
     const res = await ordersAPI.getFilterMetadata()
     filterMetadata.value = res.data || {}
   } catch (error) {
-    console.warn('Failed to load filter metadata:', error)
+    // Silently fail - filter metadata is not critical
   }
 }
 

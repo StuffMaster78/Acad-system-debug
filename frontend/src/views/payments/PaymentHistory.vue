@@ -383,14 +383,56 @@ const viewTransaction = (transaction) => {
 const downloadReceipt = async (transaction) => {
   try {
     loading.value = true
-    const response = await paymentsAPI.downloadReceipt(transaction.id)
+    
+    // Backend getAllTransactions returns IDs in format: order_payment_{id}, client_wallet_{id}, etc.
+    // Backend receipt endpoint expects the same format
+    let transactionId = transaction.id
+    
+    // Handle edge cases where ID might not have prefix
+    if (transactionId && !transactionId.includes('_') && transaction.type) {
+      // Map transaction types to receipt endpoint format
+      const typeMapping = {
+        'order_payment': 'order_payment',
+        'client_wallet': 'client_wallet',
+        'writer_wallet': 'writer_wallet',
+        'writer_payment': 'writer_payment',
+        'old_wallet': 'client_wallet', // Old wallet transactions use client_wallet format
+        'tip': null, // Tips don't support receipts
+      }
+      
+      const prefix = typeMapping[transaction.type]
+      if (!prefix) {
+        showMessage('Receipt download is not available for this transaction type', false)
+        return
+      }
+      
+      transactionId = `${prefix}_${transactionId}`
+    }
+    
+    // Handle old_wallet format - map to client_wallet for receipt endpoint
+    if (transactionId && transactionId.startsWith('old_wallet_')) {
+      transactionId = transactionId.replace('old_wallet_', 'client_wallet_')
+    }
+    
+    // Handle tip transactions - they don't support receipts
+    if (transaction.type === 'tip' || (transactionId && transactionId.startsWith('tip_'))) {
+      showMessage('Receipt download is not available for tip transactions', false)
+      return
+    }
+    
+    if (!transactionId) {
+      showMessage('Unable to determine transaction ID for receipt download', false)
+      return
+    }
+    
+    const response = await paymentsAPI.downloadReceipt(transactionId)
     
     // Create a blob from the response
     const blob = new Blob([response.data], { type: 'application/pdf' })
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `receipt_${transaction.reference_id || transaction.transaction_id}_${new Date().toISOString().split('T')[0]}.pdf`
+    link.download = `receipt_${transaction.reference_id || transaction.transaction_id || transactionId}_${new Date().toISOString().split('T')[0]}.pdf`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -401,6 +443,10 @@ const downloadReceipt = async (transaction) => {
     console.error('Receipt download error:', error)
     if (error.response?.status === 503) {
       showMessage('PDF generation is not available. Please contact support.', false)
+    } else if (error.response?.status === 404) {
+      showMessage('Receipt not found. This transaction may not support receipt generation.', false)
+    } else if (error.response?.status === 403) {
+      showMessage('You do not have permission to download this receipt.', false)
     } else {
       showMessage('Failed to download receipt: ' + (error.response?.data?.error || error.response?.data?.detail || error.message), false)
     }
