@@ -4,7 +4,7 @@ Service to aggregate ContentEvent data into cached metrics on BlogPost.
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Count, Avg, Q
 from analytics.models import ContentEvent
-from blog_pages_management._legacy_models import BlogPost
+from blog_pages_management.models import BlogPost
 
 
 class ContentMetricsService:

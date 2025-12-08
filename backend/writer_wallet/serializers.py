@@ -97,21 +97,63 @@ class PaymentConfirmationSerializer(serializers.ModelSerializer):
 class WriterPaymentRequestSerializer(serializers.ModelSerializer):
     writer_name = serializers.SerializerMethodField()
     writer_email = serializers.SerializerMethodField()
-    reviewed_by_username = serializers.CharField(source="reviewed_by.username", read_only=True)
+    reviewed_by_username = serializers.CharField(source="reviewed_by.username", read_only=True, allow_null=True)
     requested_by_username = serializers.CharField(source="requested_by.username", read_only=True)
+    writer_wallet_data = serializers.SerializerMethodField()
     
     class Meta:
         model = WriterPaymentRequest
-        fields = "__all__"
+        fields = [
+            'id', 'website', 'writer_wallet', 'requested_amount', 'available_balance',
+            'status', 'reason', 'requested_by', 'reviewed_by', 'reviewed_at',
+            'review_notes', 'created_at', 'processed_at', 'scheduled_payment',
+            'writer_name', 'writer_email', 'reviewed_by_username', 'requested_by_username',
+            'writer_wallet_data'
+        ]
+        read_only_fields = ['created_at', 'reviewed_at', 'processed_at']
     
     def get_writer_name(self, obj):
-        if obj.writer_wallet and obj.writer_wallet.writer:
-            user = obj.writer_wallet.writer.user
-            return user.get_full_name() if user else obj.writer_wallet.writer.registration_id
+        try:
+            if obj.writer_wallet and obj.writer_wallet.writer:
+                user = obj.writer_wallet.writer
+                # Try to get full name, fallback to username
+                full_name = user.get_full_name()
+                if full_name:
+                    return full_name
+                # Try to get registration_id from writer_profile
+                try:
+                    writer_profile = getattr(user, 'writer_profile', None)
+                    if writer_profile and hasattr(writer_profile, 'registration_id'):
+                        return writer_profile.registration_id
+                except Exception:
+                    pass
+                return user.username or 'Unknown'
+        except Exception:
+            pass
         return 'Unknown'
     
     def get_writer_email(self, obj):
-        if obj.writer_wallet and obj.writer_wallet.writer:
-            user = obj.writer_wallet.writer.user
-            return user.email if user else ''
+        try:
+            if obj.writer_wallet and obj.writer_wallet.writer:
+                return obj.writer_wallet.writer.email or ''
+        except Exception:
+            pass
         return ''
+    
+    def get_writer_wallet_data(self, obj):
+        """Get writer wallet information for frontend"""
+        try:
+            if obj.writer_wallet and obj.writer_wallet.writer:
+                writer = obj.writer_wallet.writer
+                return {
+                    'writer': {
+                        'id': writer.id,
+                        'username': writer.username or '',
+                        'email': writer.email or '',
+                        'first_name': writer.first_name or '',
+                        'last_name': writer.last_name or '',
+                    }
+                }
+        except Exception:
+            pass
+        return None

@@ -41,7 +41,7 @@ class InternalLinkingService:
         Returns:
             List of suggested posts/pages with relevance scores
         """
-        from blog_pages_management._legacy_models import BlogPost
+        from blog_pages_management.models import BlogPost
         try:
             from service_pages_management._legacy_models import ServicePage
         except ImportError:
@@ -142,7 +142,7 @@ class InternalLinkingService:
         Returns:
             List of related content items
         """
-        from blog_pages_management._legacy_models import BlogPost
+        from blog_pages_management.models import BlogPost
         try:
             from service_pages_management._legacy_models import ServicePage
         except ImportError:

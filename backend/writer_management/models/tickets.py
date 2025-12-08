@@ -63,3 +63,14 @@ class WriterSupportTicket(models.Model):
             except Exception:
                 pass
         super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = "Writer Support Ticket"
+        verbose_name_plural = "Writer Support Tickets"
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['writer', 'status', 'created_at']),
+            models.Index(fields=['website', 'status']),
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['resolved_by', 'status']),
+        ]

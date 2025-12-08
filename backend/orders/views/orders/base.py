@@ -101,6 +101,15 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated, IsOrderOwnerOrSupport]
     pagination_class = LimitedPagination  # Paginated with safety limits
+    
+    def get_serializer_class(self):
+        """
+        Use lightweight serializer for list views to reduce data transfer.
+        """
+        if self.action == 'list':
+            from orders.serializers_legacy import OrderListSerializer
+            return OrderListSerializer
+        return OrderSerializer
 
     def get_queryset(self):
         """
@@ -132,6 +141,12 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
         ).prefetch_related(
             'extra_services',   # ManyToMany field used in serializer
         )
+        
+        # For list views, defer large fields to reduce data transfer
+        if self.action == 'list':
+            qs = qs.defer(
+                'order_instructions',  # Large text field, not needed in list view
+            )
 
         # Role-based scoping
         # Both superadmin and admin should see all orders (no website filtering)
@@ -817,21 +832,150 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
     @decorators.action(detail=True, methods=["post"], url_path="pay/wallet")
     def pay_with_wallet(self, request, pk=None):
         """
-        Mark an order as paid using wallet (placeholder implementation).
+        Process order payment using client's wallet balance.
+        
+        This endpoint:
+        1. Calculates the order total (including discounts)
+        2. Creates an OrderPayment record
+        3. Deducts the amount from the client's wallet
+        4. Marks the order as paid
+        
         Requires client to own the order or staff privileges.
         """
+        from django.db import transaction
+        from order_payments_management.services.payment_service import OrderPaymentService
+        from orders.services.pricing_calculator import PricingCalculatorService
+        from wallet.models import Wallet
+        from wallet.exceptions import InsufficientWalletBalance
+        
         order = get_object_or_404(Order, pk=pk)
         user = request.user
+        
+        # Authorization check
         if not (user.is_superuser or user.role in ["admin", "support"] or order.client_id == user.id):
             return Response({"detail": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
 
+        # Check if order is already paid
         if order.is_paid:
-            return Response({"detail": "Order already paid."}, status=status.HTTP_200_OK)
-
-        # TODO: integrate real wallet deduction here
-        order.is_paid = True
-        order.save(update_fields=["is_paid", "updated_at"])
-        return Response(OrderSerializer(order, context={"request": request}).data, status=status.HTTP_200_OK)
+            return Response(
+                {"detail": "Order already paid."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if order has a client
+        if not order.client:
+            return Response(
+                {"detail": "Order does not have an associated client."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get the client making the payment (use order.client or request.user if staff)
+        client = order.client
+        if user.role in ["admin", "support", "superadmin"]:
+            # Staff can pay on behalf of client, but use order's client for wallet
+            client = order.client
+        
+        try:
+            with transaction.atomic():
+                # Calculate order total using pricing calculator
+                calculator = PricingCalculatorService(order)
+                order_total = calculator.calculate_total_price()
+                
+                # Ensure order.total_price is up to date
+                if order.total_price != order_total:
+                    order.total_price = order_total
+                    order.save(update_fields=["total_price"])
+                
+                # Ensure wallet exists (website-specific) and lock it for atomic operation
+                from wallet.services.wallet_transaction_service import WalletTransactionService
+                wallet = WalletTransactionService.get_wallet(client, order.website)
+                wallet = Wallet.objects.select_for_update().get(id=wallet.id)
+                
+                # Create payment record first to get the actual discounted amount
+                payment = OrderPaymentService.create_payment(
+                    order=order,
+                    client=client,
+                    payment_method='wallet',
+                    amount=order_total,
+                    discount_code=order.discount.code if order.discount else None,
+                    original_amount=order_total
+                )
+                
+                # Check wallet balance against the actual discounted amount
+                payment_amount = payment.discounted_amount or payment.amount
+                if wallet.balance < payment_amount:
+                    return Response(
+                        {
+                            "detail": "Insufficient wallet balance.",
+                            "required": float(payment_amount),
+                            "available": float(wallet.balance),
+                            "shortfall": float(payment_amount - wallet.balance)
+                        },
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Process wallet payment (deducts from wallet and marks payment as completed)
+                payment = OrderPaymentService.process_wallet_payment(payment)
+                
+                # Mark order as paid
+                order.is_paid = True
+                order.save(update_fields=["is_paid", "updated_at"])
+                
+                # Send payment notification
+                try:
+                    from notifications_system.services.notification_helper import NotificationHelper
+                    NotificationHelper.notify_order_paid(
+                        order=order,
+                        amount=payment.discounted_amount or payment.amount,
+                        payment_method='wallet'
+                    )
+                except Exception as e:
+                    # Log error but don't fail the payment
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.error(f"Failed to send payment notification for order {order.id}: {e}")
+                
+                return Response({
+                    "detail": "Order paid successfully using wallet.",
+                    "order": OrderSerializer(order, context={"request": request}).data,
+                    "payment": {
+                        "id": payment.id,
+                        "amount": float(payment.discounted_amount or payment.amount),
+                        "status": payment.status,
+                        "method": payment.payment_method
+                    },
+                    "wallet_balance": float(wallet.balance)
+                }, status=status.HTTP_200_OK)
+                
+        except ValueError as e:
+            # Handle insufficient funds or other validation errors
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except InsufficientWalletBalance as e:
+            return Response(
+                {
+                    "detail": "Insufficient wallet balance.",
+                    "message": str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except ValidationError as e:
+            return Response(
+                {"detail": f"Payment validation error: {str(e)}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            import logging
+            import traceback
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error processing wallet payment for order {order.id}: {e}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {"detail": "An error occurred while processing the payment. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     # ---------- soft delete (clients: only UNPAID; staff: any) ----------
 

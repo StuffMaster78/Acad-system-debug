@@ -723,12 +723,38 @@ class BlogPostViewSet(viewsets.ModelViewSet):
         if cached_blog:
             return Response(cached_blog)
 
-        if not blog:
-            blog = self.get_object()
-            cache.set(cache_key, blog, timeout=3600)  # Cache for 1 hour
+        blog = self.get_object()
+        cache.set(cache_key, blog, timeout=3600)  # Cache for 1 hour
 
         serializer = self.get_serializer(blog)
         return Response(serializer.data)
+    
+    @action(detail=True, methods=['get'], url_path='preview')
+    def preview(self, request, pk=None):
+        """
+        Preview a blog post as it will appear publicly.
+        Accessible to authenticated users (admins, content creators).
+        Works for both published and draft posts.
+        """
+        blog = self.get_object()
+        
+        # Use enhanced serializer to include all features (same as public view)
+        try:
+            from ..serializers.enhanced_serializers import EnhancedBlogPostSerializer
+            serializer = EnhancedBlogPostSerializer(
+                blog,
+                context={'request': request}
+            )
+        except ImportError:
+            serializer = self.get_serializer(blog)
+        
+        return Response({
+            'preview': True,
+            'is_internal_preview': True,
+            'is_published': blog.is_published,
+            'status': blog.status,
+            'blog': serializer.data
+        }, status=status.HTTP_200_OK)
         
 
     @action(detail=True, methods=["get"])

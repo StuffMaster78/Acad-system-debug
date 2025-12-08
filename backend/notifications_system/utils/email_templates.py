@@ -6,7 +6,7 @@ from django.core.mail import EmailMultiAlternatives, send_mail
 from django.template.loader import render_to_string
 
 from notifications_system.enums import NotificationPriority
-from notifications_system.utils.email_templates import (
+from notifications_system.utils.template_priority import (
     get_template_for_priority,
 )
 

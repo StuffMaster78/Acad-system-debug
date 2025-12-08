@@ -1,12 +1,14 @@
 """
-Public preview view for blog posts using preview tokens.
+Preview views for blog posts and SEO pages.
+Includes both public token-based previews and internal authenticated previews.
 """
 from django.shortcuts import get_object_or_404
 from django.http import Http404
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import AllowAny
+from rest_framework.decorators import api_view, permission_classes, action
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework import viewsets
 
 from ..models.draft_editing import BlogPostPreview
 from ..models import BlogPost
@@ -57,3 +59,111 @@ def preview_blog_post(request, token):
         'blog': serializer.data
     }, status=status.HTTP_200_OK)
 
+
+class InternalPreviewViewSet(viewsets.ViewSet):
+    """
+    Internal preview endpoints for authenticated users.
+    Allows admins and content creators to preview how blog/SEO pages will appear publicly.
+    """
+    permission_classes = [IsAuthenticated]
+    
+    @action(detail=False, methods=['get'], url_path='blog/(?P<blog_id>[^/.]+)')
+    def preview_blog(self, request, blog_id=None):
+        """
+        Preview a blog post as it will appear publicly.
+        Accessible to authenticated users (admins, content creators).
+        Works for both published and draft posts.
+        """
+        try:
+            blog = BlogPost.objects.get(id=blog_id, is_deleted=False)
+        except BlogPost.DoesNotExist:
+            return Response(
+                {'error': 'Blog post not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check permissions - user must have access to this blog's website
+        user = request.user
+        if user.role not in ['superadmin', 'admin']:
+            user_website = getattr(user, 'website', None)
+            if user_website and blog.website != user_website:
+                return Response(
+                    {'error': 'You do not have permission to preview this blog post'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Use enhanced serializer to include all features (same as public view)
+        try:
+            from ..serializers.enhanced_serializers import EnhancedBlogPostSerializer
+            serializer = EnhancedBlogPostSerializer(
+                blog,
+                context={'request': request}
+            )
+        except ImportError:
+            serializer = BlogPostSerializer(blog, context={'request': request})
+        
+        return Response({
+            'preview': True,
+            'is_internal_preview': True,
+            'is_published': blog.is_published,
+            'status': blog.status,
+            'blog': serializer.data
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path='blog-by-slug/(?P<slug>[^/.]+)')
+    def preview_blog_by_slug(self, request, slug=None):
+        """
+        Preview a blog post by slug as it will appear publicly.
+        Accessible to authenticated users (admins, content creators).
+        """
+        website_id = request.query_params.get('website_id')
+        
+        queryset = BlogPost.objects.filter(
+            slug=slug,
+            is_deleted=False
+        )
+        
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        
+        try:
+            blog = queryset.first()
+        except BlogPost.DoesNotExist:
+            return Response(
+                {'error': 'Blog post not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if not blog:
+            return Response(
+                {'error': 'Blog post not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check permissions
+        user = request.user
+        if user.role not in ['superadmin', 'admin']:
+            user_website = getattr(user, 'website', None)
+            if user_website and blog.website != user_website:
+                return Response(
+                    {'error': 'You do not have permission to preview this blog post'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Use enhanced serializer
+        try:
+            from ..serializers.enhanced_serializers import EnhancedBlogPostSerializer
+            serializer = EnhancedBlogPostSerializer(
+                blog,
+                context={'request': request}
+            )
+        except ImportError:
+            serializer = BlogPostSerializer(blog, context={'request': request})
+        
+        return Response({
+            'preview': True,
+            'is_internal_preview': True,
+            'is_published': blog.is_published,
+            'status': blog.status,
+            'blog': serializer.data
+        }, status=status.HTTP_200_OK)

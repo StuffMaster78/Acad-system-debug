@@ -165,6 +165,296 @@ class ScheduledWriterPaymentViewSet(viewsets.ModelViewSet):
     serializer_class = ScheduledWriterPaymentSerializer
     permission_classes = [IsAdmin]
 
+    def get_permissions(self):
+        """
+        Allow admin, superadmin, and support to mark payments as paid.
+        """
+        if self.action in ['mark_as_paid', 'bulk_mark_as_paid']:
+            return [permissions.IsAuthenticated()]
+        return [IsAdmin()]
+
+    @action(detail=True, methods=['post'], url_path='mark-as-paid')
+    def mark_as_paid(self, request, pk=None):
+        """
+        Mark a specific payment as paid (admin/superadmin/support only).
+        """
+        from django.utils.timezone import now
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        # Check permissions
+        user = request.user
+        if user.role not in ['admin', 'superadmin', 'support']:
+            return Response(
+                {"error": "Only admin, superadmin, and support can mark payments as paid."},
+                status=403
+            )
+        
+        try:
+            payment = self.get_object()
+        except ScheduledWriterPayment.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=404)
+        
+        if payment.status == 'Paid':
+            return Response(
+                {"message": "Payment is already marked as paid."},
+                status=200
+            )
+        
+        # Mark as paid
+        payment.status = 'Paid'
+        payment.payment_date = now()
+        payment.save()
+        
+        # Create payment confirmation if it doesn't exist
+        try:
+            from .models import PaymentConfirmation
+            confirmation, created = PaymentConfirmation.objects.get_or_create(
+                payment=payment,
+                defaults={
+                    'website': payment.website,
+                    'writer_wallet': payment.writer_wallet,
+                    'confirmed': True,
+                }
+            )
+            if not created:
+                confirmation.confirmed = True
+                confirmation.save()
+        except Exception as e:
+            # PaymentConfirmation might be linked to WriterPayment, not ScheduledWriterPayment
+            pass
+        
+        return Response({
+            "message": "Payment marked as paid successfully.",
+            "payment": ScheduledWriterPaymentSerializer(payment).data
+        }, status=200)
+
+    @action(detail=False, methods=['post'], url_path='bulk-mark-as-paid')
+    def bulk_mark_as_paid(self, request):
+        """
+        Mark multiple payments as paid (admin/superadmin/support only).
+        Can mark all payments in a batch/period or specific payment IDs.
+        """
+        from django.utils.timezone import now
+        from django.contrib.auth import get_user_model
+        from django.db import transaction
+        User = get_user_model()
+        
+        # Check permissions
+        user = request.user
+        if user.role not in ['admin', 'superadmin', 'support']:
+            return Response(
+                {"error": "Only admin, superadmin, and support can mark payments as paid."},
+                status=403
+            )
+        
+        payment_ids = request.data.get('payment_ids', [])
+        batch_id = request.data.get('batch_id')  # PaymentSchedule ID
+        schedule_id = request.data.get('schedule_id')  # PaymentSchedule ID (alias)
+        writer_id = request.data.get('writer_id')  # Filter by writer
+        
+        if not payment_ids and not batch_id and not schedule_id:
+            return Response(
+                {"error": "Either payment_ids, batch_id, or schedule_id must be provided."},
+                status=400
+            )
+        
+        # Build queryset
+        queryset = ScheduledWriterPayment.objects.filter(status='Pending')
+        
+        if payment_ids:
+            queryset = queryset.filter(id__in=payment_ids)
+        elif batch_id or schedule_id:
+            batch_id = batch_id or schedule_id
+            from .models import PaymentSchedule
+            try:
+                schedule = PaymentSchedule.objects.get(pk=batch_id)
+                queryset = queryset.filter(batch=schedule)
+            except PaymentSchedule.DoesNotExist:
+                return Response({"error": "Payment schedule not found"}, status=404)
+        
+        if writer_id:
+            queryset = queryset.filter(writer_wallet__writer_id=writer_id)
+        
+        # Mark all as paid
+        updated_count = 0
+        with transaction.atomic():
+            for payment in queryset:
+                payment.status = 'Paid'
+                payment.payment_date = now()
+                payment.save()
+                updated_count += 1
+                
+                # Create payment confirmation
+                try:
+                    from .models import PaymentConfirmation
+                    PaymentConfirmation.objects.get_or_create(
+                        payment=payment,
+                        defaults={
+                            'website': payment.website,
+                            'writer_wallet': payment.writer_wallet,
+                            'confirmed': True,
+                        }
+                    )
+                except Exception:
+                    pass
+        
+        return Response({
+            "message": f"Successfully marked {updated_count} payment(s) as paid.",
+            "updated_count": updated_count
+        }, status=200)
+
+    @action(detail=True, methods=['get'], url_path='breakdown')
+    def payment_breakdown(self, request, pk=None):
+        """
+        Get detailed breakdown of a specific payment including all orders, tips, and fines.
+        """
+        from orders.models import Order
+        from writer_management.models.tipping import Tip
+        from datetime import timedelta
+        
+        try:
+            payment = ScheduledWriterPayment.objects.select_related(
+                'writer_wallet__writer__user',
+                'batch',
+                'website'
+            ).prefetch_related('orders__order').get(pk=pk)
+        except ScheduledWriterPayment.DoesNotExist:
+            return Response({"error": "Payment not found"}, status=404)
+        
+        # Get order details
+        order_records = payment.orders.all()
+        orders_data = []
+        for record in order_records:
+            order = record.order
+            if not order:
+                continue
+            orders_data.append({
+                'id': order.id,
+                'topic': order.topic,
+                'status': order.status,
+                'amount_paid': float(record.amount_paid),
+                'number_of_pages': getattr(order, 'number_of_pages', None),
+                'number_of_slides': getattr(order, 'number_of_slides', None),
+                'created_at': order.created_at.isoformat() if order.created_at else None,
+                'submitted_at': order.submitted_at.isoformat() if hasattr(order, 'submitted_at') and order.submitted_at else None,
+            })
+        
+        # Get tips for this payment period
+        tips_data = []
+        try:
+            # writer_wallet.writer is the User, not WriterProfile
+            writer_user = payment.writer_wallet.writer if payment.writer_wallet and payment.writer_wallet.writer else None
+            schedule = payment.batch
+            if writer_user and schedule:
+                period_start = schedule.scheduled_date
+                period_end = schedule.scheduled_date + timedelta(days=14 if schedule.schedule_type == 'Bi-Weekly' else 30)
+                
+                tips = Tip.objects.filter(
+                    writer=writer_user,
+                    website=payment.website,
+                    sent_at__gte=period_start,
+                    sent_at__lt=period_end
+                ).select_related('order', 'client')
+                
+                for tip in tips:
+                    tips_data.append({
+                        'id': tip.id,
+                        'amount': float(tip.writer_earning),
+                        'order_id': tip.order_id,
+                        'order_topic': tip.order.topic if tip.order else None,
+                        'reason': tip.tip_reason,
+                        'sent_at': tip.sent_at.isoformat() if tip.sent_at else None,
+                    })
+        except Exception as e:
+            # If tips can't be loaded, continue without them
+            pass
+        
+        # Get fines
+        fines_data = []
+        try:
+            from fines.models import Fine
+            from writer_management.models.profile import WriterProfile
+            # writer_wallet.writer is the User, need to get WriterProfile
+            writer_user = payment.writer_wallet.writer if payment.writer_wallet and payment.writer_wallet.writer else None
+            writer_profile = None
+            if writer_user:
+                try:
+                    writer_profile = WriterProfile.objects.filter(user=writer_user).first()
+                except Exception:
+                    pass
+            schedule = payment.batch
+            if writer_profile and schedule:
+                period_start = schedule.scheduled_date
+                period_end = schedule.scheduled_date + timedelta(days=14 if schedule.schedule_type == 'Bi-Weekly' else 30)
+                fines = Fine.objects.filter(
+                    writer=writer_profile,
+                    website=payment.website,
+                    created_at__gte=period_start,
+                    created_at__lt=period_end
+                )
+                for fine in fines:
+                    fines_data.append({
+                        'id': fine.id,
+                        'amount': float(fine.amount),
+                        'reason': fine.reason,
+                        'fine_type': fine.fine_type,
+                        'created_at': fine.created_at.isoformat() if fine.created_at else None,
+                    })
+        except Exception:
+            pass
+        
+        # Get writer info safely
+        # writer_wallet.writer is the User, not WriterProfile
+        writer_user = payment.writer_wallet.writer if payment.writer_wallet and payment.writer_wallet.writer else None
+        writer_profile = None
+        if writer_user:
+            try:
+                from writer_management.models.profile import WriterProfile
+                writer_profile = WriterProfile.objects.filter(user=writer_user).first()
+            except Exception:
+                pass
+        
+        schedule = payment.batch
+        
+        writer_info = {
+            'id': writer_profile.id if writer_profile else (writer_user.id if writer_user else None),
+            'username': writer_user.username if writer_user else 'Unknown',
+            'email': writer_user.email if writer_user else '',
+            'full_name': writer_user.get_full_name() if writer_user else (writer_profile.registration_id if writer_profile else 'Unknown Writer'),
+            'registration_id': writer_profile.registration_id if writer_profile else '',
+        }
+        
+        period_info = {}
+        if schedule:
+            period_start = schedule.scheduled_date
+            period_end = schedule.scheduled_date + timedelta(days=14 if schedule.schedule_type == 'Bi-Weekly' else 30)
+            period_info = {
+                'type': schedule.schedule_type,
+                'start': period_start.isoformat() if period_start else None,
+                'end': period_end.isoformat() if period_end else None,
+            }
+        
+        return Response({
+            'payment_id': payment.id,
+            'reference_code': payment.reference_code,
+            'writer': writer_info,
+            'amount': float(payment.amount),
+            'status': payment.status,
+            'payment_date': payment.payment_date.isoformat() if payment.payment_date else None,
+            'period': period_info,
+            'orders': orders_data,
+            'tips': tips_data,
+            'fines': fines_data,
+            'summary': {
+                'total_orders': len(orders_data),
+                'total_order_amount': float(payment.amount),
+                'total_tips': sum(t['amount'] for t in tips_data),
+                'total_fines': sum(f['amount'] for f in fines_data),
+                'net_earnings': float(payment.amount) + sum(t['amount'] for t in tips_data) - sum(f['amount'] for f in fines_data),
+            }
+        })
+
 
 class PaymentOrderRecordViewSet(viewsets.ModelViewSet):
     """ API endpoint for order records related to writer payments. """
@@ -298,114 +588,6 @@ class PaymentOrderRecordViewSet(viewsets.ModelViewSet):
             "count": updated_count
         }, status=200)
 
-    
-    @action(detail=True, methods=['get'], url_path='breakdown')
-    def payment_breakdown(self, request, pk=None):
-        """
-        Get detailed breakdown of a specific payment including all orders, tips, and fines.
-        """
-        from orders.models import Order
-        from writer_management.models.tipping import Tip
-        from datetime import timedelta
-        
-        try:
-            payment = ScheduledWriterPayment.objects.select_related(
-                'writer_wallet__writer__user',
-                'batch',
-                'website'
-            ).prefetch_related('orders__order').get(pk=pk)
-        except ScheduledWriterPayment.DoesNotExist:
-            return Response({"error": "Payment not found"}, status=404)
-        
-        # Get order details
-        order_records = payment.orders.all()
-        orders_data = []
-        for record in order_records:
-            order = record.order
-            orders_data.append({
-                'id': order.id,
-                'topic': order.topic,
-                'status': order.status,
-                'amount_paid': float(record.amount_paid),
-                'created_at': order.created_at.isoformat() if order.created_at else None,
-                'completed_at': order.completed_at.isoformat() if order.completed_at else None,
-            })
-        
-        # Get tips for this payment period
-        writer_user = payment.writer_wallet.writer.user
-        schedule = payment.batch
-        period_start = schedule.scheduled_date
-        period_end = schedule.scheduled_date + timedelta(days=14 if schedule.schedule_type == 'Bi-Weekly' else 30)
-        
-        tips = Tip.objects.filter(
-            writer=writer_user,
-            website=payment.website,
-            sent_at__gte=period_start,
-            sent_at__lt=period_end
-        ).select_related('order', 'client')
-        
-        tips_data = []
-        for tip in tips:
-            tips_data.append({
-                'id': tip.id,
-                'amount': float(tip.writer_earning),
-                'order_id': tip.order_id,
-                'order_topic': tip.order.topic if tip.order else None,
-                'reason': tip.tip_reason,
-                'sent_at': tip.sent_at.isoformat() if tip.sent_at else None,
-            })
-        
-        # Get fines
-        fines_data = []
-        try:
-            from fines.models import Fine
-            fines = Fine.objects.filter(
-                writer=payment.writer_wallet.writer,
-                website=payment.website,
-                created_at__gte=period_start,
-                created_at__lt=period_end
-            )
-            for fine in fines:
-                fines_data.append({
-                    'id': fine.id,
-                    'amount': float(fine.amount),
-                    'reason': fine.reason,
-                    'fine_type': fine.fine_type,
-                    'created_at': fine.created_at.isoformat() if fine.created_at else None,
-                })
-        except Exception:
-            pass
-        
-        return Response({
-            'payment_id': payment.id,
-            'reference_code': payment.reference_code,
-            'writer': {
-                'id': payment.writer_wallet.writer.id,
-                'username': payment.writer_wallet.writer.user.username,
-                'email': payment.writer_wallet.writer.user.email,
-                'full_name': payment.writer_wallet.writer.user.get_full_name() or payment.writer_wallet.writer.user.username,
-                'registration_id': payment.writer_wallet.writer.registration_id,
-            },
-            'amount': float(payment.amount),
-            'status': payment.status,
-            'payment_date': payment.payment_date.isoformat() if payment.payment_date else None,
-            'period': {
-                'type': schedule.schedule_type,
-                'start': period_start.isoformat() if period_start else None,
-                'end': period_end.isoformat() if period_end else None,
-            },
-            'orders': orders_data,
-            'tips': tips_data,
-            'fines': fines_data,
-            'summary': {
-                'total_orders': len(orders_data),
-                'total_order_amount': float(payment.amount),
-                'total_tips': sum(t['amount'] for t in tips_data),
-                'total_fines': sum(f['amount'] for f in fines_data),
-                'net_earnings': float(payment.amount) + sum(t['amount'] for t in tips_data) - sum(f['amount'] for f in fines_data),
-            }
-        })
-
 
 class WriterPaymentViewSet(viewsets.ModelViewSet):
     """ API endpoint for writer payments. """
@@ -474,74 +656,88 @@ class WriterPaymentViewSet(viewsets.ModelViewSet):
             total_amount = Decimal('0.00')
             writer_count = 0
             
-            for payment in scheduled_payments.select_related('writer_wallet__writer__user', 'writer_wallet__website').prefetch_related('orders__order'):
-                # Skip payments with missing relationships
-                if not payment.writer_wallet or not payment.writer_wallet.writer or not payment.writer_wallet.writer.user:
+            for payment in scheduled_payments.select_related('writer_wallet__writer', 'writer_wallet__website').prefetch_related('orders__order', 'writer_wallet__writer__writer_profile'):
+                # Skip payments with missing writer_wallet or writer (User)
+                if not payment.writer_wallet or not payment.writer_wallet.writer:
                     continue
                 
                 # Get order count and order details
                 order_records = payment.orders.all()
                 order_count = order_records.count()
                 order_ids = [record.order_id for record in order_records]
+                # Get order details with amounts
+                orders_detail = []
+                for record in order_records:
+                    orders_detail.append({
+                        'id': record.order_id,
+                        'amount_paid': float(record.amount_paid),
+                        'topic': record.order.topic if record.order else None,
+                    })
+                
+                # WriterWallet.writer is the User, not WriterProfile
+                writer_user = payment.writer_wallet.writer
+                writer_profile = getattr(writer_user, 'writer_profile', None) if writer_user else None
                 
                 # Calculate tips for this payment period
-                writer_user = payment.writer_wallet.writer.user
                 tips_total = Decimal('0.00')
-                try:
-                    from writer_management.models.tipping import Tip
-                    # Get tips within the payment period
-                    period_start = schedule.scheduled_date
-                    period_end = schedule.scheduled_date + timedelta(days=14 if schedule.schedule_type == 'Bi-Weekly' else 30)
-                    tips = Tip.objects.filter(
-                        writer=writer_user,
-                        website=schedule.website,
-                        sent_at__gte=period_start,
-                        sent_at__lt=period_end
-                    )
-                    tips_total = sum(tip.writer_earning for tip in tips)
-                except Exception:
-                    pass
+                if writer_user:
+                    try:
+                        from writer_management.models.tipping import Tip
+                        # Get tips within the payment period
+                        period_start = schedule.scheduled_date
+                        period_end = schedule.scheduled_date + timedelta(days=14 if schedule.schedule_type == 'Bi-Weekly' else 30)
+                        tips = Tip.objects.filter(
+                            writer=writer_user,
+                            website=schedule.website,
+                            sent_at__gte=period_start,
+                            sent_at__lt=period_end
+                        )
+                        tips_total = sum(tip.writer_earning for tip in tips)
+                    except Exception:
+                        pass
                 
                 # Calculate fines for this payment period
                 fines_total = Decimal('0.00')
-                try:
-                    from fines.models import Fine
-                    fines = Fine.objects.filter(
-                        writer=payment.writer_wallet.writer,
-                        website=schedule.website,
-                        created_at__gte=period_start,
-                        created_at__lt=period_end,
-                        status__in=['active', 'paid']
-                    )
-                    fines_total = sum(fine.amount for fine in fines)
-                except Exception:
-                    # Fallback to wallet transactions
+                if writer_profile:
                     try:
-                        from writer_wallet.models import WalletTransaction
-                        fines_transactions = WalletTransaction.objects.filter(
-                            writer_wallet=payment.writer_wallet,
-                            transaction_type='Fine',
+                        from fines.models import Fine
+                        period_start = schedule.scheduled_date
+                        period_end = schedule.scheduled_date + timedelta(days=14 if schedule.schedule_type == 'Bi-Weekly' else 30)
+                        fines = Fine.objects.filter(
+                            writer=writer_profile,
+                            website=schedule.website,
                             created_at__gte=period_start,
-                            created_at__lt=period_end
+                            created_at__lt=period_end,
+                            status__in=['active', 'paid']
                         )
-                        fines_total = sum(abs(t.amount) for t in fines_transactions)
+                        fines_total = sum(fine.amount for fine in fines)
                     except Exception:
-                        pass
+                        # Fallback to wallet transactions
+                        try:
+                            from writer_wallet.models import WalletTransaction
+                            period_start = schedule.scheduled_date
+                            period_end = schedule.scheduled_date + timedelta(days=14 if schedule.schedule_type == 'Bi-Weekly' else 30)
+                            fines_transactions = WalletTransaction.objects.filter(
+                                writer_wallet=payment.writer_wallet,
+                                transaction_type='Fine',
+                                created_at__gte=period_start,
+                                created_at__lt=period_end
+                            )
+                            fines_total = sum(abs(t.amount) for t in fines_transactions)
+                        except Exception:
+                            pass
                 
                 # Calculate total earnings (amount + tips - fines)
                 total_earnings = payment.amount + tips_total - fines_total
                 
-                writer = payment.writer_wallet.writer
-                user = writer.user
-                
                 payments_data.append({
                     'id': payment.id,
                     'writer': {
-                        'id': writer.id,
-                        'username': user.username if user else 'Unknown',
-                        'email': user.email if user else '',
-                        'full_name': user.get_full_name() if user else (writer.registration_id or 'Unknown Writer'),
-                        'registration_id': writer.registration_id or '',
+                        'id': writer_profile.id if writer_profile else writer_user.id,
+                        'username': writer_user.username if writer_user else 'Unknown',
+                        'email': writer_user.email if writer_user else '',
+                        'full_name': writer_user.get_full_name() if writer_user else (writer_profile.registration_id if writer_profile else 'Unknown Writer'),
+                        'registration_id': writer_profile.registration_id if writer_profile else '',
                     },
                     'amount': float(payment.amount),
                     'tips': float(tips_total),
@@ -549,6 +745,7 @@ class WriterPaymentViewSet(viewsets.ModelViewSet):
                     'total_earnings': float(total_earnings),
                     'order_count': order_count,
                     'order_ids': order_ids,
+                    'orders': orders_detail,
                     'status': payment.status,
                     'reference_code': payment.reference_code,
                     'payment_date': payment.payment_date.isoformat() if payment.payment_date else None,
@@ -631,10 +828,19 @@ class WriterPaymentRequestViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         user = self.request.user
+        queryset = WriterPaymentRequest.objects.select_related(
+            'writer_wallet__writer',
+            'writer_wallet__website',
+            'requested_by',
+            'reviewed_by',
+        ).prefetch_related(
+            'writer_wallet__writer__writer_profile'
+        )
+        
         if user.role in ['admin', 'superadmin', 'support']:
-            return WriterPaymentRequest.objects.all()
+            return queryset
         # Writers can only see their own requests
-        return WriterPaymentRequest.objects.filter(writer_wallet__writer__user=user)
+        return queryset.filter(writer_wallet__writer=user)
     
     @action(detail=False, methods=['post'], url_path='request-payment')
     def request_payment(self, request):

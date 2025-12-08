@@ -12,6 +12,7 @@ Implements all GDPR articles:
 - Article 33: Data breach notification
 """
 import json
+import logging
 from datetime import timedelta
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -20,6 +21,10 @@ from typing import Dict, Any, List
 
 from users.models import PrivacySettings, DataAccessLog
 from authentication.models.security_events import SecurityEvent
+from notifications_system.utils.email_templates import send_priority_email
+from notifications_system.enums import NotificationPriority
+
+logger = logging.getLogger(__name__)
 
 
 class GDPRService:
@@ -526,14 +531,180 @@ class GDPRService:
                 }
             )
         
-        # TODO: Send breach notification email to user
-        # This should be implemented with proper email templates
+        # Send breach notification email to user (GDPR Article 33 requirement)
+        notification_sent = False
+        try:
+            # Map severity to notification priority
+            severity_priority_map = {
+                'low': NotificationPriority.LOW,
+                'medium': NotificationPriority.NORMAL,
+                'high': NotificationPriority.HIGH,
+                'critical': NotificationPriority.CRITICAL,
+            }
+            priority = severity_priority_map.get(severity, NotificationPriority.HIGH)
+            
+            # Format breach type for display
+            breach_type_display = {
+                'unauthorized_access': 'Unauthorized Access',
+                'data_loss': 'Data Loss',
+                'system_compromise': 'System Compromise',
+            }.get(breach_type, breach_type.replace('_', ' ').title())
+            
+            # Format affected data
+            affected_data_str = ', '.join(affected_data) if affected_data else 'User data'
+            
+            # Get website name
+            website_name = self.website.name if self.website else 'Writing System'
+            
+            # Create email subject
+            subject = f"IMPORTANT: Data Breach Notification - {website_name}"
+            
+            # Create email message (plain text)
+            message = f"""IMPORTANT DATA BREACH NOTIFICATION
+
+Dear {self.user.get_full_name() or self.user.username},
+
+We are writing to inform you of a data breach that may have affected your personal data, in accordance with GDPR Article 33.
+
+BREACH DETAILS:
+- Type: {breach_type_display}
+- Severity: {severity.upper()}
+- Affected Data: {affected_data_str}
+- Date: {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}
+
+WHAT HAPPENED:
+A security incident has been detected that may have compromised your personal data. We have taken immediate action to contain the breach and investigate the matter.
+
+WHAT WE ARE DOING:
+1. We have contained the breach and secured our systems
+2. We are conducting a thorough investigation
+3. We are notifying all affected users as required by GDPR
+4. We are working with relevant authorities as necessary
+
+WHAT YOU SHOULD DO:
+1. Review your account activity for any suspicious behavior
+2. Change your password immediately if you haven't done so recently
+3. Enable two-factor authentication if available
+4. Monitor your financial accounts and credit reports
+5. Be cautious of phishing attempts related to this breach
+
+YOUR RIGHTS:
+Under GDPR, you have the right to:
+- Access your personal data (Article 15)
+- Rectify inaccurate data (Article 16)
+- Request erasure of your data (Article 17)
+- Restrict processing of your data (Article 18)
+- Data portability (Article 20)
+- Object to processing (Article 21)
+
+If you have any questions or concerns, please contact our support team immediately.
+
+This notification is sent in compliance with GDPR Article 33 (Notification of a personal data breach to the supervisory authority).
+
+Best regards,
+The {website_name} Security Team"""
+            
+            # Create HTML message
+            html_message = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{subject}</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: #dc3545; color: white; padding: 20px; border-radius: 5px 5px 0 0; text-align: center;">
+        <h1 style="margin: 0; font-size: 24px;">⚠️ DATA BREACH NOTIFICATION</h1>
+    </div>
+    
+    <div style="background: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; border-top: none;">
+        <p>Dear <strong>{self.user.get_full_name() or self.user.username}</strong>,</p>
+        
+        <p>We are writing to inform you of a data breach that may have affected your personal data, in accordance with <strong>GDPR Article 33</strong>.</p>
+        
+        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0;">
+            <h2 style="margin-top: 0; color: #856404;">BREACH DETAILS</h2>
+            <ul style="color: #856404; margin: 0;">
+                <li><strong>Type:</strong> {breach_type_display}</li>
+                <li><strong>Severity:</strong> <span style="text-transform: uppercase;">{severity}</span></li>
+                <li><strong>Affected Data:</strong> {affected_data_str}</li>
+                <li><strong>Date:</strong> {timezone.now().strftime('%Y-%m-%d %H:%M:%S UTC')}</li>
+            </ul>
+        </div>
+        
+        <h2 style="color: #dc3545;">WHAT HAPPENED</h2>
+        <p>A security incident has been detected that may have compromised your personal data. We have taken immediate action to contain the breach and investigate the matter.</p>
+        
+        <h2 style="color: #0d6efd;">WHAT WE ARE DOING</h2>
+        <ol>
+            <li>We have contained the breach and secured our systems</li>
+            <li>We are conducting a thorough investigation</li>
+            <li>We are notifying all affected users as required by GDPR</li>
+            <li>We are working with relevant authorities as necessary</li>
+        </ol>
+        
+        <div style="background: #dc3545; color: white; padding: 20px; border-radius: 5px; margin: 20px 0;">
+            <h2 style="margin-top: 0; color: white;">WHAT YOU SHOULD DO</h2>
+            <ol style="color: white; margin: 0;">
+                <li>Review your account activity for any suspicious behavior</li>
+                <li>Change your password immediately if you haven't done so recently</li>
+                <li>Enable two-factor authentication if available</li>
+                <li>Monitor your financial accounts and credit reports</li>
+                <li>Be cautious of phishing attempts related to this breach</li>
+            </ol>
+        </div>
+        
+        <h2 style="color: #198754;">YOUR RIGHTS</h2>
+        <p>Under GDPR, you have the right to:</p>
+        <ul>
+            <li>Access your personal data (Article 15)</li>
+            <li>Rectify inaccurate data (Article 16)</li>
+            <li>Request erasure of your data (Article 17)</li>
+            <li>Restrict processing of your data (Article 18)</li>
+            <li>Data portability (Article 20)</li>
+            <li>Object to processing (Article 21)</li>
+        </ul>
+        
+        <p>If you have any questions or concerns, please contact our support team immediately.</p>
+        
+        <div style="background: #e9ecef; padding: 15px; border-radius: 5px; margin: 20px 0; text-align: center; font-size: 12px; color: #6c757d;">
+            <p style="margin: 0;">This notification is sent in compliance with <strong>GDPR Article 33</strong> (Notification of a personal data breach to the supervisory authority).</p>
+        </div>
+        
+        <p>Best regards,<br>
+        <strong>The {website_name} Security Team</strong></p>
+    </div>
+</body>
+</html>"""
+            
+            # Send the email
+            send_priority_email(
+                user=self.user,
+                subject=subject,
+                message=message,
+                html_message=html_message,
+                priority=priority,
+                website=self.website,
+            )
+            
+            notification_sent = True
+            logger.info(
+                f"GDPR breach notification email sent to user {self.user.id} "
+                f"for breach type: {breach_type}, severity: {severity}"
+            )
+            
+        except Exception as e:
+            logger.error(
+                f"Failed to send GDPR breach notification email to user {self.user.id}: {str(e)}",
+                exc_info=True
+            )
+            # Don't fail the breach logging if email fails - breach is still logged
         
         return {
             "message": "Data breach logged and user will be notified",
             "breach_type": breach_type,
             "severity": severity,
-            "notification_sent": False  # TODO: Implement notification
+            "notification_sent": notification_sent
         }
     
     # ==================== Utility Methods ====================

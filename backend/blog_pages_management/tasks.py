@@ -317,6 +317,7 @@ def auto_publish_scheduled_blogs():
     return f"Published {published_count} scheduled blog posts"
 
 
+@shared_task
 def check_for_broken_links():
     """Scans blog content for broken links and alerts admins."""
     for blog in BlogPost.objects.filter(is_published=True):

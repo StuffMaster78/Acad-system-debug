@@ -171,13 +171,15 @@ class PaymentSchedule(models.Model):
             import time
             import random
             # Generate unique reference code with timestamp and random component
+            # Format: PB{last8digits}{random4} = 14 characters (fits in 20 char limit)
             timestamp = int(time.time())
+            timestamp_str = str(timestamp)[-8:]  # Last 8 digits of timestamp
             random_suffix = random.randint(1000, 9999)
-            self.reference_code = f"PAYBATCH-{timestamp}-{random_suffix}"
+            self.reference_code = f"PB{timestamp_str}{random_suffix}"
             # Ensure uniqueness
             while PaymentSchedule.objects.filter(reference_code=self.reference_code).exists():
                 random_suffix = random.randint(1000, 9999)
-                self.reference_code = f"PAYBATCH-{timestamp}-{random_suffix}"
+                self.reference_code = f"PB{timestamp_str}{random_suffix}"
         super().save(*args, **kwargs)
 
     def __str__(self):

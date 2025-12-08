@@ -18,6 +18,36 @@ from orders.models import WebhookDeliveryLog
 
 User = get_user_model()
 
+class OrderListSerializer(serializers.ModelSerializer):
+    """
+    Lightweight serializer for order list views.
+    Excludes large fields like order_instructions and style_reference_files.
+    """
+    client_username = serializers.CharField(source='client.username', read_only=True)
+    writer_username = serializers.CharField(source='assigned_writer.username', read_only=True)
+    paper_type_name = serializers.CharField(source='paper_type.name', read_only=True)
+    academic_level_name = serializers.CharField(source='academic_level.name', read_only=True)
+    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    
+    class Meta:
+        model = Order
+        fields = [
+            'id', 'topic', 'paper_type', 'paper_type_name', 'academic_level', 'academic_level_name',
+            'formatting_style', 'type_of_work', 'english_type', 'number_of_pages', 
+            'number_of_slides', 'number_of_refereces', 'spacing', 'client_deadline', 'writer_deadline', 
+            'client', 'client_username', 'assigned_writer', 'writer_username', 
+            'preferred_writer', 'total_price', 'writer_compensation', 
+            'subject', 'subject_name', 'discount_code_used', 'is_paid', 
+            'status', 'flags', 'created_at', 'updated_at', 
+            'is_special_order', 'is_follow_up', 'is_urgent', 'website'
+        ]
+        read_only_fields = [
+            'id', 'client_username', 'writer_username', 'total_price', 
+            'writer_compensation', 'is_paid', 'created_at', 'updated_at', 
+            'flags', 'writer_deadline'
+        ]
+
+
 class OrderSerializer(serializers.ModelSerializer):
     client_username = serializers.CharField(source='client.username', read_only=True)
     writer_username = serializers.CharField(source='assigned_writer.username', read_only=True)
