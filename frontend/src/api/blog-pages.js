@@ -8,6 +8,8 @@ export default {
   updateBlog: (id, data) => apiClient.put(`/blog_pages_management/blogs/${id}/`, data),
   patchBlog: (id, data) => apiClient.patch(`/blog_pages_management/blogs/${id}/`, data),
   deleteBlog: (id) => apiClient.delete(`/blog_pages_management/blogs/${id}/`),
+  previewBlog: (id) => apiClient.get(`/blog_pages_management/blogs/${id}/preview/`),
+  previewBlogBySlug: (slug, params = {}) => apiClient.get(`/blog_pages_management/internal-preview/blog-by-slug/${slug}/`, { params }),
   getAvailableWebsites: () => apiClient.get('/blog_pages_management/blogs/available_websites/'),
   getAvailableAuthors: (websiteId) => apiClient.get('/blog_pages_management/blogs/available_authors/', { 
     params: websiteId ? { website_id: websiteId } : {} 

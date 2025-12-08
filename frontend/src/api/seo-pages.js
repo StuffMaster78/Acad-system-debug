@@ -9,6 +9,7 @@ export default {
   update: (id, data) => apiClient.put(`/seo-pages/seo-pages/${id}/`, data),
   patch: (id, data) => apiClient.patch(`/seo-pages/seo-pages/${id}/`, data),
   delete: (id) => apiClient.delete(`/seo-pages/seo-pages/${id}/`),
+  preview: (id) => apiClient.get(`/seo-pages/seo-pages/${id}/preview/`),
   
   // Public endpoints
   getBySlug: (slug, params = {}) => apiClient.get(`/public/seo-pages/${slug}/`, { params }),

@@ -4,8 +4,10 @@ export default {
   list: (params) => apiClient.get('/order_payments_management/payments/', { params }),
   get: (id) => apiClient.get(`/order_payments_management/payments/${id}/`),
   getAllTransactions: (params) => apiClient.get('/order-payments/order-payments/all-transactions/', { params }),
+  getClientPayments: (params) => apiClient.get('/order-payments/order-payments/client-payments/', { params }),
   getWriterPaymentsGrouped: (params) => apiClient.get('/writer-wallet/writer-payments/grouped/', { params }),
   getBatchBreakdown: (batchId) => apiClient.get(`/writer-wallet/payment-schedules/${batchId}/breakdown/`),
+  getPaymentBreakdown: (paymentId) => apiClient.get(`/writer-wallet/scheduled-payments/${paymentId}/breakdown/`),
   
   // Payment Requests
   listPaymentRequests: (params) => apiClient.get('/writer-wallet/payment-requests/', { params }),
