@@ -1058,21 +1058,82 @@
     </div>
 
     <!-- Recent Orders -->
-    <div class="card bg-white rounded-lg shadow-sm p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-gray-900">My Orders</h2>
-        <router-link to="/orders" class="text-primary-600 text-sm">View all</router-link>
-      </div>
-      <div v-if="recentOrdersLoading" class="text-sm text-gray-500">Loading...</div>
-      <div v-else class="divide-y divide-gray-200">
-        <div v-for="o in recentOrders.slice(0, 5)" :key="o.id" class="py-3 flex items-center justify-between">
-          <div>
-            <div class="font-medium">#{{ o.id }} · {{ o.topic }}</div>
-            <div class="text-xs text-gray-500">Status: {{ o.status }} · Deadline: {{ o.deadline ? new Date(o.deadline).toLocaleDateString() : 'N/A' }}</div>
-          </div>
-          <router-link :to="`/orders/${o.id}`" class="text-primary-600 text-sm">Open</router-link>
+    <div class="card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
+      <div class="bg-gradient-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-200 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            My Orders
+          </h2>
+          <router-link to="/orders" class="text-emerald-600 hover:text-emerald-800 text-sm font-semibold flex items-center gap-1 transition-colors">
+            View all
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </router-link>
         </div>
-        <div v-if="!recentOrders.length" class="text-sm text-gray-500">No orders assigned yet.</div>
+      </div>
+      <div v-if="recentOrdersLoading" class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+      </div>
+      <div v-else-if="!recentOrders.length" class="text-center py-12 text-gray-500">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <p class="mt-2 text-sm font-medium">No orders assigned yet</p>
+        <router-link to="/writer/queue" class="mt-2 inline-block text-emerald-600 hover:text-emerald-800 text-sm font-medium">
+          Browse available orders →
+        </router-link>
+      </div>
+      <div v-else class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200" style="min-width: 1000px;">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Order ID</th>
+              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Topic</th>
+              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Deadline</th>
+              <th class="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-100">
+            <tr v-for="o in recentOrders.slice(0, 5)" :key="o.id" class="hover:bg-emerald-50/50 transition-all duration-150">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xs font-bold">
+                    #
+                  </div>
+                  <span class="text-sm font-semibold text-gray-900">#{{ o.id }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-sm font-medium text-gray-900 max-w-md truncate" :title="o.topic">
+                  {{ o.topic || 'N/A' }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
+                      :class="getOrderStatusClass(o.status)">
+                  {{ o.status }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ o.deadline ? formatDate(o.deadline) : 'N/A' }}</div>
+                <div v-if="o.deadline" class="text-xs text-gray-500">{{ formatTime(o.deadline) }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-center">
+                <router-link 
+                  :to="`/orders/${o.id}`" 
+                  class="inline-flex items-center px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-xs font-semibold shadow-sm"
+                >
+                  View Order
+                </router-link>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -1190,6 +1251,26 @@ const formatDate = (dateString) => {
     day: 'numeric',
     year: 'numeric',
   })
+}
+
+const formatTime = (dateString) => {
+  if (!dateString) return ''
+  return new Date(dateString).toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+const getOrderStatusClass = (status) => {
+  const statusMap = {
+    'pending': 'bg-yellow-100 text-yellow-800',
+    'in_progress': 'bg-blue-100 text-blue-800',
+    'on_revision': 'bg-orange-100 text-orange-800',
+    'completed': 'bg-green-100 text-green-800',
+    'cancelled': 'bg-red-100 text-red-800',
+    'disputed': 'bg-purple-100 text-purple-800',
+  }
+  return statusMap[status?.toLowerCase()] || 'bg-gray-100 text-gray-800'
 }
 
 // Real-time widgets ----------------------------------------------------------

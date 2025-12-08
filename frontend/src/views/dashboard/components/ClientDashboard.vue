@@ -215,6 +215,45 @@
       />
     </div>
 
+    <!-- Additional Analytics -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- Order Status Distribution -->
+      <div class="card bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Order Status Distribution</h2>
+        <div v-if="loading" class="flex items-center justify-center h-64">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+        <apexchart
+          v-else-if="orderStatusSeries.length > 0"
+          type="donut"
+          height="300"
+          :options="orderStatusOptions"
+          :series="orderStatusSeries"
+        ></apexchart>
+        <div v-else class="h-64 flex items-center justify-center text-gray-500">
+          No order data available
+        </div>
+      </div>
+
+      <!-- Monthly Spending Comparison -->
+      <div class="card bg-white rounded-lg shadow-sm p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">Monthly Spending Comparison</h2>
+        <div v-if="loading" class="flex items-center justify-center h-64">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+        <apexchart
+          v-else-if="monthlySpendingSeries.length > 0"
+          type="bar"
+          height="300"
+          :options="monthlySpendingOptions"
+          :series="monthlySpendingSeries"
+        ></apexchart>
+        <div v-else class="h-64 flex items-center justify-center text-gray-500">
+          No spending data available
+        </div>
+      </div>
+    </div>
+
     <!-- Service Breakdown & Performance -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div class="card bg-white rounded-lg shadow-sm p-6">
@@ -263,32 +302,94 @@
     </div>
 
     <!-- Recent Orders -->
-    <div class="card bg-white rounded-lg shadow-sm p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-gray-900">Recent Orders</h2>
-        <router-link to="/orders" class="text-primary-600 text-sm">View all</router-link>
-      </div>
-      <div v-if="recentOrdersLoading" class="text-sm text-gray-500">Loading...</div>
-      <div v-else class="divide-y divide-gray-200">
-        <div v-for="o in recentOrders" :key="o.id" class="py-3 flex items-center justify-between">
-          <div>
-            <div class="font-medium">#{{ o.id }} · {{ o.topic }}</div>
-            <div class="text-xs text-gray-500">Status: {{ o.status }} · Created: {{ new Date(o.created_at).toLocaleString() }}</div>
-          </div>
-          <div class="flex items-center gap-2">
-            <router-link
-              :to="`/orders/${o.id}/messages`"
-              class="px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors text-xs flex items-center gap-1"
-              title="Messages"
-            >
-              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-            </router-link>
-            <router-link :to="`/orders/${o.id}`" class="text-primary-600 text-sm hover:underline">Open</router-link>
-          </div>
+    <div class="card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
+      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Recent Orders
+          </h2>
+          <router-link to="/orders" class="text-blue-600 hover:text-blue-800 text-sm font-semibold flex items-center gap-1 transition-colors">
+            View all
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </router-link>
         </div>
-        <div v-if="!recentOrders.length" class="text-sm text-gray-500">No recent orders.</div>
+      </div>
+      <div v-if="recentOrdersLoading" class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+      <div v-else-if="!recentOrders.length" class="text-center py-12 text-gray-500">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+        <p class="mt-2 text-sm font-medium">No recent orders</p>
+        <router-link to="/orders/wizard" class="mt-2 inline-block text-blue-600 hover:text-blue-800 text-sm font-medium">
+          Create your first order →
+        </router-link>
+      </div>
+      <div v-else class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200" style="min-width: 1000px;">
+          <thead class="bg-gray-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Order ID</th>
+              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Topic</th>
+              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Status</th>
+              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Created</th>
+              <th class="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="bg-white divide-y divide-gray-100">
+            <tr v-for="o in recentOrders" :key="o.id" class="hover:bg-blue-50/50 transition-all duration-150">
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                    #
+                  </div>
+                  <span class="text-sm font-semibold text-gray-900">#{{ o.id }}</span>
+                </div>
+              </td>
+              <td class="px-6 py-4">
+                <div class="text-sm font-medium text-gray-900 max-w-md truncate" :title="o.topic">
+                  {{ o.topic || 'N/A' }}
+                </div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
+                      :class="getOrderStatusClass(o.status)">
+                  {{ o.status }}
+                </span>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap">
+                <div class="text-sm text-gray-900">{{ formatDate(o.created_at) }}</div>
+                <div class="text-xs text-gray-500">{{ formatTime(o.created_at) }}</div>
+              </td>
+              <td class="px-6 py-4 whitespace-nowrap text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <router-link
+                    :to="`/orders/${o.id}/messages`"
+                    class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-xs font-medium flex items-center gap-1 shadow-sm"
+                    title="Messages"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                    Messages
+                  </router-link>
+                  <router-link 
+                    :to="`/orders/${o.id}`" 
+                    class="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-xs font-semibold shadow-sm"
+                  >
+                    View
+                  </router-link>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -554,6 +655,74 @@ const spendingTrendsOptions = computed(() => ({
   },
   yaxis: { title: { text: 'Amount ($)' } },
   colors: ['#10B981'],
+}))
+
+const orderStatusSeries = computed(() => {
+  if (!props.clientDashboardData?.status_breakdown) return []
+  
+  const breakdown = props.clientDashboardData.status_breakdown
+  return [
+    breakdown.pending || 0,
+    breakdown.in_progress || 0,
+    breakdown.on_revision || 0,
+    breakdown.completed || 0
+  ]
+})
+
+const orderStatusOptions = computed(() => ({
+  chart: {
+    type: 'donut',
+    toolbar: { show: false }
+  },
+  labels: ['Pending', 'In Progress', 'On Revision', 'Completed'],
+  colors: ['#f59e0b', '#3b82f6', '#f97316', '#10b981'],
+  legend: {
+    position: 'bottom'
+  },
+  dataLabels: {
+    enabled: true,
+    formatter: (val) => `${Math.round(val)}%`
+  }
+}))
+
+const monthlySpendingSeries = computed(() => {
+  // Create monthly comparison from available data
+  if (!props.clientDashboardData) return []
+  
+  const thisMonth = props.clientDashboardData.this_month?.spend || props.clientDashboardData.month_spend || 0
+  const allTime = props.clientDashboardData.total_spend || props.clientDashboardData.all_time_spend || 0
+  const avgMonthly = allTime > 0 ? allTime / 12 : 0
+  
+  return [{
+    name: 'Spending',
+    data: [avgMonthly, thisMonth]
+  }]
+})
+
+const monthlySpendingOptions = computed(() => ({
+  chart: {
+    type: 'bar',
+    toolbar: { show: false }
+  },
+  xaxis: {
+    categories: ['Average Monthly', 'This Month']
+  },
+  yaxis: {
+    title: { text: 'Amount ($)' },
+    labels: {
+      formatter: (value) => `$${formatNumber(value)}`
+    }
+  },
+  colors: ['#3b82f6'],
+  dataLabels: {
+    enabled: true,
+    formatter: (value) => `$${formatNumber(value)}`
+  },
+  tooltip: {
+    y: {
+      formatter: (value) => `$${formatNumber(value)}`
+    }
+  }
 }))
 
 const formatParticipants = (participants = []) => {
