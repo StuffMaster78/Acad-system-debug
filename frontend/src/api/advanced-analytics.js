@@ -41,6 +41,11 @@ const advancedAnalyticsAPI = {
   getDashboardStats() {
     return apiClient.get('/admin-management/dashboard/')
   },
+  
+  // Yearly Comparison
+  getYearlyComparison(params = {}) {
+    return apiClient.get('/admin-management/dashboard/metrics/yearly-comparison/', { params })
+  },
 }
 
 export default advancedAnalyticsAPI

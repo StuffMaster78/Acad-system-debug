@@ -18,5 +18,13 @@ export default {
   
   // Get order activity timeline
   getOrderActivityTimeline: (params) => apiClient.get('/client-management/dashboard/order-activity-timeline/', { params }),
+  
+  // Get enhanced order status (detailed status with progress tracking)
+  getEnhancedOrderStatus: (orderId) => apiClient.get('/client-management/dashboard/enhanced-order-status/', { params: { order_id: orderId } }),
+  
+  // Payment reminders
+  getPaymentReminders: () => apiClient.get('/client-management/dashboard/payment-reminders/'),
+  createPaymentReminder: (data) => apiClient.post('/client-management/dashboard/payment-reminders/create/', data),
+  updatePaymentReminder: (reminderId, data) => apiClient.patch(`/client-management/dashboard/payment-reminders/${reminderId}/update/`, data),
 }
 
