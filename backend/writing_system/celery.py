@@ -275,12 +275,12 @@ def setup_periodic_tasks(sender=None, **kwargs):
     every_24h, _ = IntervalSchedule.objects.get_or_create(every=1440, period=IntervalSchedule.MINUTES)
 
     periodic_tasks = [
-        {"name": "Sync Blog Clicks", "task": "blog_management.tasks.sync_blog_clicks_to_db", "interval": every_5_min},
-        {"name": "Sync Blog Conversions", "task": "blog_management.tasks.sync_blog_conversions_to_db", "interval": every_5_min},
-        {"name": "Update Freshness Scores", "task": "blog_management.tasks.update_freshness_scores", "interval": every_24h},
-        {"name": "Publish Scheduled Blogs", "task": "blog_management.tasks.publish_scheduled_blogs", "interval": every_5_min},
-        {"name": "Cleanup Soft Deleted Blogs", "task": "blog_management.tasks.cleanup_soft_deleted_blogs", "interval": every_24h},
-        {"name": "Warn Admins Before Deletion", "task": "blog_management.tasks.warn_admins_before_deletion", "interval": every_24h},
+        {"name": "Sync Blog Clicks", "task": "blog_pages_management.tasks.sync_blog_clicks_to_db", "interval": every_5_min},
+        {"name": "Sync Blog Conversions", "task": "blog_pages_management.tasks.sync_blog_conversions_to_db", "interval": every_5_min},
+        {"name": "Update Freshness Scores", "task": "blog_pages_management.tasks.update_freshness_scores", "interval": every_24h},
+        {"name": "Publish Scheduled Blogs", "task": "blog_pages_management.tasks.publish_scheduled_blogs", "interval": every_5_min},
+        {"name": "Cleanup Soft Deleted Blogs", "task": "blog_pages_management.tasks.cleanup_soft_deleted_blogs", "interval": every_24h},
+        {"name": "Warn Admins Before Deletion", "task": "blog_pages_management.tasks.warn_admins_before_deletion", "interval": every_24h},
     ]
 
     for t in periodic_tasks:
@@ -293,8 +293,8 @@ def setup_periodic_tasks(sender=None, **kwargs):
     sunday, _ = CrontabSchedule.objects.get_or_create(minute=0, hour=9, day_of_week=0)
 
     crontab_tasks = [
-        {"name": "Send Weekly Newsletter", "task": "blog_management.tasks.send_weekly_newsletter", "crontab": weekly},
-        {"name": "Check for Broken Links", "task": "blog_management.tasks.check_for_broken_links", "crontab": sunday},
+        {"name": "Send Weekly Newsletter", "task": "blog_pages_management.tasks.send_weekly_newsletter", "crontab": weekly},
+        {"name": "Check for Broken Links", "task": "blog_pages_management.tasks.check_for_broken_links", "crontab": sunday},
     ]
     for t in crontab_tasks:
         PeriodicTask.objects.update_or_create(

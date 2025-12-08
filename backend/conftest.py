@@ -279,3 +279,131 @@ def enable_db_access_for_all_tests(db):
     """Enable database access for all tests."""
     pass
 
+
+# ============================================================================
+# Additional Fixtures for Payment and Order Tests
+# ============================================================================
+
+@pytest.fixture
+def order(client_user, website):
+    """Create a test order."""
+    from orders.models import Order
+    from datetime import timedelta
+    from django.utils import timezone
+    
+    return Order.objects.create(
+        client=client_user,
+        website=website,
+        topic='Test Order Topic',
+        number_of_pages=5,
+        total_price=Decimal('100.00'),
+        client_deadline=timezone.now() + timedelta(days=7),
+        order_instructions='Test instructions',
+        status='draft'
+    )
+
+
+@pytest.fixture
+def client_wallet(client_user, website):
+    """Create a test client wallet."""
+    from client_wallet.models import ClientWallet
+    
+    wallet, _ = ClientWallet.objects.get_or_create(
+        client=client_user,
+        website=website,
+        defaults={
+            'balance': Decimal('0.00')
+        }
+    )
+    return wallet
+
+
+@pytest.fixture
+def discount(website):
+    """Create a test discount."""
+    from discounts.models import Discount
+    
+    return Discount.objects.create(
+        website=website,
+        code='TEST10',
+        discount_type='percentage',
+        value=Decimal('10.00'),
+        is_active=True
+    )
+
+
+@pytest.fixture
+def writer_profile(writer_user, website):
+    """Create a test writer profile."""
+    from writer_management.models import WriterProfile
+    
+    profile, _ = WriterProfile.objects.get_or_create(
+        user=writer_user,
+        website=website,
+        defaults={
+            'is_available_for_auto_assignments': True,
+            'verification_status': 'verified'
+        }
+    )
+    return profile
+
+
+@pytest.fixture
+def authenticated_writer(api_client, writer_user):
+    """Create authenticated writer client."""
+    refresh = RefreshToken.for_user(writer_user)
+    api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+    return api_client
+
+
+@pytest.fixture
+def authenticated_admin(api_client, admin_user):
+    """Create authenticated admin client."""
+    refresh = RefreshToken.for_user(admin_user)
+    api_client.credentials(HTTP_AUTHORIZATION=f'Bearer {refresh.access_token}')
+    return api_client
+
+
+@pytest.fixture
+def other_writer(website):
+    """Create another writer user for testing."""
+    return User.objects.create_user(
+        username="other_writer",
+        email="otherwriter@test.com",
+        password="testpass123",
+        role="writer",
+        website=website,
+        is_active=True
+    )
+
+
+@pytest.fixture
+def other_client_order(other_client, website):
+    """Create an order for another client."""
+    from orders.models import Order
+    from datetime import timedelta
+    from django.utils import timezone
+    
+    return Order.objects.create(
+        client=other_client,
+        website=website,
+        topic='Other Client Order',
+        number_of_pages=3,
+        total_price=Decimal('50.00'),
+        client_deadline=timezone.now() + timedelta(days=5),
+        status='draft'
+    )
+
+
+@pytest.fixture
+def other_client(website):
+    """Create another client user for testing."""
+    return User.objects.create_user(
+        username="other_client",
+        email="otherclient@test.com",
+        password="testpass123",
+        role="client",
+        website=website,
+        is_active=True
+    )
+
