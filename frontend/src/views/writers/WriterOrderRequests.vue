@@ -177,9 +177,10 @@
                 <button
                   v-if="request.status === 'pending'"
                   @click="cancelRequest(request)"
-                  class="btn btn-warning text-sm whitespace-nowrap"
+                  :disabled="cancelingRequestId === request.id"
+                  class="btn btn-warning text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Cancel Request
+                  {{ cancelingRequestId === request.id ? 'Cancelling...' : 'Cancel Request' }}
                 </button>
               </div>
             </div>
@@ -187,6 +188,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show"
+      :title="confirm.title"
+      :message="confirm.message"
+      :details="confirm.details"
+      :variant="confirm.variant"
+      :confirm-text="confirm.confirmText"
+      :cancel-text="confirm.cancelText"
+      :icon="confirm.icon"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -194,16 +209,21 @@
 import { ref, onMounted, computed, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import writerDashboardAPI from '@/api/writer-dashboard'
+import writerOrderRequestsAPI from '@/api/writer-order-requests'
 import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { getErrorMessage } from '@/utils/errorHandler'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const router = useRouter()
-const { error: showError, warning: showWarning } = useToast()
+const { error: showError, warning: showWarning, success: showSuccess } = useToast()
+const confirm = useConfirmDialog()
 
 const loading = ref(false)
 const requestData = ref(null)
 const filterStatus = ref('all')
 const lastUpdated = ref(null)
+const cancelingRequestId = ref(null)
 
 const filteredRequests = computed(() => {
   if (!requestData.value || !requestData.value.requests) return []
@@ -222,7 +242,6 @@ const loadRequests = async () => {
     requestData.value = response.data
     lastUpdated.value = response.data.last_updated
   } catch (error) {
-    console.error('Failed to load order requests:', error)
     const errorMsg = getErrorMessage(error, 'Failed to load order requests. Please try again.')
     showError(errorMsg)
   } finally {
@@ -231,12 +250,26 @@ const loadRequests = async () => {
 }
 
 const cancelRequest = async (request) => {
-  if (!confirm(`Are you sure you want to cancel your request for Order #${request.order_id}?`)) {
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to cancel your request for Order #${request.order_id}? This action cannot be undone.`,
+    'Cancel Order Request'
+  )
+  
+  if (!confirmed) {
     return
   }
   
-  // TODO: Implement cancel request API call
-  showWarning('Cancel request functionality coming soon.')
+  cancelingRequestId.value = request.id
+  try {
+    await writerOrderRequestsAPI.delete(request.id)
+    showSuccess('Order request cancelled successfully')
+    await loadRequests()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to cancel order request. Please try again.')
+    showError(errorMsg)
+  } finally {
+    cancelingRequestId.value = null
+  }
 }
 
 const formatStatus = (status) => {
