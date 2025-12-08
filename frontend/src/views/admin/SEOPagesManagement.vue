@@ -2,8 +2,8 @@
   <div class="space-y-6">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">SEO Pages Management</h1>
-        <p class="mt-2 text-gray-600">Manage service pages, SEO metadata, FAQs, and resources</p>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">SEO Pages Management</h1>
+        <p class="mt-2 text-gray-600 dark:text-gray-400">Manage service pages, SEO metadata, FAQs, and resources</p>
       </div>
       <button @click="showCreateModal = true" class="btn btn-primary">
         <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -13,22 +13,46 @@
       </button>
     </div>
 
+    <!-- Website Switcher (for superadmins or when multiple websites available) -->
+    <div v-if="canSelectWebsite && availableWebsites.length > 1" class="card p-4 dark:bg-gray-800 dark:border-gray-700">
+      <WebsiteSwitcher
+        v-model="selectedWebsiteId"
+        :websites="availableWebsites"
+        :can-select-website="canSelectWebsite"
+        :show-all-option="true"
+        all-option-label="All Websites"
+        label="Filter by Website"
+        @change="handleWebsiteChange"
+      />
+    </div>
+
+    <!-- Website Context Banner -->
+    <WebsiteContextBanner
+      v-if="selectedWebsite"
+      :website="selectedWebsite"
+      :stats="websiteStats"
+    />
+
     <!-- Filters -->
-    <div class="card p-4">
+    <div class="card p-4 dark:bg-gray-800 dark:border-gray-700">
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label class="block text-sm font-medium mb-1">Search</label>
+          <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Search</label>
           <input
             v-model="filters.search"
             @input="debouncedSearch"
             type="text"
             placeholder="Search by title..."
-            class="w-full border rounded px-3 py-2"
+            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Status</label>
-          <select v-model="filters.is_active" @change="loadPages" class="w-full border rounded px-3 py-2">
+          <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Status</label>
+          <select
+            v-model="filters.is_active"
+            @change="loadPages"
+            class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+          >
             <option value="">All Status</option>
             <option value="true">Active</option>
             <option value="false">Inactive</option>
@@ -41,86 +65,150 @@
     </div>
 
     <!-- Service Pages Table -->
-    <div class="card overflow-hidden">
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-      
-      <div v-else>
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Title</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Website</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Slug</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Views</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Updated</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="page in pages" :key="page.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4">
-                <div class="font-medium text-gray-900">{{ page.title }}</div>
-                <div class="text-sm text-gray-500">{{ page.short_description || page.header || '' }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div v-if="page.website" class="text-sm">
-                  <div class="font-medium text-gray-900">{{ page.website.name }}</div>
-                  <div class="text-xs text-gray-500">{{ page.website.domain }}</div>
-                </div>
-                <span v-else class="text-gray-400">—</span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ page.slug }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="page.is_published ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'" class="px-2 py-1 rounded-full text-xs font-medium">
-                  {{ page.is_published ? 'Published' : 'Draft' }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ page.click_count || 0 }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ formatDate(page.updated_at || page.created_at) }}
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm">
-                <div class="flex items-center gap-2">
-                  <button @click="viewPage(page)" class="text-blue-600 hover:underline">View</button>
-                  <button @click="editPage(page)" class="text-blue-600 hover:underline">Edit</button>
-                  <button @click="toggleActionsMenu(page.id)" class="text-gray-600 hover:text-gray-900">⋯</button>
-                  <div v-if="actionsMenuOpen === page.id" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
-                    <div class="py-1">
-                      <button @click="viewSEO(page)" class="block w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-gray-100">SEO Settings</button>
-                      <button @click="manageFAQs(page)" class="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100">Manage FAQs</button>
-                      <button @click="manageResources(page)" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-100">Manage Resources</button>
-                      <button @click="manageCTAs(page)" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100">Manage CTAs</button>
-                      <button @click="viewEditHistory(page)" class="block w-full text-left px-4 py-2 text-sm text-gray-600 hover:bg-gray-100">Edit History</button>
-                      <button @click="deletePageAction(page)" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Delete</button>
-                    </div>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        
-        <div v-if="!pages.length" class="text-center py-12 text-gray-500">
-          No SEO pages found.
+    <EnhancedDataTable
+      :items="pages"
+      :columns="seoPagesColumns"
+      :loading="loading"
+      :searchable="true"
+      search-placeholder="Search pages by title, slug..."
+      :search-fields="['title', 'slug', 'short_description']"
+      :sortable="true"
+      :striped="true"
+      empty-message="No SEO pages found"
+      empty-description="Create your first SEO page to get started"
+      empty-icon="📄"
+    >
+      <template #cell-title="{ item }">
+        <div>
+          <div class="font-semibold text-gray-900 dark:text-gray-100">{{ item.title }}</div>
+          <div class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{{ item.short_description || item.header || '' }}</div>
         </div>
-      </div>
-    </div>
+      </template>
+      <template #cell-website="{ item }" v-if="!selectedWebsiteId || canSelectWebsite">
+        <div v-if="item.website" class="text-sm">
+          <div class="font-medium text-gray-900 dark:text-gray-100">{{ item.website.name }}</div>
+          <div class="text-xs text-gray-500 dark:text-gray-400">{{ item.website.domain }}</div>
+        </div>
+        <span v-else class="text-gray-400 dark:text-gray-500">—</span>
+      </template>
+      <template #cell-status="{ item }">
+        <span
+          :class="item.is_published || item.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300'"
+          class="px-3 py-1 rounded-full text-xs font-semibold"
+        >
+          {{ (item.is_published || item.is_active) ? 'Published' : 'Draft' }}
+        </span>
+      </template>
+      <template #cell-views="{ value }">
+        <span class="font-medium text-gray-900 dark:text-gray-100">{{ value || 0 }}</span>
+      </template>
+      <template #cell-actions="{ item }">
+        <div class="flex items-center gap-2">
+          <button
+            @click="previewPage(item)"
+            class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 dark:bg-green-900/20 rounded-md hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors flex items-center gap-1"
+            title="Preview Page"
+          >
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Preview
+          </button>
+          <button
+            @click="viewPage(item)"
+            class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+            title="View Page"
+          >
+            View
+          </button>
+          <button
+            @click="editPage(item)"
+            class="px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 dark:bg-purple-900/20 rounded-md hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+            title="Edit Page"
+          >
+            Edit
+          </button>
+          <div class="relative">
+            <button
+              @click="toggleActionsMenu(item.id)"
+              class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              title="More Actions"
+            >
+              ⋯
+            </button>
+            <div
+              v-if="actionsMenuOpen === item.id"
+              class="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700 overflow-hidden"
+            >
+              <div class="py-1">
+                <button
+                  @click="viewSEO(item); actionsMenuOpen = null"
+                  class="block w-full text-left px-4 py-2 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>⚙️</span> SEO Settings
+                </button>
+                <button
+                  @click="manageFAQs(item); actionsMenuOpen = null"
+                  class="block w-full text-left px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>❓</span> Manage FAQs
+                </button>
+                <button
+                  @click="manageResources(item); actionsMenuOpen = null"
+                  class="block w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>🔗</span> Manage Resources
+                </button>
+                <button
+                  @click="manageCTAs(item); actionsMenuOpen = null"
+                  class="block w-full text-left px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>📢</span> Manage CTAs
+                </button>
+                <button
+                  @click="viewEditHistory(item); actionsMenuOpen = null"
+                  class="block w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                >
+                  <span>📜</span> Edit History
+                </button>
+                <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                <button
+                  @click="deletePageAction(item); actionsMenuOpen = null"
+                  class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>🗑️</span> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </EnhancedDataTable>
 
     <!-- Create/Edit Page Modal -->
-    <div v-if="showCreateModal || editingPage" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-2xl font-bold">{{ editingPage ? 'Edit SEO Page' : 'Create SEO Page' }}</h2>
-            <button @click="closeModal" class="text-gray-500 hover:text-gray-700">✕</button>
+    <div v-if="showCreateModal || editingPage" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ editingPage ? 'Edit SEO Page' : 'Create SEO Page' }}</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ editingPage ? 'Update page content and SEO settings' : 'Create a new SEO-optimized page' }}</p>
+            </div>
+            <button 
+              @click="closeModal" 
+              class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
           
           <form @submit.prevent="savePage" class="space-y-4">
             <div class="grid grid-cols-2 gap-4">
@@ -139,52 +227,116 @@
                 </select>
                 <p v-if="!canSelectWebsite && availableWebsites.length === 0" class="text-xs text-gray-500 mt-1">No websites available</p>
               </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Title *</label>
-                <input v-model="pageForm.title" type="text" required class="w-full border rounded px-3 py-2" />
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Title <span class="text-red-500">*</span>
+                  </label>
+                  <input 
+                    v-model="pageForm.title" 
+                    type="text" 
+                    required 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="Enter page title"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Slug</label>
+                  <input 
+                    v-model="pageForm.slug" 
+                    type="text" 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="auto-generated-from-title"
+                  />
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty to auto-generate from title</p>
+                </div>
               </div>
+              
               <div>
-                <label class="block text-sm font-medium mb-1">Slug</label>
-                <input v-model="pageForm.slug" type="text" class="w-full border rounded px-3 py-2" />
-              </div>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium mb-1">Short Description</label>
-              <textarea v-model="pageForm.short_description" rows="2" class="w-full border rounded px-3 py-2"></textarea>
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium mb-1">Content *</label>
-              <RichTextEditor
-                v-model="pageForm.content"
-                :required="true"
-                placeholder="Write your service page content..."
-                toolbar="full"
-                height="400px"
-                :allow-images="true"
-              />
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium mb-1">Meta Title</label>
-                <input v-model="pageForm.meta_title" type="text" class="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Meta Description</label>
-                <textarea v-model="pageForm.meta_description" rows="2" class="w-full border rounded px-3 py-2"></textarea>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Short Description</label>
+                <textarea 
+                  v-model="pageForm.short_description" 
+                  rows="3" 
+                  class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  placeholder="Brief description of the page"
+                ></textarea>
               </div>
             </div>
             
-            <div class="grid grid-cols-2 gap-4">
+            <!-- Content Section -->
+            <div class="space-y-4" data-seo-section>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Page Content</h3>
               <div>
-                <label class="block text-sm font-medium mb-1">Active</label>
-                <input v-model="pageForm.is_active" type="checkbox" class="mt-2" />
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Content <span class="text-red-500">*</span>
+                </label>
+                <RichTextEditor
+                  v-model="pageForm.content"
+                  :required="true"
+                  placeholder="Write your service page content..."
+                  toolbar="full"
+                  height="400px"
+                  :allow-images="true"
+                />
               </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Featured</label>
-                <input v-model="pageForm.is_featured" type="checkbox" class="mt-2" />
+            </div>
+            
+            <!-- SEO Settings Section -->
+            <div class="space-y-4" data-seo-section>
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">SEO Settings</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Meta Title</label>
+                  <input 
+                    v-model="pageForm.meta_title" 
+                    type="text" 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="SEO meta title (50-60 chars)"
+                    maxlength="60"
+                  />
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ pageForm.meta_title?.length || 0 }}/60 characters</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Meta Description</label>
+                  <textarea 
+                    v-model="pageForm.meta_description" 
+                    rows="3" 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="SEO meta description (150-160 chars)"
+                    maxlength="160"
+                  ></textarea>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ pageForm.meta_description?.length || 0 }}/160 characters</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Settings Section -->
+            <div class="space-y-4">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Settings</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <input
+                    v-model="pageForm.is_active"
+                    type="checkbox"
+                    id="page_active"
+                    class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <label for="page_active" class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Active
+                  </label>
+                  <p class="ml-auto text-xs text-gray-500 dark:text-gray-400">Page is visible to users</p>
+                </div>
+                <div class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <input
+                    v-model="pageForm.is_featured"
+                    type="checkbox"
+                    id="page_featured"
+                    class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                  <label for="page_featured" class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Featured
+                  </label>
+                  <p class="ml-auto text-xs text-gray-500 dark:text-gray-400">Highlight on homepage</p>
+                </div>
               </div>
             </div>
             
@@ -245,76 +397,98 @@
             </div>
             
             <!-- Resources Section -->
-            <div class="border-t pt-4">
-              <div class="flex items-center justify-between mb-3">
-                <label class="block text-sm font-medium">Resources (Optional)</label>
+            <div class="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6">
+              <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Resources (Optional)</h3>
                 <button
                   type="button"
                   @click="addResource"
-                  class="text-sm text-blue-600 hover:underline"
+                  class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                 >
-                  + Add Resource
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Add Resource
                 </button>
               </div>
-              <div v-if="pageForm.resources_data && pageForm.resources_data.length" class="space-y-3">
+              <div v-if="pageForm.resources_data && pageForm.resources_data.length" class="space-y-4">
                 <div
                   v-for="(resource, index) in pageForm.resources_data"
                   :key="index"
-                  class="border rounded p-3 bg-gray-50"
+                  class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/50"
                 >
-                  <div class="flex justify-between items-start mb-2">
-                    <span class="text-sm font-medium text-gray-700">Resource {{ index + 1 }}</span>
+                  <div class="flex justify-between items-start mb-3">
+                    <span class="text-sm font-semibold text-gray-900 dark:text-white">Resource {{ index + 1 }}</span>
                     <button
                       type="button"
                       @click="removeResource(index)"
-                      class="text-red-600 hover:text-red-800 text-sm"
+                      class="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/20 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
                     >
                       Remove
                     </button>
                   </div>
-                  <div class="space-y-2">
+                  <div class="space-y-3">
                     <div>
-                      <label class="block text-xs font-medium mb-1">Title *</label>
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        Title <span class="text-red-500">*</span>
+                      </label>
                       <input
                         v-model="resource.title"
                         type="text"
                         required
                         placeholder="Resource title..."
-                        class="w-full border rounded px-2 py-1 text-sm"
+                        class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
                       />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium mb-1">URL *</label>
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        URL <span class="text-red-500">*</span>
+                      </label>
                       <input
                         v-model="resource.url"
                         type="url"
                         required
                         placeholder="https://example.com"
-                        class="w-full border rounded px-2 py-1 text-sm"
+                        class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
                       />
                     </div>
                     <div>
-                      <label class="block text-xs font-medium mb-1">Description</label>
+                      <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
                       <textarea
                         v-model="resource.description"
                         rows="2"
                         placeholder="Resource description..."
-                        class="w-full border rounded px-2 py-1 text-sm"
+                        class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-sm"
                       ></textarea>
                     </div>
                   </div>
                 </div>
               </div>
-              <p v-else class="text-sm text-gray-500 italic">No resources added. Click "+ Add Resource" to add one.</p>
-            </div>
-            
-            <div class="flex justify-end gap-2 pt-4">
-              <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
-              <button type="submit" :disabled="saving" class="btn btn-primary">
-                {{ saving ? 'Saving...' : (editingPage ? 'Update' : 'Create') }}
-              </button>
+              <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                <p class="text-sm">No resources added yet. Click "Add Resource" to get started.</p>
+              </div>
             </div>
           </form>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-end gap-3">
+          <button 
+            type="button" 
+            @click="closeModal" 
+            class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            @click="savePage"
+            :disabled="saving"
+            class="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <span v-if="saving" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+            {{ saving ? 'Saving...' : (editingPage ? 'Update Page' : 'Create Page') }}
+          </button>
         </div>
       </div>
     </div>
@@ -323,14 +497,32 @@
     <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
       {{ message }}
     </div>
+
+    <!-- Content Preview Modal -->
+    <ContentPreview
+      v-model:show="showPreviewModal"
+      :content-type="previewContentType"
+      :content-id="previewContentId"
+      :content-slug="previewContentSlug"
+      :website-id="previewWebsiteId"
+      @close="showPreviewModal = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import seoPagesAPI from '@/api/seo-pages'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
+import WebsiteSwitcher from '@/components/common/WebsiteSwitcher.vue'
+import WebsiteContextBanner from '@/components/common/WebsiteContextBanner.vue'
+import EnhancedDataTable from '@/components/common/EnhancedDataTable.vue'
+import ContentPreview from '@/components/content/ContentPreview.vue'
+import { useToast } from '@/composables/useToast'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { formatWebsiteName } from '@/utils/formatDisplay'
+
+const { success: showSuccess, error: showError } = useToast()
 
 const pages = ref([])
 const loading = ref(false)
@@ -342,10 +534,35 @@ const actionsMenuOpen = ref(null)
 // Website selection
 const availableWebsites = ref([])
 const canSelectWebsite = ref(false)
+const selectedWebsiteId = ref(null)
 
 const filters = ref({
   search: '',
   is_active: '',
+})
+
+// Computed: Selected website object
+const selectedWebsite = computed(() => {
+  if (!selectedWebsiteId.value) return null
+  return availableWebsites.value.find(w => w.id === selectedWebsiteId.value) || null
+})
+
+// Computed: Website stats
+const websiteStats = computed(() => {
+  if (!selectedWebsite.value) return null
+  
+  const websitePages = pages.value.filter(p => 
+    p.website?.id === selectedWebsite.value.id || p.website_id === selectedWebsite.value.id
+  )
+  
+  return {
+    totalPosts: websitePages.length,
+    publishedPosts: websitePages.filter(p => p.is_published).length,
+    draftPosts: websitePages.filter(p => !p.is_published).length,
+    totalCategories: 0, // SEO pages don't have categories
+    activeCategories: 0,
+    totalAuthors: 0, // SEO pages don't have authors
+  }
 })
 
 const pageForm = ref({
@@ -380,6 +597,11 @@ const loadPages = async () => {
     const params = {}
     if (filters.value.search) params.search = filters.value.search
     if (filters.value.is_active) params.is_active = filters.value.is_active
+    
+    // Add website filter if a specific website is selected
+    if (selectedWebsiteId.value) {
+      params.website_id = selectedWebsiteId.value
+    }
     
     const res = await seoPagesAPI.listServicePages(params)
     pages.value = Array.isArray(res.data?.results) ? res.data.results : (res.data || [])
@@ -439,13 +661,38 @@ const editPage = (page) => {
 }
 
 const viewPage = (page) => {
-  // TODO: Navigate to page detail view
-  console.log('View page:', page)
+  // Navigate to public page view
+  if (page.slug) {
+    window.open(`/page/${page.slug}`, '_blank')
+  } else {
+    showError('Page slug not available')
+  }
+}
+
+const showPreviewModal = ref(false)
+const previewContentType = ref(null)
+const previewContentId = ref(null)
+const previewContentSlug = ref(null)
+const previewWebsiteId = ref(null)
+
+const previewPage = (page) => {
+  previewContentType.value = 'seo'
+  previewContentId.value = page.id
+  previewContentSlug.value = page.slug
+  previewWebsiteId.value = page.website?.id || null
+  showPreviewModal.value = true
 }
 
 const viewSEO = (page) => {
-  // TODO: Open SEO settings modal
-  console.log('View SEO for:', page)
+  // Open edit modal with SEO section focused
+  editPage(page)
+  // Scroll to SEO section if needed
+  setTimeout(() => {
+    const seoSection = document.querySelector('[data-seo-section]')
+    if (seoSection) {
+      seoSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, 100)
 }
 
 const manageFAQs = (page) => {
@@ -488,13 +735,15 @@ const removeResource = (index) => {
 }
 
 const manageCTAs = (page) => {
-  // TODO: Open CTAs management modal
-  console.log('Manage CTAs for:', page)
+  // Open edit modal with CTAs section
+  editPage(page)
+  showSuccess('Use the edit form to manage CTAs for this page')
 }
 
 const viewEditHistory = (page) => {
-  // TODO: Open edit history modal
-  console.log('View edit history for:', page)
+  // Navigate to edit history if available
+  editPage(page)
+  showSuccess('Edit history feature coming soon')
 }
 
 const deletePageAction = async (page) => {
@@ -521,13 +770,25 @@ const loadAvailableWebsites = async () => {
     availableWebsites.value = res.data?.websites || []
     canSelectWebsite.value = res.data?.can_select_website || false
     
-    // If there's only one website available, auto-select it (but still allow selection)
-    if (availableWebsites.value.length === 1 && !pageForm.value.website_id) {
-      pageForm.value.website_id = availableWebsites.value[0].id
+    // Auto-select website if only one available or if user can't select
+    if (availableWebsites.value.length === 1) {
+      selectedWebsiteId.value = availableWebsites.value[0].id
+      if (!pageForm.value.website_id) {
+        pageForm.value.website_id = availableWebsites.value[0].id
+      }
+    } else if (!canSelectWebsite.value && availableWebsites.value.length > 0) {
+      // Regular admin: auto-select their assigned website
+      selectedWebsiteId.value = availableWebsites.value[0].id
     }
   } catch (e) {
     console.error('Failed to load available websites:', e)
   }
+}
+
+const handleWebsiteChange = (websiteId) => {
+  selectedWebsiteId.value = websiteId
+  // Reload pages for the selected website
+  loadPages()
 }
 
 const closeModal = () => {
@@ -553,6 +814,64 @@ const resetFilters = () => {
   loadPages()
 }
 
+// Column definitions for SEO Pages table
+const seoPagesColumns = computed(() => {
+  const columns = [
+    {
+      key: 'title',
+      label: 'Title',
+      sortable: true
+    }
+  ]
+  
+  if (!selectedWebsiteId.value || canSelectWebsite.value) {
+    columns.push({
+      key: 'website',
+      label: 'Website',
+      sortable: false
+    })
+  }
+  
+  columns.push(
+    {
+      key: 'slug',
+      label: 'Slug',
+      sortable: true,
+      format: (value) => value || 'N/A'
+    },
+    {
+      key: 'is_published',
+      label: 'Status',
+      sortable: true,
+      class: 'w-28'
+    },
+    {
+      key: 'click_count',
+      label: 'Views',
+      sortable: true,
+      align: 'right',
+      class: 'w-24',
+      format: (value) => value || 0
+    },
+    {
+      key: 'updated_at',
+      label: 'Updated',
+      sortable: true,
+      format: (value, item) => formatDate(item.updated_at || item.created_at),
+      class: 'w-40'
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      sortable: false,
+      align: 'right',
+      class: 'w-48'
+    }
+  )
+  
+  return columns
+})
+
 const formatDate = (dateString) => {
   if (!dateString) return '—'
   return new Date(dateString).toLocaleDateString()
@@ -573,6 +892,11 @@ watch(showCreateModal, async (isOpen) => {
   if (isOpen && !availableWebsites.value.length) {
     await loadAvailableWebsites()
   }
+})
+
+// Watch for website changes to reload data
+watch(selectedWebsiteId, () => {
+  loadPages()
 })
 </script>
 

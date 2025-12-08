@@ -136,247 +136,498 @@
     </div>
 
     <!-- Users Table -->
-    <div class="card overflow-hidden">
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
+    <EnhancedDataTable
+      :items="users"
+      :columns="usersColumns"
+      :loading="loading"
+      :searchable="true"
+      search-placeholder="Search users by name, email, username..."
+      :search-fields="['full_name', 'username', 'email', 'phone_number']"
+      :sortable="true"
+      :striped="true"
+      empty-message="No users found"
+      empty-description="Try adjusting your filters or create a new user"
+      empty-icon="👤"
+    >
+      <template #headerActions>
+        <div class="flex items-center gap-2">
+          <input
+            type="checkbox"
+            @change="toggleSelectAll"
+            :checked="selectedUsers.length === users.length && users.length > 0"
+            class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+            title="Select All"
+          />
+          <span v-if="selectedUsers.length > 0" class="text-sm text-gray-600 dark:text-gray-400">
+            {{ selectedUsers.length }} selected
+          </span>
+        </div>
+      </template>
       
-      <div v-else>
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200 text-sm">
-            <thead class="bg-gray-50">
-              <tr>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">
-                  <input type="checkbox" @change="toggleSelectAll" :checked="selectedUsers.length === users.length && users.length > 0" class="rounded" />
-                </th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">User</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Role</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Website</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Status</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Last Login</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Joined</th>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Actions</th>
-              </tr>
-            </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="user in users" :key="user.id" :class="['hover:bg-gray-50', selectedUsers.includes(user.id) ? 'bg-blue-50' : '']">
-              <td class="px-3 py-2 whitespace-nowrap">
-                <input 
-                  type="checkbox" 
-                  :value="user.id" 
-                  v-model="selectedUsers"
-                  class="rounded"
-                />
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div class="flex-shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-xs mr-2">
-                    {{ getUserInitials(user) }}
-                  </div>
-                  <div class="min-w-0">
-                    <div class="font-medium text-gray-900 text-xs truncate">{{ user.full_name || user.username }}</div>
-                    <div class="text-xs text-gray-500 truncate">{{ user.email }}</div>
-                    <div v-if="user.phone_number" class="text-xs text-gray-400 truncate">{{ user.phone_number }}</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap">
-                <span v-if="user.role || user.role_display" :class="getRoleBadgeClass(user.role)" class="px-2 py-0.5 rounded-full text-xs font-medium inline-block">
-                  {{ user.role_display || user.role || 'N/A' }}
-                </span>
-                <span v-else class="text-xs text-gray-400">—</span>
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap">
-                <div v-if="user.website && (user.website.name || user.website.domain)" class="text-xs">
-                  <div v-if="user.website.name" class="font-medium text-gray-900 truncate max-w-[120px]">{{ user.website.name }}</div>
-                  <div v-if="user.website.domain" class="text-xs text-gray-500 truncate max-w-[120px]">{{ user.website.domain }}</div>
-                </div>
-                <span v-else class="text-xs text-gray-400">—</span>
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap">
-                <span v-if="user.is_blacklisted" class="px-1.5 py-0.5 rounded text-xs bg-black text-white font-medium">Blacklisted</span>
-                <span v-else-if="user.is_suspended" class="px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-800 font-medium">Suspended</span>
-                <span v-else-if="user.is_on_probation" class="px-1.5 py-0.5 rounded text-xs bg-yellow-100 text-yellow-800 font-medium">Probation</span>
-                <span v-else-if="user.is_active" class="px-1.5 py-0.5 rounded text-xs bg-green-100 text-green-800 font-medium">Active</span>
-                <span v-else class="px-1.5 py-0.5 rounded text-xs bg-gray-100 text-gray-800 font-medium">Inactive</span>
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
-                <div v-if="user.last_login" class="flex items-center">
-                  <span class="w-1.5 h-1.5 bg-green-500 rounded-full mr-1.5"></span>
-                  <span class="truncate max-w-[100px]">{{ formatDate(user.last_login) }}</span>
-                </div>
-                <span v-else class="text-gray-400">Never</span>
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap text-xs text-gray-500">
-                <span v-if="user.date_joined" class="truncate max-w-[100px] inline-block">{{ formatDate(user.date_joined) }}</span>
-                <span v-else class="text-gray-400">—</span>
-              </td>
-              <td class="px-3 py-2 whitespace-nowrap">
-                <div class="flex items-center gap-1.5">
-                  <button @click="viewUserDetail(user)" class="text-blue-600 hover:text-blue-800 hover:underline text-sm" title="View Profile">👁️</button>
-                  <button @click="editUser(user)" class="text-green-600 hover:text-green-800 hover:underline text-sm" title="Edit">✏️</button>
+      <template #cell-select="{ item }">
+        <input
+          type="checkbox"
+          :value="item.id"
+          v-model="selectedUsers"
+          class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+        />
+      </template>
+      
+      <template #cell-user="{ item }">
+        <div class="flex items-center">
+          <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm mr-3">
+            {{ getUserInitials(item) }}
+          </div>
+          <div class="min-w-0">
+            <div class="font-semibold text-gray-900 dark:text-gray-100 text-sm">{{ item.full_name || item.username }}</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ item.email }}</div>
+            <div v-if="item.phone_number" class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ item.phone_number }}</div>
+          </div>
+        </div>
+      </template>
+      
+      <template #cell-role="{ item }">
+        <span v-if="item.role || item.role_display" :class="getRoleBadgeClass(item.role)" class="px-3 py-1 rounded-full text-xs font-semibold inline-block">
+          {{ item.role_display || item.role || 'N/A' }}
+        </span>
+        <span v-else class="text-xs text-gray-400 dark:text-gray-500">—</span>
+      </template>
+      
+      <template #cell-website="{ item }">
+        <div v-if="item.website && (item.website.name || item.website.domain)" class="text-sm">
+          <div v-if="item.website.name" class="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[150px]">{{ item.website.name }}</div>
+          <div v-if="item.website.domain" class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{{ item.website.domain }}</div>
+        </div>
+        <span v-else class="text-xs text-gray-400 dark:text-gray-500">—</span>
+      </template>
+      
+      <template #cell-status="{ item }">
+        <span v-if="item.is_blacklisted" class="px-3 py-1 rounded-full text-xs font-semibold bg-black text-white">Blacklisted</span>
+        <span v-else-if="item.is_suspended" class="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">Suspended</span>
+        <span v-else-if="item.is_on_probation" class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">Probation</span>
+        <span v-else-if="item.is_active" class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">Active</span>
+        <span v-else class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300">Inactive</span>
+      </template>
+      
+      <template #cell-last_login="{ item }">
+        <div v-if="item.last_login" class="flex items-center gap-2">
+          <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+          <span class="text-sm text-gray-600 dark:text-gray-400">{{ formatDate(item.last_login) }}</span>
+        </div>
+        <span v-else class="text-sm text-gray-400 dark:text-gray-500">Never</span>
+      </template>
+      
+      <template #cell-actions="{ item }">
+        <div class="flex items-center gap-2">
+          <button
+            @click="viewUserDetail(item)"
+            class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+            title="View Profile"
+          >
+            View
+          </button>
+          <button
+            @click="editUser(item)"
+            class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 dark:bg-green-900/20 rounded-md hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+            title="Edit User"
+          >
+            Edit
+          </button>
+          <button
+            v-if="canImpersonateUser(item)"
+            @click="impersonateUser(item)"
+            class="px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 dark:bg-purple-900/20 rounded-md hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+            title="Impersonate User"
+          >
+            🎭
+          </button>
+          <div class="relative">
+            <button
+              @click="toggleActionsMenu(item.id)"
+              class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              title="More Actions"
+            >
+              ⋯
+            </button>
+            <div
+              v-if="actionsMenuOpen === item.id"
+              class="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl z-20 border border-gray-200 dark:border-gray-700 overflow-hidden"
+            >
+              <div class="py-1 max-h-[500px] overflow-y-auto">
+                <!-- Status Actions -->
+                <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700/50 sticky top-0">Status</div>
+                <button
+                  @click="suspendUserAction(item); actionsMenuOpen = null"
+                  v-if="!item.is_suspended && item.role !== 'superadmin'"
+                  class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>⛔</span> Suspend
+                </button>
+                <button
+                  @click="unsuspendUserAction(item); actionsMenuOpen = null"
+                  v-else-if="item.is_suspended"
+                  class="block w-full text-left px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>✅</span> Unsuspend
+                </button>
+                <button
+                  @click="blacklistUserAction(item); actionsMenuOpen = null"
+                  v-if="!item.is_blacklisted && item.role !== 'superadmin' && item.role !== 'admin' && isSuperAdmin"
+                  class="block w-full text-left px-4 py-2 text-sm text-black dark:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                >
+                  <span>🚫</span> Blacklist
+                </button>
+                <button
+                  @click="unblacklistUserAction(item); actionsMenuOpen = null"
+                  v-else-if="item.is_blacklisted && isSuperAdmin"
+                  class="block w-full text-left px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>✅</span> Unblacklist
+                </button>
+                <button
+                  @click="probationUserAction(item); actionsMenuOpen = null"
+                  v-if="!item.is_on_probation && item.role !== 'admin'"
+                  class="block w-full text-left px-4 py-2 text-sm text-yellow-600 dark:text-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>⚠️</span> Place on Probation
+                </button>
+                <button
+                  @click="removeProbationAction(item); actionsMenuOpen = null"
+                  v-else-if="item.is_on_probation"
+                  class="block w-full text-left px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>✅</span> Remove Probation
+                </button>
+                <button
+                  @click="activateUserAction(item); actionsMenuOpen = null"
+                  v-if="!item.is_active"
+                  class="block w-full text-left px-4 py-2 text-sm text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>✅</span> Activate
+                </button>
+                <button
+                  @click="deactivateUserAction(item); actionsMenuOpen = null"
+                  v-else-if="item.is_active && item.role !== 'superadmin'"
+                  class="block w-full text-left px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                >
+                  <span>⏸️</span> Deactivate
+                </button>
+                
+                <!-- Account Actions -->
+                <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700/50 sticky top-0">Account</div>
+                <button
+                  @click="resetPasswordAction(item); actionsMenuOpen = null"
+                  class="block w-full text-left px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>🔑</span> Reset Password
+                </button>
+                <button
+                  v-if="canImpersonateUser(item)"
+                  @click="impersonateUser(item); actionsMenuOpen = null"
+                  class="block w-full text-left px-4 py-2 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-2"
+                >
+                  <span>🎭</span> Impersonate
+                </button>
+                
+                <!-- Admin Actions (Superadmin only) -->
+                <template v-if="isSuperAdmin">
+                  <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                  <div class="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700/50 sticky top-0">Admin</div>
                   <button
-                    v-if="canImpersonateUser(user)"
-                    @click="impersonateUser(user)"
-                    class="text-purple-600 hover:text-purple-800 hover:underline font-bold"
-                    title="Impersonate User"
-                    style="font-size: 1.1em; min-width: 24px; display: inline-block;"
+                    @click="changeRoleAction(item); actionsMenuOpen = null"
+                    v-if="item.role !== 'superadmin'"
+                    class="block w-full text-left px-4 py-2 text-sm text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors flex items-center gap-2"
                   >
-                    🎭
+                    <span>👤</span> Change Role
                   </button>
-                  <div class="relative">
-                    <button @click="toggleActionsMenu(user.id)" class="text-gray-600 hover:text-gray-900 text-sm font-bold" title="More Actions">⋯</button>
-                    <div v-if="actionsMenuOpen === user.id" class="absolute right-0 mt-1 w-56 bg-white rounded-md shadow-lg z-50 border max-h-[400px] overflow-y-auto">
-                      <div class="py-1">
-                        <!-- Status Actions -->
-                        <div class="px-2 py-1 text-xs font-semibold text-gray-500 uppercase border-b bg-gray-50 sticky top-0">Status</div>
-                        <button @click="suspendUserAction(user)" v-if="!user.is_suspended && user.role !== 'superadmin'" class="block w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-gray-100">Suspend</button>
-                        <button @click="unsuspendUserAction(user)" v-else-if="user.is_suspended" class="block w-full text-left px-3 py-1.5 text-xs text-green-600 hover:bg-gray-100">Unsuspend</button>
-                        <button @click="blacklistUserAction(user)" v-if="!user.is_blacklisted && user.role !== 'superadmin' && user.role !== 'admin' && isSuperAdmin" class="block w-full text-left px-3 py-1.5 text-xs text-black hover:bg-gray-100">Blacklist</button>
-                        <button @click="unblacklistUserAction(user)" v-else-if="user.is_blacklisted && isSuperAdmin" class="block w-full text-left px-3 py-1.5 text-xs text-green-600 hover:bg-gray-100">Unblacklist</button>
-                        <button @click="probationUserAction(user)" v-if="!user.is_on_probation && user.role !== 'admin'" class="block w-full text-left px-3 py-1.5 text-xs text-yellow-600 hover:bg-gray-100">Place on Probation</button>
-                        <button @click="removeProbationAction(user)" v-else-if="user.is_on_probation" class="block w-full text-left px-3 py-1.5 text-xs text-green-600 hover:bg-gray-100">Remove Probation</button>
-                        <button @click="activateUserAction(user)" v-if="!user.is_active" class="block w-full text-left px-3 py-1.5 text-xs text-green-600 hover:bg-gray-100">Activate</button>
-                        <button @click="deactivateUserAction(user)" v-else-if="user.is_active && user.role !== 'superadmin'" class="block w-full text-left px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100">Deactivate</button>
-                        
-                        <!-- Account Actions -->
-                        <div class="px-2 py-1 text-xs font-semibold text-gray-500 uppercase border-b mt-1 bg-gray-50 sticky top-0">Account</div>
-                        <button @click="resetPasswordAction(user)" class="block w-full text-left px-3 py-1.5 text-xs text-blue-600 hover:bg-gray-100">Reset Password</button>
-                        <button
-                          v-if="canImpersonateUser(user)"
-                          @click="impersonateUser(user)"
-                          class="block w-full text-left px-3 py-1.5 text-xs text-purple-600 hover:bg-gray-100"
-                        >
-                          Impersonate
-                        </button>
-                        
-                        <!-- Admin Actions (Superadmin only) -->
-                        <template v-if="isSuperAdmin">
-                          <div class="px-2 py-1 text-xs font-semibold text-gray-500 uppercase border-b mt-1 bg-gray-50 sticky top-0">Admin</div>
-                          <button @click="changeRoleAction(user)" v-if="user.role !== 'superadmin'" class="block w-full text-left px-3 py-1.5 text-xs text-purple-600 hover:bg-gray-100">Change Role</button>
-                          <button @click="promoteToAdminAction(user)" v-if="!['admin', 'superadmin'].includes(user.role)" class="block w-full text-left px-3 py-1.5 text-xs text-indigo-600 hover:bg-gray-100">Promote to Admin</button>
-                          <button @click="deleteUserAction(user)" v-if="user.role !== 'superadmin'" class="block w-full text-left px-3 py-1.5 text-xs text-red-600 hover:bg-gray-100">Delete User</button>
-                        </template>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  <button
+                    @click="promoteToAdminAction(item); actionsMenuOpen = null"
+                    v-if="!['admin', 'superadmin'].includes(item.role)"
+                    class="block w-full text-left px-4 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors flex items-center gap-2"
+                  >
+                    <span>⭐</span> Promote to Admin
+                  </button>
+                  <div class="border-t border-gray-200 dark:border-gray-700 my-1"></div>
+                  <button
+                    @click="deleteUserAction(item); actionsMenuOpen = null"
+                    v-if="item.role !== 'superadmin'"
+                    class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                  >
+                    <span>🗑️</span> Delete User
+                  </button>
+                </template>
+              </div>
+            </div>
+          </div>
         </div>
-        
-        <div v-if="!users.length" class="text-center py-12 text-gray-500 text-sm">
-          No users found.
-        </div>
-      </div>
-    </div>
+      </template>
+    </EnhancedDataTable>
 
     <!-- Create/Edit User Modal -->
-    <div v-if="showCreateModal || editingUser" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div class="p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-2xl font-bold">{{ editingUser ? 'Edit User' : 'Create User' }}</h2>
-            <button @click="closeModal" class="text-gray-500 hover:text-gray-700">✕</button>
+    <div v-if="showCreateModal || editingUser" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ editingUser ? 'Edit User' : 'Create User' }}</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ editingUser ? 'Update user information and settings' : 'Create a new user account' }}</p>
+            </div>
+            <button 
+              @click="closeModal" 
+              class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-          
-          <form @submit.prevent="saveUser" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium mb-1">Username *</label>
-                <input v-model="userForm.username" type="text" required class="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Email *</label>
-                <input v-model="userForm.email" type="email" required class="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">First Name</label>
-                <input v-model="userForm.first_name" type="text" class="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Last Name</label>
-                <input v-model="userForm.last_name" type="text" class="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Role *</label>
-                <select v-model="userForm.role" required class="w-full border rounded px-3 py-2">
-                  <option value="client">Client</option>
-                  <option value="writer">Writer</option>
-                  <option value="editor">Editor</option>
-                  <option value="support">Support</option>
-                  <option v-if="authStore.isSuperAdmin" value="admin">Admin</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Phone</label>
-                <input v-model="userForm.phone_number" type="tel" class="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Website</label>
-                <select v-model="userForm.website" class="w-full border rounded px-3 py-2">
-                  <option :value="null">No Website</option>
-                  <option v-for="site in websites" :key="site.id" :value="site.id">
-                    {{ formatWebsiteName(site) }}
-                  </option>
-                </select>
-              </div>
-              <div v-if="!editingUser">
-                <label class="block text-sm font-medium mb-1">Password *</label>
-                <input v-model="userForm.password" type="password" required class="w-full border rounded px-3 py-2" />
-              </div>
-              <div>
-                <label class="block text-sm font-medium mb-1">Active</label>
-                <input v-model="userForm.is_active" type="checkbox" class="mt-2" />
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <form @submit.prevent="saveUser" class="space-y-6">
+            <!-- Basic Information -->
+            <div class="space-y-4">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Basic Information</h3>
+              
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Username <span class="text-red-500">*</span>
+                  </label>
+                  <input 
+                    v-model="userForm.username" 
+                    type="text" 
+                    required 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="Enter username"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Email <span class="text-red-500">*</span>
+                  </label>
+                  <input 
+                    v-model="userForm.email" 
+                    type="email" 
+                    required 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="user@example.com"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">First Name</label>
+                  <input 
+                    v-model="userForm.first_name" 
+                    type="text" 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="First name"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Last Name</label>
+                  <input 
+                    v-model="userForm.last_name" 
+                    type="text" 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="Last name"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Role <span class="text-red-500">*</span>
+                  </label>
+                  <select 
+                    v-model="userForm.role" 
+                    required 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  >
+                    <option value="client">Client</option>
+                    <option value="writer">Writer</option>
+                    <option value="editor">Editor</option>
+                    <option value="support">Support</option>
+                    <option v-if="authStore.isSuperAdmin" value="admin">Admin</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Phone</label>
+                  <input 
+                    v-model="userForm.phone_number" 
+                    type="tel" 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Website</label>
+                  <select 
+                    v-model="userForm.website" 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  >
+                    <option :value="null">No Website</option>
+                    <option v-for="site in websites" :key="site.id" :value="site.id">
+                      {{ formatWebsiteName(site) }}
+                    </option>
+                  </select>
+                </div>
+                <div v-if="!editingUser">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Password <span class="text-red-500">*</span>
+                  </label>
+                  <input 
+                    v-model="userForm.password" 
+                    type="password" 
+                    required 
+                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                    placeholder="Enter password"
+                  />
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Minimum 8 characters recommended</p>
+                </div>
               </div>
             </div>
             
-            <div class="flex justify-end gap-2 pt-4">
-              <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
-              <button type="submit" :disabled="saving" class="btn btn-primary">
-                {{ saving ? 'Saving...' : (editingUser ? 'Update' : 'Create') }}
-              </button>
+            <!-- Settings -->
+            <div class="space-y-4">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white border-b border-gray-200 dark:border-gray-700 pb-2">Settings</h3>
+              <div class="flex items-center p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <input
+                  v-model="userForm.is_active"
+                  type="checkbox"
+                  id="user_active"
+                  class="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                />
+                <label for="user_active" class="ml-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Active
+                </label>
+                <p class="ml-auto text-xs text-gray-500 dark:text-gray-400">User account is active and can log in</p>
+              </div>
             </div>
           </form>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-end gap-3">
+          <button 
+            type="button" 
+            @click="closeModal" 
+            class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            @click="saveUser"
+            :disabled="saving"
+            class="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+          >
+            <span v-if="saving" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+            {{ saving ? 'Saving...' : (editingUser ? 'Update User' : 'Create User') }}
+          </button>
         </div>
       </div>
     </div>
 
     <!-- Action Modals -->
-    <div v-if="showActionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-white rounded-lg max-w-md w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
-        <h3 class="text-xl font-bold mb-4">{{ actionModalTitle }}</h3>
-        <form @submit.prevent="confirmAction" class="space-y-4">
-          <div v-if="currentAction === 'suspend' || currentAction === 'probation' || currentAction === 'blacklist'">
-            <label class="block text-sm font-medium mb-1">Reason</label>
-            <textarea v-model="actionData.reason" rows="3" class="w-full border rounded px-3 py-2" required></textarea>
-          </div>
-          <div v-if="currentAction === 'suspend' || currentAction === 'probation'">
-            <label class="block text-sm font-medium mb-1">Duration (days)</label>
-            <input v-model.number="actionData.duration_days" type="number" min="1" class="w-full border rounded px-3 py-2" />
-          </div>
-          <div v-if="currentAction === 'change_role'">
-            <label class="block text-sm font-medium mb-1">New Role</label>
-            <select v-model="actionData.role" class="w-full border rounded px-3 py-2" required>
-              <option value="client">Client</option>
-              <option value="writer">Writer</option>
-              <option value="editor">Editor</option>
-              <option value="support">Support</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div class="flex justify-end gap-2 pt-4">
-            <button type="button" @click="closeActionModal" class="btn btn-secondary">Cancel</button>
-            <button type="submit" :disabled="saving" class="btn btn-primary">
-              {{ saving ? 'Processing...' : 'Confirm' }}
+    <div v-if="showActionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="closeActionModal">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full my-auto overflow-hidden flex flex-col max-h-[90vh]">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-red-100 dark:from-gray-700 dark:to-gray-800">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ actionModalTitle }}</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Please provide the required information</p>
+            </div>
+            <button 
+              @click="closeActionModal" 
+              class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
-        </form>
+        </div>
+        
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <form @submit.prevent="confirmAction" class="space-y-4">
+            <div v-if="currentAction === 'suspend' || currentAction === 'probation' || currentAction === 'blacklist'">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Reason <span class="text-red-500">*</span>
+              </label>
+              <textarea 
+                v-model="actionData.reason" 
+                rows="4" 
+                required 
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                placeholder="Enter reason for this action..."
+              ></textarea>
+            </div>
+            <div v-if="currentAction === 'suspend' || currentAction === 'probation'">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Duration (days)</label>
+              <input 
+                v-model.number="actionData.duration_days" 
+                type="number" 
+                min="1" 
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                placeholder="30"
+              />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty for indefinite duration</p>
+            </div>
+            <div v-if="currentAction === 'change_role'">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                New Role <span class="text-red-500">*</span>
+              </label>
+              <select 
+                v-model="actionData.role" 
+                required 
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+              >
+                <option value="client">Client</option>
+                <option value="writer">Writer</option>
+                <option value="editor">Editor</option>
+                <option value="support">Support</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+          </form>
+        </div>
+        
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 flex items-center justify-end gap-3">
+          <button 
+            type="button" 
+            @click="closeActionModal" 
+            class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            @click="confirmAction"
+            :disabled="saving"
+            :class="[
+              'px-5 py-2.5 text-sm font-medium rounded-lg transition-colors flex items-center gap-2',
+              currentAction === 'delete' || currentAction === 'blacklist'
+                ? 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                : 'bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed'
+            ]"
+          >
+            <span v-if="saving" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></span>
+            {{ saving ? 'Processing...' : 'Confirm' }}
+          </button>
+        </div>
       </div>
     </div>
 
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog />
+    
+    <!-- Input Modal -->
+    <InputModal />
+    
     <!-- User Detail Modal -->
     <div v-if="viewingUser" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <div class="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -518,10 +769,20 @@ import { useAuthStore } from '@/stores/auth'
 import adminManagementAPI from '@/api/admin-management'
 import apiClient from '@/api/client'
 import usersAPI from '@/api/users'
+import EnhancedDataTable from '@/components/common/EnhancedDataTable.vue'
+import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import { useInputModal } from '@/composables/useInputModal'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import InputModal from '@/components/common/InputModal.vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 import { formatWebsiteName } from '@/utils/formatDisplay'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const { success: showSuccess, error: showError } = useToast()
+const confirm = useConfirmDialog()
+const inputModal = useInputModal()
 
 // Computed properties for role checks
 const isSuperAdmin = computed(() => {
@@ -773,38 +1034,67 @@ const toggleSelectAll = (event) => {
 }
 
 const bulkSuspend = async () => {
-  if (!confirm(`Suspend ${selectedUsers.value.length} selected user(s)?`)) return
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to suspend ${selectedUsers.value.length} selected user(s)?`,
+    'Suspend Users'
+  )
+  if (!confirmed) return
+  
+  const reason = await inputModal.showModal(
+    'Enter suspension reason',
+    'Suspension Reason',
+    {
+      label: 'Reason',
+      placeholder: 'Enter reason for suspension...',
+      multiline: true,
+      rows: 3,
+      required: true,
+      defaultValue: 'Bulk suspension'
+    }
+  )
+  if (reason === null) return
+  
+  const durationDays = await inputModal.showModal(
+    'Enter duration in days',
+    'Suspension Duration',
+    {
+      label: 'Duration (days)',
+      placeholder: '30',
+      required: true,
+      defaultValue: '30'
+    }
+  )
+  if (durationDays === null) return
+  
+  const duration = durationDays ? parseInt(durationDays) : 30
+  
   try {
-    const reason = prompt('Enter suspension reason:', 'Bulk suspension')
-    if (!reason) return
-    
-    const durationDays = prompt('Enter duration in days (default: 30):', '30')
-    const duration = durationDays ? parseInt(durationDays) : 30
-    
     const res = await adminManagementAPI.bulkSuspend(selectedUsers.value, reason, duration)
-    message.value = res.data.message || `Suspended ${res.data.suspended_count} user(s)`
-    messageSuccess.value = true
+    showSuccess(res.data.message || `Suspended ${res.data.suspended_count} user(s)`)
     selectedUsers.value = []
     await loadUsers()
     await loadStats()
   } catch (e) {
-    message.value = 'Failed to suspend users: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
+    const errorMsg = getErrorMessage(e, 'Failed to suspend users. Please try again.')
+    showError(errorMsg)
   }
 }
 
 const bulkActivate = async () => {
-  if (!confirm(`Activate ${selectedUsers.value.length} selected user(s)?`)) return
+  const confirmed = await confirm.showDialog(
+    `Activate ${selectedUsers.value.length} selected user(s)?`,
+    'Activate Users'
+  )
+  if (!confirmed) return
   try {
     const res = await adminManagementAPI.bulkActivate(selectedUsers.value)
-    message.value = res.data.message || `Activated ${res.data.activated_count} user(s)`
-    messageSuccess.value = true
+    showSuccess(res.data.message || `Activated ${res.data.activated_count} user(s)`)
     selectedUsers.value = []
     await loadUsers()
     await loadStats()
   } catch (e) {
-    message.value = 'Failed to activate users: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
+    const errorMsg = getErrorMessage(e, 'Failed to activate users. Please try again.')
+    showError(errorMsg)
   }
 }
 
@@ -895,16 +1185,19 @@ const suspendUserAction = (user) => {
 }
 
 const unsuspendUserAction = async (user) => {
-  if (!confirm(`Unsuspend ${user.username}?`)) return
+  const confirmed = await confirm.showDialog(
+    `Unsuspend ${user.username}?`,
+    'Unsuspend User'
+  )
+  if (!confirmed) return
   try {
     await adminManagementAPI.unsuspendUser(user.id)
-    message.value = `User ${user.username} unsuspended`
-    messageSuccess.value = true
+    showSuccess(`User ${user.username} unsuspended`)
     await loadUsers()
     await loadStats()
   } catch (e) {
-    message.value = 'Failed to unsuspend user: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
+    const errorMsg = getErrorMessage(e, 'Failed to unsuspend user. Please try again.')
+    showError(errorMsg)
   }
   actionsMenuOpen.value = null
 }
@@ -919,29 +1212,35 @@ const probationUserAction = (user) => {
 }
 
 const removeProbationAction = async (user) => {
-  if (!confirm(`Remove ${user.username} from probation?`)) return
+  const confirmed = await confirm.showDialog(
+    `Remove ${user.username} from probation?`,
+    'Remove Probation'
+  )
+  if (!confirmed) return
   try {
     await adminManagementAPI.removeFromProbation(user.id)
-    message.value = `User ${user.username} removed from probation`
-    messageSuccess.value = true
+    showSuccess(`User ${user.username} removed from probation`)
     await loadUsers()
     await loadStats()
   } catch (e) {
-    message.value = 'Failed to remove probation: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
+    const errorMsg = getErrorMessage(e, 'Failed to remove probation. Please try again.')
+    showError(errorMsg)
   }
   actionsMenuOpen.value = null
 }
 
 const resetPasswordAction = async (user) => {
-  if (!confirm(`Reset password for ${user.username}?`)) return
+  const confirmed = await confirm.showDialog(
+    `Reset password for ${user.username}? A new password will be generated and sent to their email.`,
+    'Reset Password'
+  )
+  if (!confirmed) return
   try {
     const res = await adminManagementAPI.resetPassword(user.id)
-    message.value = res.data.message || 'Password reset successfully'
-    messageSuccess.value = true
+    showSuccess(res.data.message || 'Password reset successfully. New password sent to user email.')
   } catch (e) {
-    message.value = 'Failed to reset password: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
+    const errorMsg = getErrorMessage(e, 'Failed to reset password. Please try again.')
+    showError(errorMsg)
   }
   actionsMenuOpen.value = null
 }
@@ -956,31 +1255,43 @@ const changeRoleAction = (user) => {
 }
 
 const promoteToAdminAction = async (user) => {
-  if (!confirm(`Promote ${user.username} to admin?`)) return
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to promote ${user.username} to admin? This will grant them full administrative access.`,
+    'Promote to Admin',
+    {
+      details: 'This action grants the user full administrative privileges. Make sure this is intended.'
+    }
+  )
+  if (!confirmed) return
   try {
     await adminManagementAPI.promoteToAdmin(user.id)
-    message.value = `User ${user.username} promoted to admin`
-    messageSuccess.value = true
+    showSuccess(`User ${user.username} promoted to admin`)
     await loadUsers()
     await loadStats()
   } catch (e) {
-    message.value = 'Failed to promote user: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
+    const errorMsg = getErrorMessage(e, 'Failed to promote user. Please try again.')
+    showError(errorMsg)
   }
   actionsMenuOpen.value = null
 }
 
 const deleteUserAction = async (user) => {
-  if (!confirm(`Delete ${user.username}? This action cannot be undone.`)) return
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to delete ${user.username}? This action cannot be undone.`,
+    'Delete User',
+    {
+      details: 'This will permanently delete the user account and all associated data. This action cannot be reversed.'
+    }
+  )
+  if (!confirmed) return
   try {
     await adminManagementAPI.deleteUser(user.id)
-    message.value = `User ${user.username} deleted`
-    messageSuccess.value = true
+    showSuccess(`User ${user.username} deleted`)
     await loadUsers()
     await loadStats()
   } catch (e) {
-    message.value = 'Failed to delete user: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
+    const errorMsg = getErrorMessage(e, 'Failed to delete user. Please try again.')
+    showError(errorMsg)
   }
   actionsMenuOpen.value = null
 }
@@ -995,47 +1306,56 @@ const blacklistUserAction = (user) => {
 }
 
 const unblacklistUserAction = async (user) => {
-  if (!confirm(`Unblacklist ${user.username}?`)) return
+  const confirmed = await confirm.showDialog(
+    `Unblacklist ${user.username}?`,
+    'Unblacklist User'
+  )
+  if (!confirmed) return
   try {
     // Note: Backend might need an unblacklist endpoint, for now we'll use a workaround
     await adminManagementAPI.patchUser(user.id, { is_blacklisted: false })
-    message.value = `User ${user.username} unblacklisted`
-    messageSuccess.value = true
+    showSuccess(`User ${user.username} unblacklisted`)
     await loadUsers()
     await loadStats()
   } catch (e) {
-    message.value = 'Failed to unblacklist user: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
+    const errorMsg = getErrorMessage(e, 'Failed to unblacklist user. Please try again.')
+    showError(errorMsg)
   }
   actionsMenuOpen.value = null
 }
 
 const activateUserAction = async (user) => {
-  if (!confirm(`Activate ${user.username}?`)) return
+  const confirmed = await confirm.showDialog(
+    `Activate ${user.username}?`,
+    'Activate User'
+  )
+  if (!confirmed) return
   try {
     await adminManagementAPI.patchUser(user.id, { is_active: true })
-    message.value = `User ${user.username} activated`
-    messageSuccess.value = true
+    showSuccess(`User ${user.username} activated`)
     await loadUsers()
     await loadStats()
   } catch (e) {
-    message.value = 'Failed to activate user: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
+    const errorMsg = getErrorMessage(e, 'Failed to activate user. Please try again.')
+    showError(errorMsg)
   }
   actionsMenuOpen.value = null
 }
 
 const deactivateUserAction = async (user) => {
-  if (!confirm(`Deactivate ${user.username}?`)) return
+  const confirmed = await confirm.showDialog(
+    `Deactivate ${user.username}?`,
+    'Deactivate User'
+  )
+  if (!confirmed) return
   try {
     await adminManagementAPI.patchUser(user.id, { is_active: false })
-    message.value = `User ${user.username} deactivated`
-    messageSuccess.value = true
+    showSuccess(`User ${user.username} deactivated`)
     await loadUsers()
     await loadStats()
   } catch (e) {
-    message.value = 'Failed to deactivate user: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
+    const errorMsg = getErrorMessage(e, 'Failed to deactivate user. Please try again.')
+    showError(errorMsg)
   }
   actionsMenuOpen.value = null
 }
@@ -1149,8 +1469,68 @@ const canImpersonateUser = (user) => {
 
 const formatDate = (dateString) => {
   if (!dateString) return '—'
-  return new Date(dateString).toLocaleDateString()
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
+
+// Column definitions for Users table
+const usersColumns = computed(() => [
+  {
+    key: 'select',
+    label: '',
+    sortable: false,
+    class: 'w-12'
+  },
+  {
+    key: 'user',
+    label: 'User',
+    sortable: true,
+    format: (value, item) => item.full_name || item.username || item.email
+  },
+  {
+    key: 'role',
+    label: 'Role',
+    sortable: true,
+    class: 'w-28'
+  },
+  {
+    key: 'website',
+    label: 'Website',
+    sortable: false
+  },
+  {
+    key: 'status',
+    label: 'Status',
+    sortable: true,
+    class: 'w-32'
+  },
+  {
+    key: 'last_login',
+    label: 'Last Login',
+    sortable: true,
+    format: (value) => formatDate(value),
+    class: 'w-40'
+  },
+  {
+    key: 'date_joined',
+    label: 'Joined',
+    sortable: true,
+    format: (value) => formatDate(value),
+    class: 'w-40'
+  },
+  {
+    key: 'actions',
+    label: 'Actions',
+    sortable: false,
+    align: 'right',
+    class: 'w-48'
+  }
+])
 
 const loadWebsites = async () => {
   try {
