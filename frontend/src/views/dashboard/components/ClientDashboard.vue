@@ -533,6 +533,11 @@
     <div class="mt-6">
       <OrderActivityTimeline />
     </div>
+
+    <!-- Payment Reminders -->
+    <div class="mt-6">
+      <PaymentReminders />
+    </div>
   </div>
 </template>
 
@@ -542,6 +547,7 @@ import StatsCard from '@/components/dashboard/StatsCard.vue'
 import QuickActionCard from '@/components/dashboard/QuickActionCard.vue'
 import ChartWidget from '@/components/dashboard/ChartWidget.vue'
 import OrderActivityTimeline from '@/components/client/OrderActivityTimeline.vue'
+import PaymentReminders from '@/components/client/PaymentReminders.vue'
 
 const props = defineProps({
   clientDashboardData: {
