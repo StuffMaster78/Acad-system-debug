@@ -254,7 +254,7 @@ class FinancialOverviewViewSet(ViewSet):
         date_to = request.query_params.get('date_to')
         
         payments_qs = ScheduledWriterPayment.objects.select_related(
-            'writer_wallet__writer__user',
+            'writer_wallet__writer',  # writer_wallet.writer IS the User
             'batch',
             'website'
         ).prefetch_related('orders__order')
@@ -273,8 +273,20 @@ class FinancialOverviewViewSet(ViewSet):
         payments_data = []
         for payment in payments_qs.order_by('-payment_date', '-id'):
             # Skip payments with missing relationships
-            if not payment.writer_wallet or not payment.writer_wallet.writer or not payment.writer_wallet.writer.user:
+            # writer_wallet.writer IS the User, not WriterProfile
+            if not payment.writer_wallet or not payment.writer_wallet.writer:
                 continue
+            
+            # Get the User (which is writer_wallet.writer)
+            writer_user = payment.writer_wallet.writer
+            
+            # Get WriterProfile if it exists
+            writer_profile = None
+            try:
+                from writer_management.models.profile import WriterProfile
+                writer_profile = WriterProfile.objects.filter(user=writer_user).first()
+            except Exception:
+                pass
                 
             order_records = payment.orders.all()
             order_count = order_records.count()
@@ -292,7 +304,7 @@ class FinancialOverviewViewSet(ViewSet):
                     period_start = payment.batch.scheduled_date
                     period_end = period_start + timedelta(days=14 if payment.batch.schedule_type == 'Bi-Weekly' else 30)
                     tips = Tip.objects.filter(
-                        writer=payment.writer_wallet.writer.user,
+                        writer=writer_user,  # writer_user is the User
                         website=payment.website,
                         sent_at__gte=period_start,
                         sent_at__lt=period_end
@@ -324,17 +336,14 @@ class FinancialOverviewViewSet(ViewSet):
 
             platform_margin = client_total - (payment.amount or Decimal('0.00')) - tips_total
             
-            writer = payment.writer_wallet.writer
-            user = writer.user
-            
             payments_data.append({
                 'id': payment.id,
                 'payment_id': payment.reference_code,
                 'writer': {
-                    'id': writer.id,
-                    'name': user.get_full_name() if user else (writer.registration_id or 'Unknown'),
-                    'email': user.email if user else '',
-                    'registration_id': writer.registration_id or '',
+                    'id': writer_profile.id if writer_profile else writer_user.id,
+                    'name': writer_user.get_full_name() if writer_user else 'Unknown',
+                    'email': writer_user.email if writer_user else '',
+                    'registration_id': writer_profile.registration_id if writer_profile else '',
                 },
                 'number_of_orders': order_count,
                 'client_total': float(client_total),

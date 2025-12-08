@@ -45,7 +45,14 @@ router.register(r'payment-reminders-sent', PaymentReminderSentViewSet, basename=
 router.register(r'payments', PaymentViewSet, basename='payments')
 router.register(r'invoices', InvoiceViewSet, basename='invoices')
 
+# Import webhook views
+from .webhooks import PaymentWebhookView, StripeWebhookView, PayPalWebhookView
+
 # Include router-generated URLs
 urlpatterns = [
     path('', include(router.urls)),
+    # Webhook endpoints for external payment gateway confirmations
+    path('webhooks/payment/', PaymentWebhookView.as_view(), name='payment-webhook'),
+    path('webhooks/stripe/', StripeWebhookView.as_view(), name='stripe-webhook'),
+    path('webhooks/paypal/', PayPalWebhookView.as_view(), name='paypal-webhook'),
 ]

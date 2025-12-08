@@ -118,16 +118,26 @@ class AdminDashboardView(viewsets.ViewSet):
         
         summary = DashboardMetricsService.get_summary(request.user)
         
-        # Get additional user stats
+        # Get additional user stats - optimized with combined aggregations
         # Both superadmin and admin should see all users
         user_qs = User.objects.all()
         # No website filtering for superadmin and admin - they see all users
         
-        total_writers = user_qs.filter(role="writer").count()
-        total_editors = user_qs.filter(role="editor").count()
-        total_support = user_qs.filter(role="support").count()
-        total_clients = user_qs.filter(role="client").count()
-        suspended_users = user_qs.filter(is_suspended=True).count()
+        # Combined aggregation query - reduces from 5 queries to 1 query
+        from django.db.models import Count, Q
+        user_stats = user_qs.aggregate(
+            total_writers=Count('id', filter=Q(role="writer")),
+            total_editors=Count('id', filter=Q(role="editor")),
+            total_support=Count('id', filter=Q(role="support")),
+            total_clients=Count('id', filter=Q(role="client")),
+            suspended_users=Count('id', filter=Q(is_suspended=True))
+        )
+        
+        total_writers = user_stats['total_writers'] or 0
+        total_editors = user_stats['total_editors'] or 0
+        total_support = user_stats['total_support'] or 0
+        total_clients = user_stats['total_clients'] or 0
+        suspended_users = user_stats['suspended_users'] or 0
         total_users = total_writers + total_editors + total_support + total_clients
         
         # Get recent activity logs
@@ -156,13 +166,26 @@ class AdminDashboardView(viewsets.ViewSet):
             # Both superadmin and admin should see all payment reminders
             # No website filtering for superadmin and admin
             
+            # Optimized aggregations - combine queries where possible
+            from django.db.models import Count, Q
+            reminder_configs_stats = reminder_configs_qs.aggregate(
+                total=Count('id'),
+                active=Count('id', filter=Q(is_active=True))
+            )
+            deletion_messages_stats = deletion_messages_qs.aggregate(
+                total=Count('id'),
+                active=Count('id', filter=Q(is_active=True))
+            )
+            sent_reminders_total = sent_reminders_qs.count()
+            recent_sent_reminders = sent_reminders_qs.order_by("-sent_at")[:5].count()
+            
             payment_reminder_stats = {
-                "total_reminder_configs": reminder_configs_qs.count(),
-                "active_reminder_configs": reminder_configs_qs.filter(is_active=True).count(),
-                "total_deletion_messages": deletion_messages_qs.count(),
-                "active_deletion_messages": deletion_messages_qs.filter(is_active=True).count(),
-                "total_sent_reminders": sent_reminders_qs.count(),
-                "recent_sent_reminders": sent_reminders_qs.order_by("-sent_at")[:5].count(),
+                "total_reminder_configs": reminder_configs_stats['total'] or 0,
+                "active_reminder_configs": reminder_configs_stats['active'] or 0,
+                "total_deletion_messages": deletion_messages_stats['total'] or 0,
+                "active_deletion_messages": deletion_messages_stats['active'] or 0,
+                "total_sent_reminders": sent_reminders_total,
+                "recent_sent_reminders": recent_sent_reminders,
             }
         except ImportError:
             payment_reminder_stats = {
@@ -439,6 +462,27 @@ class AdminDashboardView(viewsets.ViewSet):
         year = int(year) if year else None
         data = DashboardMetricsService.get_yearly_earnings(request.user, year)
         return Response(data)
+    
+    @action(detail=False, methods=['get'], url_path='metrics/yearly-comparison')
+    def get_yearly_comparison(self, request):
+        """Get comprehensive yearly comparison data."""
+        from .services.dashboard_metrics_service import DashboardMetricsService
+        
+        start_year = request.query_params.get('start_year')
+        end_year = request.query_params.get('end_year')
+        website_id = request.query_params.get('website_id')
+        
+        start_year = int(start_year) if start_year else None
+        end_year = int(end_year) if end_year else None
+        website_id = int(website_id) if website_id else None
+        
+        data = DashboardMetricsService.get_yearly_comparison(
+            request.user,
+            start_year=start_year,
+            end_year=end_year,
+            website_id=website_id
+        )
+        return Response({'results': data})
     
     @action(detail=False, methods=['get'], url_path='metrics/monthly-orders')
     def get_monthly_orders(self, request):
@@ -2173,40 +2217,36 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
             count=Count('id')
         )
         
-        # Orders by status
-        inquiry_orders = all_orders.filter(status='inquiry').count()
-        awaiting_approval = all_orders.filter(status='awaiting_approval').count()
-        in_progress = all_orders.filter(status='in_progress').count()
-        completed = all_orders.filter(status='completed').count()
-        
-        # Orders needing approval
-        needs_approval = all_orders.filter(
-            status__in=['inquiry', 'awaiting_approval'],
-            is_approved=False
-        ).count()
-        
-        # Orders needing cost estimation
-        needs_estimation = all_orders.filter(
-            order_type='estimated',
-            total_cost__isnull=True,
-            status__in=['inquiry', 'awaiting_approval']
-        ).count()
-        
-        # Recent orders (last 30 days)
+        # Combined aggregations - reduces from 8 queries to 2 queries
         month_ago = timezone.now() - timedelta(days=30)
-        recent_orders = all_orders.filter(created_at__gte=month_ago).count()
         
-        # Total revenue (completed orders)
-        total_revenue = all_orders.filter(
-            status='completed'
-        ).aggregate(
-            total=Sum('total_cost')
-        )['total'] or 0
+        # Status and approval counts in one query
+        status_counts = all_orders.aggregate(
+            inquiry_orders=Count('id', filter=Q(status='inquiry')),
+            awaiting_approval=Count('id', filter=Q(status='awaiting_approval')),
+            in_progress=Count('id', filter=Q(status='in_progress')),
+            completed=Count('id', filter=Q(status='completed')),
+            needs_approval=Count('id', filter=Q(status__in=['inquiry', 'awaiting_approval'], is_approved=False)),
+            needs_estimation=Count('id', filter=Q(order_type='estimated', total_cost__isnull=True, status__in=['inquiry', 'awaiting_approval'])),
+            recent_orders=Count('id', filter=Q(created_at__gte=month_ago))
+        )
         
-        # Average order value
-        avg_order_value = all_orders.aggregate(
-            avg=Avg('total_cost')
-        )['avg'] or 0
+        inquiry_orders = status_counts['inquiry_orders'] or 0
+        awaiting_approval = status_counts['awaiting_approval'] or 0
+        in_progress = status_counts['in_progress'] or 0
+        completed = status_counts['completed'] or 0
+        needs_approval = status_counts['needs_approval'] or 0
+        needs_estimation = status_counts['needs_estimation'] or 0
+        recent_orders = status_counts['recent_orders'] or 0
+        
+        # Revenue aggregations in one query
+        revenue_stats = all_orders.aggregate(
+            total_revenue=Sum('total_cost', filter=Q(status='completed')),
+            avg_order_value=Avg('total_cost')
+        )
+        
+        total_revenue = revenue_stats['total_revenue'] or 0
+        avg_order_value = revenue_stats['avg_order_value'] or 0
         
         # Pending installments
         from special_orders.models import InstallmentPayment
@@ -3078,6 +3118,23 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
         from django.db.models import Count, Sum, Avg, Q
         from django.utils import timezone
         from datetime import timedelta
+        from django.core.cache import cache
+        import hashlib
+        import json
+        
+        # Build cache key
+        cache_params = {
+            'user_id': request.user.id,
+            'user_role': getattr(request.user, 'role', None),
+            'website_id': getattr(request.user, 'website_id', None) if hasattr(request.user, 'website_id') else None,
+            'days': request.query_params.get('days', '30'),
+        }
+        cache_key = f"tip_dashboard:{hashlib.md5(json.dumps(cache_params, sort_keys=True).encode()).hexdigest()}"
+        
+        # Try cache first (5 minute TTL)
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return Response(cached_result)
         
         # Get all tips
         all_tips = Tip.objects.all().select_related(
@@ -3147,7 +3204,7 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
         )
         payment_status_dict = {item['payment_status']: item['count'] for item in payment_status_counts}
         
-        return Response({
+        response_data = {
             'summary': {
                 'total_tips': total_stats['total_tips'] or 0,
                 'total_tip_amount': float(total_stats['total_tip_amount'] or 0),
@@ -3172,7 +3229,12 @@ class AdminTipManagementViewSet(viewsets.ViewSet):
             'type_breakdown': list(type_breakdown),
             'payment_status_breakdown': list(payment_status_breakdown),
             'level_breakdown': list(level_breakdown),
-        })
+        }
+        
+        # Cache the result for 5 minutes
+        cache.set(cache_key, response_data, 300)
+        
+        return Response(response_data)
     
     @action(detail=False, methods=['get'])
     def list_tips(self, request):

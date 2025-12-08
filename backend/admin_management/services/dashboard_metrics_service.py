@@ -519,4 +519,129 @@ class DashboardMetricsService:
         
         cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
         return result
+    
+    @staticmethod
+    def get_yearly_comparison(user, start_year: Optional[int] = None, end_year: Optional[int] = None, 
+                             website_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        """
+        Get comprehensive yearly comparison data including orders, classes, revenue, writers, clients.
+        
+        Args:
+            user: The user requesting the data
+            start_year: Start year for comparison (default: 5 years ago)
+            end_year: End year for comparison (default: current year)
+            website_id: Optional website filter
+            
+        Returns:
+            List of yearly metrics with orders, classes, revenue, writers, clients
+        """
+        if start_year is None:
+            start_year = timezone.now().year - 5
+        if end_year is None:
+            end_year = timezone.now().year
+        
+        cache_key = DashboardMetricsService.get_cache_key(user, f"yearly_comparison_{start_year}_{end_year}_{website_id or 'all'}")
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
+        
+        website = getattr(user, 'website', None)
+        if website_id:
+            from websites.models import Website
+            try:
+                website = Website.objects.get(id=website_id)
+            except Website.DoesNotExist:
+                pass
+        
+        role = getattr(user, 'role', 'client')
+        
+        # Base queryset for orders
+        order_qs = Order.objects.filter(
+            created_at__year__gte=start_year,
+            created_at__year__lte=end_year
+        )
+        if role not in ['superadmin', 'admin']:
+            if website:
+                order_qs = order_qs.filter(website=website)
+        elif website:
+            order_qs = order_qs.filter(website=website)
+        
+        # Base queryset for users
+        user_qs = User.objects.filter(
+            date_joined__year__gte=start_year,
+            date_joined__year__lte=end_year
+        )
+        if website:
+            user_qs = user_qs.filter(website=website)
+        
+        # Base queryset for writers
+        from writer_management.models import WriterProfile
+        writer_qs = WriterProfile.objects.filter(
+            joined_at__year__gte=start_year,
+            joined_at__year__lte=end_year
+        )
+        if website:
+            writer_qs = writer_qs.filter(website=website)
+        
+        # Get classes (bulk orders) - check if class_management app exists
+        class_qs = None
+        try:
+            from class_management.models import ClassBundle
+            class_qs = ClassBundle.objects.filter(
+                created_at__year__gte=start_year,
+                created_at__year__lte=end_year
+            )
+            if website:
+                class_qs = class_qs.filter(website=website)
+        except ImportError:
+            pass
+        
+        # Aggregate by year
+        result = []
+        for year in range(start_year, end_year + 1):
+            year_start = timezone.make_aware(datetime(year, 1, 1))
+            year_end = timezone.make_aware(datetime(year + 1, 1, 1))
+            
+            # Orders for this year
+            year_orders = order_qs.filter(
+                created_at__gte=year_start,
+                created_at__lt=year_end
+            )
+            orders_count = year_orders.count()
+            revenue = year_orders.filter(is_paid=True).aggregate(
+                total=Sum('total_price', output_field=DecimalField())
+            )['total'] or Decimal('0.00')
+            
+            # Clients for this year
+            year_clients = user_qs.filter(
+                role='client',
+                date_joined__gte=year_start,
+                date_joined__lt=year_end
+            ).count()
+            
+            # Writers for this year
+            year_writers = writer_qs.filter(
+                joined_at__gte=year_start,
+                joined_at__lt=year_end
+            ).count()
+            
+            # Classes for this year
+            classes_count = 0
+            if class_qs is not None:
+                classes_count = class_qs.filter(
+                    created_at__gte=year_start,
+                    created_at__lt=year_end
+                ).count()
+            
+            result.append({
+                'year': year,
+                'orders': orders_count,
+                'classes': classes_count,
+                'revenue': float(revenue),
+                'writers': year_writers,
+                'clients': year_clients,
+            })
+        
+        cache.set(cache_key, result, DashboardMetricsService.CACHE_TIMEOUT)
+        return result
 
