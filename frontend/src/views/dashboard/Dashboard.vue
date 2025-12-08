@@ -2049,6 +2049,8 @@ const fetchClientReferrals = async () => {
 
 // Lifecycle
 onMounted(async () => {
+  // Wait for next tick to ensure ApexCharts is fully loaded
+  await new Promise(resolve => setTimeout(resolve, 100))
   chartsReady.value = true
   // Fetch role-specific dashboard data
   const roleFetches = []
