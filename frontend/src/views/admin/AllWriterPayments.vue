@@ -85,60 +85,60 @@
       </div>
       
       <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 text-sm">
+        <table class="min-w-full divide-y divide-gray-200 text-xs">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Payment ID</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">Email</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Orders</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Client Total</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Writer Amount</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Platform Margin</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tips</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fines</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Reference</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+              <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Payment ID</th>
+              <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Writer</th>
+              <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden md:table-cell">Email</th>
+              <th class="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Orders</th>
+            <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Client Total</th>
+            <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Writer Amount</th>
+            <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Platform Margin</th>
+              <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Tips</th>
+              <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Fines</th>
+              <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Total</th>
+              <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+              <th class="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+              <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+              <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Reference</th>
+              <th class="px-3 py-2 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="payment in payments" :key="payment.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 text-sm font-mono">{{ payment.payment_id }}</td>
-              <td class="px-6 py-4 text-sm">
-                <div>{{ payment.writer.name }}</div>
-                <div class="text-xs text-gray-500">{{ payment.writer.registration_id }}</div>
+            <tr v-for="payment in payments" :key="payment.id" class="hover:bg-gray-50 transition-colors">
+              <td class="px-3 py-2 text-xs font-mono font-normal text-gray-900">{{ payment.payment_id }}</td>
+              <td class="px-3 py-2 text-xs">
+                <div class="font-medium text-gray-900">{{ payment.writer.name }}</div>
+                <div class="text-xs text-gray-500 mt-0.5">{{ payment.writer.registration_id }}</div>
               </td>
-              <td class="px-6 py-4 text-sm text-gray-600 hidden md:table-cell">{{ payment.writer.email }}</td>
-              <td class="px-6 py-4 text-sm text-center">{{ payment.number_of_orders }}</td>
-              <td class="px-6 py-4 text-sm font-medium">
+              <td class="px-3 py-2 text-xs text-gray-600 hidden md:table-cell font-normal">{{ payment.writer.email }}</td>
+              <td class="px-3 py-2 text-xs text-center font-medium text-gray-900">{{ payment.number_of_orders }}</td>
+              <td class="px-3 py-2 text-xs text-right font-medium text-gray-900">
                 ${{ formatCurrency(payment.client_total) }}
               </td>
-              <td class="px-6 py-4 text-sm font-medium">
+              <td class="px-3 py-2 text-xs text-right font-medium text-gray-900">
                 ${{ formatCurrency(payment.amount) }}
               </td>
-              <td class="px-6 py-4 text-sm" :class="payment.platform_margin >= 0 ? 'text-green-600' : 'text-red-600'">
+              <td class="px-3 py-2 text-xs text-right font-medium" :class="payment.platform_margin >= 0 ? 'text-green-600' : 'text-red-600'">
                 ${{ formatCurrency(payment.platform_margin) }}
               </td>
-              <td class="px-6 py-4 text-sm text-green-600">${{ formatCurrency(payment.tips) }}</td>
-              <td class="px-6 py-4 text-sm text-red-600">${{ formatCurrency(payment.fines) }}</td>
-              <td class="px-6 py-4 text-sm font-bold">${{ formatCurrency(payment.total_earnings) }}</td>
-              <td class="px-6 py-4 text-sm text-gray-600">{{ formatDate(payment.date) }}</td>
-              <td class="px-6 py-4 text-sm">
-                <span :class="getStatusClass(payment.status)" class="px-2 py-1 rounded-full text-xs font-medium">
+              <td class="px-3 py-2 text-xs text-right font-medium text-green-600">${{ formatCurrency(payment.tips) }}</td>
+              <td class="px-3 py-2 text-xs text-right font-medium text-red-600">${{ formatCurrency(payment.fines) }}</td>
+              <td class="px-3 py-2 text-xs text-right font-semibold text-gray-900">${{ formatCurrency(payment.total_earnings) }}</td>
+              <td class="px-3 py-2 text-xs text-gray-600 font-normal">{{ formatDate(payment.date) }}</td>
+              <td class="px-3 py-2 text-xs text-center">
+                <span :class="getStatusClass(payment.status)" class="px-2 py-0.5 rounded-full text-xs font-medium">
                   {{ payment.status }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-sm text-gray-600">{{ payment.type }}</td>
-              <td class="px-6 py-4 text-sm font-mono text-xs">{{ payment.reference }}</td>
-              <td class="px-6 py-4 text-sm">
-                <div class="flex items-center gap-2">
+              <td class="px-3 py-2 text-xs text-gray-600 font-normal">{{ payment.type }}</td>
+              <td class="px-3 py-2 text-xs font-mono text-gray-500 font-normal">{{ payment.reference }}</td>
+              <td class="px-3 py-2 text-xs text-center">
+                <div class="flex items-center justify-center gap-2">
                   <button
                     @click="viewPaymentBreakdown(payment.id)"
-                    class="text-blue-600 hover:underline"
+                    class="text-blue-600 hover:text-blue-800 hover:underline font-medium"
                   >
                     View
                   </button>
@@ -146,9 +146,9 @@
                     v-if="payment.status === 'Pending' && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
                     @click="markPaymentAsPaid(payment.id)"
                     :disabled="markingAsPaid"
-                    class="text-green-600 hover:underline text-xs"
+                    class="text-green-600 hover:text-green-800 hover:underline font-medium"
                   >
-                    {{ markingAsPaid ? 'Processing...' : 'Mark as Paid' }}
+                    {{ markingAsPaid ? 'Processing...' : 'Mark Paid' }}
                   </button>
                 </div>
               </td>

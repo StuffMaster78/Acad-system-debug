@@ -1,53 +1,59 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Wallet Management</h1>
-        <p class="text-sm text-gray-600 mt-1">Comprehensive wallet management with transaction history</p>
-      </div>
-      <div class="flex gap-2">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 py-4">
+    <PageHeader
+      title="Wallet Management"
+      subtitle="Comprehensive wallet management with transaction history"
+      @refresh="loadWallets"
+    >
+      <template #actions>
         <button 
           @click="exportWallets"
-          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
           title="Export to CSV"
         >
           📥 Export
         </button>
-        <button 
-          @click="loadWallets" 
-          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-        >
-          🔄 Refresh
-        </button>
-      </div>
-    </div>
+      </template>
+    </PageHeader>
 
-    <!-- Tabs -->
-    <div class="border-b border-gray-200">
-      <nav class="-mb-px flex space-x-8">
+    <!-- Wallet Type Tabs -->
+    <div class="bg-white rounded-lg shadow border border-gray-200">
+      <div class="flex border-b border-gray-200">
         <button
           @click="activeTab = 'clients'"
           :class="[
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+            'flex-1 px-6 py-4 text-sm font-medium transition-colors border-b-2',
             activeTab === 'clients'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-blue-500 text-blue-600 bg-blue-50'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
           ]"
         >
-          Client Wallets
+          <div class="flex items-center justify-center gap-2">
+            <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+            <span>Client Wallets</span>
+            <span v-if="summary && activeTab === 'clients'" class="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+              {{ summary.total_wallets || 0 }}
+            </span>
+          </div>
         </button>
         <button
           @click="activeTab = 'writers'"
           :class="[
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+            'flex-1 px-6 py-4 text-sm font-medium transition-colors border-b-2',
             activeTab === 'writers'
-              ? 'border-blue-500 text-blue-600'
-              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              ? 'border-emerald-500 text-emerald-600 bg-emerald-50'
+              : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
           ]"
         >
-          Writer Wallets
+          <div class="flex items-center justify-center gap-2">
+            <div class="w-3 h-3 rounded-full bg-emerald-500"></div>
+            <span>Writer Wallets</span>
+            <span v-if="writerWallets.length > 0 && activeTab === 'writers'" class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+              {{ writerWallets.length }}
+            </span>
+          </div>
         </button>
-      </nav>
+      </div>
     </div>
 
     <!-- Messages -->
@@ -98,24 +104,24 @@
         <!-- Client Wallet Info -->
         <div v-if="foundWallet" class="p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div>
+            <div class="min-w-0 overflow-hidden">
               <p class="text-xs text-gray-600 mb-1">Client</p>
-              <p class="font-semibold text-gray-900">{{ getUserName(foundWallet.user) }}</p>
-              <p class="text-sm text-gray-600">{{ foundWallet.user?.email }}</p>
+              <p class="font-semibold text-gray-900 truncate">{{ getUserName(foundWallet.user) }}</p>
+              <p class="text-sm text-gray-600 truncate">{{ foundWallet.user?.email }}</p>
             </div>
-            <div>
+            <div class="min-w-0 overflow-hidden">
               <p class="text-xs text-gray-600 mb-1">Website</p>
-              <p class="font-semibold text-gray-900">{{ foundWallet.website?.name || 'N/A' }}</p>
+              <p class="font-semibold text-gray-900 truncate">{{ foundWallet.website?.name || 'N/A' }}</p>
             </div>
-            <div>
+            <div class="min-w-0 overflow-hidden">
               <p class="text-xs text-gray-600 mb-1">Current Balance</p>
-              <p :class="getBalanceColor(foundWallet.balance)" class="text-2xl font-bold">
-                ${{ parseFloat(foundWallet.balance || 0).toFixed(2) }}
+              <p :class="getBalanceColor(foundWallet.balance)" class="text-xl sm:text-2xl font-bold break-all">
+                {{ formatCurrency(foundWallet.balance) }}
               </p>
             </div>
-            <div>
+            <div class="min-w-0 overflow-hidden">
               <p class="text-xs text-gray-600 mb-1">Loyalty Points</p>
-              <p class="text-xl font-semibold text-gray-900">{{ foundWallet.loyalty_points || 0 }}</p>
+              <p class="text-lg sm:text-xl font-semibold text-gray-900 break-all">{{ (foundWallet.loyalty_points || 0).toLocaleString() }}</p>
             </div>
           </div>
         </div>
@@ -198,42 +204,62 @@
     </div>
 
     <!-- Summary Cards -->
-    <div v-if="summary || activeTab === 'writers'" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-      <div v-if="activeTab === 'clients' && summary" class="bg-white p-6 rounded-lg shadow border border-gray-200">
-        <div class="text-sm font-medium text-gray-600 mb-2">Client Total Balance</div>
-        <div class="text-3xl font-bold text-primary-600">
-          ${{ summary.total_balance.toFixed(2) }}
-        </div>
+    <div v-if="summary || activeTab === 'writers'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <p class="text-xs font-medium text-blue-700 truncate">Client Total Balance</p>
+        <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight" :title="`$${summary.total_balance.toFixed(2)}`">
+          ${{ formatCurrency(summary.total_balance) }}
+        </p>
+        <p class="text-xs text-blue-600">{{ summary.total_wallets || 0 }} wallets</p>
       </div>
-      <div v-if="activeTab === 'clients' && summary" class="bg-white p-6 rounded-lg shadow border border-gray-200">
-        <div class="text-sm font-medium text-gray-600 mb-2">Client Wallets</div>
-        <div class="text-3xl font-bold text-primary-600">
-          {{ summary.total_wallets }}
-        </div>
+      <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow border border-indigo-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <p class="text-xs font-medium text-indigo-700 truncate">Client Wallets</p>
+        <p class="text-base sm:text-lg lg:text-xl font-bold text-indigo-900 break-all leading-tight">
+          {{ summary.total_wallets || 0 }}
+        </p>
+        <p class="text-xs text-indigo-600">active wallets</p>
       </div>
-      <div v-if="activeTab === 'clients' && summary" class="bg-white p-6 rounded-lg shadow border border-gray-200">
-        <div class="text-sm font-medium text-gray-600 mb-2">Loyalty Points</div>
-        <div class="text-3xl font-bold text-primary-600">
+      <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <p class="text-xs font-medium text-purple-700 truncate">Loyalty Points</p>
+        <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">
           {{ summary.total_loyalty_points.toLocaleString() }}
-        </div>
+        </p>
+        <p class="text-xs text-purple-600">total points</p>
       </div>
-      <div v-if="activeTab === 'writers'" class="bg-white p-6 rounded-lg shadow border border-gray-200">
-        <div class="text-sm font-medium text-gray-600 mb-2">Writer Total Balance</div>
-        <div class="text-3xl font-bold text-green-600">
-          ${{ writerTotalBalance.toFixed(2) }}
-        </div>
+      <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow border border-orange-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <p class="text-xs font-medium text-orange-700 truncate">Avg Balance</p>
+        <p class="text-base sm:text-lg lg:text-xl font-bold text-orange-900 break-all leading-tight">
+          ${{ formatCurrency(summary.total_wallets ? (summary.total_balance / summary.total_wallets) : 0) }}
+        </p>
+        <p class="text-xs text-orange-600">per wallet</p>
       </div>
-      <div v-if="activeTab === 'writers'" class="bg-white p-6 rounded-lg shadow border border-gray-200">
-        <div class="text-sm font-medium text-gray-600 mb-2">Writer Wallets</div>
-        <div class="text-3xl font-bold text-green-600">
+      <div v-if="activeTab === 'writers'" class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg shadow border border-emerald-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <p class="text-xs font-medium text-emerald-700 truncate">Writer Total Balance</p>
+        <p class="text-base sm:text-lg lg:text-xl font-bold text-emerald-900 break-all leading-tight" :title="`$${writerTotalBalance.toFixed(2)}`">
+          ${{ formatCurrency(writerTotalBalance) }}
+        </p>
+        <p class="text-xs text-emerald-600">{{ writerWallets.length }} wallets</p>
+      </div>
+      <div v-if="activeTab === 'writers'" class="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow border border-teal-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <p class="text-xs font-medium text-teal-700 truncate">Writer Wallets</p>
+        <p class="text-base sm:text-lg lg:text-xl font-bold text-teal-900 break-all leading-tight">
           {{ writerWallets.length }}
-        </div>
+        </p>
+        <p class="text-xs text-teal-600">active wallets</p>
       </div>
-      <div v-if="activeTab === 'writers'" class="bg-white p-6 rounded-lg shadow border border-gray-200">
-        <div class="text-sm font-medium text-gray-600 mb-2">Total Earnings</div>
-        <div class="text-3xl font-bold text-green-600">
-          ${{ writerTotalEarnings.toFixed(2) }}
-        </div>
+      <div v-if="activeTab === 'writers'" class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <p class="text-xs font-medium text-green-700 truncate">Total Earnings</p>
+        <p class="text-base sm:text-lg lg:text-xl font-bold text-green-900 break-all leading-tight" :title="`$${writerTotalEarnings.toFixed(2)}`">
+          ${{ formatCurrency(writerTotalEarnings) }}
+        </p>
+        <p class="text-xs text-green-600">total earnings</p>
+      </div>
+      <div v-if="activeTab === 'writers'" class="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg shadow border border-cyan-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <p class="text-xs font-medium text-cyan-700 truncate">Avg Balance</p>
+        <p class="text-base sm:text-lg lg:text-xl font-bold text-cyan-900 break-all leading-tight">
+          ${{ formatCurrency(writerWallets.length ? (writerTotalBalance / writerWallets.length) : 0) }}
+        </p>
+        <p class="text-xs text-cyan-600">per wallet</p>
       </div>
     </div>
 
@@ -292,62 +318,85 @@
         </table>
       </div>
       <div v-else class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div v-for="site in summary.website_totals.slice(0, 3)" :key="site.website__id" class="p-4 bg-gray-50 rounded-lg">
-          <div class="text-sm font-medium text-gray-600">{{ site.website__name }}</div>
-          <div class="text-2xl font-bold text-green-600 mt-1">${{ parseFloat(site.total_balance || 0).toFixed(2) }}</div>
-          <div class="text-xs text-gray-500 mt-1">{{ site.wallet_count || 0 }} wallets</div>
+        <div v-for="(site, index) in summary.website_totals.slice(0, 3)" :key="site.website__id" 
+          :class="[
+            'p-4 rounded-lg min-w-0 overflow-hidden h-28 flex flex-col justify-between shadow border',
+            index === 0 ? 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200' : '',
+            index === 1 ? 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200' : '',
+            index === 2 ? 'bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200' : ''
+          ]">
+          <div :class="[
+            'text-xs font-medium truncate',
+            index === 0 ? 'text-amber-700' : '',
+            index === 1 ? 'text-orange-700' : '',
+            index === 2 ? 'text-rose-700' : ''
+          ]">{{ site.website__name }}</div>
+          <div :class="[
+            'text-base sm:text-lg lg:text-xl font-bold break-all leading-tight',
+            index === 0 ? 'text-amber-800' : '',
+            index === 1 ? 'text-orange-800' : '',
+            index === 2 ? 'text-rose-800' : ''
+          ]" :title="`$${parseFloat(site.total_balance || 0).toFixed(2)}`">
+            {{ formatCurrency(site.total_balance) }}
+          </div>
+          <div :class="[
+            'text-xs',
+            index === 0 ? 'text-amber-600' : '',
+            index === 1 ? 'text-orange-600' : '',
+            index === 2 ? 'text-rose-600' : ''
+          ]">{{ site.wallet_count || 0 }} wallets</div>
         </div>
-        <div v-if="summary.website_totals.length > 3" class="p-4 bg-gray-50 rounded-lg flex items-center justify-center">
-          <span class="text-sm text-gray-600">+{{ summary.website_totals.length - 3 }} more websites</span>
+        <div v-if="summary.website_totals.length > 3" class="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg flex items-center justify-center h-28 border border-slate-200 shadow">
+          <span class="text-sm text-slate-600">+{{ summary.website_totals.length - 3 }} more websites</span>
         </div>
       </div>
     </div>
 
     <!-- Filters -->
-    <div class="bg-white p-4 rounded-lg shadow border border-gray-200">
+    <div class="bg-white p-4 rounded-lg shadow border border-gray-200 mb-6">
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <div>
-          <label class="block text-sm font-medium mb-1">Search</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Search</label>
           <input 
             v-model="filters.search" 
             @input="debouncedSearch"
             type="text" 
             placeholder="Email, username, name, phone..."
-            class="w-full border rounded px-3 py-2"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Website</label>
-          <select v-model="filters.website" @change="loadWallets" class="w-full border rounded px-3 py-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Website</label>
+          <select v-model="filters.website" @change="loadWallets" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
             <option value="">All Websites</option>
             <option v-for="site in websites" :key="site.id" :value="site.id">{{ site.name }}</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Min Balance</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Min Balance</label>
           <input 
             v-model.number="filters.min_balance" 
             @input="debouncedSearch"
             type="number" 
             step="0.01"
             placeholder="0.00"
-            class="w-full border rounded px-3 py-2"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Max Balance</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Max Balance</label>
           <input 
             v-model.number="filters.max_balance" 
             @input="debouncedSearch"
             type="number" 
             step="0.01"
             placeholder="No limit"
-            class="w-full border rounded px-3 py-2"
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
           />
         </div>
         <div>
-          <label class="block text-sm font-medium mb-1">Sort By</label>
-          <select v-model="filters.ordering" @change="loadWallets" class="w-full border rounded px-3 py-2">
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Sort By</label>
+          <select v-model="filters.ordering" @change="loadWallets" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
             <option value="-balance">Balance (High to Low)</option>
             <option value="balance">Balance (Low to High)</option>
             <option value="-last_updated">Last Updated (Recent)</option>
@@ -357,7 +406,7 @@
           </select>
         </div>
         <div class="flex items-end">
-          <button @click="resetFilters" class="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors">
+          <button @click="resetFilters" class="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium text-sm">
             Reset Filters
           </button>
         </div>
@@ -800,6 +849,7 @@
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import walletAPI from '@/api/wallet'
 import websitesAPI from '@/api/websites'
 
@@ -895,6 +945,12 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const formatCurrency = (amount) => {
+  const num = parseFloat(amount || 0)
+  // Format with commas for thousands
+  return `$${num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 const loadWebsites = async () => {
