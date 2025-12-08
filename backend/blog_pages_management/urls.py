@@ -56,7 +56,7 @@ from .views.metrics_views import (
 )
 from .seo import robots_txt, sitemap_index, blog_sitemap
 from .views import blog_redirect
-from .views import preview_views
+from .views.preview_views import preview_blog_post, InternalPreviewViewSet
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from rest_framework.permissions import AllowAny
@@ -113,6 +113,7 @@ router.register(r"blog-revisions", BlogPostRevisionViewSet, basename="blog-revis
 router.register(r"blog-autosaves", BlogPostAutoSaveViewSet, basename="blog-autosave")
 router.register(r"blog-edit-locks", BlogPostEditLockViewSet, basename="blog-edit-lock")
 router.register(r"blog-previews", BlogPostPreviewViewSet, basename="blog-preview")
+router.register(r"internal-preview", InternalPreviewViewSet, basename="internal-preview")
 
 # Workflow & Templates routes
 router.register(r"blog-workflows", BlogPostWorkflowViewSet, basename="blog-workflow")
@@ -164,6 +165,6 @@ urlpatterns = [
     # Redirect old blog URLs to new slugs
     path("blogs/old/<slug:old_slug>/", blog_redirect, name="blog-redirect"),
     
-    # Preview endpoint (public)
-    path("preview/<str:token>/", preview_views.preview_blog_post, name="blog-preview"),
+    # Preview endpoints
+    path("preview/<str:token>/", preview_blog_post, name="blog-preview"),  # Public token-based preview
 ]

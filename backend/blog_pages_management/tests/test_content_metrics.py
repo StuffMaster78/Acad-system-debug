@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from websites.models import Website
 from analytics.models import ContentEvent
-from blog_pages_management._legacy_models import BlogPost
+from blog_pages_management.models import BlogPost
 from blog_pages_management.services.content_metrics_service import ContentMetricsService
 
 User = get_user_model()

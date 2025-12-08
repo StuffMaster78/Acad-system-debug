@@ -85,6 +85,17 @@ class WriterOrderRequest(models.Model):
         self.clean()
         super().save(*args, **kwargs)
 
+    class Meta:
+        verbose_name = "Writer Order Request"
+        verbose_name_plural = "Writer Order Requests"
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['writer', 'approved', 'requested_at']),
+            models.Index(fields=['website', 'approved']),
+            models.Index(fields=['order', 'approved']),
+            models.Index(fields=['approved', 'requested_at']),
+        ]
+
 class WriterOrderTake(models.Model):
     """
     Writers can take orders directly if admin allows.
@@ -137,7 +148,15 @@ class WriterOrderTake(models.Model):
         self.clean()
         super().save(*args, **kwargs)
 
-
+    class Meta:
+        verbose_name = "Writer Order Take"
+        verbose_name_plural = "Writer Order Takes"
+        ordering = ['-taken_at']
+        indexes = [
+            models.Index(fields=['writer', 'taken_at']),
+            models.Index(fields=['website', 'order']),
+            models.Index(fields=['order', 'taken_at']),
+        ]
 
 
 class WriterOrderRequestReview(models.Model):

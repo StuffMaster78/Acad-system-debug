@@ -25,7 +25,11 @@ class AutoArchiveService:
             dict: Summary of archived orders.
         """
         try:
-            orders = get_orders_by_status_older_than(status, cutoff_date, website)
+            # Get orders by status and date
+            orders = get_orders_by_status_older_than(status, cutoff_date)
+            # Filter by website if provided
+            if website:
+                orders = orders.filter(website=website)
             count = 0
 
             for order in orders:

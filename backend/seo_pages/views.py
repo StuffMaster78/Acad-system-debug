@@ -31,6 +31,35 @@ class SeoPageViewSet(viewsets.ModelViewSet):
     
     def perform_update(self, serializer):
         serializer.save(updated_by=self.request.user)
+    
+    @action(detail=True, methods=['get'], url_path='preview')
+    def preview(self, request, pk=None):
+        """
+        Preview an SEO page as it will appear publicly.
+        Accessible to authenticated users (admins, content creators).
+        Works for both published and draft pages.
+        """
+        page = self.get_object()
+        
+        # Check permissions - user must have access to this page's website
+        user = request.user
+        if user.role not in ['superadmin', 'admin']:
+            user_website = getattr(user, 'website', None)
+            if user_website and page.website != user_website:
+                return Response(
+                    {'error': 'You do not have permission to preview this page'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Use public serializer to show how it will appear
+        serializer = PublicSeoPageSerializer(page, context={'request': request})
+        
+        return Response({
+            'preview': True,
+            'is_internal_preview': True,
+            'is_published': page.is_published,
+            'page': serializer.data
+        }, status=status.HTTP_200_OK)
 
 
 class PublicSeoPageViewSet(viewsets.ReadOnlyModelViewSet):

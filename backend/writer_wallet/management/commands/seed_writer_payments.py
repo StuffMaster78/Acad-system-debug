@@ -1,6 +1,7 @@
 from decimal import Decimal
 from datetime import timedelta
 from uuid import uuid4
+from calendar import monthrange
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
@@ -149,73 +150,102 @@ class Command(BaseCommand):
             writer_deadline_cfg, _ = WriterDeadlineConfig.objects.get_or_create(website=website, writer_deadline_percentage=80)
 
             demo_writers = []
+            self.stdout.write(f"  Creating {writers_count} writers for {website.name}...")
             for index in range(1, writers_count + 1):
                 email = f"writer{index}.demo@{website.id}.example.com"
                 username = f"writer_demo_{website.id}_{index}"
-            writer_user = self.ensure_user(
-                email=email,
-                username=username,
-                role="writer",
-                password="WriterDemo123!",
-                website=website,
-            )
+                self.stdout.write(f"    Creating writer {index}/{writers_count}: {username}")
+                writer_user = self.ensure_user(
+                    email=email,
+                    username=username,
+                    role="writer",
+                    password="WriterDemo123!",
+                    website=website,
+                )
+                self.stdout.write(f"      ensure_user returned: user_id={writer_user.id if writer_user else 'None'}, username={writer_user.username if writer_user else 'None'}")
 
-            wallet, _ = Wallet.objects.get_or_create(
-                user=writer_user,
-                defaults={"website": website, "balance": Decimal("0.00")},
-            )
-            if wallet.website_id is None:
-                wallet.website = website
-                wallet.save(update_fields=["website"])
+                wallet, _ = Wallet.objects.get_or_create(
+                    user=writer_user,
+                    defaults={"website": website, "balance": Decimal("0.00")},
+                )
+                if wallet.website_id is None:
+                    wallet.website = website
+                    wallet.save(update_fields=["website"])
 
-            registration_id = f"WR-{index:03d}"
-            writer_profile, created = WriterProfile.objects.get_or_create(
-                user=writer_user,
-                defaults={
-                    "website": website,
-                    "wallet": wallet,
-                    "registration_id": registration_id,
-                    "pen_name": f"Writer Demo {index}",
-                    "timezone": "UTC",
-                },
-            )
-            if created is False:
-                updates = {}
-                if writer_profile.wallet_id != wallet.id:
-                    writer_profile.wallet = wallet
-                    updates["wallet"] = wallet
-                if not writer_profile.registration_id:
-                    writer_profile.registration_id = registration_id
-                    updates["registration_id"] = registration_id
-                if updates:
-                    writer_profile.save(update_fields=list(updates.keys()))
+                # Make registration_id unique by including website ID
+                registration_id = f"WR-{website.id}-{index:03d}"
+                # Alternate between bi-weekly and monthly payment schedules
+                payment_schedule = "bi-weekly" if index % 2 == 1 else "monthly"
+                payment_date_pref = "1,15" if payment_schedule == "bi-weekly" else "1"
+                
+                writer_profile, created = WriterProfile.objects.get_or_create(
+                    user=writer_user,
+                    defaults={
+                        "website": website,
+                        "wallet": wallet,
+                        "registration_id": registration_id,
+                        "pen_name": f"Writer Demo {index}",
+                        "timezone": "UTC",
+                        "payment_schedule": payment_schedule,
+                        "payment_date_preference": payment_date_pref,
+                    },
+                )
+                self.stdout.write(f"      WriterProfile: created={created}, profile_id={writer_profile.id if writer_profile else 'None'}")
+                if created is False:
+                    updates = {}
+                    if writer_profile.wallet_id != wallet.id:
+                        writer_profile.wallet = wallet
+                        updates["wallet"] = wallet
+                    # Only update registration_id if it's not set or if it doesn't match the expected pattern
+                    if not writer_profile.registration_id or not writer_profile.registration_id.startswith(f"WR-{website.id}-"):
+                        # Check if the new registration_id already exists
+                        if not WriterProfile.objects.filter(registration_id=registration_id).exclude(id=writer_profile.id).exists():
+                            writer_profile.registration_id = registration_id
+                            updates["registration_id"] = registration_id
+                    # Update payment preferences
+                    writer_profile.payment_schedule = payment_schedule
+                    writer_profile.payment_date_preference = payment_date_pref
+                    updates["payment_schedule"] = payment_schedule
+                    updates["payment_date_preference"] = payment_date_pref
+                    if updates:
+                        writer_profile.save(update_fields=list(updates.keys()))
 
-            writer_wallet, _ = WriterWallet.objects.get_or_create(
-                writer=writer_user,
-                defaults={
-                    "website": website,
-                    "balance": Decimal("0.00"),
-                    "total_earnings": Decimal("0.00"),
-                },
-            )
-            if writer_wallet.website_id is None:
-                writer_wallet.website = website
-                writer_wallet.save(update_fields=["website"])
+                writer_wallet, _ = WriterWallet.objects.get_or_create(
+                    writer=writer_user,
+                    defaults={
+                        "website": website,
+                        "balance": Decimal("0.00"),
+                        "total_earnings": Decimal("0.00"),
+                    },
+                )
+                if writer_wallet.website_id is None:
+                    writer_wallet.website = website
+                    writer_wallet.save(update_fields=["website"])
 
-            demo_writers.append({
-                "user": writer_user,
-                "profile": writer_profile,
-                "wallet": writer_wallet,
-            })
+                # Add writer to demo_writers list
+                demo_writers.append({
+                    "user": writer_user,
+                    "profile": writer_profile,
+                    "wallet": writer_wallet,
+                })
+                self.stdout.write(f"      ✓ Added writer {index} to demo_writers (user_id: {writer_user.id}, profile_id: {writer_profile.id if writer_profile else 'None'})")
 
-        created_orders = []
+        # Debug: Log how many writers we have
+        self.stdout.write(f"  Created {len(demo_writers)} writers for {website.name}")
+
+        # Store orders per writer
+        writer_orders = {}
         spacing_choice = SpacingOptions.DOUBLE.value
         original_disable_pricing = getattr(settings, "DISABLE_PRICE_RECALC_DURING_TESTS", False)
         settings.DISABLE_PRICE_RECALC_DURING_TESTS = True
         try:
             for writer in demo_writers:
                 writer_user = writer["user"]
-                for order_index in range(1, periods_count + 2):
+                writer_orders[writer_user.id] = []
+                # Create more orders to ensure we have enough for all payment periods
+                # Create orders for each payment period plus some extras
+                num_orders_per_writer = (periods_count * 2) + 10  # Enough for bi-weekly and monthly periods
+                for order_index in range(1, num_orders_per_writer + 1):
                     order_topic = f"Sample Order {writer_user.username}-{order_index}"
                     order_defaults = {
                         "paper_type": paper_type,
@@ -257,121 +287,145 @@ class Command(BaseCommand):
                         for field, value in order_defaults.items():
                             setattr(order, field, value)
                         order.save()
-                    created_orders.append(order)
+                    writer_orders[writer_user.id].append(order)
         finally:
             settings.DISABLE_PRICE_RECALC_DURING_TESTS = original_disable_pricing
 
+        # Debug: Log writer_orders summary
+        total_orders_stored = sum(len(orders) for orders in writer_orders.values())
+        writer_ids = list(writer_orders.keys())
+        self.stdout.write(f"  Stored {total_orders_stored} orders for {len(writer_orders)} writers (IDs: {writer_ids[:5]})")
+
+        # Delete existing payment data for this website
         PaymentSchedule.objects.filter(website=website).delete()
+        # PaymentOrderRecord will be deleted via CASCADE when ScheduledWriterPayment is deleted
         ScheduledWriterPayment.objects.filter(website=website).delete()
 
         payment_periods = []
         today = timezone.now().date()
         
-        # Create bi-weekly schedules: 3 months back + current + 1 month forward (pending)
+        # Create bi-weekly schedules: 1st and 15th of each month
+        # Generate for 3 months back, current month, and 1 month forward
         biweekly_count = 0
-        for months_back in range(3, -2, -1):  # 3 months back to 1 month forward
-            if months_back > 0:
-                # Past bi-weekly periods
-                for week_offset in [0, 2]:  # Two bi-weekly periods per month
-                    scheduled_date = today - timedelta(days=30 * months_back + 14 * week_offset)
-                    if scheduled_date <= today:
-                        biweekly_schedule = PaymentSchedule.objects.create(
-                            website=website,
-                            schedule_type="Bi-Weekly",
-                            scheduled_date=scheduled_date,
-                            processed_by=admin_user,
-                            completed=True,  # Past periods are completed
-                            reference_code=f"BW{uuid4().hex[:8]}",
-                        )
-                        payment_periods.append(biweekly_schedule)
-                        biweekly_count += 1
-            elif months_back == 0:
-                # Current month - create past and upcoming bi-weekly
-                for week_offset in [2, 0, -2]:  # Past, current, future
-                    scheduled_date = today - timedelta(days=14 * week_offset)
-                    if week_offset >= 0:
-                        completed = True
-                    else:
-                        completed = False  # Future period is pending
-                    biweekly_schedule = PaymentSchedule.objects.create(
-                        website=website,
-                        schedule_type="Bi-Weekly",
-                        scheduled_date=scheduled_date,
-                        processed_by=admin_user if completed else None,
-                        completed=completed,
-                        reference_code=f"BW{uuid4().hex[:8]}",
-                    )
-                    payment_periods.append(biweekly_schedule)
-                    biweekly_count += 1
-            else:
-                # Future month - pending
-                scheduled_date = today + timedelta(days=abs(months_back) * 30)
-                biweekly_schedule = PaymentSchedule.objects.create(
-                    website=website,
-                    schedule_type="Bi-Weekly",
-                    scheduled_date=scheduled_date,
-                    processed_by=None,
-                    completed=False,  # Future period is pending
-                    reference_code=f"BW{uuid4().hex[:8]}",
-                )
-                payment_periods.append(biweekly_schedule)
-                biweekly_count += 1
+        for months_offset in range(-3, 2):  # 3 months back to 1 month forward
+            # Calculate target month
+            target_month = today.month + months_offset
+            target_year = today.year
+            
+            while target_month <= 0:
+                target_month += 12
+                target_year -= 1
+            while target_month > 12:
+                target_month -= 12
+                target_year += 1
+            
+            # Get last day of month to ensure day 15 is valid
+            last_day = monthrange(target_year, target_month)[1]
+            
+            # Create payment schedule for 1st of month
+            scheduled_date_1st = today.replace(year=target_year, month=target_month, day=1)
+            is_past_1st = scheduled_date_1st < today
+            
+            biweekly_schedule_1st = PaymentSchedule.objects.create(
+                website=website,
+                schedule_type="Bi-Weekly",
+                scheduled_date=scheduled_date_1st,
+                processed_by=admin_user if is_past_1st else None,
+                completed=is_past_1st,
+                reference_code=f"BW{uuid4().hex[:8]}",
+            )
+            payment_periods.append(biweekly_schedule_1st)
+            biweekly_count += 1
+            
+            # Create payment schedule for 15th of month
+            scheduled_date_15th = today.replace(year=target_year, month=target_month, day=min(15, last_day))
+            is_past_15th = scheduled_date_15th < today
+            
+            biweekly_schedule_15th = PaymentSchedule.objects.create(
+                website=website,
+                schedule_type="Bi-Weekly",
+                scheduled_date=scheduled_date_15th,
+                processed_by=admin_user if is_past_15th else None,
+                completed=is_past_15th,
+                reference_code=f"BW{uuid4().hex[:8]}",
+            )
+            payment_periods.append(biweekly_schedule_15th)
+            biweekly_count += 1
         
-        # Create monthly schedules: 3 months back + current + 1 month forward (pending)
-        # Past 3 months
-        for i in range(1, 4):
-            month = today.month - i
-            year = today.year
-            while month <= 0:
-                month += 12
-                year -= 1
-            month_date = today.replace(year=year, month=month, day=1)
+        # Create monthly schedules: 1st of each month
+        # Generate for 3 months back, current month, and 1 month forward
+        monthly_count = 0
+        for months_offset in range(-3, 2):  # 3 months back to 1 month forward
+            # Calculate target month
+            target_month = today.month + months_offset
+            target_year = today.year
+            
+            while target_month <= 0:
+                target_month += 12
+                target_year -= 1
+            while target_month > 12:
+                target_month -= 12
+                target_year += 1
+            
+            # Create payment schedule for 1st of month
+            scheduled_date = today.replace(year=target_year, month=target_month, day=1)
+            is_past = scheduled_date < today
+            
             monthly_schedule = PaymentSchedule.objects.create(
                 website=website,
                 schedule_type="Monthly",
-                scheduled_date=month_date,
-                processed_by=admin_user,
-                completed=True,  # Past periods are completed
+                scheduled_date=scheduled_date,
+                processed_by=admin_user if is_past else None,
+                completed=is_past,
                 reference_code=f"MO{uuid4().hex[:8]}",
             )
             payment_periods.append(monthly_schedule)
-        
-        # Current month
-        current_month = today.replace(day=1)
-        monthly_schedule = PaymentSchedule.objects.create(
-            website=website,
-            schedule_type="Monthly",
-            scheduled_date=current_month,
-            processed_by=admin_user if today.day > 15 else None,
-            completed=today.day > 15,  # Completed if we're past mid-month
-            reference_code=f"MO{uuid4().hex[:8]}",
-        )
-        payment_periods.append(monthly_schedule)
-        
-        # Next month (pending)
-        month = today.month + 1
-        year = today.year
-        if month > 12:
-            month = 1
-            year += 1
-        next_month = today.replace(year=year, month=month, day=1)
-        monthly_schedule = PaymentSchedule.objects.create(
-            website=website,
-            schedule_type="Monthly",
-            scheduled_date=next_month,
-            processed_by=None,
-            completed=False,  # Future period is pending
-            reference_code=f"MO{uuid4().hex[:8]}",
-        )
-        payment_periods.append(monthly_schedule)
+            monthly_count += 1
 
         payment_records_created = 0
         import random
+        
         for schedule in payment_periods:
             for writer in demo_writers:
-                # Vary amounts: $150-$800 range
-                base_amount = Decimal("150.00") + Decimal(str(random.randint(0, 65))) * Decimal("10.00")
-                amount = base_amount
+                writer_profile = writer["profile"]
+                writer_user = writer["user"]
+                # Create payments for all writers matching their schedule preference
+                # For simplicity, create payments for all writers - can be filtered later if needed
+                # The payment amounts and orders will be properly calculated below
+                
+                # Get orders for this writer - ensure we have the orders
+                writer_order_list = writer_orders.get(writer_user.id, [])
+                
+                # Always link 1-2 orders per payment if orders are available
+                # Allow orders to be reused across payments (realistic scenario)
+                selected_orders = []
+                if writer_order_list and len(writer_order_list) > 0:
+                    # Link 1-2 orders per payment
+                    num_orders = min(random.randint(1, 2), len(writer_order_list))
+                    selected_orders = random.sample(writer_order_list, num_orders)
+                # Note: If writer_order_list is empty, selected_orders will be empty
+                # and payment will be created with random amount but no linked orders
+                
+                # Calculate amount from selected orders
+                amount = Decimal("0.00")
+                for order in selected_orders:
+                    amount += order.writer_compensation or Decimal("0.00")
+                
+                # If no orders available, use a random base amount
+                if amount == Decimal("0.00"):
+                    amount = Decimal("150.00") + Decimal(str(random.randint(0, 65))) * Decimal("10.00")
+                
+                # Add some random tips (20% chance)
+                tips_amount = Decimal("0.00")
+                if random.random() < 0.2:
+                    tips_amount = Decimal(str(random.randint(5, 50)))
+                    amount += tips_amount
+                
+                # Add some random fines (10% chance)
+                fines_amount = Decimal("0.00")
+                if random.random() < 0.1:
+                    fines_amount = Decimal(str(random.randint(10, 100)))
+                    amount = max(Decimal("0.00"), amount - fines_amount)
                 
                 # Create payment with appropriate status
                 payment = ScheduledWriterPayment.objects.create(
@@ -384,16 +438,34 @@ class Command(BaseCommand):
                     reference_code=f"PW{uuid4().hex[:8]}",
                 )
 
-                # Link some orders to payments (not all payments need orders)
-                if created_orders and random.random() > 0.3:  # 70% chance to link orders
-                    num_orders = random.randint(1, min(3, len(created_orders)))
-                    for order in created_orders[:num_orders]:
-                        PaymentOrderRecord.objects.create(
-                            website=website,
-                            payment=payment,
-                            order=order,
-                            amount_paid=order.writer_compensation or Decimal("100.00"),
-                        )
+                # Link orders to payment - ensure we always link if orders are available
+                orders_linked = 0
+                if selected_orders:
+                    for order in selected_orders:
+                        try:
+                            # Check if this order is already linked to this payment
+                            existing = PaymentOrderRecord.objects.filter(
+                                payment=payment,
+                                order=order
+                            ).first()
+                            if not existing:
+                                record = PaymentOrderRecord.objects.create(
+                                    website=website,
+                                    payment=payment,
+                                    order=order,
+                                    amount_paid=order.writer_compensation or Decimal("100.00"),
+                                )
+                                orders_linked += 1
+                        except Exception as e:
+                            # Log error but continue
+                            self.stdout.write(self.style.WARNING(
+                                f"Warning: Could not link order {order.id} to payment {payment.id}: {e}"
+                            ))
+                elif writer_order_list:
+                    # Debug: log if we have orders but didn't select any
+                    self.stdout.write(self.style.WARNING(
+                        f"Warning: Writer {writer_user.username} has {len(writer_order_list)} orders but none were selected for payment {payment.id}"
+                    ))
 
                 payment_records_created += 1
             

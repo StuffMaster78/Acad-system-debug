@@ -1118,7 +1118,12 @@ class WriterActionLogViewSet(viewsets.ModelViewSet):
 
 
 class WriterSupportTicketViewSet(viewsets.ModelViewSet):
-    queryset = WriterSupportTicket.objects.all()
+    """
+    Duplicate class - should use the one above. This is kept for backward compatibility.
+    """
+    queryset = WriterSupportTicket.objects.all().select_related(
+        'writer__user', 'website', 'assigned_to'
+    )
     serializer_class = WriterSupportTicketSerializer
 
 class WriterDeadlineExtensionRequestViewSet(viewsets.ModelViewSet):

@@ -132,6 +132,16 @@ class WriterPayment(models.Model):
                 pass
         super().save(*args, **kwargs)
 
+    class Meta:
+        verbose_name = "Writer Payment"
+        verbose_name_plural = "Writer Payments"
+        ordering = ['-payment_date']
+        indexes = [
+            models.Index(fields=['writer', 'payment_date']),
+            models.Index(fields=['website', 'payment_date']),
+            models.Index(fields=['writer', 'website', 'payment_date']),
+        ]
+
 
 class WriterEarningsHistory(models.Model):
     """
@@ -166,6 +176,17 @@ class WriterEarningsHistory(models.Model):
             f"Earnings for {self.writer.user.username}: "
             f"{self.period_start} - {self.period_end}"
         )
+
+    class Meta:
+        verbose_name = "Writer Earnings History"
+        verbose_name_plural = "Writer Earnings Histories"
+        ordering = ['-period_end']
+        indexes = [
+            models.Index(fields=['writer', 'period_end']),
+            models.Index(fields=['website', 'period_end']),
+            models.Index(fields=['writer', 'website', 'period_end']),
+            models.Index(fields=['period_start', 'period_end']),
+        ]
 
 class CurrencyConversionRate(models.Model):
     """

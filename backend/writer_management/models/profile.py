@@ -257,6 +257,14 @@ class WriterProfile(models.Model):
         verbose_name_plural = "Writer Profiles"
         ordering = ['-joined_at']
         unique_together = ("website", "registration_id")
+        indexes = [
+            models.Index(fields=['website', 'is_available_for_auto_assignments']),
+            models.Index(fields=['writer_level', 'average_rating']),
+            models.Index(fields=['verification_status', 'joined_at']),
+            models.Index(fields=['is_deleted', 'joined_at']),
+            models.Index(fields=['user']),  # For direct user lookups
+            models.Index(fields=['website', 'is_deleted']),  # For active writers by website
+        ]
 
     def clean(self):
         """

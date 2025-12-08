@@ -33,16 +33,43 @@ class PasswordExpirationService:
         if not self.website:
             raise ValueError("Website context required for password expiration policy")
         
-        policy, created = PasswordExpirationPolicy.objects.get_or_create(
-            user=self.user,
-            website=self.website,
-            defaults={
-                'password_changed_at': timezone.now(),
-                'expires_in_days': self.DEFAULT_EXPIRATION_DAYS,
-                'warning_days_before': self.DEFAULT_WARNING_DAYS,
-            }
-        )
-        return policy
+        # Handle race condition: if another request creates the policy between
+        # get() and create(), catch IntegrityError and retry get()
+        # Note: user is OneToOneField, so unique constraint is only on user_id
+        try:
+            policy, created = PasswordExpirationPolicy.objects.get_or_create(
+                user=self.user,
+                defaults={
+                    'website': self.website,
+                    'password_changed_at': timezone.now(),
+                    'expires_in_days': self.DEFAULT_EXPIRATION_DAYS,
+                    'warning_days_before': self.DEFAULT_WARNING_DAYS,
+                }
+            )
+            # Update website if it changed (for existing policies)
+            if not created and policy.website != self.website:
+                policy.website = self.website
+                policy.save(update_fields=['website'])
+            return policy
+        except Exception as e:
+            # If we get an IntegrityError (unique constraint violation),
+            # another request created the policy between our get() and create()
+            from django.db import IntegrityError
+            if isinstance(e, IntegrityError):
+                try:
+                    # Retry getting the existing policy
+                    policy = PasswordExpirationPolicy.objects.get(user=self.user)
+                    # Update website if it's different
+                    if policy.website != self.website:
+                        policy.website = self.website
+                        policy.save(update_fields=['website'])
+                    return policy
+                except PasswordExpirationPolicy.DoesNotExist:
+                    # This shouldn't happen, but log it if it does
+                    logger.error(f"IntegrityError but policy not found for user {self.user.id}")
+                    raise
+            # Re-raise if it's not an IntegrityError
+            raise
     
     def update_password_changed(self):
         """Update password changed timestamp when user changes password."""
