@@ -66,5 +66,41 @@ export default {
   createWriterDeadlineConfig: (data) => apiClient.post('/order-configs/api/writer-deadline-configs/', data),
   updateWriterDeadlineConfig: (id, data) => apiClient.put(`/order-configs/api/writer-deadline-configs/${id}/`, data),
   deleteWriterDeadlineConfig: (id) => apiClient.delete(`/order-configs/api/writer-deadline-configs/${id}/`),
+  
+  // Subject Templates
+  getSubjectTemplates: (params) => apiClient.get('/order-configs/api/subject-templates/', { params }),
+  getSubjectTemplate: (id) => apiClient.get(`/order-configs/api/subject-templates/${id}/`),
+  createSubjectTemplate: (data) => apiClient.post('/order-configs/api/subject-templates/', data),
+  updateSubjectTemplate: (id, data) => apiClient.patch(`/order-configs/api/subject-templates/${id}/`, data),
+  deleteSubjectTemplate: (id) => apiClient.delete(`/order-configs/api/subject-templates/${id}/`),
+  cloneSubjectTemplateToWebsite: (templateId, websiteId, skipExisting = true) => apiClient.post(
+    `/order-configs/api/subject-templates/${templateId}/clone-to-website/`,
+    { website_id: websiteId, skip_existing: skipExisting }
+  ),
+  getSubjectTemplateCategories: () => apiClient.get('/order-configs/api/subject-templates/categories/'),
+  
+  // Paper Type Templates
+  getPaperTypeTemplates: (params) => apiClient.get('/order-configs/api/paper-type-templates/', { params }),
+  getPaperTypeTemplate: (id) => apiClient.get(`/order-configs/api/paper-type-templates/${id}/`),
+  createPaperTypeTemplate: (data) => apiClient.post('/order-configs/api/paper-type-templates/', data),
+  updatePaperTypeTemplate: (id, data) => apiClient.patch(`/order-configs/api/paper-type-templates/${id}/`, data),
+  deletePaperTypeTemplate: (id) => apiClient.delete(`/order-configs/api/paper-type-templates/${id}/`),
+  clonePaperTypeTemplateToWebsite: (templateId, websiteId, skipExisting = true) => apiClient.post(
+    `/order-configs/api/paper-type-templates/${templateId}/clone-to-website/`,
+    { website_id: websiteId, skip_existing: skipExisting }
+  ),
+  getPaperTypeTemplateCategories: () => apiClient.get('/order-configs/api/paper-type-templates/categories/'),
+  
+  // Type of Work Templates
+  getTypeOfWorkTemplates: (params) => apiClient.get('/order-configs/api/type-of-work-templates/', { params }),
+  getTypeOfWorkTemplate: (id) => apiClient.get(`/order-configs/api/type-of-work-templates/${id}/`),
+  createTypeOfWorkTemplate: (data) => apiClient.post('/order-configs/api/type-of-work-templates/', data),
+  updateTypeOfWorkTemplate: (id, data) => apiClient.patch(`/order-configs/api/type-of-work-templates/${id}/`, data),
+  deleteTypeOfWorkTemplate: (id) => apiClient.delete(`/order-configs/api/type-of-work-templates/${id}/`),
+  cloneTypeOfWorkTemplateToWebsite: (templateId, websiteId, skipExisting = true) => apiClient.post(
+    `/order-configs/api/type-of-work-templates/${templateId}/clone-to-website/`,
+    { website_id: websiteId, skip_existing: skipExisting }
+  ),
+  getTypeOfWorkTemplateCategories: () => apiClient.get('/order-configs/api/type-of-work-templates/categories/'),
 }
 

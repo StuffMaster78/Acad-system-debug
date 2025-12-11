@@ -393,6 +393,19 @@
             <button @click="showBundleThreadsModal = true" class="btn btn-primary bg-blue-600 hover:bg-blue-700">
               💬 View Messages
             </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message Threads Modal -->
+    <ClassMessageThreads
+      v-if="viewingBundle"
+      :show="showBundleThreadsModal"
+      :class-id="viewingBundle.id"
+      class-type="bundle"
+      @close="showBundleThreadsModal = false"
+    />
             <button @click="openEditBundleModal(viewingBundle)" class="btn btn-secondary">Edit</button>
           </div>
         </div>

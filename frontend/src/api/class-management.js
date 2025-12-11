@@ -15,6 +15,7 @@ export default {
   payDeposit: (id, data) => apiClient.post(`/class-management/class-bundles/${id}/pay_deposit/`, data),
   configureInstallments: (id, data) => apiClient.post(`/class-management/class-bundles/${id}/configure_installments/`, data),
   createThread: (id, data) => apiClient.post(`/class-management/class-bundles/${id}/create_thread/`, data),
+  getThreads: (id) => apiClient.get(`/class-management/class-bundles/${id}/threads/`),
   createTicket: (id, data) => apiClient.post(`/class-management/class-bundles/${id}/create_ticket/`, data),
   
   // Class Purchases

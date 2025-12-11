@@ -63,6 +63,14 @@ export default {
   createCTA: (data) => apiClient.post('/blog_pages_management/cta-blocks/', data),
   updateCTA: (id, data) => apiClient.put(`/blog_pages_management/cta-blocks/${id}/`, data),
   deleteCTA: (id) => apiClient.delete(`/blog_pages_management/cta-blocks/${id}/`),
+  getBlogCTAs: (blogId) => apiClient.get(`/blog_pages_management/blog-posts/${blogId}/ctas/`),
+  // Note: track_click is on CTABlockViewSet but needs placement_id in body
+  // For now, we'll track via contentTracker which sends to analytics API
+  trackCTAClick: (placementId) => {
+    // This endpoint expects a CTA block ID, not placement ID
+    // We'll handle tracking via the contentTracker instead
+    return Promise.resolve({ success: true })
+  },
   
   // FAQs
   listFAQs: (params) => apiClient.get('/blog_pages_management/faq-schemas/', { params }),

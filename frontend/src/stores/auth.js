@@ -341,6 +341,7 @@ export const useAuthStore = defineStore('auth', {
 
     /**
      * Load user from localStorage
+     * This is called on app initialization to restore auth state after page refresh
      */
     loadFromStorage() {
       try {
@@ -348,10 +349,35 @@ export const useAuthStore = defineStore('auth', {
         const refreshToken = localStorage.getItem('refresh_token')
         const userStr = localStorage.getItem('user')
 
-        if (accessToken && refreshToken && userStr) {
+        // Restore tokens if they exist
+        if (accessToken) {
           this.accessToken = accessToken
+        }
+        if (refreshToken) {
           this.refreshToken = refreshToken
-          this.user = JSON.parse(userStr)
+        }
+
+        // Restore user data if it exists
+        if (userStr) {
+          try {
+            this.user = JSON.parse(userStr)
+          } catch (parseError) {
+            console.error('Failed to parse user data from storage:', parseError)
+            // If user data is corrupted, try to fetch it from API if we have tokens
+            if (accessToken && refreshToken) {
+              // User data will be fetched in router guard if needed
+              this.user = null
+            } else {
+              // No tokens, clear everything
+              this.clearStorage()
+            }
+          }
+        } else if (accessToken && refreshToken) {
+          // We have tokens but no user data - this is okay, user will be fetched in router guard
+          this.user = null
+        } else {
+          // No tokens and no user - clear everything
+          this.clearStorage()
         }
       } catch (error) {
         console.error('Failed to load from storage:', error)

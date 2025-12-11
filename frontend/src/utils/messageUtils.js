@@ -27,7 +27,7 @@ export async function loadUnreadMessageCount(orderId) {
     }
     
     if (!authStore.token) {
-      console.warn('No auth token available for unread count')
+      // Silently return 0 if no auth token (expected when not logged in)
       return 0
     }
     

@@ -130,11 +130,11 @@ DEFAULT_SUBJECTS = [
     ('Security Studies', False),
 ]
 
-DEFAULT_TYPES_OF_WORK = [
-    'Writing', 'Editing', 'Proofreading', 'Rewriting', 'Paraphrasing',
-    'Formatting', 'Research', 'Data Analysis', 'Programming', 'Design',
-    'Translation',
-]
+# Comprehensive types of work - import from comprehensive_types_of_work
+from .comprehensive_types_of_work import COMPREHENSIVE_TYPES_OF_WORK
+
+# Default types of work (backward compatibility - use comprehensive list)
+DEFAULT_TYPES_OF_WORK = COMPREHENSIVE_TYPES_OF_WORK
 
 # English types with codes: (name, code)
 DEFAULT_ENGLISH_TYPES = [

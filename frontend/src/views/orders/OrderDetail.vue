@@ -300,7 +300,7 @@
                   <div class="flex items-center justify-between">
               <span class="font-medium text-gray-600">Client:</span> 
               <div class="flex items-center gap-2">
-                  <UserDisplayName :user="order.client || { id: order.client_id, role: 'client', registration_id: order.client_registration_id }" />
+                  <UserDisplayName :user="(typeof order.client === 'object' && order.client !== null) ? order.client : { id: order.client_id || order.client, role: 'client', registration_id: order.client_registration_id }" />
                 <OnlineStatusIndicator
                   v-if="order.client_id && (authStore.isWriter || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
                   :user-id="order.client_id"
@@ -331,7 +331,7 @@
                 <div class="flex items-center justify-between">
               <span class="font-medium text-gray-600">Writer:</span>
               <div class="flex items-center gap-2">
-                    <UserDisplayName :user="order.writer || order.assigned_writer || { id: order.writer_id, role: 'writer', pen_name: order.writer_pen_name, registration_id: order.writer_registration_id }" />
+                    <UserDisplayName :user="(typeof (order.writer || order.assigned_writer) === 'object' && (order.writer || order.assigned_writer) !== null) ? (order.writer || order.assigned_writer) : { id: order.writer_id || order.writer || order.assigned_writer, role: 'writer', pen_name: order.writer_pen_name, registration_id: order.writer_registration_id }" />
                 <OnlineStatusIndicator
                   v-if="order.writer_id && (authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin)"
                   :user-id="order.writer_id"
@@ -343,35 +343,81 @@
             </div>
 
             <!-- Status Timeline -->
-            <div class="bg-white rounded-lg border border-gray-200 p-4">
-              <div class="flex items-center justify-between mb-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6 w-full">
+              <div class="flex items-center justify-between mb-6">
                 <div>
-                  <h3 class="text-lg font-semibold text-gray-900">Status Timeline</h3>
-                  <p class="text-sm text-gray-500">Key checkpoints from creation to completion</p>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Status Timeline</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Key checkpoints from creation to completion</p>
                 </div>
-                <span class="text-xs text-gray-500">{{ statusTimeline.length }} {{ statusTimeline.length === 1 ? 'event' : 'events' }}</span>
+                <span class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-full">
+                  {{ statusTimeline.length }} {{ statusTimeline.length === 1 ? 'event' : 'events' }}
+                </span>
               </div>
-              <div v-if="statusTimeline.length === 0" class="text-sm text-gray-500">
-                No status updates recorded yet.
+              <div v-if="statusTimeline.length === 0" class="text-sm text-gray-500 dark:text-gray-400 py-12 text-center">
+                <div class="flex flex-col items-center gap-2">
+                  <svg class="w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p>No status updates recorded yet.</p>
+                </div>
               </div>
-              <ol v-else class="relative border-l border-gray-200 pl-6 space-y-6">
+              <ol v-else class="relative border-l-2 border-gray-300 dark:border-gray-600 pl-16 space-y-12">
                 <li
-                  v-for="entry in statusTimeline"
+                  v-for="(entry, index) in statusTimeline"
                   :key="entry.key"
-                  class="relative"
+                  class="relative group pb-3"
                 >
-                  <span class="absolute -left-3 top-1 w-6 h-6 rounded-full bg-primary-50 text-primary-700 flex items-center justify-center text-xs font-semibold">
+                  <!-- Icon Circle moved closer to the left edge -->
+                  <span 
+                    class="absolute -left-[30px] top-0.5 w-11 h-11 rounded-full bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center text-xl transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl z-10"
+                    :class="{
+                      'ring-2 ring-primary-200 dark:ring-primary-800': index === statusTimeline.length - 1
+                    }"
+                  >
                     {{ entry.icon }}
                   </span>
-                  <div class="text-sm font-semibold text-gray-900">
-                    {{ entry.label }}
-                  </div>
-                  <div class="text-xs text-gray-500">
-                    {{ formatDateTime(entry.timestamp) }}
-                    <span v-if="entry.relativeTime">• {{ entry.relativeTime }}</span>
-                  </div>
-                  <div v-if="entry.description" class="text-sm text-gray-600 mt-1">
-                    {{ entry.description }}
+                  
+                  <!-- Content Container pushed to the right with more padding -->
+                  <div class="w-full min-w-0 pr-6 ml-4">
+                    <!-- Status Label with proper text wrapping and overflow handling -->
+                    <div 
+                      class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2.5 leading-snug whitespace-normal"
+                      style="word-break: break-word; overflow-wrap: anywhere; hyphens: auto;"
+                    >
+                      {{ entry.label }}
+                    </div>
+                    
+                    <!-- Timestamp with improved layout and spacing -->
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mb-3.5 flex flex-wrap items-center gap-2.5">
+                      <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span class="whitespace-nowrap">{{ formatDateTime(entry.timestamp) }}</span>
+                      </div>
+                      <span v-if="entry.relativeTime" class="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 flex-shrink-0">
+                        <span class="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 flex-shrink-0"></span>
+                        <span class="italic">{{ entry.relativeTime }}</span>
+                      </span>
+                    </div>
+                    
+                    <!-- Description with enhanced styling and proper spacing -->
+                    <div 
+                      v-if="entry.description" 
+                      class="text-sm text-gray-600 dark:text-gray-300 mt-3.5 pl-4 pr-3 py-2.5 border-l-2 border-primary-200 dark:border-primary-700 bg-gray-50 dark:bg-gray-900/50 rounded-r-md"
+                    >
+                      <div class="flex items-start gap-2.5">
+                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span 
+                          class="leading-relaxed whitespace-normal"
+                          style="word-break: break-word; overflow-wrap: anywhere; hyphens: auto;"
+                        >
+                          {{ entry.description }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </li>
               </ol>
@@ -875,8 +921,24 @@
       <!-- Progress Tab -->
       <div v-if="activeTab === 'progress'" class="space-y-6">
         <!-- Progress Bar (for clients) -->
-        <div v-if="authStore.isClient" class="bg-white rounded-lg shadow-sm p-6">
-          <h3 class="text-lg font-semibold mb-4">Order Progress</h3>
+        <div v-if="authStore.isClient" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Order Progress
+            </h3>
+            <button
+              @click="loadLatestProgress"
+              class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-1.5"
+            >
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+          </div>
           <ProgressBar
             :progress-percentage="latestProgressPercentage"
             :last-update="latestProgressUpdate"
@@ -884,8 +946,13 @@
         </div>
 
         <!-- Progress Report Form (for writers) -->
-        <div v-if="canSubmitProgress" class="bg-white rounded-lg shadow-sm p-6">
-          <h3 class="text-lg font-semibold mb-4">Report Progress</h3>
+        <div v-if="canSubmitProgress" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+            <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Report Progress
+          </h3>
           <ProgressReportForm
             :order-id="order.id"
             :initial-progress="latestProgressPercentage"
@@ -895,8 +962,13 @@
         </div>
 
         <!-- Progress History -->
-        <div class="bg-white rounded-lg shadow-sm p-6">
-          <h3 class="text-lg font-semibold mb-4">Progress History</h3>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+            <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Progress History
+          </h3>
           <ProgressHistory
             :order-id="order.id"
             @updated="loadLatestProgress"
@@ -917,47 +989,69 @@
 
       <!-- Files Tab -->
       <div v-if="activeTab === 'files'" class="space-y-6">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-6">
           <div>
-          <h3 class="text-lg font-semibold">Files</h3>
-            <p class="text-sm text-gray-500 mt-1">Upload and manage order files</p>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+              <svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              Files
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Upload and manage order files</p>
 
             <div
               v-if="finalPaperFile"
-              class="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between"
+              class="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl flex items-center justify-between shadow-sm"
             >
-              <div>
-                <p class="text-sm font-semibold text-green-800">
-                  Final Paper is ready to download
-                </p>
-                <p class="text-xs text-green-700">
-                  Version {{ finalPaperFile.version || '1' }} •
-                  {{ formatDateTime(finalPaperFile.created_at) }}
-                </p>
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                  <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-sm font-bold text-green-800 dark:text-green-300">
+                    Final Paper is ready to download
+                  </p>
+                  <p class="text-xs text-green-700 dark:text-green-400 mt-0.5">
+                    Version {{ finalPaperFile.version || '1' }} •
+                    {{ formatDateTime(finalPaperFile.created_at) }}
+                  </p>
+                </div>
               </div>
               <button
                 @click="downloadFile(finalPaperFile)"
-                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm flex items-center gap-2"
+                class="px-4 py-2.5 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 text-sm font-medium flex items-center gap-2 shadow-md transition-all"
               >
-                <span>📥</span>
-                <span>Download Final Paper</span>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Download Final Paper
               </button>
             </div>
           </div>
           <button
             @click="loadFiles"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium flex items-center gap-2"
             :disabled="loadingFiles"
           >
-            {{ loadingFiles ? 'Loading...' : '🔄 Refresh' }}
+            <svg v-if="loadingFiles" class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {{ loadingFiles ? 'Loading...' : 'Refresh' }}
           </button>
         </div>
 
         <!-- File Upload Form -->
-        <div class="mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-          <h4 class="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <span>📤</span>
-            <span>Upload Files</span>
+        <div class="mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm">
+          <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            Upload Files
           </h4>
           <div class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1005,11 +1099,17 @@
               />
             </div>
             
-            <div v-if="uploadSuccess" class="p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
-              ✓ {{ uploadSuccess }}
+            <div v-if="uploadSuccess" class="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              {{ uploadSuccess }}
             </div>
-            <div v-if="uploadError" class="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
-              ✗ {{ uploadError }}
+            <div v-if="uploadError" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              {{ uploadError }}
             </div>
             
             <div v-if="uploadedFiles.length > 0" class="flex justify-end gap-2">
@@ -1034,10 +1134,14 @@
           <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
         </div>
         
-        <div v-else-if="files.length === 0" class="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
-          <div class="text-4xl mb-3">📁</div>
-          <p class="text-gray-500 text-sm mb-2">No files uploaded yet</p>
-          <p class="text-gray-400 text-xs">Upload files using the form above</p>
+        <div v-else-if="files.length === 0" class="text-center py-16 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700">
+          <div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">No files uploaded yet</p>
+          <p class="text-gray-500 dark:text-gray-500 text-xs">Upload files using the form above</p>
         </div>
         
         <div v-else class="space-y-6">
@@ -1596,42 +1700,56 @@
 
       <!-- Draft Requests Tab -->
       <div v-if="activeTab === 'draft-requests'" class="space-y-6">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-6">
           <div>
-            <h3 class="text-lg font-semibold">Draft Requests</h3>
-            <p class="text-sm text-gray-500 mt-1">Request drafts to see order progress (requires Progressive Delivery)</p>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+              <svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Draft Requests
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Request drafts to see order progress (requires Progressive Delivery)</p>
           </div>
           <button
             v-if="authStore.isClient"
             @click="checkDraftEligibility"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium flex items-center gap-2"
             :disabled="loadingDraftEligibility"
           >
-            {{ loadingDraftEligibility ? 'Checking...' : '🔄 Check Eligibility' }}
+            <svg v-if="loadingDraftEligibility" class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+            {{ loadingDraftEligibility ? 'Checking...' : 'Check Eligibility' }}
           </button>
         </div>
 
         <!-- Eligibility Check (Client) -->
-        <div v-if="authStore.isClient && draftEligibility" class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200 p-6">
-          <div class="flex items-start">
-            <div class="flex-shrink-0">
+        <div v-if="authStore.isClient && draftEligibility" class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 p-6 shadow-sm">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
               <span class="text-2xl">{{ draftEligibility.can_request ? '✅' : '⚠️' }}</span>
             </div>
-            <div class="ml-4 flex-1">
-              <h4 class="text-lg font-semibold text-gray-900 mb-2">
+            <div class="flex-1">
+              <h4 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
                 {{ draftEligibility.can_request ? 'You can request drafts!' : 'Cannot request drafts' }}
               </h4>
-              <p v-if="draftEligibility.reason" class="text-sm text-gray-700 mb-4">
+              <p v-if="draftEligibility.reason" class="text-sm text-gray-700 dark:text-gray-300 mb-3">
                 {{ draftEligibility.reason }}
               </p>
-              <p v-if="draftEligibility.has_pending_request" class="text-sm text-orange-700 mb-4">
+              <p v-if="draftEligibility.has_pending_request" class="text-sm text-orange-700 dark:text-orange-400 mb-4 p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 You already have a pending draft request for this order.
               </p>
               <button
                 v-if="draftEligibility.can_request && !draftEligibility.has_pending_request"
                 @click="showDraftRequestModal = true"
-                class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                class="px-4 py-2.5 bg-primary-600 dark:bg-primary-700 text-white rounded-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors text-sm font-medium shadow-md flex items-center gap-2"
               >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
                 Request Draft
               </button>
             </div>
@@ -1639,24 +1757,36 @@
         </div>
 
         <!-- Draft Requests List -->
-        <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div class="px-6 py-4 border-b border-gray-200">
-            <h4 class="text-lg font-semibold">Draft Request History</h4>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+            <h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Draft Request History
+            </h4>
           </div>
 
-          <div v-if="loadingDraftRequests" class="flex items-center justify-center py-12">
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          <div v-if="loadingDraftRequests" class="flex flex-col items-center justify-center py-16">
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-600 mb-3"></div>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Loading draft requests...</p>
           </div>
 
-          <div v-else-if="draftRequests.length === 0" class="p-12 text-center">
-            <p class="text-gray-500">No draft requests yet</p>
+          <div v-else-if="draftRequests.length === 0" class="p-16 text-center">
+            <div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <p class="text-gray-600 dark:text-gray-400 text-sm font-medium mb-1">No draft requests yet</p>
+            <p class="text-gray-500 dark:text-gray-500 text-xs">Request a draft to see order progress</p>
           </div>
 
-          <div v-else class="divide-y divide-gray-200">
+          <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
             <div
               v-for="request in draftRequests"
               :key="request.id"
-              class="p-6 hover:bg-gray-50 transition-colors"
+              class="p-6 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
@@ -1788,23 +1918,39 @@
 
       <!-- External Links Tab -->
       <div v-if="activeTab === 'links'" class="space-y-6">
-        <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center justify-between mb-6">
           <div>
-          <h3 class="text-lg font-semibold">External Links</h3>
-            <p class="text-sm text-gray-500 mt-1">Submit and manage external file links</p>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
+              <svg class="w-6 h-6 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+              </svg>
+              External Links
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400">Submit and manage external file links</p>
           </div>
           <button
             @click="loadLinks"
-            class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
+            class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium flex items-center gap-2"
             :disabled="loadingLinks"
           >
-            {{ loadingLinks ? 'Loading...' : '🔄 Refresh' }}
+            <svg v-if="loadingLinks" class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            {{ loadingLinks ? 'Loading...' : 'Refresh' }}
           </button>
         </div>
 
         <!-- External Link Submission Form -->
-        <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-          <h4 class="text-sm font-semibold text-gray-700 mb-3">Submit External Link</h4>
+        <div class="mb-6 p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 shadow-sm">
+          <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+            <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            Submit External Link
+          </h4>
           <form @submit.prevent="submitLink" class="space-y-3">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
@@ -1854,9 +2000,9 @@
           No external links submitted yet.
         </div>
         
-        <div v-else class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-gray-200">
-            <thead class="bg-gray-50">
+        <div v-else class="overflow-x-auto bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
+          <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead class="bg-gray-50 dark:bg-gray-900/50">
               <tr>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Link</th>
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
@@ -1866,8 +2012,8 @@
                 <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
-            <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="link in links" :key="link.id" class="hover:bg-gray-50">
+            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              <tr v-for="link in links" :key="link.id" class="hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
                 <td class="px-4 py-3">
                   <a
                     :href="link.link"
@@ -2358,32 +2504,32 @@
 
     <!-- Confirmation Dialog -->
     <ConfirmationDialog
-      v-model:show="confirm.show"
-      :title="confirm.title"
-      :message="confirm.message"
-      :details="confirm.details"
-      :variant="confirm.variant"
-      :confirm-text="confirm.confirmText"
-      :cancel-text="confirm.cancelText"
-      :icon="confirm.icon"
+      v-model:show="confirmShow"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :details="confirmDetails"
+      :variant="confirmVariant"
+      :confirm-text="confirmConfirmText"
+      :cancel-text="confirmCancelText"
+      :icon="confirmIcon"
       @confirm="confirm.onConfirm"
       @cancel="confirm.onCancel"
     />
 
     <!-- Input Modal -->
     <InputModal
-      v-model:show="inputModal.show"
-      :title="inputModal.title"
-      :message="inputModal.message"
-      :label="inputModal.label"
-      :placeholder="inputModal.placeholder"
-      :hint="inputModal.hint"
-      :multiline="inputModal.multiline"
-      :rows="inputModal.rows"
-      :required="inputModal.required"
-      :default-value="inputModal.defaultValue"
-      :confirm-text="inputModal.confirmText"
-      :cancel-text="inputModal.cancelText"
+      v-model:show="inputModalShow"
+      :title="inputModalTitle"
+      :message="inputModalMessage"
+      :label="inputModalLabel"
+      :placeholder="inputModalPlaceholder"
+      :hint="inputModalHint"
+      :multiline="inputModalMultiline"
+      :rows="inputModalRows"
+      :required="inputModalRequired"
+      :default-value="inputModalDefaultValue"
+      :confirm-text="inputModalConfirmText"
+      :cancel-text="inputModalCancelText"
       @submit="inputModal.onSubmit"
       @cancel="inputModal.onCancel"
     />
@@ -2391,7 +2537,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import ordersAPI from '@/api/orders'
@@ -2426,12 +2572,37 @@ import draftRequestsAPI from '@/api/draft-requests'
 import writerManagementAPI from '@/api/writer-management'
 import writerOrderRequestsAPI from '@/api/writer-order-requests'
 import writerDashboardAPI from '@/api/writer-dashboard'
+import { loadUnreadMessageCount } from '@/utils/messageUtils'
 
 const route = useRoute()
 const authStore = useAuthStore()
 const { success: showSuccessToast, error: showErrorToast } = useToast()
 const confirm = useConfirmDialog()
 const inputModal = useInputModal()
+
+// Create local refs for v-model binding (Vue 3 v-model requires refs, not computed)
+const confirmShow = ref(false)
+const inputModalShow = ref(false)
+
+// Sync local refs with composable refs
+watch(() => confirm.show.value, (newVal) => {
+  confirmShow.value = newVal
+}, { immediate: true })
+watch(confirmShow, (newVal) => {
+  if (confirm.show.value !== newVal) {
+    confirm.show.value = newVal
+  }
+})
+
+watch(() => inputModal.show.value, (newVal) => {
+  inputModalShow.value = newVal
+}, { immediate: true })
+watch(inputModalShow, (newVal) => {
+  if (inputModal.show.value !== newVal) {
+    inputModal.show.value = newVal
+  }
+})
+
 const order = ref(null)
 const loading = ref(true)
 const activeTab = ref('overview')
@@ -2494,6 +2665,18 @@ const selectedAction = ref(null)
 const availableActions = ref([])
 const availableWriters = ref([])
 
+// Draft Request state
+const draftRequests = ref([])
+const loadingDraftRequests = ref(false)
+const draftEligibility = ref(null)
+const loadingDraftEligibility = ref(false)
+const showDraftRequestModal = ref(false)
+const draftRequestForm = ref({ message: '' })
+const uploadingDraft = ref({})
+const draftSelectedFiles = ref({})
+const draftFileDescriptions = ref({})
+const draftFileInputs = ref({})
+
 const isAdmin = computed(() => {
   const role = authStore.user?.role
   return role === 'admin' || role === 'superadmin'
@@ -2501,6 +2684,27 @@ const isAdmin = computed(() => {
 
 const userRole = computed(() => authStore.user?.role)
 const userId = computed(() => authStore.user?.id)
+
+// Unwrap composable refs for component props (computed ensures proper reactivity and type safety)
+const confirmTitle = computed(() => confirm.title.value)
+const confirmMessage = computed(() => confirm.message.value)
+const confirmDetails = computed(() => confirm.details.value)
+const confirmVariant = computed(() => confirm.variant.value)
+const confirmConfirmText = computed(() => confirm.confirmText.value)
+const confirmCancelText = computed(() => confirm.cancelText.value)
+const confirmIcon = computed(() => confirm.icon.value)
+
+const inputModalTitle = computed(() => inputModal.title.value)
+const inputModalMessage = computed(() => inputModal.message.value)
+const inputModalLabel = computed(() => inputModal.label.value)
+const inputModalPlaceholder = computed(() => inputModal.placeholder.value)
+const inputModalHint = computed(() => inputModal.hint.value)
+const inputModalMultiline = computed(() => inputModal.multiline.value)
+const inputModalRows = computed(() => inputModal.rows.value)
+const inputModalRequired = computed(() => inputModal.required.value)
+const inputModalDefaultValue = computed(() => inputModal.defaultValue.value)
+const inputModalConfirmText = computed(() => inputModal.confirmText.value)
+const inputModalCancelText = computed(() => inputModal.cancelText.value)
 
 // Order action permissions
 const canSubmitOrder = computed(() => {
@@ -2736,36 +2940,93 @@ const lastActivity = computed(() => {
   return activities[0]
 })
 
+// Comprehensive status label mapping (covers all OrderStatus enum values)
 const statusLabelMap = {
+  // Initial states
   created: 'Order Created',
   pending: 'Pending',
-  draft: 'Draft Saved',
+  unpaid: 'Unpaid',
+  
+  // Assignment states
+  available: 'Available for Writers',
   assigned: 'Writer Assigned',
+  pending_writer_assignment: 'Pending Writer Assignment',
+  pending_preferred: 'Pending Preferred Writer',
+  reassigned: 'Reassigned',
+  
+  // Active work states
   in_progress: 'In Progress',
+  draft: 'Draft Saved',
+  on_hold: 'On Hold',
+  under_editing: 'Under Editing',
+  critical: 'Critical',
+  late: 'Late',
+  
+  // Submission and review states
   submitted: 'Submitted for Review',
+  in_review: 'In Review',
+  under_review: 'Under Review',
+  reviewed: 'Reviewed',
+  rated: 'Rated',
+  
+  // Revision states
   revision_requested: 'Revision Requested',
   revision_in_progress: 'Revision In Progress',
+  on_revision: 'On Revision',
   revised: 'Revision Submitted',
+  
+  // Completion states
   approved: 'Approved',
   completed: 'Completed',
   closed: 'Closed',
-  cancelled: 'Cancelled'
+  archived: 'Archived',
+  
+  // Cancellation/refund states
+  cancelled: 'Cancelled',
+  refunded: 'Refunded',
+  disputed: 'Disputed',
+  
+  // System states
+  expired: 'Expired',
+  re_opened: 'Reopened',
+  rejected: 'Rejected'
 }
 
+// Status icon mapping
 const statusIconMap = {
   created: '🟢',
   pending: '⏳',
-  draft: '📝',
+  unpaid: '💳',
+  available: '📋',
   assigned: '👤',
+  pending_writer_assignment: '⏳',
+  pending_preferred: '⭐',
+  reassigned: '🔄',
   in_progress: '⚙️',
+  draft: '📝',
+  on_hold: '⏸️',
+  under_editing: '✏️',
+  critical: '🚨',
+  late: '⏰',
   submitted: '📤',
+  in_review: '🔍',
+  under_review: '🔍',
+  reviewed: '✅',
+  rated: '⭐',
   revision_requested: '🔁',
   revision_in_progress: '✏️',
+  on_revision: '🔁',
   revised: '✅',
   approved: '🎉',
   completed: '🏁',
   closed: '🔒',
-  cancelled: '✖️'
+  archived: '📦',
+  cancelled: '✖️',
+  refunded: '💰',
+  disputed: '⚠️',
+  expired: '⏱️',
+  re_opened: '🔓',
+  rejected: '❌'
 }
 
 const formatStatusLabel = (value) => {
@@ -2776,53 +3037,169 @@ const formatStatusLabel = (value) => {
     .replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
+/**
+ * Stable Status Timeline Logic
+ * 
+ * Priority order:
+ * 1. OrderTransitionLog entries (most reliable, authoritative source)
+ * 2. Milestone timestamps (fallback for legacy data or missing transitions)
+ * 3. Created timestamp (always included)
+ * 
+ * Deduplication: Entries with same status and timestamp (within 1 second) are merged
+ */
 const statusTimeline = computed(() => {
   if (!order.value) return []
 
   const entries = []
+  const seenEntries = new Set() // For deduplication: "status|timestamp"
+  
+  /**
+   * Add entry with deduplication
+   * @param {string} key - Unique identifier
+   * @param {string} status - Order status
+   * @param {string|Date} timestamp - Timestamp
+   * @param {object} extra - Additional metadata (label, description, icon)
+   */
   const pushEntry = (key, status, timestamp, extra = {}) => {
     if (!timestamp) return
-    const normalizedStatus = status?.toLowerCase()
+    
+    // Normalize timestamp to ISO string for comparison
+    const timestampDate = new Date(timestamp)
+    if (isNaN(timestampDate.getTime())) return // Invalid date
+    
+    const normalizedStatus = status?.toLowerCase()?.trim()
+    if (!normalizedStatus) return
+    
+    // Create deduplication key: status + timestamp (rounded to nearest second)
+    const timestampKey = Math.floor(timestampDate.getTime() / 1000)
+    const dedupeKey = `${normalizedStatus}|${timestampKey}`
+    
+    // Skip if we've already seen this status at this timestamp
+    if (seenEntries.has(dedupeKey)) return
+    seenEntries.add(dedupeKey)
+    
     entries.push({
       key,
       status: normalizedStatus,
       label: extra.label || statusLabelMap[normalizedStatus] || formatStatusLabel(status),
-      timestamp,
+      timestamp: timestampDate.toISOString(),
       relativeTime: formatRelativeTime(timestamp),
-      description: extra.description,
-      icon: extra.icon || statusIconMap[normalizedStatus] || '•'
+      description: extra.description || null,
+      icon: extra.icon || statusIconMap[normalizedStatus] || '•',
+      source: extra.source || 'unknown' // Track data source for debugging
     })
   }
 
-  pushEntry('created', 'created', order.value.created_at, {
-    description: 'Order placed'
-  })
+  // 1. Always include creation timestamp
+  if (order.value.created_at) {
+    pushEntry('created', 'created', order.value.created_at, {
+      description: 'Order placed',
+      source: 'created_at'
+    })
+  }
 
+  // 2. Process transition logs (primary source of truth)
   const transitionLogs = Array.isArray(order.value.transitions) ? order.value.transitions : []
   transitionLogs.forEach(log => {
+    if (!log || !log.timestamp) return
+    
+    const newStatus = (log.new_status || log.action || '').toLowerCase().trim()
+    if (!newStatus) return
+    
     const descriptionParts = []
-    if (log.action) {
+    
+    // Add action context if available
+    if (log.action && log.action !== newStatus) {
       descriptionParts.push(formatStatusLabel(log.action))
     }
+    
+    // Add automatic transition indicator
     if (log.is_automatic) {
-      descriptionParts.push('Auto transition')
+      descriptionParts.push('Automatic transition')
     }
-    pushEntry(`transition-${log.id}`, log.new_status || log.action, log.timestamp, {
-      description: descriptionParts.join(' • ')
+    
+    // Add user context if available
+    if (log.user) {
+      const userName = log.user?.username || log.user?.full_name || log.user?.email || 'System'
+      descriptionParts.push(`by ${userName}`)
+    }
+    
+    // Add old status context if available
+    if (log.old_status && log.old_status.toLowerCase() !== newStatus) {
+      descriptionParts.push(`from ${formatStatusLabel(log.old_status)}`)
+    }
+    
+    pushEntry(`transition-${log.id || Date.now()}`, newStatus, log.timestamp, {
+      description: descriptionParts.length > 0 ? descriptionParts.join(' • ') : null,
+      source: 'transition_log'
     })
   })
 
+  // 3. Fallback to milestone timestamps (only if not already covered by transitions)
+  // These are checked against seenEntries to avoid duplicates
   const milestoneTimestamps = [
-    { key: 'submitted_at', status: 'submitted', timestamp: order.value.submitted_at, description: 'Writer submitted deliverables' },
-    { key: 'completed_at', status: 'completed', timestamp: order.value.completed_at, description: 'Order marked as completed' },
-    { key: 'approved_at', status: 'approved', timestamp: order.value.approved_at, description: 'Order approved' },
-    { key: 'closed_at', status: 'closed', timestamp: order.value.closed_at, description: 'Order closed' }
+    { 
+      key: 'submitted_at', 
+      status: 'submitted', 
+      timestamp: order.value.submitted_at, 
+      description: 'Writer submitted deliverables' 
+    },
+    { 
+      key: 'completed_at', 
+      status: 'completed', 
+      timestamp: order.value.completed_at, 
+      description: 'Order marked as completed' 
+    },
+    { 
+      key: 'approved_at', 
+      status: 'approved', 
+      timestamp: order.value.approved_at, 
+      description: 'Order approved' 
+    },
+    { 
+      key: 'closed_at', 
+      status: 'closed', 
+      timestamp: order.value.closed_at, 
+      description: 'Order closed' 
+    },
+    { 
+      key: 'cancelled_at', 
+      status: 'cancelled', 
+      timestamp: order.value.cancelled_at, 
+      description: 'Order cancelled' 
+    }
   ]
-  milestoneTimestamps.forEach(entry => pushEntry(entry.key, entry.status, entry.timestamp, { description: entry.description }))
+  
+  milestoneTimestamps.forEach(entry => {
+    if (entry.timestamp) {
+      pushEntry(entry.key, entry.status, entry.timestamp, { 
+        description: entry.description,
+        source: 'milestone_timestamp'
+      })
+    }
+  })
 
-  return entries
-    .filter(entry => !!entry.timestamp)
-    .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+  // 4. Include current status if it's not already in the timeline
+  // This ensures the timeline always shows the current state
+  const currentStatus = order.value.status?.toLowerCase()?.trim()
+  if (currentStatus && currentStatus !== 'created') {
+    const hasCurrentStatus = entries.some(e => e.status === currentStatus)
+    if (!hasCurrentStatus && order.value.updated_at) {
+      pushEntry('current_status', currentStatus, order.value.updated_at, {
+        description: 'Current status',
+        source: 'current_status'
+      })
+    }
+  }
+
+  // 5. Sort by timestamp (chronological order)
+  const sorted = entries.sort((a, b) => {
+    const dateA = new Date(a.timestamp)
+    const dateB = new Date(b.timestamp)
+    return dateA.getTime() - dateB.getTime()
+  })
+
+  return sorted
 })
 
 const outstandingBalance = computed(() => parseAmount(paymentSummary.value?.balance_due))
@@ -3188,7 +3565,6 @@ const loadOrder = async () => {
       loadCategories(),
       loadWalletBalance(),
       loadOrderReview(),
-      loadUnreadMessageCount(),
       loadPaymentSummary()
     ])
     
@@ -3196,11 +3572,28 @@ const loadOrder = async () => {
     if (unreadMessageInterval) {
       clearInterval(unreadMessageInterval)
     }
-    unreadMessageInterval = setInterval(() => {
+    unreadMessageInterval = setInterval(async () => {
       if (order.value) {
-        loadUnreadMessageCount()
+        try {
+          const count = await loadUnreadMessageCount(order.value.id)
+          unreadMessageCount.value = count
+        } catch (error) {
+          // Silently handle errors - function already handles them internally
+          unreadMessageCount.value = 0
+        }
       }
     }, 30000)
+    
+    // Load initial unread message count
+    if (order.value) {
+      try {
+        const count = await loadUnreadMessageCount(order.value.id)
+        unreadMessageCount.value = count
+      } catch (error) {
+        // Silently handle errors - function already handles them internally
+        unreadMessageCount.value = 0
+      }
+    }
   } catch (error) {
     console.error('Failed to load order:', error)
   } finally {

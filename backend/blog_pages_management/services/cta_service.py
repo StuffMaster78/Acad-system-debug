@@ -253,6 +253,7 @@ class ContentBlockService:
             cta = placement.cta_block
             cta_data = {
                 'id': cta.id,
+                'placement_id': placement.id,  # Include placement ID for tracking
                 'type': cta.cta_type,
                 'title': cta.title,
                 'description': cta.description,
@@ -262,6 +263,7 @@ class ContentBlockService:
                 'placement_type': placement.placement_type,
                 'position': placement.position,
                 'tracking_id': cta.tracking_id or f"cta_{cta.id}",
+                'image': cta.image.url if cta.image else None,
             }
             
             # Render HTML based on CTA type

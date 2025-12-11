@@ -22,22 +22,49 @@
           </button>
         </div>
 
+        <!-- Sidebar Search (All roles) -->
+        <div class="px-4 pt-4 pb-2 border-b border-gray-200 dark:border-gray-700">
+          <div class="relative">
+            <input
+              v-model="sidebarSearchQuery"
+              type="text"
+              placeholder="Search menu..."
+              class="w-full px-3 py-2 pl-9 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500"
+            />
+            <svg class="absolute left-2.5 top-2.5 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <button
+              v-if="sidebarSearchQuery"
+              @click="clearSearch"
+              class="absolute right-2.5 top-2.5 w-4 h-4 text-gray-400 hover:text-gray-600 transition-colors"
+              title="Clear search"
+            >
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
         <!-- Navigation -->
-        <nav class="flex-1 px-5 py-6 space-y-1 overflow-y-auto">
+        <nav class="flex-1 px-5 py-6 space-y-1 overflow-y-auto custom-scrollbar">
           <!-- Dashboard - Always at top -->
           <router-link
             to="/dashboard"
             :class="[
-              'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 mb-5 group',
+              'flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-200 mb-6 group relative',
               $route.name === 'Dashboard' || $route.path === '/dashboard'
-                ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/20'
+                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-md hover:translate-x-1'
             ]"
           >
-            <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div :class="$route.name === 'Dashboard' || $route.path === '/dashboard' ? 'bg-white/20 p-1.5 rounded-lg mr-3' : 'mr-3'">
+              <svg class="w-5 h-5" :class="$route.name === 'Dashboard' || $route.path === '/dashboard' ? 'text-white' : 'text-gray-600'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
-            Dashboard
+            </div>
+            <span :class="$route.name === 'Dashboard' || $route.path === '/dashboard' ? 'font-bold' : ''">Dashboard</span>
           </router-link>
 
           <!-- Place New Order Button - Prominent at top (Client) -->
@@ -69,8 +96,14 @@
           </div>
 
           <!-- Orders section - Simplified and at top -->
-          <div v-if="authStore.isClient" class="space-y-1 mb-5">
-            <button @click="ordersOpen = !ordersOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm active:scale-[0.98]">
+          <div v-if="authStore.isClient && shouldShowItem('Orders', 'All Orders Pending In Progress Completed Disputed Templates')" class="space-y-1.5 mb-6">
+            <div class="px-4 py-3 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <h3 class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
+                <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
+                <span>Orders</span>
+              </h3>
+            </div>
+            <button @click="ordersOpen = !ordersOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:shadow-sm active:scale-[0.98]">
               <span class="flex items-center">
                 <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -81,15 +114,15 @@
             </button>
             <div v-if="ordersOpen" class="ml-7 space-y-0.5 animate-fade-in mt-2">
               <!-- Quick Access -->
-              <router-link to="/orders" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
+              <router-link v-if="shouldShowItem('All Orders', 'View all your orders')" to="/orders" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
                   <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View all your orders" />
                       All Orders
               </router-link>
-              <router-link to="/orders?is_paid=false" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
+              <router-link v-if="shouldShowItem('Unpaid', 'Orders awaiting payment')" to="/orders?is_paid=false" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
                 <SidebarIcon icon-name="credit-card" size="sm" icon-class="text-gray-500 group-hover:text-orange-600 mr-3" tooltip="Orders awaiting payment" />
                 Unpaid
               </router-link>
-              <router-link to="/orders?is_paid=true" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
+              <router-link v-if="shouldShowItem('Paid', 'Paid orders')" to="/orders?is_paid=true" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
                 <SidebarIcon icon-name="check-circle" size="sm" icon-class="text-gray-500 group-hover:text-green-600 mr-3" tooltip="Paid orders" />
                 Paid
               </router-link>
@@ -97,32 +130,32 @@
               <div class="border-t border-gray-200 dark:border-gray-700 my-3"></div>
               
               <!-- Most Common Statuses Only -->
-              <div class="px-3 py-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Quick Filters</div>
-              <router-link to="/orders?status=pending" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
+              <div v-if="shouldShowItem('Quick Filters', 'Pending In Progress Completed Disputed')" class="px-3 py-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-1">Quick Filters</div>
+              <router-link v-if="shouldShowItem('Pending', 'Pending orders')" to="/orders?status=pending" class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed">
                 <SidebarIcon icon-name="clock" size="sm" icon-class="text-gray-500 group-hover:text-yellow-600 mr-3" tooltip="Pending orders" />
                 Pending
               </router-link>
-              <router-link to="/orders?status=in_progress" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+              <router-link v-if="shouldShowItem('In Progress', 'Orders in progress')" to="/orders?status=in_progress" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
                 <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-500 group-hover:text-blue-600 mr-3 animate-spin-slow" tooltip="Orders in progress" />
                 In Progress
               </router-link>
-              <router-link to="/orders?status=submitted" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+              <router-link v-if="shouldShowItem('Submitted', 'Submitted orders')" to="/orders?status=submitted" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
                 <SidebarIcon icon-name="paper-airplane" size="sm" icon-class="text-gray-500 group-hover:text-indigo-600 mr-3" tooltip="Submitted orders" />
                 Submitted
               </router-link>
-              <router-link to="/orders?status=completed" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+              <router-link v-if="shouldShowItem('Completed', 'Completed orders')" to="/orders?status=completed" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
                 <SidebarIcon icon-name="check-circle" size="sm" icon-class="text-gray-500 group-hover:text-green-600 mr-3" tooltip="Completed orders" />
                 Completed
               </router-link>
-              <router-link to="/orders?status=revision_requested" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+              <router-link v-if="shouldShowItem('Revision Requested', 'Orders requiring revision')" to="/orders?status=revision_requested" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
                 <SidebarIcon icon-name="arrow-left" size="sm" icon-class="text-gray-500 group-hover:text-orange-600 mr-3" tooltip="Orders requiring revision" />
                 Revision Requested
               </router-link>
-              <router-link to="/orders?status=disputed" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+              <router-link v-if="shouldShowItem('Disputed', 'Disputed orders')" to="/orders?status=disputed" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
                 <SidebarIcon icon-name="exclamation-triangle" size="sm" icon-class="text-gray-500 group-hover:text-red-600 mr-3" tooltip="Disputed orders" />
                 Disputed
               </router-link>
-              <router-link to="/orders?status=cancelled" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
+              <router-link v-if="shouldShowItem('Cancelled', 'Cancelled orders')" to="/orders?status=cancelled" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group">
                 <SidebarIcon icon-name="ban" size="sm" icon-class="text-gray-500 group-hover:text-gray-600 mr-3" tooltip="Cancelled orders" />
                 Cancelled
               </router-link>
@@ -130,7 +163,7 @@
               <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
               
               <!-- Link to view all statuses on orders page -->
-              <router-link to="/orders" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-primary-50 hover:translate-x-1 text-primary-600 font-medium group">
+              <router-link v-if="shouldShowItem('View All Statuses', 'View all order statuses')" to="/orders" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-primary-50 hover:translate-x-1 text-primary-600 font-medium group">
                 <SidebarIcon icon-name="search" size="sm" icon-class="text-primary-600 mr-3" tooltip="View all order statuses" />
                 View All Statuses
                 <SidebarIcon icon-name="arrow-right" size="sm" icon-class="text-primary-600 ml-auto" />
@@ -139,7 +172,7 @@
               <div class="border-t border-gray-200 dark:border-gray-700 my-2"></div>
               
               <!-- Order Templates -->
-              <router-link to="/orders/templates" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-primary-50 hover:translate-x-1 font-medium text-primary-600 group">
+              <router-link v-if="shouldShowItem('Order Templates', 'Manage order templates')" to="/orders/templates" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-primary-50 hover:translate-x-1 font-medium text-primary-600 group">
                 <SidebarIcon icon-name="template" size="sm" icon-class="text-primary-600 mr-3" tooltip="Manage order templates" />
                   Order Templates
               </router-link>
@@ -147,9 +180,15 @@
           </div>
 
           <!-- Client Account section (Wallet, Referrals, Loyalty) -->
-          <div v-if="authStore.isClient" class="space-y-1 mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <div class="px-4 py-3 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest mb-2">Account</div>
+          <div v-if="authStore.isClient && shouldShowItem('Account', 'Wallet Referrals Loyalty Discounts')" class="space-y-1.5 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
+            <div class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
+                <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
+                <span>Account</span>
+              </h3>
+            </div>
             <router-link
+              v-if="shouldShowItem('My Wallet', 'Manage your wallet and balance')"
               to="/wallet"
               :class="[
                 'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
@@ -162,6 +201,7 @@
               My Wallet
             </router-link>
             <router-link
+              v-if="shouldShowItem('Referrals', 'Refer friends and earn rewards')"
               to="/referrals"
               :class="[
                 'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
@@ -174,6 +214,7 @@
               Referrals
             </router-link>
             <router-link
+              v-if="shouldShowItem('Loyalty Program', 'View loyalty points and rewards')"
               to="/loyalty"
               :class="[
                 'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
@@ -186,6 +227,7 @@
               Loyalty Program
             </router-link>
             <router-link
+              v-if="shouldShowItem('Discounts', 'Available discounts and coupons')"
               to="/discounts"
               :class="[
                 'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
@@ -226,8 +268,14 @@
           <!-- Writer Groups - Organized by category -->
           <template v-if="authStore.isWriter">
             <!-- Orders Group -->
-            <div class="space-y-1 mb-4">
-              <button @click="writerOrdersOpen = !writerOrdersOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <div v-if="shouldShowItem('Orders & Work', 'My Orders Queue Requests Revision Workload Calendar')" class="space-y-1.5 mb-6">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h3 class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
+                  <span>Orders & Work</span>
+                </h3>
+              </div>
+              <button @click="writerOrdersOpen = !writerOrdersOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:shadow-sm active:scale-[0.98]">
                 <span class="flex items-center">
                   <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -238,6 +286,7 @@
               </button>
               <div v-if="writerOrdersOpen" class="ml-6 space-y-1 animate-fade-in">
                 <router-link
+                  v-if="shouldShowItem('My Orders', 'View all your orders')"
                   to="/writer/orders"
                   class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                   :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/orders')}"
@@ -246,6 +295,7 @@
                   My Orders
                 </router-link>
                 <router-link
+                  v-if="shouldShowItem('Order Queue', 'Available orders in queue')"
                   to="/writer/queue"
                   class="flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                   :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/queue')}"
@@ -262,6 +312,7 @@
                   </span>
                 </router-link>
                 <router-link
+                  v-if="shouldShowItem('Order Requests', 'Order requests from clients')"
                   to="/writer/order-requests"
                   class="flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                   :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/order-requests')}"
@@ -278,6 +329,7 @@
                   </span>
                 </router-link>
                 <router-link
+                  v-if="shouldShowItem('Revision Requests', 'Orders requiring revision')"
                   to="/writer/orders?status=revision_requested"
                   class="flex items-center justify-between px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                   :class="{'bg-primary-50 text-primary-700 font-medium': $route.query.status === 'revision_requested'}"
@@ -293,19 +345,19 @@
                     {{ writerRevisionRequestsCount }}
                   </span>
                 </router-link>
-                <router-link to="/writer/workload" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/workload')}">
+                <router-link v-if="shouldShowItem('Workload & Capacity', 'Manage workload and capacity')" to="/writer/workload" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/workload')}">
                   <SidebarIcon icon-name="scale" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage workload and capacity" />
                   Workload & Capacity
                 </router-link>
-                <router-link to="/writer/calendar" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/calendar')}">
+                <router-link v-if="shouldShowItem('Deadline Calendar', 'View deadline calendar')" to="/writer/calendar" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/calendar')}">
                   <SidebarIcon icon-name="calendar" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View deadline calendar" />
                   Deadline Calendar
                 </router-link>
-                <router-link to="/writer/deadline-extensions" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/deadline-extensions')}">
+                <router-link v-if="shouldShowItem('Deadline Extensions', 'Request deadline extensions')" to="/writer/deadline-extensions" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/deadline-extensions')}">
                   <SidebarIcon icon-name="clock-alarm" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Request deadline extensions" />
                   Deadline Extensions
                 </router-link>
-                <router-link to="/writer/order-holds" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/order-holds')}">
+                <router-link v-if="shouldShowItem('Hold Requests', 'Request order holds')" to="/writer/order-holds" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/order-holds')}">
                   <SidebarIcon icon-name="stop" size="sm" icon-class="text-gray-500 group-hover:text-red-600 mr-3" tooltip="Request order holds" />
                   Hold Requests
                 </router-link>
@@ -313,8 +365,14 @@
             </div>
 
             <!-- Finances Group -->
-            <div class="space-y-1 mb-4">
-              <button @click="writerFinancesOpen = !writerFinancesOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <div v-if="shouldShowItem('Finances', 'Payments Payment Requests Advance Payments Tips Fines')" class="space-y-1.5 mb-6">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
+                  <span>Finances</span>
+                </h3>
+              </div>
+              <button @click="writerFinancesOpen = !writerFinancesOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/20 hover:shadow-sm active:scale-[0.98]">
                 <span class="flex items-center">
                   <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
@@ -324,23 +382,23 @@
                 <ChevronIcon :is-open="writerFinancesOpen" size="sm" class="text-gray-400" />
               </button>
               <div v-if="writerFinancesOpen" class="ml-6 space-y-1 animate-fade-in">
-                <router-link to="/writer/payments" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payments')}">
+                <router-link v-if="shouldShowItem('Payments', 'View payment history')" to="/writer/payments" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payments')}">
                   <SidebarIcon icon-name="credit-card" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View payment history" />
                   Payments
                 </router-link>
-                <router-link to="/writer/payment-request" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payment-request')}">
+                <router-link v-if="shouldShowItem('Payment Requests', 'Request payments')" to="/writer/payment-request" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payment-request')}">
                   <SidebarIcon icon-name="credit-card" size="sm" icon-class="text-gray-500 group-hover:text-indigo-600 mr-3" tooltip="Request payments" />
                   Payment Requests
                 </router-link>
-                <router-link to="/writer/advance-payments" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/advance-payments')}">
+                <router-link v-if="shouldShowItem('Advance Payments', 'Request advance payments')" to="/writer/advance-payments" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/advance-payments')}">
                   <SidebarIcon icon-name="dollar-sign" size="sm" icon-class="text-gray-500 group-hover:text-green-600 mr-3" tooltip="Request advance payments" />
                   Advance Payments
                 </router-link>
-                <router-link to="/writer/tips" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tips')}">
+                <router-link v-if="shouldShowItem('Tips', 'View tips received')" to="/writer/tips" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tips')}">
                   <SidebarIcon icon-name="star" size="sm" icon-class="text-gray-500 group-hover:text-yellow-500 mr-3" tooltip="View tips received" />
                   Tips
                 </router-link>
-                <router-link to="/writer/fines" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-red-50 hover:translate-x-1 group" :class="{'bg-red-50 text-red-700 font-medium': $route.path.startsWith('/writer/fines')}">
+                <router-link v-if="shouldShowItem('Fines & Appeals', 'View fines and submit appeals')" to="/writer/fines" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-red-50 hover:translate-x-1 group" :class="{'bg-red-50 text-red-700 font-medium': $route.path.startsWith('/writer/fines')}">
                   <SidebarIcon icon-name="ban" size="sm" icon-class="text-gray-500 group-hover:text-red-600 mr-3" tooltip="View fines and submit appeals" />
                   Fines & Appeals
                 </router-link>
@@ -348,8 +406,14 @@
             </div>
 
             <!-- Reviews & Ratings Group -->
-            <div class="space-y-1 mb-4">
-              <button @click="writerReviewsOpen = !writerReviewsOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <div v-if="shouldShowItem('Reviews & Performance', 'Reviews Performance Badges Level')" class="space-y-1.5 mb-6">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <h3 class="text-xs font-bold text-yellow-700 dark:text-yellow-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="star" size="sm" icon-class="text-yellow-600 dark:text-yellow-400" />
+                  <span>Reviews & Performance</span>
+                </h3>
+              </div>
+              <button @click="writerReviewsOpen = !writerReviewsOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 hover:shadow-sm active:scale-[0.98]">
                 <span class="flex items-center">
                   <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
@@ -359,23 +423,23 @@
                 <ChevronIcon :is-open="writerReviewsOpen" size="sm" class="text-gray-400" />
               </button>
               <div v-if="writerReviewsOpen" class="ml-6 space-y-1 animate-fade-in">
-                <router-link to="/writer/reviews" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/reviews')}">
+                <router-link v-if="shouldShowItem('My Reviews', 'View your reviews')" to="/writer/reviews" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/reviews')}">
                   <SidebarIcon icon-name="star" size="sm" icon-class="text-gray-500 group-hover:text-yellow-500 mr-3" tooltip="View your reviews" />
                   My Reviews
                 </router-link>
-                <router-link to="/writer/performance" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/performance')}">
+                <router-link v-if="shouldShowItem('Performance', 'Performance metrics')" to="/writer/performance" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/performance')}">
                   <SidebarIcon icon-name="presentation-chart" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Performance metrics" />
                       Performance
                     </router-link>
-                    <router-link to="/writer/badges" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/badges')}">
+                    <router-link v-if="shouldShowItem('Badges', 'View earned badges')" to="/writer/badges" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/badges')}">
                       <SidebarIcon icon-name="badge-check" size="sm" icon-class="text-gray-500 group-hover:text-yellow-600 mr-3" tooltip="View earned badges" />
                       Badges
                     </router-link>
-                    <router-link to="/writer/badge-analytics" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/badge-analytics')}">
+                    <router-link v-if="shouldShowItem('Badge Analytics', 'Badge analytics and insights')" to="/writer/badge-analytics" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/badge-analytics')}">
                       <SidebarIcon icon-name="fire" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Badge analytics and insights" />
                       Badge Analytics
                     </router-link>
-                    <router-link to="/writer/level-details" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/level-details')}">
+                    <router-link v-if="shouldShowItem('Level Details', 'Writer level details')" to="/writer/level-details" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/level-details')}">
                       <SidebarIcon icon-name="academic-cap" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Writer level details" />
                       Level Details
                 </router-link>
@@ -383,8 +447,14 @@
             </div>
 
             <!-- User Management Group -->
-            <div class="space-y-1 mb-4">
-              <button @click="writerUserManagementOpen = !writerUserManagementOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <div v-if="shouldShowItem('Account Management', 'Profile Settings Pen Name Resources')" class="space-y-1.5 mb-6">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                <h3 class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="user" size="sm" icon-class="text-purple-600 dark:text-purple-400" />
+                  <span>Account Management</span>
+                </h3>
+              </div>
+              <button @click="writerUserManagementOpen = !writerUserManagementOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:shadow-sm active:scale-[0.98]">
                 <span class="flex items-center">
                   <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -394,15 +464,15 @@
                 <ChevronIcon :is-open="writerUserManagementOpen" size="sm" class="text-gray-400" />
               </button>
               <div v-if="writerUserManagementOpen" class="ml-6 space-y-1 animate-fade-in">
-                <router-link to="/writer/profile-settings" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/profile-settings')}">
+                <router-link v-if="shouldShowItem('Profile Settings', 'Manage profile settings')" to="/writer/profile-settings" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/profile-settings')}">
                   <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage profile settings" />
                   Profile Settings
                 </router-link>
-                <router-link to="/writer/pen-name" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/pen-name')}">
+                <router-link v-if="shouldShowItem('Pen Name Management', 'Manage pen names')" to="/writer/pen-name" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/pen-name')}">
                   <SidebarIcon icon-name="pencil" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage pen names" />
                   Pen Name Management
                 </router-link>
-                <router-link to="/writer/resources" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/resources')}">
+                <router-link v-if="shouldShowItem('Resources & Guides', 'Resources and guides')" to="/writer/resources" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/resources')}">
                   <SidebarIcon icon-name="book" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Resources and guides" />
                   Resources & Guides
                 </router-link>
@@ -410,8 +480,14 @@
             </div>
 
             <!-- Activity Group -->
-            <div class="space-y-1 mb-4">
-              <button @click="writerActivityOpen = !writerActivityOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <div v-if="shouldShowItem('Activity & Communication', 'Dashboard Summary Communications Tickets Activity Logs')" class="space-y-1.5 mb-6">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h3 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="table" size="sm" icon-class="text-gray-600 dark:text-gray-400" />
+                  <span>Activity & Communication</span>
+                </h3>
+              </div>
+              <button @click="writerActivityOpen = !writerActivityOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-sm active:scale-[0.98]">
                 <span class="flex items-center">
                   <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -421,19 +497,19 @@
                 <ChevronIcon :is-open="writerActivityOpen" size="sm" class="text-gray-400" />
               </button>
               <div v-if="writerActivityOpen" class="ml-6 space-y-1 animate-fade-in">
-                <router-link to="/writer/dashboard-summary" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/dashboard-summary')}">
+                <router-link v-if="shouldShowItem('Dashboard Summary', 'Dashboard summary')" to="/writer/dashboard-summary" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/dashboard-summary')}">
                   <SidebarIcon icon-name="view-grid" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Dashboard summary" />
                       Dashboard Summary
                     </router-link>
-                    <router-link to="/writer/communications" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/communications')}">
+                    <router-link v-if="shouldShowItem('Communications', 'Communications')" to="/writer/communications" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/communications')}">
                       <SidebarIcon icon-name="inbox" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Communications" />
                       Communications
                     </router-link>
-                    <router-link to="/writer/tickets" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tickets')}">
+                    <router-link v-if="shouldShowItem('My Tickets', 'Support tickets')" to="/writer/tickets" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tickets')}">
                       <SidebarIcon icon-name="ticket" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Support tickets" />
                       My Tickets
                     </router-link>
-                    <router-link to="/activity" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/activity')}">
+                    <router-link v-if="shouldShowItem('Activity Logs', 'Activity logs')" to="/activity" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/activity')}">
                       <SidebarIcon icon-name="table" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Activity logs" />
                       Activity Logs
                 </router-link>
@@ -441,8 +517,14 @@
             </div>
 
             <!-- Discipline Group -->
-            <div class="space-y-1 mb-4">
-              <button @click="writerDisciplineOpen = !writerDisciplineOpen" class="w-full flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+            <div v-if="shouldShowItem('Discipline & Appeals', 'Discipline Status History Appeal')" class="space-y-1.5 mb-6">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <h3 class="text-xs font-bold text-red-700 dark:text-red-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="scale" size="sm" icon-class="text-red-600 dark:text-red-400" />
+                  <span>Discipline & Appeals</span>
+                </h3>
+              </div>
+              <button @click="writerDisciplineOpen = !writerDisciplineOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:shadow-sm active:scale-[0.98]">
                 <span class="flex items-center">
                   <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
@@ -452,11 +534,11 @@
                 <ChevronIcon :is-open="writerDisciplineOpen" size="sm" class="text-gray-400" />
               </button>
               <div v-if="writerDisciplineOpen" class="ml-6 space-y-1 animate-fade-in">
-                <router-link to="/writer/discipline-status" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/discipline-status')}">
+                <router-link v-if="shouldShowItem('Status & History', 'Discipline status and history')" to="/writer/discipline-status" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/discipline-status')}">
                   <SidebarIcon icon-name="scroll" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Discipline status and history" />
                   Status & History
                 </router-link>
-                <router-link to="/writer/tickets" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tickets')}">
+                <router-link v-if="shouldShowItem('Submit Appeal', 'Submit an appeal')" to="/writer/tickets" class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/tickets')}">
                   <SidebarIcon icon-name="annotation" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Submit an appeal" />
                       Submit Appeal
                 </router-link>
@@ -467,16 +549,16 @@
           <!-- Admin/Superadmin Grouped Navigation -->
           <template v-if="authStore.isAdmin || authStore.isSuperAdmin">
             <!-- Core Operations Group -->
-            <div class="mb-6">
-              <div class="px-4 py-2 mb-2">
-                <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-2">
-                  <span>⚙️</span>
-                  Core Operations
+            <div v-if="shouldShowItem('Core Operations', 'Orders Special Orders Users Support Tickets')" class="mb-6">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="cog" size="sm" icon-class="text-primary-600 dark:text-primary-400" />
+                  <span>Core Operations</span>
                 </h3>
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1.5">
                 <!-- Orders Section -->
-                <div class="space-y-1">
+                <div v-if="shouldShowItem('Orders', 'Order Management Pending In Progress Completed Disputed')" class="space-y-1">
                   <button 
                     @click="adminGroups.orders = !adminGroups.orders" 
                     class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -491,6 +573,7 @@
               </button>
                   <div v-if="adminGroups.orders" class="ml-7 space-y-0.5 animate-fade-in mt-2">
                     <router-link 
+                      v-if="shouldShowItem('All Orders', 'View all orders')"
                       to="/admin/orders" 
                       class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
                       :class="isRouteActive({ to: '/admin/orders' }) ? 'bg-primary-50 text-primary-700 font-semibold' : ''"
@@ -499,31 +582,47 @@
                       All Orders
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Pending', 'Pending orders')"
                       to="/admin/orders?status=pending" 
-                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
+                      :class="[
+                        'flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed',
+                        $route.path === '/admin/orders' && $route.query.status === 'pending' ? 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 font-semibold border-l-4 border-yellow-500' : ''
+                      ]"
                     >
-                      <SidebarIcon icon-name="clock" size="sm" icon-class="text-gray-500 group-hover:text-yellow-600 mr-3" tooltip="Pending orders" />
+                      <SidebarIcon icon-name="clock" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'pending' ? 'text-yellow-600' : 'text-gray-500 group-hover:text-yellow-600'" class="mr-3" tooltip="Pending orders" />
                       Pending
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('In Progress', 'Orders in progress')"
                       to="/admin/orders?status=in_progress" 
-                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
+                      :class="[
+                        'flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed',
+                        $route.path === '/admin/orders' && $route.query.status === 'in_progress' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold border-l-4 border-blue-500' : ''
+                      ]"
                     >
-                      <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-500 group-hover:text-blue-600 mr-3 animate-spin-slow" tooltip="Orders in progress" />
+                      <SidebarIcon icon-name="cog" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'in_progress' ? 'text-blue-600' : 'text-gray-500 group-hover:text-blue-600'" class="mr-3 animate-spin-slow" tooltip="Orders in progress" />
                       In Progress
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Completed', 'Completed orders')"
                       to="/admin/orders?status=completed" 
-                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
+                      :class="[
+                        'flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed',
+                        $route.path === '/admin/orders' && $route.query.status === 'completed' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 font-semibold border-l-4 border-green-500' : ''
+                      ]"
                     >
-                      <SidebarIcon icon-name="clipboard-check" size="sm" icon-class="text-gray-500 group-hover:text-green-600 mr-3" tooltip="Completed orders" />
+                      <SidebarIcon icon-name="clipboard-check" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'completed' ? 'text-green-600' : 'text-gray-500 group-hover:text-green-600'" class="mr-3" tooltip="Completed orders" />
                       Completed
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Disputed', 'Disputed orders')"
                       to="/admin/orders?status=disputed" 
-                      class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
+                      :class="[
+                        'flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed',
+                        $route.path === '/admin/orders' && $route.query.status === 'disputed' ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 font-semibold border-l-4 border-red-500' : ''
+                      ]"
                     >
-                      <SidebarIcon icon-name="exclamation-triangle" size="sm" icon-class="text-gray-500 group-hover:text-red-600 mr-3" tooltip="Disputed orders" />
+                      <SidebarIcon icon-name="exclamation-triangle" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'disputed' ? 'text-red-600' : 'text-gray-500 group-hover:text-red-600'" class="mr-3" tooltip="Disputed orders" />
                       Disputed
                 </router-link>
               </div>
@@ -531,6 +630,7 @@
             
                 <!-- Special Orders -->
                 <router-link
+                  v-if="shouldShowItem('Special Orders', 'Manage special orders')"
                   to="/admin/special-orders"
                   :class="[
                     'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed',
@@ -544,7 +644,7 @@
                 </router-link>
                 
                 <!-- Users Section -->
-                <div class="space-y-1">
+                <div v-if="shouldShowItem('Users', 'User Management Clients Writers Editors Support Admins')" class="space-y-1">
                   <button 
                     @click="adminGroups.users = !adminGroups.users" 
                     class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm active:scale-[0.98]"
@@ -607,6 +707,7 @@
             
                 <!-- Support Tickets -->
               <router-link
+                  v-if="shouldShowItem('Support Tickets', 'Manage support tickets')"
                   to="/admin/support-tickets"
                 :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -622,15 +723,15 @@
             </div>
             
             <!-- Financial Management Group -->
-            <div class="mb-8">
-              <div class="px-4 pt-5 pb-3 mb-4">
-                <h3 class="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
-                  <SidebarIcon icon-name="wallet" size="sm" icon-class="text-gray-500 dark:text-gray-400" />
-                  Financial
+            <div v-if="shouldShowItem('Financial Management', 'Payments Refunds Disputes Tips Fines Wallets Invoices')" class="mb-8">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+                <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
+                  <span>Financial Management</span>
                 </h3>
               </div>
-              <div class="space-y-1">
-                <div class="space-y-1">
+              <div class="space-y-1.5">
+                <div v-if="shouldShowItem('Payments', 'Client Payments Writer Payments Payment Requests Invoices Wallets')" class="space-y-1">
                   <button 
                     @click="adminGroups.payments = !adminGroups.payments" 
                     class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-[0.98]"
@@ -645,6 +746,7 @@
               </button>
                   <div v-if="adminGroups.payments" class="ml-7 space-y-0.5 animate-fade-in mt-2">
                     <router-link
+                      v-if="shouldShowItem('Client Payments', 'View all client payments and transactions')"
                       to="/admin/payments/client-payments"
                       class="flex items-center px-4 py-3 text-sm rounded-xl transition-all duration-300 hover:scale-[1.02] group leading-relaxed border-2"
                       :class="isRouteActive({ to: '/admin/payments/client-payments' }) 
@@ -672,6 +774,7 @@
                       </span>
                     </router-link>
                     <router-link
+                      v-if="shouldShowItem('Payment Requests', 'Manage writer payment requests')"
                       to="/admin/payments/payment-requests"
                       class="flex items-center px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-amber-50 hover:translate-x-1 group leading-relaxed shadow-sm"
                       :class="isRouteActive({ to: '/admin/payments/payment-requests' }) ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold shadow-md' : 'text-amber-700 hover:text-amber-800'"
@@ -697,6 +800,7 @@
                       </span>
                     </router-link>
                     <router-link
+                      v-if="shouldShowItem('Writer Payments', 'Manage writer payments')"
                       to="/admin/payments/writer-payments"
                       class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
                       :class="isRouteActive({ to: '/admin/payments/writer-payments' }) ? 'bg-primary-50 text-primary-700 font-semibold' : ''"
@@ -705,6 +809,7 @@
                       Writer Payments
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Invoices', 'View and manage invoices')"
                       to="/admin/invoices" 
                       class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                       :class="isRouteActive({ to: '/admin/invoices' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
@@ -713,6 +818,7 @@
                       Invoices
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Wallets', 'Manage user wallets')"
                       to="/admin/wallets" 
                       class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                       :class="isRouteActive({ to: '/admin/wallets' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
@@ -721,6 +827,7 @@
                       Wallets
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Payment Management', 'Batch payment management')"
                       to="/admin/payments/batched" 
                       class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                       :class="isRouteActive({ to: '/admin/payments/batched' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
@@ -729,6 +836,7 @@
                       Payment Management
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('All Payments', 'View all payments')"
                       to="/admin/payments/all" 
                       class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                       :class="isRouteActive({ to: '/admin/payments/all' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
@@ -737,6 +845,7 @@
                       All Payments
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Payment Logs', 'Payment transaction logs')"
                       to="/admin/payments/logs" 
                       class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                       :class="isRouteActive({ to: '/admin/payments/logs' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
@@ -745,6 +854,7 @@
                       Payment Logs
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Financial Overview', 'Financial overview and analytics')"
                       to="/admin/financial-overview" 
                       class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                       :class="isRouteActive({ to: '/admin/financial-overview' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
@@ -756,58 +866,63 @@
                 </div>
                 
                 <router-link
+                  v-if="shouldShowItem('Refunds', 'Manage refunds')"
                   to="/admin/refunds"
                   :class="[
-                    'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed',
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/refunds' })
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                      ? 'bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 shadow-sm border-l-4 border-orange-500'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <SidebarIcon icon-name="arrow-left" size="md" icon-class="text-gray-600 group-hover:text-orange-600" tooltip="Manage refunds" />
+                  <SidebarIcon icon-name="arrow-left" size="md" :icon-class="isRouteActive({ to: '/admin/refunds' }) ? 'text-orange-600' : 'text-gray-600 group-hover:text-orange-600'" tooltip="Manage refunds" />
                   Refunds
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Disputes', 'Manage disputes')"
                   to="/admin/disputes"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/disputes' })
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                      ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 shadow-sm border-l-4 border-red-500'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <SidebarIcon icon-name="scale" size="md" icon-class="text-gray-600 group-hover:text-red-600" tooltip="Manage disputes" />
+                  <SidebarIcon icon-name="scale" size="md" :icon-class="isRouteActive({ to: '/admin/disputes' }) ? 'text-red-600' : 'text-gray-600 group-hover:text-red-600'" tooltip="Manage disputes" />
                   Disputes
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Tips', 'Manage tips')"
                   to="/admin/tips"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/tips' })
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                      ? 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 shadow-sm border-l-4 border-green-500'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/20 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <SidebarIcon icon-name="dollar-sign" size="md" icon-class="text-gray-600 group-hover:text-green-600" tooltip="Manage tips" />
+                  <SidebarIcon icon-name="dollar-sign" size="md" :icon-class="isRouteActive({ to: '/admin/tips' }) ? 'text-green-600' : 'text-gray-600 group-hover:text-green-600'" tooltip="Manage tips" />
                   Tips
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Fines', 'Manage fines')"
                   to="/admin/fines"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
                     isRouteActive({ to: '/admin/fines' })
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                      ? 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 shadow-sm border-l-4 border-red-500'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:shadow-sm hover:translate-x-1'
                   ]"
                 >
-                  <SidebarIcon icon-name="ban" size="md" icon-class="text-gray-600 group-hover:text-red-600" tooltip="Manage fines" />
+                  <SidebarIcon icon-name="ban" size="md" :icon-class="isRouteActive({ to: '/admin/fines' }) ? 'text-red-600' : 'text-gray-600 group-hover:text-red-600'" tooltip="Manage fines" />
                   Fines
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Holidays & Campaigns', 'Manage holidays and campaigns')"
                   to="/admin/holidays"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -821,6 +936,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Advance Payments', 'Manage advance payments')"
                   to="/admin/advance-payments"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -832,45 +948,19 @@
                   <SidebarIcon icon-name="dollar-sign" size="md" icon-class="text-gray-600 group-hover:text-green-600" tooltip="Manage advance payments" />
                   Advance Payments
                 </router-link>
-                
-                <router-link
-                  to="/admin/wallets"
-                  :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
-                    isRouteActive({ to: '/admin/wallets' })
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
-                  ]"
-                >
-                  <SidebarIcon icon-name="wallet" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="Manage user wallets" />
-                  Wallets
-                </router-link>
-                
-                <router-link
-                  to="/admin/invoices"
-                  :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
-                    isRouteActive({ to: '/admin/invoices' })
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
-                  ]"
-                >
-                  <SidebarIcon icon-name="receipt-tax" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="View and manage invoices" />
-                  Invoices
-                </router-link>
               </div>
             </div>
             
             <!-- Content & Services Group -->
-            <div class="mb-8">
-              <div class="px-4 pt-5 pb-3 mb-4">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
-                  <SidebarIcon icon-name="newspaper" size="sm" icon-class="text-gray-500" />
-                  Content & Services
+            <div v-if="shouldShowItem('Content & Services', 'Reviews Class Management Express Classes Blog SEO Media')" class="mb-8">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                <h3 class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="newspaper" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
+                  <span>Content & Services</span>
                 </h3>
               </div>
-              <div class="space-y-1">
-                <div class="space-y-1">
+              <div class="space-y-1.5">
+                <div v-if="shouldShowItem('Reviews', 'All Reviews Moderation Aggregation')" class="space-y-1">
                   <button 
                     @click="adminGroups.reviews = !adminGroups.reviews" 
                     class="w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-[0.98]"
@@ -885,6 +975,7 @@
                   </button>
                   <div v-if="adminGroups.reviews" class="ml-7 space-y-0.5 animate-fade-in mt-2">
                     <router-link 
+                      v-if="shouldShowItem('All Reviews', 'View all reviews')"
                       to="/admin/reviews" 
                       class="flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group leading-relaxed"
                     >
@@ -892,6 +983,7 @@
                       All Reviews
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Moderation', 'Review moderation')"
                       to="/admin/reviews/moderation" 
                       class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
@@ -899,6 +991,7 @@
                       Moderation
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Aggregation', 'Review aggregation')"
                       to="/admin/review-aggregation" 
                       class="flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
@@ -909,6 +1002,7 @@
                 </div>
                 
                 <router-link
+                  v-if="shouldShowItem('Class Management', 'Manage classes')"
                   to="/admin/class-management"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -922,6 +1016,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Express Classes', 'Manage express classes')"
                   to="/admin/express-classes"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -937,7 +1032,7 @@
             </div>
 
             <!-- Content Management Group -->
-            <div class="mb-6">
+            <div v-if="shouldShowItem('Content Management', 'Blog SEO Media File Management')" class="mb-6">
               <button
                 @click="adminGroups.contentManagement = !adminGroups.contentManagement"
                 class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 text-gray-700 hover:bg-gray-100 hover:shadow-sm active:scale-[0.98]"
@@ -952,6 +1047,7 @@
               </button>
               <div v-if="adminGroups.contentManagement" class="ml-6 space-y-1 animate-fade-in">
                 <router-link
+                  v-if="shouldShowItem('Blog Pages', 'Manage blog posts')"
                   to="/admin/blog"
                   :class="[
                     'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
@@ -964,6 +1060,7 @@
                   Blog Pages
                 </router-link>
                 <router-link
+                  v-if="shouldShowItem('SEO Pages', 'Manage SEO service pages')"
                   to="/admin/seo-pages"
                   :class="[
                     'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
@@ -976,6 +1073,7 @@
                   SEO Pages (Service)
                 </router-link>
                 <router-link
+                  v-if="shouldShowItem('SEO Landing Pages', 'Manage SEO landing pages')"
                   to="/admin/seo-pages-blocks"
                   :class="[
                     'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
@@ -988,6 +1086,7 @@
                   SEO Landing Pages
                 </router-link>
                 <router-link
+                  v-if="shouldShowItem('Blog Authors', 'Manage blog authors')"
                   to="/admin/blog-authors"
                   :class="[
                     'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
@@ -1000,6 +1099,7 @@
                   Blog Authors
                 </router-link>
                 <router-link
+                  v-if="shouldShowItem('Media Library', 'Manage media library')"
                   to="/admin/media-library"
                   :class="[
                     'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
@@ -1012,6 +1112,7 @@
                   Media Library
                 </router-link>
                 <router-link
+                  v-if="shouldShowItem('File Management', 'File management')"
                   to="/admin/files"
                   :class="[
                     'flex items-center px-3 py-2 text-sm rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
@@ -1027,15 +1128,16 @@
             </div>
 
             <!-- Analytics & Reporting Group -->
-            <div class="mb-8">
-              <div class="px-4 pt-5 pb-3 mb-4">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
-                  <SidebarIcon icon-name="chart-bar" size="sm" icon-class="text-gray-500" />
-                  Analytics
+            <div v-if="shouldShowItem('Analytics & Reporting', 'Advanced Enhanced Pricing Discount Writer Performance Referral Loyalty Campaign')" class="mb-8">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+                <h3 class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="chart-bar" size="sm" icon-class="text-purple-600 dark:text-purple-400" />
+                  <span>Analytics & Reporting</span>
                 </h3>
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1.5">
                 <router-link
+                  v-if="shouldShowItem('Advanced Analytics', 'Advanced analytics dashboard')"
                   to="/admin/advanced-analytics"
                   :class="[
                     'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed',
@@ -1049,6 +1151,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Enhanced Analytics', 'Enhanced analytics dashboard')"
                   to="/admin/enhanced-analytics"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1062,6 +1165,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Analytics & Reports', 'Comprehensive yearly analytics and reports')"
                   to="/admin/analytics-reports"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1075,6 +1179,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Pricing Analytics', 'Pricing analytics')"
                   to="/admin/pricing-analytics"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1088,6 +1193,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Discount Analytics', 'Discount analytics')"
                   to="/admin/discount-analytics"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1101,6 +1207,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Writer Performance', 'Writer performance metrics')"
                   to="/admin/writer-performance"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1114,6 +1221,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Referral Tracking', 'Referral tracking and analytics')"
                   to="/admin/referral-tracking"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1127,6 +1235,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Loyalty Tracking', 'Loyalty tracking and analytics')"
                   to="/admin/loyalty-tracking"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1140,6 +1249,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Loyalty Management', 'Loyalty program management')"
                   to="/admin/loyalty-management"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1153,6 +1263,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Campaign Analytics', 'Campaign analytics')"
                   to="/admin/campaigns"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1166,6 +1277,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Content Reporting', 'Content metrics and reporting')"
                   to="/admin/content-metrics-report"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1179,6 +1291,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Order Status Metrics', 'Order status metrics and analytics')"
                   to="/admin/order-status-metrics"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1194,15 +1307,16 @@
             </div>
 
             <!-- System Management Group -->
-            <div class="mb-8">
-              <div class="px-4 pt-5 pb-3 mb-4">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
-                  <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-500" />
-                  System
+            <div v-if="shouldShowItem('System Management', 'Configurations System Health Activity Logs Email Notification Duplicate')" class="mb-8">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                <h3 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-600 dark:text-gray-400" />
+                  <span>System Management</span>
                 </h3>
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1.5">
                 <router-link
+                  v-if="shouldShowItem('Configurations', 'System configurations')"
                   to="/admin/configs"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1216,6 +1330,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('System Health', 'System health monitoring')"
                   to="/admin/system-health"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1229,6 +1344,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Activity Logs', 'View activity logs')"
                   to="/admin/activity-logs"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1242,6 +1358,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Email Management', 'Email management')"
                   to="/admin/emails"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1255,6 +1372,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Notification Profiles', 'Notification profiles')"
                   to="/admin/notification-profiles"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1268,6 +1386,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Notification Groups', 'Notification groups')"
                   to="/admin/notification-groups"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1281,6 +1400,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Duplicate Detection', 'Duplicate content detection')"
                   to="/admin/duplicate-detection"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1296,15 +1416,16 @@
             </div>
 
             <!-- Discipline & Appeals Group -->
-            <div class="mb-8">
-              <div class="px-4 pt-5 pb-3 mb-4">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
-                  <SidebarIcon icon-name="scale" size="sm" icon-class="text-gray-500" />
-                  Discipline
+            <div v-if="shouldShowItem('Discipline & Appeals', 'Writer Discipline Appeals Config Blacklist')" class="mb-8">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                <h3 class="text-xs font-bold text-red-700 dark:text-red-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="scale" size="sm" icon-class="text-red-600 dark:text-red-400" />
+                  <span>Discipline & Appeals</span>
                 </h3>
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1.5">
                 <router-link
+                  v-if="shouldShowItem('Writer Discipline', 'Writer discipline management')"
                   to="/admin/writer-discipline"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1318,6 +1439,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Appeals', 'Manage appeals')"
                   to="/admin/appeals"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1331,6 +1453,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Discipline Config', 'Discipline configuration')"
                   to="/admin/discipline-config"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1344,6 +1467,7 @@
                 </router-link>
                 
                 <router-link
+                  v-if="shouldShowItem('Client Email Blacklist', 'Manage blacklisted client emails')"
                   to="/admin/client-email-blacklist"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1359,15 +1483,16 @@
             </div>
 
             <!-- Multi-Tenant Group -->
-            <div class="mb-8">
-              <div class="px-4 pt-5 pb-3 mb-4">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
-                  <SidebarIcon icon-name="home" size="sm" icon-class="text-gray-500" />
-                  Multi-Tenant
+            <div v-if="shouldShowItem('Multi-Tenant', 'Websites')" class="mb-8">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-cyan-900/20 dark:to-teal-900/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
+                <h3 class="text-xs font-bold text-cyan-700 dark:text-cyan-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="home" size="sm" icon-class="text-cyan-600 dark:text-cyan-400" />
+                  <span>Multi-Tenant</span>
                 </h3>
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1.5">
                 <router-link
+                  v-if="shouldShowItem('Websites', 'Manage websites')"
                   to="/websites"
                   :class="[
                     'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
@@ -1383,14 +1508,14 @@
             </div>
 
             <!-- Superadmin Only -->
-            <div v-if="authStore.isSuperAdmin" class="mb-8">
-              <div class="px-4 pt-5 pb-3 mb-4">
-                <h3 class="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2 sidebar-section-title">
-                  <SidebarIcon icon-name="star" size="sm" icon-class="text-gray-500" />
-                  Superadmin
+            <div v-if="authStore.isSuperAdmin && shouldShowItem('Superadmin', 'Superadmin dashboard')" class="mb-8">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                <h3 class="text-xs font-bold text-yellow-700 dark:text-yellow-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="star" size="sm" icon-class="text-yellow-600 dark:text-yellow-400" />
+                  <span>Superadmin</span>
                 </h3>
               </div>
-              <div class="space-y-1">
+              <div class="space-y-1.5">
                 <router-link
                   to="/admin/superadmin"
                   :class="[
@@ -1411,6 +1536,8 @@
           <template v-for="item in navigationItems">
             <router-link
               v-if="
+                shouldShowItem(item.label, item.description || '') &&
+                (
                 (
                   // Tickets / notifications / general activity only for non-admin users
                   !authStore.isAdmin &&
@@ -1424,6 +1551,7 @@
                   item.name === 'Settings' ||
                   item.name === 'PrivacySettings' ||
                   item.name === 'SecurityActivity'
+                  )
                 )
               "
               :key="item.name"
@@ -1813,7 +1941,76 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const sidebarOpen = ref(false)
+const sidebarSearchQuery = ref('')
 const ordersOpen = ref(true)
+
+// Filter sidebar items based on search query
+const shouldShowItem = (label, description = '') => {
+  if (!sidebarSearchQuery.value) return true
+  const query = sidebarSearchQuery.value.toLowerCase()
+  const searchText = (label + ' ' + description).toLowerCase()
+  return searchText.includes(query)
+}
+
+// Clear search function
+const clearSearch = () => {
+  sidebarSearchQuery.value = ''
+}
+
+// Auto-expand groups when searching
+watch(sidebarSearchQuery, (newQuery) => {
+  if (!newQuery) return
+  
+  const query = newQuery.toLowerCase()
+  
+  // Admin/Superadmin groups
+  if (authStore.isAdmin || authStore.isSuperAdmin) {
+    if (query.includes('order') || query.includes('pending') || query.includes('progress') || query.includes('completed') || query.includes('disputed')) {
+      adminGroups.value.orders = true
+    }
+    if (query.includes('user') || query.includes('client') || query.includes('writer') || query.includes('editor')) {
+      adminGroups.value.users = true
+    }
+    if (query.includes('payment') || query.includes('refund') || query.includes('dispute') || query.includes('tip') || query.includes('fine') || query.includes('wallet') || query.includes('invoice') || query.includes('financial')) {
+      adminGroups.value.payments = true
+    }
+    if (query.includes('review') || query.includes('rating') || query.includes('moderation')) {
+      adminGroups.value.reviews = true
+    }
+    if (query.includes('blog') || query.includes('seo') || query.includes('media') || query.includes('file') || query.includes('content')) {
+      adminGroups.value.contentManagement = true
+    }
+  }
+  
+  // Writer groups
+  if (authStore.isWriter) {
+    if (query.includes('order') || query.includes('queue') || query.includes('workload') || query.includes('calendar')) {
+      writerOrdersOpen.value = true
+    }
+    if (query.includes('payment') || query.includes('finance') || query.includes('tip') || query.includes('fine') || query.includes('advance')) {
+      writerFinancesOpen.value = true
+    }
+    if (query.includes('review') || query.includes('performance') || query.includes('badge')) {
+      writerReviewsOpen.value = true
+    }
+    if (query.includes('profile') || query.includes('account') || query.includes('pen name') || query.includes('resource')) {
+      writerUserManagementOpen.value = true
+    }
+    if (query.includes('activity') || query.includes('communication') || query.includes('ticket') || query.includes('dashboard')) {
+      writerActivityOpen.value = true
+    }
+    if (query.includes('discipline') || query.includes('appeal')) {
+      writerDisciplineOpen.value = true
+    }
+  }
+  
+  // Client groups
+  if (authStore.isClient) {
+    if (query.includes('order')) {
+      ordersOpen.value = true
+    }
+  }
+})
 const orderManagementOpen = ref(false)
 const usersOpen = ref(false)
 const paymentsOpen = ref(false)
@@ -3050,6 +3247,33 @@ nav {
   transition: border-color 0.2s;
 }
 
+/* Custom scrollbar for sidebar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.3);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.5);
+}
+
 .sidebar-nested:hover {
   border-left-color: rgb(59 130 246);
 }
@@ -3065,6 +3289,33 @@ nav {
   padding-right: 1rem;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
+}
+
+/* Custom scrollbar for sidebar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 3px;
+  transition: background 0.2s;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(75, 85, 99, 0.3);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(75, 85, 99, 0.5);
 }
 </style>
 

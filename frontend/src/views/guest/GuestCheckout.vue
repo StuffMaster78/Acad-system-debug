@@ -753,6 +753,17 @@ watch([
 
 onMounted(() => {
   websiteId.value = parseInt(route.query.website_id) || 1
+  
+  // Check if we're on the verify route with a token
+  if (route.name === 'GuestOrderVerify' && route.query.token) {
+    verificationToken.value = route.query.token
+    currentStep.value = 2
+    // Auto-verify if token is provided
+    if (route.query.auto_verify === 'true') {
+      handleVerifyEmail()
+    }
+  }
+  
   loadOrderConfigs()
 })
 </script>
