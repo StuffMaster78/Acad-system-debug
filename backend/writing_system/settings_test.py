@@ -15,7 +15,23 @@ DEBUG = True
 TOKEN_ENCRYPTION_KEY = TOKEN_ENCRYPTION_KEY or "test-token-encryption-key"
 
 # Database selection for tests: sqlite (default) or postgres when TEST_DB=postgres
-if os.getenv("TEST_DB", "sqlite").lower() == "postgres":
+# Check for DATABASE_URL first (for CI/CD)
+database_url = os.getenv('DATABASE_URL')
+if database_url:
+    # Parse DATABASE_URL (format: postgresql://user:password@host:port/dbname)
+    from urllib.parse import urlparse
+    parsed = urlparse(database_url)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": parsed.path[1:] if parsed.path.startswith('/') else parsed.path,  # Remove leading /
+            "USER": parsed.username,
+            "PASSWORD": parsed.password,
+            "HOST": parsed.hostname,
+            "PORT": parsed.port or 5432,
+        }
+    }
+elif os.getenv("TEST_DB", "sqlite").lower() == "postgres":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
