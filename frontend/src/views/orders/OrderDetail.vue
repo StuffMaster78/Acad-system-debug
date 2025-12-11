@@ -359,7 +359,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p>No status updates recorded yet.</p>
-                </div>
+              </div>
               </div>
               <ol v-else class="relative border-l-2 border-gray-300 dark:border-gray-600 pl-16 space-y-12">
                 <li
@@ -384,8 +384,8 @@
                       class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-2.5 leading-snug whitespace-normal"
                       style="word-break: break-word; overflow-wrap: anywhere; hyphens: auto;"
                     >
-                      {{ entry.label }}
-                    </div>
+                    {{ entry.label }}
+                  </div>
                     
                     <!-- Timestamp with improved layout and spacing -->
                     <div class="text-xs text-gray-500 dark:text-gray-400 mb-3.5 flex flex-wrap items-center gap-2.5">
@@ -394,7 +394,7 @@
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span class="whitespace-nowrap">{{ formatDateTime(entry.timestamp) }}</span>
-                      </div>
+                  </div>
                       <span v-if="entry.relativeTime" class="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 flex-shrink-0">
                         <span class="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 flex-shrink-0"></span>
                         <span class="italic">{{ entry.relativeTime }}</span>
@@ -414,7 +414,7 @@
                           class="leading-relaxed whitespace-normal"
                           style="word-break: break-word; overflow-wrap: anywhere; hyphens: auto;"
                         >
-                          {{ entry.description }}
+                    {{ entry.description }}
                         </span>
                       </div>
                     </div>
@@ -1009,14 +1009,14 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <div>
+              <div>
                   <p class="text-sm font-bold text-green-800 dark:text-green-300">
-                    Final Paper is ready to download
-                  </p>
+                  Final Paper is ready to download
+                </p>
                   <p class="text-xs text-green-700 dark:text-green-400 mt-0.5">
-                    Version {{ finalPaperFile.version || '1' }} •
-                    {{ formatDateTime(finalPaperFile.created_at) }}
-                  </p>
+                  Version {{ finalPaperFile.version || '1' }} •
+                  {{ formatDateTime(finalPaperFile.created_at) }}
+                </p>
                 </div>
               </div>
               <button
@@ -2672,6 +2672,7 @@ const draftEligibility = ref(null)
 const loadingDraftEligibility = ref(false)
 const showDraftRequestModal = ref(false)
 const draftRequestForm = ref({ message: '' })
+const creatingDraftRequest = ref(false)
 const uploadingDraft = ref({})
 const draftSelectedFiles = ref({})
 const draftFileDescriptions = ref({})
@@ -3092,10 +3093,10 @@ const statusTimeline = computed(() => {
 
   // 1. Always include creation timestamp
   if (order.value.created_at) {
-    pushEntry('created', 'created', order.value.created_at, {
+  pushEntry('created', 'created', order.value.created_at, {
       description: 'Order placed',
       source: 'created_at'
-    })
+  })
   }
 
   // 2. Process transition logs (primary source of truth)
@@ -3288,18 +3289,34 @@ const handleProgressError = (error) => {
 // Order action functions
 const submitOrder = async () => {
   if (!order.value) return
+  
+  // Confirm submission
+  const confirmed = await confirm.showDialog(
+    `Are you sure you want to submit Order #${order.value.id}?`,
+    'Submit Order for Review',
+    {
+      details: `Once submitted, the order "${order.value.topic || 'Untitled'}" will be sent to the client for review. You won't be able to make further changes until the client responds.`,
+      variant: 'default',
+      icon: '📤',
+      confirmText: 'Submit Order',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   processingAction.value = true
   actionError.value = ''
   actionSuccess.value = ''
   
   try {
     await ordersAPI.executeAction(order.value.id, 'submit_order')
-    const message = getSuccessMessage('submit', 'order')
+    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been submitted successfully! The client will be notified for review.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
   } catch (error) {
-    const errorMsg = getErrorMessage(error, 'Failed to submit order', 'Unable to submit order')
+    const errorMsg = getErrorMessage(error, 'Failed to submit order', `Unable to submit Order #${order.value.id}. Please try again or contact support if the issue persists.`)
     actionError.value = errorMsg
     showErrorToast(errorMsg)
   } finally {
@@ -3309,18 +3326,33 @@ const submitOrder = async () => {
 
 const startOrder = async () => {
   if (!order.value) return
+  
+  const confirmed = await confirm.showDialog(
+    `Start working on Order #${order.value.id}?`,
+    'Start Order',
+    {
+      details: `You are about to begin working on "${order.value.topic || 'Untitled'}". The order status will change to "In Progress" and the deadline timer will start.`,
+      variant: 'default',
+      icon: '🚀',
+      confirmText: 'Start Order',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   processingAction.value = true
   actionError.value = ''
   actionSuccess.value = ''
   
   try {
     await ordersAPI.executeAction(order.value.id, 'start_order')
-    const message = 'Order started successfully'
+    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been started! You can now begin working on it.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
   } catch (error) {
-    const errorMsg = getErrorMessage(error, 'Failed to start order', 'Unable to start order')
+    const errorMsg = getErrorMessage(error, 'Failed to start order', `Unable to start Order #${order.value.id}. Please try again or contact support if the issue persists.`)
     actionError.value = errorMsg
     showErrorToast(errorMsg)
   } finally {
@@ -3330,18 +3362,33 @@ const startOrder = async () => {
 
 const startRevision = async () => {
   if (!order.value) return
+  
+  const confirmed = await confirm.showDialog(
+    `Start revision for Order #${order.value.id}?`,
+    'Start Revision',
+    {
+      details: `You are about to begin working on revisions for "${order.value.topic || 'Untitled'}". The revision deadline will be set and the client will be notified.`,
+      variant: 'default',
+      icon: '✏️',
+      confirmText: 'Start Revision',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   processingAction.value = true
   actionError.value = ''
   actionSuccess.value = ''
   
   try {
     await ordersAPI.executeAction(order.value.id, 'start_revision')
-    const message = 'Revision started successfully'
+    const message = `Revision for Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been started! Please address the client's feedback.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
   } catch (error) {
-    const errorMsg = getErrorMessage(error, 'Failed to start revision', 'Unable to start revision')
+    const errorMsg = getErrorMessage(error, 'Failed to start revision', `Unable to start revision for Order #${order.value.id}. Please try again or contact support if the issue persists.`)
     actionError.value = errorMsg
     showErrorToast(errorMsg)
   } finally {
@@ -3351,18 +3398,33 @@ const startRevision = async () => {
 
 const resumeOrder = async () => {
   if (!order.value) return
+  
+  const confirmed = await confirm.showDialog(
+    `Resume Order #${order.value.id}?`,
+    'Resume Order',
+    {
+      details: `You are about to resume work on "${order.value.topic || 'Untitled'}". The order will be moved from "On Hold" back to active status.`,
+      variant: 'default',
+      icon: '▶️',
+      confirmText: 'Resume Order',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   processingAction.value = true
   actionError.value = ''
   actionSuccess.value = ''
   
   try {
     await ordersAPI.resumeOrder(order.value.id)
-    const message = 'Order resumed successfully'
+    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been resumed! You can continue working on it.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
   } catch (error) {
-    const errorMsg = getErrorMessage(error, 'Failed to resume order', 'Unable to resume order')
+    const errorMsg = getErrorMessage(error, 'Failed to resume order', `Unable to resume Order #${order.value.id}. Please try again or contact support if the issue persists.`)
     actionError.value = errorMsg
     showErrorToast(errorMsg)
   } finally {
@@ -3374,11 +3436,13 @@ const completeOrder = async () => {
   if (!order.value) return
   
   const confirmed = await confirm.showDialog(
-    'Are you sure you want to mark this order as complete?',
+    `Mark Order #${order.value.id} as complete?`,
     'Complete Order',
     {
+      details: `You are about to mark "${order.value.topic || 'Untitled'}" as complete. This will finalize the order and notify the client. Make sure all work has been submitted and reviewed.`,
       variant: 'default',
-      confirmText: 'Complete Order',
+      icon: '✅',
+      confirmText: 'Mark as Complete',
       cancelText: 'Cancel'
     }
   )
@@ -3391,12 +3455,12 @@ const completeOrder = async () => {
   
   try {
     await ordersAPI.completeOrder(order.value.id)
-    const message = getSuccessMessage('complete', 'order')
+    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been marked as complete! The client has been notified.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
   } catch (error) {
-    const errorMsg = getErrorMessage(error, 'Failed to complete order', 'Unable to complete order')
+    const errorMsg = getErrorMessage(error, 'Failed to complete order', `Unable to complete Order #${order.value.id}. Please try again or contact support if the issue persists.`)
     actionError.value = errorMsg
     showErrorToast(errorMsg)
   } finally {
@@ -3409,22 +3473,27 @@ const cancelOrder = async () => {
   
   // First confirm cancellation
   const confirmed = await confirm.showDestructive(
-    `Are you sure you want to cancel Order #${order.value.id}? This action cannot be undone.`,
-    'Cancel Order'
+    `Cancel Order #${order.value.id}?`,
+    'Cancel Order',
+    {
+      details: `You are about to cancel "${order.value.topic || 'Untitled'}". This action cannot be undone. The order will be permanently cancelled and the client will be notified.`,
+      icon: '⚠️'
+    }
   )
   
   if (!confirmed) return
   
   // Then ask for reason (optional)
   const reason = await inputModal.showModal(
-    'Please provide a reason for cancellation (optional)',
+    `Please provide a reason for cancelling Order #${order.value.id} (optional)`,
     'Cancellation Reason',
     {
       label: 'Reason',
       placeholder: 'Enter reason for cancellation...',
       multiline: true,
       rows: 4,
-      required: false
+      required: false,
+      hint: 'This reason will be recorded in the order history and may be shared with the client.'
     }
   )
   
@@ -3436,12 +3505,12 @@ const cancelOrder = async () => {
   
   try {
     await ordersAPI.cancelOrder(order.value.id, reason || '')
-    const message = getSuccessMessage('cancel', 'order')
+    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been cancelled. The client has been notified.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
   } catch (error) {
-    const errorMsg = getErrorMessage(error, 'Failed to cancel order', 'Unable to cancel order')
+    const errorMsg = getErrorMessage(error, 'Failed to cancel order', `Unable to cancel Order #${order.value.id}. Please try again or contact support if the issue persists.`)
     actionError.value = errorMsg
     showErrorToast(errorMsg)
   } finally {
@@ -3453,12 +3522,13 @@ const reopenOrder = async () => {
   if (!order.value) return
   
   const confirmed = await confirm.showDialog(
-    'This will reopen the order and allow further work to be done.',
+    `Reopen Order #${order.value.id}?`,
     'Reopen Order',
     {
+      details: `You are about to reopen "${order.value.topic || 'Untitled'}". This will change the order status back to active, allowing further work to be done. The writer and client will be notified.`,
       variant: 'warning',
       icon: '🔄',
-      confirmText: 'Reopen',
+      confirmText: 'Reopen Order',
       cancelText: 'Cancel'
     }
   )
@@ -3471,12 +3541,12 @@ const reopenOrder = async () => {
   
   try {
     await ordersAPI.reopenOrder(order.value.id)
-    const message = 'Order reopened successfully!'
+    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been reopened! You can now continue working on it.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
   } catch (error) {
-    const errorMsg = getErrorMessage(error, 'Failed to reopen order', 'Unable to reopen order')
+    const errorMsg = getErrorMessage(error, 'Failed to reopen order', `Unable to reopen Order #${order.value.id}. Please try again or contact support if the issue persists.`)
     actionError.value = errorMsg
     showErrorToast(errorMsg)
   } finally {
@@ -3516,28 +3586,49 @@ const openActionModal = async (action = null) => {
 }
 
 const handleActionSuccess = async (data) => {
-  const message = data.message || 'Action completed successfully'
+  // Use the enhanced message from OrderActionModal or create a detailed one
+  const orderId = order.value?.id || data.order?.id || 'this order'
+  const orderTopic = order.value?.topic || data.order?.topic || 'Untitled'
+  const actionName = data.action ? data.action.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Action'
+  
+  let message = data.message
+  if (!message) {
+    // Build a detailed success message
+    const statusInfo = data.old_status && data.new_status
+      ? ` Status changed from "${data.old_status.replace('_', ' ')}" to "${data.new_status.replace('_', ' ')}".`
+      : data.new_status
+        ? ` Status changed to "${data.new_status.replace('_', ' ')}".`
+        : '.'
+    
+    message = `${actionName} completed successfully for Order #${orderId} "${orderTopic}".${statusInfo}`
+  }
+  
   actionSuccess.value = message
   actionError.value = ''
   showSuccessToast(message)
   await loadOrder()
   
-  // Clear success message after 5 seconds
+  // Clear success message after 8 seconds (longer for detailed messages)
   setTimeout(() => {
     actionSuccess.value = ''
-  }, 5000)
+  }, 8000)
 }
 
 const handleActionError = (error) => {
-  const errorMessage = getErrorMessage(error, 'Failed to execute action', 'Unable to perform action')
+  const orderId = order.value?.id || 'this order'
+  const errorMessage = getErrorMessage(
+    error, 
+    'Failed to execute action', 
+    `Unable to perform action on Order #${orderId}. Please try again or contact support if the issue persists.`
+  )
   actionError.value = errorMessage
   actionSuccess.value = ''
   showErrorToast(errorMessage)
   
-  // Clear error message after 5 seconds
+  // Clear error message after 8 seconds
   setTimeout(() => {
     actionError.value = ''
-  }, 5000)
+  }, 8000)
 }
 
 const files = ref([])
@@ -3656,17 +3747,34 @@ const requestRevision = async () => {
     return
   }
   
+  // Confirm revision request
+  const confirmed = await confirm.showDialog(
+    `Request revision for Order #${order.value.id}?`,
+    'Request Revision',
+    {
+      details: `You are about to request revisions for "${order.value.topic || 'Untitled'}". The writer will be notified and will need to address your feedback. Make sure your revision request is clear and specific.`,
+      variant: 'default',
+      icon: '✏️',
+      confirmText: 'Submit Revision Request',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   requestingRevision.value = true
   try {
     await ordersAPI.executeAction(order.value.id, 'request_revision', {
       reason: revisionReason.value
     })
-    showSuccessToast('Revision request submitted successfully!')
+    const message = `Revision request for Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been submitted successfully! The writer will be notified and will work on the requested changes.`
+    showSuccessToast(message)
     showRevisionModal.value = false
     revisionReason.value = ''
     await loadOrder()
   } catch (error) {
-    showErrorToast(getErrorMessage(error, 'Failed to request revision', 'Unable to submit revision request'))
+    const errorMsg = getErrorMessage(error, 'Failed to request revision', `Unable to submit revision request for Order #${order.value.id}. Please try again or contact support if the issue persists.`)
+    showErrorToast(errorMsg)
   } finally {
     requestingRevision.value = false
   }
@@ -3679,7 +3787,7 @@ const submitTip = async () => {
   }
   
   if (tipPaymentMethod.value === 'wallet' && tipAmount.value > walletBalance.value) {
-    showErrorToast('Insufficient wallet balance. Please use credit card or add funds.')
+    showErrorToast('Insufficient wallet balance. Please use credit card or add funds to your wallet.')
     return
   }
   
@@ -3687,6 +3795,22 @@ const submitTip = async () => {
     showErrorToast('No writer assigned to this order')
     return
   }
+  
+  // Confirm tip submission
+  const writerName = order.value.writer?.username || order.value.writer_name || 'the writer'
+  const confirmed = await confirm.showDialog(
+    `Send $${tipAmount.value.toFixed(2)} tip to ${writerName}?`,
+    'Confirm Tip',
+    {
+      details: `You are about to send a $${tipAmount.value.toFixed(2)} tip for Order #${order.value.id} "${order.value.topic || 'Untitled'}". Payment will be processed using your ${tipPaymentMethod.value === 'wallet' ? 'wallet balance' : 'credit card'}.`,
+      variant: 'default',
+      icon: '💰',
+      confirmText: `Send $${tipAmount.value.toFixed(2)}`,
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   tipping.value = true
   try {
@@ -3698,14 +3822,16 @@ const submitTip = async () => {
       tip_reason: tipReason.value || '',
       payment_method: tipPaymentMethod.value
     })
-    showSuccessToast(`Tip of $${tipAmount.value.toFixed(2)} sent successfully!`)
+    const message = `Tip of $${tipAmount.value.toFixed(2)} has been sent successfully to ${writerName}! They will be notified and the payment will be processed.`
+    showSuccessToast(message)
     showTipModal.value = false
     tipAmount.value = null
     tipReason.value = ''
     tipPaymentMethod.value = 'wallet'
     await loadWalletBalance() // Refresh wallet balance
   } catch (error) {
-    showErrorToast(getErrorMessage(error, 'Failed to send tip', 'Unable to process tip'))
+    const errorMsg = getErrorMessage(error, 'Failed to send tip', `Unable to process tip payment. Please check your payment method and try again, or contact support if the issue persists.`)
+    showErrorToast(errorMsg)
   } finally {
     tipping.value = false
   }
@@ -4760,29 +4886,39 @@ const deleteMessage = async (threadId, messageId) => {
     await loadThreadMessages(threadId)
     await loadThreads()
   } catch (error) {
-    console.error('Failed to delete message:', error)
-    alert('Failed to delete message: ' + (error.response?.data?.detail || error.message))
+    const errorMsg = getErrorMessage(error, 'Failed to delete message', 'Unable to delete message. Please try again or contact support if the issue persists.')
+    showErrorToast(errorMsg)
   } finally {
     deletingMessage.value[key] = false
   }
 }
 
 const deleteThread = async (threadId) => {
-  if (!confirm('Are you sure you want to delete this thread? All messages in this thread will be deleted. This action cannot be undone.')) {
-    return
-  }
+  const confirmed = await confirm.showDestructive(
+    'Delete this conversation thread?',
+    'Delete Thread',
+    {
+      details: 'All messages in this thread will be permanently deleted. This action cannot be undone.',
+      icon: '🗑️',
+      confirmText: 'Delete Thread',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   deletingThread.value[threadId] = true
   
   try {
     await communicationsAPI.deleteThread(threadId)
+    showSuccessToast('Conversation thread deleted successfully')
     await loadThreads()
     // Close the thread if it was expanded
     expandedThreads.value[threadId] = false
     stopThreadPolling(threadId)
   } catch (error) {
-    console.error('Failed to delete thread:', error)
-    alert('Failed to delete thread: ' + (error.response?.data?.detail || error.message))
+    const errorMsg = getErrorMessage(error, 'Failed to delete thread', 'Unable to delete conversation thread. Please try again or contact support if the issue persists.')
+    showErrorToast(errorMsg)
   } finally {
     deletingThread.value[threadId] = false
   }
@@ -4835,26 +4971,47 @@ const checkDraftEligibility = async () => {
 const createDraftRequest = async () => {
   if (!order.value) return
   
+  // Confirm draft request
+  const confirmed = await confirm.showDialog(
+    `Request a draft for Order #${order.value.id}?`,
+    'Request Draft',
+    {
+      details: `You are about to request a draft for "${order.value.topic || 'Untitled'}". The writer will be notified and can upload a draft file for your review before the final submission.`,
+      variant: 'default',
+      icon: '📄',
+      confirmText: 'Submit Request',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  creatingDraftRequest.value = true
   try {
     await draftRequestsAPI.createDraftRequest({
       order: order.value.id,
       message: draftRequestForm.value.message || ''
     })
-    showSuccessToast('Draft request submitted successfully!')
+    const message = `Draft request for Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been submitted successfully! The writer will be notified and can upload a draft for your review.`
+    showSuccessToast(message)
     showDraftRequestModal.value = false
     draftRequestForm.value.message = ''
     await loadDraftRequests()
     await checkDraftEligibility()
   } catch (error) {
-    showErrorToast('Failed to create draft request: ' + (error.response?.data?.error || error.message))
+    const errorMsg = getErrorMessage(error, 'Failed to create draft request', `Unable to submit draft request for Order #${order.value.id}. Please try again or contact support if the issue persists.`)
+    showErrorToast(errorMsg)
+  } finally {
+    creatingDraftRequest.value = false
   }
 }
 
 const cancelDraftRequest = async (requestId) => {
   const confirmed = await confirm.showDialog(
-    'Are you sure you want to cancel this draft request?',
+    `Cancel draft request for Order #${order.value.id}?`,
     'Cancel Draft Request',
     {
+      details: `You are about to cancel a draft request for "${order.value.topic || 'Untitled'}". The writer will no longer be able to upload a draft for this request.`,
       variant: 'warning',
       icon: '❌',
       confirmText: 'Cancel Request',
@@ -4866,11 +5023,13 @@ const cancelDraftRequest = async (requestId) => {
   
   try {
     await draftRequestsAPI.cancelDraftRequest(requestId)
-    showSuccessToast('Draft request cancelled')
+    const message = `Draft request for Order #${order.value.id} has been cancelled successfully.`
+    showSuccessToast(message)
     await loadDraftRequests()
     await checkDraftEligibility()
   } catch (error) {
-    showErrorToast('Failed to cancel draft request: ' + (error.response?.data?.error || error.message))
+    const errorMsg = getErrorMessage(error, 'Failed to cancel draft request', `Unable to cancel draft request for Order #${order.value.id}. Please try again or contact support if the issue persists.`)
+    showErrorToast(errorMsg)
   }
 }
 
@@ -4883,7 +5042,25 @@ const handleDraftFileSelect = (requestId, event) => {
 
 const uploadDraftFile = async (requestId) => {
   const file = draftSelectedFiles.value[requestId]
-  if (!file) return
+  if (!file) {
+    showErrorToast('Please select a file to upload')
+    return
+  }
+  
+  // Confirm upload
+  const confirmed = await confirm.showDialog(
+    `Upload draft file for Order #${order.value.id}?`,
+    'Upload Draft',
+    {
+      details: `You are about to upload "${file.name}" as a draft for "${order.value.topic || 'Untitled'}". The client will be notified and can review the draft.`,
+      variant: 'default',
+      icon: '📤',
+      confirmText: 'Upload Draft',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   uploadingDraft.value[requestId] = true
   try {
@@ -4894,7 +5071,8 @@ const uploadDraftFile = async (requestId) => {
     }
     
     await draftRequestsAPI.uploadDraft(requestId, formData)
-    showSuccessToast('Draft uploaded successfully!')
+    const message = `Draft file "${file.name}" has been uploaded successfully for Order #${order.value.id}! The client has been notified and can review it.`
+    showSuccessToast(message)
     
     // Clear form
     draftSelectedFiles.value[requestId] = null
@@ -4905,7 +5083,8 @@ const uploadDraftFile = async (requestId) => {
     
     await loadDraftRequests()
   } catch (error) {
-    showErrorToast('Failed to upload draft: ' + (error.response?.data?.error || error.message))
+    const errorMsg = getErrorMessage(error, 'Failed to upload draft', `Unable to upload draft file for Order #${order.value.id}. Please check the file and try again, or contact support if the issue persists.`)
+    showErrorToast(errorMsg)
   } finally {
     uploadingDraft.value[requestId] = false
   }

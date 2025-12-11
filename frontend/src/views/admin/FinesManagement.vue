@@ -300,7 +300,7 @@
               <h4 class="font-semibold text-gray-900 mb-3">Fines by Type</h4>
               <div v-if="analyticsData.fines_by_type?.length" class="space-y-2">
                 <div v-for="item in analyticsData.fines_by_type" :key="item.type" class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                  <span class="text-sm text-gray-700">{{ item.type || 'Unknown' }}</span>
+                  <span class="text-sm text-gray-700">{{ item.type || item.fine_type || 'N/A' }}</span>
                   <span class="text-sm font-semibold text-gray-900">{{ item.count }} (${{ formatCurrency(item.amount) }})</span>
                 </div>
               </div>
@@ -2016,7 +2016,7 @@ const resolveDispute = async (fineId) => {
 }
 
 const formatStatus = (status) => {
-  if (!status) return 'Unknown'
+  if (!status) return 'N/A'
   return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 

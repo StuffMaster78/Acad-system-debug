@@ -86,7 +86,7 @@
             >
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm font-medium text-gray-900 dark:text-white">
-                  {{ workload.editor_email || workload.editor || 'Unknown' }}
+                  {{ workload.editor_email || workload.editor?.email || workload.editor?.username || workload.editor_id || 'N/A' }}
                 </div>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">

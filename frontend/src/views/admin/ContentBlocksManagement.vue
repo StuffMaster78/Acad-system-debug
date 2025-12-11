@@ -549,7 +549,7 @@ const debouncedLoadTemplates = debounce(() => {
 }, 300)
 
 const formatBlockType = (type) => {
-  if (!type) return 'Unknown'
+  if (!type) return 'N/A'
   return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 

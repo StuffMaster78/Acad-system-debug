@@ -267,7 +267,7 @@
                   {{ req.website_name || getWebsiteName(req.order || {}) }}
                 </span>
                 · Writer:
-                {{ req.writer_name || req.writer_username || req.writer?.user?.username || 'Unknown' }}
+                {{ req.writer_name || req.writer_username || req.writer?.user?.username || req.writer_id || 'N/A' }}
               </p>
               <p class="text-xs text-gray-500">
                 Requested: {{ formatDateTime(req.requested_at || req.created_at) }}
@@ -311,7 +311,7 @@
           <select v-model="filters.website" @change="loadOrders" class="w-full border rounded px-3 py-2">
             <option value="">All Websites</option>
             <option v-for="website in uniqueWebsites" :key="website.id || website" :value="website.id || website">
-              {{ typeof website === 'string' ? website : (website.name || website.domain || 'Unknown') }}
+              {{ typeof website === 'string' ? website : (website.name || website.domain || website.id || 'N/A') }}
             </option>
           </select>
         </div>
@@ -836,6 +836,7 @@ import OrderThreadsModal from '@/components/order/OrderThreadsModal.vue'
 import OrderActionModal from '@/components/order/OrderActionModal.vue'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import { getErrorMessage } from '@/utils/errorHandler'
 
 const confirm = useConfirmDialog()
 
@@ -856,6 +857,7 @@ const componentError = ref(null)
 const writerSearch = ref('')
 const loadingWriters = ref(false)
 const assigning = ref(false)
+const savingEdit = ref(false)
 
 const filters = ref({
   search: '',
@@ -1065,7 +1067,7 @@ const getWebsiteName = (order) => {
   if (order.website?.name) return order.website.name
   if (order.website?.domain) return order.website.domain
   if (typeof order.website === 'string') return order.website
-  return 'Unknown'
+  return 'N/A'
 }
 
 const getWebsiteColorClass = (website) => {
@@ -1165,15 +1167,39 @@ const closeAssignModal = () => {
 const confirmAssign = async () => {
   if (!assignForm.value.writerId || !currentOrderForAction.value) return
   
+  const selectedWriter = availableWriters.value.find(w => w.id === assignForm.value.writerId)
+  const writerName = selectedWriter ? (selectedWriter.username || selectedWriter.email || `Writer #${selectedWriter.id}`) : 'selected writer'
+  const isReassign = currentOrderForAction.value.assigned_writer || currentOrderForAction.value.writer_username
+  const currentWriter = currentOrderForAction.value.assigned_writer?.username || currentOrderForAction.value.writer_username || 'current writer'
+  
+  // Show confirmation with details
+  const confirmed = await confirm.showDialog(
+    isReassign 
+      ? `Reassign Order #${currentOrderForAction.value.id}?`
+      : `Assign Order #${currentOrderForAction.value.id}?`,
+    isReassign ? 'Reassign Writer' : 'Assign Writer',
+    {
+      details: isReassign
+        ? `You are about to reassign "${currentOrderForAction.value.topic || 'Untitled'}" from ${currentWriter} to ${writerName}. The current writer will be notified, and the new writer will receive the assignment.`
+        : `You are about to assign "${currentOrderForAction.value.topic || 'Untitled'}" to ${writerName}. The writer will be notified and can start working on the order.`,
+      variant: isReassign ? 'warning' : 'default',
+      icon: isReassign ? '🔄' : '👤',
+      confirmText: isReassign ? 'Reassign Writer' : 'Assign Writer',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   assigning.value = true
   try {
-    const isReassign = currentOrderForAction.value.assigned_writer || currentOrderForAction.value.writer_username
     if (isReassign) {
       await ordersAPI.reassignWriter(currentOrderForAction.value.id, assignForm.value.writerId, assignForm.value.reason)
+      showMessage(`Order #${currentOrderForAction.value.id} has been reassigned to ${writerName} successfully!`, true)
     } else {
       await ordersAPI.assignWriter(currentOrderForAction.value.id, assignForm.value.writerId, assignForm.value.reason)
+      showMessage(`Order #${currentOrderForAction.value.id} has been assigned to ${writerName} successfully! The writer has been notified.`, true)
     }
-    showMessage('Writer assigned successfully', true)
     closeAssignModal()
     await loadOrders()
     await loadAssignmentQueue() // Refresh assignment queue
@@ -1181,7 +1207,8 @@ const confirmAssign = async () => {
       await viewOrder(currentOrderForAction.value)
     }
   } catch (error) {
-    showMessage('Failed to assign writer: ' + (error.response?.data?.detail || error.message), false)
+    const errorMsg = getErrorMessage(error, 'Failed to assign writer', `Unable to ${isReassign ? 'reassign' : 'assign'} writer for Order #${currentOrderForAction.value.id}. Please try again or contact support if the issue persists.`)
+    showMessage(errorMsg, false)
   } finally {
     assigning.value = false
   }
@@ -1402,7 +1429,7 @@ const getStatusClass = (status) => {
 }
 
 const getStatusLabel = (status) => {
-  return status ? status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown'
+  return status ? status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'
 }
 
 const formatDateTime = (date) => {

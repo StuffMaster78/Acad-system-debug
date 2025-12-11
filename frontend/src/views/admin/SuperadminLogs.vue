@@ -106,7 +106,7 @@
                 {{ formatDate(log.formatted_timestamp || log.timestamp) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                {{ log.superadmin || 'Unknown' }}
+                {{ log.superadmin || log.superadmin_username || log.user?.username || log.user_id || 'N/A' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <span
@@ -176,7 +176,7 @@ const formatDate = (date) => {
 }
 
 const formatActionType = (type) => {
-  if (!type) return 'Unknown'
+  if (!type) return 'N/A'
   return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
