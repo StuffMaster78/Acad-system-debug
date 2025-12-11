@@ -505,16 +505,16 @@
         <div class="overflow-y-auto flex-1 px-6 py-4">
           <div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-4 mb-4">
             <h3 class="font-semibold text-orange-900 dark:text-orange-200 mb-2">⚠️ Immediate Suspension</h3>
-            <p class="text-sm text-orange-800 dark:text-orange-200">
-              Suspending a writer will immediately prevent them from:
-              <ul class="list-disc list-inside mt-2 space-y-1">
+            <div class="text-sm text-orange-800 dark:text-orange-200">
+              <p class="mb-2">Suspending a writer will immediately prevent them from:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 mb-2">
                 <li>Accessing their account</li>
                 <li>Receiving new orders</li>
                 <li>Submitting work</li>
                 <li>Withdrawing payments</li>
               </ul>
-              This action overrides automatic discipline rules and takes effect immediately.
-            </p>
+              <p>This action overrides automatic discipline rules and takes effect immediately.</p>
+            </div>
           </div>
 
           <form @submit.prevent="suspendWriter" class="space-y-4">
@@ -606,17 +606,19 @@
         <div class="overflow-y-auto flex-1 px-6 py-4">
           <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-4">
             <h3 class="font-semibold text-red-900 dark:text-red-200 mb-2">🚫 Permanent Blacklist</h3>
-            <p class="text-sm text-red-800 dark:text-red-200">
-              Blacklisting a writer will permanently:
-              <ul class="list-disc list-inside mt-2 space-y-1">
+            <div class="text-sm text-red-800 dark:text-red-200">
+              <p class="mb-2">Blacklisting a writer will permanently:</p>
+              <ul class="list-disc list-inside mt-2 space-y-1 mb-2">
                 <li>Prevent them from accessing the system</li>
                 <li>Block their email from registering again</li>
                 <li>Cancel all pending orders</li>
                 <li>Freeze their account and payments</li>
               </ul>
-              <strong>This is a permanent action and should only be used for serious violations.</strong>
-              This action overrides automatic discipline rules and takes effect immediately.
-            </p>
+              <p>
+                <strong>This is a permanent action and should only be used for serious violations.</strong>
+                This action overrides automatic discipline rules and takes effect immediately.
+              </p>
+            </div>
           </div>
 
           <form @submit.prevent="blacklistWriter" class="space-y-4">

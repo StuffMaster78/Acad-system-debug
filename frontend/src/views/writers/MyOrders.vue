@@ -197,6 +197,20 @@
         </button>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -207,9 +221,12 @@ import ordersAPI from '@/api/orders'
 import { debounce } from '@/utils/debounce'
 import { useToast } from '@/composables/useToast'
 import { getErrorMessage } from '@/utils/errorHandler'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const router = useRouter()
 const { error: showError, success: showSuccess } = useToast()
+const confirm = useConfirmDialog()
 
 const loading = ref(false)
 const orders = ref([])
@@ -296,9 +313,18 @@ const loadOrders = async (page = 1) => {
 }
 
 const submitOrder = async (order) => {
-  if (!confirm(`Are you sure you want to submit Order #${order.id}? This will mark it as completed and send it for editing.`)) {
-    return
-  }
+  const confirmed = await confirm.showDialog(
+    `Are you sure you want to submit Order #${order.id}? This will mark it as completed and send it for editing.`,
+    'Submit Order',
+    {
+      variant: 'default',
+      icon: '📤',
+      confirmText: 'Submit',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
 
   submittingOrder.value = order.id
   try {

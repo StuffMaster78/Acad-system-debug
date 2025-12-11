@@ -22,4 +22,6 @@ export default {
   getTopEarners: (params) => apiClient.get('/referrals/referral-admin/top-earners/', { params }),
   getCompletedOrders: (params) => apiClient.get('/referrals/referral-admin/completed-orders/', { params }),
   creditBonus: (referralId) => apiClient.post('/referrals/referral-admin/credit-bonus/', { referral_id: referralId }),
+  // Referral Bonus Decays
+  listBonusDecays: (params) => apiClient.get('/referrals/referral-bonus-decays/', { params }),
 }

@@ -86,12 +86,32 @@
         </ul>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { authAPI } from '@/api/auth'
+import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+
+const { success: showSuccess, error: showError } = useToast()
+const confirm = useConfirmDialog()
 
 const sessions = ref([])
 const loading = ref(true)
@@ -137,30 +157,53 @@ const loadSessions = async () => {
 }
 
 const revokeSession = async (sessionId) => {
-  if (!confirm('Are you sure you want to revoke this session?')) return
+  const confirmed = await confirm.showDialog(
+    'Are you sure you want to revoke this session?',
+    'Revoke Session',
+    {
+      details: 'This will log out the device from this session. The user will need to log in again.',
+      variant: 'warning',
+      icon: '🔒',
+      confirmText: 'Revoke',
+      cancelText: 'Cancel'
+    }
+  )
+
+  if (!confirmed) return
 
   revoking.value = sessionId
   try {
     await authAPI.revokeSession(sessionId)
     await loadSessions()
+    showSuccess('Session revoked successfully')
   } catch (error) {
     console.error('Failed to revoke session:', error)
-    alert('Failed to revoke session. Please try again.')
+    showError('Failed to revoke session. Please try again.')
   } finally {
     revoking.value = null
   }
 }
 
 const revokeAllSessions = async () => {
-  if (!confirm('Are you sure you want to revoke all other sessions? You will be logged out from all devices except this one.')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to revoke all other sessions?',
+    'Revoke All Sessions',
+    {
+      details: 'You will be logged out from all devices except this one. This action cannot be undone.',
+      icon: '🔒'
+    }
+  )
+
+  if (!confirmed) return
 
   revokingAll.value = true
   try {
     await authAPI.revokeAllSessions()
     await loadSessions()
+    showSuccess('All other sessions revoked successfully')
   } catch (error) {
     console.error('Failed to revoke all sessions:', error)
-    alert('Failed to revoke sessions. Please try again.')
+    showError('Failed to revoke sessions. Please try again.')
   } finally {
     revokingAll.value = false
   }

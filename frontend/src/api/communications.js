@@ -85,4 +85,13 @@ export default {
   removeReaction: (threadId, messageId, reaction) => apiClient.delete(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/react/`, { data: { reaction } }),
   setTyping: (threadId) => apiClient.post(`/order-communications/communication-threads/${threadId}/typing/`),
   getTypingStatus: (threadId) => apiClient.get(`/order-communications/communication-threads/${threadId}/typing_status/`),
+  
+  // Flagged Messages
+  listFlaggedMessages: (params) => apiClient.get('/order-communications/flagged-messages/', { params }),
+  getFlaggedMessage: (id) => apiClient.get(`/order-communications/flagged-messages/${id}/`),
+  unblockFlaggedMessage: (id, data) => apiClient.post(`/order-communications/flagged-messages/${id}/unblock/`, data),
+  reflagMessage: (id) => apiClient.post(`/order-communications/flagged-messages/${id}/reflag/`),
+  updateFlaggedMessageCategory: (id, category) => apiClient.patch(`/order-communications/flagged-messages/${id}/update_category/`, { category }),
+  editFlaggedMessage: (id, data) => apiClient.patch(`/order-communications/flagged-messages/${id}/edit/`, data),
+  getFlaggedMessagesStats: () => apiClient.get('/order-communications/flagged-messages/statistics/'),
 }

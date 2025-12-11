@@ -615,11 +615,28 @@
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
     <p class="mt-4 text-gray-600">Loading...</p>
   </div>
+
+  <!-- Confirmation Dialog -->
+  <ConfirmationDialog
+    v-model:show="confirm.show.value"
+    :title="confirm.title.value"
+    :message="confirm.message.value"
+    :details="confirm.details.value"
+    :variant="confirm.variant.value"
+    :icon="confirm.icon.value"
+    :confirm-text="confirm.confirmText.value"
+    :cancel-text="confirm.cancelText.value"
+    @confirm="confirm.onConfirm"
+    @cancel="confirm.onCancel"
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { orderFilesAPI, websitesAPI } from '@/api'
+import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const tabs = [
   { id: 'order-files', label: 'Order Files' },
@@ -629,6 +646,9 @@ const tabs = [
   { id: 'config', label: 'Configuration' },
   { id: 'categories', label: 'File Categories' },
 ]
+
+const { success: showSuccess, error: showError } = useToast()
+const confirm = useConfirmDialog()
 
 const componentError = ref(null)
 const initialLoading = ref(true)
@@ -895,7 +915,7 @@ const downloadFile = async (id) => {
     }
   } catch (error) {
     console.error('Failed to download file:', error)
-    alert('Failed to download file')
+    showError('Failed to download file')
   }
 }
 
@@ -903,20 +923,29 @@ const toggleFileDownload = async (id) => {
   try {
     await orderFilesAPI.toggleDownload(id)
     await loadOrderFiles()
+    showSuccess('File download status updated')
   } catch (error) {
     console.error('Failed to toggle file download:', error)
-    alert('Failed to update file download status')
+    showError('Failed to update file download status')
   }
 }
 
 const deleteFile = async (id) => {
-  if (!confirm('Are you sure you want to delete this file?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this file?',
+    'Delete File',
+    {
+      details: 'This action cannot be undone. The file will be permanently removed.'
+    }
+  )
+  if (!confirmed) return
   try {
     await orderFilesAPI.delete(id)
     await loadOrderFiles()
+    showSuccess('File deleted successfully')
   } catch (error) {
     console.error('Failed to delete file:', error)
-    alert('Failed to delete file')
+    showError('Failed to delete file')
   }
 }
 
@@ -940,12 +969,21 @@ const toggleExtraFileDownload = async (id) => {
 }
 
 const deleteExtraFile = async (id) => {
-  if (!confirm('Are you sure you want to delete this file?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this file?',
+    'Delete Extra Service File',
+    {
+      details: 'This action cannot be undone. The file will be permanently removed.'
+    }
+  )
+  if (!confirmed) return
   try {
     await orderFilesAPI.deleteExtraServiceFile(id)
     await loadExtraFiles()
+    showSuccess('Extra service file deleted successfully')
   } catch (error) {
     console.error('Failed to delete extra file:', error)
+    showError('Failed to delete extra service file')
   }
 }
 
@@ -959,12 +997,21 @@ const approveExternalLink = async (id) => {
 }
 
 const deleteExternalLink = async (id) => {
-  if (!confirm('Are you sure you want to delete this external link?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this external link?',
+    'Delete External Link',
+    {
+      details: 'This action cannot be undone.'
+    }
+  )
+  if (!confirmed) return
   try {
     await orderFilesAPI.deleteExternalLink(id)
     await loadExternalLinks()
+    showSuccess('External link deleted successfully')
   } catch (error) {
     console.error('Failed to delete external link:', error)
+    showError('Failed to delete external link')
   }
 }
 
@@ -978,12 +1025,21 @@ const approveDeletionRequest = async (id) => {
 }
 
 const deleteDeletionRequest = async (id) => {
-  if (!confirm('Are you sure you want to delete this request?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this request?',
+    'Delete Deletion Request',
+    {
+      details: 'This action cannot be undone.'
+    }
+  )
+  if (!confirmed) return
   try {
     await orderFilesAPI.deleteDeletionRequest(id)
     await loadDeletionRequests()
+    showSuccess('Deletion request deleted successfully')
   } catch (error) {
     console.error('Failed to delete deletion request:', error)
+    showError('Failed to delete deletion request')
   }
 }
 
@@ -1039,20 +1095,28 @@ const saveConfig = async () => {
     closeConfigModal()
   } catch (error) {
     console.error('Failed to save config:', error)
-    alert(error.response?.data?.detail || 'Failed to save configuration')
+    showError(error.response?.data?.detail || 'Failed to save configuration')
   } finally {
     savingConfig.value = false
   }
 }
 
 const deleteConfig = async (id) => {
-  if (!confirm('Are you sure you want to delete this configuration?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this configuration?',
+    'Delete Configuration',
+    {
+      details: 'This action cannot be undone. File upload settings will revert to defaults.'
+    }
+  )
+  if (!confirmed) return
   try {
     await orderFilesAPI.deleteConfig(id)
     await loadConfigs()
+    showSuccess('Configuration deleted successfully')
   } catch (error) {
     console.error('Failed to delete config:', error)
-    alert('Failed to delete configuration')
+    showError('Failed to delete configuration')
   }
 }
 

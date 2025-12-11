@@ -558,6 +558,20 @@
         </button>
       </template>
     </Modal>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -568,9 +582,12 @@ import writerOrderRequestsAPI from '@/api/writer-order-requests'
 import writerManagementAPI from '@/api/writer-management'
 import ordersAPI from '@/api/orders'
 import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { getErrorMessage } from '@/utils/errorHandler'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const { error: showError, success: showSuccess, warning: showWarning } = useToast()
+const confirm = useConfirmDialog()
 
 const loading = ref(false)
 const activeTab = ref('available')
@@ -872,11 +889,19 @@ const takeOrder = async (order) => {
   }
   
   // Confirm action
-  if (!confirm(
-    `Are you sure you want to take Order #${order.id}?\n\n` +
-    `This will assign it to you immediately and you'll be responsible for completing it by the deadline.\n\n` +
-    `Current capacity: ${takeCapacity.value.active}/${takeCapacity.value.maxOrders} orders`
-  )) {
+  const confirmed = await confirm.showDialog(
+    `Are you sure you want to take Order #${order.id}?`,
+    'Take Order',
+    {
+      details: `This will assign it to you immediately and you'll be responsible for completing it by the deadline.\n\nCurrent capacity: ${takeCapacity.value.active}/${takeCapacity.value.maxOrders} orders`,
+      variant: 'default',
+      icon: '📋',
+      confirmText: 'Take Order',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) {
     return
   }
   

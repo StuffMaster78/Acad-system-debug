@@ -741,6 +741,20 @@
     <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
       {{ message }}
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
   <!-- Error Display -->
   <div v-else-if="componentError" class="p-6">
@@ -763,7 +777,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { classManagementAPI, usersAPI, writerAssignmentAPI } from '@/api'
 import apiClient from '@/api/client'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
+const confirm = useConfirmDialog()
 const componentError = ref(null)
 const initialLoading = ref(true)
 const loading = ref(false)
@@ -1178,7 +1195,16 @@ const editConfig = (config) => {
 }
 
 const deleteConfig = async (config) => {
-  if (!confirm('Are you sure you want to delete this config?')) return
+  const confirmed = await confirm.showDestructive(
+    `This will permanently delete the configuration "${config.name || 'this config'}". This action cannot be undone.`,
+    'Delete Configuration',
+    {
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   try {
     await classManagementAPI.deleteConfig(config.id)

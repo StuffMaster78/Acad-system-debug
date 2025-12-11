@@ -16,5 +16,15 @@ export default {
   markAllAsRead: () => apiClient.post('/notifications_system/mark-all-read/'),
   getUnreadCount: () => apiClient.get('/notifications_system/unread-count/'),
   getUnread: (params) => apiClient.get('/notifications_system/notifications/unread/', { params }),
+  // Webhook Endpoints
+  listWebhookEndpoints: (params) => apiClient.get('/notifications_system/webhook-endpoints/', { params }),
+  getWebhookEndpoint: (id) => apiClient.get(`/notifications_system/webhook-endpoints/${id}/`),
+  createWebhookEndpoint: (data) => apiClient.post('/notifications_system/webhook-endpoints/', data),
+  updateWebhookEndpoint: (id, data) => apiClient.put(`/notifications_system/webhook-endpoints/${id}/`, data),
+  deleteWebhookEndpoint: (id) => apiClient.delete(`/notifications_system/webhook-endpoints/${id}/`),
+  // Notification Dashboard
+  getPerformanceDashboard: () => apiClient.get('/notifications_system/dashboard/performance/'),
+  getRealTimeMetrics: () => apiClient.get('/notifications_system/dashboard/real-time-metrics/'),
+  getTemplateAnalytics: () => apiClient.get('/notifications_system/dashboard/template-analytics/'),
 }
 

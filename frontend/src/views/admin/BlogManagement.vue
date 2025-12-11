@@ -966,6 +966,85 @@
                 <p class="text-sm">No resources added yet. Click "Add Resource" to get started.</p>
               </div>
             </div>
+            
+            <!-- Content Blocks Section -->
+            <div class="space-y-4 border-t border-gray-200 dark:border-gray-700 pt-6">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Content Blocks</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Add rich content blocks (tables, info boxes, timelines, etc.) to make your blog post unique and information-rich</p>
+                </div>
+                <button
+                  type="button"
+                  @click="openAddContentBlockModal"
+                  class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                  </svg>
+                  Insert Content Block
+                </button>
+              </div>
+              
+              <div v-if="contentBlocksLoading" class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+              </div>
+              <div v-else-if="allContentBlocks.length > 0" class="space-y-3">
+                <div
+                  v-for="block in allContentBlocks"
+                  :key="block.id || block.tempId"
+                  class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-gray-50 dark:bg-gray-700/50"
+                >
+                  <div class="flex justify-between items-start mb-3">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2 mb-1">
+                        <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                          {{ getBlockTemplateName(block) }}
+                        </span>
+                        <span v-if="block.tempId" class="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 rounded-full">
+                          Pending
+                        </span>
+                        <span v-else class="px-2 py-1 text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full">
+                          {{ formatBlockType(block.block_type || block.template?.block_type) }}
+                        </span>
+                      </div>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">Position: {{ block.position || 0 }} | 
+                        <span :class="block.is_active !== false ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">
+                          {{ block.is_active !== false ? 'Active' : 'Inactive' }}
+                        </span>
+                      </p>
+                    </div>
+                    <div class="flex gap-2">
+                      <button
+                        type="button"
+                        @click="editContentBlock(block)"
+                        class="px-3 py-1 text-xs font-medium text-primary-600 bg-primary-50 dark:bg-primary-900/20 rounded-md hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        @click="removeContentBlock(block)"
+                        class="px-3 py-1 text-xs font-medium text-red-600 bg-red-50 dark:bg-red-900/20 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div v-else class="text-center py-8 text-gray-500 dark:text-gray-400 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                <p class="text-sm mb-2">No content blocks added yet.</p>
+                <p class="text-xs">Click "Insert Content Block" to add tables, info boxes, timelines, and more to make your blog post unique and information-rich.</p>
+                <button
+                  type="button"
+                  @click="openAddContentBlockModal"
+                  class="mt-4 px-4 py-2 text-sm font-medium text-purple-600 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+                >
+                  Get Started
+                </button>
+              </div>
+            </div>
           </form>
         </div>
         
@@ -1300,6 +1379,90 @@
       :website-id="previewWebsiteId"
       @close="showPreviewModal = false"
     />
+
+    <!-- Content Block Modal -->
+    <div v-if="showContentBlockModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="showContentBlockModal = false">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+              {{ editingContentBlock ? 'Edit Content Block' : 'Insert Content Block' }}
+            </h2>
+            <button 
+              @click="showContentBlockModal = false" 
+              class="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        
+        <div class="flex-1 overflow-y-auto p-6">
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Template *</label>
+              <select
+                v-model.number="contentBlockForm.template"
+                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              >
+                <option value="">Select Template</option>
+                <option v-for="template in contentBlockTemplates" :key="template.id" :value="template.id">
+                  {{ template.name }} ({{ formatBlockType(template.block_type) }})
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Position *</label>
+              <input
+                v-model.number="contentBlockForm.position"
+                type="number"
+                min="0"
+                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                placeholder="0 (paragraph/heading index)"
+              />
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Position in content where block should appear (0 = top, 1 = after first paragraph, etc.)</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Custom Data (JSON)</label>
+              <textarea
+                v-model="contentBlockCustomDataJson"
+                rows="4"
+                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white font-mono text-sm"
+                placeholder='{"key": "value"}'
+              ></textarea>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Blog-specific data overriding template data</p>
+            </div>
+            <div>
+              <label class="flex items-center gap-2">
+                <input
+                  v-model="contentBlockForm.is_active"
+                  type="checkbox"
+                  class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-3">
+          <button 
+            @click="showContentBlockModal = false" 
+            class="px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            @click="saveContentBlock"
+            class="px-5 py-2.5 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            {{ editingContentBlock ? 'Update' : 'Insert' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -1616,14 +1779,50 @@ const saveBlog = async () => {
       formData.featured_image = formData.featured_image_asset.url
     }
     
+    let createdBlogId = null
     if (editingBlog.value) {
       await blogPagesAPI.updateBlog(editingBlog.value.id, formData)
       message.value = 'Blog post updated successfully'
+      createdBlogId = editingBlog.value.id
     } else {
-      await blogPagesAPI.createBlog(formData)
+      const response = await blogPagesAPI.createBlog(formData)
+      createdBlogId = response.data?.id || response.data?.id
       message.value = 'Blog post created successfully'
+      
+      // Save pending content blocks if any
+      if (pendingContentBlocks.value.length > 0 && createdBlogId) {
+        try {
+          for (const pendingBlock of pendingContentBlocks.value) {
+            const blockData = {
+              ...pendingBlock,
+              blog: createdBlogId,
+            }
+            // Remove tempId before sending
+            delete blockData.tempId
+            await blogPagesAPI.createBlogContentBlock(blockData)
+          }
+          message.value = `Blog post created successfully with ${pendingContentBlocks.value.length} content block(s)`
+          pendingContentBlocks.value = []
+        } catch (blockError) {
+          console.error('Error saving pending content blocks:', blockError)
+          // Don't fail the whole operation, just log the error
+          message.value = 'Blog post created, but some content blocks failed to save'
+        }
+      }
     }
+    
     messageSuccess.value = true
+    
+    // If we created a new blog, reload it to get the ID and load content blocks
+    if (createdBlogId && !editingBlog.value) {
+      await loadBlogs()
+      // Find the newly created blog and load its content blocks
+      const newBlog = blogs.value.find(b => b.id === createdBlogId)
+      if (newBlog) {
+        await loadBlogContentBlocks(createdBlogId)
+      }
+    }
+    
     closeModal()
     await loadBlogs()
   } catch (e) {
@@ -1665,6 +1864,12 @@ const editBlog = async (blog) => {
   // Load authors for the blog's website
   if (blogForm.value.website_id) {
     await loadAvailableAuthors(blogForm.value.website_id)
+  }
+  
+  // Load content blocks for this blog
+  if (blog.id) {
+    await loadBlogContentBlocks(blog.id)
+    await loadContentBlockTemplates()
   }
   
   showCreateModal.value = true
@@ -1754,6 +1959,37 @@ const viewRevisions = (blog) => {
 const showRevisionDiffModal = ref(false)
 const revisionDiffData = ref(null)
 const revisionDiffLoading = ref(false)
+
+// Content Blocks Management
+const blogContentBlocks = ref([])
+const pendingContentBlocks = ref([]) // For blocks added before blog is saved
+const contentBlocksLoading = ref(false)
+const showContentBlockModal = ref(false)
+const editingContentBlock = ref(null)
+const contentBlockTemplates = ref([])
+const contentBlockForm = ref({
+  template: null,
+  position: 0,
+  custom_data: {},
+  is_active: true,
+})
+const contentBlockCustomDataJson = ref('{}')
+
+// Computed: Combine pending and saved blocks
+const allContentBlocks = computed(() => {
+  return [...pendingContentBlocks.value, ...blogContentBlocks.value]
+})
+
+// Helper to get template name
+const getBlockTemplateName = (block) => {
+  if (block.template_name) return block.template_name
+  if (block.template?.name) return block.template.name
+  if (block.template) {
+    const template = contentBlockTemplates.value.find(t => t.id === block.template)
+    return template?.name || 'Content Block'
+  }
+  return 'Content Block'
+}
 
 const viewRevisionDiff = async (blog) => {
   showRevisionDiffModal.value = true
@@ -1954,6 +2190,162 @@ const removeResource = (index) => {
   blogForm.value.resources_data.splice(index, 1)
 }
 
+// Content Blocks Functions
+const formatBlockType = (type) => {
+  if (!type) return 'Unknown'
+  return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
+const loadBlogContentBlocks = async (blogId) => {
+  contentBlocksLoading.value = true
+  try {
+    const response = await blogPagesAPI.listBlogContentBlocks({ blog: blogId })
+    blogContentBlocks.value = response.data.results || response.data || []
+  } catch (error) {
+    console.error('Error loading content blocks:', error)
+  } finally {
+    contentBlocksLoading.value = false
+  }
+}
+
+const loadContentBlockTemplates = async () => {
+  try {
+    const response = await blogPagesAPI.listContentBlockTemplates({ is_active: true })
+    contentBlockTemplates.value = response.data.results || response.data || []
+  } catch (error) {
+    console.error('Error loading content block templates:', error)
+  }
+}
+
+const openAddContentBlockModal = () => {
+  if (!editingBlog.value?.id) {
+    showError('Please save the blog post first before adding content blocks')
+    return
+  }
+  editingContentBlock.value = null
+  contentBlockForm.value = {
+    template: null,
+    position: 0,
+    custom_data: {},
+    is_active: true,
+  }
+  contentBlockCustomDataJson.value = '{}'
+  showContentBlockModal.value = true
+}
+
+const editContentBlock = async (block) => {
+  // Load templates if not already loaded
+  if (contentBlockTemplates.value.length === 0) {
+    await loadContentBlockTemplates()
+  }
+  editingContentBlock.value = block
+  contentBlockForm.value = {
+    template: block.template || block.template_id || null,
+    position: block.position || 0,
+    custom_data: block.custom_data || {},
+    is_active: block.is_active !== undefined ? block.is_active : true,
+  }
+  contentBlockCustomDataJson.value = JSON.stringify(block.custom_data || {}, null, 2)
+  showContentBlockModal.value = true
+}
+
+const saveContentBlock = async () => {
+  // If blog is not saved yet, add to pending blocks
+  if (!editingBlog.value?.id) {
+    try {
+      // Parse custom data JSON
+      try {
+        contentBlockForm.value.custom_data = JSON.parse(contentBlockCustomDataJson.value || '{}')
+      } catch (e) {
+        showError('Invalid JSON in custom data')
+        return
+      }
+      
+      if (editingContentBlock.value?.tempId) {
+        // Update pending block
+        const index = pendingContentBlocks.value.findIndex(b => b.tempId === editingContentBlock.value.tempId)
+        if (index !== -1) {
+          pendingContentBlocks.value[index] = {
+            ...contentBlockForm.value,
+            tempId: editingContentBlock.value.tempId,
+          }
+        }
+        showSuccess('Content block updated (will be saved when blog is created)')
+      } else {
+        // Add new pending block
+        const tempId = Date.now()
+        pendingContentBlocks.value.push({
+          ...contentBlockForm.value,
+          tempId,
+        })
+        showSuccess('Content block added (will be saved when blog is created)')
+      }
+      
+      showContentBlockModal.value = false
+    } catch (error) {
+      showError('Failed to add content block')
+    }
+    return
+  }
+  
+  // Blog exists, save to API
+  try {
+    // Parse custom data JSON
+    try {
+      contentBlockForm.value.custom_data = JSON.parse(contentBlockCustomDataJson.value || '{}')
+    } catch (e) {
+      showError('Invalid JSON in custom data')
+      return
+    }
+    
+    const blockData = {
+      ...contentBlockForm.value,
+      blog: editingBlog.value.id,
+    }
+    
+    if (editingContentBlock.value?.id) {
+      await blogPagesAPI.updateBlogContentBlock(editingContentBlock.value.id, blockData)
+      showSuccess('Content block updated successfully')
+    } else {
+      await blogPagesAPI.createBlogContentBlock(blockData)
+      showSuccess('Content block added successfully')
+    }
+    
+    showContentBlockModal.value = false
+    await loadBlogContentBlocks(editingBlog.value.id)
+  } catch (error) {
+    const errorMessage = error.response?.data?.detail || error.response?.data?.message || 'Failed to save content block'
+    showError(errorMessage)
+  }
+}
+
+const removeContentBlock = async (block) => {
+  if (!confirm('Are you sure you want to remove this content block?')) {
+    return
+  }
+  
+  // If it's a pending block (has tempId), just remove from array
+  if (block.tempId) {
+    pendingContentBlocks.value = pendingContentBlocks.value.filter(b => b.tempId !== block.tempId)
+    showSuccess('Content block removed')
+    return
+  }
+  
+  // Otherwise, delete from API
+  if (!editingBlog.value?.id) {
+    showError('Blog post ID is required')
+    return
+  }
+  
+  try {
+    await blogPagesAPI.deleteBlogContentBlock(block.id)
+    showSuccess('Content block removed successfully')
+    await loadBlogContentBlocks(editingBlog.value.id)
+  } catch (error) {
+    showError('Failed to remove content block')
+  }
+}
+
 // Editor toolbar handlers
 const handleContentInserted = (data) => {
   // Content was inserted via toolbar (snippet or block)
@@ -2003,6 +2395,8 @@ const closeModal = () => {
   tagSelect.value = ''
   selectedAuthors.value = []
   authorSelect.value = ''
+  blogContentBlocks.value = []
+  pendingContentBlocks.value = []
   availableAuthors.value = []
 }
 
@@ -2079,6 +2473,9 @@ onMounted(async () => {
 
 // Watch for modal opening to load websites if needed and get editor instance
 watch(showCreateModal, async (isOpen) => {
+  if (isOpen && contentBlockTemplates.value.length === 0) {
+    await loadContentBlockTemplates()
+  }
   if (isOpen) {
     await nextTick()
     // Get Quill editor instance from RichTextEditor component

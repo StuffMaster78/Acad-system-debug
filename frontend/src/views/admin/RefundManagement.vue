@@ -478,6 +478,20 @@
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
     <p class="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
   </div>
+
+  <!-- Confirmation Dialog -->
+  <ConfirmationDialog
+    v-model:show="confirm.show.value"
+    :title="confirm.title.value"
+    :message="confirm.message.value"
+    :details="confirm.details.value"
+    :variant="confirm.variant.value"
+    :icon="confirm.icon.value"
+    :confirm-text="confirm.confirmText.value"
+    :cancel-text="confirm.cancelText.value"
+    @confirm="confirm.onConfirm"
+    @cancel="confirm.onCancel"
+  />
 </template>
 
 <script setup>
@@ -486,6 +500,10 @@ import { refundsAPI } from '@/api'
 import adminRefundsAPI from '@/api/admin-refunds'
 import apiClient from '@/api/client'
 import PasswordVerificationModal from '@/components/common/PasswordVerificationModal.vue'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+
+const confirm = useConfirmDialog()
 
 const componentError = ref(null)
 const initialLoading = ref(true)

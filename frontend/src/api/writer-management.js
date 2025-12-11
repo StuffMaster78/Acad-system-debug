@@ -56,8 +56,36 @@ export default {
   
   // Badge Analytics
   getBadgeAnalytics: (params) => apiClient.get('/writer-management/badge-analytics/', { params }),
+  getBadgeDistribution: () => apiClient.get('/writer-management/badge-analytics/distribution/'),
+  getBadgeTrends: (days = 30) => apiClient.get('/writer-management/badge-analytics/trends/', { params: { days } }),
+  getBadgeLeaderboard: (type = null, limit = 10) => apiClient.get('/writer-management/badge-analytics/leaderboard/', { params: { type, limit } }),
   getBadgeAchievements: (params) => apiClient.get('/writer-management/badge-achievements/', { params }),
   getBadgePerformance: (params) => apiClient.get('/writer-management/badge-performance/', { params }),
+  
+  // Writer Portfolios
+  listPortfolios: (params) => apiClient.get('/writer-management/writer-portfolios/', { params }),
+  getPortfolio: (id) => apiClient.get(`/writer-management/writer-portfolios/${id}/`),
+  createPortfolio: (data) => apiClient.post('/writer-management/writer-portfolios/', data),
+  updatePortfolio: (id, data) => apiClient.patch(`/writer-management/writer-portfolios/${id}/`, data),
+  deletePortfolio: (id) => apiClient.delete(`/writer-management/writer-portfolios/${id}/`),
+  
+  // Portfolio Samples
+  listPortfolioSamples: (params) => apiClient.get('/writer-management/portfolio-samples/', { params }),
+  getPortfolioSample: (id) => apiClient.get(`/writer-management/portfolio-samples/${id}/`),
+  createPortfolioSample: (data) => apiClient.post('/writer-management/portfolio-samples/', data),
+  updatePortfolioSample: (id, data) => apiClient.patch(`/writer-management/portfolio-samples/${id}/`, data),
+  deletePortfolioSample: (id) => apiClient.delete(`/writer-management/portfolio-samples/${id}/`),
+  
+  // Feedback
+  listFeedback: (params) => apiClient.get('/writer-management/feedback/', { params }),
+  getFeedback: (id) => apiClient.get(`/writer-management/feedback/${id}/`),
+  createFeedback: (data) => apiClient.post('/writer-management/feedback/', data),
+  updateFeedback: (id, data) => apiClient.patch(`/writer-management/feedback/${id}/`, data),
+  deleteFeedback: (id) => apiClient.delete(`/writer-management/feedback/${id}/`),
+  
+  // Feedback History
+  listFeedbackHistory: (params) => apiClient.get('/writer-management/feedback-history/', { params }),
+  getFeedbackHistory: (id) => apiClient.get(`/writer-management/feedback-history/${id}/`),
   
   // Performance Snapshots
   listPerformanceSnapshots: (params) => apiClient.get('/writer-management/writer-performance-snapshots/', { params }),

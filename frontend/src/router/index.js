@@ -844,6 +844,26 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/screened-words',
+          name: 'ScreenedWordsManagement',
+          component: () => import('@/views/admin/ScreenedWordsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Screened Words Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/flagged-messages',
+          name: 'FlaggedMessagesManagement',
+          component: () => import('@/views/admin/FlaggedMessagesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Flagged Messages Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/notification-profiles',
           name: 'NotificationProfiles',
           component: () => import('@/views/admin/NotificationProfiles.vue'),
@@ -1151,6 +1171,366 @@ const router = createRouter({
             requiresAuth: true,
             title: 'Support Tickets',
             roles: ['admin', 'superadmin', 'support'],
+          },
+        },
+        {
+          path: 'admin/support-profiles',
+          name: 'SupportProfilesManagement',
+          component: () => import('@/views/admin/SupportProfilesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Support Profiles',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/workload-tracker',
+          name: 'WorkloadTracker',
+          component: () => import('@/views/admin/WorkloadTracker.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Workload Tracker',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/payment-issues',
+          name: 'PaymentIssuesManagement',
+          component: () => import('@/views/admin/PaymentIssuesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Payment Issues',
+            roles: ['admin', 'superadmin', 'support'],
+          },
+        },
+        {
+          path: 'admin/escalations',
+          name: 'EscalationsManagement',
+          component: () => import('@/views/admin/EscalationsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Escalations',
+            roles: ['admin', 'superadmin', 'support'],
+          },
+        },
+        {
+          path: 'admin/faqs',
+          name: 'FAQsManagement',
+          component: () => import('@/views/admin/FAQsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'FAQs Management',
+            roles: ['admin', 'superadmin', 'support'],
+          },
+        },
+        {
+          path: 'admin/redemption-categories',
+          name: 'RedemptionCategoriesManagement',
+          component: () => import('@/views/admin/RedemptionCategoriesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Redemption Categories',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/redemption-items',
+          name: 'RedemptionItemsManagement',
+          component: () => import('@/views/admin/RedemptionItemsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Redemption Items',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/redemption-requests',
+          name: 'RedemptionRequestsManagement',
+          component: () => import('@/views/admin/RedemptionRequestsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Redemption Requests',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/performance-monitoring',
+          name: 'PerformanceMonitoring',
+          component: () => import('@/views/admin/PerformanceMonitoring.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Performance Monitoring',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/writer-badge-analytics',
+          name: 'WriterBadgeAnalytics',
+          component: () => import('@/views/admin/WriterBadgeAnalytics.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Writer Badge Analytics',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/email-digests',
+          name: 'EmailDigestsManagement',
+          component: () => import('@/views/admin/EmailDigestsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Email Digests',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/broadcast-messages',
+          name: 'BroadcastMessagesManagement',
+          component: () => import('@/views/admin/BroadcastMessagesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Broadcast Messages',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/class-analytics',
+          name: 'ClassAnalytics',
+          component: () => import('@/views/admin/ClassAnalytics.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Class Analytics',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/writer-portfolios',
+          name: 'WriterPortfoliosManagement',
+          component: () => import('@/views/admin/WriterPortfoliosManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Writer Portfolios',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/writer-feedback',
+          name: 'WriterFeedbackManagement',
+          component: () => import('@/views/admin/WriterFeedbackManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Writer Feedback',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/editor-workload',
+          name: 'EditorWorkloadTracker',
+          component: () => import('@/views/admin/EditorWorkloadTracker.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Editor Workload Tracker',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/rate-limiting',
+          name: 'RateLimitingMonitoring',
+          component: () => import('@/views/admin/RateLimitingMonitoring.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Rate Limiting Monitoring',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/compression-monitoring',
+          name: 'CompressionMonitoring',
+          component: () => import('@/views/admin/CompressionMonitoring.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Compression Monitoring',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/system-health',
+          name: 'SystemHealthMonitoring',
+          component: () => import('@/views/admin/SystemHealthMonitoring.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'System Health Monitoring',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/financial-overview',
+          name: 'FinancialOverview',
+          component: () => import('@/views/admin/FinancialOverview.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Financial Overview',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/unified-search',
+          name: 'UnifiedSearch',
+          component: () => import('@/views/admin/UnifiedSearch.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Unified Search',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/data-exports',
+          name: 'DataExports',
+          component: () => import('@/views/admin/DataExports.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Data Exports',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/duplicate-detection',
+          name: 'DuplicateDetection',
+          component: () => import('@/views/admin/DuplicateDetection.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Duplicate Detection',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/superadmin-logs',
+          name: 'SuperadminLogs',
+          component: () => import('@/views/admin/SuperadminLogs.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Superadmin Logs',
+            roles: ['superadmin'],
+          },
+        },
+        {
+          path: 'admin/dashboard-widgets',
+          name: 'DashboardWidgetsManagement',
+          component: () => import('@/views/admin/DashboardWidgetsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Dashboard Widgets',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/newsletter-analytics',
+          name: 'NewsletterAnalytics',
+          component: () => import('@/views/admin/NewsletterAnalytics.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Newsletter Analytics',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/cta-management',
+          name: 'CTAManagement',
+          component: () => import('@/views/admin/CTAManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'CTA Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/notification-group-profiles',
+          name: 'NotificationGroupProfilesManagement',
+          component: () => import('@/views/admin/NotificationGroupProfilesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Notification Group Profiles',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-analytics',
+          name: 'BlogAnalyticsManagement',
+          component: () => import('@/views/admin/BlogAnalyticsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Analytics',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/social-platforms',
+          name: 'SocialPlatformsManagement',
+          component: () => import('@/views/admin/SocialPlatformsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Social Platforms',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/content-blocks',
+          name: 'ContentBlocksManagement',
+          component: () => import('@/views/admin/ContentBlocksManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Content Blocks',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/ab-tests',
+          name: 'ABTestsManagement',
+          component: () => import('@/views/admin/ABTestsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'A/B Tests',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-dark-mode-images',
+          name: 'BlogDarkModeImagesManagement',
+          component: () => import('@/views/admin/BlogDarkModeImagesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Dark Mode Images',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/referral-bonus-decays',
+          name: 'ReferralBonusDecaysManagement',
+          component: () => import('@/views/admin/ReferralBonusDecaysManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Referral Bonus Decays',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/webhook-endpoints',
+          name: 'WebhookEndpointsManagement',
+          component: () => import('@/views/admin/WebhookEndpointsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Webhook Endpoints',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/notification-dashboard',
+          name: 'NotificationDashboard',
+          component: () => import('@/views/admin/NotificationDashboard.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Notification Dashboard',
+            roles: ['admin', 'superadmin'],
           },
         },
         {
