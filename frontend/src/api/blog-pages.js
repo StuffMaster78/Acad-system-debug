@@ -170,5 +170,73 @@ export default {
   // Internal Linking & Recommendations
   suggestInternalLinks: (data) => apiClient.post('/blog_pages_management/blogs/suggest-internal-links/', data),
   getRelatedContent: (id, params) => apiClient.get(`/blog_pages_management/blogs/${id}/related_content/`, { params }),
+  
+  // Newsletter Analytics
+  listNewsletterAnalytics: (params) => apiClient.get('/blog_pages_management/newsletter-analytics/', { params }),
+  getNewsletterAnalytics: (id) => apiClient.get(`/blog_pages_management/newsletter-analytics/${id}/`),
+  
+  // CTA Placements
+  listCTAPlacements: (params) => apiClient.get('/blog_pages_management/cta-placements/', { params }),
+  getCTAPlacement: (id) => apiClient.get(`/blog_pages_management/cta-placements/${id}/`),
+  createCTAPlacement: (data) => apiClient.post('/blog_pages_management/cta-placements/', data),
+  updateCTAPlacement: (id, data) => apiClient.put(`/blog_pages_management/cta-placements/${id}/`, data),
+  deleteCTAPlacement: (id) => apiClient.delete(`/blog_pages_management/cta-placements/${id}/`),
+  autoPlaceCTAs: (data) => apiClient.post('/blog_pages_management/cta-blocks/auto_place_in_blog/', data),
+  
+  // Blog Clicks
+  listBlogClicks: (params) => apiClient.get('/blog_pages_management/clicks/', { params }),
+  getBlogClick: (id) => apiClient.get(`/blog_pages_management/clicks/${id}/`),
+  createBlogClick: (data) => apiClient.post('/blog_pages_management/clicks/', data),
+  
+  // Blog Conversions
+  listBlogConversions: (params) => apiClient.get('/blog_pages_management/conversions/', { params }),
+  getBlogConversion: (id) => apiClient.get(`/blog_pages_management/conversions/${id}/`),
+  createBlogConversion: (data) => apiClient.post('/blog_pages_management/conversions/', data),
+  
+  // Blog Shares
+  listBlogShares: (params) => apiClient.get('/blog_pages_management/blog-shares/', { params }),
+  getBlogShare: (id) => apiClient.get(`/blog_pages_management/blog-shares/${id}/`),
+  createBlogShare: (data) => apiClient.post('/blog_pages_management/blog-shares/', data),
+  
+  // Social Platforms
+  listSocialPlatforms: (params) => apiClient.get('/blog_pages_management/social-platforms/', { params }),
+  getSocialPlatform: (id) => apiClient.get(`/blog_pages_management/social-platforms/${id}/`),
+  createSocialPlatform: (data) => apiClient.post('/blog_pages_management/social-platforms/', data),
+  updateSocialPlatform: (id, data) => apiClient.put(`/blog_pages_management/social-platforms/${id}/`, data),
+  deleteSocialPlatform: (id) => apiClient.delete(`/blog_pages_management/social-platforms/${id}/`),
+  
+  // AB Tests
+  listABTests: (params) => apiClient.get('/blog_pages_management/ab-tests/', { params }),
+  getABTest: (id) => apiClient.get(`/blog_pages_management/ab-tests/${id}/`),
+  createABTest: (data) => apiClient.post('/blog_pages_management/ab-tests/', data),
+  updateABTest: (id, data) => apiClient.put(`/blog_pages_management/ab-tests/${id}/`, data),
+  deleteABTest: (id) => apiClient.delete(`/blog_pages_management/ab-tests/${id}/`),
+  trackABTestClick: (id, variant) => apiClient.post(`/blog_pages_management/ab-tests/${id}/track_click/`, { variant }),
+  
+  // Blog Dark Mode Images
+  listDarkModeImages: (params) => apiClient.get('/blog_pages_management/blog-dark-mode-images/', { params }),
+  getDarkModeImage: (id) => apiClient.get(`/blog_pages_management/blog-dark-mode-images/${id}/`),
+  createDarkModeImage: (data) => apiClient.post('/blog_pages_management/blog-dark-mode-images/', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  updateDarkModeImage: (id, data) => apiClient.put(`/blog_pages_management/blog-dark-mode-images/${id}/`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  deleteDarkModeImage: (id) => apiClient.delete(`/blog_pages_management/blog-dark-mode-images/${id}/`),
+  
+  // Content Block Templates
+  listContentBlockTemplates: (params) => apiClient.get('/blog_pages_management/content-block-templates/', { params }),
+  getContentBlockTemplate: (id) => apiClient.get(`/blog_pages_management/content-block-templates/${id}/`),
+  createContentBlockTemplate: (data) => apiClient.post('/blog_pages_management/content-block-templates/', data),
+  updateContentBlockTemplate: (id, data) => apiClient.put(`/blog_pages_management/content-block-templates/${id}/`, data),
+  deleteContentBlockTemplate: (id) => apiClient.delete(`/blog_pages_management/content-block-templates/${id}/`),
+  
+  // Blog Content Blocks (instances in blog posts)
+  listBlogContentBlocks: (params) => apiClient.get('/blog_pages_management/blog-content-blocks/', { params }),
+  getBlogContentBlock: (id) => apiClient.get(`/blog_pages_management/blog-content-blocks/${id}/`),
+  createBlogContentBlock: (data) => apiClient.post('/blog_pages_management/blog-content-blocks/', data),
+  updateBlogContentBlock: (id, data) => apiClient.put(`/blog_pages_management/blog-content-blocks/${id}/`, data),
+  deleteBlogContentBlock: (id) => apiClient.delete(`/blog_pages_management/blog-content-blocks/${id}/`),
+  getRenderedContent: (blogId) => apiClient.get('/blog_pages_management/blog-content-blocks/rendered_content/', { params: { blog_id: blogId } }),
 }
 

@@ -437,7 +437,10 @@ import { expressClassesAPI, usersAPI } from '@/api'
 import apiClient from '@/api/client'
 import { formatWriterName } from '@/utils/formatDisplay'
 import ClassMessageThreads from '@/components/classes/ClassMessageThreads.vue'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
+const confirm = useConfirmDialog()
 const componentError = ref(null)
 const initialLoading = ref(true)
 const loading = ref(false)
@@ -649,7 +652,18 @@ const startProgress = async (expressClass) => {
 }
 
 const completeExpressClass = async (expressClass) => {
-  if (!confirm('Are you sure you want to mark this express class as completed?')) return
+  const confirmed = await confirm.showDialog(
+    'Are you sure you want to mark this express class as completed?',
+    'Mark as Complete',
+    {
+      variant: 'default',
+      icon: '✅',
+      confirmText: 'Mark Complete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   try {
     await expressClassesAPI.complete(expressClass.id)

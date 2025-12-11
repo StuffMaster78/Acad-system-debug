@@ -186,14 +186,37 @@
     <div v-if="successMessage" class="card p-4 bg-green-50 border border-green-200">
       <p class="text-green-700">{{ successMessage }}</p>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
 <script>
 import usersAPI from '@/api/users'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 export default {
   name: 'DeletionRequests',
+  components: {
+    ConfirmationDialog
+  },
+  setup() {
+    const confirm = useConfirmDialog()
+    return { confirm }
+  },
   data() {
     return {
       deletionRequests: [],
@@ -244,7 +267,16 @@ export default {
     },
 
     async approveRequest(request) {
-      if (!confirm(`Are you sure you want to approve the deletion request for ${request.user_email}? The account will be frozen immediately.`)) {
+      const confirmed = await this.confirm.showDestructive(
+        `Are you sure you want to approve the deletion request for ${request.user_email}?`,
+        'Approve Deletion Request',
+        {
+          details: 'The account will be frozen immediately. This action cannot be undone.',
+          icon: '⚠️'
+        }
+      )
+      
+      if (!confirmed) {
         return
       }
 
@@ -301,7 +333,19 @@ export default {
     },
 
     async reinstateAccount(request) {
-      if (!confirm(`Are you sure you want to reinstate the account for ${request.user_email}? This will unfreeze the account and cancel the deletion.`)) {
+      const confirmed = await this.confirm.showDialog(
+        `Are you sure you want to reinstate the account for ${request.user_email}?`,
+        'Reinstate Account',
+        {
+          details: 'This will unfreeze the account and cancel the deletion request.',
+          variant: 'warning',
+          icon: '🔄',
+          confirmText: 'Reinstate',
+          cancelText: 'Cancel'
+        }
+      )
+      
+      if (!confirmed) {
         return
       }
 

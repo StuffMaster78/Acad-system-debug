@@ -284,6 +284,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -292,8 +306,14 @@ import { ref, onMounted, computed } from 'vue'
 import { debounce } from '@/utils/debounce'
 import supportTicketsAPI from '@/api/support-tickets'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const authStore = useAuthStore()
+const { success: showSuccess, error: showError } = useToast()
+const confirm = useConfirmDialog()
+
 const loading = ref(false)
 const activeTab = ref('unassigned')
 const allTickets = ref([])

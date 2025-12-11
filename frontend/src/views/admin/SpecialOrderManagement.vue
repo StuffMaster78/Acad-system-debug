@@ -812,6 +812,379 @@
       :order-id="viewingOrder.id"
       @close="showOrderThreadsModal = false"
     />
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
+
+    <!-- Override Payment Modal -->
+    <div v-if="showOverridePaymentModal && overridePaymentOrder" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="showOverridePaymentModal = false">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Override Payment Status</h3>
+          </div>
+          <button @click="showOverridePaymentModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Order ID:</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">#{{ overridePaymentOrder.id }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Client:</span>
+                <span class="font-medium text-gray-900 dark:text-gray-100">{{ overridePaymentOrder.client_username || overridePaymentOrder.client?.email || 'N/A' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Total Cost:</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">${{ parseFloat(overridePaymentOrder.total_cost || 0).toFixed(2) }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Current Status:</span>
+                <span :class="overridePaymentOrder.admin_marked_paid ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'" class="px-2 py-1 rounded-full text-xs font-medium">
+                  {{ overridePaymentOrder.admin_marked_paid ? 'Marked as Paid' : 'Not Paid' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded">
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <div>
+                <p class="text-sm font-medium text-yellow-800 dark:text-yellow-300">Warning</p>
+                <p class="text-sm text-yellow-700 dark:text-yellow-400 mt-1">
+                  This will {{ overridePaymentOrder.admin_marked_paid ? 'remove the payment override' : 'mark this order as paid' }} without processing an actual payment. Use this only when payment has been received through other means.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 pt-4">
+            <button @click="showOverridePaymentModal = false" class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium">
+              Cancel
+            </button>
+            <button @click="confirmOverridePayment" :disabled="saving" class="flex-1 px-4 py-2.5 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2">
+              <svg v-if="saving" class="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {{ saving ? 'Processing...' : (overridePaymentOrder.admin_marked_paid ? 'Remove Override' : 'Override Payment') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mark Complete Modal -->
+    <div v-if="showMarkCompleteModal && markCompleteOrder" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="showMarkCompleteModal = false">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Mark Order as Complete</h3>
+          </div>
+          <button @click="showMarkCompleteModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Order ID:</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">#{{ markCompleteOrder.id }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Client:</span>
+                <span class="font-medium text-gray-900 dark:text-gray-100">{{ markCompleteOrder.client_username || markCompleteOrder.client?.email || 'N/A' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Current Status:</span>
+                <span class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                  {{ markCompleteOrder.status }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-4 rounded">
+            <div class="flex items-start">
+              <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p class="text-sm font-medium text-blue-800 dark:text-blue-300">Information</p>
+                <p class="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                  This will mark the order as completed. Make sure all work has been finished and delivered to the client before proceeding.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 pt-4">
+            <button @click="showMarkCompleteModal = false" class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium">
+              Cancel
+            </button>
+            <button @click="confirmMarkComplete" :disabled="saving" class="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2">
+              <svg v-if="saving" class="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {{ saving ? 'Processing...' : 'Mark as Complete' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Unlock Files Modal -->
+    <div v-if="showUnlockFilesModal && unlockFilesOrder" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="showUnlockFilesModal = false">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-indigo-600 dark:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">
+              {{ unlockFilesOrder.admin_unlocked_files ? 'Lock Files' : 'Unlock Files' }}
+            </h3>
+          </div>
+          <button @click="showUnlockFilesModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div class="space-y-4">
+          <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Order ID:</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">#{{ unlockFilesOrder.id }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Client:</span>
+                <span class="font-medium text-gray-900 dark:text-gray-100">{{ unlockFilesOrder.client_username || unlockFilesOrder.client?.email || 'N/A' }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600 dark:text-gray-400">Current Status:</span>
+                <span :class="unlockFilesOrder.admin_unlocked_files ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'" class="px-2 py-1 rounded-full text-xs font-medium">
+                  {{ unlockFilesOrder.admin_unlocked_files ? 'Files Unlocked' : 'Files Locked' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div :class="unlockFilesOrder.admin_unlocked_files ? 'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400' : 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400'" class="p-4 rounded">
+            <div class="flex items-start">
+              <svg class="w-5 h-5 mt-0.5 mr-3 flex-shrink-0" :class="unlockFilesOrder.admin_unlocked_files ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <p class="text-sm font-medium" :class="unlockFilesOrder.admin_unlocked_files ? 'text-yellow-800 dark:text-yellow-300' : 'text-blue-800 dark:text-blue-300'">
+                  {{ unlockFilesOrder.admin_unlocked_files ? 'Locking Files' : 'Unlocking Files' }}
+                </p>
+                <p class="text-sm mt-1" :class="unlockFilesOrder.admin_unlocked_files ? 'text-yellow-700 dark:text-yellow-400' : 'text-blue-700 dark:text-blue-400'">
+                  {{ unlockFilesOrder.admin_unlocked_files 
+                    ? 'This will lock all files for this order. Clients will no longer be able to download files until they are unlocked again.' 
+                    : 'This will unlock all files for this order, allowing the client to download them regardless of payment status.' }}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex gap-3 pt-4">
+            <button @click="showUnlockFilesModal = false" class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium">
+              Cancel
+            </button>
+            <button @click="confirmUnlockFiles" :disabled="saving" class="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2">
+              <svg v-if="saving" class="animate-spin w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              {{ saving ? 'Processing...' : (unlockFilesOrder.admin_unlocked_files ? 'Lock Files' : 'Unlock Files') }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- View All Installments Modal -->
+    <div v-if="showAllInstallmentsModal && viewingOrder" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="showAllInstallmentsModal = false">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+              <svg class="w-6 h-6 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100">All Installments</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-0.5">Order #{{ viewingOrder.id }}</p>
+            </div>
+          </div>
+          <button @click="showAllInstallmentsModal = false" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div v-if="loadingInstallments" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-600"></div>
+        </div>
+
+        <div v-else-if="orderInstallments.length === 0" class="text-center py-12">
+          <div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+          </div>
+          <p class="text-gray-600 dark:text-gray-400 font-medium">No installments found</p>
+          <p class="text-gray-500 dark:text-gray-500 text-sm mt-1">This order doesn't have any installments yet.</p>
+        </div>
+
+        <div v-else class="space-y-4">
+          <!-- Summary Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-green-700 dark:text-green-400">Total Amount</p>
+                  <p class="text-2xl font-bold text-green-900 dark:text-green-300 mt-1">
+                    ${{ totalInstallmentAmount.toFixed(2) }}
+                  </p>
+                </div>
+                <svg class="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-blue-700 dark:text-blue-400">Paid</p>
+                  <p class="text-2xl font-bold text-blue-900 dark:text-blue-300 mt-1">
+                    ${{ paidInstallmentAmount.toFixed(2) }}
+                  </p>
+                </div>
+                <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+            <div class="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm font-medium text-orange-700 dark:text-orange-400">Pending</p>
+                  <p class="text-2xl font-bold text-orange-900 dark:text-orange-300 mt-1">
+                    ${{ pendingInstallmentAmount.toFixed(2) }}
+                  </p>
+                </div>
+                <svg class="w-8 h-8 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Installments List -->
+          <div class="space-y-3">
+            <div
+              v-for="(installment, index) in orderInstallments"
+              :key="installment.id"
+              class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700 transition-colors"
+            >
+              <div class="flex items-start justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3 mb-2">
+                    <div class="w-8 h-8 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center">
+                      <span class="text-sm font-bold text-purple-600 dark:text-purple-400">#{{ index + 1 }}</span>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-3">
+                        <span class="text-lg font-bold text-gray-900 dark:text-gray-100">
+                          ${{ parseFloat(installment.amount_due || 0).toFixed(2) }}
+                        </span>
+                        <span :class="installment.is_paid ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : (isOverdue(installment.due_date) ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400')" class="px-2 py-1 rounded-full text-xs font-medium">
+                          {{ installment.is_paid ? 'Paid' : (isOverdue(installment.due_date) ? 'Overdue' : 'Pending') }}
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
+                        <div class="flex items-center gap-1">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span>Due: {{ formatDate(installment.due_date) }}</span>
+                        </div>
+                        <div v-if="installment.is_paid && installment.paid_at" class="flex items-center gap-1">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>Paid: {{ formatDateTime(installment.paid_at) }}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button
+                    v-if="!installment.is_paid"
+                    @click="markInstallmentPaidFromModal(installment)"
+                    :disabled="saving"
+                    class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm font-medium flex items-center gap-1.5"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Mark Paid
+                  </button>
+                  <button
+                    @click="viewInstallment(installment)"
+                    class="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                  >
+                    View Details
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -821,8 +1194,11 @@ import { useAuthStore } from '@/stores/auth'
 import { specialOrdersAPI, orderFilesAPI, adminSpecialOrdersAPI } from '@/api'
 import apiClient from '@/api/client'
 import OrderThreadsModal from '@/components/order/OrderThreadsModal.vue'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const authStore = useAuthStore()
+const confirm = useConfirmDialog()
 
 // Debug: Log to ensure component is loading
 console.log('SpecialOrderManagement component loaded')
@@ -856,6 +1232,15 @@ const showCostModal = ref(false)
 const showConfigModal = ref(false)
 const showEstimatedSettingModal = ref(false)
 const showInstallmentModal = ref(false)
+const showOverridePaymentModal = ref(false)
+const showMarkCompleteModal = ref(false)
+const showUnlockFilesModal = ref(false)
+const showAllInstallmentsModal = ref(false)
+const overridePaymentOrder = ref(null)
+const markCompleteOrder = ref(null)
+const unlockFilesOrder = ref(null)
+const orderInstallments = ref([])
+const loadingInstallments = ref(false)
 const currentOrder = ref(null)
 const editingConfig = ref(null)
 const editingEstimatedSetting = ref(null)
@@ -991,6 +1376,23 @@ const loadOrders = async () => {
     loading.value = false
   }
 }
+
+// Computed properties for installments
+const totalInstallmentAmount = computed(() => {
+  return orderInstallments.value.reduce((sum, inst) => sum + parseFloat(inst.amount_due || 0), 0)
+})
+
+const paidInstallmentAmount = computed(() => {
+  return orderInstallments.value
+    .filter(inst => inst.is_paid)
+    .reduce((sum, inst) => sum + parseFloat(inst.amount_due || 0), 0)
+})
+
+const pendingInstallmentAmount = computed(() => {
+  return orderInstallments.value
+    .filter(inst => !inst.is_paid)
+    .reduce((sum, inst) => sum + parseFloat(inst.amount_due || 0), 0)
+})
 
 const formatCurrency = (value) => {
   if (!value) return '0.00'
@@ -1159,15 +1561,22 @@ const refreshFiles = async () => {
 }
 
 const toggleFileUnlock = async (order) => {
-  if (!confirm(`Are you sure you want to ${order.admin_unlocked_files ? 'lock' : 'unlock'} files for this order?`)) return
+  unlockFilesOrder.value = order
+  showUnlockFilesModal.value = true
+}
+
+const confirmUnlockFiles = async () => {
+  if (!unlockFilesOrder.value) return
   
   saving.value = true
   try {
-    const res = await specialOrdersAPI.update(order.id, {
-      admin_unlocked_files: !order.admin_unlocked_files
+    const res = await specialOrdersAPI.update(unlockFilesOrder.value.id, {
+      admin_unlocked_files: !unlockFilesOrder.value.admin_unlocked_files
     })
     viewingOrder.value = res.data
-    showMessage(`Files ${order.admin_unlocked_files ? 'locked' : 'unlocked'} successfully`, true)
+    showMessage(`Files ${unlockFilesOrder.value.admin_unlocked_files ? 'locked' : 'unlocked'} successfully`, true)
+    showUnlockFilesModal.value = false
+    unlockFilesOrder.value = null
   } catch (error) {
     showMessage('Failed to toggle file unlock: ' + (error.response?.data?.detail || error.message), false)
   } finally {
@@ -1205,7 +1614,18 @@ const downloadFile = async (file) => {
 }
 
 const approveOrder = async (order) => {
-  if (!confirm('Are you sure you want to approve this order?')) return
+  const confirmed = await confirm.showDialog(
+    'This will approve the order and move it to the next stage.',
+    'Approve Order',
+    {
+      variant: 'default',
+      icon: '✅',
+      confirmText: 'Approve',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   saving.value = true
   try {
@@ -1251,15 +1671,23 @@ const saveCost = async () => {
 }
 
 const overridePayment = async (order) => {
-  if (!confirm('Override payment status for this order?')) return
+  overridePaymentOrder.value = order
+  showOverridePaymentModal.value = true
+}
+
+const confirmOverridePayment = async () => {
+  if (!overridePaymentOrder.value) return
   
+  const orderId = overridePaymentOrder.value.id
   saving.value = true
   try {
-    await specialOrdersAPI.overridePayment(order.id)
+    await specialOrdersAPI.overridePayment(orderId)
     showMessage('Payment overridden successfully', true)
+    showOverridePaymentModal.value = false
+    overridePaymentOrder.value = null
     await loadOrders()
-    if (viewingOrder.value?.id === order.id) {
-      viewingOrder.value = orders.value.find(o => o.id === order.id)
+    if (viewingOrder.value?.id === orderId) {
+      viewingOrder.value = orders.value.find(o => o.id === orderId)
     }
   } catch (error) {
     showMessage('Failed to override payment: ' + (error.response?.data?.detail || error.message), false)
@@ -1269,14 +1697,22 @@ const overridePayment = async (order) => {
 }
 
 const completeOrder = async (order) => {
-  if (!confirm('Mark this order as completed?')) return
+  markCompleteOrder.value = order
+  showMarkCompleteModal.value = true
+}
+
+const confirmMarkComplete = async () => {
+  if (!markCompleteOrder.value) return
   
+  const orderId = markCompleteOrder.value.id
   saving.value = true
   try {
-    await specialOrdersAPI.completeOrder(order.id)
+    await specialOrdersAPI.completeOrder(orderId)
     showMessage('Order marked as completed', true)
+    showMarkCompleteModal.value = false
+    markCompleteOrder.value = null
     await loadOrders()
-    if (viewingOrder.value?.id === order.id) {
+    if (viewingOrder.value?.id === orderId) {
       viewingOrder.value = null
     }
   } catch (error) {
@@ -1305,7 +1741,18 @@ const viewOrderFromInstallment = async (installment) => {
 }
 
 const markInstallmentPaid = async (installment) => {
-  if (!confirm('Mark this installment as paid?')) return
+  const confirmed = await confirm.showDialog(
+    `Mark installment of $${parseFloat(installment.amount_due || 0).toFixed(2)} as paid?`,
+    'Mark Installment as Paid',
+    {
+      variant: 'default',
+      icon: '💰',
+      confirmText: 'Mark Paid',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   saving.value = true
   try {
@@ -1391,14 +1838,48 @@ const isOverdue = (dueDate) => {
 }
 
 const viewInstallmentsForOrder = async (order) => {
+  loadingInstallments.value = true
   try {
     const res = await specialOrdersAPI.listInstallments({ special_order: order.id })
-    installments.value = res.data.results || res.data || []
-    activeTab.value = 'installments'
-    // Update filters to show this order's installments
-    installmentFilters.value.order_id = order.id.toString()
+    orderInstallments.value = res.data.results || res.data || []
+    showAllInstallmentsModal.value = true
   } catch (error) {
     showMessage('Failed to load installments: ' + (error.response?.data?.detail || error.message), false)
+    orderInstallments.value = []
+  } finally {
+    loadingInstallments.value = false
+  }
+}
+
+const markInstallmentPaidFromModal = async (installment) => {
+  const confirmed = await confirm.showDialog(
+    `Mark installment of $${parseFloat(installment.amount_due || 0).toFixed(2)} as paid?`,
+    'Mark Installment as Paid',
+    {
+      variant: 'default',
+      icon: '💰',
+      confirmText: 'Mark Paid',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  saving.value = true
+  try {
+    await specialOrdersAPI.updateInstallment(installment.id, {
+      is_paid: true,
+    })
+    showMessage('Installment marked as paid', true)
+    // Reload installments
+    if (viewingOrder.value) {
+      const res = await specialOrdersAPI.listInstallments({ special_order: viewingOrder.value.id })
+      orderInstallments.value = res.data.results || res.data || []
+    }
+  } catch (error) {
+    showMessage('Failed to mark installment as paid: ' + (error.response?.data?.detail || error.message), false)
+  } finally {
+    saving.value = false
   }
 }
 
@@ -1538,7 +2019,16 @@ const saveConfig = async () => {
 }
 
 const deleteConfig = async (id) => {
-  if (!confirm('Delete this configuration?')) return
+  const confirmed = await confirm.showDestructive(
+    `This will permanently delete the configuration. This action cannot be undone.`,
+    'Delete Configuration',
+    {
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   try {
     await specialOrdersAPI.deletePredefinedConfig(id)

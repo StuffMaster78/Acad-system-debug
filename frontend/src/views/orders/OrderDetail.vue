@@ -3451,7 +3451,19 @@ const cancelOrder = async () => {
 
 const reopenOrder = async () => {
   if (!order.value) return
-  if (!confirm('Are you sure you want to reopen this order?')) return
+  
+  const confirmed = await confirm.showDialog(
+    'This will reopen the order and allow further work to be done.',
+    'Reopen Order',
+    {
+      variant: 'warning',
+      icon: '🔄',
+      confirmText: 'Reopen',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   processingAction.value = true
   actionError.value = ''
@@ -3991,14 +4003,36 @@ const downloadExtraServiceFile = async (file) => {
 }
 
 const requestFileDeletion = async (file) => {
-  if (!confirm(`Request deletion of "${file.file_name}"?\n\nThis will send a deletion request to administrators.`)) {
-    return
-  }
+  const confirmed = await confirm.showDialog(
+    `Request deletion of "${file.file_name}"?\n\nThis will send a deletion request to administrators.`,
+    'Request File Deletion',
+    {
+      variant: 'warning',
+      icon: '🗑️',
+      confirmText: 'Request Deletion',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  // Get deletion reason using input modal
+  const reason = await inputModal.showModal(
+    'Reason for deletion (optional)',
+    'Deletion Reason',
+    {
+      label: 'Reason',
+      placeholder: 'Enter reason for deletion...',
+      required: false,
+      multiline: true,
+      rows: 3
+    }
+  ) || ''
   
   try {
     await orderFilesAPI.createDeletionRequest({
       file: file.id,
-      reason: prompt('Reason for deletion (optional):') || ''
+      reason: reason
     })
     showMessage('Deletion request submitted successfully', true)
   } catch (error) {
@@ -4133,7 +4167,19 @@ const approveLink = async (link) => {
 }
 
 const rejectLink = async (link) => {
-  if (!confirm(`Reject this link?\n\n${link.link}`)) return
+  const confirmed = await confirm.showDialog(
+    `Reject this link?\n\n${link.link}`,
+    'Reject External Link',
+    {
+      variant: 'warning',
+      icon: '❌',
+      confirmText: 'Reject',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   processingLink.value = link.id
   try {
     await orderFilesAPI.rejectExternalLink(link.id)
@@ -4695,9 +4741,16 @@ const openImagePreview = (url) => {
 }
 
 const deleteMessage = async (threadId, messageId) => {
-  if (!confirm('Are you sure you want to delete this message? This action cannot be undone.')) {
-    return
-  }
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this message? This action cannot be undone.',
+    'Delete Message',
+    {
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   const key = `${threadId}-${messageId}`
   deletingMessage.value[key] = true
@@ -4798,7 +4851,18 @@ const createDraftRequest = async () => {
 }
 
 const cancelDraftRequest = async (requestId) => {
-  if (!confirm('Are you sure you want to cancel this draft request?')) return
+  const confirmed = await confirm.showDialog(
+    'Are you sure you want to cancel this draft request?',
+    'Cancel Draft Request',
+    {
+      variant: 'warning',
+      icon: '❌',
+      confirmText: 'Cancel Request',
+      cancelText: 'Keep Request'
+    }
+  )
+  
+  if (!confirmed) return
   
   try {
     await draftRequestsAPI.cancelDraftRequest(requestId)
@@ -5027,12 +5091,19 @@ const takeOrder = async () => {
   }
   
   // Confirm action
-  if (!confirm(
+  const confirmed = await confirm.showDialog(
     `Are you sure you want to take Order #${order.value.id}?\n\n` +
-    `This will assign it to you immediately and you'll be responsible for completing it by the deadline.`
-  )) {
-    return
-  }
+    `This will assign it to you immediately and you'll be responsible for completing it by the deadline.`,
+    'Take Order',
+    {
+      variant: 'default',
+      icon: '✋',
+      confirmText: 'Take Order',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   takingOrder.value = true
   

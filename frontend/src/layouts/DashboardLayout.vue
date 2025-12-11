@@ -1307,7 +1307,7 @@
             </div>
 
             <!-- System Management Group -->
-            <div v-if="shouldShowItem('System Management', 'Configurations System Health Activity Logs Email Notification Duplicate')" class="mb-8">
+            <div v-if="shouldShowItem('System Management', 'Configurations Screened Words Flagged Messages System Health Activity Logs Email Notification Duplicate')" class="mb-8">
               <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
                 <h3 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-600 dark:text-gray-400" />
@@ -1327,6 +1327,34 @@
                 >
                   <SidebarIcon icon-name="adjustments" size="md" icon-class="text-gray-600 group-hover:text-primary-600" tooltip="System configurations" />
                   Configurations
+                </router-link>
+                
+                <router-link
+                  v-if="shouldShowItem('Screened Words', 'Manage screened words')"
+                  to="/admin/screened-words"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                    isRouteActive({ to: '/admin/screened-words' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                  ]"
+                >
+                  <SidebarIcon icon-name="ban" size="md" icon-class="text-gray-600 group-hover:text-red-600" tooltip="Manage screened words" />
+                  Screened Words
+                </router-link>
+                
+                <router-link
+                  v-if="shouldShowItem('Flagged Messages', 'Review flagged messages')"
+                  to="/admin/flagged-messages"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                    isRouteActive({ to: '/admin/flagged-messages' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                  ]"
+                >
+                  <SidebarIcon icon-name="exclamation-triangle" size="md" icon-class="text-gray-600 group-hover:text-yellow-600" tooltip="Review flagged messages" />
+                  Flagged Messages
                 </router-link>
                 
                 <router-link
@@ -2174,6 +2202,20 @@ const navigationItems = computed(() => {
       to: '/admin/configs',
       label: 'Configurations',
       icon: '🎛️',
+      roles: ['admin', 'superadmin'],
+    },
+    {
+      name: 'ScreenedWordsManagement',
+      to: '/admin/screened-words',
+      label: 'Screened Words',
+      icon: '🚫',
+      roles: ['admin', 'superadmin'],
+    },
+    {
+      name: 'FlaggedMessagesManagement',
+      to: '/admin/flagged-messages',
+      label: 'Flagged Messages',
+      icon: '⚠️',
       roles: ['admin', 'superadmin'],
     },
     {

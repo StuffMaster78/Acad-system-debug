@@ -1489,9 +1489,14 @@ const resetFilters = () => {
 const selectedFine = ref(null)
 const showFineDetailModal = ref(false)
 
-const viewFine = (fine) => {
-  selectedFine.value = fine
-  showFineDetailModal.value = true
+const viewFine = async (fine) => {
+  // If fine is just an ID, fetch full details; otherwise use the object
+  if (typeof fine === 'number' || (typeof fine === 'object' && !fine.amount && !fine.status)) {
+    await viewFineDetails(typeof fine === 'number' ? fine : fine.id)
+  } else {
+    selectedFine.value = fine
+    showFineDetailModal.value = true
+  }
 }
 
 const waiveFine = async (id) => {
@@ -1568,30 +1573,36 @@ const reviewAppeal = async (id) => {
     }
   )
   
+  if (accept === null) return // User cancelled
+  
   const reviewNotes = await inputModal.showModal(
-    'Enter review notes (optional)',
-    'Review Notes',
+    accept ? 'Enter review notes for approval (optional)' : 'Enter review notes for rejection (required)',
+    accept ? 'Approve Appeal' : 'Reject Appeal',
     { 
       label: 'Notes',
-      placeholder: 'Enter review notes...',
+      placeholder: accept ? 'Enter review notes...' : 'Explain why this appeal is being rejected...',
       multiline: true,
       rows: 4,
-      required: false
+      required: !accept
     }
   )
   
   if (reviewNotes === null) return // User cancelled
+  
+  if (!accept && !reviewNotes.trim()) {
+    showError('Review notes are required when rejecting an appeal')
+    return
+  }
   
   try {
     if (accept) {
       await adminManagementAPI.approveAppeal(id, { notes: reviewNotes || '' })
       showSuccess('Appeal approved successfully')
     } else {
-      await adminManagementAPI.rejectAppeal(id, { notes: reviewNotes || '' })
+      await adminManagementAPI.rejectAppeal(id, { notes: reviewNotes })
       showSuccess('Appeal rejected')
     }
-    await loadAppeals()
-    await loadStats()
+    await Promise.all([loadAppeals(), loadDisputeQueue(), loadFines(), loadStats()])
   } catch (error) {
     const errorMsg = getErrorMessage(error, 'Failed to review appeal. Please try again.')
     showError(errorMsg)
@@ -1860,19 +1871,75 @@ const loadActiveFines = async () => {
   }
 }
 
-const approveDispute = async (id) => {
-  // TODO: Implement approve dispute
-  showSuccess('Approve functionality coming soon')
+// Approve dispute/appeal - works with appeal ID
+const approveDispute = async (appealId) => {
+  try {
+    const notes = await inputModal.showModal(
+      'Enter review notes for approving this appeal (optional):',
+      'Approve Appeal',
+      {
+        label: 'Review Notes',
+        placeholder: 'Add notes about why this appeal is being approved...',
+        multiline: true,
+        rows: 4,
+        required: false
+      }
+    )
+    
+    if (notes === null) return // User cancelled
+    
+    await adminManagementAPI.approveAppeal(appealId, { notes: notes || '' })
+    showSuccess('Appeal approved successfully')
+    await Promise.all([loadAppeals(), loadDisputeQueue(), loadFines(), loadStats()])
+  } catch (err) {
+    if (err !== 'cancelled' && err !== null) {
+      const errorMsg = getErrorMessage(err, 'Failed to approve appeal')
+      showError(errorMsg)
+    }
+  }
 }
 
-const rejectDispute = async (id) => {
-  // TODO: Implement reject dispute
-  showSuccess('Reject functionality coming soon')
+// Reject dispute/appeal - works with appeal ID
+const rejectDispute = async (appealId) => {
+  try {
+    const notes = await inputModal.showModal(
+      'Enter review notes for rejecting this appeal (required):',
+      'Reject Appeal',
+      {
+        label: 'Review Notes',
+        placeholder: 'Explain why this appeal is being rejected...',
+        multiline: true,
+        rows: 4,
+        required: true
+      }
+    )
+    
+    if (!notes) {
+      showError('Review notes are required to reject an appeal')
+      return
+    }
+    
+    await adminManagementAPI.rejectAppeal(appealId, { notes })
+    showSuccess('Appeal rejected')
+    await Promise.all([loadAppeals(), loadDisputeQueue(), loadFines(), loadStats()])
+  } catch (err) {
+    if (err !== 'cancelled' && err !== null) {
+      const errorMsg = getErrorMessage(err, 'Failed to reject appeal')
+      showError(errorMsg)
+    }
+  }
 }
 
-const viewFineDetails = (id) => {
-  // TODO: Implement view fine details
-  showSuccess('View details functionality coming soon')
+// View fine details - loads fine from API and shows modal
+const viewFineDetails = async (fineId) => {
+  try {
+    const fine = await finesAPI.getFine(fineId)
+    selectedFine.value = fine.data
+    showFineDetailModal.value = true
+  } catch (err) {
+    const errorMsg = getErrorMessage(err, 'Failed to load fine details')
+    showError(errorMsg)
+  }
 }
 
 const formatCurrency = (amount) => {

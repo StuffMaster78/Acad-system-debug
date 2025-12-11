@@ -333,6 +333,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -342,8 +356,14 @@ import { debounce } from '@/utils/debounce'
 import supportTicketsAPI from '@/api/support-tickets'
 import usersAPI from '@/api/users'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const authStore = useAuthStore()
+const { success: showSuccess, error: showError } = useToast()
+const confirm = useConfirmDialog()
+
 const loading = ref(false)
 const tickets = ref([])
 const stats = ref({})
@@ -502,7 +522,19 @@ const assignToMe = async (ticket) => {
 }
 
 const escalateTicket = async (ticket) => {
-  if (!confirm('Are you sure you want to escalate this ticket?')) return
+  const confirmed = await confirm.showDialog(
+    'Are you sure you want to escalate this ticket?',
+    'Escalate Ticket',
+    {
+      details: 'Escalating this ticket will notify senior support staff and may change the ticket priority.',
+      variant: 'warning',
+      icon: '⚠️',
+      confirmText: 'Escalate',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   try {
     await supportTicketsAPI.escalate(ticket.id)
@@ -511,10 +543,10 @@ const escalateTicket = async (ticket) => {
       selectedTicket.value = ticket
       await loadTickets()
     }
-    alert('Ticket escalated successfully')
+    showSuccess('Ticket escalated successfully')
   } catch (error) {
     console.error('Failed to escalate ticket:', error)
-    alert('Failed to escalate ticket. Please try again.')
+    showError('Failed to escalate ticket. Please try again.')
   }
 }
 

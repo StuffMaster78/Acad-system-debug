@@ -109,15 +109,15 @@
         
         <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
           <h3 class="font-semibold text-red-900 mb-2">⚠️ Important</h3>
-          <p class="text-sm text-red-800">
-            Blacklisted email addresses will be prevented from:
-            <ul class="list-disc list-inside mt-2 space-y-1">
+          <div class="text-sm text-red-800">
+            <p class="mb-2">Blacklisted email addresses will be prevented from:</p>
+            <ul class="list-disc list-inside mt-2 space-y-1 mb-2">
               <li>Registering new accounts</li>
               <li>Logging into existing accounts</li>
               <li>Accessing any system features</li>
             </ul>
-            This action should be used for spam, fraud, or policy violations.
-          </p>
+            <p>This action should be used for spam, fraud, or policy violations.</p>
+          </div>
         </div>
 
         <form @submit.prevent="addEmail" class="space-y-4">

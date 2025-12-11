@@ -153,18 +153,35 @@
         </table>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import paymentsAPI from '@/api/payments'
 import apiClient from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const authStore = useAuthStore()
 const { success: showSuccess, error: showError } = useToast()
+const confirm = useConfirmDialog()
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -246,7 +263,18 @@ const submitPaymentRequest = async () => {
 }
 
 const cancelRequest = async (requestId) => {
-  if (!confirm('Are you sure you want to cancel this payment request?')) {
+  const confirmed = await confirm.showDialog(
+    'Are you sure you want to cancel this payment request?',
+    'Cancel Payment Request',
+    {
+      variant: 'warning',
+      icon: '⚠️',
+      confirmText: 'Cancel Request',
+      cancelText: 'Keep Request'
+    }
+  )
+  
+  if (!confirmed) {
     return
   }
 

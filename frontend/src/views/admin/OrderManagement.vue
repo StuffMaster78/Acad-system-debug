@@ -812,6 +812,20 @@
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
     <p class="mt-4 text-gray-600">Loading...</p>
   </div>
+
+  <!-- Confirmation Dialog -->
+  <ConfirmationDialog
+    v-model:show="confirm.show.value"
+    :title="confirm.title.value"
+    :message="confirm.message.value"
+    :details="confirm.details.value"
+    :variant="confirm.variant.value"
+    :icon="confirm.icon.value"
+    :confirm-text="confirm.confirmText.value"
+    :cancel-text="confirm.cancelText.value"
+    @confirm="confirm.onConfirm"
+    @cancel="confirm.onCancel"
+  />
 </template>
 
 <script setup>
@@ -820,6 +834,10 @@ import { ordersAPI, usersAPI, adminOrdersAPI, writerOrderRequestsAPI } from '@/a
 import { formatWriterName } from '@/utils/formatDisplay'
 import OrderThreadsModal from '@/components/order/OrderThreadsModal.vue'
 import OrderActionModal from '@/components/order/OrderActionModal.vue'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+
+const confirm = useConfirmDialog()
 
 const loading = ref(false)
 const orders = ref([])
@@ -1326,7 +1344,19 @@ const openAssignModalFromRequest = async (req) => {
     (req.writer && req.writer.user && req.writer.user.username) ||
     'this writer'
 
-  if (!window.confirm(`Assign order #${req.order_id || req.order?.id} to ${writerLabel}?`)) {
+  const confirmed = await confirm.showDialog(
+    `Assign order #${req.order_id || req.order?.id} to ${writerLabel}?`,
+    'Assign Order',
+    {
+      details: 'This will approve the writer request and assign the order to them.',
+      variant: 'default',
+      icon: '📋',
+      confirmText: 'Assign',
+      cancelText: 'Cancel'
+    }
+  )
+
+  if (!confirmed) {
     return
   }
 

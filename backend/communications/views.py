@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.core.exceptions import PermissionDenied
 from rest_framework.pagination import PageNumberPagination
+from django.db.models import Prefetch
 from .models import (
     CommunicationMessage, DisputeMessage,
     CommunicationThread, CommunicationNotification,
@@ -51,7 +52,12 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         'order__website'
     ).prefetch_related(
         'participants',
-        'messages'
+        Prefetch(
+            'messages',
+            queryset=CommunicationMessage.objects.filter(is_deleted=False).select_related(
+                'sender', 'recipient'
+            ).prefetch_related('read_by').order_by('-sent_at')
+        )
     )
     serializer_class = CommunicationThreadSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -75,31 +81,37 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
             return queryset
         
         # Filter threads where user is a participant OR has access to the order
-        from django.db.models import Q
+        from django.db.models import Q, Exists, OuterRef
         from orders.models import Order
         
         # Threads where user is a participant
-        participant_threads = queryset.filter(participants=user)
+        participant_filter = Q(participants=user)
         
-        # Threads for orders where user has access
+        # Threads for orders where user has access - use subqueries instead of separate queries
         order_access_filter = Q()
         
-        # Client's orders
-        client_orders = Order.objects.filter(client=user)
-        order_access_filter |= Q(order__in=client_orders)
+        # Client's orders - use subquery to avoid separate query
+        client_orders_subquery = Order.objects.filter(
+            client=user,
+            id=OuterRef('order_id')
+        )
+        order_access_filter |= Q(Exists(client_orders_subquery))
         
-        # Writer's assigned orders
-        writer_orders = Order.objects.filter(assigned_writer=user)
-        order_access_filter |= Q(order__in=writer_orders)
+        # Writer's assigned orders - use subquery to avoid separate query
+        writer_orders_subquery = Order.objects.filter(
+            assigned_writer=user,
+            id=OuterRef('order_id')
+        )
+        order_access_filter |= Q(Exists(writer_orders_subquery))
         
         # Staff roles can see all order threads
         if role in {"editor", "support"}:
             order_access_filter |= Q(order__isnull=False)
         
-        order_threads = queryset.filter(order_access_filter)
+        # Combine both filters
+        combined_filter = participant_filter | order_access_filter
         
-        # Combine both and order by most recent first
-        return (participant_threads | order_threads).distinct().order_by('-updated_at', '-id')
+        return queryset.filter(combined_filter).distinct().order_by('-updated_at', '-id')
 
     @action(detail=True, methods=['post'], url_path='typing')
     def typing(self, request, pk=None):
