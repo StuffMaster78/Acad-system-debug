@@ -530,6 +530,14 @@
               </div>
               <div class="flex gap-2" @click.stop>
                 <button
+                  v-if="activeOrderConfigType === 'subjects' || activeOrderConfigType === 'paper-types' || activeOrderConfigType === 'types-of-work'"
+                  @click="orderConfigSelectedWebsiteId = websiteId; showCloneTemplateModal = true"
+                  class="px-3 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 transition-colors"
+                  :title="getCloneTemplateButtonTitle()"
+                >
+                  📚 Clone from Template
+                </button>
+                <button
                   @click="orderConfigSelectedWebsiteId = websiteId; showCloneModal = true"
                   class="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                 >
@@ -730,6 +738,109 @@
               class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {{ cloningDefaults ? 'Cloning...' : 'Clone Configurations' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clone from Template Modal (for Subjects & Paper Types) -->
+    <div v-if="showCloneTemplateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-semibold text-gray-900">
+              Clone {{ getCloneTemplateTitle() }} from Template
+            </h3>
+            <button @click="closeCloneTemplateModal" class="text-gray-500 hover:text-gray-700">✕</button>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Category (Optional)
+              </label>
+              <select
+                v-model="selectedTemplateCategory"
+                @change="handleCategoryChange"
+                class="w-full border rounded-lg px-4 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">All Categories</option>
+                <option v-for="cat in templateCategories" :key="cat.value" :value="cat.value">
+                  {{ cat.label }}
+                </option>
+              </select>
+            </div>
+            
+            <div v-if="loadingTemplates" class="text-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
+              <p class="text-gray-600">Loading templates...</p>
+            </div>
+            
+            <div v-else-if="getCurrentTemplates().length === 0" class="text-center py-8 text-gray-500">
+              <p>No templates available. Contact superadmin to create templates.</p>
+            </div>
+            
+            <div v-else class="space-y-3">
+              <div
+                v-for="template in getCurrentTemplates()"
+                :key="template.id"
+                @click="selectedTemplateId = template.id"
+                :class="[
+                  'p-4 border-2 rounded-lg cursor-pointer transition-all',
+                  selectedTemplateId === template.id
+                    ? 'border-primary-500 bg-primary-50'
+                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                ]"
+              >
+                <div class="flex items-start justify-between">
+                  <div class="flex-1">
+                    <h4 class="font-semibold text-gray-900">{{ template.name }}</h4>
+                    <p class="text-sm text-gray-600 mt-1">{{ template.description || 'No description' }}</p>
+                    <div class="flex items-center gap-4 mt-2">
+                      <span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs">
+                        {{ template.category_display }}
+                      </span>
+                      <span class="text-xs text-gray-500">
+                        {{ getTemplateCount(template) }} {{ getTemplateCountLabel() }}
+                      </span>
+                    </div>
+                  </div>
+                  <div v-if="selectedTemplateId === template.id" class="ml-4">
+                    <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div v-if="getCurrentWebsiteId()" class="bg-blue-50 p-3 rounded-lg">
+              <p class="text-sm text-gray-700">
+                <strong>Target Website:</strong> 
+                {{ getCurrentWebsiteName() }}
+              </p>
+            </div>
+            <div v-else class="bg-yellow-50 p-3 rounded-lg">
+              <p class="text-sm text-yellow-700">
+                ⚠️ No website detected. Please select a website from the list above or ensure you are assigned to a website.
+              </p>
+            </div>
+          </div>
+          
+          <div class="flex justify-end gap-2 pt-6 mt-6 border-t">
+            <button
+              @click="closeCloneTemplateModal"
+              class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            >
+              Cancel
+            </button>
+            <button
+              @click="handleCloneFromTemplate"
+              :disabled="!selectedTemplateId || !getCurrentWebsiteId() || cloningTemplate"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {{ cloningTemplate ? 'Cloning...' : `Clone ${getCloneTemplateTitle()}` }}
             </button>
           </div>
         </div>
@@ -1928,6 +2039,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import adminManagementAPI from '@/api/admin-management'
 import orderConfigsAPI from '@/api/orderConfigs'
 import websitesAPI from '@/api/websites'
@@ -1941,6 +2053,8 @@ import { exportToCSV } from '@/utils/export'
 import { formatWebsiteName } from '@/utils/formatDisplay'
 import FilterBar from '@/components/common/FilterBar.vue'
 import DataTable from '@/components/common/DataTable.vue'
+
+const authStore = useAuthStore()
 
 const activeTab = ref('pricing')
 const activePricingSubTab = ref('base-pricing')
@@ -2181,6 +2295,17 @@ const cloningDefaults = ref(false)
 const loadingPreview = ref(false)
 const showPreviewModal = ref(false)
 const clonePreview = ref(null)
+
+// Clone from templates (for subjects, paper types, and types of work)
+const showCloneTemplateModal = ref(false)
+const subjectTemplates = ref([])
+const paperTypeTemplates = ref([])
+const typeOfWorkTemplates = ref([])
+const selectedTemplateId = ref('')
+const cloningTemplate = ref(false)
+const templateCategories = ref([])
+const selectedTemplateCategory = ref('')
+const loadingTemplates = ref(false)
 
 // Bulk operations
 const selectedConfigs = ref([])
@@ -2554,6 +2679,282 @@ const closeCloneModal = () => {
   clearExistingConfigs.value = false
   orderConfigError.value = ''
 }
+
+const getCloneTemplateTitle = () => {
+  if (activeOrderConfigType.value === 'subjects') return 'Subjects'
+  if (activeOrderConfigType.value === 'paper-types') return 'Paper Types'
+  if (activeOrderConfigType.value === 'types-of-work') return 'Types of Work'
+  return 'Items'
+}
+
+const getCurrentTemplates = () => {
+  if (activeOrderConfigType.value === 'subjects') return subjectTemplates.value
+  if (activeOrderConfigType.value === 'paper-types') return paperTypeTemplates.value
+  if (activeOrderConfigType.value === 'types-of-work') return typeOfWorkTemplates.value
+  return []
+}
+
+const getTemplateCount = (template) => {
+  if (activeOrderConfigType.value === 'subjects') return template.subject_count || 0
+  if (activeOrderConfigType.value === 'paper-types') return template.paper_type_count || 0
+  if (activeOrderConfigType.value === 'types-of-work') return template.type_count || 0
+  return 0
+}
+
+const getTemplateCountLabel = () => {
+  if (activeOrderConfigType.value === 'subjects') return 'subjects'
+  if (activeOrderConfigType.value === 'paper-types') return 'paper types'
+  if (activeOrderConfigType.value === 'types-of-work') return 'types'
+  return 'items'
+}
+
+const closeCloneTemplateModal = () => {
+  showCloneTemplateModal.value = false
+  selectedTemplateId.value = ''
+  selectedTemplateCategory.value = ''
+  subjectTemplates.value = []
+  paperTypeTemplates.value = []
+  typeOfWorkTemplates.value = []
+  orderConfigError.value = ''
+}
+
+const loadSubjectTemplates = async () => {
+  loadingTemplates.value = true
+  try {
+    const params = {}
+    if (selectedTemplateCategory.value) {
+      params.category = selectedTemplateCategory.value
+    }
+    const res = await orderConfigsAPI.getSubjectTemplates(params)
+    subjectTemplates.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
+  } catch (error) {
+    console.error('Failed to load templates:', error)
+    message.value = 'Failed to load templates: ' + (error.response?.data?.detail || error.message)
+    messageSuccess.value = false
+  } finally {
+    loadingTemplates.value = false
+  }
+}
+
+const loadPaperTypeTemplates = async () => {
+  loadingTemplates.value = true
+  try {
+    const params = {}
+    if (selectedTemplateCategory.value) {
+      params.category = selectedTemplateCategory.value
+    }
+    const res = await orderConfigsAPI.getPaperTypeTemplates(params)
+    paperTypeTemplates.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
+  } catch (error) {
+    console.error('Failed to load templates:', error)
+    message.value = 'Failed to load templates: ' + (error.response?.data?.detail || error.message)
+    messageSuccess.value = false
+  } finally {
+    loadingTemplates.value = false
+  }
+}
+
+const loadTypeOfWorkTemplates = async () => {
+  loadingTemplates.value = true
+  try {
+    const params = {}
+    if (selectedTemplateCategory.value) {
+      params.category = selectedTemplateCategory.value
+    }
+    const res = await orderConfigsAPI.getTypeOfWorkTemplates(params)
+    typeOfWorkTemplates.value = Array.isArray(res.data) ? res.data : (res.data.results || [])
+  } catch (error) {
+    console.error('Failed to load templates:', error)
+    message.value = 'Failed to load templates: ' + (error.response?.data?.detail || error.message)
+    messageSuccess.value = false
+  } finally {
+    loadingTemplates.value = false
+  }
+}
+
+const loadTemplateCategories = async () => {
+  try {
+    if (activeOrderConfigType.value === 'subjects') {
+      const res = await orderConfigsAPI.getSubjectTemplateCategories()
+      templateCategories.value = Array.isArray(res.data) ? res.data : []
+    } else if (activeOrderConfigType.value === 'paper-types') {
+      const res = await orderConfigsAPI.getPaperTypeTemplateCategories()
+      templateCategories.value = Array.isArray(res.data) ? res.data : []
+    } else if (activeOrderConfigType.value === 'types-of-work') {
+      const res = await orderConfigsAPI.getTypeOfWorkTemplateCategories()
+      templateCategories.value = Array.isArray(res.data) ? res.data : []
+    }
+  } catch (error) {
+    console.error('Failed to load categories:', error)
+  }
+}
+
+const handleCloneFromTemplate = async () => {
+  if (!selectedTemplateId.value) {
+    orderConfigError.value = 'Please select a template'
+    return
+  }
+  
+  // Auto-detect website if not set
+  const websiteId = orderConfigSelectedWebsiteId.value || getCurrentWebsiteId()
+  if (!websiteId) {
+    orderConfigError.value = 'Please select a website or ensure you are assigned to a website'
+    return
+  }
+  
+  cloningTemplate.value = true
+  orderConfigError.value = ''
+  message.value = ''
+  
+  try {
+    let res
+    if (activeOrderConfigType.value === 'subjects') {
+      res = await orderConfigsAPI.cloneSubjectTemplateToWebsite(
+        selectedTemplateId.value,
+        websiteId,
+        true // skip_existing = true
+      )
+    } else if (activeOrderConfigType.value === 'paper-types') {
+      res = await orderConfigsAPI.clonePaperTypeTemplateToWebsite(
+        selectedTemplateId.value,
+        websiteId,
+        true // skip_existing = true
+      )
+    } else if (activeOrderConfigType.value === 'types-of-work') {
+      res = await orderConfigsAPI.cloneTypeOfWorkTemplateToWebsite(
+        selectedTemplateId.value,
+        websiteId,
+        true // skip_existing = true
+      )
+    } else {
+      throw new Error('Invalid config type for template cloning')
+    }
+    
+    const results = res.data?.results || {}
+    const created = results.created || 0
+    const updated = results.updated || 0
+    const skipped = results.skipped || 0
+    
+    message.value = `Successfully cloned template! Created: ${created}, Updated: ${updated}, Skipped: ${skipped}`
+    messageSuccess.value = true
+    
+    // Reload configs
+    await loadOrderConfigs()
+    
+    // Close modal
+    closeCloneTemplateModal()
+    
+    setTimeout(() => { message.value = '' }, 5000)
+  } catch (error) {
+    orderConfigError.value = error.response?.data?.detail || 'Failed to clone template'
+    message.value = orderConfigError.value
+    messageSuccess.value = false
+  } finally {
+    cloningTemplate.value = false
+  }
+}
+
+// Get current website ID from auth store
+const getCurrentWebsiteId = () => {
+  // First try from orderConfigSelectedWebsiteId (set when clicking clone button)
+  if (orderConfigSelectedWebsiteId.value) {
+    return orderConfigSelectedWebsiteId.value
+  }
+  
+  // Try from auth store user
+  const user = authStore.user
+  if (user) {
+    if (user.website_id) {
+      return user.website_id
+    }
+    if (user.website?.id) {
+      return user.website.id
+    }
+    if (typeof user.website === 'number') {
+      return user.website
+    }
+  }
+  
+  // Try from localStorage
+  const storedWebsite = localStorage.getItem('current_website')
+  if (storedWebsite) {
+    const parsed = parseInt(storedWebsite)
+    if (!isNaN(parsed)) {
+      return parsed
+    }
+  }
+  
+  const storedWebsiteId = localStorage.getItem('website_id')
+  if (storedWebsiteId) {
+    const parsed = parseInt(storedWebsiteId)
+    if (!isNaN(parsed)) {
+      return parsed
+    }
+  }
+  
+  return null
+}
+
+// Get current website name
+const getCurrentWebsiteName = () => {
+  const websiteId = getCurrentWebsiteId()
+  if (!websiteId) {
+    return 'Unknown'
+  }
+  
+  const website = orderConfigWebsites.value.find(w => w.id == websiteId)
+  if (website) {
+    return website.name
+  }
+  
+  // If not in list, try to get from auth store
+  const user = authStore.user
+  if (user?.website?.name) {
+    return user.website.name
+  }
+  
+  return 'Unknown'
+}
+
+// Watch for modal opening to load templates
+watch(showCloneTemplateModal, (newVal) => {
+  if (newVal) {
+    // Auto-detect website if not already set
+    if (!orderConfigSelectedWebsiteId.value) {
+      const websiteId = getCurrentWebsiteId()
+      if (websiteId) {
+        orderConfigSelectedWebsiteId.value = websiteId
+      }
+    }
+    
+    loadTemplateCategories()
+    if (activeOrderConfigType.value === 'subjects') {
+      loadSubjectTemplates()
+    } else if (activeOrderConfigType.value === 'paper-types') {
+      loadPaperTypeTemplates()
+    } else if (activeOrderConfigType.value === 'types-of-work') {
+      loadTypeOfWorkTemplates()
+    }
+  }
+})
+
+// Handle category change to reload templates
+const handleCategoryChange = () => {
+  if (showCloneTemplateModal.value) {
+    if (activeOrderConfigType.value === 'subjects') {
+      loadSubjectTemplates()
+    } else if (activeOrderConfigType.value === 'paper-types') {
+      loadPaperTypeTemplates()
+    } else if (activeOrderConfigType.value === 'types-of-work') {
+      loadTypeOfWorkTemplates()
+    }
+  }
+}
+
+// Watch for category change to reload templates
+watch(selectedTemplateCategory, () => {
+  handleCategoryChange()
+})
 
 // Load default sets when modal opens
 watch(showCloneModal, (isOpen) => {

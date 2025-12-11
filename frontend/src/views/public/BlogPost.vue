@@ -53,9 +53,48 @@
       <!-- Author Strip -->
       <AuthorStrip v-if="blogPost.authors && blogPost.authors.length > 0" :authors="blogPost.authors" />
 
+      <!-- Table of Contents -->
+      <TableOfContents v-if="blogPost.toc && Array.isArray(blogPost.toc) && blogPost.toc.length > 0" :toc="blogPost.toc" />
+
+      <!-- Top CTAs -->
+      <div v-if="topCTAs.length > 0" class="mb-8 space-y-4">
+        <CTABlock
+          v-for="cta in topCTAs"
+          :key="cta.id"
+          :cta="cta"
+          :placement-id="cta.placement_id"
+          :website-id="websiteId"
+          :blog-id="blogPost.id"
+        />
+      </div>
+
       <!-- Content -->
       <div class="prose prose-lg max-w-none mb-12">
         <SafeHtml :content="blogPost.content" container-class="prose prose-lg max-w-none" />
+        
+        <!-- Middle/Inline CTAs (shown after content for now) -->
+        <div v-if="inlineCTAs.length > 0" class="mt-8 space-y-4">
+          <CTABlock
+            v-for="cta in inlineCTAs"
+            :key="`inline-${cta.id}`"
+            :cta="cta"
+            :placement-id="cta.placement_id"
+            :website-id="websiteId"
+            :blog-id="blogPost.id"
+          />
+        </div>
+      </div>
+
+      <!-- Bottom CTAs -->
+      <div v-if="bottomCTAs.length > 0" class="mt-8 space-y-4">
+        <CTABlock
+          v-for="cta in bottomCTAs"
+          :key="cta.id"
+          :cta="cta"
+          :placement-id="cta.placement_id"
+          :website-id="websiteId"
+          :blog-id="blogPost.id"
+        />
       </div>
 
       <!-- Engagement Section -->
@@ -116,13 +155,38 @@ import LikeDislikeButtons from '@/components/engagement/LikeDislikeButtons.vue'
 import EngagementStats from '@/components/engagement/EngagementStats.vue'
 import RelatedContentWidget from '@/components/blog/RelatedContentWidget.vue'
 import SafeHtml from '@/components/common/SafeHtml.vue'
+import TableOfContents from '@/components/blog/TableOfContents.vue'
+import CTABlock from '@/components/blog/CTABlock.vue'
+import { computed } from 'vue'
 
 const route = useRoute()
 const blogPost = ref(null)
 const websiteId = ref(null)
 const loading = ref(true)
 const error = ref(null)
+const ctas = ref([])
 let cleanupTracking = null
+
+const topCTAs = computed(() => {
+  return ctas.value.filter(cta => 
+    cta.placement_type === 'auto_top' || 
+    cta.placement_type === 'manual' && cta.position === 0
+  )
+})
+
+const inlineCTAs = computed(() => {
+  return ctas.value.filter(cta => 
+    cta.placement_type === 'after_paragraph' || 
+    cta.placement_type === 'after_heading' ||
+    cta.placement_type === 'auto_middle'
+  )
+})
+
+const bottomCTAs = computed(() => {
+  return ctas.value.filter(cta => 
+    cta.placement_type === 'auto_bottom'
+  )
+})
 
 const loadBlogPost = async () => {
   loading.value = true
@@ -160,6 +224,9 @@ const loadBlogPost = async () => {
           document.head.appendChild(meta)
         }
       }
+
+      // Load CTAs for this blog post
+      await loadCTAs(blogPost.value.id)
     } else {
       error.value = 'Blog post not found'
     }
@@ -168,6 +235,18 @@ const loadBlogPost = async () => {
     error.value = e.response?.data?.detail || 'Failed to load blog post'
   } finally {
     loading.value = false
+  }
+}
+
+const loadCTAs = async (blogId) => {
+  if (!blogId) return
+  
+  try {
+    const response = await blogPagesAPI.getBlogCTAs(blogId)
+    ctas.value = response.data || []
+  } catch (error) {
+    console.warn('Failed to load CTAs:', error)
+    ctas.value = []
   }
 }
 

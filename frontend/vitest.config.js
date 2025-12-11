@@ -28,10 +28,6 @@ export default defineConfig({
         '**/*.d.ts',
         '**/__tests__/**',
         '**/__mocks__/**',
-        '**/tests/**',
-        '**/test/**',
-        '**/*.test.{js,ts}',
-        '**/*.spec.{js,ts}',
         '**/router/index.js',
         '**/main.js',
         '**/App.vue'

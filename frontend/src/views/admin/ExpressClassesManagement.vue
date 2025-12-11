@@ -400,32 +400,14 @@
       </div>
     </div>
 
-    <!-- Threads Modal -->
-    <div v-if="showThreadsModal && viewingExpressClass" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-4xl w-full p-6 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between mb-6">
-          <h3 class="text-2xl font-bold">Message Threads - Express Class #{{ viewingExpressClass.id }}</h3>
-          <button @click="showThreadsModal = false" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
-        </div>
-        <div v-if="threadsLoading" class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-        <div v-else>
-          <div v-for="thread in threads" :key="thread.id" class="p-4 border rounded-lg mb-2">
-            <div class="flex items-center justify-between">
-              <div>
-                <div class="font-medium">Thread #{{ thread.id }}</div>
-                <div class="text-sm text-gray-600">{{ thread.subject || 'No subject' }}</div>
-              </div>
-              <button @click="viewThreadMessages(thread)" class="text-blue-600 hover:underline">View Messages</button>
-            </div>
-          </div>
-          <div v-if="threads.length === 0" class="text-center py-12 text-gray-500">
-            No threads found for this express class.
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Message Threads Modal -->
+    <ClassMessageThreads
+      v-if="viewingExpressClass"
+      :show="showThreadsModal"
+      :class-id="viewingExpressClass.id"
+      class-type="express"
+      @close="showThreadsModal = false"
+    />
 
     <!-- Messages -->
     <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
@@ -454,6 +436,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { expressClassesAPI, usersAPI } from '@/api'
 import apiClient from '@/api/client'
 import { formatWriterName } from '@/utils/formatDisplay'
+import ClassMessageThreads from '@/components/classes/ClassMessageThreads.vue'
 
 const componentError = ref(null)
 const initialLoading = ref(true)
@@ -465,8 +448,6 @@ const viewingExpressClass = ref(null)
 const showScopeReviewModal = ref(false)
 const showAssignWriterModal = ref(false)
 const showThreadsModal = ref(false)
-const threadsLoading = ref(false)
-const threads = ref([])
 const currentExpressClassForAction = ref(null)
 
 const filters = ref({
@@ -705,30 +686,7 @@ const formatDateTime = (date) => {
   return new Date(date).toLocaleString()
 }
 
-const loadThreads = async (expressClass) => {
-  if (!expressClass) return
-  threadsLoading.value = true
-  try {
-    const res = await expressClassesAPI.getThreads(expressClass.id)
-    threads.value = res.data || []
-  } catch (error) {
-    console.error('Error loading threads:', error)
-    showMessage('Failed to load threads: ' + (error.response?.data?.detail || error.message), false)
-  } finally {
-    threadsLoading.value = false
-  }
-}
-
-const viewThreadMessages = (thread) => {
-  // TODO: Open messages modal for this thread
-  showMessage('Thread messages view coming soon', false)
-}
-
-watch(showThreadsModal, (newVal) => {
-  if (newVal && viewingExpressClass.value) {
-    loadThreads(viewingExpressClass.value)
-  }
-})
+// Threads are now handled by ClassMessageThreads component
 
 const showMessage = (msg, success) => {
   message.value = msg

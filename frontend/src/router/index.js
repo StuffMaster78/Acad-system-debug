@@ -66,6 +66,18 @@ const router = createRouter({
       meta: { requiresAuth: false, title: 'Passwordless Login' },
     },
     {
+      path: '/guest-orders/checkout',
+      name: 'GuestCheckout',
+      component: () => import('@/views/guest/GuestCheckout.vue'),
+      meta: { requiresAuth: false, title: 'Guest Checkout' },
+    },
+    {
+      path: '/guest-orders/verify',
+      name: 'GuestOrderVerify',
+      component: () => import('@/views/guest/GuestCheckout.vue'),
+      meta: { requiresAuth: false, title: 'Verify Email' },
+    },
+    {
       path: '/',
       component: () => import('@/layouts/DashboardLayout.vue'),
       redirect: '/dashboard',
@@ -1400,6 +1412,23 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
+
+  // Explicitly allow public routes (no auth required) - must be first check
+  if (to.meta.requiresAuth === false) {
+    // Set page title
+    const appName = import.meta.env.VITE_APP_NAME || 'Writing System'
+    document.title = to.meta.title 
+      ? `${to.meta.title} - ${appName}`
+      : appName
+    next()
+    return
+  }
+
+  // Ensure auth state is loaded from localStorage (in case it wasn't loaded in main.js)
+  // This is a safety check for edge cases
+  if (!authStore.user && !authStore.accessToken) {
+    authStore.loadFromStorage()
+  }
 
   // Set page title
   const appName = import.meta.env.VITE_APP_NAME || 'Writing System'

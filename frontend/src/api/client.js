@@ -140,7 +140,12 @@ apiClient.interceptors.response.use(
             localStorage.removeItem('refresh_token')
             localStorage.removeItem('current_website')
             localStorage.removeItem('user')
-            if (window.location.pathname !== '/login') {
+            // Don't redirect if we're on a guest/public route
+            const isGuestRoute = window.location.pathname.startsWith('/guest-orders') ||
+                                  window.location.pathname.startsWith('/blog') ||
+                                  window.location.pathname.startsWith('/page') ||
+                                  window.location.pathname === '/terms'
+            if (window.location.pathname !== '/login' && !isGuestRoute) {
               window.location.href = '/login'
             }
           }
@@ -185,8 +190,12 @@ apiClient.interceptors.response.use(
           localStorage.removeItem('current_website')
           localStorage.removeItem('user')
           
-          // Only redirect if not already on login page
-          if (window.location.pathname !== '/login') {
+          // Only redirect if not already on login page or guest route
+          const isGuestRoute = window.location.pathname.startsWith('/guest-orders') ||
+                                window.location.pathname.startsWith('/blog') ||
+                                window.location.pathname.startsWith('/page') ||
+                                window.location.pathname === '/terms'
+          if (window.location.pathname !== '/login' && !isGuestRoute) {
             window.location.href = '/login'
           }
         } else {

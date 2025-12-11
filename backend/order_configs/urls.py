@@ -11,6 +11,9 @@ from .views import (
     RevisionPolicyConfigViewSet,
     EditingRequirementConfigViewSet,
     OrderConfigManagementViewSet,
+    SubjectTemplateViewSet,
+    PaperTypeTemplateViewSet,
+    TypeOfWorkTemplateViewSet,
 )
 
 router = DefaultRouter()
@@ -63,6 +66,21 @@ router.register(
     r'management',
     OrderConfigManagementViewSet,
     basename='order-config-management'
+)
+router.register(
+    r'subject-templates',
+    SubjectTemplateViewSet,
+    basename='subject-template'
+)
+router.register(
+    r'paper-type-templates',
+    PaperTypeTemplateViewSet,
+    basename='paper-type-template'
+)
+router.register(
+    r'type-of-work-templates',
+    TypeOfWorkTemplateViewSet,
+    basename='type-of-work-template'
 )
 
 urlpatterns = [

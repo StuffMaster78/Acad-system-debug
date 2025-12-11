@@ -4,7 +4,8 @@ from django.utils import timezone
 from .models import (
     AcademicLevel, PaperType, FormattingandCitationStyle, Subject,
     TypeOfWork, EnglishType, WriterDeadlineConfig,
-    RevisionPolicyConfig, EditingRequirementConfig
+    RevisionPolicyConfig, EditingRequirementConfig, SubjectTemplate,
+    PaperTypeTemplate, TypeOfWorkTemplate
 )
 from .serializers import (
     AcademicLevelSerializer,
@@ -15,11 +16,14 @@ from .serializers import (
     EnglishTypeSerializer,
     WriterDeadlineConfigSerializer,
     RevisionPolicyConfigSerializer,
-    EditingRequirementConfigSerializer
+    EditingRequirementConfigSerializer,
+    SubjectTemplateSerializer,
+    PaperTypeTemplateSerializer,
+    TypeOfWorkTemplateSerializer
 )
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from authentication.permissions import IsAdminOrSuperAdmin
+from authentication.permissions import IsAdminOrSuperAdmin, IsSuperadmin
 from websites.models import Website
 
 class AcademicLevelViewSet(viewsets.ModelViewSet):
@@ -76,6 +80,243 @@ class SubjectViewSet(viewsets.ModelViewSet):
         if website_id:
             queryset = queryset.filter(website_id=website_id)
         return queryset.select_related('website')
+
+
+class SubjectTemplateViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing global subject templates.
+    Only superadmins can create/edit templates.
+    Admins can view and clone templates.
+    """
+    queryset = SubjectTemplate.objects.filter(is_active=True)
+    serializer_class = SubjectTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter by category if specified."""
+        queryset = super().get_queryset()
+        category = self.request.query_params.get('category')
+        if category:
+            queryset = queryset.filter(category=category)
+        return queryset.order_by('category', 'name')
+    
+    def get_permissions(self):
+        """Only superadmins can create/edit/delete templates."""
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsSuperadmin()]
+        return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
+    
+    @action(detail=True, methods=['post'], url_path='clone-to-website')
+    def clone_to_website(self, request, pk=None):
+        """
+        Clone this template's subjects to a website.
+        
+        POST /api/v1/order-configs/subject-templates/{id}/clone-to-website/
+        Body: {"website_id": 1, "skip_existing": true}
+        """
+        template = self.get_object()
+        website_id = request.data.get('website_id')
+        skip_existing = request.data.get('skip_existing', True)
+        
+        if not website_id:
+            return Response(
+                {"detail": "website_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check permissions - user must have access to this website
+        if not request.user.is_superuser:
+            if not hasattr(request.user, 'website') or request.user.website.id != website.id:
+                return Response(
+                    {"detail": "You don't have permission to clone to this website."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Clone the template
+        result = template.clone_to_website(website, skip_existing=skip_existing)
+        
+        return Response({
+            "detail": f"Template cloned successfully to {website.name}",
+            "template": SubjectTemplateSerializer(template).data,
+            "website": website.name,
+            "results": result
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path='categories')
+    def list_categories(self, request):
+        """List all available template categories."""
+        from .models import SubjectTemplate
+        categories = [
+            {'value': choice[0], 'label': choice[1]}
+            for choice in SubjectTemplate.CATEGORY_CHOICES
+        ]
+        return Response(categories)
+
+
+class PaperTypeTemplateViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing global paper type templates.
+    Only superadmins can create/edit templates.
+    Admins can view and clone templates.
+    """
+    queryset = PaperTypeTemplate.objects.filter(is_active=True)
+    serializer_class = PaperTypeTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter by category if specified."""
+        queryset = super().get_queryset()
+        category = self.request.query_params.get('category')
+        if category:
+            queryset = queryset.filter(category=category)
+        return queryset.order_by('category', 'name')
+    
+    def get_permissions(self):
+        """Only superadmins can create/edit/delete templates."""
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsSuperadmin()]
+        return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
+    
+    @action(detail=True, methods=['post'], url_path='clone-to-website')
+    def clone_to_website(self, request, pk=None):
+        """
+        Clone this template's paper types to a website.
+        
+        POST /api/v1/order-configs/paper-type-templates/{id}/clone-to-website/
+        Body: {"website_id": 1, "skip_existing": true}
+        """
+        template = self.get_object()
+        website_id = request.data.get('website_id')
+        skip_existing = request.data.get('skip_existing', True)
+        
+        if not website_id:
+            return Response(
+                {"detail": "website_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check permissions - user must have access to this website
+        if not request.user.is_superuser:
+            if not hasattr(request.user, 'website') or request.user.website.id != website.id:
+                return Response(
+                    {"detail": "You don't have permission to clone to this website."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Clone the template
+        result = template.clone_to_website(website, skip_existing=skip_existing)
+        
+        return Response({
+            "detail": f"Template cloned successfully to {website.name}",
+            "template": PaperTypeTemplateSerializer(template).data,
+            "website": website.name,
+            "results": result
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path='categories')
+    def list_categories(self, request):
+        """List all available template categories."""
+        from .models import PaperTypeTemplate
+        categories = [
+            {'value': choice[0], 'label': choice[1]}
+            for choice in PaperTypeTemplate.CATEGORY_CHOICES
+        ]
+        return Response(categories)
+
+
+class TypeOfWorkTemplateViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing global type of work templates.
+    Only superadmins can create/edit templates.
+    Admins can view and clone templates.
+    """
+    queryset = TypeOfWorkTemplate.objects.filter(is_active=True)
+    serializer_class = TypeOfWorkTemplateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter by category if specified."""
+        queryset = super().get_queryset()
+        category = self.request.query_params.get('category')
+        if category:
+            queryset = queryset.filter(category=category)
+        return queryset.order_by('category', 'name')
+    
+    def get_permissions(self):
+        """Only superadmins can create/edit/delete templates."""
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [permissions.IsAuthenticated(), IsSuperadmin()]
+        return [permissions.IsAuthenticated(), IsAdminOrSuperAdmin()]
+    
+    @action(detail=True, methods=['post'], url_path='clone-to-website')
+    def clone_to_website(self, request, pk=None):
+        """
+        Clone this template's types of work to a website.
+        
+        POST /api/v1/order-configs/type-of-work-templates/{id}/clone-to-website/
+        Body: {"website_id": 1, "skip_existing": true}
+        """
+        template = self.get_object()
+        website_id = request.data.get('website_id')
+        skip_existing = request.data.get('skip_existing', True)
+        
+        if not website_id:
+            return Response(
+                {"detail": "website_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            website = Website.objects.get(id=website_id)
+        except Website.DoesNotExist:
+            return Response(
+                {"detail": "Website not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Check permissions - user must have access to this website
+        if not request.user.is_superuser:
+            if not hasattr(request.user, 'website') or request.user.website.id != website.id:
+                return Response(
+                    {"detail": "You don't have permission to clone to this website."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        # Clone the template
+        result = template.clone_to_website(website, skip_existing=skip_existing)
+        
+        return Response({
+            "detail": f"Template cloned successfully to {website.name}",
+            "template": TypeOfWorkTemplateSerializer(template).data,
+            "website": website.name,
+            "results": result
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=False, methods=['get'], url_path='categories')
+    def list_categories(self, request):
+        """List all available template categories."""
+        from .models import TypeOfWorkTemplate
+        categories = [
+            {'value': choice[0], 'label': choice[1]}
+            for choice in TypeOfWorkTemplate.CATEGORY_CHOICES
+        ]
+        return Response(categories)
 
 
 class TypeOfWorkViewSet(viewsets.ModelViewSet):

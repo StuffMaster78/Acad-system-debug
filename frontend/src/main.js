@@ -13,11 +13,18 @@ import VueApexCharts from 'vue3-apexcharts'
 const app = createApp(App)
 
 // Use plugins
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
 app.use(router)
 app.use(VueApexCharts)
 
 // Register global directive
 app.directive('lazy-image', lazyImageDirective)
+
+// Initialize auth store from localStorage before mounting
+// This ensures authentication state is restored on page refresh
+import { useAuthStore } from './stores/auth'
+const authStore = useAuthStore()
+authStore.loadFromStorage()
 
 app.mount('#app')
