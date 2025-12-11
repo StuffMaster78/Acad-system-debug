@@ -574,12 +574,12 @@ const debouncedLoadBlocks = debounce(() => {
 }, 300)
 
 const formatCTAType = (type) => {
-  if (!type) return 'Unknown'
+  if (!type) return 'N/A'
   return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
 const formatPlacementType = (type) => {
-  if (!type) return 'Unknown'
+  if (!type) return 'N/A'
   return type.charAt(0).toUpperCase() + type.slice(1)
 }
 

@@ -233,7 +233,7 @@ const uniqueTypes = computed(() => {
 })
 
 const formatWidgetType = (type) => {
-  if (!type) return 'Unknown'
+  if (!type) return 'N/A'
   return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 

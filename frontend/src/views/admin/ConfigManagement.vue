@@ -713,7 +713,7 @@
             <div v-if="orderConfigSelectedWebsiteId" class="bg-blue-50 p-3 rounded-lg">
               <p class="text-sm text-gray-700">
                 <strong>Target Website:</strong> 
-                {{ orderConfigWebsites.find(w => w.id == orderConfigSelectedWebsiteId)?.name || 'Unknown' }}
+                {{ orderConfigWebsites.find(w => w.id == orderConfigSelectedWebsiteId)?.name || orderConfigWebsites.find(w => w.id == orderConfigSelectedWebsiteId)?.domain || 'N/A' }}
               </p>
             </div>
           </div>
@@ -2353,7 +2353,7 @@ const getWebsiteName = (websiteId) => {
   // Try to get from configs
   if (Array.isArray(orderConfigs.value)) {
     const config = orderConfigs.value.find(c => (c.website?.id || c.website_id || c.website) == websiteId)
-    if (config) return config.website?.name || config.website_name || 'Unknown'
+    if (config) return config.website?.name || config.website_name || config.website?.domain || 'N/A'
   }
   
   return `Website ${websiteId}`
@@ -2899,7 +2899,7 @@ const getCurrentWebsiteId = () => {
 const getCurrentWebsiteName = () => {
   const websiteId = getCurrentWebsiteId()
   if (!websiteId) {
-    return 'Unknown'
+    return 'N/A'
   }
   
   const website = orderConfigWebsites.value.find(w => w.id == websiteId)

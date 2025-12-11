@@ -2,7 +2,9 @@
   <Modal
     :visible="visible"
     :title="modalTitle"
-    size="md"
+    :size="actionForm.action === 'assign_order' || actionForm.action === 'reassign_order' ? 'xl' : 'md'"
+    :scrollable="true"
+    :max-height="actionForm.action === 'assign_order' || actionForm.action === 'reassign_order' ? '75vh' : '60vh'"
     @update:visible="$emit('update:visible', $event)"
   >
     <div class="space-y-4">
@@ -61,17 +63,20 @@
       <!-- Warning for Critical Actions -->
       <div
         v-if="isCriticalAction"
-        class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded"
+        class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 rounded"
       >
         <div class="flex">
           <div class="flex-shrink-0">
-            <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+            <svg class="h-5 w-5 text-yellow-400 dark:text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
             </svg>
           </div>
-          <div class="ml-3">
-            <p class="text-sm text-yellow-700">
-              <strong>Warning:</strong> This action {{ criticalActionMessage }}. Please confirm this is the intended action.
+          <div class="ml-3 flex-1">
+            <p class="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+              <strong>Warning:</strong> This action {{ criticalActionMessage }}.
+            </p>
+            <p v-if="order" class="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
+              You are about to perform this action on Order #{{ order.id }} "{{ order.topic || 'Untitled' }}". Please confirm this is the intended action.
             </p>
           </div>
         </div>
@@ -117,45 +122,47 @@
         <p v-if="errors.writer_id" class="mt-1 text-sm text-red-600">{{ errors.writer_id }}</p>
 
         <!-- Writer Details Panel -->
-        <div v-if="selectedWriterDetails" class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div v-if="selectedWriterDetails" class="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
           <div class="flex items-start justify-between mb-3">
-            <div>
-              <h4 class="font-semibold text-gray-900">{{ selectedWriterDetails.username }}</h4>
-              <p class="text-sm text-gray-600">{{ selectedWriterDetails.email }}</p>
-              <p class="text-xs text-gray-500 mt-1">ID: {{ selectedWriterDetails.writer_id }}</p>
+            <div class="flex-1 min-w-0">
+              <h4 class="font-semibold text-gray-900 dark:text-white truncate">{{ selectedWriterDetails.username || selectedWriterDetails.email || 'N/A' }}</h4>
+              <p class="text-sm text-gray-600 dark:text-gray-400 truncate">{{ selectedWriterDetails.email || 'N/A' }}</p>
+              <p class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                ID: {{ selectedWriterDetails.writer_id || `WRTR${selectedWriterDetails.id?.toString().padStart(6, '0') || 'N/A'}` }}
+              </p>
             </div>
-            <div class="text-right">
-              <div class="text-lg font-bold text-blue-600">{{ selectedWriterDetails.profile?.rating || 0 }}</div>
-              <div class="text-xs text-gray-500">Rating</div>
+            <div class="text-right ml-4 flex-shrink-0">
+              <div class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ selectedWriterDetails.profile?.rating || selectedWriterDetails.rating || 0 }}</div>
+              <div class="text-xs text-gray-500 dark:text-gray-400">Rating</div>
             </div>
           </div>
 
           <div class="grid grid-cols-2 gap-4 mb-3">
             <div>
-              <div class="text-sm font-medium text-gray-700">Active Orders</div>
-              <div class="text-lg font-semibold">{{ selectedWriterDetails.workload?.active_orders_count || 0 }}</div>
+              <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Active Orders</div>
+              <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ selectedWriterDetails.workload?.active_orders_count || selectedWriterDetails.active_orders_count || 0 }}</div>
             </div>
             <div>
-              <div class="text-sm font-medium text-gray-700">Completed</div>
-              <div class="text-lg font-semibold">{{ selectedWriterDetails.stats?.total_completed || 0 }}</div>
+              <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Completed</div>
+              <div class="text-lg font-semibold text-gray-900 dark:text-white">{{ selectedWriterDetails.stats?.total_completed || selectedWriterDetails.completed_orders_count || 0 }}</div>
             </div>
           </div>
 
           <!-- Current Orders in Progress -->
           <div v-if="selectedWriterDetails.workload?.active_orders && selectedWriterDetails.workload.active_orders.length > 0" class="mt-3">
-            <div class="text-sm font-medium text-gray-700 mb-2">Current Orders in Progress:</div>
-            <div class="space-y-2 max-h-48 overflow-y-auto">
+            <div class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Orders in Progress:</div>
+            <div class="space-y-2 max-h-40 overflow-y-auto pr-1">
               <div
                 v-for="activeOrder in selectedWriterDetails.workload.active_orders"
                 :key="activeOrder.id"
-                class="bg-white rounded p-2 text-xs border border-gray-200"
+                class="bg-white dark:bg-gray-800 rounded p-2 text-xs border border-gray-200 dark:border-gray-700"
               >
                 <div class="flex items-center justify-between">
-                  <span class="font-medium">{{ formatOrderId(activeOrder.id) }}</span>
-                  <span class="text-gray-500 capitalize">{{ activeOrder.status?.replace('_', ' ') }}</span>
+                  <span class="font-medium text-gray-900 dark:text-white">{{ formatOrderId(activeOrder.id) }}</span>
+                  <span class="text-gray-500 dark:text-gray-400 capitalize">{{ activeOrder.status?.replace('_', ' ') || 'N/A' }}</span>
                 </div>
-                <div class="text-gray-600 mt-1 truncate">{{ activeOrder.topic }}</div>
-                <div class="flex items-center gap-2 mt-1 text-gray-500">
+                <div class="text-gray-600 dark:text-gray-400 mt-1 truncate">{{ activeOrder.topic || 'Untitled' }}</div>
+                <div class="flex items-center gap-2 mt-1 text-gray-500 dark:text-gray-500">
                   <span>{{ activeOrder.pages || 0 }} pages</span>
                   <span>•</span>
                   <span v-if="activeOrder.deadline">{{ formatDate(activeOrder.deadline) }}</span>
@@ -163,7 +170,7 @@
               </div>
             </div>
           </div>
-          <div v-else class="text-sm text-gray-500 italic">No active orders</div>
+          <div v-else class="text-sm text-gray-500 dark:text-gray-400 italic">No active orders</div>
         </div>
       </div>
 
@@ -433,11 +440,25 @@ const handleSubmit = async () => {
     const response = await ordersAPI.executeAction(props.order.id, payload.action, payload)
     
     if (response.data.status === 'success') {
+      // Create a detailed success message
+      const orderTopic = props.order?.topic || 'Untitled'
+      const orderId = props.order?.id
+      const actionName = actionLabel.value || payload.action?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+      const statusChange = response.data.old_status && response.data.new_status
+        ? `Status changed from "${response.data.old_status.replace('_', ' ')}" to "${response.data.new_status.replace('_', ' ')}"`
+        : response.data.new_status
+          ? `Status changed to "${response.data.new_status.replace('_', ' ')}"`
+          : ''
+      
+      const successMessage = response.data.message || 
+        `${actionName} completed successfully for Order #${orderId} "${orderTopic}". ${statusChange ? statusChange + '.' : ''}`
+      
       emit('success', {
         order: response.data.order,
-        message: response.data.message,
+        message: successMessage,
         old_status: response.data.old_status,
-        new_status: response.data.new_status
+        new_status: response.data.new_status,
+        action: payload.action
       })
       emit('update:visible', false)
     } else {
@@ -448,9 +469,9 @@ const handleSubmit = async () => {
   } catch (err) {
     const errorData = err.response?.data || {}
     
-      // Use improved error handler for better messages
-      const actionName = selectedActionConfig.value?.label || actionForm.value.action || 'this action'
-      error.value = getErrorMessage(err, `Failed to execute ${actionName}`, `Unable to ${actionName.toLowerCase()}`)
+    // Use improved error handler for better messages
+    const actionName = actionLabel.value || actionForm.value.action?.replace('_', ' ') || 'this action'
+    error.value = getErrorMessage(err, `Failed to execute ${actionName}`, `Unable to ${actionName.toLowerCase()}`)
     errorDetails.value = errorData
     
     // Show available actions if provided

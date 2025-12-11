@@ -75,7 +75,7 @@
         <div class="flex justify-between items-start mb-3">
           <div class="flex-1">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
-              {{ portfolio.writer_email || portfolio.writer || 'Unknown Writer' }}
+              {{ portfolio.writer_email || portfolio.writer?.email || portfolio.writer?.username || portfolio.writer_id || 'N/A' }}
             </h3>
             <div class="flex flex-wrap items-center gap-2 mb-2">
               <span

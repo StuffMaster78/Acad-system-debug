@@ -1332,7 +1332,7 @@ const getStatusClass = (status) => {
 }
 
 const getStatusLabel = (status) => {
-  return status ? status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unknown'
+  return status ? status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'
 }
 
 const formatDate = (date) => {

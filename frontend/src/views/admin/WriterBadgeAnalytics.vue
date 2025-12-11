@@ -93,7 +93,7 @@
           >
             <div class="flex justify-between items-center">
               <div>
-                <p class="font-medium text-gray-900 dark:text-white">{{ achievement.writer_name || achievement.writer || 'Unknown' }}</p>
+                <p class="font-medium text-gray-900 dark:text-white">{{ achievement.writer_name || achievement.writer?.user?.username || achievement.writer?.username || achievement.writer_id || 'N/A' }}</p>
                 <p class="text-sm text-gray-600 dark:text-gray-400">{{ achievement.badge_name || achievement.badge || 'Badge' }}</p>
               </div>
               <span class="text-sm text-gray-500 dark:text-gray-400">{{ formatDate(achievement.earned_at || achievement.created_at) }}</span>
@@ -143,7 +143,7 @@
                 <span class="text-lg font-bold text-primary-600 dark:text-primary-400">#{{ index + 1 }}</span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
-                {{ entry.writer_name || entry.writer || 'Unknown' }}
+                {{ entry.writer_name || entry.writer?.user?.username || entry.writer?.username || entry.writer_id || 'N/A' }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
                 {{ entry.badge_name || entry.badge || 'N/A' }}

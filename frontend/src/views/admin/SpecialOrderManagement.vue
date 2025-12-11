@@ -541,7 +541,7 @@
                   <div class="flex items-center gap-3">
                     <span class="text-sm font-medium text-gray-900">{{ file.category?.name || 'Uncategorized' }}</span>
                     <span class="text-xs text-gray-500">{{ formatDateTime(file.created_at) }}</span>
-                    <span v-if="file.uploaded_by" class="text-xs text-gray-500">by {{ file.uploaded_by?.username || 'Unknown' }}</span>
+                    <span v-if="file.uploaded_by" class="text-xs text-gray-500">by {{ file.uploaded_by?.username || file.uploaded_by?.email || file.uploaded_by_id || 'N/A' }}</span>
                   </div>
                   <div class="text-xs text-gray-600 mt-1">
                     <span v-if="file.file">File: {{ file.file.split('/').pop() }}</span>

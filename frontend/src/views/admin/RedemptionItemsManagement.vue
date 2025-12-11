@@ -113,7 +113,7 @@
                 {{ item.is_active ? 'Active' : 'Inactive' }}
               </span>
               <span class="px-2 py-1 text-xs font-semibold rounded-full bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300">
-                {{ item.redemption_type?.replace('_', ' ') || 'Unknown' }}
+                {{ item.redemption_type ? item.redemption_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A' }}
               </span>
             </div>
             <div class="text-xs text-gray-500 dark:text-gray-400 space-y-1">

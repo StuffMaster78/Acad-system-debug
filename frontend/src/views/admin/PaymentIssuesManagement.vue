@@ -98,7 +98,7 @@
                 {{ issue.status?.charAt(0).toUpperCase() + issue.status?.slice(1) }}
               </span>
               <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
-                {{ issue.issue_type?.replace('_', ' ') || 'Unknown' }}
+                {{ issue.issue_type ? issue.issue_type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A' }}
               </span>
             </div>
             <p class="text-gray-600 dark:text-gray-400 mb-2">{{ issue.description }}</p>

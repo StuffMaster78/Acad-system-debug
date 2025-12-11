@@ -100,7 +100,7 @@
           class="p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
         >
           <div class="flex items-center justify-between mb-2">
-            <h3 class="font-medium text-gray-900 dark:text-white">{{ endpoint.endpoint || 'Unknown' }}</h3>
+            <h3 class="font-medium text-gray-900 dark:text-white">{{ endpoint.endpoint || endpoint.path || endpoint.url || 'N/A' }}</h3>
             <span class="text-sm text-gray-500 dark:text-gray-400">{{ endpoint.count }} compressions</span>
           </div>
           <div class="grid grid-cols-3 gap-4 text-sm mb-2">

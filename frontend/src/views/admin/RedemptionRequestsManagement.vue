@@ -69,7 +69,7 @@
           <div class="flex-1">
             <div class="flex items-center gap-3 mb-2">
               <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
-                {{ request.item_name || 'Unknown Item' }}
+                {{ request.item_name || request.item?.name || request.item_id || 'N/A' }}
               </h3>
               <span
                 :class="[

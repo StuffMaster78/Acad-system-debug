@@ -122,7 +122,7 @@
               'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
             ]"
           >
-            {{ systemHealth.cache_status || 'Unknown' }}
+            {{ systemHealth.cache_status || 'N/A' }}
           </span>
         </div>
         <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -137,7 +137,7 @@
               'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
             ]"
           >
-            {{ systemHealth.queue_status || 'Unknown' }}
+            {{ systemHealth.queue_status || 'N/A' }}
           </span>
         </div>
         <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -152,7 +152,7 @@
               'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
             ]"
           >
-            {{ systemHealth.webhook_status || 'Unknown' }}
+            {{ systemHealth.webhook_status || 'N/A' }}
           </span>
         </div>
       </div>
