@@ -2,6 +2,32 @@ import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import crypto from 'crypto'
+import { createHash } from 'crypto'
+
+// Polyfill for crypto.hash (used by @vitejs/plugin-vue)
+// Node.js crypto module doesn't have crypto.hash, so we polyfill it
+if (typeof crypto.hash === 'undefined') {
+  crypto.hash = async (algorithm, data) => {
+    // Convert Web Crypto algorithm names to Node.js hash algorithm names
+    const algoMap = {
+      'sha-256': 'sha256',
+      'sha-1': 'sha1',
+      'md5': 'md5'
+    }
+    const nodeAlgo = algoMap[algorithm?.toLowerCase()] || algorithm?.replace(/-/g, '').toLowerCase() || 'sha256'
+    const hash = createHash(nodeAlgo)
+    // Handle both Buffer and Uint8Array
+    if (data instanceof Uint8Array) {
+      hash.update(Buffer.from(data))
+    } else if (Buffer.isBuffer(data)) {
+      hash.update(data)
+    } else {
+      hash.update(Buffer.from(data))
+    }
+    return hash.digest()
+  }
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
