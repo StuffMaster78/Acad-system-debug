@@ -727,7 +727,18 @@ TEMPLATES[0]["DIRS"] += [BASE_DIR / "common" / "templates"]
 TOKEN_ENCRYPTION_KEY = os.getenv("TOKEN_ENCRYPTION_KEY")
 
 if not TOKEN_ENCRYPTION_KEY:
-    raise RuntimeError("TOKEN_ENCRYPTION_KEY is not set in the environment.")
+    if DEBUG:
+        # Generate a default key for development/testing
+        # WARNING: This should NEVER be used in production
+        TOKEN_ENCRYPTION_KEY = Fernet.generate_key().decode()
+        import warnings
+        warnings.warn(
+            "TOKEN_ENCRYPTION_KEY not set. Using auto-generated key for development. "
+            "This should be set explicitly in production!",
+            RuntimeWarning
+        )
+    else:
+        raise RuntimeError("TOKEN_ENCRYPTION_KEY is not set in the environment.")
 
 
 

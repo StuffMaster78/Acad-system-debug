@@ -77,6 +77,69 @@ const router = createRouter({
       component: () => import('@/views/guest/GuestCheckout.vue'),
       meta: { requiresAuth: false, title: 'Verify Email' },
     },
+    // Client Website Routes (Separate client-facing interface)
+    {
+      path: '/client',
+      component: () => import('@/client/layouts/ClientLayout.vue'),
+      redirect: '/client',
+      meta: { requiresAuth: true, roles: ['client'] },
+      children: [
+        {
+          path: '',
+          name: 'ClientHome',
+          component: () => import('@/client/views/ClientHome.vue'),
+          meta: { requiresAuth: true, title: 'Client Dashboard', roles: ['client'] },
+        },
+        {
+          path: 'orders',
+          name: 'ClientOrders',
+          component: () => import('@/client/views/ClientOrders.vue'),
+          meta: { requiresAuth: true, title: 'My Orders', roles: ['client'] },
+        },
+        {
+          path: 'orders/create',
+          name: 'ClientOrderCreate',
+          component: () => import('@/client/views/ClientOrderCreate.vue'),
+          meta: { requiresAuth: true, title: 'Place Order', roles: ['client'] },
+        },
+        {
+          path: 'orders/:id',
+          name: 'ClientOrderDetail',
+          component: () => import('@/client/views/ClientOrderDetail.vue'),
+          meta: { requiresAuth: true, title: 'Order Details', roles: ['client'] },
+        },
+        {
+          path: 'payments',
+          name: 'ClientPayments',
+          component: () => import('@/client/views/ClientPayments.vue'),
+          meta: { requiresAuth: true, title: 'Payments', roles: ['client'] },
+        },
+        {
+          path: 'messages',
+          name: 'ClientMessages',
+          component: () => import('@/client/views/ClientMessages.vue'),
+          meta: { requiresAuth: true, title: 'Messages', roles: ['client'] },
+        },
+        {
+          path: 'profile',
+          name: 'ClientProfile',
+          component: () => import('@/client/views/ClientProfile.vue'),
+          meta: { requiresAuth: true, title: 'Profile', roles: ['client'] },
+        },
+        {
+          path: 'loyalty',
+          name: 'ClientLoyalty',
+          component: () => import('@/views/loyalty/Loyalty.vue'),
+          meta: { requiresAuth: true, title: 'Loyalty & Rewards', roles: ['client'] },
+        },
+        {
+          path: 'referrals',
+          name: 'ClientReferrals',
+          component: () => import('@/views/referrals/Referrals.vue'),
+          meta: { requiresAuth: true, title: 'Referrals', roles: ['client'] },
+        },
+      ],
+    },
     {
       path: '/',
       component: () => import('@/layouts/DashboardLayout.vue'),
