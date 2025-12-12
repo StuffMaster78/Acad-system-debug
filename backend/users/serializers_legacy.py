@@ -224,6 +224,9 @@ class WriterProfileSerializer(serializers.ModelSerializer):
     pen_name = serializers.CharField(read_only=True)
     registration_id = serializers.CharField(read_only=True)
     bio = serializers.SerializerMethodField()  # Map to introduction for backward compatibility
+    rating = serializers.SerializerMethodField()  # Map to average_rating for backward compatibility
+    total_ratings = serializers.SerializerMethodField()  # Map to reviews_count for backward compatibility
+    last_payment_date = serializers.SerializerMethodField()  # Computed field
 
     class Meta:
         model = WriterProfile
@@ -297,6 +300,41 @@ class WriterProfileSerializer(serializers.ModelSerializer):
         elif obj.user.last_name:
             return obj.user.last_name
         return obj.user.username
+
+    def get_rating(self, obj):
+        """Get rating - maps to average_rating for backward compatibility."""
+        return float(obj.average_rating) if obj.average_rating else None
+
+    def get_total_ratings(self, obj):
+        """Get total ratings - maps to reviews_count for backward compatibility."""
+        return obj.reviews_count
+
+    def get_last_payment_date(self, obj):
+        """Get last payment date from writer's payment history if available."""
+        # Try to get from writer payments - check multiple possible models
+        try:
+            # Try writer_management WriterPayment
+            from writer_management.models.payout import WriterPayment
+            last_payment = WriterPayment.objects.filter(
+                writer=obj
+            ).order_by('-payment_date').first()
+            if last_payment:
+                return last_payment.payment_date
+        except (ImportError, AttributeError):
+            pass
+        
+        try:
+            # Fallback to writer_payments_management WriterPayment
+            from writer_payments_management.models import WriterPayment
+            last_payment = WriterPayment.objects.filter(
+                writer=obj
+            ).order_by('-created_at').first()
+            if last_payment:
+                return last_payment.created_at
+        except (ImportError, AttributeError):
+            pass
+        
+        return None
 
     def to_representation(self, instance):
         """Override to optimize database query by using select_related."""
