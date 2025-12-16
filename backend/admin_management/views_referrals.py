@@ -227,35 +227,234 @@ class AdminReferralAbuseViewSet(viewsets.ModelViewSet):
 
 class AdminReferralCodeViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Admin view for viewing all referral codes.
+    Admin view for viewing and tracing all referral codes with comprehensive analytics.
     """
     queryset = ReferralCode.objects.all().select_related(
         'user', 'website'
     ).order_by('-created_at')
     serializer_class = ReferralCodeSerializer
     permission_classes = [IsAdminUser]
-    filter_backends = [DjangoFilterBackend, SearchFilter]
-    filterset_fields = ['website']
-    search_fields = ['code', 'user__username', 'user__email']
+    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
+    filterset_fields = ['website', 'user__is_active']
+    search_fields = ['code', 'user__username', 'user__email', 'user__full_name']
+    ordering_fields = ['created_at', 'user__date_joined']
+    ordering = ['-created_at']
+    pagination_class = ReferralTrackingPagination
+    
+    @action(detail=True, methods=['get'])
+    def trace(self, request, pk=None):
+        """
+        Comprehensive tracing for a specific referral code.
+        Shows all referrals made, conversion details, and abuse flags.
+        """
+        referral_code = self.get_object()
+        
+        from referrals.models import Referral
+        from orders.models import Order
+        
+        # Get all referrals using this code
+        referrals = Referral.objects.filter(
+            referral_code=referral_code.code,
+            website=referral_code.website
+        ).select_related('referrer', 'referee', 'website').order_by('-created_at')
+        
+        # Get detailed referral information
+        referral_details = []
+        for ref in referrals:
+            # Get orders placed by this referee
+            orders = Order.objects.filter(
+                client=ref.referee,
+                website=ref.website
+            ).order_by('-created_at')
+            
+            # Get abuse flags if any
+            abuse_flags = []
+            if hasattr(ref, 'abuse_flags'):
+                abuse_flags = [
+                    {
+                        'type': flag.abuse_type,
+                        'reason': flag.reason,
+                        'status': flag.status,
+                        'detected_at': flag.detected_at
+                    }
+                    for flag in ref.abuse_flags.all()
+                ]
+            
+            referral_details.append({
+                'referral_id': ref.id,
+                'referee': {
+                    'id': ref.referee.id,
+                    'username': ref.referee.username,
+                    'email': ref.referee.email,
+                    'date_joined': ref.referee.date_joined,
+                },
+                'created_at': ref.created_at,
+                'bonus_awarded': ref.bonus_awarded,
+                'is_flagged': ref.is_flagged,
+                'is_voided': ref.is_voided,
+                'orders_count': orders.count(),
+                'orders': [
+                    {
+                        'id': order.id,
+                        'topic': order.topic,
+                        'status': order.status,
+                        'total_price': str(order.total_price),
+                        'created_at': order.created_at,
+                    }
+                    for order in orders[:5]  # Limit to 5 most recent
+                ],
+                'abuse_flags': abuse_flags,
+            })
+        
+        # Calculate overall statistics
+        total_referrals = referrals.count()
+        successful_referrals = referrals.filter(bonus_awarded=True).count()
+        flagged_referrals = referrals.filter(is_flagged=True).count()
+        voided_referrals = referrals.filter(is_voided=True).count()
+        
+        # Get all referee IDs
+        referee_ids = referrals.values_list('referee_id', flat=True)
+        total_orders = Order.objects.filter(
+            client_id__in=referee_ids,
+            website=referral_code.website
+        ).count()
+        
+        conversion_rate = (successful_referrals / total_referrals * 100) if total_referrals > 0 else 0
+        
+        return Response({
+            'referral_code': {
+                'id': referral_code.id,
+                'code': referral_code.code,
+                'user': {
+                    'id': referral_code.user.id,
+                    'username': referral_code.user.username,
+                    'email': referral_code.user.email,
+                    'is_active': referral_code.user.is_active,
+                },
+                'website': {
+                    'id': referral_code.website.id,
+                    'name': referral_code.website.name,
+                    'domain': referral_code.website.domain,
+                },
+                'created_at': referral_code.created_at,
+                'referral_link': referral_code.get_referral_link(),
+            },
+            'statistics': {
+                'total_referrals': total_referrals,
+                'successful_referrals': successful_referrals,
+                'flagged_referrals': flagged_referrals,
+                'voided_referrals': voided_referrals,
+                'total_orders_placed': total_orders,
+                'conversion_rate': round(conversion_rate, 2),
+            },
+            'referrals': referral_details,
+        })
     
     @action(detail=False, methods=['get'])
     def statistics(self, request):
-        """Get referral code statistics."""
+        """Get comprehensive referral code statistics."""
         queryset = self.filter_queryset(self.get_queryset())
         
-        # Get codes with most referrals
         from referrals.models import Referral
+        from orders.models import Order
+        
+        # Get codes with most referrals
         top_codes = Referral.objects.values('referral_code').annotate(
-            referral_count=Count('id')
+            referral_count=Count('id'),
+            successful_count=Count('id', filter=Q(bonus_awarded=True))
         ).order_by('-referral_count')[:10]
+        
+        # Get codes with highest conversion rates
+        codes_with_stats = []
+        for code_obj in queryset[:100]:  # Limit to avoid performance issues
+            referrals = Referral.objects.filter(
+                referral_code=code_obj.code,
+                website=code_obj.website
+            )
+            total = referrals.count()
+            successful = referrals.filter(bonus_awarded=True).count()
+            conversion = (successful / total * 100) if total > 0 else 0
+            
+            codes_with_stats.append({
+                'code': code_obj.code,
+                'user': code_obj.user.username,
+                'total_referrals': total,
+                'successful_referrals': successful,
+                'conversion_rate': round(conversion, 2),
+            })
+        
+        # Sort by conversion rate
+        codes_with_stats.sort(key=lambda x: x['conversion_rate'], reverse=True)
         
         stats = {
             'total_codes': queryset.count(),
-            'active_codes': queryset.filter(
-                user__is_active=True
-            ).count(),
+            'active_codes': queryset.filter(user__is_active=True).count(),
+            'codes_with_referrals': queryset.filter(
+                user__referrals__isnull=False
+            ).distinct().count(),
             'top_referral_codes': list(top_codes),
+            'top_conversion_codes': codes_with_stats[:10],
         }
         
         return Response(stats)
+    
+    @action(detail=False, methods=['post'])
+    def generate_for_client(self, request):
+        """
+        Generate referral code for a specific client (admin only).
+        Useful for clients who don't have codes yet.
+        """
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response(
+                {'error': 'user_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from users.models import User
+            user = User.objects.get(id=user_id)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'User not found'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        if user.role != 'client':
+            return Response(
+                {'error': 'Only clients can have referral codes'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check if code already exists
+        try:
+            existing_code = ReferralCode.objects.get(user=user)
+            return Response({
+                'message': 'Referral code already exists',
+                'code': ReferralCodeSerializer(existing_code).data
+            }, status=status.HTTP_200_OK)
+        except ReferralCode.DoesNotExist:
+            pass
+        
+        # Generate code
+        from referrals.services.referral_service import ReferralService
+        website = user.website if hasattr(user, 'website') else None
+        
+        if not website:
+            return Response(
+                {'error': 'User must have a website assigned'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        code = ReferralService.generate_unique_code(user, website)
+        referral_code = ReferralCode.objects.create(
+            user=user,
+            website=website,
+            code=code
+        )
+        
+        return Response({
+            'message': 'Referral code generated successfully',
+            'code': ReferralCodeSerializer(referral_code).data
+        }, status=status.HTTP_201_CREATED)
 

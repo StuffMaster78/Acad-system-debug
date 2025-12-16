@@ -870,9 +870,19 @@ const router = createRouter({
           path: 'admin/referral-tracking',
           name: 'ReferralTracking',
           component: () => import('@/views/admin/ReferralTracking.vue'),
-          meta: {
-            requiresAuth: true,
+          meta: { 
+            requiresAuth: true, 
             title: 'Referral Tracking',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/referral-code-tracing',
+          name: 'ReferralCodeTracing',
+          component: () => import('@/views/admin/ReferralCodeTracing.vue'),
+          meta: { 
+            requiresAuth: true, 
+            title: 'Referral Code Tracing',
             roles: ['admin', 'superadmin'],
           },
         },

@@ -56,15 +56,56 @@ class ReferralCodeSerializer(serializers.ModelSerializer):
     """Serializer for the ReferralCode model."""
     user = UserSerializer(read_only=True)
     website = WebsiteSerializer(read_only=True)
+    referral_link = serializers.SerializerMethodField()
+    usage_stats = serializers.SerializerMethodField()
 
     class Meta:
         model = ReferralCode
-        fields = ['id', 'website', 'user', 'code', 'created_at']
-        read_only_fields = ['created_at']
+        fields = [
+            'id', 'website', 'user', 'code', 'created_at',
+            'referral_link', 'usage_stats'
+        ]
+        read_only_fields = ['created_at', 'referral_link', 'usage_stats']
 
     def get_referral_link(self, obj):
         """Include the referral link in the serialized output."""
         return obj.get_referral_link()
+    
+    def get_usage_stats(self, obj):
+        """Get usage statistics for this referral code."""
+        from django.db.models import Count, Sum, Q
+        from referrals.models import Referral
+        
+        referrals = Referral.objects.filter(
+            referral_code=obj.code,
+            website=obj.website
+        )
+        
+        total_referrals = referrals.count()
+        successful_referrals = referrals.filter(bonus_awarded=True).count()
+        flagged_referrals = referrals.filter(is_flagged=True).count()
+        voided_referrals = referrals.filter(is_voided=True).count()
+        
+        # Get orders placed by referees
+        from orders.models import Order
+        referee_ids = referrals.values_list('referee_id', flat=True)
+        orders_count = Order.objects.filter(
+            client_id__in=referee_ids,
+            website=obj.website
+        ).count()
+        
+        # Calculate conversion rate
+        conversion_rate = (successful_referrals / total_referrals * 100) if total_referrals > 0 else 0
+        
+        return {
+            'total_referrals': total_referrals,
+            'successful_referrals': successful_referrals,
+            'flagged_referrals': flagged_referrals,
+            'voided_referrals': voided_referrals,
+            'orders_placed': orders_count,
+            'conversion_rate': round(conversion_rate, 2),
+            'is_active': obj.user.is_active if obj.user else False,
+        }
 
 
 class ReferralStatsSerializer(serializers.ModelSerializer):

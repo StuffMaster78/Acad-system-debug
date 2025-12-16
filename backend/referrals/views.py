@@ -661,6 +661,68 @@ class ReferralAdminViewSet(viewsets.ViewSet):
 class ReferralCodeViewSet(viewsets.ModelViewSet):
     queryset = ReferralCode.objects.all()
     serializer_class = ReferralCodeSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_queryset(self):
+        """Filter codes based on user role."""
+        user = self.request.user
+        if user.role == 'client':
+            # Clients can only see their own code
+            return ReferralCode.objects.filter(user=user)
+        elif user.is_staff or user.role in ['admin', 'superadmin']:
+            # Admins can see all codes
+            return ReferralCode.objects.all()
+        else:
+            # Other roles see nothing
+            return ReferralCode.objects.none()
+    
+    @action(detail=False, methods=['get'], url_path='my-code')
+    def my_code(self, request):
+        """
+        Get the authenticated client's referral code with usage statistics.
+        Only available for clients.
+        """
+        user = request.user
+        
+        if user.role != 'client':
+            return Response({
+                "error": "Only clients can access their referral code."
+            }, status=status.HTTP_403_FORBIDDEN)
+        
+        # Get user's website
+        website = getattr(user, 'website', None)
+        if not website:
+            # Try to get from query params
+            website_id = request.query_params.get('website')
+            if website_id:
+                try:
+                    from websites.models import Website
+                    website = Website.objects.get(id=website_id)
+                except Website.DoesNotExist:
+                    return Response({
+                        "error": "Website not found"
+                    }, status=status.HTTP_404_NOT_FOUND)
+            else:
+                return Response({
+                    "error": "User must have a website assigned or provide website parameter"
+                }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Get or create referral code
+        referral_code = ReferralCode.objects.filter(user=user, website=website).first()
+        
+        if not referral_code:
+            # Auto-generate if doesn't exist
+            from referrals.services.referral_service import ReferralService
+            code = ReferralService.generate_unique_code(user, website)
+            referral_code = ReferralCode.objects.create(
+                user=user,
+                website=website,
+                code=code
+            )
+        
+        # Serialize with usage stats
+        serializer = ReferralCodeSerializer(referral_code)
+        return Response(serializer.data)
 
 
 class ReferralStatsViewSet(viewsets.ViewSet):
