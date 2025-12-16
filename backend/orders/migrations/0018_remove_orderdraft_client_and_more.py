@@ -102,10 +102,7 @@ class Migration(migrations.Migration):
             model_name='order',
             name='orders_orde_website_status_created_idx',
         ),
-        migrations.RemoveIndex(
-            model_name='order',
-            name='orders_orde_writer_status_rating_idx',
-        ),
+        # Note: orders_orde_writer_status_rating_idx removed from 0017, so no need to remove here
         migrations.DeleteModel(
             name='OrderDraft',
         ),
