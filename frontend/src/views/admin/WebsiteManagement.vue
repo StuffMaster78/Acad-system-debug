@@ -553,6 +553,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import websitesAPI from '@/api/websites'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
@@ -616,6 +617,7 @@ const termsForm = ref({
 
 const message = ref('')
 const messageSuccess = ref(false)
+const router = useRouter()
 
 let searchTimeout = null
 
@@ -798,8 +800,12 @@ const deleteWebsitePermanently = async (website) => {
 }
 
 const viewActionLogs = (website) => {
-  // TODO: Navigate to action logs page or open modal
-  window.location.href = `/activity?website=${website.id}`
+  // Navigate to activity logs page with website filter
+  // Use router to navigate to activity page with website filter
+  router.push({
+    name: 'ActivityLogs',
+    query: { website_id: website.id }
+  })
 }
 
 const toggleActionsMenu = (websiteId) => {

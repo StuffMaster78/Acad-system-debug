@@ -412,7 +412,6 @@
       </div>
     </router-link>
 
-
     <!-- Tickets Overview (Admin/Superadmin) -->
     <div v-if="(authStore.isAdmin || authStore.isSuperAdmin) && summaryData?.total_tickets !== undefined" class="card bg-white rounded-lg shadow-sm p-6 border border-gray-100">
       <div class="flex items-center justify-between mb-4">
@@ -1640,7 +1639,6 @@ const handleEndImpersonation = async () => {
     console.error('Failed to end impersonation:', error)
   }
 }
-
 
 // Refresh all dashboard data
 const refreshDashboard = async () => {

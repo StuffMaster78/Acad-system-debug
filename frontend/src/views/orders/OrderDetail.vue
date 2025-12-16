@@ -3,7 +3,7 @@
     <!-- Header with Back Button -->
     <div class="flex items-center gap-4 mb-2">
       <router-link
-        :to="authStore.isWriter ? '/writer/orders' : '/orders'"
+        :to="authStore.isWriter ? { name: 'WriterMyOrders' } : { name: 'Orders' }"
         class="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -16,8 +16,23 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Order Details</h1>
-        <p v-if="order" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Order #{{ order.id }} • {{ order.topic || 'N/A' }}
+        <p v-if="order" class="text-sm text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap items-center gap-2">
+          <span>Order #{{ order.id }} • {{ order.topic || 'N/A' }}</span>
+          <span
+            v-if="order.status"
+            :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', statusBadgeClass]"
+          >
+            {{ order.status }}
+          </span>
+          <span
+            v-if="order.is_paid !== undefined && (authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
+            :class="[
+              'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+              order.is_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+            ]"
+          >
+            {{ order.is_paid ? 'Paid' : 'Unpaid' }}
+          </span>
         </p>
       </div>
       <div v-if="order" class="flex gap-2">
@@ -75,6 +90,36 @@
 
     <template v-else-if="order">
       <div class="space-y-6">
+        <!-- Soft Deleted Banner -->
+        <div v-if="order.is_deleted" class="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🗑️</span>
+              <div>
+                <h3 class="text-lg font-semibold text-red-900">This order has been soft-deleted</h3>
+                <p class="text-sm text-red-700 mt-1">
+                  Deleted on {{ formatDateTime(order.deleted_at) }}
+                  <span v-if="order.deleted_by"> by {{ order.deleted_by?.username || order.deleted_by?.email || 'Unknown' }}</span>
+                  <span v-if="order.delete_reason"> - {{ order.delete_reason }}</span>
+                </p>
+                <p v-if="order.restored_at" class="text-sm text-green-700 mt-1">
+                  Restored on {{ formatDateTime(order.restored_at) }}
+                  <span v-if="order.restored_by"> by {{ order.restored_by?.username || order.restored_by?.email || 'Unknown' }}</span>
+                </p>
+              </div>
+            </div>
+            <div v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport" class="flex gap-2">
+              <button
+                @click="restoreOrder"
+                :disabled="processingAction"
+                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+              >
+                Restore
+              </button>
+            </div>
+          </div>
+        </div>
+        
         <!-- Action Center & Last Activity Banner (for completed/submitted/closed orders) -->
         <div v-if="order.status === 'completed' || order.status === 'submitted' || order.status === 'approved' || order.status === 'closed'" class="bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg border-2 border-primary-200 p-6 shadow-sm">
           <div class="flex items-start justify-between mb-4">
@@ -426,8 +471,11 @@
 
           <!-- Right Column: Order Specifications -->
           <div class="space-y-6">
-            <!-- Payment & Installments -->
-            <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <!-- Payment & Installments (Clients/Admins/Support only) -->
+            <div
+              v-if="authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
+              class="bg-white rounded-lg border border-gray-200 p-4"
+            >
               <div class="flex items-center justify-between mb-4">
                 <div>
                   <h3 class="text-lg font-semibold text-gray-900">Payments & Installments</h3>
@@ -622,6 +670,25 @@
               </div>
             </div>
 
+            <!-- Writer Earnings (Writer-only view) -->
+            <div
+              v-if="authStore.isWriter && (order.writer_compensation || order.writer_compensation === 0)"
+              class="bg-white rounded-lg border border-gray-200 p-4"
+            >
+              <h3 class="text-lg font-semibold mb-3 text-gray-900">Your Earnings for This Order</h3>
+              <div class="space-y-3 text-sm">
+                <div class="flex justify-between items-center">
+                  <span class="font-medium text-gray-600">Base Compensation</span>
+                  <span class="text-gray-900 font-semibold">
+                    {{ formatCurrency(order.writer_compensation || 0) }}
+                  </span>
+                </div>
+                <p class="text-xs text-gray-500">
+                  This is your agreed payout for this order. Tips and bonuses (if any) will appear in your wallet and earnings dashboards; client payment totals and installment plans remain private.
+                </p>
+              </div>
+            </div>
+
             <!-- Deadlines -->
             <div class="bg-white rounded-lg border border-gray-200 p-4">
               <h3 class="text-lg font-semibold mb-4 text-gray-900">Deadlines</h3>
@@ -633,10 +700,6 @@
                 <div class="flex justify-between items-center">
                   <span class="font-medium text-gray-600">Writer Deadline:</span>
                   <span class="text-gray-900 font-medium">{{ formatDateTime(order.writer_deadline || order.deadline) }}</span>
-                </div>
-                <div v-if="order.writer_deadline_percentage && (authStore.isAdmin || authStore.isSuperAdmin)" class="flex justify-between items-center">
-                  <span class="font-medium text-gray-600">Deadline Config:</span>
-                  <span class="text-gray-900">{{ order.writer_deadline_percentage?.writer_deadline_percentage || order.writer_deadline_percentage }}%</span>
                 </div>
               </div>
             </div>
@@ -842,16 +905,90 @@
           </div>
           
           <!-- Admin/Superadmin/Support Actions - Use Modal -->
-          <button
+          <div
             v-if="(authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && order"
-            @click="openActionModal()"
-            class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-2"
+            class="flex flex-wrap gap-2"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-            Order Actions
-          </button>
+            <!-- Auto-Assign Button (primary) -->
+            <NaiveButton
+              v-if="canAutoAssign"
+              type="primary"
+              size="small"
+              :loading="autoAssigning"
+              @click="showAutoAssignModal = true"
+            >
+              <template #icon>
+                <span>🤖</span>
+              </template>
+              {{ autoAssigning ? 'Assigning…' : 'Auto-Assign' }}
+            </NaiveButton>
+
+            <!-- Smart Match Button (secondary) -->
+            <NaiveButton
+              v-if="canAutoAssign"
+              type="info"
+              size="small"
+              :loading="loadingSmartMatches"
+              @click="loadSmartMatches"
+            >
+              <template #icon>
+                <span>🎯</span>
+              </template>
+              {{ loadingSmartMatches ? 'Loading…' : 'Smart Match' }}
+            </NaiveButton>
+
+            <!-- Order Actions -->
+            <NaiveButton
+              type="default"
+              size="small"
+              @click="openActionModal()"
+            >
+              <template #icon>
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                  />
+                </svg>
+              </template>
+              Order Actions
+            </NaiveButton>
+          </div>
+          
+          <!-- Soft Delete / Restore Actions (Admin/Support only) -->
+          <div v-if="(authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && order" class="flex flex-wrap gap-2 w-full mt-2 pt-2 border-t border-gray-200">
+            <button
+              v-if="!order.is_deleted"
+              @click="softDeleteOrder"
+              :disabled="processingAction"
+              class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              <span>🗑️</span>
+              <span>{{ processingAction ? 'Processing...' : 'Soft Delete' }}</span>
+            </button>
+            
+            <button
+              v-if="order.is_deleted"
+              @click="restoreOrder"
+              :disabled="processingAction"
+              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              <span>♻️</span>
+              <span>{{ processingAction ? 'Processing...' : 'Restore Order' }}</span>
+            </button>
+            
+            <button
+              v-if="order.is_deleted && (authStore.isAdmin || authStore.isSuperAdmin)"
+              @click="hardDeleteOrder"
+              :disabled="processingAction"
+              class="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+            >
+              <span>⚠️</span>
+              <span>{{ processingAction ? 'Processing...' : 'Permanently Delete' }}</span>
+            </button>
+          </div>
           
           <!-- Client Actions (keep direct buttons for clients) -->
           <button
@@ -2074,6 +2211,64 @@
       <!-- End External Links Tab -->
       </div>
 
+      <!-- History Tab (Admin / Support) -->
+      <div
+        v-if="activeTab === 'history' && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
+        class="space-y-6"
+      >
+        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+          <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+            <div>
+              <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 tracking-wide uppercase">
+                Order History
+              </h3>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Timeline of status changes and key system actions for this order.
+              </p>
+            </div>
+          </div>
+          <div class="p-4">
+            <div
+              v-if="!statusTimeline.length"
+              class="text-center py-8 text-sm text-gray-500 dark:text-gray-400"
+            >
+              No history entries available.
+            </div>
+            <ol v-else class="relative border-l border-gray-200 dark:border-gray-700">
+              <li
+                v-for="item in statusTimeline"
+                :key="item.key"
+                class="mb-6 ml-6"
+              >
+                <span
+                  class="absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ring-4 ring-white dark:ring-gray-900 bg-primary-100 dark:bg-primary-900 text-xs"
+                >
+                  {{ item.icon }}
+                </span>
+                <h3 class="flex items-center text-sm font-medium text-gray-900 dark:text-gray-100">
+                  {{ item.label }}
+                  <span
+                    v-if="item.source === 'transition_log'"
+                    class="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                  >
+                    Log
+                  </span>
+                </h3>
+                <time class="block mb-1 text-xs font-normal leading-none text-gray-400 dark:text-gray-500">
+                  {{ formatDateTime(item.timestamp) }} • {{ item.relativeTime }}
+                </time>
+                <p
+                  v-if="item.description"
+                  class="mb-2 text-xs font-normal text-gray-600 dark:text-gray-300"
+                >
+                  {{ item.description }}
+                </p>
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
       <!-- Start Chat Modal (WhatsApp-style) -->
       <div
         v-if="showSendMessageModal"
@@ -2538,7 +2733,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import ordersAPI from '@/api/orders'
 import orderFilesAPI from '@/api/order-files'
@@ -2573,8 +2768,10 @@ import writerManagementAPI from '@/api/writer-management'
 import writerOrderRequestsAPI from '@/api/writer-order-requests'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import { loadUnreadMessageCount } from '@/utils/messageUtils'
+import NaiveButton from '@/components/naive/NaiveButton.vue'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const { success: showSuccessToast, error: showErrorToast } = useToast()
 const confirm = useConfirmDialog()
@@ -2610,15 +2807,24 @@ const unreadMessageCount = ref(0)
 let unreadMessageInterval = null
 
 // Tabs configuration
-const tabs = [
-  { id: 'overview', label: 'Overview', icon: '📋' },
-  { id: 'enhanced-status', label: 'Enhanced Status', icon: '📈' },
-  { id: 'progress', label: 'Progress', icon: '📊' },
-  { id: 'messages', label: 'Messages', icon: '💬' },
-  { id: 'files', label: 'Files', icon: '📁' },
-  { id: 'draft-requests', label: 'Draft Requests', icon: '📝' },
-  { id: 'links', label: 'External Links', icon: '🔗' }
-]
+const tabs = computed(() => {
+  const baseTabs = [
+    { id: 'overview', label: 'Overview', icon: '📋' },
+    { id: 'enhanced-status', label: 'Enhanced Status', icon: '📈' },
+    { id: 'progress', label: 'Progress', icon: '📊' },
+    { id: 'messages', label: 'Messages', icon: '💬' },
+    { id: 'files', label: 'Files', icon: '📁' },
+    { id: 'draft-requests', label: 'Draft Requests', icon: '📝' },
+    { id: 'links', label: 'External Links', icon: '🔗' },
+  ]
+
+  // Admins and support see an additional "History" tab
+  if (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) {
+    baseTabs.push({ id: 'history', label: 'History', icon: '🕒' })
+  }
+
+  return baseTabs
+})
 const loadingFiles = ref(false)
 const loadingLinks = ref(false)
 const showSendMessageModal = ref(false)
@@ -3053,7 +3259,7 @@ const statusTimeline = computed(() => {
 
   const entries = []
   const seenEntries = new Set() // For deduplication: "status|timestamp"
-  
+
   /**
    * Add entry with deduplication
    * @param {string} key - Unique identifier
@@ -3063,22 +3269,22 @@ const statusTimeline = computed(() => {
    */
   const pushEntry = (key, status, timestamp, extra = {}) => {
     if (!timestamp) return
-    
+
     // Normalize timestamp to ISO string for comparison
     const timestampDate = new Date(timestamp)
     if (isNaN(timestampDate.getTime())) return // Invalid date
-    
+
     const normalizedStatus = status?.toLowerCase()?.trim()
     if (!normalizedStatus) return
-    
+
     // Create deduplication key: status + timestamp (rounded to nearest second)
     const timestampKey = Math.floor(timestampDate.getTime() / 1000)
     const dedupeKey = `${normalizedStatus}|${timestampKey}`
-    
+
     // Skip if we've already seen this status at this timestamp
     if (seenEntries.has(dedupeKey)) return
     seenEntries.add(dedupeKey)
-    
+
     entries.push({
       key,
       status: normalizedStatus,
@@ -3087,52 +3293,56 @@ const statusTimeline = computed(() => {
       relativeTime: formatRelativeTime(timestamp),
       description: extra.description || null,
       icon: extra.icon || statusIconMap[normalizedStatus] || '•',
-      source: extra.source || 'unknown' // Track data source for debugging
+      source: extra.source || 'unknown', // Track data source for debugging
     })
   }
 
   // 1. Always include creation timestamp
   if (order.value.created_at) {
-  pushEntry('created', 'created', order.value.created_at, {
+    pushEntry('created', 'created', order.value.created_at, {
       description: 'Order placed',
-      source: 'created_at'
-  })
+      source: 'created_at',
+    })
   }
 
   // 2. Process transition logs (primary source of truth)
-  const transitionLogs = Array.isArray(order.value.transitions) ? order.value.transitions : []
-  transitionLogs.forEach(log => {
+  const transitionLogs = Array.isArray(order.value.transitions)
+    ? order.value.transitions
+    : []
+  transitionLogs.forEach((log) => {
     if (!log || !log.timestamp) return
-    
+
     const newStatus = (log.new_status || log.action || '').toLowerCase().trim()
     if (!newStatus) return
-    
+
     const descriptionParts = []
-    
+
     // Add action context if available
     if (log.action && log.action !== newStatus) {
       descriptionParts.push(formatStatusLabel(log.action))
     }
-    
+
     // Add automatic transition indicator
     if (log.is_automatic) {
       descriptionParts.push('Automatic transition')
     }
-    
+
     // Add user context if available
     if (log.user) {
-      const userName = log.user?.username || log.user?.full_name || log.user?.email || 'System'
+      const userName =
+        log.user?.username || log.user?.full_name || log.user?.email || 'System'
       descriptionParts.push(`by ${userName}`)
     }
-    
+
     // Add old status context if available
     if (log.old_status && log.old_status.toLowerCase() !== newStatus) {
       descriptionParts.push(`from ${formatStatusLabel(log.old_status)}`)
     }
-    
+
     pushEntry(`transition-${log.id || Date.now()}`, newStatus, log.timestamp, {
-      description: descriptionParts.length > 0 ? descriptionParts.join(' • ') : null,
-      source: 'transition_log'
+      description:
+        descriptionParts.length > 0 ? descriptionParts.join(' • ') : null,
+      source: 'transition_log',
     })
   })
 
@@ -3227,6 +3437,72 @@ const deadlineExtensionForm = ref({
 })
 const showOrderRequestModal = ref(false)
 const orderRequestReason = ref('')
+
+const statusBadgeClass = computed(() => {
+  if (!order.value || !order.value.status) {
+    return 'bg-gray-100 text-gray-700'
+  }
+  const status = order.value.status.toLowerCase()
+  const statusClasses = {
+    // Initial States
+    created: 'bg-gray-100 text-gray-700',
+    pending: 'bg-yellow-100 text-yellow-700',
+    unpaid: 'bg-orange-100 text-orange-700',
+    paid: 'bg-green-100 text-green-700',
+
+    // Assignment & Availability
+    pending_writer_assignment: 'bg-indigo-100 text-indigo-700',
+    available: 'bg-blue-100 text-blue-700',
+    reassigned: 'bg-cyan-100 text-cyan-700',
+
+    // Active Work
+    in_progress: 'bg-blue-100 text-blue-700',
+    on_hold: 'bg-gray-100 text-gray-700',
+    submitted: 'bg-purple-100 text-purple-700',
+
+    // Review & Rating
+    reviewed: 'bg-teal-100 text-teal-700',
+    rated: 'bg-amber-100 text-amber-700',
+    approved: 'bg-green-100 text-green-700',
+    completed: 'bg-emerald-100 text-emerald-700',
+
+    // Revisions
+    revision_requested: 'bg-yellow-100 text-yellow-700',
+    revision_in_progress: 'bg-orange-100 text-orange-700',
+    revised: 'bg-lime-100 text-lime-700',
+    on_revision: 'bg-yellow-100 text-yellow-700',
+
+    // Editing
+    under_editing: 'bg-purple-100 text-purple-700',
+
+    // Issues
+    disputed: 'bg-red-100 text-red-700',
+    late: 'bg-red-100 text-red-700',
+
+    // Final States
+    cancelled: 'bg-gray-100 text-gray-700',
+    reopened: 'bg-blue-100 text-blue-700',
+    refunded: 'bg-pink-100 text-pink-700',
+    archived: 'bg-gray-100 text-gray-700',
+    closed: 'bg-slate-100 text-slate-700',
+  }
+
+  return statusClasses[status] || 'bg-gray-100 text-gray-700'
+})
+
+// Auto-Assignment
+const showAutoAssignModal = ref(false)
+const autoAssigning = ref(false)
+const autoAssignForm = ref({
+  min_rating: 4.0,
+  max_candidates: 10,
+  reason: 'Auto-assigned by system'
+})
+
+// Smart Matching
+const showSmartMatchModal = ref(false)
+const loadingSmartMatches = ref(false)
+const smartMatches = ref([])
 const takingOrder = ref(false)
 const requestingOrder = ref(false)
 const isOrderRequested = ref(false)
@@ -3310,8 +3586,9 @@ const submitOrder = async () => {
   actionSuccess.value = ''
   
   try {
-    await ordersAPI.executeAction(order.value.id, 'submit_order')
-    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been submitted successfully! The client will be notified for review.`
+    // Use unified transition endpoint
+    const response = await ordersAPI.transition(order.value.id, 'submitted', 'Order submitted by writer')
+    const message = response.data.message || `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been submitted successfully! The client will be notified for review.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
@@ -3346,8 +3623,8 @@ const startOrder = async () => {
   actionSuccess.value = ''
   
   try {
-    await ordersAPI.executeAction(order.value.id, 'start_order')
-    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been started! You can now begin working on it.`
+    const response = await ordersAPI.transition(order.value.id, 'in_progress', 'Order started by writer')
+    const message = response.data.message || `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been started! You can now begin working on it.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
@@ -3382,8 +3659,8 @@ const startRevision = async () => {
   actionSuccess.value = ''
   
   try {
-    await ordersAPI.executeAction(order.value.id, 'start_revision')
-    const message = `Revision for Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been started! Please address the client's feedback.`
+    const response = await ordersAPI.transition(order.value.id, 'revision_in_progress', 'Revision started by writer')
+    const message = response.data.message || `Revision for Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been started! Please address the client's feedback.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
@@ -3418,8 +3695,8 @@ const resumeOrder = async () => {
   actionSuccess.value = ''
   
   try {
-    await ordersAPI.resumeOrder(order.value.id)
-    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been resumed! You can continue working on it.`
+    const response = await ordersAPI.transition(order.value.id, 'in_progress', 'Order resumed from hold')
+    const message = response.data.message || `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been resumed! You can continue working on it.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
@@ -3454,8 +3731,8 @@ const completeOrder = async () => {
   actionSuccess.value = ''
   
   try {
-    await ordersAPI.completeOrder(order.value.id)
-    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been marked as complete! The client has been notified.`
+    const response = await ordersAPI.transition(order.value.id, 'completed', 'Order completed by writer')
+    const message = response.data.message || `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been marked as complete! The client has been notified.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
@@ -3504,8 +3781,8 @@ const cancelOrder = async () => {
   actionSuccess.value = ''
   
   try {
-    await ordersAPI.cancelOrder(order.value.id, reason || '')
-    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been cancelled. The client has been notified.`
+    const response = await ordersAPI.transition(order.value.id, 'cancelled', reason || 'Order cancelled')
+    const message = response.data.message || `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been cancelled. The client has been notified.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
@@ -3540,13 +3817,141 @@ const reopenOrder = async () => {
   actionSuccess.value = ''
   
   try {
-    await ordersAPI.reopenOrder(order.value.id)
-    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been reopened! You can now continue working on it.`
+    // Reopen typically transitions to 'unpaid' or 'available' depending on order state
+    const targetStatus = order.value.is_paid ? 'available' : 'unpaid'
+    const response = await ordersAPI.transition(order.value.id, targetStatus, 'Order reopened')
+    const message = response.data.message || `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been reopened! You can now continue working on it.`
     actionSuccess.value = message
     showSuccessToast(message)
     await loadOrder()
   } catch (error) {
     const errorMsg = getErrorMessage(error, 'Failed to reopen order', `Unable to reopen Order #${order.value.id}. Please try again or contact support if the issue persists.`)
+    actionError.value = errorMsg
+    showErrorToast(errorMsg)
+  } finally {
+    processingAction.value = false
+  }
+}
+
+// Soft Delete Order
+const softDeleteOrder = async () => {
+  if (!order.value) return
+  
+  const { useInputModal } = await import('@/composables/useInputModal')
+  const inputModal = useInputModal()
+  
+  const reason = await inputModal.showModal(
+    'Soft Delete Order',
+    'Enter a reason for soft-deleting this order (optional):',
+    {
+      placeholder: 'e.g., Order cancelled, duplicate order, etc.',
+      required: false
+    }
+  )
+  
+  if (reason === null) return // User cancelled
+  
+  const confirmed = await confirm.showDestructive(
+    `Soft Delete Order #${order.value.id}?`,
+    'Soft Delete Order',
+    {
+      details: `You are about to soft-delete "${order.value.topic || 'Untitled'}". The order will be hidden from normal queries but can be restored later.${reason ? `\n\nReason: ${reason}` : ''}`,
+      icon: '🗑️',
+      confirmText: 'Soft Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  processingAction.value = true
+  actionError.value = ''
+  actionSuccess.value = ''
+  
+  try {
+    await ordersAPI.softDelete(order.value.id, reason || '')
+    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been soft-deleted.`
+    actionSuccess.value = message
+    showSuccessToast(message)
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to soft delete order', `Unable to soft delete Order #${order.value.id}. Please try again or contact support if the issue persists.`)
+    actionError.value = errorMsg
+    showErrorToast(errorMsg)
+  } finally {
+    processingAction.value = false
+  }
+}
+
+// Restore Order
+const restoreOrder = async () => {
+  if (!order.value) return
+  
+  const confirmed = await confirm.showDialog(
+    `Restore Order #${order.value.id}?`,
+    'Restore Order',
+    {
+      details: `You are about to restore "${order.value.topic || 'Untitled'}". The order will be visible again in normal queries.`,
+      variant: 'info',
+      icon: '♻️',
+      confirmText: 'Restore',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  processingAction.value = true
+  actionError.value = ''
+  actionSuccess.value = ''
+  
+  try {
+    await ordersAPI.restore(order.value.id)
+    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been restored!`
+    actionSuccess.value = message
+    showSuccessToast(message)
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to restore order', `Unable to restore Order #${order.value.id}. Please try again or contact support if the issue persists.`)
+    actionError.value = errorMsg
+    showErrorToast(errorMsg)
+  } finally {
+    processingAction.value = false
+  }
+}
+
+// Hard Delete Order (Permanent)
+const hardDeleteOrder = async () => {
+  if (!order.value) return
+  
+  const confirmed = await confirm.showDestructive(
+    `Permanently Delete Order #${order.value.id}?`,
+    'Permanent Delete',
+    {
+      details: `⚠️ WARNING: You are about to PERMANENTLY delete "${order.value.topic || 'Untitled'}". This action CANNOT be undone. All data associated with this order will be permanently removed from the database.`,
+      icon: '⚠️',
+      confirmText: 'Delete Permanently',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  processingAction.value = true
+  actionError.value = ''
+  actionSuccess.value = ''
+  
+  try {
+    await ordersAPI.hardDelete(order.value.id)
+    const message = `Order #${order.value.id} has been permanently deleted.`
+    actionSuccess.value = message
+    showSuccessToast(message)
+    // Redirect to orders list after hard delete
+    setTimeout(() => {
+      router.push('/admin/orders')
+    }, 2000)
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to permanently delete order', `Unable to permanently delete Order #${order.value.id}. Please try again or contact support if the issue persists.`)
     actionError.value = errorMsg
     showErrorToast(errorMsg)
   } finally {
@@ -3583,6 +3988,72 @@ const openActionModal = async (action = null) => {
   }
   
   showActionModal.value = true
+}
+
+// Auto-Assignment Functions
+const performAutoAssign = async () => {
+  if (!order.value) return
+  
+  autoAssigning.value = true
+  try {
+    const response = await ordersAPI.autoAssign(order.value.id, {
+      min_rating: autoAssignForm.value.min_rating,
+      max_candidates: autoAssignForm.value.max_candidates,
+      reason: autoAssignForm.value.reason || 'Auto-assigned by system'
+    })
+    
+    showSuccessToast(response.data?.message || 'Writer auto-assigned successfully')
+    showAutoAssignModal.value = false
+    
+    // Refresh order data
+    await loadOrder()
+  } catch (error) {
+    showErrorToast(getErrorMessage(error))
+  } finally {
+    autoAssigning.value = false
+  }
+}
+
+// Smart Matching Functions
+const loadSmartMatches = async () => {
+  if (!order.value) return
+  
+  loadingSmartMatches.value = true
+  showSmartMatchModal.value = true
+  
+  try {
+    const response = await ordersAPI.getSmartMatches(order.value.id, {
+      max_results: 10,
+      min_rating: 4.0
+    })
+    
+    smartMatches.value = response.data?.matches || []
+  } catch (error) {
+    showErrorToast(getErrorMessage(error))
+    smartMatches.value = []
+  } finally {
+    loadingSmartMatches.value = false
+  }
+}
+
+const assignFromSmartMatch = async (writerId) => {
+  if (!order.value) return
+  
+  autoAssigning.value = true
+  try {
+    // Use regular assign action
+    await ordersAPI.assignWriter(order.value.id, writerId, 'Assigned from smart match recommendations')
+    
+    showSuccessToast('Writer assigned successfully')
+    showSmartMatchModal.value = false
+    
+    // Refresh order data
+    await loadOrder()
+  } catch (error) {
+    showErrorToast(getErrorMessage(error))
+  } finally {
+    autoAssigning.value = false
+  }
 }
 
 const handleActionSuccess = async (data) => {

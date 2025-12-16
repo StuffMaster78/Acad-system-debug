@@ -188,7 +188,35 @@
           </p>
         </div>
       </div>
+      
+      <!-- Processing Indicator -->
+      <div v-if="loading" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+        <div class="flex items-center gap-3">
+          <svg class="animate-spin h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 0 4 12zm8 0a8 8 0 100-16v8z"></path>
+          </svg>
+          <div>
+            <p class="text-sm font-medium text-blue-900 dark:text-blue-200">Processing action...</p>
+            <p class="text-xs text-blue-700 dark:text-blue-300 mt-1">Please wait while we execute this action on the order.</p>
+          </div>
+        </div>
+      </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show"
+      :title="confirm.title"
+      :message="confirm.message"
+      :details="confirm.details"
+      :variant="confirm.variant"
+      :icon="confirm.icon"
+      :confirm-text="confirm.confirmText"
+      :cancel-text="confirm.cancelText"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
 
     <template #footer>
       <button
@@ -224,6 +252,8 @@ import writerAssignmentAPI from '@/api/writer-assignment'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { formatOrderId, formatUserId } from '@/utils/idFormatter'
 import { formatWriterName } from '@/utils/formatDisplay'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const props = defineProps({
   visible: {
@@ -255,6 +285,7 @@ const error = ref(null)
 const errorDetails = ref(null)
 const loadingWriters = ref(false)
 const selectedWriterDetails = ref(null)
+const confirm = useConfirmDialog()
 
 const actionForm = ref({
   action: props.selectedAction || '',
@@ -421,29 +452,89 @@ const validateForm = () => {
 const handleSubmit = async () => {
   if (!validateForm()) return
   
+  // Build confirmation message based on action type
+  const orderId = props.order?.id || 'this order'
+  const orderTopic = props.order?.topic || 'Untitled'
+  const actionName = actionLabel.value
+  
+  // Build details message
+  let detailsMessage = `You are about to ${actionName.toLowerCase()} Order #${orderId} "${orderTopic}".`
+  
+  if (targetStatus.value) {
+    detailsMessage += ` The order status will change to "${targetStatus.value.replace('_', ' ')}".`
+  }
+  
+  if (actionForm.value.action === 'assign_order' || actionForm.value.action === 'reassign_order') {
+    const writer = props.availableWriters.find(w => w.id === actionForm.value.writer_id)
+    const writerName = writer ? formatWriterName(writer) : 'selected writer'
+    if (actionForm.value.action === 'reassign_order') {
+      const currentWriter = props.order?.assigned_writer?.username || props.order?.writer_username || 'current writer'
+      detailsMessage += `\n\nThis will reassign the order from ${currentWriter} to ${writerName}. The current writer will be notified, and the new writer will receive the assignment.`
+    } else {
+      detailsMessage += `\n\nThe order will be assigned to ${writerName}, who will be notified and can start working on it.`
+    }
+  }
+  
+  if (actionForm.value.reason) {
+    detailsMessage += `\n\nReason: ${actionForm.value.reason}`
+  }
+  
+  // Show confirmation dialog
+  let confirmed = false
+  if (isCriticalAction.value) {
+    confirmed = await confirm.showDestructive(
+      `Are you sure you want to ${actionName.toLowerCase()} Order #${orderId}?`,
+      `Confirm ${actionName}`,
+      {
+        details: detailsMessage + `\n\n⚠️ This action ${criticalActionMessage.value}.`,
+        confirmText: `Confirm ${actionName}`,
+        cancelText: 'Cancel',
+        icon: '⚠️'
+      }
+    )
+  } else {
+    confirmed = await confirm.showDialog(
+      `Are you sure you want to ${actionName.toLowerCase()} Order #${orderId}?`,
+      `Confirm ${actionName}`,
+      {
+        details: detailsMessage,
+        variant: 'default',
+        confirmText: `Execute ${actionName}`,
+        cancelText: 'Cancel',
+        icon: '❓'
+      }
+    )
+  }
+  
+  if (!confirmed) return
+  
   loading.value = true
   error.value = null
   errorDetails.value = null
   
   try {
-    const payload = {
-      action: actionForm.value.action,
-      reason: actionForm.value.reason || undefined
-    }
+    // Actions that require executeAction (complex actions with additional logic)
+    const complexActions = ['assign_order', 'reassign_order', 'refund_order', 'extend_deadline', 'mark_critical']
+    const isComplexAction = complexActions.includes(actionForm.value.action)
     
-    // Add writer_id if needed
-    if (actionForm.value.writer_id) {
-      payload.writer_id = actionForm.value.writer_id
-    }
+    let response
     
-    // Use executeAction with proper payload structure
-    const response = await ordersAPI.executeAction(props.order.id, payload.action, payload)
-    
-    if (response.data.status === 'success') {
-      // Create a detailed success message
+    // Use transition endpoint for simple status transitions
+    if (!isComplexAction && targetStatus.value) {
+      // Simple status transition - use unified transition endpoint
+      response = await ordersAPI.transition(
+        props.order.id,
+        targetStatus.value,
+        actionForm.value.reason || '',
+        {
+          action: actionForm.value.action
+        }
+      )
+      
+      // Format response to match executeAction format for consistency
       const orderTopic = props.order?.topic || 'Untitled'
       const orderId = props.order?.id
-      const actionName = actionLabel.value || payload.action?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+      const actionName = actionLabel.value
       const statusChange = response.data.old_status && response.data.new_status
         ? `Status changed from "${response.data.old_status.replace('_', ' ')}" to "${response.data.new_status.replace('_', ' ')}"`
         : response.data.new_status
@@ -458,13 +549,50 @@ const handleSubmit = async () => {
         message: successMessage,
         old_status: response.data.old_status,
         new_status: response.data.new_status,
-        action: payload.action
+        action: actionForm.value.action
       })
       emit('update:visible', false)
     } else {
-      error.value = response.data.detail || 'Action failed'
-      errorDetails.value = response.data
-      emit('error', response.data)
+      // Complex action - use executeAction endpoint
+      const payload = {
+        action: actionForm.value.action,
+        reason: actionForm.value.reason || undefined
+      }
+      
+      // Add writer_id if needed
+      if (actionForm.value.writer_id) {
+        payload.writer_id = actionForm.value.writer_id
+      }
+      
+      response = await ordersAPI.executeAction(props.order.id, payload.action, payload)
+      
+      if (response.data.status === 'success') {
+        // Create a detailed success message
+        const orderTopic = props.order?.topic || 'Untitled'
+        const orderId = props.order?.id
+        const actionName = actionLabel.value || payload.action?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+        const statusChange = response.data.old_status && response.data.new_status
+          ? `Status changed from "${response.data.old_status.replace('_', ' ')}" to "${response.data.new_status.replace('_', ' ')}"`
+          : response.data.new_status
+            ? `Status changed to "${response.data.new_status.replace('_', ' ')}"`
+            : ''
+        
+        const successMessage = response.data.message || 
+          `${actionName} completed successfully for Order #${orderId} "${orderTopic}". ${statusChange ? statusChange + '.' : ''}`
+        
+        emit('success', {
+          order: response.data.order,
+          message: successMessage,
+          old_status: response.data.old_status,
+          new_status: response.data.new_status,
+          action: payload.action
+        })
+        emit('update:visible', false)
+      } else {
+        error.value = response.data.detail || 'Action failed'
+        errorDetails.value = response.data
+        emit('error', response.data)
+      }
     }
   } catch (err) {
     const errorData = err.response?.data || {}

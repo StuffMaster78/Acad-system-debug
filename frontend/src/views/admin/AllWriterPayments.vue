@@ -143,6 +143,14 @@
                     View
                   </button>
                   <button
+                    v-if="authStore.isAdmin || authStore.isSuperAdmin"
+                    @click="openAdjustModal(payment)"
+                    class="text-purple-600 hover:text-purple-800 hover:underline font-medium"
+                    title="Adjust Payment Amount"
+                  >
+                    Adjust
+                  </button>
+                  <button
                     v-if="payment.status === 'Pending' && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
                     @click="markPaymentAsPaid(payment.id)"
                     :disabled="markingAsPaid"
@@ -325,6 +333,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Payment Adjustment Modal -->
+    <PaymentAdjustmentModal
+      :is-open="showAdjustModal"
+      :payment="selectedPayment"
+      @close="closeAdjustModal"
+      @success="handleAdjustmentSuccess"
+    />
   </div>
 </template>
 
@@ -334,6 +350,7 @@ import financialOverviewAPI from '@/api/financial-overview'
 import writerPaymentsAPI from '@/api/writer-payments'
 import { useAuthStore } from '@/stores/auth'
 import apiClient from '@/api/client'
+import PaymentAdjustmentModal from '@/components/admin/PaymentAdjustmentModal.vue'
 
 const authStore = useAuthStore()
 
@@ -344,6 +361,8 @@ const showBreakdownModal = ref(false)
 const paymentBreakdown = ref(null)
 const breakdownLoading = ref(false)
 const markingAsPaid = ref(false)
+const showAdjustModal = ref(false)
+const selectedPayment = ref(null)
 
 const filters = ref({
   status: '',
@@ -468,6 +487,29 @@ const markPaymentAsPaid = async (paymentId) => {
   } finally {
     markingAsPaid.value = false
   }
+}
+
+const openAdjustModal = (payment) => {
+  // Map payment data to match modal expectations
+  selectedPayment.value = {
+    id: payment.payment_id || payment.id,
+    amount: payment.amount || payment.total_earnings,
+    writer_name: payment.writer?.name || 'Unknown',
+    order_id: payment.order_id,
+    payment_set_by: payment.payment_set_by
+  }
+  showAdjustModal.value = true
+}
+
+const closeAdjustModal = () => {
+  showAdjustModal.value = false
+  selectedPayment.value = null
+}
+
+const handleAdjustmentSuccess = async (data) => {
+  alert('Payment adjusted successfully!')
+  await loadPayments()
+  closeAdjustModal()
 }
 
 onMounted(() => {

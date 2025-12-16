@@ -1,193 +1,389 @@
 <template>
-  <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Order Request Status</h1>
-        <p class="mt-2 text-gray-600">Track your order requests and their approval status</p>
-      </div>
-      <div class="flex items-center gap-2">
-        <button @click="loadRequests" :disabled="loading" class="btn btn-secondary">
-          {{ loading ? 'Loading...' : 'Refresh' }}
-        </button>
-        <span v-if="lastUpdated" class="text-xs text-gray-500">
-          Updated: {{ formatTime(lastUpdated) }}
-        </span>
-      </div>
-    </div>
-
-    <!-- Statistics -->
-    <div v-if="requestData" class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-        <p class="text-sm font-medium text-blue-700 mb-1">Total Requests</p>
-        <p class="text-3xl font-bold text-blue-900">{{ requestData.statistics.total || 0 }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
-        <p class="text-sm font-medium text-yellow-700 mb-1">Pending</p>
-        <p class="text-3xl font-bold text-yellow-900">{{ requestData.statistics.pending || 0 }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
-        <p class="text-sm font-medium text-green-700 mb-1">Approved</p>
-        <p class="text-3xl font-bold text-green-900">{{ requestData.statistics.approved || 0 }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
-        <p class="text-sm font-medium text-red-700 mb-1">Rejected</p>
-        <p class="text-3xl font-bold text-red-900">{{ requestData.statistics.rejected || 0 }}</p>
-      </div>
-    </div>
-
-    <!-- Requests List -->
-    <div v-if="loading" class="bg-white rounded-lg shadow-sm p-12">
-      <div class="flex items-center justify-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-      </div>
-    </div>
-
-    <div v-else-if="requestData && requestData.requests.length === 0" class="bg-white rounded-lg shadow-sm p-12 text-center">
-      <p class="text-gray-500 text-lg">No order requests found.</p>
-      <p class="text-gray-400 text-sm mt-2">Request orders from the order queue to see them here.</p>
-      <router-link to="/writer/queue" class="mt-4 inline-block btn btn-primary">
-        View Order Queue
-      </router-link>
-    </div>
-
-    <div v-else-if="requestData" class="space-y-4">
-      <!-- Filter Tabs -->
-      <div class="bg-white rounded-lg shadow-sm p-4">
-        <div class="flex gap-2">
-          <button
-            @click="filterStatus = 'all'"
-            :class="[
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              filterStatus === 'all'
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            ]"
-          >
-            All ({{ requestData.statistics.total }})
-          </button>
-          <button
-            @click="filterStatus = 'pending'"
-            :class="[
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              filterStatus === 'pending'
-                ? 'bg-yellow-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            ]"
-          >
-            Pending ({{ requestData.statistics.pending }})
-          </button>
-          <button
-            @click="filterStatus = 'approved'"
-            :class="[
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              filterStatus === 'approved'
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            ]"
-          >
-            Approved ({{ requestData.statistics.approved }})
-          </button>
-          <button
-            @click="filterStatus = 'rejected'"
-            :class="[
-              'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-              filterStatus === 'rejected'
-                ? 'bg-red-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            ]"
-          >
-            Rejected ({{ requestData.statistics.rejected }})
-          </button>
+  <div class="min-h-screen bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Header -->
+      <div class="mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div class="space-y-2">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+              Order Request Status
+            </h1>
+            <p class="text-base text-gray-600 leading-relaxed max-w-2xl">
+              Track your order requests and their approval status
+            </p>
+          </div>
+          <div class="flex items-center gap-3">
+            <span
+              v-if="lastUpdated"
+              class="text-xs font-medium text-gray-500 hidden sm:block"
+            >
+              Updated: {{ formatTime(lastUpdated) }}
+            </span>
+            <button
+              @click="loadRequests"
+              :disabled="loading"
+              class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+            >
+              {{ loading ? 'Loading...' : 'Refresh' }}
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Requests -->
-      <div class="space-y-3">
+      <!-- Statistics -->
+      <div v-if="requestData" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
+                Total Requests
+              </p>
+              <p class="text-3xl sm:text-4xl font-bold text-blue-900">
+                {{ requestData.statistics.total || 0 }}
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">📊</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
+                Pending
+              </p>
+              <p class="text-3xl sm:text-4xl font-bold text-yellow-900">
+                {{ requestData.statistics.pending || 0 }}
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">⏳</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
+                Approved
+              </p>
+              <p class="text-3xl sm:text-4xl font-bold text-green-900">
+                {{ requestData.statistics.approved || 0 }}
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">✅</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-red-700 uppercase tracking-wide mb-2">
+                Rejected
+              </p>
+              <p class="text-3xl sm:text-4xl font-bold text-red-900">
+                {{ requestData.statistics.rejected || 0 }}
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">❌</span>
+              </div>
+            </div>
+          </div>
+        </div>
         <div
-          v-for="request in filteredRequests"
-          :key="`${request.type}-${request.id}`"
-          class="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+          v-if="requestData.statistics.recent_7_days !== undefined"
+          class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-md p-6 border-l-4 border-indigo-600 hover:shadow-lg transition-shadow"
         >
-          <div class="p-6">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <div class="flex items-center gap-3 mb-2">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-indigo-700 uppercase tracking-wide mb-2">
+                Recent (7 days)
+              </p>
+              <p class="text-3xl sm:text-4xl font-bold text-indigo-900">
+                {{ requestData.statistics.recent_7_days || 0 }}
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">📅</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Requests List -->
+      <div v-if="loading" class="bg-white rounded-xl shadow-sm p-16">
+        <div class="flex flex-col items-center justify-center gap-4">
+          <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 border-t-primary-600"></div>
+          <p class="text-sm font-medium text-gray-500">Loading requests...</p>
+        </div>
+      </div>
+
+      <div
+        v-else-if="requestData && requestData.requests.length === 0"
+        class="bg-white rounded-xl shadow-sm p-16 text-center"
+      >
+        <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
+          <span class="text-4xl">📭</span>
+        </div>
+        <p class="text-lg font-semibold text-gray-900 mb-2">
+          No order requests found
+        </p>
+        <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+          Request orders from the order queue to see them here.
+        </p>
+        <router-link
+          to="/writer/queue"
+          class="inline-flex items-center justify-center px-6 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-all shadow-md hover:shadow-lg"
+        >
+          View Order Queue
+        </router-link>
+      </div>
+
+      <div v-else-if="requestData" class="space-y-6">
+        <!-- Filter Tabs -->
+        <div class="bg-white rounded-xl shadow-md p-4">
+          <div class="flex flex-wrap gap-3">
+            <button
+              @click="filterStatus = 'all'"
+              :class="[
+                'px-5 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm',
+                filterStatus === 'all'
+                  ? 'bg-primary-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ]"
+            >
+              All
+              <span
+                class="ml-2 px-2 py-0.5 rounded-full text-xs font-bold"
+                :class="filterStatus === 'all' ? 'bg-primary-700 text-white' : 'bg-gray-200 text-gray-700'"
+              >
+                {{ requestData.statistics.total }}
+              </span>
+            </button>
+            <button
+              @click="filterStatus = 'pending'"
+              :class="[
+                'px-5 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm',
+                filterStatus === 'pending'
+                  ? 'bg-yellow-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ]"
+            >
+              Pending
+              <span
+                class="ml-2 px-2 py-0.5 rounded-full text-xs font-bold"
+                :class="filterStatus === 'pending' ? 'bg-yellow-700 text-white' : 'bg-gray-200 text-gray-700'"
+              >
+                {{ requestData.statistics.pending }}
+              </span>
+            </button>
+            <button
+              @click="filterStatus = 'approved'"
+              :class="[
+                'px-5 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm',
+                filterStatus === 'approved'
+                  ? 'bg-green-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ]"
+            >
+              Approved
+              <span
+                class="ml-2 px-2 py-0.5 rounded-full text-xs font-bold"
+                :class="filterStatus === 'approved' ? 'bg-green-700 text-white' : 'bg-gray-200 text-gray-700'"
+              >
+                {{ requestData.statistics.approved }}
+              </span>
+            </button>
+            <button
+              @click="filterStatus = 'rejected'"
+              :class="[
+                'px-5 py-2.5 rounded-lg text-sm font-bold transition-all shadow-sm',
+                filterStatus === 'rejected'
+                  ? 'bg-red-600 text-white shadow-md'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ]"
+            >
+              Rejected
+              <span
+                class="ml-2 px-2 py-0.5 rounded-full text-xs font-bold"
+                :class="filterStatus === 'rejected' ? 'bg-red-700 text-white' : 'bg-gray-200 text-gray-700'"
+              >
+                {{ requestData.statistics.rejected }}
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Requests -->
+        <div class="space-y-5">
+          <div
+            v-for="request in filteredRequests"
+            :key="`${request.type}-${request.id}`"
+            class="bg-white rounded-xl shadow-md border-2 border-gray-200 hover:shadow-lg transition-all"
+          >
+            <div class="p-6 sm:p-8">
+              <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                <div class="flex-1 min-w-0">
+                  <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <router-link
+                      :to="`/orders/${request.order_id}`"
+                      class="text-xl font-bold text-gray-900 hover:text-primary-600 transition-colors"
+                    >
+                      Order #{{ request.order_id }}
+                    </router-link>
+                    <span
+                      :class="getStatusBadgeClass(request.status)"
+                      class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide"
+                    >
+                      {{ formatStatus(request.status) }}
+                    </span>
+                    <span
+                      v-if="request.type === 'order_request'"
+                      class="px-3 py-1.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 uppercase tracking-wide"
+                    >
+                      Order Request
+                    </span>
+                    <span
+                      v-else
+                      class="px-3 py-1.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 uppercase tracking-wide"
+                    >
+                      Writer Request
+                    </span>
+                  </div>
+                  
+                  <p class="text-base font-bold text-gray-900 mb-4 line-clamp-2">
+                    {{ request.order_topic }}
+                  </p>
+                  
+                  <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-4">
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                        Pages
+                      </p>
+                      <p class="text-sm font-bold text-gray-900">
+                        {{ request.order_pages }}
+                      </p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                        Price
+                      </p>
+                      <p class="text-sm font-bold text-green-600 truncate">
+                        ${{ formatCurrency(request.order_price) }}
+                      </p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                        Order Status
+                      </p>
+                      <p class="text-sm font-semibold text-gray-900 capitalize line-clamp-1">
+                        {{ request.order_status }}
+                      </p>
+                    </div>
+                    <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                        Requested
+                      </p>
+                      <p class="text-xs font-semibold text-gray-900 line-clamp-1">
+                        {{ formatDate(request.requested_at) }}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="request.reason"
+                    class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200"
+                  >
+                    <p class="text-xs font-bold text-gray-600 uppercase tracking-wide mb-2">
+                      Your Request Reason:
+                    </p>
+                    <p class="text-sm text-gray-700 leading-relaxed">
+                      {{ request.reason }}
+                    </p>
+                  </div>
+                  
+                  <div
+                    v-if="request.type === 'writer_request' && (request.additional_pages || request.additional_slides)"
+                    class="mt-4 p-4 bg-blue-50 rounded-lg border-2 border-blue-200"
+                  >
+                    <p class="text-xs font-bold text-blue-700 uppercase tracking-wide mb-2">
+                      Additional Request:
+                    </p>
+                    <p class="text-sm font-semibold text-blue-900 mb-2">
+                      <span v-if="request.additional_pages">
+                        {{ request.additional_pages }} additional page{{ request.additional_pages !== 1 ? 's' : '' }}
+                      </span>
+                      <span
+                        v-if="request.additional_pages && request.additional_slides"
+                        class="mx-2"
+                      >
+                        +
+                      </span>
+                      <span v-if="request.additional_slides">
+                        {{ request.additional_slides }} additional slide{{ request.additional_slides !== 1 ? 's' : '' }}
+                      </span>
+                    </p>
+                    <p
+                      v-if="request.has_counter_offer"
+                      class="text-xs font-bold text-orange-700 mt-2 flex items-center gap-1"
+                    >
+                      <span>⚠️</span>
+                      <span>Client has made a counter offer</span>
+                    </p>
+                  </div>
+                  
+                  <div
+                    v-if="request.reviewed_by"
+                    class="mt-4 pt-4 border-t border-gray-200"
+                  >
+                    <p class="text-sm font-medium text-gray-600">
+                      Reviewed by:
+                      <span class="font-bold text-gray-900">{{ request.reviewed_by }}</span>
+                      <span
+                        v-if="request.reviewed_at"
+                        class="ml-2 text-gray-500"
+                      >
+                        on {{ formatDate(request.reviewed_at) }}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex flex-col gap-3 lg:ml-6 lg:flex-shrink-0">
                   <router-link
                     :to="`/orders/${request.order_id}`"
-                    class="text-lg font-semibold text-gray-900 hover:text-primary-600"
+                    class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all shadow-sm text-sm whitespace-nowrap"
                   >
-                    Order #{{ request.order_id }}
+                    View Order
                   </router-link>
-                  <span
-                    :class="getStatusBadgeClass(request.status)"
-                    class="px-2 py-1 rounded-full text-xs font-medium"
+                  <button
+                    v-if="request.status === 'pending'"
+                    @click="cancelRequest(request)"
+                    :disabled="cancelingRequestId === request.id"
+                    class="inline-flex items-center justify-center px-5 py-2.5 bg-yellow-600 text-white font-semibold rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md text-sm whitespace-nowrap"
                   >
-                    {{ formatStatus(request.status) }}
-                  </span>
-                  <span
-                    v-if="request.type === 'order_request'"
-                    class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700"
-                  >
-                    Order Request
-                  </span>
-                  <span
-                    v-else
-                    class="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700"
-                  >
-                    Writer Request
-                  </span>
+                    {{ cancelingRequestId === request.id ? 'Cancelling...' : 'Cancel Request' }}
+                  </button>
                 </div>
-                
-                <p class="text-gray-900 font-medium mb-2">{{ request.order_topic }}</p>
-                
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 text-sm">
-                  <div>
-                    <span class="text-gray-500">Pages:</span>
-                    <span class="ml-2 font-medium text-gray-900">{{ request.order_pages }}</span>
-                  </div>
-                  <div>
-                    <span class="text-gray-500">Price:</span>
-                    <span class="ml-2 font-medium text-green-600">${{ formatCurrency(request.order_price) }}</span>
-                  </div>
-                  <div>
-                    <span class="text-gray-500">Order Status:</span>
-                    <span class="ml-2 font-medium text-gray-900 capitalize">{{ request.order_status }}</span>
-                  </div>
-                  <div>
-                    <span class="text-gray-500">Requested:</span>
-                    <span class="ml-2 font-medium text-gray-900">{{ formatDate(request.requested_at) }}</span>
-                  </div>
-                </div>
-
-                <div v-if="request.reviewed_by" class="mt-3 text-sm text-gray-600">
-                  Reviewed by: <span class="font-medium">{{ request.reviewed_by }}</span>
-                  <span v-if="request.reviewed_at" class="ml-2">
-                    on {{ formatDate(request.reviewed_at) }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="flex flex-col gap-2 ml-4">
-                <router-link
-                  :to="`/orders/${request.order_id}`"
-                  class="btn btn-secondary text-sm whitespace-nowrap"
-                >
-                  View Order
-                </router-link>
-                <button
-                  v-if="request.status === 'pending'"
-                  @click="cancelRequest(request)"
-                  :disabled="cancelingRequestId === request.id"
-                  class="btn btn-warning text-sm whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {{ cancelingRequestId === request.id ? 'Cancelling...' : 'Cancel Request' }}
-                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
     </div>
+  </div>
 
     <!-- Confirmation Dialog -->
     <ConfirmationDialog

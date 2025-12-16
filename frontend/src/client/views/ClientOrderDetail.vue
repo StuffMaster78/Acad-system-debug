@@ -27,7 +27,7 @@
           <p class="text-gray-600 dark:text-gray-400">Order #{{ order.id }}</p>
         </div>
         <router-link
-          to="/client/orders"
+          :to="{ name: 'ClientOrders' }"
           class="px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
         >
           ← Back to Orders
@@ -119,6 +119,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show"
+      :title="confirm.title"
+      :message="confirm.message"
+      :details="confirm.details"
+      :variant="confirm.variant"
+      :icon="confirm.icon"
+      :confirm-text="confirm.confirmText"
+      :cancel-text="confirm.cancelText"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -127,10 +141,13 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ordersAPI from '@/api/orders'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import { useToast } from '@/composables/useToast'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { confirm } = useConfirmDialog()
+const confirm = useConfirmDialog()
+const { showToast } = useToast()
 
 const loading = ref(true)
 const error = ref('')
@@ -143,8 +160,9 @@ const fetchOrder = async () => {
     const response = await ordersAPI.get(route.params.id)
     order.value = response.data
   } catch (err) {
-    console.error('Failed to fetch order:', err)
-    error.value = err.response?.data?.detail || 'Failed to load order'
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || 'Failed to load order'
+    error.value = errorMsg
+    showToast(errorMsg, 'error')
   } finally {
     loading.value = false
   }
@@ -152,26 +170,38 @@ const fetchOrder = async () => {
 
 const formatStatus = (status) => {
   const statusMap = {
-    'pending': 'Pending',
-    'in_progress': 'In Progress',
-    'completed': 'Completed',
-    'cancelled': 'Cancelled',
-    'on_hold': 'On Hold',
-    'revision': 'Revision',
-    'disputed': 'Disputed'
+    pending: 'Pending',
+    in_progress: 'In Progress',
+    submitted: 'Submitted by Writer',
+    under_editing: 'Under Editing',
+    revision_requested: 'Revision Requested',
+    completed: 'Completed',
+    reviewed: 'Reviewed',
+    approved: 'Approved',
+    rated: 'Rated',
+    cancelled: 'Cancelled',
+    on_hold: 'On Hold',
+    disputed: 'Disputed',
+    closed: 'Closed',
   }
-  return statusMap[status] || status
+  return statusMap[status] || (status ? status.replace(/_/g, ' ') : 'Unknown')
 }
 
 const getStatusClass = (status) => {
   const classMap = {
-    'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-    'in_progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    'completed': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    'cancelled': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    'on_hold': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-    'revision': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-    'disputed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+    submitted: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
+    under_editing: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+    revision_requested: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    reviewed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    approved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+    rated: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300',
+    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    on_hold: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+    disputed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    closed: 'bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
   }
   return classMap[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
 }
@@ -193,41 +223,50 @@ const handlePayment = () => {
 }
 
 const requestRevision = async () => {
-  const confirmed = await confirm({
-    title: 'Request Revision',
-    message: 'Are you sure you want to request a revision for this order?',
-    confirmText: 'Request Revision',
-    cancelText: 'Cancel'
-  })
+  const confirmed = await confirm.showDialog(
+    'Are you sure you want to request a revision for this order?',
+    'Request Revision',
+    {
+      details: 'The writer will be notified and will need to make the requested changes. The order status will change to "Revision".',
+      confirmText: 'Request Revision',
+      cancelText: 'Cancel',
+      icon: '📝'
+    }
+  )
 
   if (!confirmed) return
 
   try {
     await ordersAPI.requestRevision(order.value.id)
+    showToast('Revision requested successfully', 'success')
     await fetchOrder()
   } catch (err) {
-    console.error('Failed to request revision:', err)
-    alert(err.response?.data?.detail || 'Failed to request revision')
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || 'Failed to request revision'
+    showToast(errorMsg, 'error')
   }
 }
 
 const cancelOrder = async () => {
-  const confirmed = await confirm({
-    title: 'Cancel Order',
-    message: 'Are you sure you want to cancel this order? This action cannot be undone.',
-    confirmText: 'Cancel Order',
-    cancelText: 'Keep Order',
-    variant: 'danger'
-  })
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to cancel this order?',
+    'Cancel Order',
+    {
+      details: `This action cannot be undone. Order #${order.value.id} "${order.value.topic || 'Untitled Order'}" will be cancelled and any work in progress will be stopped.`,
+      confirmText: 'Cancel Order',
+      cancelText: 'Keep Order',
+      icon: '⚠️'
+    }
+  )
 
   if (!confirmed) return
 
   try {
     await ordersAPI.cancel(order.value.id)
+    showToast('Order cancelled successfully', 'success')
     await fetchOrder()
   } catch (err) {
-    console.error('Failed to cancel order:', err)
-    alert(err.response?.data?.detail || 'Failed to cancel order')
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || 'Failed to cancel order'
+    showToast(errorMsg, 'error')
   }
 }
 

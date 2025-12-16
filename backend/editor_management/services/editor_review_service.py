@@ -16,6 +16,7 @@ from editor_management.models import (
 )
 from orders.models import Order
 from orders.order_enums import OrderStatus
+from orders.services.transition_helper import OrderTransitionHelper
 from notifications_system.services.notification_helper import NotificationHelper
 from audit_logging.services.audit_log_service import AuditLogService
 
@@ -148,12 +149,23 @@ class EditorReviewService:
         if is_approved and not requires_revision:
             # Approved - complete the task
             task_assignment.complete_review()
-            
-            # Move order to appropriate status
-            # If approved, move to 'reviewed' or 'completed' depending on workflow
+
+            # Move order to appropriate status using unified transition helper
+            # If the order is currently under_editing, transition it to reviewed.
             if order.status == OrderStatus.UNDER_EDITING.value:
-                order.status = OrderStatus.REVIEWED.value
-                order.save(update_fields=['status'])
+                OrderTransitionHelper.transition_order(
+                    order=order,
+                    target_status=OrderStatus.REVIEWED.value,
+                    user=editor.user if hasattr(editor, "user") else None,
+                    reason="Editor approved order after editing",
+                    action="editor_approve_after_editing",
+                    is_automatic=False,
+                    skip_payment_check=True,
+                    metadata={
+                        "editor_profile_id": getattr(editor, "id", None),
+                        "editor_task_id": getattr(task_assignment, "id", None),
+                    },
+                )
             
             # Log action
             EditorActionLog.objects.create(

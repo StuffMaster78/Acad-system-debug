@@ -1201,7 +1201,7 @@ const authStore = useAuthStore()
 const confirm = useConfirmDialog()
 
 // Debug: Log to ensure component is loading
-console.log('SpecialOrderManagement component loaded')
+// Component loaded
 
 const activeTab = ref('orders')
 const tabs = [
@@ -1359,9 +1359,7 @@ const loadOrders = async () => {
     if (filters.value.search) params.search = filters.value.search
     if (filters.value.website) params.website = filters.value.website
 
-    console.log('Loading special orders with params:', params)
     const res = await specialOrdersAPI.list(params)
-    console.log('Special orders response:', res)
     orders.value = res.data.results || res.data || []
     
     // Calculate stats (fallback if dashboard not loaded)
@@ -2100,7 +2098,7 @@ watch(activeTab, (newTab) => {
 })
 
 onMounted(async () => {
-  console.log('SpecialOrderManagement mounted, loading data...')
+  // Component mounted, loading data
   try {
     await Promise.all([
       loadDashboard(),

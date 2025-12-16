@@ -22,9 +22,12 @@ from orders.views.order_drafts import OrderDraftViewSet
 from orders.views.order_presets import OrderPresetViewSet
 from orders.views.enhanced_revisions import RevisionRequestViewSet
 from orders.views.writer_acknowledgment import WriterAssignmentAcknowledgmentViewSet
+from orders.views.writer_assignment_acceptance import WriterAssignmentAcceptanceViewSet
+from orders.views.preferred_writer_response import PreferredWriterResponseViewSet
 from orders.views.message_reminders import MessageReminderViewSet
 from orders.views.review_reminders import ReviewReminderViewSet
 from orders.views.guest_orders import GuestOrderViewSet
+from orders.views.assignment_analytics import AssignmentAnalyticsViewSet
 
 
 app_name = 'orders'
@@ -44,9 +47,12 @@ router.register(r'order-drafts', OrderDraftViewSet, basename='order-draft')
 router.register(r'order-presets', OrderPresetViewSet, basename='order-preset')
 router.register(r'revision-requests', RevisionRequestViewSet, basename='revision-request')
 router.register(r'writer-acknowledgments', WriterAssignmentAcknowledgmentViewSet, basename='writer-acknowledgment')
+router.register(r'writer-assignment-acceptances', WriterAssignmentAcceptanceViewSet, basename='writer-assignment-acceptance')
+router.register(r'preferred-writer-responses', PreferredWriterResponseViewSet, basename='preferred-writer-response')
 router.register(r'message-reminders', MessageReminderViewSet, basename='message-reminder')
 router.register(r'review-reminders', ReviewReminderViewSet, basename='review-reminder')
 router.register(r'guest-orders', GuestOrderViewSet, basename='guest-order')
+router.register(r'assignment-analytics', AssignmentAnalyticsViewSet, basename='assignment-analytics')
 
 
 urlpatterns = [

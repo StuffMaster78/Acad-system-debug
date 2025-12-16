@@ -111,7 +111,8 @@ class OrderDeletionService:
         self._ensure_can_hard_delete(user=user)
 
         try:
-            order = Order.objects.select_for_update().get(
+            # Use all_objects to access even soft-deleted orders
+            order = Order.all_objects.select_for_update().get(
                 id=order_id, website_id=self.website.id
             )
         except Order.DoesNotExist:

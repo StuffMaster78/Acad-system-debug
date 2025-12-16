@@ -151,10 +151,13 @@ const statusFilters = [
   { label: 'All', value: 'all' },
   { label: 'Pending', value: 'pending' },
   { label: 'In Progress', value: 'in_progress' },
+  { label: 'Under Editing', value: 'under_editing' },
+  { label: 'Revision Requested', value: 'revision_requested' },
   { label: 'Completed', value: 'completed' },
+  { label: 'Approved', value: 'approved' },
   { label: 'On Hold', value: 'on_hold' },
-  { label: 'Revision', value: 'revision' },
-  { label: 'Cancelled', value: 'cancelled' }
+  { label: 'Cancelled', value: 'cancelled' },
+  { label: 'Disputed', value: 'disputed' },
 ]
 
 const filteredOrders = computed(() => {
@@ -210,26 +213,38 @@ const fetchOrders = async () => {
 
 const formatStatus = (status) => {
   const statusMap = {
-    'pending': 'Pending',
-    'in_progress': 'In Progress',
-    'completed': 'Completed',
-    'cancelled': 'Cancelled',
-    'on_hold': 'On Hold',
-    'revision': 'Revision',
-    'disputed': 'Disputed'
+    pending: 'Pending',
+    in_progress: 'In Progress',
+    submitted: 'Submitted by Writer',
+    under_editing: 'Under Editing',
+    revision_requested: 'Revision Requested',
+    completed: 'Completed',
+    reviewed: 'Reviewed',
+    approved: 'Approved',
+    rated: 'Rated',
+    cancelled: 'Cancelled',
+    on_hold: 'On Hold',
+    disputed: 'Disputed',
+    closed: 'Closed',
   }
-  return statusMap[status] || status
+  return statusMap[status] || (status ? status.replace(/_/g, ' ') : 'Unknown')
 }
 
 const getStatusClass = (status) => {
   const classMap = {
-    'pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-    'in_progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-    'completed': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-    'cancelled': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-    'on_hold': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-    'revision': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
-    'disputed': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300'
+    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    in_progress: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+    submitted: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300',
+    under_editing: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
+    revision_requested: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+    completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    reviewed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+    approved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300',
+    rated: 'bg-sky-100 text-sky-800 dark:bg-sky-900/30 dark:text-sky-300',
+    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    on_hold: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
+    disputed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    closed: 'bg-gray-200 text-gray-800 dark:bg-gray-800 dark:text-gray-200',
   }
   return classMap[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'
 }

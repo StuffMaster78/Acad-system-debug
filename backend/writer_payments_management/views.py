@@ -370,3 +370,91 @@ class WriterPaymentManagementViewSet(viewsets.ViewSet):
         } for adj in adjustments]
 
         return Response({'results': data}, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'], url_path='adjust-amount')
+    def adjust_payment_amount(self, request, pk=None):
+        """
+        Admin adjusts the payment amount for a writer payment.
+        Can adjust payments whether they were set automatically (level-based) or by admin.
+        
+        Request body:
+        {
+            "adjustment_amount": 25.00,  // Positive to increase, negative to decrease
+            "reason": "Additional pages added"  // Required reason
+        }
+        """
+        from decimal import Decimal
+        from django.db import transaction
+        from wallet.models import Wallet, WalletTransaction
+        
+        try:
+            payment = WriterPayment.objects.get(pk=pk)
+        except WriterPayment.DoesNotExist:
+            return Response(
+                {'error': 'Payment not found'}, 
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        adjustment_amount = request.data.get('adjustment_amount')
+        reason = request.data.get('reason', '')
+        
+        if adjustment_amount is None:
+            return Response(
+                {'error': 'adjustment_amount is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not reason:
+            return Response(
+                {'error': 'reason is required for adjustments'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            adjustment_amount = Decimal(str(adjustment_amount))
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'Invalid adjustment_amount format'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        with transaction.atomic():
+            # Create adjustment record
+            adjustment = WriterPaymentAdjustment.objects.create(
+                website=payment.website,
+                writer_payment=payment,
+                admin=request.user,
+                adjustment_amount=adjustment_amount,
+                reason=reason
+            )
+            
+            # Apply the adjustment
+            old_amount = payment.amount
+            payment.amount += adjustment_amount
+            payment.amount = max(payment.amount, Decimal('0.00'))  # Ensure non-negative
+            payment.save()
+            
+            # Update wallet if payment was already processed
+            if payment.status == 'Paid':
+                wallet, created = Wallet.objects.get_or_create(
+                    user=payment.writer.user
+                )
+                wallet.balance += adjustment_amount
+                wallet.save()
+                
+                # Log transaction
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    transaction_type="adjustment",
+                    amount=adjustment_amount,
+                    description=f"Admin payment adjustment: {reason}"
+                )
+            
+            return Response({
+                'message': 'Payment amount adjusted successfully',
+                'payment_id': payment.id,
+                'old_amount': str(old_amount),
+                'new_amount': str(payment.amount),
+                'adjustment_amount': str(adjustment_amount),
+                'adjustment_id': adjustment.id
+            }, status=status.HTTP_200_OK)

@@ -279,7 +279,8 @@ const loadSessions = async () => {
   loadingSessions.value = true
   try {
     const response = await authAPI.getLoginSessions()
-    sessions.value = response.data || []
+    // Filter out any null or invalid session objects
+    sessions.value = (response.data || []).filter(s => s && s.id)
   } catch (error) {
     console.error('Failed to load sessions:', error)
     sessions.value = []

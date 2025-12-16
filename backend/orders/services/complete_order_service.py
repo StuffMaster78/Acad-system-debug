@@ -54,9 +54,16 @@ class CompleteOrderService:
         if not user.is_staff and not user.groups.filter(name__in=self.allowed_roles).exists():
             raise PermissionError("User is not authorized to complete the order.")
 
-        if order.status not in ['in_progress', 'on_revision', 'reviewed', 'on_hold', 'submitted', 'under_editing']:
-            raise ValueError(f"Order {order_id} cannot be completed from state {order.status}.")
-
+        # Check valid transitions - 'completed' can be reached from 'rated' or 'approved'
+        from orders.services.status_transition_service import VALID_TRANSITIONS
+        from orders.services.transition_helper import OrderTransitionHelper
+        
+        current_status = order.status
+        target_status = 'completed'
+        
+        # Check if direct transition to completed is allowed
+        allowed_transitions = VALID_TRANSITIONS.get(current_status, [])
+        
         # For unattributed orders completed by admin/superadmin, set admin as client
         is_unattributed = order.client_id is None and (
             bool(getattr(order, 'external_contact_name', None)) or
@@ -68,9 +75,85 @@ class CompleteOrderService:
             order.client = user
             logger.info(f"Unattributed order {order_id} completed by {user.username}. Admin set as client.")
         
-        order.status = 'completed'
         order.completed_by = user
         save_order(order)
+        
+        # If direct transition to completed is not allowed, try to go through intermediate states
+        if target_status not in allowed_transitions:
+            # Try to transition through 'rated' first (which allows transition to 'completed')
+            if 'rated' in allowed_transitions:
+                # First transition to rated
+                OrderTransitionHelper.transition_order(
+                    order,
+                    'rated',
+                    user=user,
+                    reason="Transitioning to rated before completion",
+                    action="transition_to_rated",
+                    is_automatic=False,
+                    skip_payment_check=True,
+                    metadata={"intermediate_step": True}
+                )
+                # Then transition to completed
+                OrderTransitionHelper.transition_order(
+                    order,
+                    'completed',
+                    user=user,
+                    reason="Order marked as completed",
+                    action="complete_order",
+                    is_automatic=False,
+                    skip_payment_check=True,
+                    metadata={
+                        "completed_by_id": user.id,
+                        "is_unattributed": is_unattributed,
+                    }
+                )
+            elif 'approved' in allowed_transitions:
+                # Try approved -> completed (approved can go directly to completed)
+                OrderTransitionHelper.transition_order(
+                    order,
+                    'approved',
+                    user=user,
+                    reason="Transitioning to approved before completion",
+                    action="transition_to_approved",
+                    is_automatic=False,
+                    skip_payment_check=True,
+                    metadata={"intermediate_step": True}
+                )
+                # Then transition to completed (approved -> completed is valid)
+                OrderTransitionHelper.transition_order(
+                    order,
+                    'completed',
+                    user=user,
+                    reason="Order marked as completed",
+                    action="complete_order",
+                    is_automatic=False,
+                    skip_payment_check=True,
+                    metadata={
+                        "completed_by_id": user.id,
+                        "is_unattributed": is_unattributed,
+                    }
+                )
+            else:
+                raise ValueError(
+                    f"Cannot complete order from status '{current_status}'. "
+                    f"Order must be in 'rated' or 'approved' status to be completed. "
+                    f"Allowed transitions from '{current_status}': {', '.join(allowed_transitions)}"
+                )
+        else:
+            # Direct transition is allowed
+            OrderTransitionHelper.transition_order(
+                order,
+                'completed',
+                user=user,
+                reason="Order marked as completed",
+                action="complete_order",
+                is_automatic=False,
+                skip_payment_check=True,  # Payment already validated
+                metadata={
+                    "completed_by_id": user.id,
+                    "is_unattributed": is_unattributed,
+                }
+            )
 
         self._award_referral_bonus(order)
 

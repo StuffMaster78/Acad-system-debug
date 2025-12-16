@@ -169,6 +169,7 @@ class OrderStatus(str, Enum):
     ON_HOLD = 'on_hold'
     AVAILABLE = 'available'
     PENDING_PREFERRED = 'pending_preferred'
+    PENDING_WRITER_ASSIGNMENT = 'pending_writer_assignment'  # Assigned but waiting for writer acceptance
     CRITICAL = 'critical'
     ASSIGNED = 'assigned'
     LATE = 'late'

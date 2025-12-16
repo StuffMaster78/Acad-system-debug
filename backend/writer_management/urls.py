@@ -13,6 +13,28 @@ from writer_management.views import (
     WriterSuspensionViewSet,
     WriterDeadlineExtensionRequestViewSet,
 )
+# Import WriterStatusViewSet from main views.py (not from views/__init__.py)
+# This is needed because WriterStatusViewSet is defined in views.py, not views/__init__.py
+try:
+    import sys
+    import os
+    import importlib.util
+    views_py_path = os.path.join(os.path.dirname(__file__), 'views.py')
+    if os.path.exists(views_py_path):
+        # Use a unique module name to avoid conflicts with the views/ package
+        spec = importlib.util.spec_from_file_location("writer_management.views_legacy", views_py_path)
+        if spec and spec.loader:
+            views_main = importlib.util.module_from_spec(spec)
+            # Don't set __name__ to avoid conflicts - use the unique name from spec
+            spec.loader.exec_module(views_main)
+            WriterStatusViewSet = getattr(views_main, 'WriterStatusViewSet', None)
+        else:
+            WriterStatusViewSet = None
+    else:
+        WriterStatusViewSet = None
+except Exception as e:
+    # Silently handle import errors - the ViewSet is optional
+    WriterStatusViewSet = None
 # Import performance views from views package
 from writer_management.views import (
     WriterPerformanceSnapshotViewSet, 
@@ -22,7 +44,11 @@ from writer_management.views import (
 
 # Import discipline ViewSets - they may be None if import fails
 try:
-    from writer_management.views import WriterStrikeViewSet, WriterDisciplineConfigViewSet
+    from writer_management.views import (
+        WriterStrikeViewSet,
+        WriterDisciplineConfigViewSet,
+        WriterWarningViewSet,
+    )
 except (ImportError, AttributeError):
     # Fallback: import directly from main views.py if package import fails
     import sys
@@ -33,6 +59,7 @@ except (ImportError, AttributeError):
         import writer_management.views as views_main
         WriterStrikeViewSet = views_main.WriterStrikeViewSet
         WriterDisciplineConfigViewSet = views_main.WriterDisciplineConfigViewSet
+        WriterWarningViewSet = getattr(views_main, 'WriterWarningViewSet', None)
     except (ImportError, AttributeError):
         # Fallback: import directly from main views.py file
         import sys
@@ -48,6 +75,7 @@ except (ImportError, AttributeError):
                 spec.loader.exec_module(views_main)
                 WriterStrikeViewSet = views_main.WriterStrikeViewSet
                 WriterDisciplineConfigViewSet = views_main.WriterDisciplineConfigViewSet
+                WriterWarningViewSet = getattr(views_main, 'WriterWarningViewSet', None)
         else:
             raise ImportError("Could not find writer_management/views.py")
 from writer_management.views_dashboard import WriterDashboardViewSet
@@ -91,6 +119,10 @@ if WriterStrikeViewSet:
     router.register(r'writer-strikes', WriterStrikeViewSet, basename='writer-strikes')
 if WriterDisciplineConfigViewSet:
     router.register(r'writer-discipline-configs', WriterDisciplineConfigViewSet, basename='writer-discipline-configs')
+if WriterWarningViewSet:
+    router.register(r'writer-warnings', WriterWarningViewSet, basename='writer-warnings')
+if WriterStatusViewSet:
+    router.register(r'writer-status', WriterStatusViewSet, basename='writer-status')
 router.register(r'writer-deadline-extension-requests', WriterDeadlineExtensionRequestViewSet, basename='writer-deadline-extension-requests')
 router.register(r'writer-performance-snapshots', WriterPerformanceSnapshotViewSet, basename='writer-performance-snapshots')
 router.register(r'dashboard', WriterDashboardViewSet, basename='writer-dashboard')

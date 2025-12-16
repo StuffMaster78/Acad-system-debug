@@ -54,7 +54,10 @@ function startProactiveTokenRefresh() {
       }
     } catch (error) {
       // Silently fail - token refresh will happen on next 401 anyway
-      console.debug('Proactive token refresh failed (non-critical):', error.message)
+      // Only log if it's not a rate limit (429) - those are expected
+      if (error.response?.status !== 429) {
+        console.debug('Proactive token refresh failed (non-critical):', error.message)
+      }
     }
   }, TOKEN_REFRESH_INTERVAL)
 }
@@ -200,13 +203,44 @@ apiClient.interceptors.response.use(
           }
         } else {
           // For network errors or other issues, just reject the original error
-          console.warn('Token refresh failed (non-auth error):', refreshError.message)
+          // Only log if it's not a rate limit (429) - those are expected
+          if (refreshError.response?.status !== 429) {
+            console.warn('Token refresh failed (non-auth error):', refreshError.message)
+          }
         }
         
         return Promise.reject(error) // Return original error, not refresh error
       }
     }
 
+    // Suppress noisy backend errors (404/403/429) for known missing endpoints
+    // These are expected and don't need to spam the console
+    const status = error.response?.status
+    const url = error.config?.url || error.request?.responseURL || ''
+    
+    // Known missing/restricted endpoints that are expected to fail
+    const expectedFailures = [
+      '/writer-management/writer-order-hold-requests/',
+      '/wallet/api/client-wallet/my_wallet/',
+      '/notifications_system/notifications/feed/',
+      '/order-configs/api/academic-levels/',
+      '/order-configs/api/paper-types/',
+      '/order-configs/api/types-of-work/',
+      '/order-configs/api/subjects/',
+      '/auth/auth/refresh-token/',
+    ]
+    
+    const isExpectedFailure = expectedFailures.some(endpoint => url.includes(endpoint))
+    
+    // Only suppress if it's an expected failure with a known status code
+    if (isExpectedFailure && (status === 404 || status === 403 || status === 429)) {
+      // Silently handle - these are backend configuration issues, not frontend bugs
+      // Return a normalized error but don't log it to console
+      const normalizedError = normalizeApiError(error)
+      normalizedError._suppressLog = true
+      return Promise.reject(normalizedError)
+    }
+    
     // Normalize other errors
     return Promise.reject(normalizeApiError(error))
   }

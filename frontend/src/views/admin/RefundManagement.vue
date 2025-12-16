@@ -398,6 +398,108 @@
       </div>
     </div>
 
+    <!-- Receipt Detail Modal -->
+    <div v-if="viewingReceipt" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full my-auto p-4 md:p-6 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+          <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Refund Receipt Details</h3>
+          <button @click="viewingReceipt = null" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-2xl">✕</button>
+        </div>
+
+        <div v-if="receiptLoading" class="flex items-center justify-center py-12">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+        </div>
+
+        <div v-else-if="receiptError" class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+          {{ receiptError }}
+        </div>
+
+        <div v-else-if="viewingReceipt" class="space-y-6">
+          <!-- Receipt Header -->
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="text-lg font-semibold text-gray-900 dark:text-white">Receipt #{{ viewingReceipt.reference_code || viewingReceipt.id }}</h4>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Generated: {{ formatDateTime(viewingReceipt.generated_at) }}</p>
+              </div>
+              <div class="text-right">
+                <p class="text-sm text-gray-600 dark:text-gray-400">Total Amount</p>
+                <p class="text-3xl font-bold text-blue-900 dark:text-blue-100">${{ parseFloat(viewingReceipt.amount || 0).toFixed(2) }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Receipt Details -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Receipt ID</span>
+              <p class="text-gray-900 dark:text-white font-medium mt-1">#{{ viewingReceipt.id }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Reference Code</span>
+              <p class="text-gray-900 dark:text-white font-medium mt-1">{{ viewingReceipt.reference_code || 'N/A' }}</p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Client</span>
+              <p class="text-gray-900 dark:text-white font-medium mt-1">
+                {{ viewingReceipt.client?.username || viewingReceipt.client?.email || viewingReceipt.client || 'N/A' }}
+              </p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Order Payment ID</span>
+              <p class="text-gray-900 dark:text-white font-medium mt-1">
+                #{{ typeof viewingReceipt.order_payment === 'object' ? viewingReceipt.order_payment?.id : viewingReceipt.order_payment || 'N/A' }}
+              </p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Refund ID</span>
+              <p class="text-gray-900 dark:text-white font-medium mt-1">
+                #{{ typeof viewingReceipt.refund === 'object' ? viewingReceipt.refund?.id : viewingReceipt.refund || 'N/A' }}
+              </p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Processed By</span>
+              <p class="text-gray-900 dark:text-white font-medium mt-1">
+                {{ typeof viewingReceipt.processed_by === 'object' ? viewingReceipt.processed_by?.username || viewingReceipt.processed_by?.email : viewingReceipt.processed_by || 'N/A' }}
+              </p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Website</span>
+              <p class="text-gray-900 dark:text-white font-medium mt-1">
+                {{ typeof viewingReceipt.website === 'object' ? viewingReceipt.website?.name : viewingReceipt.website || 'N/A' }}
+              </p>
+            </div>
+            <div class="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+              <span class="text-sm font-medium text-gray-600 dark:text-gray-400">Generated At</span>
+              <p class="text-gray-900 dark:text-white font-medium mt-1">{{ formatDateTime(viewingReceipt.generated_at) }}</p>
+            </div>
+          </div>
+
+          <!-- Reason -->
+          <div v-if="viewingReceipt.reason" class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+            <span class="text-sm font-medium text-yellow-800 dark:text-yellow-300">Refund Reason</span>
+            <p class="text-yellow-900 dark:text-yellow-200 mt-2">{{ viewingReceipt.reason }}</p>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex gap-2 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              @click="downloadReceipt(viewingReceipt)"
+              class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+            >
+              Download Receipt
+            </button>
+            <button
+              @click="viewingReceipt = null"
+              class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Create Refund Modal -->
     <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full my-auto p-4 md:p-6 max-h-[90vh] overflow-y-auto">
@@ -458,6 +560,9 @@
       :warning-message="passwordModalWarning"
       :confirm-button-text="passwordModalConfirmText"
       :loading="passwordVerifying"
+      :require-username="true"
+      :saved-usernames="savedAdminIdentities"
+      :default-username="savedAdminIdentities[0] || ''"
       @confirm="handlePasswordConfirm"
       @cancel="handlePasswordCancel"
       ref="passwordModalRef"
@@ -480,18 +585,18 @@
   </div>
 
   <!-- Confirmation Dialog -->
-  <ConfirmationDialog
-    v-model:show="confirm.show.value"
-    :title="confirm.title.value"
-    :message="confirm.message.value"
-    :details="confirm.details.value"
-    :variant="confirm.variant.value"
-    :icon="confirm.icon.value"
-    :confirm-text="confirm.confirmText.value"
-    :cancel-text="confirm.cancelText.value"
-    @confirm="confirm.onConfirm"
-    @cancel="confirm.onCancel"
-  />
+    <ConfirmationDialog
+      v-model:show="confirm.show"
+      :title="confirm.title"
+      :message="confirm.message"
+      :details="confirm.details"
+      :variant="confirm.variant"
+      :icon="confirm.icon"
+      :confirm-text="confirm.confirmText"
+      :cancel-text="confirm.cancelText"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
 </template>
 
 <script setup>
@@ -502,8 +607,10 @@ import apiClient from '@/api/client'
 import PasswordVerificationModal from '@/components/common/PasswordVerificationModal.vue'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const confirm = useConfirmDialog()
+const authStore = useAuthStore()
 
 const componentError = ref(null)
 const initialLoading = ref(true)
@@ -523,6 +630,9 @@ const logsLoading = ref(false)
 const receiptsLoading = ref(false)
 const saving = ref(false)
 const viewingRefund = ref(null)
+const viewingReceipt = ref(null)
+const receiptLoading = ref(false)
+const receiptError = ref(null)
 const showCreateModal = ref(false)
 const showPasswordModal = ref(false)
 const passwordVerifying = ref(false)
@@ -700,7 +810,19 @@ const cancelRefund = async (refund) => {
 }
 
 const retryRefund = async (refund) => {
-  if (!confirm('Are you sure you want to retry this refund?')) return
+  const amount = parseFloat(refund.total_amount || (parseFloat(refund.wallet_amount || 0) + parseFloat(refund.external_amount || 0))).toFixed(2)
+  const confirmed = await confirm.showDialog(
+    `Are you sure you want to retry this refund?`,
+    'Retry Refund',
+    {
+      details: `This will retry processing refund #${refund.id} for $${amount}. The refund will be processed again using the configured refund method.`,
+      confirmText: 'Retry Refund',
+      cancelText: 'Cancel',
+      icon: '🔄'
+    }
+  )
+  
+  if (!confirmed) return
   
   saving.value = true
   try {
@@ -761,9 +883,185 @@ const saveRefund = async () => {
   }
 }
 
-const viewReceipt = (receipt) => {
-  // TODO: Implement receipt detail view
-  showMessage('Receipt detail view coming soon', false)
+const viewReceipt = async (receipt) => {
+  receiptLoading.value = true
+  receiptError.value = null
+  
+  try {
+    // If receipt is just an ID, fetch full details
+    if (typeof receipt === 'number' || (typeof receipt === 'object' && !receipt.reference_code)) {
+      const receiptId = typeof receipt === 'number' ? receipt : receipt.id
+      const response = await refundsAPI.getReceipt(receiptId)
+      viewingReceipt.value = response.data
+    } else {
+      // Use the receipt object directly
+      viewingReceipt.value = receipt
+    }
+  } catch (error) {
+    receiptError.value = error.response?.data?.detail || error.message || 'Failed to load receipt details'
+    showMessage('Failed to load receipt details: ' + receiptError.value, false)
+  } finally {
+    receiptLoading.value = false
+  }
+}
+
+const downloadReceipt = async (receipt) => {
+  try {
+    // Get full receipt details if needed
+    let receiptData = receipt
+    if (typeof receipt === 'number' || (receipt && !receipt.reference_code)) {
+      const receiptId = typeof receipt === 'number' ? receipt : receipt.id
+      const response = await refundsAPI.getReceipt(receiptId)
+      receiptData = response.data
+    }
+    
+    // Generate printable receipt HTML
+    const receiptHTML = generateReceiptHTML(receiptData)
+    
+    // Open in new window for printing/downloading
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) {
+      showMessage('Please allow popups to download receipt', false)
+      return
+    }
+    
+    printWindow.document.write(receiptHTML)
+    printWindow.document.close()
+    
+    // Wait for content to load, then trigger print dialog
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print()
+        showMessage('Receipt ready for printing/download', true)
+      }, 250)
+    }
+  } catch (error) {
+    console.error('Failed to download receipt:', error)
+    showMessage('Failed to download receipt: ' + (error.response?.data?.detail || error.message), false)
+  }
+}
+
+const generateReceiptHTML = (receipt) => {
+  const date = receipt.generated_at ? new Date(receipt.generated_at).toLocaleString() : new Date().toLocaleString()
+  const referenceCode = receipt.reference_code || receipt.id || 'N/A'
+  const amount = parseFloat(receipt.amount || 0).toFixed(2)
+  const clientName = receipt.client?.username || receipt.client?.email || 'N/A'
+  const websiteName = receipt.website?.name || 'N/A'
+  const reason = receipt.reason || 'N/A'
+  const processedBy = receipt.processed_by?.username || receipt.processed_by?.email || 'N/A'
+  
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Refund Receipt - ${referenceCode}</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          padding: 40px;
+          color: #333;
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        .header {
+          text-align: center;
+          border-bottom: 3px solid #3b82f6;
+          padding-bottom: 20px;
+          margin-bottom: 30px;
+        }
+        .header h1 {
+          color: #1f2937;
+          margin: 0;
+          font-size: 28px;
+        }
+        .receipt-info {
+          background: #f9fafb;
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+        }
+        .info-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 8px 0;
+          border-bottom: 1px solid #e5e7eb;
+        }
+        .info-row:last-child {
+          border-bottom: none;
+        }
+        .info-label {
+          font-weight: 600;
+          color: #6b7280;
+        }
+        .info-value {
+          color: #111827;
+          font-weight: 500;
+        }
+        .amount {
+          font-size: 24px;
+          color: #059669;
+          font-weight: bold;
+        }
+        .footer {
+          margin-top: 40px;
+          padding-top: 20px;
+          border-top: 1px solid #e5e7eb;
+          text-align: center;
+          color: #6b7280;
+          font-size: 12px;
+        }
+        @media print {
+          body { padding: 20px; }
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>Refund Receipt</h1>
+        <p style="color: #6b7280; margin: 5px 0;">Reference: ${referenceCode}</p>
+      </div>
+      
+      <div class="receipt-info">
+        <div class="info-row">
+          <span class="info-label">Amount Refunded:</span>
+          <span class="info-value amount">$${amount}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Client:</span>
+          <span class="info-value">${clientName}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Website:</span>
+          <span class="info-value">${websiteName}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Date:</span>
+          <span class="info-value">${date}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Processed By:</span>
+          <span class="info-value">${processedBy}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Reason:</span>
+          <span class="info-value">${reason}</span>
+        </div>
+        ${receipt.refund ? `
+        <div class="info-row">
+          <span class="info-label">Refund ID:</span>
+          <span class="info-value">#${receipt.refund.id || receipt.refund}</span>
+        </div>
+        ` : ''}
+      </div>
+      
+      <div class="footer">
+        <p>This is an official refund receipt. Please keep this for your records.</p>
+        <p>Generated on ${date}</p>
+      </div>
+    </body>
+    </html>
+  `
 }
 
 const handlePasswordConfirm = async (credentials) => {
@@ -862,6 +1160,15 @@ const showMessage = (msg, success) => {
     message.value = ''
   }, 5000)
 }
+
+// Saved admin identities for quick-select in password modal
+const savedAdminIdentities = computed(() => {
+  const identities = []
+  const user = authStore.user
+  if (user?.username) identities.push(user.username)
+  if (user?.email && !identities.includes(user.email)) identities.push(user.email)
+  return identities
+})
 
 watch(activeTab, (newTab) => {
   if (newTab === 'refunds') {

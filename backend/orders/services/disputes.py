@@ -11,10 +11,7 @@ from orders.services.dispute_helpers import (
     validate_dispute_status_transition,
     send_dispute_notification,
 )
-from orders.services.order_utils import (
-    transition_order_status,
-    save_order
-)
+from orders.services.transition_helper import OrderTransitionHelper
 
 class DisputeService:
     """
@@ -65,7 +62,18 @@ class DisputeService:
             status=DisputeStatus.OPEN,
         )
 
-        transition_order_status(order.id, 'disputed', [order.status])
+        OrderTransitionHelper.transition_order(
+            order=order,
+            target_status='disputed',
+            user=raised_by,
+            reason=reason,
+            action="raise_dispute",
+            is_automatic=False,
+            metadata={
+                "dispute_id": dispute.id,
+                "dispute_reason": reason,
+            }
+        )
 
         send_dispute_notification(
             dispute,
@@ -101,19 +109,17 @@ class DisputeService:
                     )
 
         self.dispute.status = new_status
-        self.order.status = new_status
         self.dispute.last_updated_by = updated_by
         self.dispute.last_updated_at = timezone.now()
-        self.order.save()
-
+        
         if note:
             self.dispute.internal_note = note
 
         self.dispute.save()
 
-        # Sync the order status too
-        self.order.status = new_status
-        self.order.save()
+        # Note: Dispute status and order status are separate
+        # We don't automatically change order status when dispute status changes
+        # Order status should remain 'disputed' until dispute is resolved
 
         send_dispute_notification(
             self.dispute,
@@ -151,21 +157,91 @@ class DisputeService:
             raise ValidationError("Invalid resolution outcome.")
     
         if resolution_outcome == ResolutionOutcome.WRITER_WINS:
-            self.order.status = 'completed'
+            """
+            When the writer wins a dispute, the order should be considered
+            resolved in the writer's favour and moved out of the disputed
+            flow into a final or post‑review state.
+
+            Business rule (simplified, but explicit and easy to reason about):
+            - We close the disputed order, using the unified transition helper.
+            - This moves the order to the terminal `closed` status from `disputed`,
+              which is an allowed transition in `VALID_TRANSITIONS`.
+
+            If, in the future, we want to distinguish between:
+            - "work accepted but not reviewed yet" (e.g. `submitted` / `reviewed`)
+            - "fully finalised" (`closed`)
+            we can extend this method to inspect additional order fields
+            (review/rating timestamps, previous status snapshots, etc.)
+            and choose a more granular target state.
+            """
+            OrderTransitionHelper.transition_order(
+                order=self.order,
+                target_status='closed',
+                user=resolved_by,
+                reason=f"Dispute resolved: Writer wins. {resolution_notes or ''}",
+                action="resolve_dispute",
+                is_automatic=False,
+                metadata={
+                    "dispute_id": self.dispute.id,
+                    "resolution_outcome": resolution_outcome,
+                    "resolution_notes": resolution_notes,
+                }
+            )
 
         elif resolution_outcome == ResolutionOutcome.CLIENT_WINS:
-            self.order.status = 'cancelled'
+            OrderTransitionHelper.transition_order(
+                order=self.order,
+                target_status='cancelled',
+                user=resolved_by,
+                reason=f"Dispute resolved: Client wins. {resolution_notes or ''}",
+                action="resolve_dispute",
+                is_automatic=False,
+                metadata={
+                    "dispute_id": self.dispute.id,
+                    "resolution_outcome": resolution_outcome,
+                    "resolution_notes": resolution_notes,
+                }
+            )
 
         elif resolution_outcome == ResolutionOutcome.EXTEND_DEADLINE:
             if not extended_deadline:
                 raise ValidationError("Extended deadline must be provided.")
             self.order.change_deadline(extended_deadline)
-            self.order.status = 'revision'
             self.dispute.admin_extended_deadline = extended_deadline
+            # Note: 'revision_requested' might not be a valid transition from 'disputed'
+            # Check VALID_TRANSITIONS - disputed can go to revision_requested
+            OrderTransitionHelper.transition_order(
+                order=self.order,
+                target_status='revision_requested',
+                user=resolved_by,
+                reason=f"Dispute resolved: Deadline extended. {resolution_notes or ''}",
+                action="resolve_dispute",
+                is_automatic=False,
+                metadata={
+                    "dispute_id": self.dispute.id,
+                    "resolution_outcome": resolution_outcome,
+                    "extended_deadline": extended_deadline.isoformat(),
+                    "resolution_notes": resolution_notes,
+                }
+            )
 
         elif resolution_outcome == ResolutionOutcome.REASSIGN:
-            self.order.status = 'available'
-            self.order.writer = None
+            OrderTransitionHelper.transition_order(
+                order=self.order,
+                target_status='available',
+                user=resolved_by,
+                reason=f"Dispute resolved: Order reassigned. {resolution_notes or ''}",
+                action="resolve_dispute",
+                is_automatic=False,
+                metadata={
+                    "dispute_id": self.dispute.id,
+                    "resolution_outcome": resolution_outcome,
+                    "resolution_notes": resolution_notes,
+                }
+            )
+            # Clear assigned writer after transition
+            self.order.assigned_writer = None
+            self.order.save(update_fields=["assigned_writer"])
 
         else:
             raise ValidationError(

@@ -977,6 +977,66 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/blog-media',
+          name: 'BlogMediaLibrary',
+          component: () => import('@/views/admin/BlogMediaLibrary.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Media Library',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-analytics',
+          name: 'BlogAnalyticsDashboard',
+          component: () => import('@/views/admin/BlogAnalyticsDashboard.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Analytics Dashboard',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/assignment-analytics',
+          name: 'AssignmentAnalytics',
+          component: () => import('@/views/admin/AssignmentAnalytics.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Assignment Analytics',
+            roles: ['admin', 'superadmin', 'support'],
+          },
+        },
+        {
+          path: 'admin/blog-ab-testing',
+          name: 'ABTestingManagement',
+          component: () => import('@/views/admin/ABTestingManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'A/B Testing Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/content-workflows',
+          name: 'ContentWorkflowsManagement',
+          component: () => import('@/views/admin/ContentWorkflowsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Content Workflows Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/editor-analytics',
+          name: 'EditorAnalyticsDashboard',
+          component: () => import('@/views/admin/EditorAnalyticsDashboard.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Editor Analytics Dashboard',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/seo-pages',
           name: 'SEOPagesManagement',
           component: () => import('@/views/admin/SEOPagesManagement.vue'),
@@ -1033,6 +1093,236 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Content Calendar',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/content-templates',
+          name: 'ContentTemplatesManagement',
+          component: () => import('@/views/admin/ContentTemplatesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Content Templates Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/content-snippets',
+          name: 'ContentSnippetsManagement',
+          component: () => import('@/views/admin/ContentSnippetsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Content Snippets Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/publishing-targets',
+          name: 'PublishingTargetsManagement',
+          component: () => import('@/views/admin/PublishingTargetsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Publishing Targets Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/content-freshness',
+          name: 'ContentFreshnessReminders',
+          component: () => import('@/views/admin/ContentFreshnessReminders.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Content Freshness Reminders',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/faq-schemas',
+          name: 'FAQSchemaManagement',
+          component: () => import('@/views/admin/FAQSchemaManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'FAQ Schema Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/author-schemas',
+          name: 'AuthorSchemaManagement',
+          component: () => import('@/views/admin/AuthorSchemaManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Author Schema Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/social-platforms',
+          name: 'SocialPlatformsManagement',
+          component: () => import('@/views/admin/SocialPlatformsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Social Platforms Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-shares',
+          name: 'BlogSharesTracking',
+          component: () => import('@/views/admin/BlogSharesTracking.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Shares Tracking',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/content-block-templates',
+          name: 'ContentBlockTemplatesManagement',
+          component: () => import('@/views/admin/ContentBlockTemplatesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Content Block Templates Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/edit-history',
+          name: 'EditHistoryManagement',
+          component: () => import('@/views/admin/EditHistoryManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Edit History Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/seo-metadata',
+          name: 'SEOMetadataManagement',
+          component: () => import('@/views/admin/SEOMetadataManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'SEO Metadata Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/pdf-samples',
+          name: 'PDFSamplesManagement',
+          component: () => import('@/views/admin/PDFSamplesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'PDF Samples Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-revisions',
+          name: 'BlogRevisionsManagement',
+          component: () => import('@/views/admin/BlogRevisionsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Revisions Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-autosaves',
+          name: 'BlogAutosavesManagement',
+          component: () => import('@/views/admin/BlogAutosavesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Auto-saves Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-edit-locks',
+          name: 'BlogEditLocksManagement',
+          component: () => import('@/views/admin/BlogEditLocksManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Edit Locks Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-clicks-conversions',
+          name: 'BlogClicksConversionsTracking',
+          component: () => import('@/views/admin/BlogClicksConversionsTracking.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Clicks & Conversions Tracking',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/content-audit',
+          name: 'ContentAuditManagement',
+          component: () => import('@/views/admin/ContentAuditManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Content Audit Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-previews',
+          name: 'BlogPreviewsManagement',
+          component: () => import('@/views/admin/BlogPreviewsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Previews Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/category-publishing-targets',
+          name: 'CategoryPublishingTargetsManagement',
+          component: () => import('@/views/admin/CategoryPublishingTargetsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Category Publishing Targets Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-categories',
+          name: 'BlogCategoriesManagement',
+          component: () => import('@/views/admin/BlogCategoriesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Categories Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/blog-tags',
+          name: 'BlogTagsManagement',
+          component: () => import('@/views/admin/BlogTagsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Blog Tags Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/author-profiles',
+          name: 'AuthorProfilesManagement',
+          component: () => import('@/views/admin/AuthorProfilesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Author Profiles Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/media-browser',
+          name: 'MediaBrowser',
+          component: () => import('@/views/admin/MediaBrowser.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Media Browser',
             roles: ['admin', 'superadmin'],
           },
         },
@@ -1123,6 +1413,26 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Order Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/order-drafts',
+          name: 'OrderDraftsManagement',
+          component: () => import('@/views/admin/OrderDraftsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Order Drafts Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/order-presets',
+          name: 'OrderPresetsManagement',
+          component: () => import('@/views/admin/OrderPresetsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Order Presets Management',
             roles: ['admin', 'superadmin'],
           },
         },
@@ -1377,6 +1687,16 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/writer-capacity',
+          name: 'WriterCapacityManagement',
+          component: () => import('@/views/admin/WriterCapacityManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Writer Capacity Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/writer-feedback',
           name: 'WriterFeedbackManagement',
           component: () => import('@/views/admin/WriterFeedbackManagement.vue'),
@@ -1483,6 +1803,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Dashboard Widgets',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/newsletters',
+          name: 'NewsletterManagement',
+          component: () => import('@/views/admin/NewsletterManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Newsletter Management',
             roles: ['admin', 'superadmin'],
           },
         },
@@ -1763,6 +2093,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Analytics & Reports',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/geographic-analytics',
+          name: 'RefinedStats',
+          component: () => import('@/views/admin/GeographicAnalytics.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Refined Stats',
             roles: ['admin', 'superadmin'],
           },
         },

@@ -53,7 +53,19 @@ class WriterOrderRequest(models.Model):
         """
         Enforce max request limit before saving.
         Uses writer's level configuration instead of global config.
+        
+        Note: This check is skipped if:
+        - The request is already approved (being updated, not created)
+        - The request is being saved with admin_override=True (set by admin/support actions)
         """
+        # Skip validation if request is already approved (admin is updating it)
+        if self.pk and self.approved:
+            return
+        
+        # Skip validation if admin override is set (for admin/support assignments)
+        if getattr(self, '_admin_override', False):
+            return
+        
         # Get max requests from writer's level, fallback to WriterConfig if no level
         if self.writer.writer_level:
             max_requests = self.writer.writer_level.max_requests_per_writer
@@ -62,7 +74,11 @@ class WriterOrderRequest(models.Model):
             config = WriterConfig.objects.filter(website=self.writer.website).first()
             max_requests = config.max_requests_per_writer if config else 5
         
-        active_requests = WriterOrderRequest.objects.filter(writer=self.writer, approved=False).count()
+        # Only count unapproved requests (exclude this one if it exists)
+        active_requests_qs = WriterOrderRequest.objects.filter(writer=self.writer, approved=False)
+        if self.pk:
+            active_requests_qs = active_requests_qs.exclude(pk=self.pk)
+        active_requests = active_requests_qs.count()
 
         if active_requests >= max_requests:
             raise ValidationError(f"Writer {self.writer.user.username} has reached their max request limit ({max_requests}).")

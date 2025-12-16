@@ -242,6 +242,20 @@
     <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
       {{ message }}
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -249,8 +263,11 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { appealsAPI } from '@/api'
 import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const { showToast } = useToast()
+const confirm = useConfirmDialog()
 
 const loading = ref(false)
 const appeals = ref([])
@@ -317,15 +334,23 @@ const viewAppeal = (appeal) => {
 }
 
 const approveAppeal = async (appeal) => {
-  const confirmMessage = `Are you sure you want to APPROVE this appeal?\n\n` +
-    `This will ${appeal.appeal_type === 'probation' ? 'remove the writer from probation' : 
-      appeal.appeal_type === 'blacklist' ? 'remove the writer from the blacklist' : 
-      'lift the writer\'s suspension'}.\n\n` +
-    `User: ${appeal.user_username}\n` +
-    `Type: ${appeal.appeal_type}\n` +
-    `Reason: ${appeal.reason.substring(0, 100)}...`
+  const actionDescription = appeal.appeal_type === 'probation' 
+    ? 'remove the writer from probation' 
+    : appeal.appeal_type === 'blacklist' 
+    ? 'remove the writer from the blacklist' 
+    : 'lift the writer\'s suspension'
   
-  if (!confirm(confirmMessage)) return
+  const confirmed = await confirm.showWarning(
+    `Are you sure you want to APPROVE this appeal?`,
+    'Approve Appeal',
+    {
+      details: `This will ${actionDescription}.\n\nUser: ${appeal.user_username}\nType: ${appeal.appeal_type}\nReason: ${appeal.reason.substring(0, 100)}...`,
+      confirmText: 'Approve',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   try {
     await appealsAPI.approveAppeal(appeal.id)
@@ -342,11 +367,17 @@ const approveAppeal = async (appeal) => {
 }
 
 const rejectAppeal = async (appeal) => {
-  const confirmMessage = `Are you sure you want to REJECT this appeal?\n\n` +
-    `The current disciplinary action (${appeal.appeal_type}) will remain in effect.\n\n` +
-    `User: ${appeal.user_username}`
+  const confirmed = await confirm.showWarning(
+    'Are you sure you want to REJECT this appeal?',
+    'Reject Appeal',
+    {
+      details: `The current disciplinary action (${appeal.appeal_type}) will remain in effect.\n\nUser: ${appeal.user_username}`,
+      confirmText: 'Reject',
+      cancelText: 'Cancel'
+    }
+  )
   
-  if (!confirm(confirmMessage)) return
+  if (!confirmed) return
   
   try {
     await appealsAPI.rejectAppeal(appeal.id)

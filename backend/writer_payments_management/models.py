@@ -94,30 +94,52 @@ class WriterPayment(models.Model):
         from writer_management.services.earnings_calculator import WriterEarningsCalculator
         
         if self.order:
-            # Determine if order is urgent
-            is_urgent = False
-            if self.order.writer_deadline or self.order.client_deadline:
-                deadline = self.order.writer_deadline or self.order.client_deadline
-                hours_until_deadline = (deadline - now()).total_seconds() / 3600
-                is_urgent = hours_until_deadline <= self.writer.writer_level.urgent_order_deadline_hours
-            
-            # Determine if order is technical
-            is_technical = getattr(self.order, 'is_technical', False) or \
-                          (hasattr(self.order, 'subject') and getattr(self.order.subject, 'is_technical', False))
-            
-            # Calculate base payment using new calculator
-            base_payment = WriterEarningsCalculator.calculate_earnings(
-                self.writer.writer_level,
-                self.order,
-                is_urgent=is_urgent,
-                is_technical=is_technical
-            )
+            # Use admin-set payment amount if available, otherwise calculate from level
+            if self.order.writer_compensation and self.order.writer_compensation > 0:
+                base_payment = self.order.writer_compensation
+            else:
+                # Fallback to level-based calculation
+                # Determine if order is urgent
+                is_urgent = False
+                if self.order.writer_deadline or self.order.client_deadline:
+                    deadline = self.order.writer_deadline or self.order.client_deadline
+                    hours_until_deadline = (deadline - now()).total_seconds() / 3600
+                    is_urgent = hours_until_deadline <= self.writer.writer_level.urgent_order_deadline_hours
+                
+                # Determine if order is technical
+                is_technical = getattr(self.order, 'is_technical', False) or \
+                              (hasattr(self.order, 'subject') and getattr(self.order.subject, 'is_technical', False))
+                
+                # Calculate base payment using new calculator
+                base_payment = WriterEarningsCalculator.calculate_earnings(
+                    self.writer.writer_level,
+                    self.order,
+                    is_urgent=is_urgent,
+                    is_technical=is_technical
+                )
+        elif self.special_order:
+            # Use admin-set payment amount or percentage if available
+            if self.special_order.writer_payment_amount and self.special_order.writer_payment_amount > 0:
+                base_payment = self.special_order.writer_payment_amount
+            elif self.special_order.writer_payment_percentage and self.special_order.writer_payment_percentage > 0:
+                # Calculate from percentage
+                order_total = getattr(self.special_order, 'total_cost', 0) or getattr(self.special_order, 'admin_approved_cost', 0) or 0
+                base_payment = Decimal(str(order_total)) * (self.special_order.writer_payment_percentage / Decimal('100'))
+            else:
+                # Fallback to level-based calculation
+                base_payment = WriterEarningsCalculator.calculate_special_order_earnings(
+                    self.writer.writer_level,
+                    self.special_order,
+                    is_urgent=False,
+                    is_technical=False
+                )
         else:
             base_payment = Decimal('0.00')
 
-        # Apply bonuses from Special Orders
+        # Apply bonuses from Special Orders (if not already included in base payment)
         if self.special_order:
-            self.bonuses += self.special_order.bonus_amount
+            bonus_amount = getattr(self.special_order, 'bonus_amount', 0) or Decimal('0.00')
+            self.bonuses += bonus_amount
         
         # Apply level-based bonuses
         if self.order and self.writer.writer_level:

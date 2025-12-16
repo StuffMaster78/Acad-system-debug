@@ -1013,8 +1013,8 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
         - Staff: any.
         Returns 200 on success.
         """
-        # need to access even if currently deleted, so bypass filtered qs
-        order = get_object_or_404(Order, pk=pk, website_id=self.website.id)
+        # need to access even if currently deleted, so use all_objects
+        order = get_object_or_404(Order.all_objects, pk=pk, website_id=self.website.id)
         self._svc().restore(user=request.user, order=order)
         return Response(status=status.HTTP_200_OK)
 
@@ -1037,22 +1037,47 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
             else status.HTTP_200_OK
         return Response(status=code)
     
-    @decorators.action(detail=True, methods=["post"], url_path="transition")
+    @decorators.action(detail=True, methods=["get", "post"], url_path="transition")
     def transition_status(self, request, pk=None):
         """
-        Transition order to a new status.
+        GET: Get available transitions for an order.
+        POST: Transition order to a new status.
         
-        Body:
+        POST Body:
         {
             "target_status": "in_progress",
             "reason": "Optional reason for transition",
-            "skip_payment_check": false
+            "skip_payment_check": false,
+            "metadata": {}
         }
         """
         order = get_object_or_404(Order, pk=pk)
+        
+        if request.method == "GET":
+            # Return available transitions
+            from orders.services.transition_helper import OrderTransitionHelper
+            available_transitions = OrderTransitionHelper.get_available_transitions(order)
+            
+            return Response(
+                {
+                    "order_id": order.id,
+                    "current_status": order.status,
+                    "available_transitions": available_transitions,
+                    "can_transition": {
+                        status: OrderTransitionHelper.can_transition(order, status)
+                        for status in available_transitions
+                    }
+                },
+                status=status.HTTP_200_OK
+            )
+        
+        # POST: Perform transition
         target_status = request.data.get("target_status")
-        reason = request.data.get("reason")
+        reason = request.data.get("reason", "")
         skip_payment_check = request.data.get("skip_payment_check", False)
+        metadata = request.data.get("metadata", {})
+        action = request.data.get("action", "status_transition")
+        is_automatic = request.data.get("is_automatic", False)
         
         if not target_status:
             return Response(
@@ -1060,25 +1085,35 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Check if user has permission (admin/superadmin can skip checks)
+        # Check if user has permission (admin/superadmin/support can skip checks)
         user_role = getattr(request.user, 'role', None)
-        if user_role not in ['admin', 'superadmin']:
+        if user_role not in ['admin', 'superadmin', 'support']:
             skip_payment_check = False
         
         try:
-            from orders.services.status_transition_service import StatusTransitionService
-            service = StatusTransitionService(user=request.user)
-            service.transition_order_to_status(
-                order,
-                target_status,
+            from orders.services.transition_helper import OrderTransitionHelper
+            
+            old_status = order.status
+            updated_order = OrderTransitionHelper.transition_order(
+                order=order,
+                target_status=target_status,
+                user=request.user,
                 reason=reason,
-                skip_payment_check=skip_payment_check
+                action=action,
+                is_automatic=is_automatic,
+                skip_payment_check=skip_payment_check,
+                metadata=metadata
             )
+            
+            # Refresh order from DB to get latest state
+            updated_order.refresh_from_db()
             
             return Response(
                 {
-                    "message": f"Order transitioned to {target_status}",
-                    "order": OrderSerializer(order, context={"request": request}).data
+                    "message": f"Order transitioned from '{old_status}' to '{target_status}'",
+                    "old_status": old_status,
+                    "new_status": updated_order.status,
+                    "order": OrderSerializer(updated_order, context={"request": request}).data
                 },
                 status=status.HTTP_200_OK
             )
@@ -1105,9 +1140,8 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
         """
         order = get_object_or_404(Order, pk=pk)
         
-        from orders.services.status_transition_service import StatusTransitionService
-        service = StatusTransitionService(user=request.user)
-        available = service.get_available_transitions(order)
+        from orders.services.transition_helper import OrderTransitionHelper
+        available = OrderTransitionHelper.get_available_transitions(order)
         
         return Response(
             {
@@ -1117,3 +1151,234 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
             },
             status=status.HTTP_200_OK
         )
+    
+    @decorators.action(detail=True, methods=["post"], url_path="auto-assign")
+    def auto_assign(self, request, pk=None):
+        """
+        Automatically assign a writer to an order.
+        
+        Body (optional):
+        {
+            "min_rating": 4.0,
+            "max_candidates": 10,
+            "require_subject_match": true
+        }
+        """
+        order = get_object_or_404(Order, pk=pk, website_id=self.website.id)
+        
+        # Check permissions (admin/support only)
+        if not (request.user.is_staff or getattr(request.user, 'role', None) in ['admin', 'superadmin', 'support']):
+            return Response(
+                {"detail": "Only administrators can use auto-assignment."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        min_rating = request.data.get('min_rating', 4.0)
+        max_candidates = request.data.get('max_candidates', 10)
+        
+        try:
+            from orders.services.auto_assignment_service import AutoAssignmentService
+            
+            service = AutoAssignmentService(order, actor=request.user)
+            updated_order, writer, assignment_info = service.auto_assign(
+                reason=f"Auto-assigned by {request.user.username}",
+                require_acceptance=True,
+                max_candidates=max_candidates,
+                min_rating=min_rating,
+            )
+            
+            return Response(
+                {
+                    "message": f"Order #{order.id} auto-assigned to {writer.username}",
+                    "order": OrderSerializer(updated_order, context={"request": request}).data,
+                    "writer": {
+                        "id": writer.id,
+                        "username": writer.username,
+                        "email": writer.email,
+                    },
+                    "assignment_info": assignment_info,
+                },
+                status=status.HTTP_200_OK
+            )
+        except ValidationError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"detail": f"Auto-assignment failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @decorators.action(detail=False, methods=["post"], url_path="bulk-auto-assign")
+    def bulk_auto_assign(self, request):
+        """
+        Automatically assign multiple available orders.
+        
+        Body (optional):
+        {
+            "max_assignments": 10,
+            "min_rating": 4.0,
+            "website_id": 1
+        }
+        """
+        # Check permissions (admin/support only)
+        if not (request.user.is_staff or getattr(request.user, 'role', None) in ['admin', 'superadmin', 'support']):
+            return Response(
+                {"detail": "Only administrators can use bulk auto-assignment."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        max_assignments = request.data.get('max_assignments', 10)
+        min_rating = request.data.get('min_rating', 4.0)
+        website_id = request.data.get('website_id', self.website.id)
+        
+        try:
+            from orders.services.auto_assignment_service import AutoAssignmentService
+            from websites.models import Website
+            
+            website = Website.objects.get(id=website_id) if website_id else self.website
+            
+            results = AutoAssignmentService.auto_assign_available_orders(
+                website=website,
+                max_assignments=max_assignments,
+                min_rating=min_rating,
+                actor=request.user,
+            )
+            
+            return Response(
+                {
+                    "message": f"Bulk auto-assignment completed: {results['successful']} successful, {results['failed']} failed",
+                    "results": results,
+                },
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {"detail": f"Bulk auto-assignment failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @decorators.action(detail=False, methods=["post"], url_path="bulk-assign")
+    def bulk_assign(self, request):
+        """
+        Bulk assign multiple orders to writers.
+        
+        Body:
+        {
+            "assignments": [
+                {"order_id": 1, "writer_id": 5, "reason": "..."},
+                {"order_id": 2, "writer_id": 6, "reason": "..."}
+            ],
+            "strategy": "balanced"  // or "round_robin", "best_match"
+        }
+        """
+        # Check permissions (admin/support only)
+        if not (request.user.is_staff or getattr(request.user, 'role', None) in ['admin', 'superadmin', 'support']):
+            return Response(
+                {"detail": "Only administrators can use bulk assignment."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        assignments = request.data.get('assignments', [])
+        strategy = request.data.get('strategy', 'balanced')
+        
+        if not assignments:
+            return Response(
+                {"detail": "No assignments provided"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            from orders.services.bulk_assignment_service import BulkAssignmentService
+            
+            # If assignments is a list of order IDs, use automatic distribution
+            if isinstance(assignments[0], int):
+                # List of order IDs - use automatic distribution
+                order_ids = assignments
+                orders = Order.objects.filter(
+                    id__in=order_ids,
+                    website_id=self.website.id,
+                )
+                
+                results = BulkAssignmentService.distribute_orders_automatically(
+                    orders=list(orders),
+                    actor=request.user,
+                    strategy=strategy,
+                )
+            else:
+                # List of assignment dicts - use manual assignment
+                results = BulkAssignmentService.assign_orders_to_writers(
+                    assignments=assignments,
+                    actor=request.user,
+                )
+            
+            return Response(
+                {
+                    "message": f"Bulk assignment completed: {results['successful']} successful, {results['failed']} failed",
+                    "results": results,
+                },
+                status=status.HTTP_200_OK
+            )
+        except ValidationError as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            return Response(
+                {"detail": f"Bulk assignment failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    @decorators.action(detail=True, methods=["get"], url_path="smart-match")
+    def smart_match(self, request, pk=None):
+        """
+        Get smart matching recommendations for an order.
+        
+        Query params:
+        - max_results: Maximum matches to return (default: 10)
+        - min_rating: Minimum writer rating (default: 4.0)
+        """
+        order = get_object_or_404(Order, pk=pk, website_id=self.website.id)
+        
+        max_results = int(request.query_params.get('max_results', 10))
+        min_rating = float(request.query_params.get('min_rating', 4.0))
+        
+        try:
+            from orders.services.smart_matching_service import SmartMatchingService
+            
+            matches = SmartMatchingService.find_best_matches(
+                order=order,
+                max_results=max_results,
+                min_rating=min_rating,
+            )
+            
+            # Format response
+            results = []
+            for match in matches:
+                explanation = SmartMatchingService.get_match_explanation(order, match['writer'])
+                results.append({
+                    'writer_id': match['writer_id'],
+                    'writer_username': match['writer_username'],
+                    'score': round(match['score'], 3),
+                    'rating': match['rating'],
+                    'active_orders': match['active_orders'],
+                    'reasons': match['reasons'],
+                    'explanation': explanation,
+                })
+            
+            return Response(
+                {
+                    "order_id": order.id,
+                    "matches": results,
+                    "total_matches": len(results),
+                },
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            return Response(
+                {"detail": f"Smart matching failed: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

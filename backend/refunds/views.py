@@ -1,7 +1,6 @@
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import BasicAuthentication
 from rest_framework.decorators import action
 from django.utils import timezone
 from django.core.exceptions import ValidationError
@@ -17,7 +16,6 @@ class RefundViewSet(viewsets.ModelViewSet):
     queryset = Refund.objects.all().select_related('order_payment', 'client')
     serializer_class = RefundSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [BasicAuthentication]
     pagination_class = None
 
     def get_queryset(self):
@@ -169,7 +167,6 @@ class RefundLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = RefundLog.objects.all().select_related('order', 'refund', 'client', 'processed_by')
     serializer_class = RefundLogSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [BasicAuthentication]
     pagination_class = None
 
     def get_queryset(self):
@@ -182,7 +179,6 @@ class RefundReceiptViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = RefundReceipt.objects.all().select_related('refund', 'order_payment', 'client', 'processed_by')
     serializer_class = RefundReceiptSerializer
     permission_classes = [IsAuthenticated]
-    authentication_classes = [BasicAuthentication]
     pagination_class = None
 
     def get_queryset(self):

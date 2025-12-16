@@ -624,6 +624,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -638,6 +652,10 @@ import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import emailsAPI from '@/api/emails'
 import apiClient from '@/api/client'
 import mediaAPI from '@/api/media'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+
+const confirm = useConfirmDialog()
 
 const activeTab = ref('mass-emails')
 const tabs = [
@@ -1154,7 +1172,18 @@ const closeMassEmailDetailModal = () => {
 }
 
 const sendMassEmailNow = async (id) => {
-  if (!confirm('Are you sure you want to send this campaign now?')) return
+  const confirmed = await confirm.showWarning(
+    'Are you sure you want to send this campaign now?',
+    'Send Campaign',
+    {
+      details: 'This will immediately send the campaign to all recipients. This action cannot be undone.',
+      confirmText: 'Send',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await emailsAPI.sendMassEmailNow(id)
     alert('Campaign sending started')
@@ -1256,7 +1285,18 @@ const closeDigestModal = () => {
 }
 
 const sendDigestNow = async (id) => {
-  if (!confirm('Are you sure you want to send this digest now?')) return
+  const confirmed = await confirm.showWarning(
+    'Are you sure you want to send this digest now?',
+    'Send Digest',
+    {
+      details: 'This will immediately send the digest to all subscribers. This action cannot be undone.',
+      confirmText: 'Send',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await emailsAPI.sendDigestNow(id)
     alert('Digest sent')
@@ -1267,7 +1307,18 @@ const sendDigestNow = async (id) => {
 }
 
 const sendDueDigests = async () => {
-  if (!confirm('Are you sure you want to send all due digests?')) return
+  const confirmed = await confirm.showWarning(
+    'Are you sure you want to send all due digests?',
+    'Send All Due Digests',
+    {
+      details: 'This will immediately send all due digests to their respective subscribers. This action cannot be undone.',
+      confirmText: 'Send All',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await emailsAPI.sendDueDigests()
     alert('Due digests sent')
@@ -1357,7 +1408,18 @@ const closeBroadcastModal = () => {
 }
 
 const sendBroadcastNow = async (id) => {
-  if (!confirm('Are you sure you want to send this broadcast now?')) return
+  const confirmed = await confirm.showWarning(
+    'Are you sure you want to send this broadcast now?',
+    'Send Broadcast',
+    {
+      details: 'This will immediately send the broadcast to all recipients. This action cannot be undone.',
+      confirmText: 'Send',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await emailsAPI.sendBroadcastNow(id)
     alert('Broadcast sent')
@@ -1469,7 +1531,18 @@ const saveTemplate = async () => {
 }
 
 const deleteTemplate = async (id) => {
-  if (!confirm('Are you sure you want to delete this template?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this template?',
+    'Delete Template',
+    {
+      details: 'This action cannot be undone. The template will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await emailsAPI.deleteTemplate(id)
     loadTemplates()

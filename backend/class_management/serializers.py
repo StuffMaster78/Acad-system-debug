@@ -308,6 +308,14 @@ class ExpressClassScopeReviewSerializer(serializers.Serializer):
 
 
 class ExpressClassAssignWriterSerializer(serializers.Serializer):
+    writer_id = serializers.IntegerField(required=True)
+    bonus_amount = serializers.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        required=True,
+        help_text="Payment amount for the class (paid as bonus)"
+    )
+    admin_notes = serializers.CharField(required=False, allow_blank=True)
     """Serializer for assigning writer to express class."""
     writer_id = serializers.IntegerField(required=True)
     admin_notes = serializers.CharField(required=False, allow_blank=True)

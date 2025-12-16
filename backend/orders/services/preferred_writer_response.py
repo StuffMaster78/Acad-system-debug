@@ -38,7 +38,7 @@ class PreferredWriterResponseService:
         Raises:
             ObjectDoesNotExist: If order does not exist or writer
                 is not assigned as preferred.
-            ValueError: If order status is not 'assigned'.
+            ValueError: If order status is not 'pending_preferred'.
         """
         with transaction.atomic():
             order = Order.objects.select_for_update().get(id=order_id)
@@ -48,18 +48,41 @@ class PreferredWriterResponseService:
                     "Order not assigned to this writer."
                 )
 
-            if order.status != OrderStatus.ASSIGNED:
-                raise ValueError("Order is not currently assigned.")
+            if order.status != OrderStatus.PENDING_PREFERRED.value:
+                raise ValueError(
+                    f"Order is not currently pending preferred writer response. "
+                    f"Current status: {order.status}"
+                )
 
-            PreferredWriterResponse.objects.create(
+            # Check if response already exists
+            PreferredWriterResponse.objects.get_or_create(
                 order=order,
-                writer=writer,
-                response=PreferredWriterResponseService.RESPONSE_ACCEPTED,
+                defaults={
+                    'website': order.website,
+                    'writer': writer,
+                    'response': PreferredWriterResponseService.RESPONSE_ACCEPTED,
+                }
             )
 
-            order.status = OrderStatus.IN_PROGRESS
+            # Assign writer
+            order.assigned_writer = writer
             order.accepted_at = timezone.now()
             order.save()
+            
+            # Use unified transition helper to move to in_progress
+            from orders.services.transition_helper import OrderTransitionHelper
+            OrderTransitionHelper.transition_order(
+                order,
+                OrderStatus.IN_PROGRESS.value,
+                user=writer,
+                reason="Preferred writer accepted assignment",
+                action="preferred_writer_accept",
+                is_automatic=False,
+                skip_payment_check=True,  # Payment already validated when order was created
+                metadata={
+                    "preferred_writer_id": writer.id,
+                }
+            )
 
             return order
 
@@ -78,7 +101,7 @@ class PreferredWriterResponseService:
         Raises:
             ObjectDoesNotExist: If order does not exist or writer
                 is not assigned as preferred.
-            ValueError: If order status is not 'assigned'.
+            ValueError: If order status is not 'pending_preferred'.
         """
         with transaction.atomic():
             order = Order.objects.select_for_update().get(id=order_id)
@@ -88,19 +111,40 @@ class PreferredWriterResponseService:
                     "Order not assigned to this writer."
                 )
 
-            if order.status != OrderStatus.ASSIGNED:
-                raise ValueError("Order is not currently assigned.")
+            if order.status != OrderStatus.PENDING_PREFERRED.value:
+                raise ValueError(
+                    f"Order is not currently pending preferred writer response. "
+                    f"Current status: {order.status}"
+                )
 
-            PreferredWriterResponse.objects.create(
+            PreferredWriterResponse.objects.get_or_create(
                 order=order,
-                writer=writer,
-                response=PreferredWriterResponseService.RESPONSE_DECLINED,
-                reason=reason,
+                defaults={
+                    'website': order.website,
+                    'writer': writer,
+                    'response': PreferredWriterResponseService.RESPONSE_DECLINED,
+                    'reason': reason,
+                }
             )
 
-            order.status = OrderStatus.AVAILABLE
+            # Clear preferred writer
             order.preferred_writer = None
             order.save()
+            
+            # Use unified transition helper to move to available
+            from orders.services.transition_helper import OrderTransitionHelper
+            OrderTransitionHelper.transition_order(
+                order,
+                OrderStatus.AVAILABLE.value,
+                user=writer,
+                reason=reason or "Preferred writer rejected assignment",
+                action="preferred_writer_reject",
+                is_automatic=False,
+                metadata={
+                    "preferred_writer_id": writer.id,
+                    "rejection_reason": reason,
+                }
+            )
 
             return order
 
@@ -108,34 +152,53 @@ class PreferredWriterResponseService:
     def release_if_expired():
         """Release assigned orders if acceptance window expired.
 
-        Finds orders with status 'assigned' where the preferred writer 
+        Finds orders with status 'pending_preferred' where the preferred writer 
         failed to respond within the acceptance window (20% of time 
-        between assignment and deadline). Such orders are moved back to 
+        between creation and deadline). Such orders are moved back to 
         'available' and preferred_writer is cleared.
 
         This method is intended to be called periodically by a background 
         job or scheduler.
         """
         now = timezone.now()
-        assigned_orders = Order.objects.filter(status=OrderStatus.ASSIGNED)
+        pending_orders = Order.objects.filter(status=OrderStatus.PENDING_PREFERRED.value)
 
-        for order in assigned_orders:
-            if not order.assigned_at or not order.deadline:
+        for order in pending_orders:
+            if not order.created_at or not order.deadline:
                 continue
 
-            total_time = order.deadline - order.assigned_at
+            total_time = order.deadline - order.created_at
             acceptance_window = timedelta(
                 seconds=total_time.total_seconds() *
                 PreferredWriterResponseService.ACCEPTANCE_WINDOW_FRACTION
             )
 
-            expire_time = order.assigned_at + acceptance_window
+            expire_time = order.created_at + acceptance_window
             if now > expire_time:
                 with transaction.atomic():
                     locked_order = Order.objects.select_for_update().get(
                         id=order.id
                     )
-                    if locked_order.status == OrderStatus.ASSIGNED:
-                        locked_order.status = OrderStatus.AVAILABLE
+                    if locked_order.status == OrderStatus.PENDING_PREFERRED.value:
+                        # Clear preferred writer
                         locked_order.preferred_writer = None
                         locked_order.save()
+                        
+                        # Use unified transition helper
+                        from orders.services.transition_helper import OrderTransitionHelper
+                        try:
+                            OrderTransitionHelper.transition_order(
+                                locked_order,
+                                OrderStatus.AVAILABLE.value,
+                                user=None,  # System action
+                                reason="Preferred writer acceptance window expired",
+                                action="auto_release_preferred",
+                                is_automatic=True,
+                                metadata={
+                                    "preferred_writer_id": order.preferred_writer.id if order.preferred_writer else None,
+                                    "expired_at": now.isoformat(),
+                                }
+                            )
+                        except (InvalidTransitionError, AlreadyInTargetStatusError):
+                            # Order may have already transitioned, ignore
+                            pass

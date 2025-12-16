@@ -636,6 +636,7 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         
         # Auto-detect recipient (the other participant in the thread)
         participants = list(thread.participants.exclude(id=user.id))
+        recipient = None
         
         if not participants:
             # If no other participants, try to get from order
@@ -648,11 +649,6 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
                 else:
                     # For staff, default to client or writer
                     recipient = order.client or order.assigned_writer
-            else:
-                return Response(
-                    {"detail": "Cannot determine recipient. Please specify a recipient."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
         else:
             # Use the first other participant (most common case: 2-person thread)
             recipient = participants[0]
@@ -664,6 +660,13 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
                         recipient = order.client
                     elif order.assigned_writer in participants:
                         recipient = order.assigned_writer
+        
+        # Validate recipient was determined
+        if not recipient:
+            return Response(
+                {"detail": "Cannot determine recipient. Please ensure the thread has participants or is associated with an order."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
         message_text = request.data.get('message', '').strip()
         attachment_file = request.FILES.get('attachment')

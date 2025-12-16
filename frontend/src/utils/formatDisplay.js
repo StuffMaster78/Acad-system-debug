@@ -11,10 +11,23 @@
 export function formatWriterName(writer) {
   if (!writer) return 'Unknown'
   
-  const username = writer.user?.username || writer.username || 'Unknown'
-  const email = writer.user?.email || writer.email
+  // Try multiple possible paths for username
+  const username = writer.username || writer.user?.username || writer.writer_profile?.user?.username || 'Unknown'
+  const email = writer.email || writer.user?.email || writer.writer_profile?.user?.email
   
-  if (email) {
+  // If username is still 'Unknown', try to get from email or ID
+  if (username === 'Unknown') {
+    if (email) {
+      // Extract username from email (part before @)
+      const emailUsername = email.split('@')[0]
+      return emailUsername
+    }
+    if (writer.id) {
+      return `Writer #${writer.id}`
+    }
+  }
+  
+  if (email && username !== email) {
     return `${username} (${email})`
   }
   return username
@@ -28,11 +41,35 @@ export function formatWriterName(writer) {
 export function formatWebsiteName(website) {
   if (!website) return 'Unknown'
   
-  const name = website.name || 'Unknown'
-  const domain = website.domain
+  // Try multiple possible name fields
+  const name = website.name || website.website_name || website.title || ''
+  
+  // If no name, try to extract from domain or use ID
+  if (!name || name.trim() === '') {
+    if (website.domain) {
+      // Extract domain name from URL (e.g., "example.com" from "https://example.com")
+      try {
+        const url = new URL(website.domain)
+        const domainName = url.hostname.replace('www.', '')
+        return domainName
+      } catch (e) {
+        // If domain is not a valid URL, use it as-is
+        return website.domain.replace(/^https?:\/\//, '').replace(/^www\./, '')
+      }
+    }
+    // Last resort: use ID
+    if (website.id) {
+      return `Website #${website.id}`
+    }
+    return 'Unknown'
+  }
+  
+  const domain = website.domain || website.website_domain
   
   if (domain) {
-    return `${name} (${domain})`
+    // Clean up domain for display
+    const cleanDomain = domain.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
+    return `${name} (${cleanDomain})`
   }
   return name
 }

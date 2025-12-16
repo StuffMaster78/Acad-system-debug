@@ -25,6 +25,12 @@ function humanizeFieldName(field) {
 export function getErrorMessage(error, defaultMessage = 'An unexpected error occurred', action = '') {
   if (!error) return defaultMessage
 
+  // Check if this error should be suppressed (expected backend failures)
+  if (error._suppressLog) {
+    // Return a silent message - don't log to console
+    return null
+  }
+
   // Handle axios/API errors
   if (error.response) {
     const data = error.response.data

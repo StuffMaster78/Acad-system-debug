@@ -108,10 +108,66 @@ class OrderReassignmentService:
             request.save()
 
         if status == 'reassigned' and processed_by and processed_by.is_staff:
+            from orders.services.transition_helper import OrderTransitionHelper
+            from orders.services.status_transition_service import VALID_TRANSITIONS
+            
             assigned_writer = metadata.get('assigned_writer') if metadata else None
             order.assigned_writer = assigned_writer
-            order.status = "in_progress" if assigned_writer else "available"
-            order.save()
+            
+            # Determine target status based on current status and valid transitions
+            current_status = order.status
+            preferred_target = "in_progress" if assigned_writer else "available"
+            
+            # Check if preferred target is valid from current status
+            allowed_transitions = VALID_TRANSITIONS.get(current_status, [])
+            
+            if preferred_target in allowed_transitions:
+                target_status = preferred_target
+            else:
+                # Try alternative transitions
+                if assigned_writer:
+                    # Try to get to in_progress via intermediate states
+                    if 'reassigned' in allowed_transitions:
+                        target_status = "reassigned"
+                    elif 'on_hold' in allowed_transitions:
+                        target_status = "on_hold"
+                    else:
+                        raise ValueError(
+                            f"Cannot reassign order from '{current_status}' to '{preferred_target}'. "
+                            f"Allowed transitions: {', '.join(allowed_transitions)}. "
+                            f"Please transition order to a valid state first."
+                        )
+                else:
+                    # Try to get to available
+                    if 'available' not in allowed_transitions:
+                        if 'reassigned' in allowed_transitions:
+                            target_status = "reassigned"
+                        elif 'on_hold' in allowed_transitions:
+                            target_status = "on_hold"
+                        else:
+                            raise ValueError(
+                                f"Cannot reassign order from '{current_status}' to 'available'. "
+                                f"Allowed transitions: {', '.join(allowed_transitions)}. "
+                                f"Please transition order to a valid state first."
+                            )
+                    else:
+                        target_status = "available"
+            
+            OrderTransitionHelper.transition_order(
+                order=order,
+                target_status=target_status,
+                user=processed_by,
+                reason=f"Order reassigned{' to new writer' if assigned_writer else ' - available for assignment'}",
+                action="resolve_reassignment",
+                is_automatic=False,
+                metadata={
+                    "reassignment_request_id": request.id if request else None,
+                    "assigned_writer_id": assigned_writer.id if assigned_writer else None,
+                    "fine_applied": float(fine),
+                    **(metadata or {})
+                }
+            )
+            order.save(update_fields=["assigned_writer"])
 
         return order
 

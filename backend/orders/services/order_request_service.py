@@ -152,7 +152,7 @@ class OrderRequestService:
                 f"Cannot assign writer. Order status is '{order.status}', "
                 f"but must be 'available'."
             )
-        if order.assigned_to is not None:
+        if order.assigned_writer is not None:
             raise AlreadyAssignedError("Order is already assigned to a writer.")
 
         writer_request = OrderRequest.objects.filter(
@@ -173,10 +173,23 @@ class OrderRequestService:
             status=OrderRequestStatus.PENDING
         ).exclude(writer=writer).update(status=OrderRequestStatus.REJECTED)
 
-        # Assign writer
-        order.assigned_to = writer
-        order.status = "in_progress"
-        save_order(order)
+        # Assign writer using transition helper
+        from orders.services.transition_helper import OrderTransitionHelper
+        
+        order.assigned_writer = writer  # Use correct field name
+        OrderTransitionHelper.transition_order(
+            order=order,
+            target_status="in_progress",
+            user=self.user,
+            reason=f"Writer request accepted and assigned",
+            action="accept_writer_request",
+            is_automatic=False,
+            metadata={
+                "writer_id": writer.id,
+                "request_id": writer_request.id,
+            }
+        )
+        order.save(update_fields=["assigned_writer"])
 
         if self.user:
             AuditLogService.log_auto(

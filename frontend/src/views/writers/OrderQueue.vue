@@ -1,34 +1,98 @@
 <template>
-  <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Order Queue</h1>
-        <p class="mt-2 text-gray-600">Browse and request available orders</p>
+  <div class="min-h-screen bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <!-- Header -->
+      <div class="mb-8">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+          <div class="space-y-2">
+            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+              Order Queue
+            </h1>
+            <p class="text-base text-gray-600 leading-relaxed max-w-2xl">
+              Browse and request available orders
+            </p>
+          </div>
+          <button
+            @click="loadQueue"
+            :disabled="loading"
+            class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+          >
+            {{ loading ? 'Loading...' : 'Refresh' }}
+          </button>
+        </div>
       </div>
-      <button @click="loadQueue" :disabled="loading" class="btn btn-secondary">
-        {{ loading ? 'Loading...' : 'Refresh' }}
-      </button>
-    </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
-        <p class="text-sm font-medium text-blue-700 mb-1">Available Orders</p>
-        <p class="text-3xl font-bold text-blue-900">{{ stats.available_count || 0 }}</p>
+      <!-- Stats Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
+                Available Orders
+              </p>
+              <p class="text-3xl sm:text-4xl font-bold text-blue-900">
+                {{ stats.available_count || 0 }}
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">📋</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-2">
+                Preferred Orders
+              </p>
+              <p class="text-3xl sm:text-4xl font-bold text-purple-900">
+                {{ stats.preferred_count || 0 }}
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">⭐</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
+                My Requests
+              </p>
+              <p class="text-3xl sm:text-4xl font-bold text-yellow-900">
+                {{ stats.requests_count || 0 }}
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">📝</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+          <div class="flex items-start justify-between">
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
+                Approved
+              </p>
+              <p class="text-3xl sm:text-4xl font-bold text-green-900">
+                {{ stats.approved_count || 0 }}
+              </p>
+            </div>
+            <div class="ml-4 flex-shrink-0">
+              <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                <span class="text-2xl">✅</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
-        <p class="text-sm font-medium text-purple-700 mb-1">Preferred Orders</p>
-        <p class="text-3xl font-bold text-purple-900">{{ stats.preferred_count || 0 }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
-        <p class="text-sm font-medium text-yellow-700 mb-1">My Requests</p>
-        <p class="text-3xl font-bold text-yellow-900">{{ stats.requests_count || 0 }}</p>
-      </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
-        <p class="text-sm font-medium text-green-700 mb-1">Approved</p>
-        <p class="text-3xl font-bold text-green-900">{{ stats.approved_count || 0 }}</p>
-      </div>
-    </div>
 
     <!-- Take Capacity -->
     <div class="bg-white rounded-lg shadow-sm border border-primary-100 p-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
@@ -37,10 +101,31 @@
         <p class="text-xl font-semibold text-gray-900 mt-1">
           {{ levelDetails?.name || 'Unranked' }}
         </p>
-        <p class="text-sm text-gray-600">
-          Active orders: <span class="font-semibold text-gray-900">{{ takeCapacity.active }}</span> / {{ takeCapacity.maxOrders }}
-          ({{ takeCapacity.remaining }} slots remaining)
-        </p>
+        <div class="space-y-2">
+          <div class="flex items-center gap-4 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="text-gray-600">Active:</span>
+              <span class="font-semibold text-gray-900">{{ takeCapacity.active }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-gray-600">Max:</span>
+              <span class="font-semibold text-gray-900">{{ takeCapacity.maxOrders }}</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-gray-600">Remaining:</span>
+              <span class="font-bold" :class="takeCapacity.remaining > 0 ? 'text-green-600' : 'text-red-600'">
+                {{ takeCapacity.remaining }}
+              </span>
+            </div>
+          </div>
+          <div class="w-full bg-gray-200 rounded-full h-2.5">
+            <div 
+              class="h-2.5 rounded-full transition-all duration-300"
+              :class="capacityBarColorClass"
+              :style="{ width: `${capacityPercentage}%` }"
+            ></div>
+          </div>
+        </div>
       </div>
       <div class="text-sm text-gray-600">
         <p v-if="!takesEnabled" class="text-red-600 font-medium">
@@ -58,106 +143,136 @@
       </div>
     </div>
 
-    <!-- Recommended Orders -->
-    <div
-      v-if="recommendedOrders.length"
-      class="bg-white rounded-lg shadow-sm border border-blue-100 p-6"
-    >
-      <div class="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <p class="text-xs font-semibold text-blue-600 uppercase tracking-wide">Smart Picks</p>
-          <h2 class="text-2xl font-bold text-gray-900">Recommended For You</h2>
-          <p class="text-sm text-gray-500">Based on your skills, subject preferences, and earning potential.</p>
+      <!-- Recommended Orders -->
+      <div
+        v-if="recommendedOrders.length"
+        class="bg-white rounded-xl shadow-md border-l-4 border-blue-600 p-6 sm:p-8 mb-8"
+      >
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+          <div class="space-y-2">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <span class="text-xl">🎯</span>
+              </div>
+              <div>
+                <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-1">
+                  Smart Picks
+                </p>
+                <h2 class="text-2xl font-bold text-gray-900">
+                  Recommended For You
+                </h2>
+              </div>
+            </div>
+            <p class="text-sm text-gray-600 leading-relaxed max-w-2xl">
+              Based on your skills, subject preferences, and earning potential.
+            </p>
+          </div>
+          <button
+            type="button"
+            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors whitespace-nowrap"
+            @click="scrollToTabs"
+          >
+            <span>View full queue</span>
+            <span>→</span>
+          </button>
         </div>
-        <button
-          class="text-sm font-semibold text-primary-600 hover:text-primary-800"
-          @click="activeTab = 'available'"
-        >
-          View full queue →
-        </button>
-      </div>
       <div class="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <div
           v-for="order in recommendedOrders.slice(0, 6)"
           :key="`recommended-${order.id}`"
           class="border rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow bg-gradient-to-br from-blue-50 to-white"
         >
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-xs text-gray-500">Order #{{ order.id }}</p>
-              <p class="text-base font-semibold text-gray-900">
-                {{ order.topic || 'Untitled order' }}
-              </p>
+            <div class="flex items-start justify-between gap-4 mb-4">
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                  Order #{{ order.id }}
+                </p>
+                <p class="text-base font-bold text-gray-900 line-clamp-2 mb-2">
+                  {{ order.topic || 'Untitled order' }}
+                </p>
+                <p class="text-sm font-medium text-gray-600">
+                  {{ order.subject || order.service_type || 'General' }}
+                </p>
+              </div>
+              <div class="flex flex-col items-end gap-2 flex-shrink-0">
+                <button
+                  @click="viewOrder(order)"
+                  class="text-xs font-semibold text-primary-600 hover:text-primary-700 underline whitespace-nowrap"
+                >
+                  View details
+                </button>
+                <span class="inline-flex items-center px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold uppercase tracking-wide">
+                  Match {{ Math.round(order.match_score || 0) }}%
+                </span>
+              </div>
             </div>
-            <div class="flex flex-col items-end gap-2">
-              <button
-                @click="viewOrder(order)"
-                class="text-xs text-primary-600 hover:text-primary-800 underline"
+
+            <div class="grid grid-cols-2 gap-4 mb-4">
+              <div class="bg-white rounded-lg p-3 border border-blue-200">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                  Potential Payout
+                </p>
+                <p class="text-base font-bold text-green-600 truncate">
+                  ${{ formatCurrency(order.potential_payout) }}
+                </p>
+              </div>
+              <div class="bg-white rounded-lg p-3 border border-blue-200">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                  Deadline
+                </p>
+                <p class="text-sm font-semibold text-gray-900 line-clamp-1">
+                  {{ formatDate(order.deadline) }}
+                </p>
+              </div>
+            </div>
+
+            <div
+              v-if="order.match_tags?.length"
+              class="flex flex-wrap gap-2 mb-4"
+            >
+              <span
+                v-for="tag in order.match_tags.slice(0, 3)"
+                :key="`${order.id}-${tag}`"
+                class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold uppercase tracking-wide"
               >
-                View details
-              </button>
-              <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold">
-                Match {{ Math.round(order.match_score || 0) }}%
+                {{ tag }}
               </span>
             </div>
-          </div>
-          <p class="text-sm text-gray-600 mt-1">{{ order.subject || order.service_type || 'General' }}</p>
 
-          <div class="grid grid-cols-2 gap-3 text-sm text-gray-600 mt-4">
-            <div>
-              <p class="text-xs uppercase text-gray-400">Potential payout</p>
-              <p class="text-green-700 font-semibold">${{ formatCurrency(order.potential_payout) }}</p>
+            <div class="flex flex-col sm:flex-row gap-3">
+              <button
+                @click="takeOrder(order)"
+                :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders || isOrderRequested(order)"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                :class="{
+                  'bg-emerald-600 hover:bg-emerald-700 text-white': !takingOrder && canTakeOrders && !isOrderRequested(order),
+                  'bg-gray-400 text-white cursor-not-allowed': !canTakeOrders || isOrderRequested(order)
+                }"
+                :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested(order) ? 'You have already requested this order' : 'Take this order immediately')"
+              >
+                <span>{{ takingOrder === order.id ? '⏳' : '✅' }}</span>
+                <span>{{ takingOrder === order.id ? 'Taking...' : 'Take' }}</span>
+              </button>
+              <button
+                @click="openRequestModal(order)"
+                :disabled="isOrderRequested(order) || requestingOrder === order.id || takingOrder === order.id"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                :class="{
+                  'bg-violet-600 hover:bg-violet-700 text-white': !isOrderRequested(order) && !requestingOrder,
+                  'bg-gray-400 text-white cursor-not-allowed': isOrderRequested(order)
+                }"
+                :title="isOrderRequested(order) ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
+              >
+                <span>{{ requestingOrder === order.id ? '⏳' : (isOrderRequested(order) ? '✓' : '📋') }}</span>
+                <span>{{ isOrderRequested(order) ? 'Requested' : (requestingOrder === order.id ? 'Requesting...' : 'Request') }}</span>
+              </button>
             </div>
-            <div>
-              <p class="text-xs uppercase text-gray-400">Deadline</p>
-              <p class="font-semibold text-gray-900">{{ formatDate(order.deadline) }}</p>
-            </div>
-          </div>
-
-          <div v-if="order.match_tags?.length" class="flex flex-wrap gap-2 mt-4">
-            <span
-              v-for="tag in order.match_tags.slice(0, 3)"
-              :key="`${order.id}-${tag}`"
-              class="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium"
-            >
-              {{ tag }}
-            </span>
-          </div>
-
-          <div class="flex flex-col sm:flex-row gap-2 mt-5">
-            <button
-              @click="takeOrder(order)"
-              :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders || isOrderRequested(order)"
-              class="flex-1 btn btn-primary text-sm flex items-center justify-center gap-1 font-semibold"
-              :class="{
-                'bg-emerald-600 hover:bg-emerald-700': !takingOrder && canTakeOrders && !isOrderRequested(order),
-                'bg-gray-400 cursor-not-allowed': !canTakeOrders || isOrderRequested(order)
-              }"
-              :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested(order) ? 'You have already requested this order' : 'Take this order immediately')"
-            >
-              <span>{{ takingOrder === order.id ? '⏳' : '✅' }}</span>
-              <span>{{ takingOrder === order.id ? 'Taking...' : 'Take' }}</span>
-            </button>
-            <button
-              @click="openRequestModal(order)"
-              :disabled="isOrderRequested(order) || requestingOrder === order.id || takingOrder === order.id"
-              class="flex-1 btn btn-primary text-sm flex items-center justify-center gap-1"
-              :class="{
-                'bg-violet-600 hover:bg-violet-700': !isOrderRequested(order) && !requestingOrder,
-                'bg-gray-400 cursor-not-allowed': isOrderRequested(order)
-              }"
-              :title="isOrderRequested(order) ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
-            >
-              <span>{{ requestingOrder === order.id ? '⏳' : (isOrderRequested(order) ? '✓' : '📋') }}</span>
-              <span>{{ isOrderRequested(order) ? 'Requested' : (requestingOrder === order.id ? 'Requesting...' : 'Request') }}</span>
-            </button>
           </div>
         </div>
       </div>
-    </div>
 
     <!-- Tabs -->
-    <div class="bg-white rounded-lg shadow-sm">
+    <div id="order-queue-tabs" class="bg-white rounded-lg shadow-sm">
       <div class="border-b border-gray-200">
         <nav class="flex -mb-px">
           <button
@@ -193,126 +308,227 @@
           >
             My Requests ({{ allRequests.length }})
           </button>
+          <button
+            @click="activeTab = 'pending-assignments'"
+            :class="[
+              'px-6 py-3 text-sm font-medium border-b-2 transition-colors',
+              activeTab === 'pending-assignments'
+                ? 'border-orange-500 text-orange-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            ]"
+          >
+            Pending Assignments ({{ pendingAssignments.length }})
+          </button>
+          <button
+            @click="activeTab = 'pending-preferred'"
+            :class="[
+              'px-6 py-3 text-sm font-medium border-b-2 transition-colors',
+              activeTab === 'pending-preferred'
+                ? 'border-purple-500 text-purple-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            ]"
+          >
+            Pending Preferred ({{ pendingPreferredAssignments.length }})
+          </button>
         </nav>
       </div>
 
-      <!-- Filters -->
-      <div class="p-4 border-b border-gray-200">
-        <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Service Type</label>
-            <select v-model="filters.service_type" @change="filterOrders" class="w-full border rounded px-3 py-2">
-              <option value="">All Types</option>
-              <option v-for="type in serviceTypes" :key="type" :value="type">{{ type }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Min Price</label>
-            <input v-model.number="filters.min_price" type="number" @input="filterOrders" class="w-full border rounded px-3 py-2" placeholder="0" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Max Pages</label>
-            <input v-model.number="filters.max_pages" type="number" @input="filterOrders" class="w-full border rounded px-3 py-2" placeholder="Any" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Sort By</label>
-            <select v-model="sortOption" class="w-full border rounded px-3 py-2">
-              <option value="default">Newest first</option>
-              <option value="payout_desc">Potential payout (high → low)</option>
-              <option value="deadline_asc">Deadline (soonest)</option>
-            </select>
-          </div>
-          <div class="flex items-end">
-            <button @click="resetFilters" class="btn btn-secondary w-full">Reset</button>
+        <!-- Filters -->
+        <div class="p-6 border-b-2 border-gray-200 bg-gray-50">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
+                Service Type
+              </label>
+              <select
+                v-model="filters.service_type"
+                @change="filterOrders"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors shadow-sm"
+              >
+                <option value="">All Types</option>
+                <option
+                  v-for="type in serviceTypes"
+                  :key="type"
+                  :value="type"
+                >
+                  {{ type }}
+                </option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
+                Min Price
+              </label>
+              <input
+                v-model.number="filters.min_price"
+                type="number"
+                @input="filterOrders"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors shadow-sm placeholder-gray-400"
+                placeholder="0"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
+                Max Pages
+              </label>
+              <input
+                v-model.number="filters.max_pages"
+                type="number"
+                @input="filterOrders"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors shadow-sm placeholder-gray-400"
+                placeholder="Any"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
+                Sort By
+              </label>
+              <select
+                v-model="sortOption"
+                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm font-medium text-gray-700 bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors shadow-sm"
+              >
+                <option value="default">Newest first</option>
+                <option value="payout_desc">
+                  Potential payout (high → low)
+                </option>
+                <option value="deadline_asc">Deadline (soonest)</option>
+              </select>
+            </div>
+            <div class="flex items-end">
+              <button
+                @click="resetFilters"
+                class="w-full inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all shadow-sm"
+              >
+                Reset
+              </button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Available Orders Tab -->
-      <div v-if="activeTab === 'available'" class="p-6">
-        <div v-if="loading" class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-        <div v-else-if="filteredAvailableOrders.length === 0" class="text-center py-12 text-gray-500">
-          <p>No available orders found</p>
-        </div>
-        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Available Orders Tab -->
+        <div v-if="activeTab === 'available'" class="p-6 sm:p-8">
+          <div v-if="loading" class="flex flex-col items-center justify-center py-16 gap-4">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 border-t-primary-600"></div>
+            <p class="text-sm font-medium text-gray-500">Loading orders...</p>
+          </div>
           <div
-            v-for="order in filteredAvailableOrders"
-            :key="order.id"
-            class="border rounded-lg p-4 hover:shadow-md transition-shadow"
+            v-else-if="filteredAvailableOrders.length === 0"
+            class="text-center py-16"
           >
-            <div class="flex items-start justify-between mb-2">
-              <div>
-                <h3 class="font-semibold text-gray-900">Order #{{ order.id }}</h3>
-                <p class="text-xs text-gray-500">{{ order.service_type }}</p>
-              </div>
-              <button
-                @click="viewOrder(order)"
-                class="text-xs text-primary-600 hover:text-primary-800 underline"
-              >
-                View details
-              </button>
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
+              <span class="text-4xl">📭</span>
             </div>
-            <p class="text-sm text-gray-600 mb-3 line-clamp-2">{{ order.topic || 'No topic' }}</p>
-            <div class="space-y-1 text-sm text-gray-500 mb-4">
-              <div class="flex justify-between">
-                <span>Pages:</span>
-                <span class="font-medium">{{ order.pages }}</span>
+            <p class="text-lg font-semibold text-gray-900 mb-2">
+              No available orders found
+            </p>
+            <p class="text-sm text-gray-500">
+              Try adjusting your filters or check back later.
+            </p>
+          </div>
+          <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            <div
+              v-for="order in filteredAvailableOrders"
+              :key="order.id"
+              class="border-2 border-gray-200 rounded-xl p-5 sm:p-6 hover:shadow-lg transition-all bg-white"
+            >
+              <div class="flex items-start justify-between gap-4 mb-4">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-2">
+                    <h3 class="text-lg font-bold text-gray-900">
+                      Order #{{ order.id }}
+                    </h3>
+                  </div>
+                  <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    {{ order.service_type }}
+                  </p>
+                  <p class="text-sm font-semibold text-gray-900 mb-4 line-clamp-2">
+                    {{ order.topic || 'No topic' }}
+                  </p>
+                </div>
+                <button
+                  @click="viewOrder(order)"
+                  class="text-xs font-semibold text-primary-600 hover:text-primary-700 underline whitespace-nowrap flex-shrink-0"
+                >
+                  View details
+                </button>
               </div>
-              <div class="flex justify-between">
-                <span>Price:</span>
-                <span class="font-medium text-green-600">${{ order.price?.toFixed(2) || '0.00' }}</span>
+              <div class="grid grid-cols-2 gap-3 mb-4">
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                    Pages
+                  </p>
+                  <p class="text-sm font-bold text-gray-900">
+                    {{ order.pages }}
+                  </p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                    Price
+                  </p>
+                  <p class="text-sm font-bold text-green-600 truncate">
+                    ${{ order.price?.toFixed(2) || '0.00' }}
+                  </p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                    Potential Payout
+                  </p>
+                  <p class="text-sm font-bold text-green-700 truncate">
+                    ${{ formatCurrency(order.potential_payout) }}
+                  </p>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
+                    Deadline
+                  </p>
+                  <p class="text-xs font-semibold text-gray-900 line-clamp-1">
+                    {{ formatDate(order.deadline) }}
+                  </p>
+                </div>
               </div>
-              <div class="flex justify-between">
-                <span>Potential payout:</span>
-                <span class="font-medium text-green-700">${{ formatCurrency(order.potential_payout) }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span>Deadline:</span>
-                <span class="font-medium">{{ formatDate(order.deadline) }}</span>
-              </div>
-            </div>
-            <div v-if="order.match_tags?.length" class="flex flex-wrap gap-2 mt-3">
-              <span
-                v-for="tag in order.match_tags.slice(0, 3)"
-                :key="`${order.id}-tag-${tag}`"
-                class="px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium"
+              <div
+                v-if="order.match_tags?.length"
+                class="flex flex-wrap gap-2 mb-4"
               >
-                {{ tag }}
-              </span>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-2">
-              <button
-                @click="takeOrder(order)"
-                :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders || isOrderRequested(order)"
-                class="flex-1 btn btn-primary text-sm flex items-center justify-center gap-1 font-semibold"
-                :class="{
-                  'bg-emerald-600 hover:bg-emerald-700': !takingOrder && canTakeOrders && !isOrderRequested(order),
-                  'bg-gray-400 cursor-not-allowed': !canTakeOrders || isOrderRequested(order)
-                }"
-                :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested(order) ? 'You have already requested this order' : 'Take this order immediately')"
-              >
-                <span>{{ takingOrder === order.id ? '⏳' : '✅' }}</span>
-                <span>{{ takingOrder === order.id ? 'Taking...' : 'Take Order' }}</span>
-              </button>
-              <button
-                @click="openRequestModal(order)"
-                :disabled="isOrderRequested(order) || requestingOrder === order.id || takingOrder === order.id"
-                class="flex-1 btn btn-primary text-sm flex items-center justify-center gap-1"
-                :class="{
-                  'bg-violet-600 hover:bg-violet-700': !isOrderRequested(order) && !requestingOrder,
-                  'bg-gray-400 cursor-not-allowed': isOrderRequested(order)
-                }"
-                :title="isOrderRequested(order) ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
-              >
-                <span>{{ requestingOrder === order.id ? '⏳' : (isOrderRequested(order) ? '✓' : '📋') }}</span>
-                <span>{{ isOrderRequested(order) ? 'Requested' : (requestingOrder === order.id ? 'Requesting...' : 'Request') }}</span>
-              </button>
+                <span
+                  v-for="tag in order.match_tags.slice(0, 3)"
+                  :key="`${order.id}-tag-${tag}`"
+                  class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold uppercase tracking-wide"
+                >
+                  {{ tag }}
+                </span>
+              </div>
+              <div class="flex flex-col sm:flex-row gap-3">
+                <button
+                  @click="takeOrder(order)"
+                  :disabled="takingOrder === order.id || requestingOrder === order.id || !canTakeOrders || isOrderRequested(order)"
+                  class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  :class="{
+                    'bg-emerald-600 hover:bg-emerald-700 text-white': !takingOrder && canTakeOrders && !isOrderRequested(order),
+                    'bg-gray-400 text-white cursor-not-allowed': !canTakeOrders || isOrderRequested(order)
+                  }"
+                  :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested(order) ? 'You have already requested this order' : 'Take this order immediately')"
+                >
+                  <span>{{ takingOrder === order.id ? '⏳' : '✅' }}</span>
+                  <span>{{ takingOrder === order.id ? 'Taking...' : 'Take Order' }}</span>
+                </button>
+                <button
+                  @click="openRequestModal(order)"
+                  :disabled="isOrderRequested(order) || requestingOrder === order.id || takingOrder === order.id"
+                  class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-bold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                  :class="{
+                    'bg-violet-600 hover:bg-violet-700 text-white': !isOrderRequested(order) && !requestingOrder,
+                    'bg-gray-400 text-white cursor-not-allowed': isOrderRequested(order)
+                  }"
+                  :title="isOrderRequested(order) ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
+                >
+                  <span>{{ requestingOrder === order.id ? '⏳' : (isOrderRequested(order) ? '✓' : '📋') }}</span>
+                  <span>{{ isOrderRequested(order) ? 'Requested' : (requestingOrder === order.id ? 'Requesting...' : 'Request') }}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <!-- Preferred Orders Tab -->
       <div v-if="activeTab === 'preferred'" class="p-6">
@@ -435,6 +651,174 @@
           </tbody>
         </table>
       </div>
+
+      <!-- Pending Assignments Tab -->
+      <div v-if="activeTab === 'pending-assignments'" class="p-6">
+        <div v-if="loading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600"></div>
+        </div>
+        <div v-else-if="pendingAssignments.length === 0" class="text-center py-12">
+          <div class="flex flex-col items-center gap-3">
+            <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <div>
+              <p class="text-lg font-medium text-gray-900">No pending assignments</p>
+              <p class="text-sm text-gray-500 mt-1">You don't have any orders waiting for your acceptance</p>
+            </div>
+          </div>
+        </div>
+        <div v-else class="space-y-4">
+          <div
+            v-for="assignment in pendingAssignments"
+            :key="assignment.id"
+            class="bg-white border-2 border-orange-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <h3 class="text-lg font-bold text-gray-900">Order #{{ assignment.order_id }}</h3>
+                  <span class="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold uppercase">
+                    Awaiting Your Response
+                  </span>
+                </div>
+                <p class="text-sm text-gray-600 mb-2">
+                  <span class="font-medium">Assigned by:</span>
+                  {{ assignment.assigned_by || 'System' }}
+                </p>
+                <p class="text-sm text-gray-600 mb-2">
+                  <span class="font-medium">Assigned at:</span>
+                  {{ formatDate(assignment.assigned_at) }}
+                </p>
+                <div v-if="assignment.order" class="mt-3">
+                  <p class="text-sm font-medium text-gray-700 mb-1">Topic:</p>
+                  <p class="text-sm text-gray-900">{{ assignment.order.topic || 'N/A' }}</p>
+                  <div class="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <p class="text-xs font-medium text-gray-500 uppercase">Pages</p>
+                      <p class="text-sm font-semibold text-gray-900">{{ assignment.order.pages || 'N/A' }}</p>
+                    </div>
+                    <div>
+                      <p class="text-xs font-medium text-gray-500 uppercase">Deadline</p>
+                      <p class="text-sm font-semibold text-gray-900">{{ formatDate(assignment.order.deadline) }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-3 mt-4">
+              <button
+                @click="acceptAssignment(assignment)"
+                :disabled="acceptingAssignment === assignment.id || rejectingAssignment === assignment.id"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="acceptingAssignment === assignment.id">⏳</span>
+                <span v-else>✅</span>
+                <span>{{ acceptingAssignment === assignment.id ? 'Accepting...' : 'Accept Assignment' }}</span>
+              </button>
+              <button
+                @click="rejectAssignment(assignment)"
+                :disabled="acceptingAssignment === assignment.id || rejectingAssignment === assignment.id"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="rejectingAssignment === assignment.id">⏳</span>
+                <span v-else>❌</span>
+                <span>{{ rejectingAssignment === assignment.id ? 'Rejecting...' : 'Reject Assignment' }}</span>
+              </button>
+              <button
+                @click="viewOrder(assignment.order || { id: assignment.order_id })"
+                class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all"
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Preferred Assignments Tab -->
+      <div v-if="activeTab === 'pending-preferred'" class="p-6">
+        <div v-if="loading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+        </div>
+        <div v-else-if="pendingPreferredAssignments.length === 0" class="text-center py-12">
+          <div class="flex flex-col items-center gap-3">
+            <svg class="w-16 h-16 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <div>
+              <p class="text-lg font-medium text-gray-900">No pending preferred assignments</p>
+              <p class="text-sm text-gray-500 mt-1">You don't have any preferred orders waiting for your acceptance</p>
+            </div>
+          </div>
+        </div>
+        <div v-else class="space-y-4">
+          <div
+            v-for="assignment in pendingPreferredAssignments"
+            :key="assignment.order_id"
+            class="bg-white border-2 border-purple-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <h3 class="text-lg font-bold text-gray-900">Order #{{ assignment.order_id }}</h3>
+                  <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold uppercase">
+                    Preferred Writer Assignment
+                  </span>
+                </div>
+                <p class="text-sm text-gray-600 mb-2">
+                  <span class="font-medium">Created at:</span>
+                  {{ formatDate(assignment.created_at) }}
+                </p>
+                <div v-if="assignment.order" class="mt-3">
+                  <p class="text-sm font-medium text-gray-700 mb-1">Topic:</p>
+                  <p class="text-sm text-gray-900">{{ assignment.order.topic || 'N/A' }}</p>
+                  <div class="grid grid-cols-2 gap-4 mt-3">
+                    <div>
+                      <p class="text-xs font-medium text-gray-500 uppercase">Pages</p>
+                      <p class="text-sm font-semibold text-gray-900">{{ assignment.order.pages || 'N/A' }}</p>
+                    </div>
+                    <div>
+                      <p class="text-xs font-medium text-gray-500 uppercase">Deadline</p>
+                      <p class="text-sm font-semibold text-gray-900">{{ formatDate(assignment.order.deadline) }}</p>
+                    </div>
+                  </div>
+                  <div v-if="assignment.order.total_price" class="mt-3">
+                    <p class="text-xs font-medium text-gray-500 uppercase">Total Price</p>
+                    <p class="text-sm font-semibold text-green-600">${{ formatCurrency(assignment.order.total_price) }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="flex gap-3 mt-4">
+              <button
+                @click="acceptPreferredAssignment(assignment)"
+                :disabled="acceptingPreferredAssignment === assignment.order_id || rejectingPreferredAssignment === assignment.order_id"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="acceptingPreferredAssignment === assignment.order_id">⏳</span>
+                <span v-else>✅</span>
+                <span>{{ acceptingPreferredAssignment === assignment.order_id ? 'Accepting...' : 'Accept Assignment' }}</span>
+              </button>
+              <button
+                @click="rejectPreferredAssignment(assignment)"
+                :disabled="acceptingPreferredAssignment === assignment.order_id || rejectingPreferredAssignment === assignment.order_id"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span v-if="rejectingPreferredAssignment === assignment.order_id">⏳</span>
+                <span v-else>❌</span>
+                <span>{{ rejectingPreferredAssignment === assignment.order_id ? 'Rejecting...' : 'Reject Assignment' }}</span>
+              </button>
+              <button
+                @click="viewOrder(assignment.order || { id: assignment.order_id })"
+                class="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-lg transition-all"
+              >
+                View Details
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Order Detail Modal -->
@@ -509,66 +893,149 @@
     <Modal
       v-model:visible="showRequestModal"
       title="Request Order"
-      size="md"
-      @update:visible="closeRequestModal"
+      size="lg"
+      :scrollable="true"
+      :max-height="'85vh'"
+      @close="closeRequestModal"
     >
-      <div v-if="selectedOrderForRequest" class="space-y-4">
-        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <h3 class="font-semibold text-gray-900 mb-2">Order #{{ selectedOrderForRequest.id }}</h3>
-          <p class="text-sm text-gray-600">{{ selectedOrderForRequest.topic }}</p>
-          <div class="mt-2 text-sm text-gray-500">
-            <span>{{ selectedOrderForRequest.service_type }}</span>
-            <span class="mx-2">•</span>
-            <span>{{ (selectedOrderForRequest.pages || selectedOrderForRequest.number_of_pages || 0) }} pages</span>
-            <span class="mx-2">•</span>
-            <span class="font-semibold text-green-600">${{ (selectedOrderForRequest.price || 0).toFixed(2) }}</span>
+      <div v-if="selectedOrderForRequest" class="space-y-6">
+        <!-- Order Summary -->
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-5 border-2 border-blue-200">
+          <div class="flex items-start justify-between mb-3">
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 mb-1">Order #{{ selectedOrderForRequest.id }}</h3>
+              <p class="text-base text-gray-700 font-medium">{{ selectedOrderForRequest.topic || 'Untitled Order' }}</p>
+            </div>
+            <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-semibold uppercase">
+              {{ selectedOrderForRequest.service_type || 'Standard' }}
+            </span>
+          </div>
+          
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+            <div class="bg-white rounded-lg p-3 border border-blue-200">
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Pages</p>
+              <p class="text-lg font-bold text-gray-900">
+                {{ selectedOrderForRequest.pages || selectedOrderForRequest.number_of_pages || 0 }}
+              </p>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-blue-200">
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Price</p>
+              <p class="text-lg font-bold text-green-600">
+                ${{ formatCurrency(selectedOrderForRequest.price || selectedOrderForRequest.total_cost || 0) }}
+              </p>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-blue-200">
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Deadline</p>
+              <p class="text-sm font-semibold text-gray-900">
+                {{ formatDate(selectedOrderForRequest.deadline || selectedOrderForRequest.client_deadline) }}
+              </p>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-blue-200">
+              <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">Subject</p>
+              <p class="text-sm font-semibold text-gray-900">
+                {{ selectedOrderForRequest.subject?.name || 'N/A' }}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Reason for Request <span class="text-red-500">*</span>
+        <!-- Request Reason -->
+        <div class="mt-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            Why are you interested in this order? <span class="text-red-500">*</span>
           </label>
           <textarea
             v-model="requestReason"
-            rows="4"
-            placeholder="Please explain why you're interested in this order (e.g., your expertise in this topic, availability, previous experience with similar orders, etc.)"
-            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            rows="6"
+            placeholder="Briefly explain why you're a good fit for this order (expertise, availability, experience)."
+            class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm resize-none"
             required
+            :disabled="requestingOrder === selectedOrderForRequest?.id"
+            @keydown.ctrl.enter="requestOrder"
+            @keydown.meta.enter="requestOrder"
           ></textarea>
-          <p class="mt-1 text-xs text-gray-500">
-            This helps admins make informed assignment decisions.
-          </p>
+          <div class="mt-2 flex items-start gap-2">
+            <svg class="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-xs text-gray-600">
+              <span class="font-semibold">Tip:</span> A detailed, professional reason increases your chances of being selected. 
+              Be specific about your qualifications and availability.
+            </p>
+          </div>
+          <div class="mt-2 text-xs text-gray-500">
+            <span class="font-medium">Character count:</span> 
+            <span :class="requestReason?.length > 500 ? 'text-green-600 font-semibold' : 'text-gray-500'">
+              {{ requestReason?.length || 0 }}
+            </span>
+            / 500+ recommended
+          </div>
+        </div>
+
+        <!-- Additional Info (if available) -->
+        <div v-if="selectedOrderForRequest.instructions || selectedOrderForRequest.requirements" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <h4 class="text-sm font-semibold text-yellow-900 mb-2 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            Additional Order Information
+          </h4>
+          <div class="text-sm text-yellow-800 space-y-1">
+            <p v-if="selectedOrderForRequest.instructions" class="font-medium">Instructions:</p>
+            <p v-if="selectedOrderForRequest.instructions" class="text-xs">{{ selectedOrderForRequest.instructions.substring(0, 200) }}{{ selectedOrderForRequest.instructions.length > 200 ? '...' : '' }}</p>
+            <p v-if="selectedOrderForRequest.requirements" class="font-medium mt-2">Requirements:</p>
+            <p v-if="selectedOrderForRequest.requirements" class="text-xs">{{ selectedOrderForRequest.requirements.substring(0, 200) }}{{ selectedOrderForRequest.requirements.length > 200 ? '...' : '' }}</p>
+          </div>
+        </div>
+
+        <!-- Error Message -->
+        <div v-if="requestError" class="bg-red-50 border-2 border-red-300 rounded-lg p-4 mb-4">
+          <div class="flex items-start gap-3">
+            <svg class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p class="text-sm font-medium text-red-800">{{ requestError }}</p>
+          </div>
         </div>
       </div>
 
       <template #footer>
-        <button
-          @click="closeRequestModal"
-          class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          @click="requestOrder"
-          :disabled="!requestReason || !requestReason.trim() || requestingOrder === selectedOrderForRequest?.id"
-          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          {{ requestingOrder === selectedOrderForRequest?.id ? 'Submitting...' : 'Submit Request' }}
-        </button>
+        <div class="flex flex-col sm:flex-row justify-end gap-3 w-full" @click.stop>
+          <button
+            type="button"
+            @click="closeRequestModal"
+            :disabled="requestingOrder === selectedOrderForRequest?.id"
+            class="order-2 sm:order-1 px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border-2 border-gray-300 rounded-lg hover:bg-gray-50 hover:border-gray-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            @click.stop="handleSubmitClick"
+            :disabled="!requestReason || !requestReason.trim() || requestingOrder === selectedOrderForRequest?.id"
+            class="order-1 sm:order-2 px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none relative z-10"
+            style="pointer-events: auto;"
+          >
+            <span v-if="requestingOrder === selectedOrderForRequest?.id" class="animate-spin text-xl">⏳</span>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ requestingOrder === selectedOrderForRequest?.id ? 'Submitting Request...' : 'Submit Request' }}</span>
+          </button>
+        </div>
       </template>
     </Modal>
 
     <!-- Confirmation Dialog -->
     <ConfirmationDialog
-      v-model:show="confirm.show.value"
-      :title="confirm.title.value"
-      :message="confirm.message.value"
-      :details="confirm.details.value"
-      :variant="confirm.variant.value"
-      :icon="confirm.icon.value"
-      :confirm-text="confirm.confirmText.value"
-      :cancel-text="confirm.cancelText.value"
+      v-model:show="confirm.show"
+      :title="confirm.title"
+      :message="confirm.message"
+      :details="confirm.details"
+      :variant="confirm.variant"
+      :icon="confirm.icon"
+      :confirm-text="confirm.confirmText"
+      :cancel-text="confirm.cancelText"
       @confirm="confirm.onConfirm"
       @cancel="confirm.onCancel"
     />
@@ -576,15 +1043,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import writerOrderRequestsAPI from '@/api/writer-order-requests'
 import writerManagementAPI from '@/api/writer-management'
 import ordersAPI from '@/api/orders'
+import writerAssignmentAPI from '@/api/writer-assignment'
 import { useToast } from '@/composables/useToast'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { getErrorMessage } from '@/utils/errorHandler'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import Modal from '@/components/common/Modal.vue'
 
 const { error: showError, success: showSuccess, warning: showWarning } = useToast()
 const confirm = useConfirmDialog()
@@ -595,8 +1064,15 @@ const availableOrders = ref([])
 const preferredOrders = ref([])
 const orderRequests = ref([])
 const writerRequests = ref([])
+const pendingAssignments = ref([])
+const pendingPreferredAssignments = ref([])
 const stats = ref({})
 const takesEnabled = ref(false)
+const acceptingAssignment = ref(null)
+const rejectingAssignment = ref(null)
+const acceptingPreferredAssignment = ref(null)
+const rejectingPreferredAssignment = ref(null)
+const assignmentReason = ref('')
 const filters = ref({
   service_type: '',
   min_price: null,
@@ -608,6 +1084,7 @@ const takingOrder = ref(null)
 const showRequestModal = ref(false)
 const selectedOrderForRequest = ref(null)
 const requestReason = ref('')
+const requestError = ref('')
 const requestedOrderIds = ref([])  // Track which orders have been requested
 const writerProfile = ref(null)
 const activeAssignmentCount = ref(0)
@@ -678,9 +1155,26 @@ const filteredPreferredOrders = computed(() => {
   return applySort(filtered)
 })
 
-const levelDetails = computed(() => writerProfile.value?.writer_level_details || null)
+const levelCapacity = ref({
+  level_details: null,
+  max_orders: 0,
+  active_orders: 0,
+  remaining_slots: 0,
+})
+
+const levelDetails = computed(() => levelCapacity.value?.level_details || writerProfile.value?.writer_level_details || null)
 
 const takeCapacity = computed(() => {
+  // Use data from queue API if available, otherwise fall back to computed values
+  if (levelCapacity.value && levelCapacity.value.max_orders > 0) {
+    return {
+      maxOrders: levelCapacity.value.max_orders,
+      active: levelCapacity.value.active_orders,
+      remaining: levelCapacity.value.remaining_slots,
+    }
+  }
+  
+  // Fallback to computed values
   const maxOrders = levelDetails.value?.max_orders || 0
   const active = activeAssignmentCount.value
   const remaining = Math.max(0, maxOrders - active)
@@ -688,6 +1182,26 @@ const takeCapacity = computed(() => {
 })
 
 const canTakeOrders = computed(() => takesEnabled.value && takeCapacity.value.remaining > 0)
+
+const capacityPercentage = computed(() => {
+  if (takeCapacity.value.maxOrders === 0) return 0
+  return Math.min(100, (takeCapacity.value.active / takeCapacity.value.maxOrders) * 100)
+})
+
+const capacityColorClass = computed(() => {
+  const percentage = capacityPercentage.value
+  if (percentage >= 100) return 'text-red-600'
+  if (percentage >= 80) return 'text-yellow-600'
+  return 'text-green-600'
+})
+
+const capacityBarColorClass = computed(() => {
+  const percentage = capacityPercentage.value
+  if (percentage >= 100) return 'bg-red-500'
+  if (percentage >= 80) return 'bg-yellow-500'
+  if (percentage >= 60) return 'bg-orange-500'
+  return 'bg-green-500'
+})
 
 const loadQueue = async () => {
   loading.value = true
@@ -703,6 +1217,18 @@ const loadQueue = async () => {
     recommendedOrders.value = data.recommended_orders || []
     orderRequests.value = data.order_requests || []
     writerRequests.value = data.writer_requests || []
+    
+    // Update level capacity from queue response
+    if (data.level_capacity) {
+      levelCapacity.value = {
+        level_details: data.level_capacity.level_details || null,
+        max_orders: data.level_capacity.max_orders || 0,
+        active_orders: data.level_capacity.active_orders || 0,
+        remaining_slots: data.level_capacity.remaining_slots || 0,
+      }
+      // Also update activeAssignmentCount to keep it in sync
+      activeAssignmentCount.value = data.level_capacity.active_orders || 0
+    }
     
     // Track requested order IDs
     requestedOrderIds.value = data.requested_order_ids || []
@@ -773,18 +1299,67 @@ const isOrderRequested = (order) => {
 
 const openRequestModal = (order) => {
   if (!order || !order.id) return
+  
+  // Check if already requested
+  if (isOrderRequested(order)) {
+    showWarning('You have already requested this order. Please wait for admin review.')
+    return
+  }
+  
   selectedOrderForRequest.value = order
   requestReason.value = ''
+  requestError.value = ''
   showRequestModal.value = true
+  
+  // Focus the textarea after modal opens
+  setTimeout(() => {
+    const textarea = document.querySelector('textarea[placeholder*="Please provide"]')
+    if (textarea) {
+      textarea.focus()
+    }
+  }, 100)
 }
 
 const closeRequestModal = () => {
+  if (requestingOrder.value) {
+    // Don't close if request is in progress
+    return
+  }
   showRequestModal.value = false
   selectedOrderForRequest.value = null
   requestReason.value = ''
+  requestError.value = ''
 }
 
-const requestOrder = async () => {
+const handleSubmitClick = (event) => {
+  if (event) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+  console.log('Submit button clicked', { 
+    requestReason: requestReason.value, 
+    hasReason: !!requestReason.value?.trim(),
+    selectedOrder: selectedOrderForRequest.value?.id,
+    requestingOrder: requestingOrder.value,
+    isDisabled: !requestReason.value || !requestReason.value.trim() || requestingOrder.value === selectedOrderForRequest.value?.id
+  })
+  
+  // Check if button should be disabled
+  if (!requestReason.value || !requestReason.value.trim()) {
+    requestError.value = 'Please provide a reason for requesting this order.'
+    return
+  }
+  
+  requestOrder(event)
+}
+
+const requestOrder = async (event) => {
+  // Prevent default behavior
+  if (event) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+  
   const order = selectedOrderForRequest.value
   if (!order || !order.id) return
   
@@ -796,14 +1371,16 @@ const requestOrder = async () => {
   // Validate reason
   const reason = requestReason.value?.trim() || ''
   if (!reason) {
-    showError('Please provide a reason for requesting this order.')
+    requestError.value = 'Please provide a reason for requesting this order.'
     return
   }
   
-  if (reason.length < 10) {
-    showError('Please provide a more detailed reason (at least 10 characters).')
+  if (reason.length < 20) {
+    requestError.value = 'Please provide a more detailed reason (at least 20 characters).'
     return
   }
+  
+  requestError.value = ''
   
   if (reason.length > 2000) {
     showError('Reason is too long (maximum 2000 characters).')
@@ -835,6 +1412,7 @@ const requestOrder = async () => {
     await loadQueue()
     
     showSuccess('Order request submitted successfully! Your request is pending admin review.')
+    requestError.value = ''
     closeRequestModal()
     
     if (selectedOrder.value && selectedOrder.value.id === order.id) {
@@ -847,6 +1425,7 @@ const requestOrder = async () => {
     requestedOrderIds.value = requestedOrderIds.value.filter(id => id !== orderId)
     
     const errorMsg = getErrorMessage(error, 'Failed to request order. Please try again.')
+    requestError.value = errorMsg
     
     // Provide more specific error messages
     if (errorMsg.includes('already requested') || errorMsg.includes('already')) {
@@ -1012,11 +1591,222 @@ const formatDate = (dateString) => {
 
 const formatCurrency = (value) => Number(value || 0).toFixed(2)
 
+const scrollToTabs = () => {
+  activeTab.value = 'available'
+  // Scroll to tabs section after a short delay to ensure tab is active
+  setTimeout(() => {
+    const tabsElement = document.getElementById('order-queue-tabs')
+    if (tabsElement) {
+      tabsElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }, 100)
+}
+
 // Removed requestOrderFromCard - now using openRequestModal directly
+
+// Load pending assignments
+const loadPendingAssignments = async () => {
+  try {
+    const response = await writerAssignmentAPI.getPendingAssignments()
+    pendingAssignments.value = response.data || []
+  } catch (error) {
+    console.error('Failed to load pending assignments:', error)
+    const errorMsg = getErrorMessage(error, 'Failed to load pending assignments.')
+    if (!errorMsg.includes('Only writers')) {
+      showError(errorMsg)
+    }
+  }
+}
+
+// Accept an assignment
+const acceptAssignment = async (assignment) => {
+  if (!assignment || !assignment.id) return
+  
+  const confirmed = await confirm.showDialog(
+    `Accept Assignment for Order #${assignment.order_id}?`,
+    'Accept Assignment',
+    {
+      details: 'Once accepted, the order will move to "In Progress" and you\'ll be responsible for completing it.',
+      variant: 'default',
+      icon: '✅',
+      confirmText: 'Accept',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  acceptingAssignment.value = assignment.id
+  
+  try {
+    await writerAssignmentAPI.acceptAssignment(assignment.id, assignmentReason.value)
+    showSuccess(`Assignment accepted! Order #${assignment.order_id} is now in progress.`)
+    
+    // Remove from pending list
+    pendingAssignments.value = pendingAssignments.value.filter(a => a.id !== assignment.id)
+    
+    // Refresh queue and active assignments
+    await Promise.all([
+      loadQueue(),
+      loadActiveAssignments()
+    ])
+  } catch (error) {
+    console.error('Failed to accept assignment:', error)
+    const errorMsg = getErrorMessage(error, 'Failed to accept assignment. Please try again.')
+    showError(errorMsg)
+  } finally {
+    acceptingAssignment.value = null
+    assignmentReason.value = ''
+  }
+}
+
+// Reject an assignment
+const rejectAssignment = async (assignment) => {
+  if (!assignment || !assignment.id) return
+  
+  const confirmed = await confirm.showDestructive(
+    `Reject Assignment for Order #${assignment.order_id}?`,
+    'Reject Assignment',
+    {
+      details: 'This will return the order to the available pool. Please provide a reason if possible.',
+      variant: 'destructive',
+      icon: '❌',
+      confirmText: 'Reject',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  rejectingAssignment.value = assignment.id
+  
+  try {
+    await writerAssignmentAPI.rejectAssignment(assignment.id, assignmentReason.value)
+    showSuccess(`Assignment rejected. Order #${assignment.order_id} has been returned to the available pool.`)
+    
+    // Remove from pending list
+    pendingAssignments.value = pendingAssignments.value.filter(a => a.id !== assignment.id)
+    
+    // Refresh queue
+    await loadQueue()
+  } catch (error) {
+    console.error('Failed to reject assignment:', error)
+    const errorMsg = getErrorMessage(error, 'Failed to reject assignment. Please try again.')
+    showError(errorMsg)
+  } finally {
+    rejectingAssignment.value = null
+    assignmentReason.value = ''
+  }
+}
+
+// Load pending preferred assignments
+const loadPendingPreferredAssignments = async () => {
+  try {
+    const response = await writerAssignmentAPI.getPendingPreferredAssignments()
+    pendingPreferredAssignments.value = response.data || []
+  } catch (error) {
+    console.error('Failed to load pending preferred assignments:', error)
+    const errorMsg = getErrorMessage(error, 'Failed to load pending preferred assignments.')
+    if (!errorMsg.includes('Only writers')) {
+      showError(errorMsg)
+    }
+  }
+}
+
+// Accept a preferred assignment
+const acceptPreferredAssignment = async (assignment) => {
+  if (!assignment || !assignment.order_id) return
+  
+  const confirmed = await confirm.showDialog(
+    `Accept Preferred Assignment for Order #${assignment.order_id}?`,
+    'Accept Preferred Assignment',
+    {
+      details: 'Once accepted, the order will move to "In Progress" and you\'ll be responsible for completing it.',
+      variant: 'default',
+      icon: '✅',
+      confirmText: 'Accept',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  acceptingPreferredAssignment.value = assignment.order_id
+  
+  try {
+    await writerAssignmentAPI.acceptPreferredAssignment(assignment.order_id)
+    showSuccess(`Preferred assignment accepted! Order #${assignment.order_id} is now in progress.`)
+    
+    // Remove from pending list
+    pendingPreferredAssignments.value = pendingPreferredAssignments.value.filter(a => a.order_id !== assignment.order_id)
+    
+    // Refresh queue and active assignments
+    await Promise.all([
+      loadQueue(),
+      loadActiveAssignments()
+    ])
+  } catch (error) {
+    console.error('Failed to accept preferred assignment:', error)
+    const errorMsg = getErrorMessage(error, 'Failed to accept preferred assignment. Please try again.')
+    showError(errorMsg)
+  } finally {
+    acceptingPreferredAssignment.value = null
+  }
+}
+
+// Reject a preferred assignment
+const rejectPreferredAssignment = async (assignment) => {
+  if (!assignment || !assignment.order_id) return
+  
+  const confirmed = await confirm.showDestructive(
+    `Reject Preferred Assignment for Order #${assignment.order_id}?`,
+    'Reject Preferred Assignment',
+    {
+      details: 'This will return the order to the available pool. Please provide a reason if possible.',
+      variant: 'destructive',
+      icon: '❌',
+      confirmText: 'Reject',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  rejectingPreferredAssignment.value = assignment.order_id
+  
+  try {
+    await writerAssignmentAPI.rejectPreferredAssignment(assignment.order_id, assignmentReason.value)
+    showSuccess(`Preferred assignment rejected. Order #${assignment.order_id} has been returned to the available pool.`)
+    
+    // Remove from pending list
+    pendingPreferredAssignments.value = pendingPreferredAssignments.value.filter(a => a.order_id !== assignment.order_id)
+    
+    // Refresh queue
+    await loadQueue()
+  } catch (error) {
+    console.error('Failed to reject preferred assignment:', error)
+    const errorMsg = getErrorMessage(error, 'Failed to reject preferred assignment. Please try again.')
+    showError(errorMsg)
+  } finally {
+    rejectingPreferredAssignment.value = null
+    assignmentReason.value = ''
+  }
+}
+
+// Watch for tab changes to load pending assignments
+watch(activeTab, (newTab) => {
+  if (newTab === 'pending-assignments') {
+    loadPendingAssignments()
+  } else if (newTab === 'pending-preferred') {
+    loadPendingPreferredAssignments()
+  }
+})
 
 onMounted(() => {
   loadQueue()
   loadWriterContext()
+  loadPendingAssignments()
+  loadPendingPreferredAssignments()
 })
 </script>
 

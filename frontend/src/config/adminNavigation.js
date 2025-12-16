@@ -268,6 +268,13 @@ export const adminNavigationGroups = [
         description: 'Comprehensive yearly analytics comparing orders, classes, income, and more',
       },
       {
+        name: 'RefinedStats',
+        to: '/admin/geographic-analytics',
+        label: 'Refined Stats',
+        icon: '📊',
+        description: 'View largest spend and number of orders by country, state, and subject',
+      },
+      {
         name: 'PricingAnalytics',
         to: '/admin/pricing-analytics',
         label: 'Pricing Analytics',

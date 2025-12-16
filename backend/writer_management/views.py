@@ -507,6 +507,15 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
             request_obj.reviewed_by = request.user
         request_obj.save()
             
+            # Get payment amount from request if provided
+            writer_payment_amount = request.data.get('writer_payment_amount')
+            if writer_payment_amount:
+                from decimal import Decimal
+                try:
+                    order.writer_compensation = Decimal(str(writer_payment_amount))
+                except (ValueError, TypeError):
+                    pass  # If invalid, will use level-based calculation
+            
             # Assign the order to the writer
             order.assigned_writer = writer.user
             order.status = OrderStatus.IN_PROGRESS.value
@@ -1112,6 +1121,23 @@ class WriterSuspensionViewSet(viewsets.ModelViewSet):
             DisciplineNotificationService.notify_suspension_lifted(instance)
         super().perform_destroy(instance)
         WriterStatusService.update(writer)
+    
+    @action(detail=False, methods=['get'], url_path='mine',
+            permission_classes=[IsAuthenticated])
+    def my_suspensions(self, request):
+        """Writers can view their own suspensions."""
+        try:
+            profile = request.user.writer_profile
+        except WriterProfile.DoesNotExist:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        suspensions = WriterSuspension.objects.filter(
+            writer=profile
+        ).order_by('-starts_at')
+        serializer = self.get_serializer(suspensions, many=True)
+        return Response(serializer.data)
 class WriterActionLogViewSet(viewsets.ModelViewSet):
     queryset = WriterActionLog.objects.all()
     serializer_class = WriterActionLogSerializer
@@ -1243,6 +1269,17 @@ class WriterStatusViewSet(viewsets.ViewSet):
         return qs.order_by("-active_strikes", "-updated_at")
 
     def list(self, request):
+        """
+        GET /api/writer-status/
+        Admins can list all writer statuses.
+        Writers are redirected to the /me/ endpoint.
+        """
+        # If user is not staff, redirect them to use /me/ endpoint
+        if not request.user.is_staff:
+            return Response(
+                {"detail": "Use /me/ endpoint to view your own status."},
+                status=status.HTTP_403_FORBIDDEN
+            )
         queryset = self.get_queryset()
         serializer = WriterStatusSerializer(queryset, many=True)
         return Response(serializer.data)
@@ -1268,7 +1305,21 @@ class WriterStatusViewSet(viewsets.ViewSet):
             )
 
         WriterStatusService.update(writer)
-        serializer = WriterStatusSerializer(writer.status)
+        # Refresh writer object to get the status
+        writer.refresh_from_db()
+        # Get or create status if it doesn't exist
+        status_obj, created = WriterStatus.objects.get_or_create(
+            writer=writer,
+            defaults={
+                "website": writer.website,
+                "is_active": True,
+                "is_suspended": False,
+                "is_blacklisted": False,
+                "is_on_probation": False,
+                "active_strikes": 0,
+            }
+        )
+        serializer = WriterStatusSerializer(status_obj)
         return Response(serializer.data)
 
     def update(self, request, pk=None):
@@ -1291,15 +1342,37 @@ class WriterStatusViewSet(viewsets.ViewSet):
             )
 
         WriterStatusService.update(writer)
-        serializer = WriterStatusSerializer(writer.status)
+        # Refresh writer object to get the status
+        writer.refresh_from_db()
+        # Get or create status if it doesn't exist
+        status_obj, created = WriterStatus.objects.get_or_create(
+            writer=writer,
+            defaults={
+                "website": writer.website,
+                "is_active": True,
+                "is_suspended": False,
+                "is_blacklisted": False,
+                "is_on_probation": False,
+                "active_strikes": 0,
+            }
+        )
+        serializer = WriterStatusSerializer(status_obj)
         return Response(serializer.data)
 
-    @action(detail=False, methods=["get"], url_path="me")
+    @action(detail=False, methods=["get"], url_path="me", permission_classes=[IsAuthenticated])
     def me(self, request):
         """
         GET /api/writer-status/me/
         Self status for the current authenticated writer.
+        Always accessible to the writer, even if they have no discipline issues.
         """
+        # Ensure user is a writer
+        if request.user.role != 'writer':
+            return Response(
+                {"detail": "This endpoint is only available for writers."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
         try:
             writer = WriterProfile.objects.get(user=request.user)
         except WriterProfile.DoesNotExist:
@@ -1309,7 +1382,21 @@ class WriterStatusViewSet(viewsets.ViewSet):
             )
 
         WriterStatusService.update(writer)
-        serializer = WriterStatusSerializer(writer.status)
+        # Refresh writer object to get the status
+        writer.refresh_from_db()
+        # Get or create status if it doesn't exist
+        status_obj, created = WriterStatus.objects.get_or_create(
+            writer=writer,
+            defaults={
+                "website": writer.website,
+                "is_active": True,
+                "is_suspended": False,
+                "is_blacklisted": False,
+                "is_on_probation": False,
+                "active_strikes": 0,
+            }
+        )
+        serializer = WriterStatusSerializer(status_obj)
         return Response(serializer.data)
 
 
@@ -1631,7 +1718,14 @@ class WriterWarningViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='mine',
             permission_classes=[IsAuthenticated])
     def my_warnings(self, request):
-        profile = request.user.writer_profile
+        """Writers can view their own warnings."""
+        try:
+            profile = request.user.writer_profile
+        except WriterProfile.DoesNotExist:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
         warnings = WriterWarning.objects.filter(
             writer=profile, is_active=True
         ).order_by('-issued_at')
@@ -1713,6 +1807,21 @@ class WriterStrikeViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'], url_path='by-writer/(?P<writer_id>[^/.]+)')
     def by_writer(self, request, writer_id=None):
         """Get all strikes for a specific writer."""
+        # Writers can only see their own strikes
+        if request.user.role == 'writer':
+            try:
+                writer_profile = request.user.writer_profile
+                if str(writer_profile.id) != str(writer_id):
+                    return Response(
+                        {"detail": "You can only view your own strikes."},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except WriterProfile.DoesNotExist:
+                return Response(
+                    {"detail": "Writer profile not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        
         strikes = self.queryset.filter(writer_id=writer_id)
         serializer = self.get_serializer(strikes, many=True)
         return Response(serializer.data)

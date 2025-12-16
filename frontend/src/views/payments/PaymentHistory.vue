@@ -51,6 +51,7 @@
             <option value="special_order">Special Order</option>
             <option value="class_payment">Class Payment</option>
             <option value="wallet_transaction">Wallet Transaction</option>
+            <option value="tip">Tip</option>
           </select>
         </div>
         <div>
@@ -334,7 +335,14 @@ const loadTransactions = async () => {
     if (filters.value.date_to) params.date_to = filters.value.date_to
     if (filters.value.search) params.search = filters.value.search
 
-    const res = await paymentsAPI.getAllTransactions(params)
+    // For clients, use the client-payments endpoint (scoped to their account).
+    // For staff (admin/support/superadmin), use the full all-transactions view.
+    let res
+    if (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) {
+      res = await paymentsAPI.getAllTransactions(params)
+    } else {
+      res = await paymentsAPI.getClientPayments(params)
+    }
     
     if (res.data.results) {
       transactions.value = res.data.results
@@ -466,16 +474,20 @@ const getTypeLabel = (type) => {
   const labels = {
     order_payment: 'Order Payment',
     client_wallet: 'Wallet Transaction',
-    writer_payment: 'Writer Payment'
+    writer_payment: 'Writer Payment',
+    tip: 'Tip',
+    bonus: 'Bonus',
   }
-  return labels[type] || type
+  return labels[type] || (type ? String(type).replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown')
 }
 
 const getTypeClass = (type) => {
   const classes = {
     order_payment: 'bg-blue-100 text-blue-800',
     client_wallet: 'bg-green-100 text-green-800',
-    writer_payment: 'bg-purple-100 text-purple-800'
+    writer_payment: 'bg-purple-100 text-purple-800',
+    tip: 'bg-amber-100 text-amber-800',
+    bonus: 'bg-indigo-100 text-indigo-800',
   }
   return classes[type] || 'bg-gray-100 text-gray-800'
 }

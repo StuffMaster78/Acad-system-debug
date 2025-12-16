@@ -26,4 +26,8 @@ export default {
   
   // Helper methods
   getAvailableWebsites: () => apiClient.get('/service-pages/service-pages/available_websites/'),
+  
+  // Edit History
+  getServicePageEditHistory: (id, params = {}) => apiClient.get(`/service-pages/service-pages/${id}/edit-history/`, { params }),
+  getServicePageRevisions: (id, params = {}) => apiClient.get(`/service-pages/service-pages/${id}/revisions/`, { params }),
 }

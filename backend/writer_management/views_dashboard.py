@@ -61,6 +61,79 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             return completed_at
         return getattr(order, 'updated_at', None) or getattr(order, 'created_at', None)
 
+    @action(detail=False, methods=['get'], url_path='payment-info')
+    def get_payment_info(self, request):
+        """
+        Get writer's payment information based on their level.
+        Shows only level-based payment rates (per page, per slide, per class).
+        Excludes installments and internal payment details.
+        """
+        profile = self.get_writer_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=404
+            )
+        
+        if not profile.writer_level:
+            return Response(
+                {"detail": "Writer level not set."},
+                status=404
+            )
+        
+        from writer_management.serializers import WriterPaymentViewSerializer
+        
+        # Get level-based rates
+        level = profile.writer_level
+        data = {
+            'cost_per_page': level.base_pay_per_page,
+            'cost_per_slide': level.base_pay_per_slide,
+            'cost_per_class': getattr(level, 'base_pay_per_class', None),  # May not exist yet
+            'level_name': level.name,
+            'earning_mode': level.earning_mode,
+        }
+        
+        # Calculate totals from orders, special orders
+        serializer = WriterPaymentViewSerializer(profile, context={'request': request})
+        serialized_data = serializer.data
+        
+        # Calculate totals
+        order_earnings_list = serialized_data.get('order_earnings', [])
+        special_order_earnings_list = serialized_data.get('special_order_earnings', [])
+        class_bonuses_list = serialized_data.get('class_earnings', [])  # These are bonuses, not regular earnings
+        
+        total_order_earnings = sum(Decimal(str(e['amount'])) for e in order_earnings_list)
+        total_special_order_earnings = sum(Decimal(str(e.get('total', e.get('amount', 0)))) for e in special_order_earnings_list)
+        
+        # Get bonuses and tips (excluding installments)
+        from writer_management.models.payout import WriterPayment
+        from special_orders.models import WriterBonus
+        
+        payments = WriterPayment.objects.filter(
+            writer=profile
+        ).exclude(
+            # Exclude payments related to installments
+            description__icontains='installment'
+        )
+        
+        total_bonuses = payments.aggregate(Sum('bonuses'))['bonuses__sum'] or Decimal('0.00')
+        total_tips = payments.aggregate(Sum('tips'))['tips__sum'] or Decimal('0.00')
+        
+        # Add class bonuses (classes are paid as bonuses, not regular earnings)
+        class_bonuses_total = sum(Decimal(str(e.get('amount', 0))) for e in class_bonuses_list)
+        total_bonuses += class_bonuses_total
+        
+        data.update({
+            'order_earnings': order_earnings_list,
+            'special_order_earnings': special_order_earnings_list,
+            'class_bonuses': class_bonuses_list,  # Classes shown as bonuses but contribute to total earnings
+            'total_earnings': total_order_earnings + total_special_order_earnings + class_bonuses_total,  # Classes contribute to total
+            'total_bonuses': total_bonuses,  # Includes class bonuses
+            'total_tips': total_tips,
+        })
+        
+        return Response(data)
+    
     @action(detail=False, methods=['get'], url_path='earnings')
     def get_earnings(self, request):
         """Get earnings breakdown and trends."""
@@ -74,10 +147,13 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
         
-        # Get writer's payments
+        # Get writer's payments (excluding installments)
         payments = WriterPayment.objects.filter(
             writer=profile,
             payment_date__gte=date_from
+        ).exclude(
+            # Exclude payments related to installments
+            description__icontains='installment'
         )
         
         # Earnings breakdown
@@ -93,17 +169,17 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         week_earnings = WriterPayment.objects.filter(
             writer=profile,
             payment_date__gte=week_start
-        ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        ).exclude(description__icontains='installment').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
         
         month_earnings = WriterPayment.objects.filter(
             writer=profile,
             payment_date__gte=month_start
-        ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        ).exclude(description__icontains='installment').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
         
         year_earnings = WriterPayment.objects.filter(
             writer=profile,
             payment_date__gte=year_start
-        ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        ).exclude(description__icontains='installment').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
         
         # Earnings trends (daily)
         earnings_trend = payments.annotate(
@@ -469,6 +545,28 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 for order, _ in recommended_candidates[:10]
             ]
             
+            # Get level capacity information
+            writer_level = getattr(profile, 'writer_level', None)
+            max_orders = writer_level.max_orders if writer_level else 0
+            
+            # Count active orders (in_progress, under_editing, revision_requested, on_hold)
+            active_orders_count = Order.objects.filter(
+                assigned_writer=profile.user,
+                website=profile.website,
+                status__in=['in_progress', 'under_editing', 'revision_requested', 'on_hold']
+            ).count()
+            
+            remaining_slots = max(0, max_orders - active_orders_count)
+            
+            # Get level details
+            level_details = None
+            if writer_level:
+                level_details = {
+                    'id': writer_level.id,
+                    'name': writer_level.name,
+                    'max_orders': writer_level.max_orders,
+                }
+            
             return Response({
             'takes_enabled': takes_enabled,
             'requested_order_ids': requested_order_ids,  # Include requested order IDs for frontend
@@ -503,6 +601,12 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 for o in preferred_orders
             ],
             'recommended_orders': recommended_orders,
+            'level_capacity': {
+                'level_details': level_details,
+                'max_orders': max_orders,
+                'active_orders': active_orders_count,
+                'remaining_slots': remaining_slots,
+            },
             })
         except Exception as e:
             import logging
@@ -1581,9 +1685,21 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             },
         })
     
-    @action(detail=False, methods=['get'], url_path='order-requests')
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='order-requests'
+    )
     def get_order_requests(self, request):
-        """Get writer's order request status with real-time tracking."""
+        """
+        Get writer's order request status with real-time tracking.
+        
+        Returns comprehensive request status including:
+        - Order requests (WriterOrderRequest)
+        - Writer requests (WriterRequest for additional pages/slides)
+        - Status updates and review information
+        - Statistics and trends
+        """
         profile = self.get_writer_profile(request)
         if not profile:
             return Response(
@@ -1592,14 +1708,27 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             )
         
         # Get all order requests for this writer
-        order_requests = WriterOrderRequest.objects.filter(
-            writer=profile
-        ).select_related('order', 'order__client', 'reviewed_by', 'website').order_by('-requested_at')
+        order_requests = (
+            WriterOrderRequest.objects.filter(
+                writer=profile
+            )
+            .select_related(
+                'order',
+                'order__client',
+                'reviewed_by',
+                'website'
+            )
+            .order_by('-requested_at')
+        )
         
         # Also get WriterRequest (from orders app)
-        writer_requests = WriterRequest.objects.filter(
-            requested_by_writer=request.user
-        ).select_related('order').order_by('-created_at')
+        writer_requests = (
+            WriterRequest.objects.filter(
+                requested_by_writer=request.user
+            )
+            .select_related('order')
+            .order_by('-created_at')
+        )
         
         # Combine and format requests
         requests_list = []
@@ -1607,44 +1736,101 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         # Process WriterOrderRequest
         for req in order_requests:
             order = req.order
+            status = 'approved' if req.approved else 'pending'
+            if req.approved is False and req.reviewed_by:
+                status = 'rejected'
+            
             requests_list.append({
                 'id': req.id,
                 'type': 'order_request',
                 'order_id': order.id,
                 'order_topic': order.topic or 'No topic',
                 'order_status': order.status,
-                'order_price': float(order.total_price) if order.total_price else 0,
+                'order_price': (
+                    float(order.total_price)
+                    if order.total_price else 0
+                ),
                 'order_pages': self._get_order_pages(order),
-                'requested_at': req.requested_at.isoformat() if req.requested_at else None,
-                'status': 'approved' if req.approved else 'pending',
-                'reviewed_by': req.reviewed_by.username if req.reviewed_by else None,
-                'reviewed_at': None,  # Could add reviewed_at field if needed
+                'requested_at': (
+                    req.requested_at.isoformat()
+                    if req.requested_at else None
+                ),
+                'status': status,
+                'reviewed_by': (
+                    req.reviewed_by.username
+                    if req.reviewed_by else None
+                ),
+                'reviewed_at': (
+                    req.reviewed_at.isoformat()
+                    if hasattr(req, 'reviewed_at') and req.reviewed_at
+                    else None
+                ),
+                'reason': req.reason or '',
             })
         
         # Process WriterRequest
         for req in writer_requests:
             order = req.order
+            status = getattr(req, 'status', 'pending')
+            
             requests_list.append({
                 'id': req.id,
                 'type': 'writer_request',
                 'order_id': order.id,
                 'order_topic': order.topic or 'No topic',
                 'order_status': order.status,
-                'order_price': float(order.total_price) if order.total_price else 0,
+                'order_price': (
+                    float(order.total_price)
+                    if order.total_price else 0
+                ),
                 'order_pages': self._get_order_pages(order),
-                'requested_at': req.created_at.isoformat() if req.created_at else None,
-                'status': req.status if hasattr(req, 'status') else 'pending',
+                'requested_at': (
+                    req.created_at.isoformat()
+                    if req.created_at else None
+                ),
+                'status': status,
                 'reviewed_by': None,
-                'reviewed_at': None,
+                'reviewed_at': (
+                    req.updated_at.isoformat()
+                    if hasattr(req, 'updated_at') and req.updated_at
+                    else None
+                ),
+                'reason': req.reason or '',
+                'additional_pages': getattr(req, 'additional_pages', 0),
+                'additional_slides': getattr(req, 'additional_slides', 0),
+                'has_counter_offer': getattr(
+                    req, 'has_counter_offer', False
+                ),
             })
         
         # Sort by requested_at (most recent first)
-        requests_list.sort(key=lambda x: x['requested_at'] or '', reverse=True)
+        requests_list.sort(
+            key=lambda x: x['requested_at'] or '',
+            reverse=True
+        )
         
         # Calculate statistics
         total_requests = len(requests_list)
-        pending_requests = len([r for r in requests_list if r['status'] == 'pending'])
-        approved_requests = len([r for r in requests_list if r['status'] == 'approved' or r['status'] == 'accepted'])
+        pending_requests = len([
+            r for r in requests_list
+            if r['status'] == 'pending'
+        ])
+        approved_requests = len([
+            r for r in requests_list
+            if r['status'] in ['approved', 'accepted']
+        ])
+        rejected_requests = len([
+            r for r in requests_list
+            if r['status'] in ['rejected', 'declined']
+        ])
+        
+        # Get recent activity (last 7 days)
+        week_ago = timezone.now() - timedelta(days=7)
+        recent_requests = [
+            r for r in requests_list
+            if r['requested_at'] and
+            r['requested_at'] >= week_ago.isoformat()
+        ]
         
         return Response({
             'requests': requests_list,
@@ -1652,7 +1838,8 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'total': total_requests,
                 'pending': pending_requests,
                 'approved': approved_requests,
-                'rejected': total_requests - pending_requests - approved_requests,
+                'rejected': rejected_requests,
+                'recent_7_days': len(recent_requests),
             },
             'last_updated': timezone.now().isoformat(),
         })
@@ -1847,6 +2034,618 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 },
                 status=500
             )
+    
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='earnings-breakdown'
+    )
+    def get_earnings_breakdown(self, request):
+        """
+        Get detailed earnings breakdown by source.
+        
+        Returns comprehensive breakdown including:
+        - Regular orders earnings
+        - Special orders earnings
+        - Class bonuses
+        - Tips
+        - Other bonuses
+        - Time period breakdowns
+        - Trends and statistics
+        """
+        profile = self.get_writer_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=404
+            )
+        
+        # Get date range from query params
+        days = int(request.query_params.get('days', 30))
+        date_from = timezone.now() - timedelta(days=days)
+        
+        # Import required models
+        from writer_management.models.payout import WriterPayment
+        from special_orders.models import WriterBonus, SpecialOrder
+        from orders.models import Order
+        
+        # Get regular order earnings
+        regular_orders = Order.objects.filter(
+            assigned_writer=request.user,
+            status__in=['completed', 'approved'],
+            updated_at__gte=date_from
+        ).select_related('type_of_work')
+        
+        regular_earnings = Decimal('0.00')
+        regular_orders_list = []
+        for order in regular_orders:
+            # Get payment amount (admin-set or level-based)
+            payment = WriterPayment.objects.filter(
+                writer=profile,
+                order=order
+            ).first()
+            if payment:
+                amount = payment.amount
+            else:
+                # Calculate from level
+                if profile.writer_level:
+                    pages = self._get_order_pages(order)
+                    if order.type_of_work:
+                        if order.type_of_work.name == 'Slides':
+                            amount = (
+                                profile.writer_level.base_pay_per_slide *
+                                pages
+                            )
+                        else:
+                            amount = (
+                                profile.writer_level.base_pay_per_page *
+                                pages
+                            )
+                    else:
+                        amount = (
+                            profile.writer_level.base_pay_per_page *
+                            pages
+                        )
+                else:
+                    amount = Decimal('0.00')
+            
+            regular_earnings += amount
+            regular_orders_list.append({
+                'order_id': order.id,
+                'topic': order.topic or 'No topic',
+                'amount': float(amount),
+                'pages': self._get_order_pages(order),
+                'completed_at': (
+                    order.updated_at.isoformat()
+                    if order.updated_at else None
+                ),
+            })
+        
+        # Get special order earnings
+        special_orders = SpecialOrder.objects.filter(
+            assigned_writer=request.user,
+            status__in=['completed', 'approved'],
+            updated_at__gte=date_from
+        )
+        
+        special_earnings = Decimal('0.00')
+        special_orders_list = []
+        for so in special_orders:
+            # Use admin-set payment or calculate
+            if so.writer_payment_amount:
+                amount = so.writer_payment_amount
+            elif so.writer_payment_percentage and so.total_cost:
+                amount = (
+                    so.total_cost *
+                    Decimal(str(so.writer_payment_percentage)) / 100
+                )
+            else:
+                amount = Decimal('0.00')
+            
+            special_earnings += amount
+            special_orders_list.append({
+                'order_id': so.id,
+                'topic': so.topic or 'No topic',
+                'amount': float(amount),
+                'total_cost': float(so.total_cost or 0),
+                'completed_at': (
+                    so.updated_at.isoformat()
+                    if so.updated_at else None
+                ),
+            })
+        
+        # Get class bonuses
+        class_bonuses = WriterBonus.objects.filter(
+            writer=request.user,
+            category='class_payment',
+            granted_at__gte=date_from
+        )
+        
+        class_earnings = (
+            class_bonuses.aggregate(Sum('amount'))['amount__sum']
+            or Decimal('0.00')
+        )
+        class_bonuses_list = [
+            {
+                'id': cb.id,
+                'class_id': cb.special_order.id if cb.special_order else None,
+                'amount': float(cb.amount),
+                'granted_at': (
+                    cb.granted_at.isoformat()
+                    if cb.granted_at else None
+                ),
+                'description': cb.description or '',
+            }
+            for cb in class_bonuses
+        ]
+        
+        # Get tips
+        tips_payments = WriterPayment.objects.filter(
+            writer=profile,
+            payment_date__gte=date_from
+        ).exclude(description__icontains='installment')
+        
+        tips_total = (
+            tips_payments.aggregate(Sum('tips'))['tips__sum']
+            or Decimal('0.00')
+        )
+        
+        # Get other bonuses (excluding class bonuses)
+        bonuses_total = (
+            tips_payments.aggregate(Sum('bonuses'))['bonuses__sum']
+            or Decimal('0.00')
+        )
+        
+        # Calculate totals
+        total_earnings = (
+            regular_earnings +
+            special_earnings +
+            class_earnings +
+            tips_total +
+            bonuses_total
+        )
+        
+        # Time period breakdown
+        week_start = timezone.now() - timedelta(days=7)
+        month_start = timezone.now().replace(
+            day=1, hour=0, minute=0, second=0, microsecond=0
+        )
+        
+        # Weekly breakdown
+        week_regular = Order.objects.filter(
+            assigned_writer=request.user,
+            status__in=['completed', 'approved'],
+            updated_at__gte=week_start
+        ).count()
+        
+        week_special = SpecialOrder.objects.filter(
+            assigned_writer=request.user,
+            status__in=['completed', 'approved'],
+            updated_at__gte=week_start
+        ).count()
+        
+        week_class = WriterBonus.objects.filter(
+            writer=request.user,
+            category='class_payment',
+            granted_at__gte=week_start
+        ).count()
+        
+        # Monthly breakdown
+        month_regular = Order.objects.filter(
+            assigned_writer=request.user,
+            status__in=['completed', 'approved'],
+            updated_at__gte=month_start
+        ).count()
+        
+        month_special = SpecialOrder.objects.filter(
+            assigned_writer=request.user,
+            status__in=['completed', 'approved'],
+            updated_at__gte=month_start
+        ).count()
+        
+        month_class = WriterBonus.objects.filter(
+            writer=request.user,
+            category='class_payment',
+            granted_at__gte=month_start
+        ).count()
+        
+        return Response({
+            'summary': {
+                'total_earnings': float(total_earnings),
+                'regular_orders': float(regular_earnings),
+                'special_orders': float(special_earnings),
+                'class_bonuses': float(class_earnings),
+                'tips': float(tips_total),
+                'other_bonuses': float(bonuses_total),
+            },
+            'breakdown': {
+                'regular_orders': {
+                    'total': float(regular_earnings),
+                    'count': len(regular_orders_list),
+                    'average': (
+                        float(regular_earnings / len(regular_orders_list))
+                        if regular_orders_list else 0.0
+                    ),
+                    'orders': regular_orders_list,
+                },
+                'special_orders': {
+                    'total': float(special_earnings),
+                    'count': len(special_orders_list),
+                    'average': (
+                        float(special_earnings / len(special_orders_list))
+                        if special_orders_list else 0.0
+                    ),
+                    'orders': special_orders_list,
+                },
+                'class_bonuses': {
+                    'total': float(class_earnings),
+                    'count': len(class_bonuses_list),
+                    'average': (
+                        float(class_earnings / len(class_bonuses_list))
+                        if class_bonuses_list else 0.0
+                    ),
+                    'bonuses': class_bonuses_list,
+                },
+                'tips': {
+                    'total': float(tips_total),
+                    'count': tips_payments.filter(
+                        tips__gt=0
+                    ).count(),
+                },
+                'other_bonuses': {
+                    'total': float(bonuses_total),
+                },
+            },
+            'time_periods': {
+                'this_week': {
+                    'regular_orders': week_regular,
+                    'special_orders': week_special,
+                    'class_bonuses': week_class,
+                },
+                'this_month': {
+                    'regular_orders': month_regular,
+                    'special_orders': month_special,
+                    'class_bonuses': month_class,
+                },
+            },
+            'date_range': {
+                'from': date_from.isoformat(),
+                'to': timezone.now().isoformat(),
+                'days': days,
+            },
+        })
+    
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='earnings-export'
+    )
+    def export_earnings(self, request):
+        """
+        Export earnings history to CSV format.
+        
+        Returns CSV file with all earnings for tax purposes.
+        Includes: date, type, amount, description, order_id
+        """
+        from django.http import HttpResponse
+        import csv
+        from io import StringIO
+        
+        profile = self.get_writer_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=404
+            )
+        
+        # Get date range from query params
+        days = int(request.query_params.get('days', 365))
+        date_from = timezone.now() - timedelta(days=days)
+        format_type = request.query_params.get('format', 'csv')
+        
+        # Import required models
+        from writer_management.models.payout import WriterPayment
+        from special_orders.models import WriterBonus, SpecialOrder
+        from orders.models import Order
+        
+        # Collect all earnings records
+        earnings_records = []
+        
+        # Regular order payments
+        payments = WriterPayment.objects.filter(
+            writer=profile,
+            payment_date__gte=date_from
+        ).exclude(description__icontains='installment')
+        
+        for payment in payments:
+            earnings_records.append({
+                'date': payment.payment_date,
+                'type': 'Regular Order',
+                'amount': payment.amount,
+                'description': payment.description or 'Order payment',
+                'order_id': (
+                    payment.order.id
+                    if hasattr(payment, 'order') and payment.order
+                    else None
+                ),
+            })
+            
+            # Add tips and bonuses as separate records
+            if payment.tips and payment.tips > 0:
+                earnings_records.append({
+                    'date': payment.payment_date,
+                    'type': 'Tip',
+                    'amount': payment.tips,
+                    'description': 'Client tip',
+                    'order_id': (
+                        payment.order.id
+                        if hasattr(payment, 'order') and payment.order
+                        else None
+                    ),
+                })
+            
+            if payment.bonuses and payment.bonuses > 0:
+                earnings_records.append({
+                    'date': payment.payment_date,
+                    'type': 'Bonus',
+                    'amount': payment.bonuses,
+                    'description': 'Performance bonus',
+                    'order_id': (
+                        payment.order.id
+                        if hasattr(payment, 'order') and payment.order
+                        else None
+                    ),
+                })
+        
+        # Class bonuses
+        class_bonuses = WriterBonus.objects.filter(
+            writer=request.user,
+            category='class_payment',
+            granted_at__gte=date_from
+        )
+        
+        for bonus in class_bonuses:
+            earnings_records.append({
+                'date': bonus.granted_at,
+                'type': 'Class Payment',
+                'amount': bonus.amount,
+                'description': (
+                    bonus.description or 'Class completion bonus'
+                ),
+                'order_id': (
+                    bonus.special_order.id
+                    if bonus.special_order else None
+                ),
+            })
+        
+        # Sort by date
+        earnings_records.sort(key=lambda x: x['date'])
+        
+        # Generate CSV
+        if format_type == 'csv':
+            response = HttpResponse(content_type='text/csv')
+            filename = (
+                f'earnings_export_{profile.user.username}_'
+                f'{date_from.strftime("%Y%m%d")}_'
+                f'{timezone.now().strftime("%Y%m%d")}.csv'
+            )
+            response['Content-Disposition'] = (
+                f'attachment; filename="{filename}"'
+            )
+            
+            writer = csv.writer(response)
+            writer.writerow([
+                'Date',
+                'Type',
+                'Amount',
+                'Description',
+                'Order ID',
+            ])
+            
+            total = Decimal('0.00')
+            for record in earnings_records:
+                writer.writerow([
+                    record['date'].strftime('%Y-%m-%d'),
+                    record['type'],
+                    f"{record['amount']:.2f}",
+                    record['description'],
+                    record['order_id'] or '',
+                ])
+                total += Decimal(str(record['amount']))
+            
+            # Add summary row
+            writer.writerow([])
+            writer.writerow(['Total', '', f"{total:.2f}", '', ''])
+            
+            return response
+        else:
+            # Return JSON format
+            return Response({
+                'earnings': [
+                    {
+                        'date': r['date'].isoformat(),
+                        'type': r['type'],
+                        'amount': float(r['amount']),
+                        'description': r['description'],
+                        'order_id': r['order_id'],
+                    }
+                    for r in earnings_records
+                ],
+                'total': float(
+                    sum(Decimal(str(r['amount'])) for r in earnings_records)
+                ),
+                'date_range': {
+                    'from': date_from.isoformat(),
+                    'to': timezone.now().isoformat(),
+                },
+            })
+    
+    @action(
+        detail=False,
+        methods=['get', 'post', 'patch'],
+        url_path='order-priority/(?P<order_id>[0-9]+)'
+    )
+    def order_priority(self, request, order_id=None):
+        """
+        Get or set priority for a specific order.
+        
+        GET: Retrieve priority for an order
+        POST/PATCH: Set or update priority
+        """
+        from writer_management.models.order_priority import (
+            WriterOrderPriority
+        )
+        from orders.models import Order
+        
+        profile = self.get_writer_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=404
+            )
+        
+        # Verify order exists and is assigned to writer
+        try:
+            order = Order.objects.get(id=order_id)
+        except Order.DoesNotExist:
+            return Response(
+                {"detail": "Order not found."},
+                status=404
+            )
+        
+        if order.assigned_writer != request.user:
+            return Response(
+                {"detail": "Order not assigned to you."},
+                status=403
+            )
+        
+        if request.method == 'GET':
+            # Get existing priority
+            try:
+                priority_obj = WriterOrderPriority.objects.get(
+                    writer=request.user,
+                    order=order
+                )
+                return Response({
+                    'order_id': order.id,
+                    'priority': priority_obj.priority,
+                    'notes': priority_obj.notes,
+                    'created_at': (
+                        priority_obj.created_at.isoformat()
+                        if priority_obj.created_at else None
+                    ),
+                    'updated_at': (
+                        priority_obj.updated_at.isoformat()
+                        if priority_obj.updated_at else None
+                    ),
+                })
+            except WriterOrderPriority.DoesNotExist:
+                return Response({
+                    'order_id': order.id,
+                    'priority': 'medium',
+                    'notes': None,
+                    'created_at': None,
+                    'updated_at': None,
+                })
+        
+        # POST/PATCH: Set or update priority
+        priority = request.data.get('priority', 'medium')
+        notes = request.data.get('notes', '')
+        
+        if priority not in ['high', 'medium', 'low']:
+            return Response(
+                {"detail": "Priority must be high, medium, or low."},
+                status=400
+            )
+        
+        priority_obj, created = (
+            WriterOrderPriority.objects.update_or_create(
+                writer=request.user,
+                order=order,
+                defaults={
+                    'priority': priority,
+                    'notes': notes[:500] if notes else '',
+                }
+            )
+        )
+        
+        return Response({
+            'order_id': order.id,
+            'priority': priority_obj.priority,
+            'notes': priority_obj.notes,
+            'created_at': (
+                priority_obj.created_at.isoformat()
+                if priority_obj.created_at else None
+            ),
+            'updated_at': (
+                priority_obj.updated_at.isoformat()
+                if priority_obj.updated_at else None
+            ),
+            'created': created,
+        }, status=201 if created else 200)
+    
+    @action(
+        detail=False,
+        methods=['get'],
+        url_path='order-priorities'
+    )
+    def get_order_priorities(self, request):
+        """
+        Get all priorities for writer's orders.
+        
+        Returns a map of order_id -> priority for quick lookup.
+        """
+        from writer_management.models.order_priority import (
+            WriterOrderPriority
+        )
+        from orders.models import Order
+        
+        profile = self.get_writer_profile(request)
+        if not profile:
+            return Response(
+                {"detail": "Writer profile not found."},
+                status=404
+            )
+        
+        # Get all orders assigned to writer
+        orders = Order.objects.filter(
+            assigned_writer=request.user
+        ).values_list('id', flat=True)
+        
+        # Get priorities
+        priorities = WriterOrderPriority.objects.filter(
+            writer=request.user,
+            order_id__in=orders
+        ).select_related('order')
+        
+        priority_map = {}
+        for p in priorities:
+            priority_map[p.order_id] = {
+                'priority': p.priority,
+                'notes': p.notes,
+                'updated_at': (
+                    p.updated_at.isoformat()
+                    if p.updated_at else None
+                ),
+            }
+        
+        # Add default 'medium' for orders without priority
+        for order_id in orders:
+            if order_id not in priority_map:
+                priority_map[order_id] = {
+                    'priority': 'medium',
+                    'notes': None,
+                    'updated_at': None,
+                }
+        
+        return Response({
+            'priorities': priority_map,
+            'total_orders': len(orders),
+            'prioritized': len([
+                p for p in priority_map.values()
+                if p['priority'] != 'medium'
+            ]),
+        })
     
     @action(detail=False, methods=['get'], url_path='communications')
     def get_communications(self, request):

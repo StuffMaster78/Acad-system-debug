@@ -102,8 +102,12 @@
         ]"
         title="Send message (Enter)"
       >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg v-if="!sending" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+        </svg>
+        <svg v-else class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
         </svg>
       </button>
     </div>
@@ -116,6 +120,11 @@
       class="hidden"
       @change="handleFileSelect"
     />
+
+    <!-- Error Message -->
+    <div v-if="error" class="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-600 dark:text-red-400">
+      {{ error }}
+    </div>
 
     <!-- Drag & Drop Overlay -->
     <div
@@ -137,6 +146,7 @@
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue'
 import { communicationsAPI } from '@/api'
+import { useToast } from '@/composables/useToast'
 
 const props = defineProps({
   threadId: {
@@ -159,12 +169,16 @@ const props = defineProps({
 
 const emit = defineEmits(['message-sent', 'reply-cancelled', 'files-selected'])
 
+const { error: showError } = useToast()
+
 const messageText = ref('')
 const selectedFiles = ref([])
 const fileInput = ref(null)
 const messageInput = ref(null)
 const isDragging = ref(false)
 const typingTimeout = ref(null)
+const sending = ref(false)
+const error = ref('')
 
 const canSend = computed(() => {
   return messageText.value.trim().length > 0 || selectedFiles.value.length > 0
@@ -185,6 +199,11 @@ const handleTyping = () => {
   if (messageInput.value) {
     messageInput.value.style.height = 'auto'
     messageInput.value.style.height = `${Math.min(messageInput.value.scrollHeight, 120)}px`
+  }
+  
+  // Clear error when user starts typing
+  if (error.value) {
+    error.value = ''
   }
 }
 
@@ -249,47 +268,68 @@ const triggerFileInput = () => {
 const sendMessage = async () => {
   if (!canSend.value) return
 
-  const messageData = {
-    recipient: props.recipientId,
-    message: messageText.value.trim(),
-    message_type: 'text'
-  }
+  sending.value = true
+  error.value = ''
 
-  if (props.replyTo) {
-    messageData.reply_to = props.replyTo.id
-  }
+  try {
+    // Use simplified endpoint that auto-detects recipient (better UX)
+    const message = messageText.value.trim()
+    const attachment = selectedFiles.value.length > 0 ? selectedFiles.value[0] : null
+    const replyToId = props.replyTo?.id || null
 
-  // Send files first if any
-  if (selectedFiles.value.length > 0) {
-    for (const file of selectedFiles.value) {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('thread_id', props.threadId)
-      formData.append('recipient_id', props.recipientId)
+    // If multiple files, send them one by one
+    if (selectedFiles.value.length > 1) {
+      // Send first file with message if any
+      await communicationsAPI.sendMessageSimple(
+        props.threadId,
+        message || '📎 File attachments',
+        selectedFiles.value[0],
+        replyToId
+      )
       
-      try {
-        await communicationsAPI.uploadAttachment(formData)
-      } catch (error) {
-        console.error('Failed to upload file:', error)
+      // Send remaining files
+      for (let i = 1; i < selectedFiles.value.length; i++) {
+        await communicationsAPI.sendMessageSimple(
+          props.threadId,
+          '',
+          selectedFiles.value[i],
+          null
+        )
       }
+    } else {
+      // Single file or text only
+      await communicationsAPI.sendMessageSimple(
+        props.threadId,
+        message,
+        attachment,
+        replyToId
+      )
     }
-    selectedFiles.value = []
-  }
 
-  // Send text message if there's text
-  if (messageText.value.trim()) {
-    try {
-      await communicationsAPI.sendMessage(props.threadId, messageData)
-      messageText.value = ''
-      if (messageInput.value) {
-        messageInput.value.style.height = 'auto'
-      }
-      emit('message-sent')
-    } catch (error) {
-      console.error('Failed to send message:', error)
+    // Clear form
+    messageText.value = ''
+    selectedFiles.value = []
+    if (messageInput.value) {
+      messageInput.value.style.height = 'auto'
     }
-  } else {
+    
+    // Clear reply if was replying
+    if (props.replyTo) {
+      emit('cancel-reply')
+    }
+
+    // Emit event
     emit('message-sent')
+  } catch (err) {
+    console.error('Failed to send message:', err)
+    const errorMsg = err.response?.data?.detail || 
+                    err.response?.data?.error || 
+                    err.message || 
+                    'Failed to send message. Please try again.'
+    error.value = errorMsg
+    showError(errorMsg)
+  } finally {
+    sending.value = false
   }
 }
 

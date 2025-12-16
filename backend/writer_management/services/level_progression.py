@@ -161,8 +161,12 @@ class WriterLevelProgressionService:
         revision_rate = (revised_orders / completed_orders.count() * 100) if completed_orders.count() > 0 else 0
         
         # Calculate lateness rate (orders submitted late)
-        from django.db.models import F
-        late_orders = completed_orders.filter(submitted_at__gt=F('deadline')).count()
+        from django.db.models import F, Q, Case, When, Value
+        from django.db.models.functions import Coalesce
+        # Use writer_deadline if available, otherwise fall back to client_deadline
+        late_orders = completed_orders.filter(
+            submitted_at__gt=Coalesce('writer_deadline', 'client_deadline')
+        ).count()
         lateness_rate = (late_orders / completed_orders.count() * 100) if completed_orders.count() > 0 else 0
         
         return {

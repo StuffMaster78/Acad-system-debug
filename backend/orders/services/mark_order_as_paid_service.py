@@ -1,6 +1,7 @@
 from django.core.exceptions import ValidationError
 from orders.models import Order
 from orders.utils.order_utils import get_order_by_id, save_order
+from orders.exceptions import InvalidTransitionError, AlreadyInTargetStatusError
 from notifications_system.services.notification_helper import NotificationHelper
 
 
@@ -51,9 +52,25 @@ class MarkOrderPaidService:
                 f"{order.status}. Current status must be 'unpaid' or 'pending'."
             )
 
-        order.status = 'in_progress'
         order.is_paid = True
-        save_order(order)
+        order.save(update_fields=['is_paid'])
+        
+        # Use unified transition helper to move to in_progress
+        # unpaid can now directly transition to in_progress when payment is completed
+        from orders.services.transition_helper import OrderTransitionHelper
+        OrderTransitionHelper.transition_order(
+            order,
+            'in_progress',
+            user=None,  # System action
+            reason="Order paid and ready for assignment",
+            action="mark_paid",
+            is_automatic=True,
+            skip_payment_check=True,  # We already validated payment
+            metadata={
+                "payment_validated": True,
+                "is_paid": True,
+            }
+        )
         
         # Send notification
         try:

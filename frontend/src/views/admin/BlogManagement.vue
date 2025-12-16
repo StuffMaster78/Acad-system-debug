@@ -1463,6 +1463,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -1479,10 +1493,13 @@ import WebsiteContextBanner from '@/components/common/WebsiteContextBanner.vue'
 import EnhancedDataTable from '@/components/common/EnhancedDataTable.vue'
 import ContentPreview from '@/components/content/ContentPreview.vue'
 import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { formatWebsiteName } from '@/utils/formatDisplay'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const { success: showSuccess, error: showError } = useToast()
+const confirm = useConfirmDialog()
 
 const activeTab = ref('posts')
 const tabs = [
@@ -2030,7 +2047,18 @@ const loadRevisionDiff = async (revisionId) => {
 }
 
 const deleteBlogAction = async (blog) => {
-  if (!confirm(`Delete "${blog.title}"?`)) return
+  const confirmed = await confirm.showDestructive(
+    `Delete "${blog.title}"?`,
+    'Delete Blog Post',
+    {
+      details: 'This action cannot be undone. The blog post will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await blogPagesAPI.deleteBlog(blog.id)
     message.value = 'Blog post deleted'
@@ -2092,7 +2120,18 @@ const closeCategoryModal = () => {
 }
 
 const deleteCategory = async (id) => {
-  if (!confirm('Delete this category?')) return
+  const confirmed = await confirm.showDestructive(
+    'Delete this category?',
+    'Delete Category',
+    {
+      details: 'This action cannot be undone. The category will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await blogPagesAPI.deleteCategory(id)
     await loadCategories()
@@ -2147,7 +2186,18 @@ const closeTagModal = () => {
 }
 
 const deleteTag = async (id) => {
-  if (!confirm('Delete this tag?')) return
+  const confirmed = await confirm.showDestructive(
+    'Delete this tag?',
+    'Delete Tag',
+    {
+      details: 'This action cannot be undone. The tag will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await blogPagesAPI.deleteTag(id)
     await loadTags()
@@ -2320,9 +2370,17 @@ const saveContentBlock = async () => {
 }
 
 const removeContentBlock = async (block) => {
-  if (!confirm('Are you sure you want to remove this content block?')) {
-    return
-  }
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to remove this content block?',
+    'Remove Content Block',
+    {
+      details: 'This will remove the content block from the blog post. This action cannot be undone.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   // If it's a pending block (has tempId), just remove from array
   if (block.tempId) {

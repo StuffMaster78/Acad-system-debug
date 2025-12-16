@@ -29,31 +29,41 @@ class CancelOrderService:
         """
         order = get_order_by_id(order_id)
 
-        if order.status in [
-            OrderStatus.CANCELLED,
-            OrderStatus.COMPLETED,
-            OrderStatus.RATED,
-            OrderStatus.REVIEWED,
-            OrderStatus.APPROVED,
-            OrderStatus.ARCHIVED,
-            OrderStatus.UNPAID,
-            OrderStatus.PENDING,
-            OrderStatus.REJECTED,
-            OrderStatus.EXPIRED,
-            OrderStatus.FAILED,
-            OrderStatus.REFUNDED,
-            OrderStatus.PARTIALLY_REFUNDED
-        ]:
+        # Check if order can be cancelled (convert enum values to strings for comparison)
+        non_cancellable_statuses = [
+            OrderStatus.CANCELLED.value,
+            OrderStatus.COMPLETED.value,
+            OrderStatus.RATED.value,
+            OrderStatus.REVIEWED.value,
+            OrderStatus.APPROVED.value,
+            OrderStatus.ARCHIVED.value,
+            OrderStatus.UNPAID.value,
+            OrderStatus.PENDING.value,
+            OrderStatus.REJECTED.value,
+            OrderStatus.EXPIRED.value,
+            OrderStatus.REFUNDED.value,
+        ]
+        
+        if order.status in non_cancellable_statuses:
             raise ValueError(
-                f"Cannot cancel order in status '{order.status.value}'."
+                f"Cannot cancel order in status '{order.status}'."
             )
-
-        order.status = OrderStatus.CANCELLED
 
         # Optional: Save reason or audit log
         if hasattr(order, "cancellation_reason"):
             order.cancellation_reason = reason
+            order.save(update_fields=["cancellation_reason"])
 
-        # Optional: Refunds or cleanup hooks can go here
-
-        save_order(order)
+        # Use unified transition helper to move to cancelled
+        from orders.services.transition_helper import OrderTransitionHelper
+        OrderTransitionHelper.transition_order(
+            order,
+            OrderStatus.CANCELLED.value,
+            user=None,  # System action or pass user if available
+            reason=reason or "Order cancelled",
+            action="cancel_order",
+            is_automatic=False,
+            metadata={
+                "cancellation_reason": reason,
+            }
+        )

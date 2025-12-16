@@ -69,6 +69,8 @@ export * as reviewRemindersAPI from './review-reminders'
 export { default as blogAuthorsAPI } from './blog-authors'
 export { default as contentAnalyticsAPI } from './content-analytics'
 export { default as blogPagesAPI } from './blog-pages'
+export { default as newslettersAPI } from './newsletters'
 export { default as seoPagesAPI } from './seo-pages'
+export { default as servicePagesAPI } from './service-pages'
 export { default as mediaAPI } from './media'
 

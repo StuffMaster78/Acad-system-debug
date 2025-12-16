@@ -32,5 +32,68 @@ export default {
   reopenOrder: (id) => apiClient.post(`/orders/orders/${id}/action/`, { action: 'reopen_order' }),
   markCritical: (id) => apiClient.post(`/orders/orders/${id}/action/`, { action: 'mark_critical' }),
   extendDeadline: (id, newDeadline) => apiClient.post(`/orders/orders/${id}/extend-deadline/`, { new_deadline: newDeadline }),
+  
+  // Writer Requests (additional pages/slides)
+  createWriterRequest: (orderId, data) => apiClient.post(`/orders/writer-requests/`, { order: orderId, ...data }),
+  getWriterRequests: (orderId) => apiClient.get(`/orders/orders/${orderId}/writer-requests/`),
+  approveWriterRequest: (orderId, requestId, data) => apiClient.post(`/orders/orders/${orderId}/approve-writer-request/`, { writer_request_id: requestId, ...data }),
+  
+  // Client response to writer requests
+  clientRespondToWriterRequest: (orderId, requestId, data) => apiClient.post(`/orders/orders/${orderId}/action/`, {
+    action: 'client_respond_writer_request',
+    request_id: requestId,
+    ...data
+  }),
+  
+  // Soft Delete & Restore
+  softDelete: (id, reason = '') => apiClient.delete(`/orders/orders/${id}/`, { data: { reason } }),
+  restore: (id) => apiClient.post(`/orders/orders/${id}/restore/`),
+  
+  // Auto-Assignment
+  autoAssign: (id, data = {}) => apiClient.post(`/orders/orders/${id}/auto-assign/`, data),
+  bulkAutoAssign: (data = {}) => apiClient.post('/orders/orders/bulk-auto-assign/', data),
+  
+  // Bulk Assignment
+  bulkAssign: (data = {}) => apiClient.post('/orders/orders/bulk-assign/', data),
+  
+  // Smart Matching
+  getSmartMatches: (id, params = {}) => apiClient.get(`/orders/orders/${id}/smart-match/`, { params }),
+  hardDelete: (id) => apiClient.delete(`/orders/orders/${id}/hard/`),
+  
+  // Unified Transition Endpoint (preferred method)
+  /**
+   * Transition an order to a new status using the unified transition endpoint.
+   * This is the preferred method for status transitions as it provides:
+   * - Consistent validation
+   * - Automatic logging
+   * - Business rule enforcement
+   * 
+   * @param {number} id - Order ID
+   * @param {string} targetStatus - Target status (e.g., 'in_progress', 'submitted', 'completed')
+   * @param {string} reason - Optional reason for the transition
+   * @param {object} metadata - Optional additional metadata
+   * @returns {Promise} API response
+   */
+  transition: (id, targetStatus, reason = '', metadata = {}) => 
+    apiClient.post(`/orders/orders/${id}/transition/`, {
+      target_status: targetStatus,
+      reason,
+      ...metadata
+    }),
+  
+  /**
+   * Get available transitions for an order.
+   * @param {number} id - Order ID
+   * @returns {Promise} API response with available transitions
+   */
+  getAvailableTransitions: (id) => 
+    apiClient.get(`/orders/orders/${id}/transition/`),
+
+  /**
+   * Get transition log entries for an order (admin only).
+   * @param {number} id - Order ID
+   */
+  getTransitionLog: (id) =>
+    apiClient.get('/orders/logs/', { params: { order: id } }),
 }
 

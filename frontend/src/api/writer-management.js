@@ -27,12 +27,14 @@ export default {
   
   // Writer Warnings
   listWarnings: (params) => apiClient.get('/writer-management/writer-warnings/', { params }),
+  getMyWarnings: () => apiClient.get('/writer-management/writer-warnings/mine/'),
   getWarning: (id) => apiClient.get(`/writer-management/writer-warnings/${id}/`),
   createWarning: (data) => apiClient.post('/writer-management/writer-warnings/', data),
   deactivateWarning: (id) => apiClient.delete(`/writer-management/writer-warnings/${id}/`),
   
   // Writer Status
   getWriterStatus: (writerId) => apiClient.get(`/writer-management/writer-status/${writerId}/`),
+  getMyWriterStatus: () => apiClient.get('/writer-management/writer-status/me/'),
   listWriterStatuses: (params) => apiClient.get('/writer-management/writer-status/', { params }),
   
   // Writer Profile
@@ -40,6 +42,7 @@ export default {
   
   // Writer Suspensions
   listSuspensions: (params) => apiClient.get('/writer-management/writer-suspensions/', { params }),
+  getMySuspensions: () => apiClient.get('/writer-management/writer-suspensions/mine/'),
   getSuspension: (id) => apiClient.get(`/writer-management/writer-suspensions/${id}/`),
   
   // Writer Order Hold Requests

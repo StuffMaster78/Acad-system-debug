@@ -2033,6 +2033,20 @@
       {{ message }}
     </div>
     <div v-if="orderConfigError" class="p-3 rounded bg-red-50 text-red-700">{{ orderConfigError }}</div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -2053,8 +2067,11 @@ import { exportToCSV } from '@/utils/export'
 import { formatWebsiteName } from '@/utils/formatDisplay'
 import FilterBar from '@/components/common/FilterBar.vue'
 import DataTable from '@/components/common/DataTable.vue'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const authStore = useAuthStore()
+const confirm = useConfirmDialog()
 
 const activeTab = ref('pricing')
 const activePricingSubTab = ref('base-pricing')
@@ -2504,7 +2521,7 @@ const loadOrderConfigs = async () => {
     const params = {}
     let res
     
-    console.log('Loading order configs for type:', activeOrderConfigType.value)
+    // Loading order configs for selected type
     
     switch (activeOrderConfigType.value) {
       case 'paper-types':
@@ -2529,7 +2546,7 @@ const loadOrderConfigs = async () => {
         res = { data: { results: [] } }
     }
     
-    console.log('API Response:', res)
+    // API response received
     
     // Handle both paginated and non-paginated responses
     let configs = []
@@ -2545,7 +2562,7 @@ const loadOrderConfigs = async () => {
       configs = Object.values(res.data).find(Array.isArray) || []
     }
     
-    console.log('Loaded configs:', configs.length)
+    // Configs loaded
     
     // Set configs immediately (don't wait for defaults check)
     orderConfigs.value = configs.map(config => ({
@@ -2560,7 +2577,7 @@ const loadOrderConfigs = async () => {
       return websiteId ? String(websiteId) : null
     }).filter(Boolean))]
     
-    console.log('Unique website IDs:', uniqueWebsiteIds)
+    // Processing unique website IDs
     
     // Check defaults in parallel (non-blocking) - fire and forget
     if (uniqueWebsiteIds.length > 0) {
@@ -3056,9 +3073,17 @@ const toggleSelectAll = (event) => {
 const handleBulkDelete = async () => {
   if (!selectedConfigs.value.length) return
   
-  if (!confirm(`Are you sure you want to delete ${selectedConfigs.value.length} selected configuration(s)? This action cannot be undone.`)) {
-    return
-  }
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to delete ${selectedConfigs.value.length} selected configuration(s)?`,
+    'Delete Selected Configurations',
+    {
+      details: 'This action cannot be undone. All selected configurations will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   bulkDeleting.value = true
   orderConfigError.value = ''
@@ -3225,9 +3250,17 @@ const editOrderConfig = (config) => {
 }
 
 const deleteOrderConfig = async (config) => {
-  if (!confirm(`Are you sure you want to delete "${config.name}"? This action cannot be undone.`)) {
-    return
-  }
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to delete "${config.name}"?`,
+    'Delete Configuration',
+    {
+      details: 'This action cannot be undone. The configuration will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
   
   try {
     let apiCall
@@ -3479,7 +3512,18 @@ const saveReferralConfig = async () => {
 }
 
 const deleteReferralConfig = async (id) => {
-  if (!confirm('Are you sure you want to delete this referral configuration?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this referral configuration?',
+    'Delete Referral Configuration',
+    {
+      details: 'This action cannot be undone. The referral configuration will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await referralsAPI.deleteConfig(id)
     message.value = 'Referral configuration deleted successfully'
@@ -3575,7 +3619,18 @@ const saveAdditionalService = async () => {
 }
 
 const deleteAdditionalService = async (id) => {
-  if (!confirm('Are you sure you want to delete this additional service?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this additional service?',
+    'Delete Additional Service',
+    {
+      details: 'This action cannot be undone. The additional service will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await pricingAPI.deleteAdditionalService(id)
     message.value = 'Additional service deleted successfully'
@@ -3665,7 +3720,18 @@ const savePreferredWriterConfig = async () => {
 }
 
 const deletePreferredWriterConfig = async (id) => {
-  if (!confirm('Are you sure you want to delete this preferred writer config?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this preferred writer config?',
+    'Delete Preferred Writer Config',
+    {
+      details: 'This action cannot be undone. The preferred writer configuration will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await pricingAPI.deletePreferredWriterConfig(id)
     message.value = 'Preferred writer config deleted successfully'
@@ -3758,7 +3824,18 @@ const saveWriterLevelOption = async () => {
 }
 
 const deleteWriterLevelOption = async (id) => {
-  if (!confirm('Are you sure you want to delete this writer level option?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this writer level option?',
+    'Delete Writer Level Option',
+    {
+      details: 'This action cannot be undone. The writer level option will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await pricingAPI.deleteWriterLevelOption(id)
     message.value = 'Writer level option deleted successfully'
@@ -3806,7 +3883,6 @@ const loadDeadlineMultipliersWebsites = async () => {
 }
 
 const createDeadlineMultiplier = () => {
-  console.log('Creating deadline multiplier, loading websites...')
   editingDeadlineMultiplier.value = null
   deadlineMultiplierForm.value = {
     website: '',
@@ -3819,7 +3895,6 @@ const createDeadlineMultiplier = () => {
     loadDeadlineMultipliersWebsites()
   }
   showDeadlineMultiplierModal.value = true
-  console.log('Modal should be visible:', showDeadlineMultiplierModal.value)
 }
 
 const editDeadlineMultiplier = (multiplier) => {
@@ -3855,7 +3930,18 @@ const saveDeadlineMultiplier = async () => {
 }
 
 const deleteDeadlineMultiplier = async (id) => {
-  if (!confirm('Are you sure you want to delete this deadline multiplier?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this deadline multiplier?',
+    'Delete Deadline Multiplier',
+    {
+      details: 'This action cannot be undone. The deadline multiplier will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await pricingAPI.deleteDeadlineMultiplier(id)
     message.value = 'Deadline multiplier deleted successfully'
@@ -3923,7 +4009,18 @@ const closePricingModal = () => {
 }
 
 const deletePricingConfig = async (id) => {
-  if (!confirm('Delete this pricing configuration?')) return
+  const confirmed = await confirm.showDestructive(
+    'Delete this pricing configuration?',
+    'Delete Pricing Configuration',
+    {
+      details: 'This action cannot be undone. The pricing configuration will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await adminManagementAPI.deletePricingConfig(id)
     message.value = 'Pricing configuration deleted'
@@ -4232,7 +4329,18 @@ const toggleDiscountActive = async (discount) => {
 }
 
 const deleteDiscount = async (discount) => {
-  if (!confirm(`Are you sure you want to delete discount "${discount.code}"?`)) return
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to delete discount "${discount.code}"?`,
+    'Delete Discount',
+    {
+      details: 'This action cannot be undone. The discount will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await discountsAPI.delete(discount.id)
     await loadDiscounts()
@@ -4374,7 +4482,18 @@ const saveReminderConfig = async () => {
 }
 
 const deleteReminderConfig = async (id) => {
-  if (!confirm('Are you sure you want to delete this reminder config?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this reminder config?',
+    'Delete Reminder Config',
+    {
+      details: 'This action cannot be undone. The reminder configuration will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await paymentRemindersAPI.deleteReminderConfig(id)
     message.value = 'Reminder config deleted successfully'
@@ -4450,7 +4569,18 @@ const saveDeletionMessage = async () => {
 }
 
 const deleteDeletionMessage = async (id) => {
-  if (!confirm('Are you sure you want to delete this deletion message?')) return
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to delete this deletion message?',
+    'Delete Deletion Message',
+    {
+      details: 'This action cannot be undone. The deletion message will be permanently removed.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
   try {
     await paymentRemindersAPI.deleteDeletionMessage(id)
     message.value = 'Deletion message deleted successfully'

@@ -246,8 +246,14 @@ const loadRequests = async () => {
     const response = await writerManagementAPI.listHoldRequests()
     requests.value = response.data.results || response.data || []
   } catch (error) {
-    console.error('Failed to load hold requests:', error)
-    showError(getErrorMessage(error, 'Failed to load hold requests'))
+    // Only log and show errors that aren't suppressed (expected backend failures)
+    if (!error._suppressLog) {
+      console.error('Failed to load hold requests:', error)
+      const errorMsg = getErrorMessage(error, 'Failed to load hold requests')
+      if (errorMsg) {
+        showError(errorMsg)
+      }
+    }
   } finally {
     loading.value = false
   }

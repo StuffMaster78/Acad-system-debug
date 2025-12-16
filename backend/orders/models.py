@@ -41,6 +41,21 @@ User = settings.AUTH_USER_MODEL
 # Website = get_website_model()
 
 # from writer_management.models import wr
+
+class OrderManager(models.Manager):
+    """Custom manager that excludes soft-deleted orders by default."""
+    def get_queryset(self):
+        return super().get_queryset().filter(is_deleted=False)
+    
+    def with_deleted(self):
+        """Return queryset including soft-deleted orders."""
+        return super().get_queryset()
+    
+    def deleted_only(self):
+        """Return queryset with only soft-deleted orders."""
+        return super().get_queryset().filter(is_deleted=True)
+
+
 class Order(models.Model):
     """
     Represents an order placed by a client.
@@ -177,7 +192,7 @@ class Order(models.Model):
         help_text="Additional services requested."
     )
     status = models.CharField(
-        max_length=20,
+        max_length=30,  # Increased to accommodate 'pending_writer_assignment' (25 chars)
         choices=[(status.value, status.name) for status in OrderStatus],
         default=OrderStatus.CREATED.value,
         help_text="Current status of the order."
@@ -302,6 +317,44 @@ class Order(models.Model):
     allow_unpaid_access = models.BooleanField(
         default=False,
         help_text="If True, allows access to this order even if unpaid. Admin can override default unpaid access restrictions."
+    )
+    
+    # Soft delete fields
+    is_deleted = models.BooleanField(
+        default=False,
+        help_text="Soft delete flag. When True, order is hidden from normal queries."
+    )
+    deleted_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when the order was soft-deleted."
+    )
+    deleted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="deleted_orders",
+        help_text="User who soft-deleted the order."
+    )
+    delete_reason = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Reason for soft-deleting the order."
+    )
+    restored_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when the order was restored from soft-delete."
+    )
+    restored_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="restored_orders",
+        help_text="User who restored the order."
     )
 
     # Include existing methods: calculate_total_cost,
@@ -555,8 +608,27 @@ class Order(models.Model):
         self.total_price = calculator.calculate_total_price()
         self.save()
 
+    def mark_deleted(self, user, reason=""):
+        """Mark the order as soft-deleted."""
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.deleted_by = user
+        self.delete_reason = reason[:255] if reason else ""
+        self.restored_at = None
+        self.restored_by = None
+
+    def mark_restored(self, user):
+        """Restore a soft-deleted order."""
+        self.is_deleted = False
+        self.restored_at = timezone.now()
+        self.restored_by = user
+
     def __str__(self):
         return f"Order #{self.id} - {self.topic} ({self.status})"
+    
+    # Custom managers
+    objects = OrderManager()
+    all_objects = models.Manager()  # Access all orders including soft-deleted
 
     class Meta:
         ordering = ['-created_at']
@@ -575,6 +647,9 @@ class Order(models.Model):
             models.Index(fields=['website', 'status']),
             models.Index(fields=['status', 'created_at']),
             models.Index(fields=['is_paid', 'created_at']),
+            # Soft delete indexes
+            models.Index(fields=['is_deleted']),
+            models.Index(fields=['is_deleted', 'deleted_at']),
         ]
 
     # Backward-compat deadline alias for tests
@@ -863,6 +938,29 @@ class WriterRequest(models.Model):
         choices=RequestStatus.choices,
         default=RequestStatus.PENDING
     )
+    
+    # Counter offer fields
+    client_counter_pages = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Client's counter offer for additional pages"
+    )
+    client_counter_slides = models.PositiveIntegerField(
+        null=True, blank=True,
+        help_text="Client's counter offer for additional slides"
+    )
+    client_counter_cost = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        null=True, blank=True,
+        help_text="Client's counter offer cost"
+    )
+    client_counter_reason = models.TextField(
+        null=True, blank=True,
+        help_text="Client's reason for counter offer"
+    )
+    has_counter_offer = models.BooleanField(
+        default=False,
+        help_text="Whether client has made a counter offer"
+    )
 
     estimated_cost = models.DecimalField(
         max_digits=10, decimal_places=2,
@@ -1073,55 +1171,38 @@ class Dispute(models.Model):
 
     def save(self, *args, **kwargs):
         """
-        Automatically update order status when dispute is
-        raised, reviewed, escalated, or resolved.
+        Persist the dispute without directly mutating the related order's status.
+
+        Order status transitions are handled centrally via the
+        `orders.services.disputes.DisputeService` and `OrderTransitionHelper`,
+        ensuring consistent validation, logging, and hooks.
         """
-        Order = apps.get_model('orders', 'Order')
-
         if self._state.adding and self.order.status == 'cancelled':
-            raise ValueError(
-                "Cannot raise a dispute for a cancelled order."
-            )
+            raise ValueError("Cannot raise a dispute for a cancelled order.")
+
         if self._state.adding and self.order.status == 'progress':
-            raise ValueError(
-                "Cannot raise a dispute for an order in progress."
-            )
+            raise ValueError("Cannot raise a dispute for an order in progress.")
 
-        if self._state.adding:
-            self.order.status = 'disputed'
-            self.writer_responded = False
-            self.notify_users(
-                "New Dispute Raised",
-                f"A dispute has been raised for Order #{self.order.id}. "
-                "Admin review is required."
-            )
-        if self.status == 'in_review':
-            self.order.status = 'in_review'
-        elif self.status == 'escalated':
-            self.order.status = 'escalated'
-        elif self.status == 'resolved':
-            self.resolve_dispute_action()
-
-        self.order.save()
         super().save(*args, **kwargs)
 
-    def resolve_dispute_action(self, resolved_by):
+    def resolve_dispute_action(self, resolved_by=None):
         """
-        Updates the order status based on
-        the dispute resolution decision.
-        """
-        if self.resolution_outcome == 'writer_wins':
-            self.order.status = 'completed'
-        elif self.resolution_outcome == 'client_wins':
-            self.order.status = 'cancelled'
-        elif self.resolution_outcome == 'extend_deadline':
-            self.order.change_deadline(resolved_by.new_deadline)
-            self.order.status = 'revision'
-        elif self.resolution_outcome == 'reassign':
-            self.order.status = 'available'
-            self.order.writer = None
+        Backwards‑compat shim for legacy admin actions.
 
-        self.order.save()
+        Delegates to `DisputeService.resolve_dispute` so that resolution
+        uses the unified transition helper and central business rules.
+        """
+        from orders.services.disputes import DisputeService
+        from websites.models import Website
+
+        website: Website = self.website
+        service = DisputeService(dispute=self)
+        service.resolve_dispute(
+            resolution_outcome=self.resolution_outcome,
+            resolved_by=resolved_by or self.raised_by,
+            website=website,
+            resolution_notes=self.resolution_notes,
+        )
 
     def notify_users(self, subject, message):
         recipients = []
@@ -1571,37 +1652,161 @@ class DraftRequest(models.Model):
     def __str__(self):
         return f"Draft Request #{self.id} - Order #{self.order.id} - {self.status}"
 
-    def can_request(self):
-        """
-        Check if client can request a draft (has paid for Progressive Delivery).
-        """
-        from pricing_configs.models import AdditionalService
 
-        progressive_service = AdditionalService.objects.filter(
-            website=self.website,
-            is_active=True
-        ).filter(
-            models.Q(slug='progressive-delivery') |
-            models.Q(service_name__icontains='progressive') |
-            models.Q(service_name__icontains='draft')
-        ).first()
-
-        if not progressive_service:
-            return False, "Progressive Delivery service is not available"
-
-        if not self.order.extra_services.filter(id=progressive_service.id).exists():
-            return False, "Progressive Delivery service not added to this order"
-
-        if not self.order.is_paid:
-            return False, "Order must be paid before requesting drafts"
-
-        return True, None
-
-    def fulfill(self, fulfilled_by):
-        """Mark the draft request as fulfilled."""
-        self.status = 'fulfilled'
-        self.fulfilled_at = timezone.now()
+class WriterAssignmentAcceptance(models.Model):
+    """
+    Tracks writer acceptance or rejection of order assignments.
+    When an admin assigns a writer, the order moves to 'pending_writer_assignment' status.
+    The writer must accept or reject the assignment.
+    """
+    ACCEPTANCE_STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('accepted', 'Accepted'),
+        ('rejected', 'Rejected'),
+    ]
+    
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='writer_assignment_acceptances'
+    )
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name='assignment_acceptance',
+        help_text="The order that was assigned"
+    )
+    writer = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='assignment_acceptances',
+        limit_choices_to={'role': 'writer'},
+        help_text="The writer who was assigned"
+    )
+    assigned_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assignments_made',
+        help_text="Admin/support who assigned the order"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=ACCEPTANCE_STATUS_CHOICES,
+        default='pending',
+        help_text="Whether the writer has accepted or rejected the assignment"
+    )
+    reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Writer's reason for accepting or rejecting (optional)"
+    )
+    assigned_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the assignment was made"
+    )
+    responded_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="When the writer accepted or rejected"
+    )
+    
+    class Meta:
+        verbose_name = "Writer Assignment Acceptance"
+        verbose_name_plural = "Writer Assignment Acceptances"
+        ordering = ['-assigned_at']
+        indexes = [
+            models.Index(fields=['writer', 'status']),
+            models.Index(fields=['order', 'status']),
+            models.Index(fields=['status', 'assigned_at']),
+        ]
+    
+    def __str__(self):
+        return f"Assignment #{self.id} - Order #{self.order.id} - {self.get_status_display()}"
+    
+    def accept(self, reason=None):
+        """Mark assignment as accepted and move order to in_progress."""
+        if self.status != 'pending':
+            raise ValidationError(f"Cannot accept assignment that is already {self.status}")
+        
+        self.status = 'accepted'
+        self.reason = reason
+        self.responded_at = timezone.now()
         self.save()
+        
+        # Use unified transition helper to move to in_progress
+        from orders.services.transition_helper import OrderTransitionHelper
+        OrderTransitionHelper.transition_order(
+            self.order,
+            OrderStatus.IN_PROGRESS.value,
+            user=self.writer,
+            reason=reason or "Writer accepted assignment",
+            action="accept_assignment",
+            is_automatic=False,
+            skip_payment_check=True,  # Payment already validated
+            metadata={
+                "assignment_acceptance_id": self.id,
+                "writer_id": self.writer.id,
+                "assigned_by_id": self.assigned_by.id if self.assigned_by else None,
+            }
+        )
+        
+        # Send notification
+        from notifications_system.services.core import NotificationService
+        NotificationService.send_notification(
+            user=self.assigned_by,
+            event="Writer Accepted Assignment",
+            payload={
+                "order_id": self.order.id,
+                "writer_id": self.writer.id
+            },
+            website=self.website
+        )
+    
+    def reject(self, reason=None):
+        """Mark assignment as rejected and return order to available."""
+        if self.status != 'pending':
+            raise ValidationError(f"Cannot reject assignment that is already {self.status}")
+        
+        self.status = 'rejected'
+        self.reason = reason
+        self.responded_at = timezone.now()
+        self.save()
+        
+        # Unassign writer
+        self.order.assigned_writer = None
+        self.order.save(update_fields=['assigned_writer'])
+        
+        # Use unified transition helper to move to available
+        from orders.services.transition_helper import OrderTransitionHelper
+        OrderTransitionHelper.transition_order(
+            self.order,
+            OrderStatus.AVAILABLE.value,
+            user=self.writer,
+            reason=reason or "Writer rejected assignment",
+            action="reject_assignment",
+            is_automatic=False,
+            metadata={
+                "assignment_acceptance_id": self.id,
+                "writer_id": self.writer.id,
+                "assigned_by_id": self.assigned_by.id if self.assigned_by else None,
+                "rejection_reason": reason,
+            }
+        )
+        
+        # Send notification
+        from notifications_system.services.core import NotificationService
+        NotificationService.send_notification(
+            user=self.assigned_by,
+            event="Writer Rejected Assignment",
+            payload={
+                "order_id": self.order.id,
+                "writer_id": self.writer.id,
+                "reason": reason
+            },
+            website=self.website
+        )
 
 
 class DraftFile(models.Model):

@@ -26,10 +26,12 @@ def get_order_by_id(order_id, user=None, check_soft_deleted=True):
     """
     from users.models import User
     from orders.models import Order
-    queryset = Order.objects.all()
-
-    if check_soft_deleted and hasattr(Order, 'is_deleted'):
-        queryset = queryset.filter(is_deleted=False)
+    
+    # Use the appropriate manager based on check_soft_deleted flag
+    if check_soft_deleted:
+        queryset = Order.objects.all()  # OrderManager filters out soft-deleted by default
+    else:
+        queryset = Order.all_objects.all()  # Access all orders including soft-deleted
 
     order = get_object_or_404(queryset, id=order_id)
 

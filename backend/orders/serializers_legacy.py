@@ -539,9 +539,11 @@ class WriterRequestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'website', 'order', 'request_type', 'requested_by_writer',
             'new_deadline', 'additional_pages', 'additional_slides',
-            'request_reason', 'status', 'client_approval', 'estimated-cost',
-            'final-cost', 'admin_approval', 'is_paid', 'requires_payment',
-            'payment_pending', 'status_display', 'created_at', 'updated_at'
+            'request_reason', 'status', 'client_approval', 'estimated_cost',
+            'final_cost', 'admin_approval', 'is_paid', 'requires_payment',
+            'payment_pending', 'status_display', 'created_at', 'updated_at',
+            'client_counter_pages', 'client_counter_slides', 'client_counter_cost',
+            'client_counter_reason', 'has_counter_offer'
         ]
         read_only_fields = ['status', 'client_approval', 'admin_approval', 'is_paid']
 

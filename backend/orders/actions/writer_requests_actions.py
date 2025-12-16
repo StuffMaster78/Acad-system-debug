@@ -48,23 +48,47 @@ class CreateWriterRequestAction(BaseOrderAction):
 @register_order_action("client_respond_writer_request")
 class ClientRespondToWriterRequestAction(BaseOrderAction):
     """
-    Client approves/declines a writer request and logs it.
-    Expects params: user, request_id, approve, decline_reason (optional)
+    Client approves/declines/counter-offers a writer request and logs it.
+    Expects params: 
+        - user
+        - request_id
+        - response: 'approve', 'reject', or 'counter'
+        - reason: str (required for reject)
+        - counter_offer: dict (required for counter) with:
+            - counter_pages: int (optional)
+            - counter_slides: int (optional)
+            - counter_cost: Decimal (optional)
+            - counter_reason: str (required)
     """
 
     def execute(self) -> WriterRequest:
         user = self.params["user"]
         request_id = self.params["request_id"]
-        approve = self.params["approve"]
-        decline_reason = self.params.get("decline_reason")
+        response = self.params.get("response", "approve")  # 'approve', 'reject', or 'counter'
+        reason = self.params.get("reason")
+        counter_offer = self.params.get("counter_offer")
 
-        wr = get_object_or_404(WriterRequest, id=request_id)
+        wr = get_object_or_404(WriterRequest, id=request_id, order_id=self.order_id)
+
+        approve = response == "approve"
+        counter_offer_data = None
+
+        if response == "counter":
+            if not counter_offer:
+                raise ValueError("counter_offer data is required for counter offer response")
+            counter_offer_data = {
+                "counter_pages": counter_offer.get("counter_pages"),
+                "counter_slides": counter_offer.get("counter_slides"),
+                "counter_cost": counter_offer.get("counter_cost"),
+                "counter_reason": counter_offer.get("counter_reason"),
+            }
 
         WriterRequestService.client_respond(
             request=wr,
             client=user,
             approve=approve,
-            reason=decline_reason,
+            reason=reason,
+            counter_offer_data=counter_offer_data,
         )
 
         AuditLogService.log_auto(
@@ -72,7 +96,12 @@ class ClientRespondToWriterRequestAction(BaseOrderAction):
             action="CLIENT_RESPONDED_WRITER_REQUEST",
             target="orders.WriterRequest",
             target_id=wr.id,
-            metadata={"approved": approve, "reason": decline_reason},
+            metadata={
+                "response": response,
+                "approved": approve,
+                "reason": reason,
+                "counter_offer": counter_offer_data,
+            },
         )
         return wr
 
