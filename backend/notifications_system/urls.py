@@ -192,6 +192,9 @@ urlpatterns = [
         "feed/", NotificationFeedView.as_view(), name="notifications-feed"
     ),
     path(
+        "notifications/feed/", NotificationFeedViewSet.as_view({'get': 'list'}), name="notifications-feed-viewset"
+    ),
+    path(
         "mark-read/<int:notification_id>/",
         NotificationMarkReadView.as_view(),
         name="notifications-mark-read"

@@ -42,10 +42,7 @@ class Migration(migrations.Migration):
             model_name='order',
             index=models.Index(fields=['website', 'status', 'created_at'], name='orders_orde_website_status_created_idx'),
         ),
-        # Rating index for writer rating calculations (composite with status)
-        migrations.AddIndex(
-            model_name='order',
-            index=models.Index(fields=['assigned_writer', 'status', 'rating'], name='orders_orde_writer_status_rating_idx'),
-        ),
+        # Note: Rating index removed - rating field may not exist in all database states
+        # If needed, add separately after confirming rating field exists
     ]
 
