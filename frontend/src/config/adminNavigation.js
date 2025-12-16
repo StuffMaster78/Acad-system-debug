@@ -299,6 +299,13 @@ export const adminNavigationGroups = [
         name: 'ReferralTracking',
         to: '/admin/referral-tracking',
         label: 'Referral Tracking',
+      },
+      {
+        name: 'ReferralCodeTracing',
+        to: '/admin/referral-code-tracing',
+        label: 'Referral Code Tracing',
+        icon: '🔍',
+        description: 'Trace and analyze referral codes with comprehensive usage statistics',
         icon: '🎁',
         description: 'Track referral programs',
       },

@@ -155,9 +155,13 @@ export default {
   
   // Referral Codes
   listReferralCodes: (params) => apiClient.get('/admin-management/referrals/codes/', { params }),
+  getReferralCode: (id) => apiClient.get(`/admin-management/referrals/codes/${id}/`),
   createReferralCode: (data) => apiClient.post('/admin-management/referrals/codes/', data),
   updateReferralCode: (id, data) => apiClient.patch(`/admin-management/referrals/codes/${id}/`, data),
   deleteReferralCode: (id) => apiClient.delete(`/admin-management/referrals/codes/${id}/`),
+  traceReferralCode: (id) => apiClient.get(`/admin-management/referrals/codes/${id}/trace/`),
+  generateReferralCodeForClient: (data) => apiClient.post('/admin-management/referrals/codes/generate-for-client/', data),
+  getReferralCodeStatistics: () => apiClient.get('/admin-management/referrals/codes/statistics/'),
   
   // Loyalty Tracking
   listLoyaltyTransactions: (params) => apiClient.get('/admin-management/loyalty/tracking/', { params }),

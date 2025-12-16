@@ -12,6 +12,7 @@ export default {
   get: (id) => apiClient.get(`/referrals/referrals/${id}/`),
   // Referral Codes
   listCodes: (params) => apiClient.get('/referrals/referral-codes/', { params }),
+  getMyCode: () => apiClient.get('/referrals/referral-codes/my-code/'),
   generateCode: (websiteId) => apiClient.post('/referrals/referrals/generate-code/', { website: websiteId }),
   // Referral Stats
   getStats: (websiteId) => apiClient.get('/referrals/referrals/stats/', { params: { website: websiteId } }),

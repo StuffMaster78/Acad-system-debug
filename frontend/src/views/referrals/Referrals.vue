@@ -21,12 +21,13 @@
     <!-- Only show referral content for clients -->
     <template v-if="isClient">
     <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-gray-600">Total Referred</p>
-            <p class="mt-2 text-3xl font-bold text-gray-900">{{ stats.total_referred || 0 }}</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900">{{ codeStats?.total_referrals || stats.total_referred || 0 }}</p>
+            <p class="mt-1 text-xs text-gray-500">People who signed up</p>
           </div>
           <div class="p-3 bg-blue-100 rounded-lg">
             <span class="text-2xl">👥</span>
@@ -36,8 +37,9 @@
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Completed Orders</p>
-            <p class="mt-2 text-3xl font-bold text-gray-900">{{ stats.completed_orders || 0 }}</p>
+            <p class="text-sm font-medium text-gray-600">Successful Referrals</p>
+            <p class="mt-2 text-3xl font-bold text-green-600">{{ codeStats?.successful_referrals || 0 }}</p>
+            <p class="mt-1 text-xs text-gray-500">Bonuses awarded</p>
           </div>
           <div class="p-3 bg-green-100 rounded-lg">
             <span class="text-2xl">✅</span>
@@ -47,13 +49,81 @@
       <div class="card p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600">Referral Code</p>
-            <p class="mt-2 text-lg font-bold text-gray-900">{{ stats.referral_code || 'Not generated' }}</p>
+            <p class="text-sm font-medium text-gray-600">Conversion Rate</p>
+            <p class="mt-2 text-3xl font-bold text-purple-600">{{ codeStats?.conversion_rate || 0 }}%</p>
+            <p class="mt-1 text-xs text-gray-500">Success rate</p>
           </div>
           <div class="p-3 bg-purple-100 rounded-lg">
-            <span class="text-2xl">🎁</span>
+            <span class="text-2xl">📊</span>
           </div>
         </div>
+      </div>
+      <div class="card p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-medium text-gray-600">Orders Placed</p>
+            <p class="mt-2 text-3xl font-bold text-gray-900">{{ codeStats?.orders_placed || stats.completed_orders || 0 }}</p>
+            <p class="mt-1 text-xs text-gray-500">By your referrals</p>
+          </div>
+          <div class="p-3 bg-orange-100 rounded-lg">
+            <span class="text-2xl">🛒</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Referral Code Display Card -->
+    <div class="card p-6 bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-200">
+      <h2 class="text-xl font-semibold mb-4 text-gray-900">Your Referral Code</h2>
+      <div v-if="stats.referral_code" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Code</label>
+          <div class="flex items-center gap-3">
+            <input
+              :value="stats.referral_code"
+              readonly
+              class="flex-1 border rounded-lg px-4 py-3 bg-white font-mono text-lg font-bold"
+            />
+            <button
+              @click="copyToClipboard(stats.referral_code)"
+              class="px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Code
+            </button>
+          </div>
+        </div>
+        <div v-if="stats.referral_link">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Referral Link</label>
+          <div class="flex items-center gap-3">
+            <input
+              :value="stats.referral_link"
+              readonly
+              class="flex-1 border rounded-lg px-4 py-3 bg-white font-mono text-sm"
+            />
+            <button
+              @click="copyToClipboard(stats.referral_link)"
+              class="px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Copy Link
+            </button>
+          </div>
+        </div>
+      </div>
+      <div v-else class="text-center py-4">
+        <p class="text-gray-600 mb-4">You don't have a referral code yet.</p>
+        <button
+          v-if="!generating && !loading"
+          @click="generateReferralCode"
+          class="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          Generate Referral Code
+        </button>
       </div>
     </div>
 
@@ -272,6 +342,7 @@ const generating = ref(false)
 const referring = ref(false)
 const referralEmail = ref('')
 const referrals = ref([])
+const codeStats = ref(null)
 const stats = ref({
   total_referred: 0,
   completed_orders: 0,
@@ -334,6 +405,18 @@ const getWebsiteId = () => {
   return null
 }
 
+const loadCodeStats = async () => {
+  try {
+    const res = await referralsAPI.getMyCode()
+    if (res.data && res.data.usage_stats) {
+      codeStats.value = res.data.usage_stats
+    }
+  } catch (e) {
+    // Silently fail - code might not exist yet
+    console.debug('Could not load code stats:', e)
+  }
+}
+
 const loadStats = async () => {
   statsLoading.value = true
   try {
@@ -346,6 +429,11 @@ const loadStats = async () => {
     const res = await referralsAPI.getStats(websiteId)
     stats.value = res.data || stats.value
     error.value = ''
+    
+    // Load code stats if code exists
+    if (stats.value.referral_code) {
+      await loadCodeStats()
+    }
   } catch (e) {
     console.error('Failed to load stats:', e)
     const errorMsg = e?.response?.data?.error || e?.response?.data?.message || e.message
