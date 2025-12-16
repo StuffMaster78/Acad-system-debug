@@ -1,9 +1,10 @@
 
 from orders.actions.base import BaseOrderAction
 from orders.services.preferred_writer_service import PreferredWriterService
-from orders.services.preferred_writer_response import PreferredWriterResponse
+from orders.services.preferred_writer_response import PreferredWriterResponseService
 from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
+
 @register_order_action("set_preferred_writer")
 class PreferredWriterAction(BaseOrderAction):
     """
@@ -30,14 +31,21 @@ class PreferredWriterResponseAction(BaseOrderAction):
     This is typically used for manual operations, like an admin action.
     """
     def execute(self):
-        service = PreferredWriterResponse()
-        result = service.respond(self.order_id, **self.params)
+        response_type = self.params.get('response', 'accept')  # 'accept' or 'reject'
+        reason = self.params.get('reason', '')
+        
+        if response_type == 'accept':
+            result = PreferredWriterResponseService.accept(self.order_id, self.user)
+        elif response_type == 'reject':
+            result = PreferredWriterResponseService.reject(self.order_id, self.user, reason=reason)
+        else:
+            raise ValueError(f"Invalid response type: {response_type}. Must be 'accept' or 'reject'.")
 
         AuditLogService.log_auto(
             actor=self.user,
             action="PREFERRED_WRITER_RESPONSE",
             target="orders.Order",
             target_id=self.order_id,
-            metadata={"params": self.params}
+            metadata={"params": self.params, "response": response_type}
         )
         return result

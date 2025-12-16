@@ -34,7 +34,7 @@ export default {
   listLogs: (params) => apiClient.get('/tickets/logs/', { params }),
   getLog: (id) => apiClient.get(`/tickets/logs/${id}/`),
   
-  // Ticket Statistics
-  getStatistics: (params) => apiClient.get('/tickets/statistics/generate_statistics/', { params }),
+  // Ticket Statistics (backend exposes /statistics/generate/)
+  getStatistics: (params) => apiClient.get('/tickets/statistics/generate/', { params }),
 }
 

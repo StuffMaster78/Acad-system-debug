@@ -20,12 +20,13 @@ VALID_TRANSITIONS: Dict[str, List[str]] = {
     "created": ["pending", "unpaid", "cancelled"],
     
     # Payment states
-    "unpaid": ["paid", "cancelled", "deleted", "on_hold", "pending"],
-    "paid": ["available", "pending_writer_assignment", "in_progress", "on_hold", "cancelled"],
+    "unpaid": ["paid", "cancelled", "deleted", "on_hold", "pending", "in_progress"],  # Can go directly to in_progress when paid
+    "paid": ["available", "pending_writer_assignment", "pending_preferred", "in_progress", "on_hold", "cancelled"],
     
     # Assignment states
     "pending_writer_assignment": ["available", "cancelled", "on_hold", "in_progress"],
-    "available": ["in_progress", "cancelled", "on_hold", "reassigned"],
+    "pending_preferred": ["available", "cancelled", "on_hold", "in_progress"],
+    "available": ["in_progress", "pending_writer_assignment", "pending_preferred", "cancelled", "on_hold", "reassigned"],
     
     # Active work states
     "in_progress": ["on_hold", "cancelled", "submitted", "reassigned", "under_editing"],
@@ -180,6 +181,22 @@ class StatusTransitionService:
         # Perform transition
         order.status = target_status
         save_order(order)
+
+        # Log to OrderTransitionLog
+        from orders.models import OrderTransitionLog
+        OrderTransitionLog.objects.create(
+            order=order,
+            user=self.user,
+            old_status=current,
+            new_status=target_status,
+            action=metadata.get('action', 'status_transition') if metadata else 'status_transition',
+            is_automatic=metadata.get('is_automatic', False) if metadata else False,
+            meta={
+                "reason": reason,
+                "transition_type": "status_transition",
+                **(metadata or {})
+            }
+        )
 
         if log_action and self.user:
             AuditLogService.log_auto(

@@ -2,7 +2,7 @@ import apiClient from './client'
 
 export default {
   // Websites
-  listWebsites: (params) => apiClient.get('/websites/', { params }),
+  listWebsites: (params) => apiClient.get('/websites/websites/', { params }),
   getWebsite: (id) => apiClient.get(`/websites/${id}/`),
   createWebsite: (data) => apiClient.post('/websites/', data),
   updateWebsite: (id, data) => apiClient.put(`/websites/${id}/`, data),

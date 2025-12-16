@@ -802,11 +802,9 @@
                 <span class="text-xs text-gray-600">Current Takes:</span>
                 <span class="text-sm font-bold text-indigo-700">{{ writerLevelData.current_stats?.total_takes || 0 }}</span>
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Deadline %:</span>
-                <span class="text-sm font-bold text-indigo-700">{{ parseFloat(writerLevelData.current_level?.deadline_percentage || 80).toFixed(0) }}%</span>
-              </div>
-              <p class="text-xs text-gray-500 mt-2">You receive {{ parseFloat(writerLevelData.current_level?.deadline_percentage || 80).toFixed(0) }}% of client deadline time</p>
+              <p class="text-xs text-gray-500 mt-2">
+                Your maximum concurrent orders and current takes are shown here. Detailed deadline allocation is managed by admins.
+              </p>
             </div>
           </div>
 
@@ -863,7 +861,7 @@
           <!-- Quick Reference Summary -->
           <div class="mt-6 p-4 bg-white rounded-lg border border-blue-200">
             <h3 class="text-sm font-semibold text-gray-700 mb-3">Quick Reference</h3>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
               <div>
                 <p class="text-gray-600">Urgency Threshold:</p>
                 <p class="font-bold text-gray-900">{{ writerLevelData?.current_level?.urgent_order_deadline_hours || 0 }} hours</p>
@@ -884,10 +882,6 @@
                   +${{ parseFloat(writerLevelData?.current_level?.technical_order_adjustment_per_page || 0).toFixed(2) }}/page
                 </p>
                 <p v-else class="font-bold text-gray-500">None</p>
-              </div>
-              <div>
-                <p class="text-gray-600">Deadline Allocation:</p>
-                <p class="font-bold text-gray-900">{{ parseFloat(writerLevelData?.current_level?.deadline_percentage || 80).toFixed(0) }}% of client deadline</p>
               </div>
             </div>
           </div>

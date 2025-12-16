@@ -453,8 +453,9 @@ const loadTickets = async () => {
 
 const loadSupportUsers = async () => {
   try {
-    const response = await usersAPI.list({ role: 'support,admin,superadmin' })
-    supportUsers.value = response.data.results || response.data || []
+    // Backend expects role filter as a list; pass multiple roles explicitly
+    const response = await usersAPI.list({ role: ['support', 'admin', 'superadmin'] })
+    supportUsers.value = response.data?.results || response.data || []
   } catch (error) {
     console.error('Failed to load support users:', error)
   }
@@ -462,8 +463,8 @@ const loadSupportUsers = async () => {
 
 const loadWebsites = async () => {
   try {
-    const response = await websitesAPI.list()
-    websites.value = response.data.results || response.data || []
+    const response = await websitesAPI.listWebsites()
+    websites.value = response.data?.results || response.data || []
   } catch (error) {
     console.error('Failed to load websites:', error)
   }

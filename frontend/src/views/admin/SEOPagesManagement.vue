@@ -186,6 +186,104 @@
       </template>
     </EnhancedDataTable>
 
+    <!-- Edit History Modal -->
+    <div v-if="showEditHistoryModal && selectedPageForHistory" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeEditHistoryModal">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+        <!-- Header -->
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Edit History</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ selectedPageForHistory?.title || 'Page' }}</p>
+            </div>
+            <button 
+              @click="closeEditHistoryModal" 
+              class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-6">
+          <div v-if="editHistoryLoading" class="flex items-center justify-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
+          
+          <div v-else-if="editHistoryError" class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+            {{ editHistoryError }}
+          </div>
+          
+          <div v-else-if="editHistory.length === 0" class="text-center py-12 text-gray-500 dark:text-gray-400">
+            <p class="text-lg">No edit history found</p>
+            <p class="text-sm mt-2">This page hasn't been edited yet.</p>
+          </div>
+          
+          <div v-else class="space-y-4">
+            <div
+              v-for="(entry, index) in editHistory"
+              :key="entry.id || index"
+              class="border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+            >
+              <div class="flex items-start justify-between mb-3">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="font-semibold text-gray-900 dark:text-white">
+                      {{ entry.edited_by_username || entry.edited_by?.username || entry.edited_by?.email || 'Unknown User' }}
+                    </span>
+                    <span class="text-xs text-gray-500 dark:text-gray-400">
+                      {{ formatDateTime(entry.edited_at) }}
+                    </span>
+                  </div>
+                  <div v-if="entry.changes_summary" class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    {{ entry.changes_summary }}
+                  </div>
+                </div>
+              </div>
+              
+              <div v-if="entry.fields_changed && entry.fields_changed.length > 0" class="mt-2">
+                <div class="flex flex-wrap gap-2">
+                  <span
+                    v-for="field in entry.fields_changed"
+                    :key="field"
+                    class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded"
+                  >
+                    {{ field }}
+                  </span>
+                </div>
+              </div>
+              
+              <div v-if="entry.previous_content || entry.current_content" class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div v-if="entry.previous_content" class="p-3 bg-gray-50 dark:bg-gray-900/50 rounded border border-gray-200 dark:border-gray-700">
+                  <div class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">Previous Content</div>
+                  <div class="text-sm text-gray-700 dark:text-gray-300 line-clamp-6">
+                    {{ entry.previous_content.substring(0, 200) }}{{ entry.previous_content.length > 200 ? '...' : '' }}
+                  </div>
+                </div>
+                <div v-if="entry.current_content" class="p-3 bg-green-50 dark:bg-green-900/20 rounded border border-green-200 dark:border-green-800">
+                  <div class="text-xs font-medium text-green-700 dark:text-green-300 mb-2">Current Content</div>
+                  <div class="text-sm text-gray-700 dark:text-gray-300 line-clamp-6">
+                    {{ entry.current_content.substring(0, 200) }}{{ entry.current_content.length > 200 ? '...' : '' }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <button
+            @click="closeEditHistoryModal"
+            class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Create/Edit Page Modal -->
     <div v-if="showCreateModal || editingPage" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
@@ -507,6 +605,20 @@
       :website-id="previewWebsiteId"
       @close="showPreviewModal = false"
     />
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -519,10 +631,13 @@ import WebsiteContextBanner from '@/components/common/WebsiteContextBanner.vue'
 import EnhancedDataTable from '@/components/common/EnhancedDataTable.vue'
 import ContentPreview from '@/components/content/ContentPreview.vue'
 import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { formatWebsiteName } from '@/utils/formatDisplay'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const { success: showSuccess, error: showError } = useToast()
+const confirm = useConfirmDialog()
 
 const pages = ref([])
 const loading = ref(false)
@@ -530,6 +645,11 @@ const saving = ref(false)
 const showCreateModal = ref(false)
 const editingPage = ref(null)
 const actionsMenuOpen = ref(null)
+const showEditHistoryModal = ref(false)
+const selectedPageForHistory = ref(null)
+const editHistory = ref([])
+const editHistoryLoading = ref(false)
+const editHistoryError = ref(null)
 
 // Website selection
 const availableWebsites = ref([])
@@ -740,14 +860,83 @@ const manageCTAs = (page) => {
   showSuccess('Use the edit form to manage CTAs for this page')
 }
 
-const viewEditHistory = (page) => {
-  // Navigate to edit history if available
-  editPage(page)
-  showSuccess('Edit history feature coming soon')
+const viewEditHistory = async (page) => {
+  selectedPageForHistory.value = page
+  showEditHistoryModal.value = true
+  editHistoryLoading.value = true
+  editHistoryError.value = null
+  editHistory.value = []
+  
+  try {
+    // Try to get edit history from API
+    const response = await seoPagesAPI.getServicePageEditHistory(page.id)
+    editHistory.value = response.data?.results || response.data || []
+    
+    // If no edit history endpoint, try revisions
+    if (editHistory.value.length === 0) {
+      try {
+        const revisionsResponse = await seoPagesAPI.getServicePageRevisions(page.id)
+        const revisions = revisionsResponse.data?.results || revisionsResponse.data || []
+        // Transform revisions to edit history format
+        editHistory.value = revisions.map((rev, index) => ({
+          id: rev.id,
+          edited_by: rev.created_by,
+          edited_by_username: rev.created_by?.username || rev.created_by?.email,
+          edited_at: rev.created_at,
+          changes_summary: rev.change_summary || `Revision ${rev.revision_number}`,
+          fields_changed: [],
+          previous_content: index < revisions.length - 1 ? revisions[index + 1]?.content : '',
+          current_content: rev.content
+        }))
+      } catch (revisionError) {
+        // If both fail, show empty state
+        // No edit history or revisions available
+      }
+    }
+  } catch (error) {
+    editHistoryError.value = error.response?.data?.detail || error.message || 'Failed to load edit history'
+    console.error('Error loading edit history:', error)
+  } finally {
+    editHistoryLoading.value = false
+  }
+}
+
+const closeEditHistoryModal = () => {
+  showEditHistoryModal.value = false
+  selectedPageForHistory.value = null
+  editHistory.value = []
+  editHistoryError.value = null
+}
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const deletePageAction = async (page) => {
-  if (!confirm(`Delete "${page.title}"?`)) return
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to delete "${page.title}"?`,
+    'Delete SEO Page',
+    {
+      details: `This action cannot be undone. The SEO page "${page.title}" and all its associated content (FAQs, resources, CTAs) will be permanently deleted.`,
+      confirmText: 'Delete Page',
+      cancelText: 'Cancel',
+      icon: '🗑️'
+    }
+  )
+  
+  if (!confirmed) {
+    actionsMenuOpen.value = null
+    return
+  }
+  
   try {
     await seoPagesAPI.deleteServicePage(page.id)
     message.value = 'SEO page deleted'

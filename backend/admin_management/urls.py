@@ -57,6 +57,7 @@ from .views.dashboard_endpoints import (
     AdminFinesManagementDashboardViewSet,
     AdminAdvancedAnalyticsDashboardViewSet,
 )
+from .views.geographic_analytics import GeographicAnalyticsViewSet
 
 # DRF Router for ViewSets
 router = DefaultRouter()
@@ -102,6 +103,9 @@ router.register(r'fines/dashboard', AdminFinesManagementDashboardViewSet, basena
 
 # Advanced Analytics Dashboard
 router.register(r'advanced-analytics', AdminAdvancedAnalyticsDashboardViewSet, basename="admin_advanced_analytics")
+
+# Geographic and Subject Analytics
+router.register(r'geographic-analytics', GeographicAnalyticsViewSet, basename="geographic_analytics")
 
 # Writer Assignment
 router.register(r'writer-assignment', WriterAssignmentViewSet, basename="writer_assignment")

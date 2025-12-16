@@ -72,11 +72,32 @@ class ApproveOrderService:
         """
         order = get_order_by_id(order_id)
 
-        if order.status not in ('reviewed', 'rated', 'complete'):
-            raise ValueError(
-                f"Order {order_id} cannot be approved from state "
-                f"{order.status}."
-            )
+        # Check valid transitions - 'approved' can be reached from 'reviewed' according to VALID_TRANSITIONS
+        from orders.services.status_transition_service import VALID_TRANSITIONS
+        current_status = order.status
+        allowed_transitions = VALID_TRANSITIONS.get(current_status, [])
+        
+        if 'approved' not in allowed_transitions:
+            # Try to transition through intermediate states if needed
+            if 'rated' in allowed_transitions and current_status != 'rated':
+                # First transition to rated, then to approved
+                from orders.services.transition_helper import OrderTransitionHelper
+                OrderTransitionHelper.transition_order(
+                    order,
+                    'rated',
+                    user=None,
+                    reason="Transitioning to rated before approval",
+                    action="transition_to_rated",
+                    is_automatic=True,
+                    skip_payment_check=True,
+                    metadata={"intermediate_step": True}
+                )
+            elif current_status not in ('reviewed', 'rated'):
+                raise ValueError(
+                    f"Order {order_id} cannot be approved from state '{current_status}'. "
+                    f"Order must be in 'reviewed' or 'rated' status. "
+                    f"Allowed transitions from '{current_status}': {', '.join(allowed_transitions)}"
+                )
 
         # Check if review and rating exist
         if not order.review:
@@ -85,8 +106,21 @@ class ApproveOrderService:
         if not order.rating:
             raise ValueError(f"Order {order_id} lacks a rating.")
 
-        order.status = 'approved'
-        save_order(order)
+        # Use unified transition helper to move to approved
+        from orders.services.transition_helper import OrderTransitionHelper
+        OrderTransitionHelper.transition_order(
+            order,
+            'approved',
+            user=None,  # System/automatic approval after review
+            reason="Order approved after review and rating",
+            action="approve_order",
+            is_automatic=True,
+            skip_payment_check=True,  # Payment already validated
+            metadata={
+                "has_review": bool(order.review),
+                "has_rating": bool(order.rating),
+            }
+        )
         
         # Award referral bonus when order is approved (first approved order only)
         self._award_referral_bonus(order)

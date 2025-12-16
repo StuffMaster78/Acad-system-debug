@@ -168,19 +168,20 @@ const dateTo = ref('')
 // Computed
 const sortedTimeline = computed(() => {
   if (!timelineData.value?.timeline) return {}
-  
+
   const timeline = timelineData.value.timeline
   const sorted = {}
-  
+
   // Sort dates in descending order (most recent first)
   Object.keys(timeline)
     .sort((a, b) => new Date(b) - new Date(a))
-    .forEach(date => {
-      sorted[date] = timeline[date].sort((a, b) => {
+    .forEach((date) => {
+      const entries = Array.isArray(timeline[date]) ? timeline[date] : []
+      sorted[date] = [...entries].sort((a, b) => {
         return new Date(b.timestamp) - new Date(a.timestamp)
       })
     })
-  
+
   return sorted
 })
 

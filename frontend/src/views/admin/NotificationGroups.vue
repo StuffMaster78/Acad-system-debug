@@ -624,12 +624,151 @@
         </div>
       </div>
     </div>
+
+    <!-- User Management Modal -->
+    <div
+      v-if="showUserManagementModal"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+      @click.self="closeUserManagementModal"
+    >
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+        <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Manage Users</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {{ userManagementContext.type === 'group' ? 'Group' : 'Profile' }}: {{ userManagementContext.name }}
+              </p>
+            </div>
+            <button
+              @click="closeUserManagementModal"
+              class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400 text-2xl"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6">
+          <!-- Current Users -->
+          <div class="mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Current Users ({{ currentUsers.length }})</h3>
+            <div v-if="usersLoading" class="flex items-center justify-center py-8">
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+            <div v-else-if="currentUsers.length === 0" class="text-center py-8 text-gray-500 dark:text-gray-400">
+              <p>No users in this {{ userManagementContext.type === 'group' ? 'group' : 'profile' }}</p>
+            </div>
+            <div v-else class="space-y-2">
+              <div
+                v-for="user in currentUsers"
+                :key="user.id"
+                class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                    <span class="text-primary-600 dark:text-primary-400 font-semibold">
+                      {{ (user.email || user.username || 'U')[0].toUpperCase() }}
+                    </span>
+                  </div>
+                  <div>
+                    <p class="font-medium text-gray-900 dark:text-white">
+                      {{ user.username || user.email || `User #${user.id}` }}
+                    </p>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                      {{ user.email || '' }} {{ user.role ? `• ${user.role}` : '' }}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  @click="removeUser(user.id)"
+                  :disabled="removingUsers.includes(user.id)"
+                  class="px-3 py-1.5 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors disabled:opacity-50"
+                >
+                  {{ removingUsers.includes(user.id) ? 'Removing...' : 'Remove' }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Add Users -->
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Add Users</h3>
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search Users</label>
+                <input
+                  v-model="userSearchQuery"
+                  @input="searchUsers"
+                  type="text"
+                  placeholder="Search by email, username, or name..."
+                  class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+
+              <div v-if="searchUsersLoading" class="flex items-center justify-center py-4">
+                <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+              </div>
+
+              <div v-else-if="searchResults.length > 0" class="space-y-2 max-h-64 overflow-y-auto">
+                <div
+                  v-for="user in searchResults"
+                  :key="user.id"
+                  class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600"
+                >
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                      <span class="text-blue-600 dark:text-blue-400 font-semibold">
+                        {{ (user.email || user.username || 'U')[0].toUpperCase() }}
+                      </span>
+                    </div>
+                    <div>
+                      <p class="font-medium text-gray-900 dark:text-white">
+                        {{ user.username || user.email || `User #${user.id}` }}
+                      </p>
+                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                        {{ user.email || '' }} {{ user.role ? `• ${user.role}` : '' }}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    @click="addUser(user.id)"
+                    :disabled="addingUsers.includes(user.id) || currentUsers.some(u => u.id === user.id)"
+                    class="px-3 py-1.5 text-sm text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {{ addingUsers.includes(user.id) ? 'Adding...' : currentUsers.some(u => u.id === user.id) ? 'Added' : 'Add' }}
+                  </button>
+                </div>
+              </div>
+
+              <div v-else-if="userSearchQuery && !searchUsersLoading" class="text-center py-4 text-gray-500 dark:text-gray-400">
+                <p>No users found</p>
+              </div>
+
+              <div v-else class="text-center py-4 text-gray-500 dark:text-gray-400">
+                <p>Start typing to search for users</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
+          <button
+            @click="closeUserManagementModal"
+            class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import notificationGroupsAPI from '@/api/notification-groups'
+import adminManagementAPI from '@/api/admin-management'
 import websitesAPI from '@/api/websites'
 import { useToast } from '@/composables/useToast'
 import { getErrorMessage } from '@/utils/errorHandler'
@@ -653,8 +792,17 @@ const profileGroupFilter = ref('')
 // Modals
 const showGroupModal = ref(false)
 const showProfileModal = ref(false)
+const showUserManagementModal = ref(false)
 const editingGroup = ref(null)
 const editingProfile = ref(null)
+const userManagementContext = ref({ type: null, id: null, name: '' })
+const currentUsers = ref([])
+const searchResults = ref([])
+const userSearchQuery = ref('')
+const usersLoading = ref(false)
+const searchUsersLoading = ref(false)
+const addingUsers = ref([])
+const removingUsers = ref([])
 
 // Forms
 const groupForm = ref({
@@ -821,9 +969,145 @@ const deleteGroup = async (group) => {
   }
 }
 
-const viewGroupUsers = (group) => {
-  // TODO: Implement user management modal
-  alert(`View users for group: ${group.name}`)
+const viewGroupUsers = async (group) => {
+  userManagementContext.value = {
+    type: 'group',
+    id: group.id,
+    name: group.name
+  }
+  showUserManagementModal.value = true
+  await loadGroupUsers(group.id)
+}
+
+const viewProfileUsers = async (profile) => {
+  userManagementContext.value = {
+    type: 'profile',
+    id: profile.id,
+    name: profile.name
+  }
+  showUserManagementModal.value = true
+  await loadProfileUsers(profile.id)
+}
+
+const loadGroupUsers = async (groupId) => {
+  usersLoading.value = true
+  try {
+    const response = await notificationGroupsAPI.getGroup(groupId)
+    currentUsers.value = response.data?.users || []
+  } catch (error) {
+    console.error('Failed to load group users:', error)
+    showError('Failed to load users')
+    currentUsers.value = []
+  } finally {
+    usersLoading.value = false
+  }
+}
+
+const loadProfileUsers = async (profileId) => {
+  usersLoading.value = true
+  try {
+    const response = await notificationGroupsAPI.getGroupProfile(profileId)
+    currentUsers.value = response.data?.users || []
+  } catch (error) {
+    console.error('Failed to load profile users:', error)
+    showError('Failed to load users')
+    currentUsers.value = []
+  } finally {
+    usersLoading.value = false
+  }
+}
+
+const searchUsers = async () => {
+  if (!userSearchQuery.value || userSearchQuery.value.length < 2) {
+    searchResults.value = []
+    return
+  }
+
+  searchUsersLoading.value = true
+  try {
+    // Use admin management API to search users
+    const response = await adminManagementAPI.listUsers({
+      search: userSearchQuery.value,
+      limit: 20
+    })
+    searchResults.value = response.data?.results || response.data || []
+  } catch (error) {
+    console.error('Failed to search users:', error)
+    searchResults.value = []
+  } finally {
+    searchUsersLoading.value = false
+  }
+}
+
+const addUser = async (userId) => {
+  if (addingUsers.value.includes(userId)) return
+  
+  addingUsers.value.push(userId)
+  try {
+    if (userManagementContext.value.type === 'group') {
+      await notificationGroupsAPI.addUsersToGroup(userManagementContext.value.id, [userId])
+      showSuccess('User added successfully')
+    } else {
+      await notificationGroupsAPI.addUsersToGroupProfile(userManagementContext.value.id, [userId])
+      showSuccess('User added successfully')
+    }
+    
+    // Reload users
+    if (userManagementContext.value.type === 'group') {
+      await loadGroupUsers(userManagementContext.value.id)
+    } else {
+      await loadProfileUsers(userManagementContext.value.id)
+    }
+    
+    // Remove from search results if already added
+    searchResults.value = searchResults.value.filter(u => u.id !== userId)
+  } catch (error) {
+    console.error('Failed to add user:', error)
+    showError('Failed to add user: ' + (error.response?.data?.detail || error.message))
+  } finally {
+    addingUsers.value = addingUsers.value.filter(id => id !== userId)
+  }
+}
+
+const removeUser = async (userId) => {
+  if (removingUsers.value.includes(userId)) return
+  
+  if (!confirm('Are you sure you want to remove this user?')) {
+    return
+  }
+  
+  removingUsers.value.push(userId)
+  try {
+    if (userManagementContext.value.type === 'group') {
+      await notificationGroupsAPI.removeUsersFromGroup(userManagementContext.value.id, [userId])
+      showSuccess('User removed successfully')
+    } else {
+      await notificationGroupsAPI.removeUsersFromGroupProfile(userManagementContext.value.id, [userId])
+      showSuccess('User removed successfully')
+    }
+    
+    // Reload users
+    if (userManagementContext.value.type === 'group') {
+      await loadGroupUsers(userManagementContext.value.id)
+    } else {
+      await loadProfileUsers(userManagementContext.value.id)
+    }
+  } catch (error) {
+    console.error('Failed to remove user:', error)
+    showError('Failed to remove user: ' + (error.response?.data?.detail || error.message))
+  } finally {
+    removingUsers.value = removingUsers.value.filter(id => id !== userId)
+  }
+}
+
+const closeUserManagementModal = () => {
+  showUserManagementModal.value = false
+  userManagementContext.value = { type: null, id: null, name: '' }
+  currentUsers.value = []
+  searchResults.value = []
+  userSearchQuery.value = ''
+  addingUsers.value = []
+  removingUsers.value = []
 }
 
 const editProfile = (profile) => {
@@ -893,10 +1177,7 @@ const setDefaultProfile = async (profile) => {
   }
 }
 
-const viewProfileUsers = (profile) => {
-  // TODO: Implement user management modal
-  alert(`View users for profile: ${profile.name}`)
-}
+// viewProfileUsers is already implemented above (line 982) - duplicate removed
 
 const resetGroupForm = () => {
   groupForm.value = {

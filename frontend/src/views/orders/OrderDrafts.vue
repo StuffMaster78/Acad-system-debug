@@ -151,18 +151,35 @@
         @close="selectedDraft = null"
       />
     </Modal>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { orderDraftsAPI } from '@/api'
 import Modal from '@/components/common/Modal.vue'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import OrderDraftForm from '@/components/orders/OrderDraftForm.vue'
 import OrderDraftDetail from '@/components/orders/OrderDraftDetail.vue'
 
 const { showToast } = useToast()
+const confirm = useConfirmDialog()
 
 // State
 const loading = ref(false)
@@ -197,8 +214,8 @@ const loadDrafts = async () => {
     const response = await orderDraftsAPI.list(params)
     drafts.value = response.data
   } catch (error) {
-    showToast('Failed to load drafts', 'error')
-    console.error(error)
+    const errorMsg = error.response?.data?.error || error.response?.data?.detail || 'Failed to load drafts'
+    showToast(errorMsg, 'error')
   } finally {
     loading.value = false
   }
@@ -225,17 +242,26 @@ const getQuote = async (draft) => {
       selectedDraft.value = updatedDraft.data
     }
   } catch (error) {
-    showToast(error.response?.data?.error || 'Failed to get quote', 'error')
-    console.error(error)
+    const errorMsg = error.response?.data?.error || error.response?.data?.detail || 'Failed to get quote'
+    showToast(errorMsg, 'error')
   } finally {
     gettingQuote.value = null
   }
 }
 
 const convertToOrder = async (draft) => {
-  if (!confirm('Are you sure you want to convert this draft to an order?')) {
-    return
-  }
+  const confirmed = await confirm.showDialog(
+    `Are you sure you want to convert this draft to an order?`,
+    'Convert Draft to Order',
+    {
+      details: `Draft "${draft.title || 'Untitled Draft'}" will be converted to an order. You will be redirected to the order page after conversion.`,
+      confirmText: 'Convert to Order',
+      cancelText: 'Cancel',
+      icon: '📝'
+    }
+  )
+  
+  if (!confirmed) return
   
   converting.value = draft.id
   try {
@@ -247,17 +273,26 @@ const convertToOrder = async (draft) => {
       window.location.href = `/orders/${response.data.order_id}`
     }
   } catch (error) {
-    showToast('Failed to convert draft', 'error')
-    console.error(error)
+    const errorMsg = error.response?.data?.error || error.response?.data?.detail || 'Failed to convert draft'
+    showToast(errorMsg, 'error')
   } finally {
     converting.value = null
   }
 }
 
 const deleteDraft = async (draft) => {
-  if (!confirm('Are you sure you want to delete this draft?')) {
-    return
-  }
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to delete "${draft.title || 'this draft'}"?`,
+    'Delete Draft',
+    {
+      details: 'This action cannot be undone. All draft information will be permanently removed.',
+      confirmText: 'Delete Draft',
+      cancelText: 'Cancel',
+      icon: '🗑️'
+    }
+  )
+  
+  if (!confirmed) return
   
   deleting.value = draft.id
   try {
@@ -265,8 +300,8 @@ const deleteDraft = async (draft) => {
     showToast('Draft deleted successfully', 'success')
     await loadDrafts()
   } catch (error) {
-    showToast('Failed to delete draft', 'error')
-    console.error(error)
+    const errorMsg = error.response?.data?.error || error.response?.data?.detail || 'Failed to delete draft'
+    showToast(errorMsg, 'error')
   } finally {
     deleting.value = null
   }
@@ -284,8 +319,8 @@ const handleSaveDraft = async (data) => {
     closeModal()
     await loadDrafts()
   } catch (error) {
-    showToast('Failed to save draft', 'error')
-    console.error(error)
+    const errorMsg = error.response?.data?.error || error.response?.data?.detail || 'Failed to save draft'
+    showToast(errorMsg, 'error')
   }
 }
 

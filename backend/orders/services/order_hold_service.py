@@ -40,13 +40,52 @@ class HoldOrderService:
             Order: Updated order instance.
         """
         if self.order.status not in {
-            OrderStatus.PENDING,
-            OrderStatus.IN_PROGRESS,
+            OrderStatus.PENDING.value,
+            OrderStatus.IN_PROGRESS.value,
         }:
             raise ValueError("Order cannot be put on hold from current status.")
 
-        self.order.status = OrderStatus.ON_HOLD
-        save_order(self.order, user=self.user, event="order_put_on_hold")
+        # Use unified transition helper to move to on_hold
+        from orders.services.transition_helper import OrderTransitionHelper
+        from notifications_system.services.notification_helper import NotificationHelper
+
+        OrderTransitionHelper.transition_order(
+            self.order,
+            OrderStatus.ON_HOLD.value,
+            user=self.user,
+            reason="Order put on hold",
+            action="put_on_hold",
+            is_automatic=False,
+            metadata={},
+        )
+
+        # Notify key stakeholders that the order has been put on hold.
+        try:
+            if getattr(self.order, "client", None):
+                NotificationHelper.send_notification(
+                    event_key="order.on_hold",
+                    user=self.order.client,
+                    context={
+                        "order_id": self.order.id,
+                        "order_topic": getattr(self.order, "topic", ""),
+                        "put_on_hold_by": getattr(self.user, "username", None),
+                    },
+                )
+
+            if getattr(self.order, "assigned_writer", None):
+                NotificationHelper.send_notification(
+                    event_key="order.on_hold",
+                    user=self.order.assigned_writer,
+                    context={
+                        "order_id": self.order.id,
+                        "order_topic": getattr(self.order, "topic", ""),
+                        "put_on_hold_by": getattr(self.user, "username", None),
+                    },
+                )
+        except Exception:
+            # Notification failures should not prevent the state change.
+            pass
+
         return self.order
 
     def resume(self):
@@ -63,9 +102,46 @@ class HoldOrderService:
         Returns:
             Order: Updated order instance.
         """
-        if self.order.status != OrderStatus.ON_HOLD:
+        if self.order.status != OrderStatus.ON_HOLD.value:
             raise ValueError("Only ON_HOLD orders can be resumed.")
 
-        self.order.status = OrderStatus.IN_PROGRESS
-        save_order(self.order, user=self.user, event="order_resumed")
+        # Use unified transition helper to move to in_progress
+        from orders.services.transition_helper import OrderTransitionHelper
+        from notifications_system.services.notification_helper import NotificationHelper
+
+        OrderTransitionHelper.transition_order(
+            self.order,
+            OrderStatus.IN_PROGRESS.value,
+            user=self.user,
+            reason="Order resumed from hold",
+            action="resume_order",
+            is_automatic=False,
+            metadata={},
+        )
+
+        try:
+            if getattr(self.order, "client", None):
+                NotificationHelper.send_notification(
+                    event_key="order.resumed",
+                    user=self.order.client,
+                    context={
+                        "order_id": self.order.id,
+                        "order_topic": getattr(self.order, "topic", ""),
+                        "resumed_by": getattr(self.user, "username", None),
+                    },
+                )
+
+            if getattr(self.order, "assigned_writer", None):
+                NotificationHelper.send_notification(
+                    event_key="order.resumed",
+                    user=self.order.assigned_writer,
+                    context={
+                        "order_id": self.order.id,
+                        "order_topic": getattr(self.order, "topic", ""),
+                        "resumed_by": getattr(self.user, "username", None),
+                    },
+                )
+        except Exception:
+            pass
+
         return self.order

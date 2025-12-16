@@ -91,6 +91,10 @@ try:
 except Exception:
     WriterPortfolio = None
     PortfolioSample = None
+try:
+    from .order_priority import WriterOrderPriority
+except Exception:
+    WriterOrderPriority = None
 
 __all__ = [
     "WriterProfile",
@@ -126,5 +130,6 @@ __all__ = [
     "FeedbackHistory",
     "WriterPortfolio",
     "PortfolioSample",
+    "WriterOrderPriority",
 ]
 

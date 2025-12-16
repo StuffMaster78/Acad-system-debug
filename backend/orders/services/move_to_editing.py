@@ -38,39 +38,40 @@ class MoveOrderToEditingService:
         # Check if order should undergo editing
         should_edit, reason = EditingDecisionService.should_undergo_editing(order)
         
+        from orders.services.transition_helper import OrderTransitionHelper
+        
         if not should_edit:
             # Skip editing - move directly to reviewed/completed status
             order.editing_skip_reason = reason
-            order.status = OrderStatus.REVIEWED.value  # Skip editing, mark as reviewed
-            save_order(order)
-            
-            AuditLogService.log_auto(
-                actor=user,
-                action="EDIT_SKIP",  # Shortened to fit max_length
-                target=order,
+            OrderTransitionHelper.transition_order(
+                order=order,
+                target_status=OrderStatus.REVIEWED.value,
+                user=user,
+                reason=f"Editing skipped: {reason}",
+                action="skip_editing",
+                is_automatic=True,
                 metadata={
-                    "status": OrderStatus.REVIEWED.value,
                     "editing_skip_reason": reason,
                     "message": "Order submitted - editing skipped",
-                },
+                }
             )
-            
+            order.save(update_fields=["editing_skip_reason"])
             return order
 
         # Order should undergo editing
-        order.status = OrderStatus.UNDER_EDITING.value
         order.editing_skip_reason = None  # Clear any previous skip reason
-        save_order(order)
-
-        AuditLogService.log_auto(
-            actor=user,
-            action="MOVE_EDIT",  # Shortened to fit max_length
-            target=order,
+        OrderTransitionHelper.transition_order(
+            order=order,
+            target_status=OrderStatus.UNDER_EDITING.value,
+            user=user,
+            reason="Order moved to editing after submission",
+            action="move_to_editing",
+            is_automatic=True,
             metadata={
-                "status": OrderStatus.UNDER_EDITING.value,
                 "message": "Moved order to under_editing",
-            },
+            }
         )
+        order.save(update_fields=["editing_skip_reason"])
 
         # Auto-assign to editor if possible
         try:

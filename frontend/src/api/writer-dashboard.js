@@ -45,8 +45,81 @@ export default {
         }
       },
       getWorkload: () => apiClient.get('/writer-management/dashboard/workload/'),
-      getOrderRequests: () => apiClient.get('/writer-management/dashboard/order-requests/'),
-      getDashboardSummary: () => apiClient.get('/writer-management/dashboard/summary/'),
-      getCommunications: () => apiClient.get('/writer-management/dashboard/communications/'),
+      getOrderRequests: () => 
+        apiClient.get('/writer-management/dashboard/order-requests/'),
+      getDashboardSummary: () => 
+        apiClient.get('/writer-management/dashboard/summary/'),
+      getCommunications: () => 
+        apiClient.get('/writer-management/dashboard/communications/'),
+      getPaymentInfo: () => 
+        apiClient.get('/writer-management/dashboard/payment-info/'),
+      getPaymentStatus: () =>
+        apiClient.get('/writer-management/dashboard/payment-status/'),
+      getEarningsBreakdown: (params) => 
+        apiClient.get(
+          '/writer-management/dashboard/earnings-breakdown/',
+          { params }
+        ),
+      getOrderPriority: (orderId) =>
+        apiClient.get(
+          `/writer-management/dashboard/order-priority/${orderId}/`
+        ),
+      setOrderPriority: (orderId, data) =>
+        apiClient.post(
+          `/writer-management/dashboard/order-priority/${orderId}/`,
+          data
+        ),
+      updateOrderPriority: (orderId, data) =>
+        apiClient.patch(
+          `/writer-management/dashboard/order-priority/${orderId}/`,
+          data
+        ),
+      getOrderPriorities: () =>
+        apiClient.get(
+          '/writer-management/dashboard/order-priorities/'
+        ),
+      exportEarnings: async (params) => {
+        try {
+          const response = await apiClient.get(
+            '/writer-management/dashboard/earnings-export/',
+            { params, responseType: 'blob' }
+          )
+          
+          // Create blob from response
+          const blob = new Blob([response.data], { 
+            type: 'text/csv;charset=utf-8' 
+          })
+          const url = window.URL.createObjectURL(blob)
+          
+          // Create download link
+          const link = document.createElement('a')
+          link.href = url
+          const dateStr = new Date().toISOString().split('T')[0]
+          link.download = `earnings_export_${dateStr}.csv`
+          document.body.appendChild(link)
+          link.click()
+          
+          // Cleanup
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(url)
+          
+          return response
+        } catch (error) {
+          console.error('Failed to export earnings:', error)
+          throw error
+        }
+      },
+  
+  getEarningsBreakdown: (params) => 
+    apiClient.get('/writer-management/dashboard/earnings-breakdown/', { params }),
+  
+  exportEarnings: (params) => 
+    apiClient.get('/writer-management/dashboard/earnings-export/', { 
+      params,
+      responseType: 'blob' 
+    }),
+  
+  getOrderRequests: () => 
+    apiClient.get('/writer-management/dashboard/order-requests/'),
 }
 

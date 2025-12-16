@@ -46,6 +46,12 @@ export default {
   
   listAllConfigs: () => apiClient.get('/admin-management/configs/list_all_configs/'),
   
+  // Geographic Analytics
+  getGeographicAnalytics: (params) => apiClient.get('/admin-management/geographic-analytics/dashboard/', { params }),
+  getAnalyticsByCountry: (params) => apiClient.get('/admin-management/geographic-analytics/by-country/', { params }),
+  getAnalyticsByState: (params) => apiClient.get('/admin-management/geographic-analytics/by-state/', { params }),
+  getAnalyticsBySubject: (params) => apiClient.get('/admin-management/geographic-analytics/by-subject/', { params }),
+  
   // System Health
   getSystemHealth: () => apiClient.get('/admin-management/system-health/health/'),
   getSystemAlerts: () => apiClient.get('/admin-management/system-health/alerts/'),

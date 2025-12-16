@@ -10,6 +10,10 @@ import lazyImageDirective from './directives/lazyImage'
 // Register ApexCharts
 import VueApexCharts from 'vue3-apexcharts'
 
+// Naive UI
+import naive from 'naive-ui'
+import { setupNaiveUI } from './plugins/naive-ui'
+
 const app = createApp(App)
 
 // Use plugins
@@ -17,6 +21,9 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 app.use(VueApexCharts)
+
+// Setup and use Naive UI
+setupNaiveUI(app)
 
 // Register global directive
 app.directive('lazy-image', lazyImageDirective)

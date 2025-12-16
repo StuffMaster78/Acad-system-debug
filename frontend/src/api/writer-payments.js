@@ -19,4 +19,7 @@ export default {
   approvePayout: (payoutId) => apiClient.post(`/writer-payments/payment-management/${payoutId}/approve-payout/`),
   
   getAdjustments: (params) => apiClient.get('/writer-payments/payment-management/adjustments/', { params }),
+  
+  // Adjust payment amount
+  adjustPaymentAmount: (paymentId, data) => apiClient.post(`/writer-payments/payment-management/${paymentId}/adjust-amount/`, data),
 }

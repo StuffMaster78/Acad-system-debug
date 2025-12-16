@@ -60,11 +60,18 @@
             :disabled="loading"
           >
             <option value="">Choose a website...</option>
-            <option v-for="site in websites" :key="site.id" :value="site.id">
-              {{ formatWebsiteName(site) }}
+            <option 
+              v-for="site in websites" 
+              :key="site.id" 
+              :value="site.id"
+            >
+              {{ getWebsiteDisplayName(site) }}
             </option>
           </select>
-          <p v-if="!selectedWebsite" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          <p v-if="websites.length === 0 && !loading" class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+            No websites available. Please create a website first.
+          </p>
+          <p v-else-if="!selectedWebsite" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
             Select a website to configure discipline rules for that website's writers
           </p>
         </div>
@@ -298,9 +305,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { writerManagementAPI } from '@/api'
-import apiClient from '@/api/client'
+import websitesAPI from '@/api/websites'
 import { useToast } from '@/composables/useToast'
-import { formatWebsiteName } from '@/utils/formatDisplay'
 
 const { showToast } = useToast()
 
@@ -365,13 +371,41 @@ const validateForm = () => {
   return !hasValidationErrors.value
 }
 
+const getWebsiteDisplayName = (site) => {
+  if (!site) return 'Unknown'
+  
+  // Direct access to name field
+  if (site.name) {
+    const domain = site.domain ? ` (${site.domain.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')})` : ''
+    return `${site.name}${domain}`
+  }
+  
+  // Fallback to domain
+  if (site.domain) {
+    const cleanDomain = site.domain.replace(/^https?:\/\//, '').replace(/^www\./, '').replace(/\/$/, '')
+    return cleanDomain
+  }
+  
+  // Last resort
+  return site.id ? `Website #${site.id}` : 'Unknown'
+}
+
 const loadWebsites = async () => {
   try {
-    const res = await apiClient.get('/websites/')
+    // Use the correct endpoint /websites/websites/ (matches other components)
+    const res = await websitesAPI.listWebsites({ is_active: true })
+    
+    // Handle paginated or direct array response (same pattern as WebsiteManagement.vue)
     websites.value = Array.isArray(res.data?.results) ? res.data.results : (res.data || [])
+    
+    // Filter out any invalid websites
+    websites.value = websites.value.filter(site => site && site.id)
+    
+    // Websites loaded successfully
   } catch (e) {
     console.error('Failed to load websites:', e)
     showToast('Failed to load websites', 'error')
+    websites.value = []
   }
 }
 
@@ -386,8 +420,33 @@ const loadConfig = async () => {
   errors.value = { max_strikes: '', auto_suspend_days: '', auto_blacklist_strikes: '', general: '' }
   
   try {
-    const res = await writerManagementAPI.getDisciplineConfigByWebsite(selectedWebsite.value)
-    if (res.data && res.data.website) {
+    // Try to get config - 404 is expected if no config exists yet
+    let res
+    try {
+      res = await writerManagementAPI.getDisciplineConfigByWebsite(selectedWebsite.value)
+    } catch (e) {
+      // If endpoint returns 404, no config exists yet (this is normal)
+      if (e.response?.status === 404) {
+        res = { data: null }
+      } else {
+        // For other errors, try listing with filter as fallback
+        try {
+          const listRes = await writerManagementAPI.listDisciplineConfigs({ website: selectedWebsite.value })
+          const configs = Array.isArray(listRes.data?.results) ? listRes.data.results : (listRes.data || [])
+          res = { data: configs.length > 0 ? configs[0] : null }
+        } catch (listError) {
+          // If list also fails, just use defaults (no config exists)
+          if (listError.response?.status === 404) {
+            res = { data: null }
+          } else {
+            throw e // Re-throw original error for non-404 errors
+          }
+        }
+      }
+    }
+    
+    // Handle response - backend returns defaults if no config exists
+    if (res.data) {
       currentConfig.value = res.data
       configForm.value = {
         max_strikes: res.data.max_strikes || 3,
@@ -404,13 +463,21 @@ const loadConfig = async () => {
       }
     }
   } catch (e) {
-    console.error('Failed to load config:', e)
-    // Use defaults if config doesn't exist
+    // Use defaults if config doesn't exist (404 is normal for new configs)
     currentConfig.value = null
-    if (e.response?.status !== 404) {
+    configForm.value = {
+      max_strikes: 3,
+      auto_suspend_days: 7,
+      auto_blacklist_strikes: 5,
+    }
+    // Only log/show error if it's not a 404 (config doesn't exist is normal)
+    // 404 errors are expected and handled silently
+    if (e.response?.status && e.response.status !== 404) {
+      console.error('Failed to load config:', e)
       message.value = 'Failed to load configuration: ' + (e.response?.data?.detail || e.message)
       messageSuccess.value = false
     }
+    // For 404s, silently use defaults (no error message needed)
   } finally {
     loading.value = false
   }
@@ -444,15 +511,10 @@ const saveConfig = async () => {
       auto_blacklist_strikes: configForm.value.auto_blacklist_strikes,
     }
 
-    if (currentConfig.value && currentConfig.value.id) {
-      // Update existing config
-      await writerManagementAPI.updateDisciplineConfig(selectedWebsite.value, data)
-      message.value = 'Configuration updated successfully'
-    } else {
-      // Create new config
-      await writerManagementAPI.createDisciplineConfig(data)
-      message.value = 'Configuration created successfully'
-    }
+    // The create endpoint handles both create and update (see backend create method)
+    // If config exists, it updates; if not, it creates
+    await writerManagementAPI.createDisciplineConfig(data)
+    message.value = currentConfig.value ? 'Configuration updated successfully' : 'Configuration created successfully'
     
     messageSuccess.value = true
     await loadConfig()

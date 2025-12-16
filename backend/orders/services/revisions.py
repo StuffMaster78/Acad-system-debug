@@ -82,9 +82,19 @@ class OrderRevisionService:
         if not self.can_request_revision():
             return False
 
+        from orders.services.transition_helper import OrderTransitionHelper
+        
         self.order.revision_request = reason
-        self.order.status = OrderStatus.ON_REVISION.value
-        self.order.save(update_fields=["revision_request", "status"])
+        OrderTransitionHelper.transition_order(
+            order=self.order,
+            target_status='revision_requested',
+            user=self.user,
+            reason=reason,
+            action="request_revision",
+            is_automatic=False,
+            metadata={"revision_request": reason}
+        )
+        self.order.save(update_fields=["revision_request"])
         return True
 
 
@@ -99,30 +109,73 @@ class OrderRevisionService:
         Returns:
             bool: True if the revision was successfully processed, False otherwise.
         """
-        if self.order.status != OrderStatus.IN_REVISION.value:
+        from orders.services.transition_helper import OrderTransitionHelper
+        
+        # Check for revision_in_progress status (string value)
+        if self.order.status != 'revision_in_progress':
             return False
 
         self.order.revised_work = revised_work
-        self.order.status = OrderStatus.COMPLETED.value
-        self.order.save(update_fields=["revised_work", "status"])
+        OrderTransitionHelper.transition_order(
+            order=self.order,
+            target_status='revised',
+            user=self.user,
+            reason="Revision completed by writer",
+            action="process_revision",
+            is_automatic=False,
+            metadata={"revised_work": revised_work}
+        )
+        self.order.save(update_fields=["revised_work"])
         return True
 
 
-    def deny_revision(self, reason):
+    def deny_revision(self, reason: str) -> bool:
         """
-        Deny the revision request for an order.
+        Deny a client's revision request.
+
+        Business rules:
+        - Only orders currently in ``revision_requested`` can be denied.
+        - We do **not** try to infer or restore a previous terminal state
+          (e.g. ``approved`` or ``completed``) here, since that requires
+          additional historical context.
+        - Instead, we move the order to a safe, reviewable state
+          (``on_hold`` when allowed, otherwise ``cancelled``) and persist
+          a human‑readable denial reason.
 
         Args:
-            order (Order): The order for which the revision is denied.
-            reason (str): The reason for denying the revision.
+            reason: Explanation for denying the revision.
 
         Returns:
-            bool: True if the revision was denied, False otherwise.
+            bool: ``True`` if the revision was denied and a transition was
+            performed, ``False`` otherwise.
         """
-        if self.order.status != OrderStatus.ON_REVISION.value:
+        from orders.services.transition_helper import OrderTransitionHelper
+        from orders.services.status_transition_service import VALID_TRANSITIONS
+
+        if self.order.status != 'revision_requested':
             return False
 
         self.order.revision_request_denied_reason = reason
-        self.order.status = OrderStatus.COMPLETED.value
-        self.order.save(update_fields=["revision_request_denied_reason", "status"])
+
+        current_status = self.order.status
+        allowed_transitions = VALID_TRANSITIONS.get(current_status, [])
+
+        # Prefer moving to on_hold so an admin can make a final decision;
+        # fall back to cancelled if on_hold is not allowed from this state.
+        target_status = 'on_hold' if 'on_hold' in allowed_transitions else 'cancelled'
+
+        OrderTransitionHelper.transition_order(
+            order=self.order,
+            target_status=target_status,
+            user=self.user,
+            reason=f"Revision denied: {reason}",
+            action="deny_revision",
+            is_automatic=False,
+            metadata={
+                "revision_request_denied_reason": reason,
+                "previous_status": current_status,
+                "target_status": target_status,
+            },
+        )
+        self.order.save(update_fields=["revision_request_denied_reason"])
         return True

@@ -132,7 +132,7 @@
               Edit
             </button>
             <button
-              @click="previewTemplate(template)"
+              @click="openPreviewTemplate(template)"
               class="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
             >
               Preview
@@ -445,14 +445,14 @@
 
     <!-- Confirmation Dialog -->
     <ConfirmationDialog
-      v-model:show="confirm.show.value"
-      :title="confirm.title.value"
-      :message="confirm.message.value"
-      :details="confirm.details.value"
-      :variant="confirm.variant.value"
-      :icon="confirm.icon.value"
-      :confirm-text="confirm.confirmText.value"
-      :cancel-text="confirm.cancelText.value"
+      v-model:show="confirm.show"
+      :title="confirm.title"
+      :message="confirm.message"
+      :details="confirm.details"
+      :variant="confirm.variant"
+      :icon="confirm.icon"
+      :confirm-text="confirm.confirmText"
+      :cancel-text="confirm.cancelText"
       @confirm="confirm.onConfirm"
       @cancel="confirm.onCancel"
     />
@@ -651,7 +651,7 @@ const saveTemplate = async () => {
   }
 }
 
-const previewTemplate = (template) => {
+const openPreviewTemplate = (template) => {
   previewTemplate.value = template
   showPreviewModal.value = true
 }

@@ -166,8 +166,10 @@ class WriterPortfolio(models.Model):
         )
         
         if completed_orders.exists():
+            from django.db.models.functions import Coalesce
+            # Use writer_deadline if available, otherwise fall back to client_deadline
             on_time = completed_orders.filter(
-                submitted_at__lte=F('deadline')
+                submitted_at__lte=Coalesce('writer_deadline', 'client_deadline')
             ).count()
             self.on_time_delivery_rate = (on_time / completed_orders.count()) * 100
         else:

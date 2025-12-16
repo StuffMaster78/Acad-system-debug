@@ -133,36 +133,121 @@
 
     <!-- Assignment Queue -->
     <div v-if="activeQuickTab === 'assignment'" class="card p-4">
-      <h2 class="text-xl font-bold mb-4">Orders Needing Assignment</h2>
-      <div v-if="loadingAssignment" class="text-center py-8">Loading...</div>
-      <div v-else-if="assignmentQueue.length === 0" class="text-center py-8 text-gray-500">
-        No orders need assignment
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-bold">Orders Needing Assignment</h2>
+        <div class="flex items-center gap-2 text-sm text-gray-600">
+          <span>Sorted by priority</span>
+          <button
+            @click="loadAssignmentQueue"
+            :disabled="loadingAssignment"
+            class="px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded text-sm transition-colors"
+          >
+            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            Refresh
+          </button>
+        </div>
       </div>
-      <div v-else class="space-y-2">
+      
+      <div v-if="loadingAssignment" class="text-center py-8">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+        <p class="mt-2 text-gray-500">Loading assignment queue...</p>
+      </div>
+      <div v-else-if="assignmentQueue.length === 0" class="text-center py-8 text-gray-500">
+        <p class="text-sm font-medium">No orders need assignment</p>
+        <p class="text-xs mt-1">All orders have been assigned or are in progress</p>
+      </div>
+      <div v-else class="space-y-3">
         <div
           v-for="order in assignmentQueue"
           :key="order.id"
-          class="border rounded p-4 hover:bg-gray-50 cursor-pointer"
-          @click="viewOrder(order)"
+          class="border rounded-lg p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
         >
-          <div class="flex justify-between items-start">
-            <div>
-              <p class="font-semibold">Order #{{ order.id }} - {{ order.topic }}</p>
-              <p class="text-sm text-gray-600">
+          <div class="flex justify-between items-start gap-4">
+            <div class="flex-1">
+              <div class="flex items-center gap-3 mb-2">
+                <div class="flex items-center gap-2">
+                  <span class="font-semibold text-gray-900 dark:text-gray-100">Order #{{ order.id }}</span>
+                  <span
+                    v-if="order.priority_score"
+                    class="px-2 py-0.5 text-xs font-bold rounded"
+                    :class="getPriorityBadgeClass(order.priority_score)"
+                  >
+                    Priority: {{ order.priority_score.toFixed(1) }}
+                  </span>
+                </div>
+              </div>
+              
+              <p class="font-medium text-gray-900 dark:text-gray-100 mb-1">
+                {{ order.topic || 'Untitled Order' }}
+              </p>
+              
+              <div class="flex flex-wrap items-center gap-3 text-sm text-gray-600 dark:text-gray-400 mb-2">
                 <span class="inline-flex items-center gap-1">
                   <span class="w-2 h-2 rounded-full" :class="getWebsiteColorClass(order.website || order.website_name)"></span>
                   {{ getWebsiteName(order) }}
                 </span>
-                · Client: {{ order.client_username || 'N/A' }}
-              </p>
-              <p class="text-sm text-gray-600">Status: {{ order.status }}</p>
+                <span>·</span>
+                <span>Client: {{ order.client_username || 'N/A' }}</span>
+                <span>·</span>
+                <span>Status: <span class="font-medium">{{ order.status }}</span></span>
+                <span v-if="order.urgency" class="px-2 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 rounded text-xs font-medium">
+                  {{ order.urgency === 'high' ? '🔴 High Urgency' : order.urgency === 'medium' ? '🟡 Medium' : '🟢 Normal' }}
+                </span>
+              </div>
+              
+              <!-- Writer Requests (if any) -->
+              <div v-if="order.writer_requests && order.writer_requests.length > 0" class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                <p class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Writer Requests ({{ order.writer_requests.length }})
+                </p>
+                <div class="space-y-2">
+                  <div
+                    v-for="request in order.writer_requests.slice(0, 3)"
+                    :key="request.id"
+                    class="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded text-xs"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium">{{ request.writer_username || request.writer_name || 'Writer' }}</span>
+                      <span
+                        v-if="request.priority_score"
+                        class="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded"
+                      >
+                        Score: {{ request.priority_score.toFixed(1) }}
+                      </span>
+                      <span v-if="request.rating" class="text-gray-500">
+                        ⭐ {{ request.rating.toFixed(1) }}
+                      </span>
+                    </div>
+                    <button
+                      @click.stop="openAssignModalFromRequest(request)"
+                      class="px-2 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs transition-colors"
+                    >
+                      Assign
+                    </button>
+                  </div>
+                  <p v-if="order.writer_requests.length > 3" class="text-xs text-gray-500 text-center">
+                    +{{ order.writer_requests.length - 3 }} more request(s)
+                  </p>
+                </div>
+              </div>
             </div>
-            <button
-              @click.stop="openAssignModal(order)"
-              class="btn btn-primary text-sm"
-            >
-              Assign Writer
-            </button>
+            
+            <div class="flex flex-col gap-2">
+              <button
+                @click.stop="openAssignModal(order)"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium whitespace-nowrap"
+              >
+                Assign Writer
+              </button>
+              <button
+                @click.stop="viewOrder(order)"
+                class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm whitespace-nowrap"
+              >
+                View Details
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -341,6 +426,28 @@
             <option value="false">Unpaid</option>
           </select>
         </div>
+        <div class="flex items-center gap-2 pt-6">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              v-model="filters.include_deleted"
+              @change="loadOrders"
+              class="rounded"
+            />
+            <span class="text-sm font-medium">Include Deleted</span>
+          </label>
+        </div>
+        <div class="flex items-center gap-2 pt-6">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              v-model="filters.only_deleted"
+              @change="loadOrders"
+              class="rounded"
+            />
+            <span class="text-sm font-medium">Only Deleted</span>
+          </label>
+        </div>
         <div>
           <label class="block text-sm font-medium mb-1">Include Archived</label>
           <select v-model="filters.include_archived" @change="loadOrders" class="w-full border rounded px-3 py-2">
@@ -381,7 +488,8 @@
           {{ selectedOrders.length }} order(s) selected
         </span>
         <div class="flex gap-2">
-          <button @click="bulkAssign" class="btn btn-sm btn-primary">Bulk Assign</button>
+          <button @click="openBulkAssignModal" class="btn btn-sm btn-primary">Bulk Assign</button>
+          <button @click="bulkAutoAssign" class="btn btn-sm btn-indigo">Auto-Assign Selected</button>
           <button @click="bulkStatusChange" class="btn btn-sm btn-primary">Change Status</button>
           <button @click="selectedOrders = []" class="btn btn-sm btn-secondary">Clear Selection</button>
         </div>
@@ -415,7 +523,7 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="order in orders" :key="order.id" class="hover:bg-gray-50">
+            <tr v-for="order in orders" :key="order.id" :class="['hover:bg-gray-50', order.is_deleted ? 'bg-red-50 opacity-75' : '']">
               <td class="px-6 py-4 whitespace-nowrap">
                 <input 
                   type="checkbox" 
@@ -423,7 +531,12 @@
                   v-model="selectedOrders"
                 />
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ order.id }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <div class="flex items-center gap-2">
+                  #{{ order.id }}
+                  <span v-if="order.is_deleted" class="px-2 py-0.5 bg-red-100 text-red-700 rounded text-xs font-semibold" title="Soft Deleted">🗑️ Deleted</span>
+                </div>
+              </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm">
                 <div v-if="order.website || order.website_name" class="flex items-center gap-2">
                   <div class="w-2 h-2 rounded-full" :class="getWebsiteColorClass(order.website || order.website_name)"></div>
@@ -814,18 +927,18 @@
   </div>
 
   <!-- Confirmation Dialog -->
-  <ConfirmationDialog
-    v-model:show="confirm.show.value"
-    :title="confirm.title.value"
-    :message="confirm.message.value"
-    :details="confirm.details.value"
-    :variant="confirm.variant.value"
-    :icon="confirm.icon.value"
-    :confirm-text="confirm.confirmText.value"
-    :cancel-text="confirm.cancelText.value"
-    @confirm="confirm.onConfirm"
-    @cancel="confirm.onCancel"
-  />
+    <ConfirmationDialog
+      v-model:show="confirm.show"
+      :title="confirm.title"
+      :message="confirm.message"
+      :details="confirm.details"
+      :variant="confirm.variant"
+      :icon="confirm.icon"
+      :confirm-text="confirm.confirmText"
+      :cancel-text="confirm.cancelText"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
 </template>
 
 <script setup>
@@ -867,6 +980,8 @@ const filters = ref({
   writer: '',
   website: '', // Add website filter
   include_archived: true, // Admin/superadmin should see all orders by default
+  include_deleted: false, // Include soft-deleted orders
+  only_deleted: false, // Show only soft-deleted orders
 })
 
 const stats = ref({
@@ -894,6 +1009,21 @@ const loadingWriterRequests = ref(false)
 const assignForm = ref({
   writerId: '',
   reason: '',
+})
+
+const showBulkAssignModal = ref(false)
+const bulkAssigning = ref(false)
+const bulkAssignForm = ref({
+  strategy: 'balanced',
+  writer_ids: [],
+  reason: 'Bulk assignment',
+})
+
+const canBulkAssign = computed(() => {
+  if (bulkAssignForm.value.strategy === 'best_match') {
+    return true // No writer selection needed
+  }
+  return bulkAssignForm.value.writer_ids.length > 0
 })
 
 const editForm = ref({
@@ -1034,9 +1164,23 @@ const loadOrders = async () => {
     if (filters.value.client) params.client = filters.value.client
     if (filters.value.writer) params.writer = filters.value.writer
     if (filters.value.website) params.website = filters.value.website
+    // Note: Backend needs to support include_deleted and only_deleted params
+    // For now, filtering is done on frontend
+    if (filters.value.include_deleted) params.include_deleted = true
+    if (filters.value.only_deleted) params.only_deleted = true
 
     const res = await ordersAPI.list(params)
-    orders.value = res.data.results || res.data || []
+    let allOrders = res.data.results || res.data || []
+    
+    // Frontend filtering for soft-deleted orders (until backend supports it)
+    if (filters.value.only_deleted) {
+      allOrders = allOrders.filter(o => o.is_deleted === true)
+    } else if (!filters.value.include_deleted) {
+      // Exclude soft-deleted orders if not including them
+      allOrders = allOrders.filter(o => !o.is_deleted)
+    }
+    
+    orders.value = allOrders
     
     // Calculate stats (fallback if dashboard not loaded)
     stats.value.total = orders.value.length
@@ -1346,21 +1490,193 @@ const openActionMenu = (order) => {
   viewOrder(order)
 }
 
-const bulkAssign = () => {
-  if (selectedOrders.value.length === 0) return
-  // Open assign modal with first selected order
-  const firstOrder = orders.value.find(o => o.id === selectedOrders.value[0])
-  if (firstOrder) {
-    openAssignModal(firstOrder)
+const openBulkAssignModal = async () => {
+  if (selectedOrders.value.length === 0) {
+    showMessage('Please select at least one order', false)
+    return
+  }
+  
+  // Load writers if not already loaded
+  if (availableWriters.value.length === 0) {
+    await loadWriters()
+  }
+  
+  // Reset form
+  bulkAssignForm.value = {
+    strategy: 'balanced',
+    writer_ids: [],
+    reason: 'Bulk assignment',
+  }
+  
+  showBulkAssignModal.value = true
+}
+
+const closeBulkAssignModal = () => {
+  showBulkAssignModal.value = false
+  bulkAssignForm.value = {
+    strategy: 'balanced',
+    writer_ids: [],
+    reason: 'Bulk assignment',
   }
 }
 
-const bulkStatusChange = () => {
-  const newStatus = prompt('Enter new status:')
-  if (!newStatus) return
+const confirmBulkAssign = async () => {
+  if (!canBulkAssign.value) return
   
-  // This would need backend support for bulk updates
-  showMessage('Bulk status change not yet implemented', false)
+  bulkAssigning.value = true
+  try {
+    const assignments = selectedOrders.value.map(orderId => ({
+      order_id: orderId,
+    }))
+    
+    const response = await ordersAPI.bulkAssign({
+      assignments,
+      strategy: bulkAssignForm.value.strategy,
+      writer_ids: bulkAssignForm.value.writer_ids.length > 0 ? bulkAssignForm.value.writer_ids : undefined,
+      reason: bulkAssignForm.value.reason,
+    })
+    
+    showMessage(
+      response.data?.message || `Successfully assigned ${selectedOrders.value.length} order(s)`,
+      true
+    )
+    
+    closeBulkAssignModal()
+    selectedOrders.value = []
+    await loadOrders()
+    await loadAssignmentQueue()
+  } catch (error) {
+    const errorMsg = getErrorMessage(
+      error,
+      'Failed to bulk assign',
+      `Unable to assign ${selectedOrders.value.length} order(s). Please try again.`
+    )
+    showMessage(errorMsg, false)
+  } finally {
+    bulkAssigning.value = false
+  }
+}
+
+const bulkAutoAssign = async () => {
+  if (selectedOrders.value.length === 0) {
+    showMessage('Please select at least one order', false)
+    return
+  }
+  
+  const confirmed = await confirm.showDialog(
+    `Auto-assign ${selectedOrders.value.length} selected order(s)?`,
+    'Auto-Assign Orders',
+    {
+      details: 'The system will automatically assign the best matching writers based on expertise, rating, and availability.',
+      variant: 'default',
+      icon: '🤖',
+      confirmText: 'Auto-Assign',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  bulkAssigning.value = true
+  try {
+    const response = await ordersAPI.bulkAutoAssign({
+      order_ids: selectedOrders.value,
+    })
+    
+    showMessage(
+      response.data?.message || `Successfully auto-assigned ${selectedOrders.value.length} order(s)`,
+      true
+    )
+    
+    selectedOrders.value = []
+    await loadOrders()
+    await loadAssignmentQueue()
+  } catch (error) {
+    const errorMsg = getErrorMessage(
+      error,
+      'Failed to auto-assign',
+      `Unable to auto-assign ${selectedOrders.value.length} order(s). Please try again.`
+    )
+    showMessage(errorMsg, false)
+  } finally {
+    bulkAssigning.value = false
+  }
+}
+
+const bulkStatusChange = async () => {
+  if (selectedOrders.value.length === 0) {
+    showMessage('Please select at least one order', false)
+    return
+  }
+
+  const newStatus = prompt(
+    'Enter new status (e.g. in_progress, submitted, completed, cancelled, on_hold):'
+  )
+  if (!newStatus) return
+
+  const confirmed = await confirm.showDialog(
+    `Change status of ${selectedOrders.value.length} order(s) to "${newStatus}"?`,
+    'Bulk Status Change',
+    {
+      details:
+        'The system will attempt to transition each selected order using the unified transition endpoint. ' +
+        'Invalid transitions will be skipped and reported.',
+      variant: 'warning',
+      icon: '⚠️',
+      confirmText: 'Change Status',
+      cancelText: 'Cancel',
+    }
+  )
+
+  if (!confirmed) return
+
+  bulkAssigning.value = true
+
+  let successCount = 0
+  const failed = []
+
+  try {
+    for (const orderId of selectedOrders.value) {
+      try {
+        await ordersAPI.transition(
+          orderId,
+          newStatus,
+          'Bulk status change from Order Management',
+          { bulk: true }
+        )
+        successCount += 1
+      } catch (error) {
+        const errorMsg = getErrorMessage(
+          error,
+          `Failed to change status for order #${orderId}`,
+          `Unable to change status for order #${orderId}.`
+        )
+        failed.push({ orderId, error: errorMsg })
+      }
+    }
+
+    if (failed.length === 0) {
+      showMessage(
+        `Successfully changed status for ${successCount} order(s) to "${newStatus}".`,
+        true
+      )
+    } else {
+      const summary =
+        `Changed status for ${successCount} order(s) to "${newStatus}". ` +
+        `${failed.length} order(s) failed.\n` +
+        failed
+          .slice(0, 3)
+          .map((f) => `#${f.orderId}: ${f.error}`)
+          .join('\n')
+
+      showMessage(summary, false)
+    }
+
+    await loadOrders()
+    await loadAssignmentQueue()
+  } finally {
+    bulkAssigning.value = false
+  }
 }
 
 const openAssignModalFromRequest = async (req) => {
@@ -1430,6 +1746,14 @@ const getStatusClass = (status) => {
 
 const getStatusLabel = (status) => {
   return status ? status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'
+}
+
+const getPriorityBadgeClass = (score) => {
+  if (!score) return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+  if (score >= 80) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+  if (score >= 60) return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+  if (score >= 40) return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+  return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
 }
 
 const formatDateTime = (date) => {

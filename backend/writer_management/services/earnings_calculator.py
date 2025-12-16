@@ -251,4 +251,90 @@ class WriterEarningsCalculator:
             )
         
         return breakdown
+    
+    @staticmethod
+    def calculate_class_earnings(
+        writer_level,
+        class_purchase,
+        is_urgent: bool = False
+    ) -> Decimal:
+        """
+        Calculate writer earnings for a class purchase.
+        
+        Args:
+            writer_level: WriterLevel instance
+            class_purchase: ClassPurchase instance
+            is_urgent: Whether the class is urgent
+            
+        Returns:
+            Decimal: Calculated earnings amount
+        """
+        # Check if writer level has class payment rate
+        cost_per_class = getattr(writer_level, 'base_pay_per_class', None)
+        
+        if cost_per_class:
+            # Fixed rate per class
+            earnings = Decimal(str(cost_per_class))
+        else:
+            # Fallback to percentage of class cost
+            class_cost = Decimal(str(getattr(class_purchase, 'total_amount', 0) or 0))
+            if writer_level.earning_mode == 'percentage_of_order_cost':
+                earnings = class_cost * (writer_level.earnings_percentage_of_cost / Decimal('100'))
+            elif writer_level.earning_mode == 'percentage_of_order_total':
+                earnings = class_cost * (writer_level.earnings_percentage_of_total / Decimal('100'))
+            else:
+                # Default to a fixed amount if no rate is set
+                earnings = Decimal('0.00')
+        
+        # Apply urgency multiplier if applicable
+        if is_urgent and writer_level.urgency_percentage_increase > 0:
+            urgency_multiplier = Decimal('1') + (writer_level.urgency_percentage_increase / Decimal('100'))
+            earnings = earnings * urgency_multiplier
+        
+        return earnings.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    
+    @staticmethod
+    def calculate_special_order_earnings(
+        writer_level,
+        special_order,
+        is_urgent: bool = False,
+        is_technical: bool = False
+    ) -> Decimal:
+        """
+        Calculate writer earnings for a special order.
+        Special orders are calculated based on pages/slides or percentage, excluding installments.
+        
+        Args:
+            writer_level: WriterLevel instance
+            special_order: SpecialOrder instance
+            is_urgent: Whether the order is urgent
+            is_technical: Whether the order is technical
+            
+        Returns:
+            Decimal: Calculated earnings amount (not including installments)
+        """
+        pages = getattr(special_order, 'number_of_pages', 0) or 0
+        slides = getattr(special_order, 'number_of_slides', 0) or 0
+        order_total = Decimal(str(getattr(special_order, 'total_amount', 0) or 0))
+        
+        # Use the same calculation logic as regular orders
+        # Create a mock order object for compatibility
+        class MockOrder:
+            def __init__(self, pages, slides, total_price, discounted_amount=None):
+                self.number_of_pages = pages
+                self.number_of_slides = slides
+                self.total_price = total_price
+                self.discounted_amount = discounted_amount or total_price
+        
+        mock_order = MockOrder(pages, slides, order_total, order_total)
+        
+        # Calculate using standard earnings calculator
+        base_earnings = WriterEarningsCalculator.calculate_earnings(
+            writer_level, mock_order, is_urgent, is_technical
+        )
+        
+        # Add special order bonus if available
+        bonus = Decimal(str(getattr(special_order, 'bonus_amount', 0) or 0))
+        
+        return (base_earnings + bonus).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
 

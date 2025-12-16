@@ -30,10 +30,24 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
     """
     Viewset for handling order payments, including refunds.
     Supports all payment types: standard orders, special orders, installments, classes, wallet loading.
+
+    Notes on permissions:
+    - Admin/Superadmin: full access to all actions.
+    - Authenticated clients: read-only access to their own payments via the
+      ``client_payments`` and ``download_receipt`` actions.
     """
     queryset = OrderPayment.objects.all()
     serializer_class = TransactionSerializer
     permission_classes = [IsAuthenticated, IsSuperadminOrAdmin]
+
+    def get_permissions(self):
+        """
+        Relax permissions for client-facing read-only actions while keeping
+        admin-only protection for management actions.
+        """
+        if self.action in ["client_payments", "download_receipt"]:
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), IsSuperadminOrAdmin()]
     http_method_names = ["get", "post", "patch", "delete"]  # Limit methods if needed
 
     def get_queryset(self):
@@ -431,7 +445,13 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
         search = request.query_params.get('search')
         date_from = request.query_params.get('date_from')
         date_to = request.query_params.get('date_to')
-        client_id = request.query_params.get('client_id')
+
+        # For non-staff users, always scope to the authenticated client.
+        # Admins can optionally filter by client_id.
+        if request.user.is_staff:
+            client_id = request.query_params.get('client_id')
+        else:
+            client_id = request.user.id
         
         # Build combined transactions list (CLIENT PAYMENTS ONLY)
         transactions = []

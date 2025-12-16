@@ -1148,7 +1148,10 @@ const loadOrderConfigOptions = async () => {
     academicLevels.value = extractResults(levelsRes)
     typesOfWork.value = extractResults(workRes)
   } catch (error) {
-    console.warn('Failed to load order config options:', error)
+    // Only log errors that aren't suppressed (expected backend failures)
+    if (!error._suppressLog) {
+      console.warn('Failed to load order config options:', error)
+    }
   }
 }
 

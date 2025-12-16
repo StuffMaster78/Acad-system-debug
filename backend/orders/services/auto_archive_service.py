@@ -1,4 +1,5 @@
-from orders.utils.order_utils import get_orders_by_status_older_than, save_order
+from orders.utils.order_utils import get_orders_by_status_older_than
+from orders.services.transition_helper import OrderTransitionHelper
 from django.db import transaction
 import logging
 
@@ -12,7 +13,7 @@ class AutoArchiveService:
 
     @staticmethod
     @transaction.atomic
-    def archive_orders_older_than(cutoff_date, status="approved", website=None):
+    def archive_orders_older_than(cutoff_date, status="approved", website=None, user=None):
         """
         Archive orders with a given status older than the cutoff date.
 
@@ -20,6 +21,7 @@ class AutoArchiveService:
             cutoff_date (datetime): Archive orders older than this.
             status (str): Order status to target. Default is 'approved'.
             website (Website, optional): Scope to a specific tenant.
+            user (User, optional): User performing the archiving (for logging).
         
         Returns:
             dict: Summary of archived orders.
@@ -33,9 +35,23 @@ class AutoArchiveService:
             count = 0
 
             for order in orders:
-                order.status = "archived"
-                save_order(order)
-                count += 1
+                try:
+                    OrderTransitionHelper.transition_order(
+                        order=order,
+                        target_status="archived",
+                        user=user,
+                        reason=f"Auto-archived: order older than {cutoff_date.isoformat()}",
+                        action="auto_archive",
+                        is_automatic=True,
+                        metadata={
+                            "cutoff_date": cutoff_date.isoformat(),
+                            "previous_status": status,
+                        }
+                    )
+                    count += 1
+                except Exception as e:
+                    logger.warning(f"Failed to archive order #{order.id}: {e}")
+                    continue
 
             logger.info(f"Archived {count} '{status}' orders older than {cutoff_date}")
             return {

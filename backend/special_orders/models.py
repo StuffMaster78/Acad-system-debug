@@ -191,6 +191,21 @@ class SpecialOrder(models.Model):
         default=False,
         help_text="Did the writer complete the order without uploading files?"
     )
+    # Writer payment fields (set by admin when assigning writer)
+    writer_payment_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Fixed payment amount for the writer (set by admin when assigning)."
+    )
+    writer_payment_percentage = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Payment percentage of order total for the writer (set by admin when assigning)."
+    )
     
     def save(self, *args, **kwargs):
         """

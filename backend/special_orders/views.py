@@ -77,6 +77,110 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
         logger.info(f"Payment overridden for order #{order.id}")
         return Response({'status': 'payment overridden'})
 
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def assign_writer(self, request, pk=None):
+        """
+        Admin assigns a writer to a special order with optional payment amount or percentage.
+        
+        Request body:
+        {
+            "writer_id": 123,
+            "payment_amount": 100.00,  // Optional: fixed payment amount
+            "payment_percentage": 15.5,  // Optional: percentage of order total
+            "admin_notes": "Optional notes"
+        }
+        Note: Provide either payment_amount OR payment_percentage, not both.
+        """
+        from django.contrib.auth import get_user_model
+        from decimal import Decimal
+        from special_orders.services.writer_assignment import assign_writer as assign_special_order_writer
+        
+        User = get_user_model()
+        order = self.get_object()
+        
+        writer_id = request.data.get('writer_id')
+        payment_amount = request.data.get('payment_amount')
+        payment_percentage = request.data.get('payment_percentage')
+        admin_notes = request.data.get('admin_notes', '')
+        
+        if not writer_id:
+            return Response(
+                {'error': 'writer_id is required.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            writer = User.objects.get(id=writer_id, role='writer', is_active=True)
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Writer not found or not active.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Convert payment values to Decimal if provided
+        payment_amount_decimal = None
+        payment_percentage_decimal = None
+        
+        if payment_amount is not None:
+            try:
+                payment_amount_decimal = Decimal(str(payment_amount))
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'Invalid payment_amount format.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        if payment_percentage is not None:
+            try:
+                payment_percentage_decimal = Decimal(str(payment_percentage))
+                if payment_percentage_decimal < 0 or payment_percentage_decimal > 100:
+                    return Response(
+                        {'error': 'payment_percentage must be between 0 and 100.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            except (ValueError, TypeError):
+                return Response(
+                    {'error': 'Invalid payment_percentage format.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        try:
+            # Assign writer with payment info
+            assign_special_order_writer(
+                order, 
+                writer, 
+                payment_amount=payment_amount_decimal,
+                payment_percentage=payment_percentage_decimal
+            )
+            
+            # Update admin notes if provided
+            if admin_notes:
+                order.admin_notes = (order.admin_notes or '') + '\n' + admin_notes
+                order.save()
+            
+            # Update status if needed
+            if order.status == 'awaiting_approval':
+                order.status = 'in_progress'
+                order.save()
+            
+            logger.info(f"Writer {writer.username} assigned to special order #{order.id} with payment: amount={payment_amount_decimal}, percentage={payment_percentage_decimal}")
+            
+            return Response(
+                SpecialOrderSerializer(order).data,
+                status=status.HTTP_200_OK
+            )
+        except ValueError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.exception(f"Error assigning writer to special order: {e}")
+            return Response(
+                {'error': 'An error occurred assigning the writer.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
     @action(detail=True, methods=['post'],
             permission_classes=[IsAuthenticated])
     def complete_order(self, request, pk=None):

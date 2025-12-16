@@ -8,8 +8,9 @@
       <Transition name="modal-backdrop">
         <div
           v-if="visible"
-          class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity"
           style="z-index: 40;"
+          @click="closeOnBackdrop ? close() : null"
         ></div>
       </Transition>
 

@@ -101,6 +101,7 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
 
         writer_user = writer_profile.user
         reason = request.data.get("reason") or request_obj.reason or "Assigned from writer request"
+        writer_payment_amount = request.data.get("writer_payment_amount")  # Admin-set payment amount
 
         try:
             with transaction.atomic():
@@ -109,11 +110,17 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
                 # Attach the acting admin/support user so access checks and logs work
                 service.actor = request.user  # type: ignore[attr-defined]
 
-                updated_order = service.assign_writer(writer_user.id, reason=reason)
+                updated_order = service.assign_writer(
+                    writer_user.id, 
+                    reason=reason,
+                    writer_payment_amount=writer_payment_amount
+                )
 
                 # Mark the request as approved and reviewed
+                # Set admin_override flag to skip validation checks (admin can override limits)
                 request_obj.approved = True
                 request_obj.reviewed_by = request.user
+                request_obj._admin_override = True  # Skip validation for admin assignments
                 request_obj.save(update_fields=["approved", "reviewed_by"])
 
             return Response(
@@ -188,22 +195,32 @@ try:
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     main_views_path = os.path.join(parent_dir, 'views.py')
     if os.path.exists(main_views_path):
-        spec = importlib.util.spec_from_file_location("writer_management.views_main", main_views_path)
+        # Use a unique module name to avoid conflicts with the views/ package
+        spec = importlib.util.spec_from_file_location("writer_management.views_legacy_module", main_views_path)
         if spec and spec.loader:
             views_main = importlib.util.module_from_spec(spec)
+            # Don't set __name__ to avoid conflicts - use the unique name from spec
             spec.loader.exec_module(views_main)
             WriterStrikeViewSet = getattr(views_main, 'WriterStrikeViewSet', None)
             WriterDisciplineConfigViewSet = getattr(views_main, 'WriterDisciplineConfigViewSet', None)
+            WriterStatusViewSet = getattr(views_main, 'WriterStatusViewSet', None)
+            WriterWarningViewSet = getattr(views_main, 'WriterWarningViewSet', None)
         else:
             WriterStrikeViewSet = None
             WriterDisciplineConfigViewSet = None
+            WriterStatusViewSet = None
+            WriterWarningViewSet = None
     else:
         WriterStrikeViewSet = None
         WriterDisciplineConfigViewSet = None
+        WriterStatusViewSet = None
+        WriterWarningViewSet = None
 except Exception:
     # If import fails, set to None - urls.py will handle the error
     WriterStrikeViewSet = None
     WriterDisciplineConfigViewSet = None
+    WriterStatusViewSet = None
+    WriterWarningViewSet = None
 
 # Import pen name and resource viewsets from main views.py
 try:
@@ -213,11 +230,11 @@ try:
     parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     main_views_path = os.path.join(parent_dir, 'views.py')
     if os.path.exists(main_views_path):
-        spec = importlib.util.spec_from_file_location("writer_management.views_main", main_views_path)
+        # Use a unique module name to avoid conflicts with the views/ package
+        spec = importlib.util.spec_from_file_location("writer_management.views_legacy_resources", main_views_path)
         if spec and spec.loader:
             views_main = importlib.util.module_from_spec(spec)
-            views_main.__package__ = 'writer_management'
-            views_main.__name__ = 'writer_management.views'
+            # Don't set __name__ to avoid conflicts - use the unique name from spec
             spec.loader.exec_module(views_main)
             WriterPenNameChangeRequestViewSet = getattr(views_main, 'WriterPenNameChangeRequestViewSet', None)
             WriterResourceViewSet = getattr(views_main, 'WriterResourceViewSet', None)

@@ -165,6 +165,19 @@ class PaymentBatchingService:
             created_at__lte=period_end
         ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
         
+        # Get class bonuses (classes contribute to overall earnings)
+        from special_orders.models import WriterBonus
+        class_bonuses = WriterBonus.objects.filter(
+            writer=writer.user,
+            website=website,
+            category='class_payment',
+            granted_at__gte=period_start,
+            granted_at__lte=period_end
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0.00')
+        
+        # Add class bonuses to total bonuses
+        bonuses += class_bonuses
+        
         # Get fines (already deducted from wallet, but track for reporting)
         fines = Fine.objects.filter(
             writer=writer,
@@ -180,7 +193,8 @@ class PaymentBatchingService:
         return {
             'orders': order_earnings,
             'tips': total_tips,
-            'bonuses': bonuses,
+            'bonuses': bonuses,  # Includes class bonuses
+            'class_bonuses': class_bonuses,  # Separate tracking
             'fines': total_fines,
             'total': total_earnings,
         }

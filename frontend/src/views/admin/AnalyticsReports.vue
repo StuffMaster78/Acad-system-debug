@@ -8,15 +8,47 @@
           Comprehensive analytics comparing orders, classes, income, and more across years
         </p>
       </div>
-      <button
-        @click="exportReport"
-        class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-        Export Report
-      </button>
+      <div class="relative">
+        <button
+          @click="showExportMenu = !showExportMenu"
+          class="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Export Report
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        
+        <!-- Export Menu Dropdown -->
+        <div
+          v-if="showExportMenu"
+          @click.stop
+          class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+          style="position: absolute;"
+        >
+          <button
+            @click="exportToCSV"
+            class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export as CSV
+          </button>
+          <button
+            @click="exportToPDF"
+            class="w-full text-left px-4 py-3 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            Export as PDF
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Filters -->
@@ -262,7 +294,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import analyticsAPI from '@/api/advanced-analytics'
 import websitesAPI from '@/api/websites'
 import { useToast } from '@/composables/useToast'
@@ -274,6 +306,7 @@ const { success: showSuccess, error: showError } = useToast()
 const loading = ref(false)
 const websites = ref([])
 const yearlyData = ref([])
+const showExportMenu = ref(false)
 const bestYearData = computed(() => {
   if (!yearlyMetrics.value || yearlyMetrics.value.length === 0) return null
   
@@ -581,14 +614,264 @@ const formatNumber = (num) => {
   return new Intl.NumberFormat('en-US').format(Math.round(num))
 }
 
-const exportReport = () => {
-  showSuccess('Export feature coming soon!')
-  // TODO: Implement CSV/PDF export
+// Export Functions
+const exportToCSV = () => {
+  try {
+    if (!yearlyData.value || yearlyData.value.length === 0) {
+      showError('No data available to export')
+      return
+    }
+
+    // Prepare CSV headers
+    const headers = ['Year', 'Orders', 'Classes', 'Revenue ($)', 'Writers', 'Clients', 'Growth Rate (%)']
+    
+    // Prepare CSV rows
+    const rows = yearlyData.value.map(year => {
+      const growthRate = year.growth_rate ? parseFloat(year.growth_rate).toFixed(2) : '0.00'
+      return [
+        year.year || '',
+        year.orders || 0,
+        year.classes || 0,
+        parseFloat(year.revenue || 0).toFixed(2),
+        year.writers || 0,
+        year.clients || 0,
+        growthRate
+      ]
+    })
+
+    // Combine headers and rows
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n')
+
+    // Add BOM for Excel compatibility
+    const BOM = '\uFEFF'
+    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' })
+    
+    // Create download link
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    
+    // Generate filename
+    const startYear = filters.value.startYear || 'all'
+    const endYear = filters.value.endYear || 'all'
+    const websiteName = websites.value.find(w => w.id === filters.value.websiteId)?.name || 'all'
+    const filename = `analytics-report_${websiteName}_${startYear}-${endYear}_${new Date().toISOString().split('T')[0]}.csv`
+    
+    link.setAttribute('download', filename)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    showExportMenu.value = false
+    showSuccess('Report exported as CSV successfully')
+  } catch (error) {
+    console.error('Export error:', error)
+    showError('Failed to export CSV: ' + (error.message || 'Unknown error'))
+  }
+}
+
+const exportToPDF = async () => {
+  try {
+    if (!yearlyData.value || yearlyData.value.length === 0) {
+      showError('No data available to export')
+      return
+    }
+
+    // Try to use backend PDF export if available
+    try {
+      const params = {
+        start_year: filters.value.startYear,
+        end_year: filters.value.endYear,
+        metrics: filters.value.metrics.join(','),
+        website_id: filters.value.websiteId || undefined,
+        format: 'pdf'
+      }
+      
+      // Check if backend has export endpoint
+      const response = await analyticsAPI.exportReport?.(params)
+      
+      if (response && response.data) {
+        // Backend returned PDF
+        const blob = new Blob([response.data], { type: 'application/pdf' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        
+        const startYear = filters.value.startYear || 'all'
+        const endYear = filters.value.endYear || 'all'
+        const websiteName = websites.value.find(w => w.id === filters.value.websiteId)?.name || 'all'
+        const filename = `analytics-report_${websiteName}_${startYear}-${endYear}_${new Date().toISOString().split('T')[0]}.pdf`
+        
+        link.download = filename
+        link.click()
+        URL.revokeObjectURL(url)
+        
+        showExportMenu.value = false
+        showSuccess('Report exported as PDF successfully')
+        return
+      }
+    } catch (backendError) {
+      // Backend export not available, use client-side generation
+      // Backend PDF export not available, using client-side generation
+    }
+
+    // Client-side PDF generation using window.print() or html2pdf library
+    // For now, we'll create a printable HTML version
+    const printWindow = window.open('', '_blank')
+    
+    if (!printWindow) {
+      showError('Please allow popups to export PDF')
+      return
+    }
+
+    // Generate HTML content
+    const htmlContent = generatePDFHTML()
+    
+    printWindow.document.write(htmlContent)
+    printWindow.document.close()
+    
+    // Wait for content to load, then print
+    printWindow.onload = () => {
+      setTimeout(() => {
+        printWindow.print()
+        showExportMenu.value = false
+        showSuccess('PDF export opened in print dialog')
+      }, 250)
+    }
+  } catch (error) {
+    console.error('PDF export error:', error)
+    showError('Failed to export PDF: ' + (error.message || 'Unknown error'))
+  }
+}
+
+const generatePDFHTML = () => {
+  const startYear = filters.value.startYear || 'All'
+  const endYear = filters.value.endYear || 'All'
+  const websiteName = websites.value.find(w => w.id === filters.value.websiteId)?.name || 'All Websites'
+  const generatedDate = new Date().toLocaleString()
+  
+  let tableRows = ''
+  yearlyData.value.forEach(year => {
+    const growthRate = year.growth_rate ? parseFloat(year.growth_rate).toFixed(2) : '0.00'
+    tableRows += `
+      <tr>
+        <td style="border: 1px solid #ddd; padding: 8px;">${year.year || ''}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatNumber(year.orders || 0)}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatNumber(year.classes || 0)}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">$${formatNumber(year.revenue || 0)}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatNumber(year.writers || 0)}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${formatNumber(year.clients || 0)}</td>
+        <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">${growthRate}%</td>
+      </tr>
+    `
+  })
+
+  return `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Analytics Report</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          padding: 20px;
+          color: #333;
+        }
+        h1 {
+          color: #1f2937;
+          border-bottom: 2px solid #3b82f6;
+          padding-bottom: 10px;
+        }
+        .info {
+          margin: 20px 0;
+          padding: 15px;
+          background: #f3f4f6;
+          border-radius: 5px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          margin: 20px 0;
+        }
+        th {
+          background: #3b82f6;
+          color: white;
+          padding: 12px;
+          text-align: left;
+          border: 1px solid #2563eb;
+        }
+        td {
+          border: 1px solid #ddd;
+          padding: 8px;
+        }
+        tr:nth-child(even) {
+          background: #f9fafb;
+        }
+        .footer {
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #ddd;
+          font-size: 12px;
+          color: #6b7280;
+        }
+        @media print {
+          body { margin: 0; padding: 15px; }
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <h1>Analytics & Reports</h1>
+      <div class="info">
+        <p><strong>Website:</strong> ${websiteName}</p>
+        <p><strong>Period:</strong> ${startYear} - ${endYear}</p>
+        <p><strong>Generated:</strong> ${generatedDate}</p>
+        ${bestYearData.value ? `<p><strong>Best Year:</strong> ${bestYearData.value.year} (${bestYearData.value.growthRate}% growth)</p>` : ''}
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Year</th>
+            <th style="text-align: right;">Orders</th>
+            <th style="text-align: right;">Classes</th>
+            <th style="text-align: right;">Revenue</th>
+            <th style="text-align: right;">Writers</th>
+            <th style="text-align: right;">Clients</th>
+            <th style="text-align: right;">Growth Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+      <div class="footer">
+        <p>This report was generated on ${generatedDate}</p>
+        <p>Data period: ${startYear} - ${endYear}</p>
+      </div>
+    </body>
+    </html>
+  `
+}
+
+// Close export menu when clicking outside
+const handleClickOutside = (event) => {
+  if (showExportMenu.value && !event.target.closest('.relative')) {
+    showExportMenu.value = false
+  }
 }
 
 onMounted(() => {
   loadWebsites()
   loadData()
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 

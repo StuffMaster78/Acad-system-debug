@@ -456,6 +456,20 @@
         </form>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -463,6 +477,12 @@
 import { ref, onMounted, computed } from 'vue'
 import { superadminAPI, websitesAPI } from '@/api'
 import { debounce } from '@/utils/debounce'
+import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+
+const { success: showSuccess, error: showError } = useToast()
+const confirm = useConfirmDialog()
 
 const activeTab = ref('overview')
 const tabs = [
@@ -572,40 +592,51 @@ const handleCreateUser = async () => {
   processing.value = true
   try {
     await superadminAPI.createUser(userForm.value)
-    alert('User created successfully!')
+    showSuccess('User created successfully!')
     showCreateUserModal.value = false
     userForm.value = { username: '', email: '', role: 'client', phone_number: '' }
     loadUsers()
     loadDashboard()
   } catch (error) {
     console.error('Error creating user:', error)
-    alert('Error creating user: ' + (error.response?.data?.detail || error.message))
+    showError('Error creating user: ' + (error.response?.data?.detail || error.message))
   } finally {
     processing.value = false
   }
 }
 
 const suspendUser = async (userId) => {
-  if (!confirm('Are you sure you want to suspend this user?')) return
+  const user = users.value.find(u => u.id === userId)
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to suspend ${user?.username || user?.email || 'this user'}?`,
+    'Suspend User',
+    {
+      details: 'This action will suspend the user account, preventing them from accessing the system. They will not be able to log in until reactivated.',
+      confirmText: 'Suspend User',
+      cancelText: 'Cancel',
+      icon: '⚠️'
+    }
+  )
+  
+  if (!confirmed) return
   
   try {
     await superadminAPI.suspendUser({ user_id: userId, reason: 'Suspended by superadmin' })
-    alert('User suspended successfully!')
+    showSuccess('User suspended successfully!')
     loadUsers()
   } catch (error) {
-    console.error('Error suspending user:', error)
-    alert('Error suspending user: ' + (error.response?.data?.detail || error.message))
+    showError('Error suspending user: ' + (error.response?.data?.detail || error.message))
   }
 }
 
 const reactivateUser = async (userId) => {
   try {
     await superadminAPI.reactivateUser({ user_id: userId })
-    alert('User reactivated successfully!')
+    showSuccess('User reactivated successfully!')
     loadUsers()
   } catch (error) {
     console.error('Error reactivating user:', error)
-    alert('Error reactivating user: ' + (error.response?.data?.detail || error.message))
+    showError('Error reactivating user: ' + (error.response?.data?.detail || error.message))
   }
 }
 
@@ -621,13 +652,13 @@ const handleChangeRole = async () => {
   processing.value = true
   try {
     await superadminAPI.changeUserRole(roleForm.value)
-    alert('User role changed successfully!')
+    showSuccess('User role changed successfully!')
     showChangeRoleModal.value = null
     roleForm.value = { user_id: null, new_role: '' }
     loadUsers()
   } catch (error) {
     console.error('Error changing role:', error)
-    alert('Error changing role: ' + (error.response?.data?.detail || error.message))
+    showError('Error changing role: ' + (error.response?.data?.detail || error.message))
   } finally {
     processing.value = false
   }
@@ -639,44 +670,68 @@ const editWebsite = (website) => {
 }
 
 const softDeleteWebsite = async (id) => {
-  if (!confirm('Are you sure you want to soft delete this website?')) return
+  const website = websites.value.find(w => w.id === id)
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to soft delete "${website?.name || website?.domain || 'this website'}"?`,
+    'Soft Delete Website',
+    {
+      details: 'This action will mark the website as deleted (soft delete). The website data will be preserved but hidden from normal operations. It can be restored later if needed.',
+      confirmText: 'Delete Website',
+      cancelText: 'Cancel',
+      icon: '🗑️'
+    }
+  )
+  
+  if (!confirmed) return
   
   try {
     await websitesAPI.softDeleteWebsite(id)
-    alert('Website deleted successfully!')
+    showSuccess('Website deleted successfully!')
     loadWebsites()
   } catch (error) {
-    console.error('Error deleting website:', error)
-    alert('Error deleting website: ' + (error.response?.data?.detail || error.message))
+    showError('Error deleting website: ' + (error.response?.data?.detail || error.message))
   }
 }
 
 const restoreWebsite = async (id) => {
   try {
     await websitesAPI.restoreWebsite(id)
-    alert('Website restored successfully!')
+    showSuccess('Website restored successfully!')
     loadWebsites()
   } catch (error) {
     console.error('Error restoring website:', error)
-    alert('Error restoring website: ' + (error.response?.data?.detail || error.message))
+    showError('Error restoring website: ' + (error.response?.data?.detail || error.message))
   }
 }
 
 const editProfile = (profile) => {
   // Navigate to profile edit or open modal
-  console.log('Edit profile:', profile)
+  // TODO: Implement profile editing functionality
+  showMessage('Profile editing feature coming soon', false)
 }
 
 const deleteProfile = async (id) => {
-  if (!confirm('Are you sure you want to delete this superadmin profile?')) return
+  const profile = superadminProfiles.value.find(p => p.id === id)
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to delete ${profile?.user?.username || profile?.user?.email || 'this superadmin profile'}?`,
+    'Delete Superadmin Profile',
+    {
+      details: 'This action cannot be undone. The superadmin profile and all associated permissions will be permanently removed.',
+      confirmText: 'Delete Profile',
+      cancelText: 'Cancel',
+      icon: '🗑️'
+    }
+  )
+  
+  if (!confirmed) return
   
   try {
     await superadminAPI.deleteProfile(id)
-    alert('Profile deleted successfully!')
+    showSuccess('Profile deleted successfully!')
     loadProfiles()
   } catch (error) {
     console.error('Error deleting profile:', error)
-    alert('Error deleting profile: ' + (error.response?.data?.detail || error.message))
+    showError('Error deleting profile: ' + (error.response?.data?.detail || error.message))
   }
 }
 

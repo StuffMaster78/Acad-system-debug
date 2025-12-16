@@ -648,13 +648,18 @@ class ExpressClassViewSet(viewsets.ModelViewSet):
     def assign_writer(self, request, pk=None):
         """
         Admin assigns a writer to the express class.
+        Classes are paid as bonuses, not regular earnings.
         
         Request body:
         {
             "writer_id": 123,
+            "bonus_amount": 150.00,  // Payment amount for the class (paid as bonus)
             "admin_notes": "Optional notes"
         }
         """
+        from decimal import Decimal
+        from special_orders.models import WriterBonus
+        
         express_class = self.get_object()
         
         if express_class.status != ExpressClass.PRICED:
@@ -674,11 +679,30 @@ class ExpressClassViewSet(viewsets.ModelViewSet):
             User = get_user_model()
             writer = User.objects.get(id=data['writer_id'], role='writer')
             
+            bonus_amount = data.get('bonus_amount')
+            if not bonus_amount:
+                return Response(
+                    {'error': 'bonus_amount is required for class assignment.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # Assign writer
             express_class.assigned_writer = writer
             express_class.status = ExpressClass.ASSIGNED
             if data.get('admin_notes'):
                 express_class.admin_notes = (express_class.admin_notes or '') + '\n' + data['admin_notes']
             express_class.save()
+            
+            # Create a bonus for the class (classes are paid as bonuses)
+            WriterBonus.objects.create(
+                website=express_class.website,
+                writer=writer,
+                special_order=None,  # Classes don't have special orders
+                amount=Decimal(str(bonus_amount)),
+                category='class_payment',
+                reason=f"Payment for class: {getattr(express_class, 'title', 'Express Class')}",
+                is_paid=False  # Will be marked as paid when payment is processed
+            )
             
             return Response(
                 ExpressClassSerializer(express_class).data,

@@ -69,6 +69,19 @@
                 autocomplete="username"
               />
             </div>
+            <!-- Quick-select stored usernames -->
+            <div v-if="savedUsernames && savedUsernames.length" class="mt-2 flex flex-wrap gap-2">
+              <button
+                v-for="name in savedUsernames"
+                :key="name"
+                type="button"
+                class="px-2.5 py-1 rounded-full text-xs font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-200 bg-gray-50 dark:bg-gray-700/60 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                @click="selectUsername(name)"
+                :disabled="loading"
+              >
+                Use {{ name }}
+              </button>
+            </div>
           </div>
 
           <!-- Password Input -->
@@ -182,6 +195,16 @@ const props = defineProps({
   requireUsername: {
     type: Boolean,
     default: false
+  },
+  // Optional list of stored admin identities (e.g. username/email) to quick-select
+  savedUsernames: {
+    type: Array,
+    default: () => []
+  },
+  // Optional default username to pre-fill when modal opens
+  defaultUsername: {
+    type: String,
+    default: ''
   }
 })
 
@@ -196,7 +219,12 @@ const usernameInput = ref(null)
 
 watch(() => props.show, (newVal) => {
   if (newVal) {
-    username.value = ''
+    // Pre-fill username from defaultUsername or first savedUsernames entry (if provided)
+    if (props.requireUsername && (props.defaultUsername || (props.savedUsernames && props.savedUsernames.length))) {
+      username.value = props.defaultUsername || props.savedUsernames[0] || ''
+    } else {
+      username.value = ''
+    }
     password.value = ''
     error.value = ''
     showPassword.value = false
@@ -241,6 +269,11 @@ const handleCancel = () => {
 
 const setError = (message) => {
   error.value = message
+}
+
+const selectUsername = (name) => {
+  username.value = name
+  error.value = ''
 }
 
 defineExpose({

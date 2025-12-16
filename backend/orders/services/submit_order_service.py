@@ -32,11 +32,25 @@ class SubmitOrderService:
             raise ValueError("Order must be in progress to be submitted.")
 
         from django.utils import timezone
-        order.status = OrderStatus.SUBMITTED.value
         order.submitted_at = timezone.now()  # Track submission time for fine calculation
-        order.save(update_fields=["status", "submitted_at"])
+        order.save(update_fields=["submitted_at"])
+
+        # Use unified transition helper to move to submitted
+        from orders.services.transition_helper import OrderTransitionHelper
+        OrderTransitionHelper.transition_order(
+            order,
+            OrderStatus.SUBMITTED.value,
+            user=user,
+            reason="Order submitted by writer",
+            action="submit_order",
+            is_automatic=False,
+            metadata={
+                "submitted_at": order.submitted_at.isoformat(),
+            }
+        )
 
         # Fire editing transition (checks if editing should occur)
+        # This may transition to under_editing if needed
         MoveOrderToEditingService.execute(order=order, user=user)
 
         # Auto-issue fine if late

@@ -406,11 +406,6 @@
       class-type="bundle"
       @close="showBundleThreadsModal = false"
     />
-            <button @click="openEditBundleModal(viewingBundle)" class="btn btn-secondary">Edit</button>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- Create Manual Bundle Modal -->
     <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
@@ -744,14 +739,14 @@
 
     <!-- Confirmation Dialog -->
     <ConfirmationDialog
-      v-model:show="confirm.show.value"
-      :title="confirm.title.value"
-      :message="confirm.message.value"
-      :details="confirm.details.value"
-      :variant="confirm.variant.value"
-      :icon="confirm.icon.value"
-      :confirm-text="confirm.confirmText.value"
-      :cancel-text="confirm.cancelText.value"
+      v-model:show="confirm.show"
+      :title="confirm.title"
+      :message="confirm.message"
+      :details="confirm.details"
+      :variant="confirm.variant"
+      :icon="confirm.icon"
+      :confirm-text="confirm.confirmText"
+      :cancel-text="confirm.cancelText"
       @confirm="confirm.onConfirm"
       @cancel="confirm.onCancel"
     />
@@ -856,19 +851,6 @@ const createForm = ref({
   duration: '',
   start_date: '',
   end_date: '',
-  installments_enabled: false,
-  installment_count: 0,
-})
-
-const editBundleForm = ref({
-  number_of_classes: 0,
-  total_price: 0,
-  deposit_required: 0,
-  level: '',
-  duration: '',
-  start_date: '',
-  end_date: '',
-  status: 'in_progress',
   installments_enabled: false,
   installment_count: 0,
 })

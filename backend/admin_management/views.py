@@ -2028,6 +2028,9 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
         order_ids = request.data.get('order_ids', [])
         writer_id = request.data.get('writer_id')
         reason = request.data.get('reason', 'Bulk assignment by admin')
+        # Payment amounts can be per-order or a single amount for all
+        writer_payment_amounts = request.data.get('writer_payment_amounts', {})  # {order_id: amount}
+        default_payment_amount = request.data.get('writer_payment_amount')  # Single amount for all
         
         if not order_ids or not writer_id:
             return Response(
@@ -2053,7 +2056,11 @@ class AdminOrderManagementViewSet(viewsets.ViewSet):
                 order = Order.objects.get(id=order_id)
                 assignment_service = OrderAssignmentService(order)
                 assignment_service.actor = request.user
-                assignment_service.assign_writer(writer.id, reason)
+                
+                # Get payment amount for this specific order, or use default
+                payment_amount = writer_payment_amounts.get(str(order_id)) or writer_payment_amounts.get(order_id) or default_payment_amount
+                
+                assignment_service.assign_writer(writer.id, reason, writer_payment_amount=payment_amount)
                 results['success'].append(order_id)
             except ValidationError as e:
                 results['failed'].append({

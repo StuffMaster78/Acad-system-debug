@@ -41,7 +41,6 @@
           <div class="text-sm text-gray-500">
             <p>Max concurrent orders: <span class="font-semibold text-gray-900">{{ levelDetails.max_orders }}</span></p>
             <p>Max pending requests: <span class="font-semibold text-gray-900">{{ levelDetails.max_requests_per_writer }}</span></p>
-            <p>Deadline allocation: <span class="font-semibold text-gray-900">{{ levelDetails.deadline_percentage }}%</span></p>
           </div>
         </div>
       </div>
@@ -100,10 +99,6 @@
             <li>
               <span class="font-medium text-gray-900">Urgent order window:</span>
               {{ levelDetails.urgent_order_deadline_hours }} hours
-            </li>
-            <li>
-              <span class="font-medium text-gray-900">Deadline allocation:</span>
-              {{ levelDetails.deadline_percentage }}% of client time
             </li>
           </ul>
         </div>

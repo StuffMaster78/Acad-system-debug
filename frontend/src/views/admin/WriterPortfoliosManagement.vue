@@ -317,6 +317,138 @@
       </div>
     </Modal>
 
+    <!-- Add Sample Modal -->
+    <Modal
+      :visible="showAddSampleModal"
+      @close="closeAddSampleModal"
+      title="Add Portfolio Sample"
+      size="lg"
+    >
+      <div class="space-y-4">
+        <div v-if="sampleFormError" class="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+          {{ sampleFormError }}
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Title <span class="text-red-500">*</span>
+          </label>
+          <input
+            v-model="sampleForm.title"
+            type="text"
+            placeholder="Enter sample title"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            required
+          />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Description
+          </label>
+          <textarea
+            v-model="sampleForm.description"
+            rows="4"
+            placeholder="Enter sample description"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Subject
+            </label>
+            <select
+              v-model="sampleForm.subject"
+              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            >
+              <option value="">Select subject</option>
+              <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
+                {{ subject.name }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Type of Work
+            </label>
+            <select
+              v-model="sampleForm.type_of_work"
+              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+            >
+              <option value="">Select type of work</option>
+              <option v-for="type in typesOfWork" :key="type.id" :value="type.id">
+                {{ type.name }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Sample File
+          </label>
+          <input
+            type="file"
+            @change="handleFileChange"
+            accept=".pdf,.doc,.docx,.txt"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          />
+          <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+            Accepted formats: PDF, DOC, DOCX, TXT
+          </p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Content Preview
+          </label>
+          <textarea
+            v-model="sampleForm.content_preview"
+            rows="6"
+            placeholder="Enter a preview of the sample content"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+          />
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <label class="flex items-center gap-2">
+            <input
+              v-model="sampleForm.is_featured"
+              type="checkbox"
+              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Featured Sample</span>
+          </label>
+          <label class="flex items-center gap-2">
+            <input
+              v-model="sampleForm.is_anonymized"
+              type="checkbox"
+              class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+            />
+            <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Anonymized (client info removed)</span>
+          </label>
+        </div>
+      </div>
+      <template #footer>
+        <button
+          @click="closeAddSampleModal"
+          class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+        >
+          Cancel
+        </button>
+        <button
+          @click="saveSample"
+          :disabled="savingSample || !sampleForm.title"
+          class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {{ savingSample ? 'Saving...' : 'Add Sample' }}
+        </button>
+      </template>
+    </Modal>
+
     <!-- Confirmation Dialog -->
     <ConfirmationDialog
       v-model:show="confirm.show.value"
@@ -341,6 +473,7 @@ import { debounce } from '@/utils/debounce'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import Modal from '@/components/common/Modal.vue'
 import writerManagementAPI from '@/api/writer-management'
+import dropdownOptionsAPI from '@/api/dropdown-options'
 
 const { success: showSuccess, error: showError } = useToast()
 const confirm = useConfirmDialog()
@@ -356,9 +489,15 @@ const enabledFilter = ref('')
 const visibilityFilter = ref('')
 const showModal = ref(false)
 const showSamplesModal = ref(false)
+const showAddSampleModal = ref(false)
 const editingPortfolio = ref(null)
 const selectedPortfolio = ref(null)
 const formError = ref('')
+const savingSample = ref(false)
+const sampleFormError = ref('')
+const subjects = ref([])
+const typesOfWork = ref([])
+const selectedFile = ref(null)
 
 const form = ref({
   bio: '',
@@ -369,6 +508,16 @@ const form = ref({
   show_contact_info: false,
   show_order_history: false,
   show_earnings: false,
+})
+
+const sampleForm = ref({
+  title: '',
+  description: '',
+  subject: null,
+  type_of_work: null,
+  content_preview: '',
+  is_featured: false,
+  is_anonymized: true,
 })
 
 const debouncedSearch = debounce(() => {
@@ -490,9 +639,136 @@ const closeSamplesModal = () => {
   samples.value = []
 }
 
-const openAddSampleModal = () => {
-  // Could open a modal to add samples
-  showError('Add sample functionality coming soon')
+const openAddSampleModal = async () => {
+  if (!selectedPortfolio.value) {
+    showError('No portfolio selected')
+    return
+  }
+  
+  // Reset form
+  sampleForm.value = {
+    title: '',
+    description: '',
+    subject: null,
+    type_of_work: null,
+    content_preview: '',
+    is_featured: false,
+    is_anonymized: true,
+  }
+  selectedFile.value = null
+  sampleFormError.value = ''
+  
+  // Load dropdown options if not already loaded
+  if (subjects.value.length === 0 || typesOfWork.value.length === 0) {
+    await loadDropdownOptions()
+  }
+  
+  showAddSampleModal.value = true
+}
+
+const closeAddSampleModal = () => {
+  showAddSampleModal.value = false
+  sampleForm.value = {
+    title: '',
+    description: '',
+    subject: null,
+    type_of_work: null,
+    content_preview: '',
+    is_featured: false,
+    is_anonymized: true,
+  }
+  selectedFile.value = null
+  sampleFormError.value = ''
+}
+
+const loadDropdownOptions = async () => {
+  try {
+    const response = await dropdownOptionsAPI.getOrderConfigs()
+    const configs = response.data?.order_configs || response.data || {}
+    subjects.value = configs.subjects || []
+    typesOfWork.value = configs.types_of_work || []
+  } catch (error) {
+    console.error('Failed to load dropdown options:', error)
+    // Continue anyway - dropdowns will just be empty
+  }
+}
+
+const handleFileChange = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      showError('File size must be less than 10MB')
+      event.target.value = ''
+      return
+    }
+    selectedFile.value = file
+  }
+}
+
+const saveSample = async () => {
+  if (!sampleForm.value.title) {
+    sampleFormError.value = 'Title is required'
+    return
+  }
+  
+  if (!selectedPortfolio.value) {
+    sampleFormError.value = 'No portfolio selected'
+    return
+  }
+  
+  savingSample.value = true
+  sampleFormError.value = ''
+  
+  try {
+    const formData = new FormData()
+    
+    // Add form fields
+    formData.append('title', sampleForm.value.title)
+    if (sampleForm.value.description) {
+      formData.append('description', sampleForm.value.description)
+    }
+    if (sampleForm.value.subject) {
+      formData.append('subject', sampleForm.value.subject)
+    }
+    if (sampleForm.value.type_of_work) {
+      formData.append('type_of_work', sampleForm.value.type_of_work)
+    }
+    if (sampleForm.value.content_preview) {
+      formData.append('content_preview', sampleForm.value.content_preview)
+    }
+    formData.append('is_featured', sampleForm.value.is_featured)
+    formData.append('is_anonymized', sampleForm.value.is_anonymized)
+    
+    // Add file if selected
+    if (selectedFile.value) {
+      formData.append('file', selectedFile.value)
+    }
+    
+    // Include writer ID from selected portfolio
+    // Note: Backend may need to be updated to support admin creating samples for writers
+    // For now, we pass the writer_id and the backend should check if user is admin
+    if (selectedPortfolio.value?.writer || selectedPortfolio.value?.writer_id) {
+      const writerId = selectedPortfolio.value.writer?.id || selectedPortfolio.value.writer_id || selectedPortfolio.value.writer
+      if (writerId) {
+        formData.append('writer', writerId)
+      }
+    }
+    
+    await writerManagementAPI.createPortfolioSample(formData)
+    showSuccess('Sample added successfully')
+    closeAddSampleModal()
+    await viewSamples(selectedPortfolio.value)
+  } catch (error) {
+    const errorMessage = error.response?.data?.detail || 
+                        error.response?.data?.message || 
+                        error.response?.data?.title?.[0] ||
+                        'Failed to add sample'
+    sampleFormError.value = errorMessage
+    showError(errorMessage)
+  } finally {
+    savingSample.value = false
+  }
 }
 
 const toggleFeatured = async (sample) => {
@@ -524,6 +800,7 @@ const deleteSample = (sample) => {
 
 onMounted(() => {
   loadPortfolios()
+  loadDropdownOptions()
 })
 </script>
 

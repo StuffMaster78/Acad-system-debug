@@ -71,6 +71,20 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      v-model:show="confirm.show.value"
+      :title="confirm.title.value"
+      :message="confirm.message.value"
+      :details="confirm.details.value"
+      :variant="confirm.variant.value"
+      :icon="confirm.icon.value"
+      :confirm-text="confirm.confirmText.value"
+      :cancel-text="confirm.cancelText.value"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
 </template>
 
@@ -78,6 +92,9 @@
 import { ref, computed, onMounted } from 'vue'
 import progressAPI from '@/api/progress'
 import { useAuthStore } from '@/stores/auth'
+import { useToast } from '@/composables/useToast'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const props = defineProps({
   orderId: {
@@ -89,6 +106,8 @@ const props = defineProps({
 const emit = defineEmits(['updated'])
 
 const authStore = useAuthStore()
+const { showToast } = useToast()
+const confirm = useConfirmDialog()
 const progressReports = ref([])
 const loading = ref(false)
 const withdrawing = ref(false)
@@ -103,7 +122,7 @@ const loadProgressHistory = async () => {
     const response = await progressAPI.getOrderProgress(props.orderId)
     progressReports.value = response.data.reports || []
   } catch (error) {
-    console.error('Failed to load progress history:', error)
+    // Silently fail - don't show error toast for loading failures
     progressReports.value = []
   } finally {
     loading.value = false
@@ -111,18 +130,29 @@ const loadProgressHistory = async () => {
 }
 
 const withdrawReport = async (reportId) => {
-  if (!confirm('Are you sure you want to withdraw this progress report?')) {
-    return
-  }
+  const report = progressReports.value.find(r => r.id === reportId)
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to withdraw this progress report?',
+    'Withdraw Progress Report',
+    {
+      details: 'This action will mark the progress report as withdrawn. The reason will be recorded as "Policy violation detected". This action cannot be undone.',
+      confirmText: 'Withdraw Report',
+      cancelText: 'Cancel',
+      icon: '⚠️'
+    }
+  )
+
+  if (!confirmed) return
 
   try {
     withdrawing.value = true
     await progressAPI.withdraw(reportId, 'Policy violation detected')
+    showToast('Progress report withdrawn successfully', 'success')
     await loadProgressHistory()
     emit('updated')
   } catch (error) {
-    console.error('Failed to withdraw report:', error)
-    alert('Failed to withdraw report: ' + (error.response?.data?.error || error.message))
+    const errorMsg = error.response?.data?.error || error.response?.data?.detail || error.message || 'Failed to withdraw report'
+    showToast(errorMsg, 'error')
   } finally {
     withdrawing.value = false
   }

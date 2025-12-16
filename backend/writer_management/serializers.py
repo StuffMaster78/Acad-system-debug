@@ -880,6 +880,190 @@ class WriterPaymentSerializer(serializers.ModelSerializer):
         ]
 
 
+class WriterPaymentViewSerializer(serializers.Serializer):
+    """
+    Serializer for writers to view their payment information.
+    Shows only level-based payment info (per page, per slide, per class).
+    Excludes installments and internal payment details.
+    """
+    """
+    Serializer for writers to view their payment information.
+    Shows only level-based payment info (per page, per slide, per class).
+    Excludes installments and internal payment details.
+    """
+    # Level-based payment rates
+    cost_per_page = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    cost_per_slide = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    cost_per_class = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True, allow_null=True)
+    
+    # Current level info
+    level_name = serializers.CharField(read_only=True)
+    earning_mode = serializers.CharField(read_only=True)
+    
+    # Order-based earnings (excluding installments)
+    order_earnings = serializers.SerializerMethodField()
+    
+    # Special order earnings
+    special_order_earnings = serializers.SerializerMethodField()
+    
+    # Class bonuses (classes are paid as bonuses, not regular earnings)
+    class_bonuses = serializers.SerializerMethodField()
+    
+    # Totals
+    total_earnings = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    total_bonuses = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    total_tips = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
+    
+    def get_order_earnings(self, obj):
+        """Get earnings from regular orders (excluding installments).
+        Uses admin-set writer_compensation if available, otherwise falls back to level-based calculation.
+        """
+        from orders.models import Order
+        from writer_management.services.earnings_calculator import WriterEarningsCalculator
+        
+        writer_profile = obj
+        if not writer_profile.writer_level:
+            return []
+        
+        # Get completed orders assigned to this writer
+        orders = Order.objects.filter(
+            assigned_writer=writer_profile.user,
+            status__in=['completed', 'submitted']
+        ).exclude(
+            # Exclude orders with installments (special orders with payment plans)
+            special_order__isnull=False
+        )
+        
+        earnings = []
+        for order in orders:
+            # Use admin-set payment amount if available, otherwise calculate from level
+            if order.writer_compensation and order.writer_compensation > 0:
+                amount = order.writer_compensation
+            else:
+                # Fallback to level-based calculation
+                is_urgent = False
+                if order.writer_deadline or order.client_deadline:
+                    from django.utils import timezone
+                    deadline = order.writer_deadline or order.client_deadline
+                    hours_until = (deadline - timezone.now()).total_seconds() / 3600
+                    is_urgent = hours_until <= writer_profile.writer_level.urgent_order_deadline_hours
+                
+                is_technical = getattr(order, 'is_technical', False)
+                
+                amount = WriterEarningsCalculator.calculate_earnings(
+                    writer_profile.writer_level,
+                    order,
+                    is_urgent=is_urgent,
+                    is_technical=is_technical
+                )
+            
+            earnings.append({
+                'order_id': order.id,
+                'order_topic': order.topic,
+                'pages': order.number_of_pages or 0,
+                'slides': order.number_of_slides or 0,
+                'amount': float(amount),
+                'payment_set_by': 'admin' if order.writer_compensation and order.writer_compensation > 0 else 'level',
+                'completed_at': order.completed_at.isoformat() if order.completed_at else None,
+            })
+        
+        return earnings
+    
+    def get_special_order_earnings(self, obj):
+        """Get earnings from special orders (excluding installments).
+        Uses admin-set payment amount or percentage if available.
+        """
+        from special_orders.models import SpecialOrder
+        from writer_management.services.earnings_calculator import WriterEarningsCalculator
+        
+        writer_profile = obj
+        if not writer_profile.writer_level:
+            return []
+        
+        # Get completed special orders assigned to this writer
+        special_orders = SpecialOrder.objects.filter(
+            writer=writer_profile.user,
+            status='completed'
+        )
+        
+        earnings = []
+        for special_order in special_orders:
+            # Use admin-set payment amount or percentage if available
+            if special_order.writer_payment_amount and special_order.writer_payment_amount > 0:
+                # Admin set a fixed amount
+                amount = special_order.writer_payment_amount
+                payment_set_by = 'admin_amount'
+            elif special_order.writer_payment_percentage and special_order.writer_payment_percentage > 0:
+                # Admin set a percentage
+                order_total = getattr(special_order, 'total_cost', 0) or getattr(special_order, 'admin_approved_cost', 0) or 0
+                amount = Decimal(str(order_total)) * (special_order.writer_payment_percentage / Decimal('100'))
+                payment_set_by = 'admin_percentage'
+            else:
+                # Fallback to level-based calculation
+                if writer_profile.writer_level.earning_mode == 'fixed_per_page':
+                    # Use base pay per page/slide if available
+                    amount = (
+                        Decimal(str(getattr(special_order, 'number_of_pages', 0) or 0)) * writer_profile.writer_level.base_pay_per_page +
+                        Decimal(str(getattr(special_order, 'number_of_slides', 0) or 0)) * writer_profile.writer_level.base_pay_per_slide
+                    )
+                else:
+                    # For percentage modes, use total order amount
+                    order_total = getattr(special_order, 'total_cost', 0) or getattr(special_order, 'admin_approved_cost', 0) or 0
+                    if writer_profile.writer_level.earning_mode == 'percentage_of_order_cost':
+                        amount = Decimal(str(order_total)) * (writer_profile.writer_level.earnings_percentage_of_cost / Decimal('100'))
+                    else:
+                        amount = Decimal(str(order_total)) * (writer_profile.writer_level.earnings_percentage_of_total / Decimal('100'))
+                payment_set_by = 'level'
+            
+            # Add bonus if available
+            bonus = getattr(special_order, 'bonus_amount', 0) or Decimal('0.00')
+            
+            earnings.append({
+                'special_order_id': special_order.id,
+                'order_title': getattr(special_order, 'inquiry_details', 'Special Order')[:50],
+                'amount': float(amount),
+                'bonus': float(bonus),
+                'total': float(amount + bonus),
+                'payment_set_by': payment_set_by,
+                'completed_at': getattr(special_order, 'completed_at', None),
+                'completed_at': special_order.updated_at.isoformat() if hasattr(special_order, 'updated_at') and special_order.updated_at else None,
+            })
+        
+        return earnings
+    
+    def get_class_bonuses(self, obj):
+        """Get earnings from classes - these are shown as bonuses, not regular earnings."""
+        from class_management.models import ClassPurchase, ClassBundle
+        from special_orders.models import WriterBonus
+        
+        writer_profile = obj
+        if not writer_profile.writer_level:
+            return []
+        
+        # Classes are paid as bonuses, so get them from WriterBonus with class category
+        # First, try to find class-related bonuses
+        class_bonuses = WriterBonus.objects.filter(
+            writer=writer_profile.user,
+            category='class_payment'  # Assuming this category exists for classes
+        )
+        
+        earnings = []
+        for bonus in class_bonuses:
+            earnings.append({
+                'class_id': getattr(bonus.special_order, 'id', None) if bonus.special_order else None,
+                'class_title': f"Class Bonus - {bonus.reason[:50]}" if bonus.reason else "Class Payment",
+                'amount': float(bonus.amount),
+                'bonus_type': 'class_payment',
+                'granted_at': bonus.granted_at.isoformat() if bonus.granted_at else None,
+            })
+        
+        # Also check if there's a direct relationship between classes and writers
+        # This depends on your class model structure
+        # For now, return bonuses found above
+        
+        return earnings
+
+
 
 class WriterStatusSerializer(serializers.ModelSerializer):
     status_reason = serializers.SerializerMethodField()

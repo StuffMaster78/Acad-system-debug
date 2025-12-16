@@ -856,7 +856,7 @@ const loadUsers = async () => {
     
     const res = await adminManagementAPI.listUsers(params)
     
-    // Debug: Log the raw response structure
+    // Process the response structure
     console.log('Raw API Response:', {
       hasData: !!res.data,
       dataType: typeof res.data,
@@ -869,7 +869,7 @@ const loadUsers = async () => {
     
     const userList = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
     
-    // Debug: Log first user to see what we're getting
+    // Process users data
     if (userList.length > 0) {
       console.log('Sample user from API (raw):', JSON.stringify(userList[0], null, 2))
       console.log('Sample user role:', userList[0].role)
