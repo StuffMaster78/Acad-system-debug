@@ -17,7 +17,9 @@ export const useAuthStore = defineStore('auth', {
     accessToken: null,
     refreshToken: null,
     loading: false,
-    error: null
+    error: null,
+    isImpersonating: false,
+    impersonator: null
   }),
 
   getters: {
@@ -379,6 +381,25 @@ export const useAuthStore = defineStore('auth', {
           // No tokens and no user - clear everything
           this.clearStorage()
         }
+        
+        // Restore impersonation state if it exists
+        const isImpersonating = localStorage.getItem('is_impersonating') === 'true'
+        const impersonatorStr = localStorage.getItem('impersonator')
+        
+        if (isImpersonating) {
+          this.isImpersonating = true
+          if (impersonatorStr) {
+            try {
+              this.impersonator = JSON.parse(impersonatorStr)
+            } catch (parseError) {
+              console.error('Failed to parse impersonator data from storage:', parseError)
+              this.impersonator = null
+            }
+          }
+        } else {
+          this.isImpersonating = false
+          this.impersonator = null
+        }
       } catch (error) {
         console.error('Failed to load from storage:', error)
         // Clear invalid data
@@ -394,6 +415,57 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('refresh_token')
       localStorage.removeItem('user')
       localStorage.removeItem('website_id')
+      localStorage.removeItem('is_impersonating')
+      localStorage.removeItem('impersonator')
+      this.isImpersonating = false
+      this.impersonator = null
+    },
+
+    /**
+     * End impersonation and restore admin session
+     */
+    async endImpersonation() {
+      this.loading = true
+      this.error = null
+
+      try {
+        // Call API to end impersonation
+        const response = await authApi.endImpersonation()
+        
+        // Update tokens and user with admin's data
+        if (response.data.access_token && response.data.refresh_token) {
+          await this.setTokens({
+            accessToken: response.data.access_token,
+            refreshToken: response.data.refresh_token
+          })
+        }
+        
+        if (response.data.user) {
+          await this.setUser(response.data.user)
+        }
+        
+        // Clear impersonation flags
+        this.isImpersonating = false
+        this.impersonator = null
+        localStorage.removeItem('is_impersonating')
+        localStorage.removeItem('impersonator')
+        
+        return { success: true }
+      } catch (error) {
+        this.error = error.response?.data?.error || 
+                    error.response?.data?.detail || 
+                    'Failed to end impersonation.'
+        
+        // Even if API fails, clear impersonation state locally
+        this.isImpersonating = false
+        this.impersonator = null
+        localStorage.removeItem('is_impersonating')
+        localStorage.removeItem('impersonator')
+        
+        throw error
+      } finally {
+        this.loading = false
+      }
     },
 
     /**

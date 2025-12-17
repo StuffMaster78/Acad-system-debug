@@ -27,6 +27,7 @@ export default {
   updateTimezone: (timezone) =>
     apiClient.post('/users/users/update-timezone/', { timezone }),
   // Impersonation - generate token for user
-  generateImpersonationToken: (userId) => apiClient.post(`/users/${userId}/impersonate/`),
+  // Uses the new token-based impersonation endpoint
+  generateImpersonationToken: (userId) => apiClient.post('/auth/impersonate/create_token/', { target_user: userId }),
 }
 

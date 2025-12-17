@@ -174,61 +174,64 @@
       </template>
       
       <template #cell-user="{ item }">
-        <div class="flex items-center">
-          <div class="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm mr-3">
+        <div class="flex items-center gap-2">
+          <div class="flex-shrink-0 h-7 w-7 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold text-xs">
             {{ getUserInitials(item) }}
           </div>
-          <div class="min-w-0">
-            <div class="font-semibold text-gray-900 dark:text-gray-100 text-sm">{{ item.full_name || item.username }}</div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ item.email }}</div>
-            <div v-if="item.phone_number" class="text-xs text-gray-400 dark:text-gray-500 truncate">{{ item.phone_number }}</div>
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-medium text-gray-900 dark:text-gray-100 text-xs">{{ item.full_name || item.username }}</span>
+              <span class="text-gray-400 dark:text-gray-500 text-xs">•</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[200px]">{{ item.email }}</span>
+              <span v-if="item.phone_number" class="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[120px]" :title="item.phone_number">📞</span>
+            </div>
           </div>
         </div>
       </template>
       
       <template #cell-role="{ item }">
-        <span v-if="item.role || item.role_display" :class="getRoleBadgeClass(item.role)" class="px-3 py-1 rounded-full text-xs font-semibold inline-block">
+        <span v-if="item.role || item.role_display" :class="getRoleBadgeClass(item.role)" class="px-2 py-0.5 rounded-full text-xs font-medium inline-block">
           {{ item.role_display || item.role || 'N/A' }}
         </span>
         <span v-else class="text-xs text-gray-400 dark:text-gray-500">—</span>
       </template>
       
       <template #cell-website="{ item }">
-        <div v-if="item.website && (item.website.name || item.website.domain)" class="text-sm">
-          <div v-if="item.website.name" class="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[150px]">{{ item.website.name }}</div>
-          <div v-if="item.website.domain" class="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{{ item.website.domain }}</div>
+        <div v-if="item.website && (item.website.name || item.website.domain)" class="text-xs">
+          <span v-if="item.website.name" class="font-medium text-gray-900 dark:text-gray-100 truncate max-w-[150px]">{{ item.website.name }}</span>
+          <span v-else-if="item.website.domain" class="text-gray-500 dark:text-gray-400 truncate max-w-[150px]">{{ item.website.domain }}</span>
         </div>
         <span v-else class="text-xs text-gray-400 dark:text-gray-500">—</span>
       </template>
       
       <template #cell-status="{ item }">
-        <span v-if="item.is_blacklisted" class="px-3 py-1 rounded-full text-xs font-semibold bg-black text-white">Blacklisted</span>
-        <span v-else-if="item.is_suspended" class="px-3 py-1 rounded-full text-xs font-semibold bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">Suspended</span>
-        <span v-else-if="item.is_on_probation" class="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">Probation</span>
-        <span v-else-if="item.is_active" class="px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">Active</span>
-        <span v-else class="px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300">Inactive</span>
+        <span v-if="item.is_blacklisted" class="px-2 py-0.5 rounded-full text-xs font-medium bg-black text-white">Blacklisted</span>
+        <span v-else-if="item.is_suspended" class="px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300">Suspended</span>
+        <span v-else-if="item.is_on_probation" class="px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300">Probation</span>
+        <span v-else-if="item.is_active" class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300">Active</span>
+        <span v-else class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300">Inactive</span>
       </template>
       
       <template #cell-last_login="{ item }">
-        <div v-if="item.last_login" class="flex items-center gap-2">
-          <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-          <span class="text-sm text-gray-600 dark:text-gray-400">{{ formatDate(item.last_login) }}</span>
+        <div v-if="item.last_login" class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+          <span class="text-xs text-gray-600 dark:text-gray-400">{{ formatDate(item.last_login) }}</span>
         </div>
-        <span v-else class="text-sm text-gray-400 dark:text-gray-500">Never</span>
+        <span v-else class="text-xs text-gray-400 dark:text-gray-500">Never</span>
       </template>
       
       <template #cell-actions="{ item }">
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
           <button
             @click="viewUserDetail(item)"
-            class="px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+            class="px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 dark:bg-blue-900/20 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
             title="View Profile"
           >
             View
           </button>
           <button
             @click="editUser(item)"
-            class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 dark:bg-green-900/20 rounded-md hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
+            class="px-2 py-1 text-xs font-medium text-green-600 bg-green-50 dark:bg-green-900/20 rounded hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors"
             title="Edit User"
           >
             Edit
@@ -236,7 +239,7 @@
           <button
             v-if="canImpersonateUser(item)"
             @click="impersonateUser(item)"
-            class="px-3 py-1.5 text-xs font-medium text-purple-600 bg-purple-50 dark:bg-purple-900/20 rounded-md hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
+            class="px-2 py-1 text-xs font-medium text-purple-600 bg-purple-50 dark:bg-purple-900/20 rounded hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
             title="Impersonate User"
           >
             🎭
@@ -244,7 +247,7 @@
           <div class="relative">
             <button
               @click="toggleActionsMenu(item.id)"
-              class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              class="px-2 py-1 text-xs font-medium text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               title="More Actions"
             >
               ⋯
@@ -1579,9 +1582,13 @@ const impersonateUser = async (user) => {
     }
     
     // Open new tab with impersonation token
+    // Store a flag to indicate this is an impersonation tab (for closing later)
+    localStorage.setItem('_is_impersonation_tab', 'true')
     const baseUrl = window.location.origin
     const impersonateUrl = `${baseUrl}/impersonate?token=${encodeURIComponent(token)}`
-    window.open(impersonateUrl, '_blank', 'noopener,noreferrer')
+    // Remove 'noopener' to allow window.opener access for closing the tab
+    // This is safe because we control both windows and they're same-origin
+    window.open(impersonateUrl, '_blank', 'noreferrer')
     
     message.value = `Opening impersonation session for ${user.username || user.email} in a new tab...`
     messageSuccess.value = true
@@ -1607,6 +1614,10 @@ const endImpersonation = async () => {
     } else {
       message.value = 'Impersonation ended. Admin session restored.'
       messageSuccess.value = true
+      
+      // Note: This function is called from the admin tab (parent window)
+      // The impersonation tab should handle closing itself when ending impersonation
+      // The admin tab remains logged in with its own session - no redirect needed
     }
   } catch (e) {
     message.value = e?.message || 'Failed to end impersonation'
@@ -1651,6 +1662,32 @@ onMounted(async () => {
 }
 .card {
   @apply bg-white rounded-lg shadow-sm p-6;
+}
+
+/* Make table rows more compact - everything on one line */
+:deep(.enhanced-data-table table tbody tr) {
+  height: auto;
+}
+
+:deep(.enhanced-data-table table tbody tr td) {
+  padding: 0.5rem 1rem !important;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+:deep(.enhanced-data-table table thead tr th) {
+  padding: 0.5rem 1rem !important;
+}
+
+/* Allow text truncation in user cell */
+:deep(.enhanced-data-table table tbody tr td .flex) {
+  white-space: nowrap;
+}
+
+:deep(.enhanced-data-table table tbody tr td .truncate) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style>
 

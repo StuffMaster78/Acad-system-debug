@@ -926,23 +926,25 @@
     <p class="mt-4 text-gray-600">Loading...</p>
   </div>
 
-  <!-- Confirmation Dialog -->
+  <!-- Confirmation Dialog - Only render when needed -->
     <ConfirmationDialog
+      v-if="confirm.show.value"
       v-model:show="confirm.show"
-      :title="confirm.title"
-      :message="confirm.message"
-      :details="confirm.details"
-      :variant="confirm.variant"
-      :icon="confirm.icon"
-      :confirm-text="confirm.confirmText"
-      :cancel-text="confirm.cancelText"
+      :title="unref(confirm.title)"
+      :message="unref(confirm.message)"
+      :details="unref(confirm.details)"
+      :variant="unref(confirm.variant)"
+      :icon="unref(confirm.icon)"
+      :confirm-text="unref(confirm.confirmText)"
+      :cancel-text="unref(confirm.cancelText)"
       @confirm="confirm.onConfirm"
       @cancel="confirm.onCancel"
     />
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, unref } from 'vue'
+import { useRoute } from 'vue-router'
 import { ordersAPI, usersAPI, adminOrdersAPI, writerOrderRequestsAPI } from '@/api'
 import { formatWriterName } from '@/utils/formatDisplay'
 import OrderThreadsModal from '@/components/order/OrderThreadsModal.vue'
@@ -950,6 +952,8 @@ import OrderActionModal from '@/components/order/OrderActionModal.vue'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import { getErrorMessage } from '@/utils/errorHandler'
+
+const route = useRoute()
 
 const confirm = useConfirmDialog()
 
@@ -972,17 +976,23 @@ const loadingWriters = ref(false)
 const assigning = ref(false)
 const savingEdit = ref(false)
 
-const filters = ref({
-  search: '',
-  status: '',
-  is_paid: '',
-  client: '',
-  writer: '',
-  website: '', // Add website filter
-  include_archived: true, // Admin/superadmin should see all orders by default
-  include_deleted: false, // Include soft-deleted orders
-  only_deleted: false, // Show only soft-deleted orders
-})
+// Initialize filters from route query params
+const initializeFiltersFromRoute = () => {
+  const query = route.query
+  return {
+    search: query.search || '',
+    status: query.status || '',
+    is_paid: query.is_paid || '',
+    client: query.client || '',
+    writer: query.writer || '',
+    website: query.website || '',
+    include_archived: query.include_archived !== 'false', // Default to true for admin
+    include_deleted: query.include_deleted === 'true',
+    only_deleted: query.only_deleted === 'true',
+  }
+}
+
+const filters = ref(initializeFiltersFromRoute())
 
 const stats = ref({
   total: 0,
@@ -1158,8 +1168,14 @@ const loadOrders = async () => {
       // Request more orders per page for admin views
       page_size: 500,
     }
-    if (filters.value.status) params.status = filters.value.status
-    if (filters.value.is_paid) params.is_paid = filters.value.is_paid === 'true'
+    // Apply status filter - pass it even if empty string to clear previous filter
+    if (filters.value.status !== undefined && filters.value.status !== null) {
+      params.status = filters.value.status
+    }
+    // Apply payment status filter
+    if (filters.value.is_paid !== undefined && filters.value.is_paid !== null && filters.value.is_paid !== '') {
+      params.is_paid = filters.value.is_paid === 'true' || filters.value.is_paid === true
+    }
     if (filters.value.search) params.search = filters.value.search
     if (filters.value.client) params.client = filters.value.client
     if (filters.value.writer) params.writer = filters.value.writer
@@ -1783,15 +1799,73 @@ watch(activeQuickTab, (newTab) => {
   }
 })
 
+// Track if we're already loading to prevent duplicate calls
+let isRouteWatchLoading = false
+
+// Watch route query params and sync filters
+watch(
+  () => route.query,
+  (query, oldQuery) => {
+    // Skip if already loading or if query hasn't actually changed
+    if (isRouteWatchLoading) return
+    
+    // Update filters from route query
+    const newStatus = query.status || ''
+    const newIsPaid = query.is_paid || ''
+    const newSearch = query.search || ''
+    const newClient = query.client || ''
+    const newWriter = query.writer || ''
+    const newWebsite = query.website || ''
+    
+    // Only reload if filters actually changed
+    const filtersChanged = 
+      filters.value.status !== newStatus ||
+      filters.value.is_paid !== newIsPaid ||
+      filters.value.search !== newSearch ||
+      filters.value.client !== newClient ||
+      filters.value.writer !== newWriter ||
+      filters.value.website !== newWebsite
+    
+    if (!filtersChanged && oldQuery) return
+    
+    filters.value.status = newStatus
+    filters.value.is_paid = newIsPaid
+    filters.value.search = newSearch
+    filters.value.client = newClient
+    filters.value.writer = newWriter
+    filters.value.website = newWebsite
+    filters.value.include_archived = query.include_archived !== 'false'
+    filters.value.include_deleted = query.include_deleted === 'true'
+    filters.value.only_deleted = query.only_deleted === 'true'
+    
+    // Reload orders with new filters
+    isRouteWatchLoading = true
+    loadOrders().finally(() => {
+      isRouteWatchLoading = false
+    })
+  },
+  { immediate: true, deep: true }
+)
+
 onMounted(async () => {
   try {
     initialLoading.value = true
     componentError.value = null
+    
+    // Initialize filters from route query on mount (watch will handle the loadOrders call)
+    filters.value = initializeFiltersFromRoute()
+    
+    // Load dashboard and writers (loadOrders will be called by the route watch)
     await Promise.all([
       loadDashboard(),
-      loadOrders(),
       loadWriters()
     ])
+    
+    // If route watch didn't trigger (no query params), load orders now
+    if (!route.query.status && !route.query.is_paid && !route.query.search) {
+      await loadOrders()
+    }
+    
     initialLoading.value = false
   } catch (error) {
     console.error('Error initializing OrderManagement:', error)
