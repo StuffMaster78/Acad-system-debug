@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { normalizeApiError, isAuthError } from '@/utils/error'
+import { maskEndpoint } from '@/utils/endpoint-masker'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || '/api/v1',
@@ -98,7 +99,7 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Request interceptor - add auth token
+// Request interceptor - add auth token and mask endpoints
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('access_token')
@@ -110,6 +111,52 @@ apiClient.interceptors.request.use(
     const website = localStorage.getItem('current_website')
     if (website) {
       config.headers['X-Website'] = website
+    }
+    
+    // Endpoint masking with backend proxy
+    // When enabled, endpoints are masked and routed through /api/v1/proxy/
+    const enableMasking = import.meta.env.VITE_ENABLE_ENDPOINT_MASKING === 'true'
+    
+    if (enableMasking && config.url) {
+      // Store original URL for debugging
+      config._originalUrl = config.url
+      
+      // Get user role
+      const userRole = getUserRole()
+      
+      // Admins and superadmins bypass masking
+      if (userRole === 'admin' || userRole === 'superadmin') {
+        // No masking for admins
+      } else {
+        // Check if endpoint should be blocked (admin-only endpoints for non-admins)
+        const shouldBlock = (userRole === 'client' || userRole === 'writer') && 
+                           (config.url.includes('/admin-management/') || 
+                            config.url.includes('/superadmin-management/'))
+        
+        if (shouldBlock) {
+          // Block access to admin endpoints for non-admins
+          return Promise.reject({
+            response: {
+              status: 403,
+              data: { error: 'Access denied. This endpoint is not available for your role.' }
+            }
+          })
+        }
+        
+        // Mask the endpoint and route through proxy
+        const masked = maskEndpoint(config.url)
+        if (masked !== config.url && !masked.includes('/restricted/')) {
+          // Route through proxy: /api/v1/proxy/{masked_path}
+          // Remove /api/v1 prefix from masked endpoint if present
+          let proxyPath = masked.startsWith('/api/v1/') 
+            ? masked.slice(7)  // Remove '/api/v1'
+            : masked.startsWith('/') 
+              ? masked.slice(1)  // Remove leading '/'
+              : masked
+          
+          config.url = `/api/v1/proxy/${proxyPath}`
+        }
+      }
     }
     
     return config

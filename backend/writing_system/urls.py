@@ -43,6 +43,9 @@ urlpatterns = [
     # API root endpoint (public)
     path('api/v1/', api_root, name='api-root'),
 
+    # Endpoint proxy for masking (must be before other routes to catch masked endpoints)
+    path('api/v1/proxy/', include('core.endpoint_proxy_urls')),
+
     # API schema and documentation
     path('api/v1/schema/', SpectacularAPIView.as_view(), name='api-schema'),
     path('api/v1/docs/swagger/', SpectacularSwaggerView.as_view(url_name='api-schema'), name='swagger-ui'),

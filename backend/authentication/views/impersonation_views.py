@@ -17,8 +17,10 @@ from authentication.services.impersonation_service import ImpersonationService
 class ImpersonationTokenThrottle(UserRateThrottle):
     """
     Limits token creation and usage to avoid abuse.
+    Increased limit for admin operations (was 5/hour, now 200/hour for development).
     """
-    rate = "5/hour"
+    rate = "200/hour"  # Increased from 5/hour to allow frequent admin operations during development
+    scope = "impersonation_token"  # Explicit scope for cache key identification
 
 
 class ImpersonationTokenViewSet(viewsets.ModelViewSet):

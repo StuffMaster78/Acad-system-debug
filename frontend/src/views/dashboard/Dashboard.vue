@@ -1634,7 +1634,38 @@ const getTicketPriorityClass = (priority) => {
 // Event handlers
 const handleEndImpersonation = async () => {
   try {
-    await authStore.endImpersonation()
+    const res = await authStore.endImpersonation()
+    if (res?.success !== false) {
+      // Check if this is an impersonation tab (opened from admin panel)
+      const isImpersonationTab = localStorage.getItem('_is_impersonation_tab') === 'true'
+      
+      if (isImpersonationTab) {
+        // Clear the flag
+        localStorage.removeItem('_is_impersonation_tab')
+        
+        // Try to close the tab and return focus to parent
+        if (window.opener && !window.opener.closed) {
+          try {
+            // Focus the parent window (admin tab)
+            window.opener.focus()
+            // Close this impersonation tab
+            setTimeout(() => {
+              window.close()
+            }, 100)
+          } catch (e) {
+            // If browser blocks window.close() (some browsers do), redirect as fallback
+            console.warn('Could not close impersonation tab, redirecting:', e)
+            window.location.href = '/admin/dashboard'
+          }
+        } else {
+          // No parent window or parent was closed - redirect as fallback
+          window.location.href = '/admin/dashboard'
+        }
+      } else {
+        // Not an impersonation tab (shouldn't happen, but fallback)
+        window.location.href = '/admin/dashboard'
+      }
+    }
   } catch (error) {
     console.error('Failed to end impersonation:', error)
   }

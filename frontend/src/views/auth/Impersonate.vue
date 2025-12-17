@@ -50,7 +50,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { authAPI } from '@/api/auth'
@@ -119,22 +119,69 @@ const startImpersonation = async () => {
       
       const { access_token, refresh_token, user, impersonation } = response.data
       
-      // Store the new tokens (for the impersonated user)
-      authStore.accessToken = access_token
-      authStore.refreshToken = refresh_token
-      authStore.user = user
+      // Store the new tokens (for the impersonated user) - use store actions for reactivity
+      await authStore.setTokens({ accessToken: access_token, refreshToken: refresh_token })
+      await authStore.setUser(user)
+      
+      // Set impersonation flags
       authStore.isImpersonating = true
       authStore.impersonator = impersonation?.impersonated_by || null
 
+      // Also store in localStorage for persistence
       localStorage.setItem('access_token', access_token)
       localStorage.setItem('refresh_token', refresh_token)
       localStorage.setItem('user', JSON.stringify(user))
+      localStorage.setItem('is_impersonating', 'true')
+      if (impersonation?.impersonated_by) {
+        localStorage.setItem('impersonator', JSON.stringify(impersonation.impersonated_by))
+      }
       
       // Clear the temporary admin token
       localStorage.removeItem('_impersonation_admin_token')
       
-      // Redirect to dashboard
-      router.push('/dashboard')
+      // Set flag to indicate this is an impersonation tab (for closing later)
+      localStorage.setItem('_is_impersonation_tab', 'true')
+      
+      // Wait for Vue reactivity to update - use nextTick to ensure store is reactive
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 50))
+      
+      // Verify auth store is updated
+      if (!authStore.isAuthenticated || !authStore.user) {
+        console.error('Auth store not updated after impersonation', {
+          isAuthenticated: authStore.isAuthenticated,
+          hasUser: !!authStore.user,
+          hasToken: !!authStore.accessToken,
+          userRole: authStore.userRole
+        })
+        error.value = 'Failed to authenticate. Please try again.'
+        loading.value = false
+        return
+      }
+      
+      // Determine role-specific dashboard route
+      const userRole = user?.role || authStore.userRole
+      let dashboardRoute = '/dashboard' // Default fallback
+      
+      if (userRole === 'client') {
+        dashboardRoute = '/client' // Client dashboard
+      } else if (userRole === 'writer') {
+        dashboardRoute = '/dashboard' // Writers use main dashboard
+      } else if (userRole === 'admin') {
+        dashboardRoute = '/admin/dashboard' // Admin dashboard
+      } else if (userRole === 'superadmin') {
+        dashboardRoute = '/superadmin/dashboard' // Superadmin dashboard
+      } else if (userRole === 'editor') {
+        dashboardRoute = '/dashboard' // Editors use main dashboard
+      } else if (userRole === 'support') {
+        dashboardRoute = '/dashboard' // Support uses main dashboard
+      }
+      
+      loading.value = false
+      
+      // Use window.location for a hard redirect to ensure router guard runs with fresh state
+      // This ensures the router guard sees the updated auth store
+      window.location.href = dashboardRoute
     } catch (apiErr) {
       // Restore original token if impersonation fails (if there was one)
       if (originalToken) {
