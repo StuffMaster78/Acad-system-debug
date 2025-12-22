@@ -26,6 +26,85 @@ const messagesCache = reactive({
 // Active refresh intervals (to prevent multiple intervals)
 const activeIntervals = new Set()
 
+// SSE realtime state
+const realtimeStatus = ref('idle')
+const lastRealtimeEventAt = ref(null)
+const realtimeRetryCount = ref(0)
+let realtimeSource = null
+let realtimeReconnectTimer = null
+
+const cleanupRealtime = () => {
+  if (realtimeSource) {
+    realtimeSource.close()
+    realtimeSource = null
+  }
+  if (realtimeReconnectTimer) {
+    clearTimeout(realtimeReconnectTimer)
+    realtimeReconnectTimer = null
+  }
+}
+
+const scheduleRealtimeReconnect = () => {
+  if (realtimeReconnectTimer) return
+  const baseDelay = 2000
+  const delay = Math.min(30000, baseDelay * Math.max(1, realtimeRetryCount.value + 1))
+  realtimeReconnectTimer = setTimeout(() => {
+    realtimeReconnectTimer = null
+    realtimeRetryCount.value += 1
+    connectRealtime()
+  }, delay)
+}
+
+function connectRealtime() {
+  if (realtimeSource) return
+
+  realtimeStatus.value = 'connecting'
+
+  try {
+    // EventSource can't send custom headers, so we pass the token as a query parameter
+    const token = localStorage.getItem('access_token')
+    const url = token 
+      ? `/api/v1/order-communications/communication-threads-stream/?token=${encodeURIComponent(token)}`
+      : '/api/v1/order-communications/communication-threads-stream/'
+    
+    realtimeSource = new EventSource(url)
+
+    realtimeSource.addEventListener('threads_update', (event) => {
+      try {
+        const payload = JSON.parse(event.data || '[]')
+        threadsCache.data = Array.isArray(payload) ? payload : []
+        threadsCache.lastFetch = Date.now()
+        realtimeStatus.value = 'connected'
+        realtimeRetryCount.value = 0
+        lastRealtimeEventAt.value = new Date()
+      } catch (error) {
+        console.error('Failed to parse threads_update payload', error)
+      }
+    })
+
+    realtimeSource.onopen = () => {
+      realtimeStatus.value = 'connected'
+      realtimeRetryCount.value = 0
+    }
+
+    realtimeSource.onerror = () => {
+      realtimeStatus.value = 'disconnected'
+      cleanupRealtime()
+      scheduleRealtimeReconnect()
+    }
+  } catch (error) {
+    console.error('Failed to open communications SSE stream', error)
+    realtimeStatus.value = 'disconnected'
+    cleanupRealtime()
+    scheduleRealtimeReconnect()
+  }
+}
+
+function disconnectRealtime() {
+  cleanupRealtime()
+  realtimeStatus.value = 'idle'
+}
+
 /**
  * Get threads with caching and deduplication
  */
@@ -187,6 +266,10 @@ export default {
   invalidateThreadMessagesCache,
   startSharedRefresh,
   stopAllRefreshes,
-  stopRefresh
+  stopRefresh,
+  connectRealtime,
+  disconnectRealtime,
+  realtimeStatus,
+  lastRealtimeEventAt,
 }
 

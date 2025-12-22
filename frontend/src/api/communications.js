@@ -7,12 +7,19 @@ export default {
   createThread: (data) => apiClient.post('/order-communications/communication-threads/', data),
   /**
    * Simplified method to start a conversation for an order.
-   * Automatically determines participants based on order.
+   * Creates a thread with only the sender and the specified recipient.
    * 
    * @param {number} orderId - The order ID
+   * @param {number} recipientId - Optional: specific recipient ID for the thread
    * @returns {Promise} API response with thread data
    */
-  startThreadForOrder: (orderId) => apiClient.post('/order-communications/communication-threads/start-for-order/', { order_id: orderId }),
+  startThreadForOrder: (orderId, recipientId = null) => {
+    const payload = { order_id: orderId }
+    if (recipientId) {
+      payload.recipient_id = recipientId
+    }
+    return apiClient.post('/order-communications/communication-threads/start-for-order/', payload)
+  },
   /**
    * Create a general messaging thread (not order-related)
    * @param {number} recipientId - The recipient user ID

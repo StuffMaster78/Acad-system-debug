@@ -265,7 +265,10 @@ class CommunicationMessage(models.Model):
     is_unblocked = models.BooleanField(default=False)
     class Meta:
         ordering = ["-sent_at"]
-        unique_together = ['visible_to_roles', 'is_deleted']
+        # NOTE:
+        # We intentionally DO NOT enforce uniqueness on (visible_to_roles, is_deleted).
+        # Multiple messages can share the same visibility set; a uniqueness
+        # constraint here causes IntegrityError when sending normal messages.
         indexes = [
             # Fast retrieval of messages in a thread, newest first
             models.Index(fields=["thread", "-sent_at"]),
@@ -277,6 +280,8 @@ class CommunicationMessage(models.Model):
             # Soft-delete / archive filters per thread
             models.Index(fields=["thread", "is_deleted"]),
             models.Index(fields=["thread", "is_archived"]),
+            # Optional: still index visibility flags without enforcing uniqueness
+            models.Index(fields=["is_deleted"]),
         ]
 
     def save(self, *args, **kwargs):

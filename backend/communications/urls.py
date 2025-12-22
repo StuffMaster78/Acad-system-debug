@@ -1,11 +1,15 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    CommunicationMessageViewSet, CommunicationThreadViewSet, 
-    OrderMessageNotificationViewSet, ScreenedWordViewSet,
-    FlaggedMessageViewSet, DisputeMessageViewSet,
-    MessageAttachmentUploadView
+    CommunicationMessageViewSet,
+    CommunicationThreadViewSet,
+    OrderMessageNotificationViewSet,
+    ScreenedWordViewSet,
+    FlaggedMessageViewSet,
+    DisputeMessageViewSet,
+    MessageAttachmentUploadView,
 )
+from .views_realtime import OrderCommunicationsStream, OrderThreadMessagesStream
 
 router = DefaultRouter()
 # Register threads first
@@ -19,6 +23,19 @@ router.register(r"dispute-messages", DisputeMessageViewSet, basename="dispute-me
 
 urlpatterns = [
     path("", include(router.urls)),
+    # SSE streams for order communications.
+    # NOTE: These paths deliberately avoid the "communication-threads/" prefix
+    # to prevent clashes with DRF's router-generated routes.
+    path(
+        "communication-threads-stream/",
+        OrderCommunicationsStream.as_view(),
+        name="communication-threads-stream",
+    ),
+    path(
+        "communication-threads-stream/<int:thread_pk>/",
+        OrderThreadMessagesStream.as_view(),
+        name="communication-thread-messages-stream",
+    ),
     # Nested routes for messages under threads
     path(
         "communication-threads/<int:thread_pk>/communication-messages/",
@@ -44,6 +61,11 @@ urlpatterns = [
         "communication-threads/<int:thread_pk>/communication-messages/<int:pk>/mark_as_read/",
         CommunicationMessageViewSet.as_view({'post': 'mark_as_read'}),
         name="communication-message-mark-as-read"
+    ),
+    path(
+        "communication-threads/<int:thread_pk>/communication-messages/mark-thread-read/",
+        CommunicationMessageViewSet.as_view({'post': 'mark_thread_read'}),
+        name="communication-message-mark-thread-read"
     ),
     path(
         "communication-threads/<int:thread_pk>/communication-messages/<int:pk>/react/",

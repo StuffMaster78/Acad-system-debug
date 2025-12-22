@@ -226,7 +226,7 @@ class MessageService:
         from django.db.models import Q
     
         if role in {"admin", "superadmin", "support", "editor"}:
-            return thread.messages.filter(is_deleted=False)
+            return thread.messages.filter(is_deleted=False).order_by("sent_at")  # Oldest first for chronological display
 
         # For regular users, show messages where:
         # 1. User is the sender OR
@@ -238,7 +238,7 @@ class MessageService:
             Q(sender=user) | 
             Q(recipient=user) | 
             Q(visible_to_roles__contains=[role])
-        )
+        ).order_by("sent_at")  # Oldest first for chronological display
     
 
     @staticmethod

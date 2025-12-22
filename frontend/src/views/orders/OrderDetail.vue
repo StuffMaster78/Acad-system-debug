@@ -18,12 +18,12 @@
         <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Order Details</h1>
         <p v-if="order" class="text-sm text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap items-center gap-2">
           <span>Order #{{ order.id }} • {{ order.topic || 'N/A' }}</span>
-          <span
+          <EnhancedStatusBadge
             v-if="order.status"
-            :class="['inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium', statusBadgeClass]"
-          >
-            {{ order.status }}
-          </span>
+            :status="order.status"
+            :show-tooltip="true"
+            :show-priority="true"
+          />
           <span
             v-if="order.is_paid !== undefined && (authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
             :class="[
@@ -121,7 +121,7 @@
         </div>
         
         <!-- Action Center & Last Activity Banner (for completed/submitted/closed orders) -->
-        <div v-if="order.status === 'completed' || order.status === 'submitted' || order.status === 'approved' || order.status === 'closed'" class="bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg border-2 border-primary-200 p-6 shadow-sm">
+        <div v-if="order.status === 'completed' || order.status === 'submitted' || order.status === 'approved' || order.status === 'closed'" class="bg-linear-to-r from-primary-50 to-blue-50 rounded-lg border-2 border-primary-200 p-6 shadow-sm">
           <div class="flex items-start justify-between mb-4">
             <div>
               <h2 class="text-xl font-bold text-gray-900 mb-1">Order {{ order.status === 'completed' ? 'Completed' : order.status === 'submitted' ? 'Submitted' : order.status === 'closed' ? 'Closed' : 'Approved' }}!</h2>
@@ -135,7 +135,7 @@
           <!-- Last Activity Indicator -->
           <div v-if="lastActivity" class="mb-4 p-3 bg-white rounded-lg border border-gray-200">
             <div class="flex items-center gap-3">
-              <div class="flex-shrink-0">
+              <div class="shrink-0">
                 <span class="text-2xl">{{ lastActivity.type === 'message' ? '💬' : lastActivity.type === 'file' ? '📁' : '📋' }}</span>
               </div>
               <div class="flex-1 min-w-0">
@@ -163,9 +163,9 @@
             </div>
           </div>
           
-          <!-- Revision Eligibility Banner (client view) -->
+          <!-- Revision Eligibility Banner (client view, also visible to admin/support for full context) -->
           <div
-            v-if="authStore.isClient && revisionEligibility"
+            v-if="(authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && revisionEligibility"
             class="mb-4"
           >
             <div
@@ -248,13 +248,16 @@
             
             <!-- View Messages -->
             <button
-              v-if="unreadMessageCount > 0"
+              v-if="order.assigned_writer || order.writer_id"
               @click="activeTab = 'messages'"
               class="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-all font-medium shadow-sm relative"
             >
               <span>💬</span>
               <span>View Messages</span>
-              <span class="absolute -top-2 -right-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-600 rounded-full ring-2 ring-white">
+              <span
+                v-if="unreadMessageCount > 0"
+                class="absolute -top-2 -right-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-600 rounded-full ring-2 ring-white"
+              >
                 {{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}
               </span>
             </button>
@@ -414,7 +417,7 @@
                 >
                   <!-- Icon Circle moved closer to the left edge -->
                   <span 
-                    class="absolute -left-[30px] top-0.5 w-11 h-11 rounded-full bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center text-xl transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl z-10"
+                    class="absolute -left-[30px] top-0.5 w-11 h-11 rounded-full bg-linear-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center text-xl transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl z-10"
                     :class="{
                       'ring-2 ring-primary-200 dark:ring-primary-800': index === statusTimeline.length - 1
                     }"
@@ -434,14 +437,14 @@
                     
                     <!-- Timestamp with improved layout and spacing -->
                     <div class="text-xs text-gray-500 dark:text-gray-400 mb-3.5 flex flex-wrap items-center gap-2.5">
-                      <div class="flex items-center gap-1.5 flex-shrink-0">
-                        <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div class="flex items-center gap-1.5 shrink-0">
+                        <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span class="whitespace-nowrap">{{ formatDateTime(entry.timestamp) }}</span>
                   </div>
-                      <span v-if="entry.relativeTime" class="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 flex-shrink-0">
-                        <span class="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 flex-shrink-0"></span>
+                      <span v-if="entry.relativeTime" class="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 shrink-0">
+                        <span class="w-1 h-1 rounded-full bg-gray-400 dark:bg-gray-500 shrink-0"></span>
                         <span class="italic">{{ entry.relativeTime }}</span>
                       </span>
                     </div>
@@ -452,7 +455,7 @@
                       class="text-sm text-gray-600 dark:text-gray-300 mt-3.5 pl-4 pr-3 py-2.5 border-l-2 border-primary-200 dark:border-primary-700 bg-gray-50 dark:bg-gray-900/50 rounded-r-md"
                     >
                       <div class="flex items-start gap-2.5">
-                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="w-4 h-4 text-gray-400 dark:text-gray-500 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <span 
@@ -728,9 +731,56 @@
         </div>
 
         <!-- Order Instructions - Full Width -->
-        <div v-if="order.instructions || order.order_instructions" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Order Instructions</h3>
-          <div class="prose prose-sm max-w-none dark:prose-invert">
+        <div
+          v-if="order.instructions || order.order_instructions || (isAdmin && editingInstructions)"
+          class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Order Instructions
+            </h3>
+            <button
+              v-if="isAdmin"
+              type="button"
+              @click="toggleInstructionsEdit"
+              class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              <span v-if="editingInstructions">Done</span>
+              <span v-else>Edit</span>
+            </button>
+          </div>
+
+          <!-- Admin editable instructions -->
+          <div v-if="isAdmin && editingInstructions" class="space-y-3">
+            <RichTextEditor
+              v-model="editableInstructions"
+              placeholder="Edit order instructions..."
+              toolbar="full"
+              height="220px"
+              :allow-images="true"
+            />
+            <div class="flex justify-end gap-2">
+              <button
+                type="button"
+                @click="cancelInstructionsEdit"
+                class="px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                :disabled="savingInstructions"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                @click="saveInstructions"
+                class="px-4 py-1.5 text-xs bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                :disabled="savingInstructions"
+              >
+                {{ savingInstructions ? 'Saving...' : 'Save Instructions' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Read-only instructions (all roles) -->
+          <div v-else class="prose prose-sm max-w-none dark:prose-invert">
             <SafeHtml 
               :content="order.instructions || order.order_instructions"
               container-class="text-gray-700 dark:text-gray-300 text-sm leading-relaxed"
@@ -745,11 +795,14 @@
           <div v-else class="text-gray-400 dark:text-gray-500 text-sm italic">No notes available</div>
         </div>
         
-        <!-- Progress Bar (for clients) -->
-        <div v-if="authStore.isClient && order.assigned_writer" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <!-- Progress Bar (for clients, also visible to admin/support) -->
+        <div
+          v-if="(authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && order.assigned_writer"
+          class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6"
+        >
           <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Order Progress</h3>
           <ProgressBar
-            :progress-percentage="latestProgressPercentage"
+            :progress-percentage="displayProgressPercentage"
             :last-update="latestProgressUpdate"
           />
         </div>
@@ -882,24 +935,24 @@
               <span>{{ processingAction ? 'Processing...' : 'Resume Order' }}</span>
             </button>
             
-            <!-- Deadline Extension Request -->
+            <!-- Extend Deadline -->
             <button
               v-if="canRequestDeadlineExtension"
               @click="showDeadlineExtensionModal = true"
               class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
             >
               <span>⏰</span>
-              <span>Request Deadline Extension</span>
+              <span>Extend Deadline</span>
             </button>
             
-            <!-- Request Hold -->
+            <!-- Put on Hold -->
             <button
               v-if="canRequestHold"
               @click="showHoldRequestModal = true"
               class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center gap-2"
             >
               <span>🛑</span>
-              <span>Request Hold</span>
+              <span>Put on Hold</span>
             </button>
             </template>
           </div>
@@ -1057,8 +1110,11 @@
 
       <!-- Progress Tab -->
       <div v-if="activeTab === 'progress'" class="space-y-6">
-        <!-- Progress Bar (for clients) -->
-        <div v-if="authStore.isClient" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <!-- Progress Bar (for clients, also visible to admin/support) -->
+        <div
+          v-if="authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
+          class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+        >
           <div class="flex items-center justify-between mb-6">
             <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
               <svg class="w-5 h-5 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1077,7 +1133,7 @@
             </button>
           </div>
           <ProgressBar
-            :progress-percentage="latestProgressPercentage"
+            :progress-percentage="displayProgressPercentage"
             :last-update="latestProgressUpdate"
           />
         </div>
@@ -1138,7 +1194,7 @@
 
             <div
               v-if="finalPaperFile"
-              class="mt-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl flex items-center justify-between shadow-sm"
+              class="mt-4 p-4 bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl flex items-center justify-between shadow-sm"
             >
               <div class="flex items-center gap-3">
                 <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
@@ -1183,7 +1239,7 @@
         </div>
 
         <!-- File Upload Form -->
-        <div class="mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm">
+        <div class="mb-6 p-6 bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm">
           <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -1237,13 +1293,13 @@
             </div>
             
             <div v-if="uploadSuccess" class="p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
               </svg>
               {{ uploadSuccess }}
             </div>
             <div v-if="uploadError" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
-              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
               {{ uploadError }}
@@ -1286,7 +1342,7 @@
           
           <!-- Staff Files -->
           <div v-if="staffFiles.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-gray-200">
+            <div class="bg-linear-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-gray-200">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
                   <span class="text-purple-600 text-lg">🛟</span>
@@ -1412,7 +1468,7 @@
 
           <!-- Client Files -->
           <div v-if="clientFiles.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+            <div class="bg-linear-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
                   <span class="text-green-600 text-lg">👤</span>
@@ -1538,7 +1594,7 @@
                 
           <!-- Writer Files -->
           <div v-if="writerFiles.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+            <div class="bg-linear-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                   <span class="text-blue-600 text-lg">✍️</span>
@@ -1664,7 +1720,7 @@
 
           <!-- Other Files (Unknown uploader or by category if needed) -->
           <div v-if="otherFiles.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
+            <div class="bg-linear-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                   <span class="text-gray-600 text-lg">📁</span>
@@ -1863,10 +1919,13 @@
           </button>
         </div>
 
-        <!-- Eligibility Check (Client) -->
-        <div v-if="authStore.isClient && draftEligibility" class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 p-6 shadow-sm">
+        <!-- Eligibility Check (Client; also visible read-only to admin/support) -->
+        <div
+          v-if="(authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && draftEligibility"
+          class="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 p-6 shadow-sm"
+        >
           <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+            <div class="shrink-0 w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
               <span class="text-2xl">{{ draftEligibility.can_request ? '✅' : '⚠️' }}</span>
             </div>
             <div class="flex-1">
@@ -2081,7 +2140,7 @@
         </div>
 
         <!-- External Link Submission Form -->
-        <div class="mb-6 p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 shadow-sm">
+        <div class="mb-6 p-6 bg-linear-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 shadow-sm">
           <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -2211,6 +2270,326 @@
       <!-- End External Links Tab -->
       </div>
 
+      <!-- Actions Tab -->
+      <div v-if="activeTab === 'actions'" class="space-y-6">
+        <div class="bg-gradient-to-br from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-xl border-2 border-primary-200 dark:border-primary-800 p-6 mb-6">
+          <div class="flex items-start gap-4">
+            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-2xl">
+              ⚡
+            </div>
+            <div class="flex-1">
+              <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Order Actions</h2>
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                Manage this order with quick actions based on your role. All actions are logged and tracked.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin/SuperAdmin/Support Actions -->
+        <div v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport" class="space-y-6">
+          <!-- Status Management -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                <span class="text-xl">🔄</span>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Status Management</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Change order status and workflow state</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <button
+                v-if="order.status !== 'on_hold'"
+                @click="handleStatusChange('on_hold')"
+                :disabled="processingAction"
+                class="flex items-center gap-3 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-all font-medium disabled:opacity-50"
+              >
+                <span class="text-xl">⏸️</span>
+                <span>Put on Hold</span>
+              </button>
+              <button
+                v-if="order.status === 'on_hold'"
+                @click="handleStatusChange('in_progress')"
+                :disabled="processingAction"
+                class="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all font-medium disabled:opacity-50"
+              >
+                <span class="text-xl">▶️</span>
+                <span>Resume Order</span>
+              </button>
+              <button
+                v-if="!['cancelled', 'completed', 'closed'].includes(order.status)"
+                @click="handleCancelOrder"
+                :disabled="processingAction"
+                class="flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all font-medium disabled:opacity-50"
+              >
+                <span class="text-xl">❌</span>
+                <span>Cancel Order</span>
+              </button>
+              <button
+                v-if="!['archived', 'cancelled'].includes(order.status)"
+                @click="handleArchiveOrder"
+                :disabled="processingAction"
+                class="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all font-medium disabled:opacity-50"
+              >
+                <span class="text-xl">📦</span>
+                <span>Archive Order</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Writer Assignment -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                <span class="text-xl">👤</span>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Writer Assignment</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Assign or reassign a writer to this order</p>
+              </div>
+            </div>
+            <div class="space-y-4">
+              <div v-if="order.assigned_writer || order.writer_id" class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <div>
+                    <p class="text-sm font-medium text-gray-600 dark:text-gray-400">Current Writer</p>
+                    <p class="text-base font-semibold text-gray-900 dark:text-white mt-1">
+                      {{ order.assigned_writer?.username || order.writer_username || 'Unknown' }}
+                    </p>
+                  </div>
+                  <button
+                    @click="showReassignModal = true"
+                    :disabled="processingAction"
+                    class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
+                  >
+                    Reassign
+                  </button>
+                </div>
+              </div>
+              <button
+                v-else
+                @click="showAssignModal = true"
+                :disabled="processingAction"
+                class="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <span>➕</span>
+                <span>Assign Writer</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                <span class="text-xl">⚡</span>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Common administrative tasks</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                @click="activeTab = 'messages'"
+                class="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all font-medium"
+              >
+                <span class="text-xl">💬</span>
+                <span>View Messages</span>
+              </button>
+              <button
+                @click="activeTab = 'files'"
+                class="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all font-medium"
+              >
+                <span class="text-xl">📁</span>
+                <span>Manage Files</span>
+              </button>
+              <button
+                v-if="authStore.isAdmin || authStore.isSuperAdmin"
+                @click="activeTab = 'history'"
+                class="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all font-medium"
+              >
+                <span class="text-xl">🕒</span>
+                <span>View Timeline</span>
+              </button>
+              <button
+                @click="showEditInstructions = true"
+                class="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all font-medium"
+              >
+                <span class="text-xl">✏️</span>
+                <span>Edit Instructions</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Writer Actions -->
+        <div v-if="authStore.isWriter" class="space-y-6">
+          <!-- Order Status Actions -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                <span class="text-xl">📝</span>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Work Status</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Update your progress on this order</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                v-if="order.status === 'pending_writer_assignment' || order.status === 'available'"
+                @click="handleStatusChange('in_progress')"
+                :disabled="processingAction"
+                class="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all font-medium disabled:opacity-50"
+              >
+                <span class="text-xl">▶️</span>
+                <span>Start Working</span>
+              </button>
+              <button
+                v-if="order.status === 'in_progress'"
+                @click="handleSubmitOrder"
+                :disabled="processingAction"
+                class="flex items-center gap-3 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all font-medium disabled:opacity-50"
+              >
+                <span class="text-xl">✅</span>
+                <span>Submit Order</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Communication -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+                <span class="text-xl">💬</span>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Communication</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Contact client or admin about this order</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                @click="activeTab = 'messages'"
+                class="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all font-medium"
+              >
+                <span class="text-xl">💬</span>
+                <span>View Messages</span>
+              </button>
+              <button
+                @click="activeTab = 'files'"
+                class="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all font-medium"
+              >
+                <span class="text-xl">📁</span>
+                <span>Upload Files</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Client Actions -->
+        <div v-if="authStore.isClient" class="space-y-6">
+          <!-- Order Management -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
+                <span class="text-xl">📋</span>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Order Management</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Manage your order</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                v-if="canRequestRevision"
+                @click="showRevisionModal = true"
+                class="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all font-medium"
+              >
+                <span class="text-xl">🔄</span>
+                <span>Request Revision</span>
+              </button>
+              <button
+                v-if="['pending', 'in_progress'].includes(order.status)"
+                @click="handleCancelOrder"
+                :disabled="processingAction"
+                class="flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all font-medium disabled:opacity-50"
+              >
+                <span class="text-xl">❌</span>
+                <span>Cancel Order</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Communication -->
+          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                <span class="text-xl">💬</span>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Communication</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Contact your writer or support</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <button
+                @click="activeTab = 'messages'"
+                class="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all font-medium"
+              >
+                <span class="text-xl">💬</span>
+                <span>Message Writer</span>
+              </button>
+              <button
+                v-if="order.status === 'completed' || order.status === 'submitted'"
+                @click="activeTab = 'files'"
+                class="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all font-medium"
+              >
+                <span class="text-xl">📥</span>
+                <span>Download Files</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Payment Actions -->
+          <div v-if="order.payment_status !== 'paid'" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-6">
+              <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/50 flex items-center justify-center">
+                <span class="text-xl">💳</span>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Payment</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Complete payment to start your order</p>
+              </div>
+            </div>
+            <button
+              @click="handlePayment"
+              class="w-full px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center justify-center gap-2"
+            >
+              <span>💳</span>
+              <span>Pay Now</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Action Status Messages -->
+        <div v-if="actionError" class="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 rounded-lg p-4">
+          <div class="flex items-center gap-3">
+            <span class="text-xl">⚠️</span>
+            <p class="text-sm font-medium text-red-700 dark:text-red-300">{{ actionError }}</p>
+          </div>
+        </div>
+        <div v-if="actionSuccess" class="bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 rounded-lg p-4">
+          <div class="flex items-center gap-3">
+            <span class="text-xl">✅</span>
+            <p class="text-sm font-medium text-green-700 dark:text-green-300">{{ actionSuccess }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- History Tab (Admin / Support) -->
       <div
         v-if="activeTab === 'history' && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
@@ -2319,7 +2698,7 @@
                 class="px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors active:bg-gray-100 flex items-center gap-3"
               >
                 <!-- Avatar -->
-                <div class="flex-shrink-0">
+                <div class="shrink-0">
                   <div class="w-12 h-12 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold text-lg">
                     {{ getRecipientInitials(recipient) }}
                   </div>
@@ -2336,7 +2715,7 @@
                 </div>
 
                 <!-- Arrow -->
-                <div class="flex-shrink-0 text-gray-400">
+                <div class="shrink-0 text-gray-400">
                   →
                 </div>
               </div>
@@ -2358,7 +2737,7 @@
               <button @click="showInitialMessageModal = false" class="text-white hover:text-gray-200 mr-2">
                 ←
               </button>
-              <div class="flex-shrink-0">
+              <div class="shrink-0">
                 <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 font-semibold">
                   {{ getRecipientInitials(selectedRecipient) }}
                 </div>
@@ -2544,7 +2923,7 @@
         
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            Revision Reason <span class="text-red-500">*</span>
+            Revision Details <span class="text-red-500">*</span>
           </label>
           <textarea
             v-model="revisionReason"
@@ -2569,21 +2948,21 @@
             :disabled="requestingRevision || !revisionReason.trim()"
             class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
           >
-            {{ requestingRevision ? 'Submitting...' : 'Submit Revision Request' }}
+            {{ requestingRevision ? 'Submitting...' : 'Submit' }}
           </button>
         </div>
       </div>
     </Modal>
     
-    <!-- Deadline Extension Request Modal -->
+    <!-- Extend Deadline Modal -->
     <Modal
       v-model:visible="showDeadlineExtensionModal"
-      title="Request Deadline Extension"
+      title="Extend Deadline"
       size="md"
     >
       <div class="space-y-4">
         <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-          <p><strong>Note:</strong> Please provide a valid reason for the deadline extension. The client will review your request.</p>
+          <p><strong>Note:</strong> Please provide a clear reason for extending the deadline. The client will review and approve this change.</p>
         </div>
         
         <div>
@@ -2600,7 +2979,7 @@
         
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2">
-            New Requested Deadline <span class="text-red-500">*</span>
+            New Deadline <span class="text-red-500">*</span>
           </label>
           <input
             v-model="deadlineExtensionForm.requested_deadline"
@@ -2620,7 +2999,7 @@
             v-model="deadlineExtensionForm.reason"
             rows="4"
             class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            placeholder="Explain why you need a deadline extension..."
+            placeholder="Explain why you need to extend the deadline..."
             required
           ></textarea>
         </div>
@@ -2638,7 +3017,7 @@
             :disabled="submittingDeadlineExtension || !deadlineExtensionForm.reason.trim() || !deadlineExtensionForm.requested_deadline"
             class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
           >
-            {{ submittingDeadlineExtension ? 'Submitting...' : 'Submit Request' }}
+            {{ submittingDeadlineExtension ? 'Submitting...' : 'Submit' }}
           </button>
         </div>
       </div>
@@ -2761,6 +3140,8 @@ import { useToast } from '@/composables/useToast'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { useInputModal } from '@/composables/useInputModal'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import EnhancedStatusBadge from '@/components/common/EnhancedStatusBadge.vue'
+import { getStatusConfig, getStatusLabel, getStatusIcon } from '@/utils/orderStatus'
 import EnhancedOrderStatus from '@/components/client/EnhancedOrderStatus.vue'
 import InputModal from '@/components/common/InputModal.vue'
 import draftRequestsAPI from '@/api/draft-requests'
@@ -2816,6 +3197,7 @@ const tabs = computed(() => {
     { id: 'files', label: 'Files', icon: '📁' },
     { id: 'draft-requests', label: 'Draft Requests', icon: '📝' },
     { id: 'links', label: 'External Links', icon: '🔗' },
+    { id: 'actions', label: 'Actions', icon: '⚡' }, // Actions tab for all users
   ]
 
   // Admins and support see an additional "History" tab
@@ -2889,6 +3271,51 @@ const isAdmin = computed(() => {
   return role === 'admin' || role === 'superadmin'
 })
 
+// Admin instructions editing state
+const editingInstructions = ref(false)
+const editableInstructions = ref('')
+const savingInstructions = ref(false)
+
+const toggleInstructionsEdit = () => {
+  if (!order.value) return
+  // Initialize editor with current instructions when entering edit mode
+  if (!editingInstructions.value) {
+    editableInstructions.value = order.value.instructions || order.value.order_instructions || ''
+  }
+  editingInstructions.value = !editingInstructions.value
+}
+
+const cancelInstructionsEdit = () => {
+  editingInstructions.value = false
+  editableInstructions.value = ''
+}
+
+const saveInstructions = async () => {
+  if (!order.value) return
+  savingInstructions.value = true
+  try {
+    const payload = {
+      order_instructions: editableInstructions.value,
+    }
+    const response = await ordersAPI.patch(order.value.id, payload)
+    // Update local order object with latest data
+    order.value = response.data || { ...order.value, order_instructions: editableInstructions.value }
+    showSuccessToast?.('Instructions updated successfully')
+    editingInstructions.value = false
+  } catch (error) {
+    const msg =
+      error?.response?.data?.detail ||
+      error?.response?.data?.error ||
+      'Failed to update instructions'
+    showErrorToast?.(msg)
+    if (import.meta.env.DEV) {
+      console.error('Failed to update order instructions:', error)
+    }
+  } finally {
+    savingInstructions.value = false
+  }
+}
+
 const userRole = computed(() => authStore.user?.role)
 const userId = computed(() => authStore.user?.id)
 
@@ -2918,9 +3345,26 @@ const canSubmitOrder = computed(() => {
   if (!order.value) return false
   const status = order.value.status?.toLowerCase()
   const isWriter = userRole.value === 'writer'
-  const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value
-  // Writer can only submit when a Final Paper file has been uploaded
-  return isWriter && isAssignedWriter && hasFinalPaperFile.value && ['in_progress', 'assigned', 'draft'].includes(status)
+  const isAdminLike = authStore.isAdmin || authStore.isSuperAdmin
+  const isAssignedWriter =
+    order.value.writer?.id === userId.value ||
+    order.value.writer_id === userId.value ||
+    order.value.assigned_writer_id === userId.value
+
+  // Submit is only allowed when at least one Final Paper file has been uploaded.
+  // Writers must be the assigned writer; admins/superadmins can submit on behalf of the writer.
+  if (!hasFinalPaperFile.value) return false
+
+  const writerCanSubmit =
+    isWriter &&
+    isAssignedWriter &&
+    ['in_progress', 'assigned', 'draft', 'revision_in_progress'].includes(status)
+
+  const adminCanSubmit =
+    isAdminLike &&
+    ['in_progress', 'assigned', 'draft', 'revision_in_progress', 'submitted'].includes(status)
+
+  return writerCanSubmit || adminCanSubmit
 })
 
 const canCompleteOrder = computed(() => {
@@ -2956,63 +3400,91 @@ const canPayOrder = computed(() => {
 const canSubmitReview = computed(() => {
   if (!order.value) return false
   const isClient = userRole.value === 'client'
+  const isAdminLike = authStore.isAdmin || authStore.isSuperAdmin
   const isOrderClient = order.value.client?.id === userId.value || order.value.client_id === userId.value
-  return isClient && isOrderClient && order.value.status === 'completed'
+  // Admins/Superadmins can always submit a review on behalf of the client for completed orders
+  return (isClient && isOrderClient && order.value.status === 'completed') || (isAdminLike && order.value.status === 'completed')
 })
 
 const canRequestRevision = computed(() => {
   if (!order.value) return false
   const isClient = userRole.value === 'client'
+  const isAdminLike = authStore.isAdmin || authStore.isSuperAdmin
   const isOrderClient = order.value.client?.id === userId.value || order.value.client_id === userId.value
   const status = order.value.status?.toLowerCase()
   // Can request revision if order is completed, submitted, or approved
-  return isClient && isOrderClient && ['completed', 'submitted', 'approved'].includes(status)
+  // Admins/Superadmins can request revision on behalf of client for valid statuses
+  return (isClient && isOrderClient && ['completed', 'submitted', 'approved'].includes(status)) ||
+    (isAdminLike && ['completed', 'submitted', 'approved'].includes(status))
 })
 
 const canTipWriter = computed(() => {
   if (!order.value) return false
   const isClient = userRole.value === 'client'
+  const isAdminLike = authStore.isAdmin || authStore.isSuperAdmin
   const isOrderClient = order.value.client?.id === userId.value || order.value.client_id === userId.value
   const hasWriter = order.value.writer_id || order.value.writer?.id
   const status = order.value.status?.toLowerCase()
   // Can tip for completed, submitted, approved, or closed orders
-  return isClient && isOrderClient && hasWriter && ['completed', 'submitted', 'approved', 'closed'].includes(status)
+  // Admins/Superadmins can tip on behalf of the client for valid statuses
+  return ((isClient && isOrderClient && hasWriter && ['completed', 'submitted', 'approved', 'closed'].includes(status))) ||
+    (isAdminLike && hasWriter && ['completed', 'submitted', 'approved', 'closed'].includes(status))
+})
+
+const canAutoAssign = computed(() => {
+  if (!order.value) return false
+  const isAdminLike = authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport
+  const status = order.value.status?.toLowerCase()
+  // Can auto-assign if order is available, pending, or unassigned, and user is admin/support
+  return isAdminLike && ['available', 'pending', 'created', 'unpaid'].includes(status) && !order.value.writer_id
 })
 
 const canRequestDeadlineExtension = computed(() => {
   if (!order.value) return false
   const isWriter = userRole.value === 'writer'
+  const isAdminLike = authStore.isAdmin || authStore.isSuperAdmin
   const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value || order.value.assigned_writer_id === userId.value
   const status = order.value.status?.toLowerCase()
   // Can request extension for in_progress, assigned, or draft orders
-  return isWriter && isAssignedWriter && ['in_progress', 'assigned', 'draft'].includes(status)
+  // Admins/Superadmins can also request extensions for assigned writer orders
+  return (isWriter && isAssignedWriter && ['in_progress', 'assigned', 'draft'].includes(status)) ||
+    (isAdminLike && ['in_progress', 'assigned', 'draft'].includes(status))
 })
 
 const canRequestHold = computed(() => {
   if (!order.value) return false
   const isWriter = userRole.value === 'writer'
+  const isAdminLike = authStore.isAdmin || authStore.isSuperAdmin
   const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value || order.value.assigned_writer_id === userId.value
   const status = order.value.status?.toLowerCase()
   // Can request hold for in_progress, assigned, or draft orders
-  return isWriter && isAssignedWriter && ['in_progress', 'assigned', 'draft'].includes(status)
+  // Admins/Superadmins can also request holds for any assigned orders in valid statuses
+  return (isWriter && isAssignedWriter && ['in_progress', 'assigned', 'draft'].includes(status)) ||
+    (isAdminLike && ['in_progress', 'assigned', 'draft'].includes(status))
 })
 
 const canStartOrder = computed(() => {
   if (!order.value) return false
   const isWriter = userRole.value === 'writer'
+  const isAdminLike = authStore.isAdmin || authStore.isSuperAdmin
   const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value || order.value.assigned_writer_id === userId.value
   const status = order.value.status?.toLowerCase()
   // Can start order when it's available or reassigned
-  return isWriter && isAssignedWriter && ['available', 'reassigned'].includes(status)
+  // Admins/Superadmins can also start orders in valid statuses
+  return (isWriter && isAssignedWriter && ['available', 'reassigned'].includes(status)) ||
+    (isAdminLike && ['available', 'reassigned'].includes(status))
 })
 
 const canStartRevision = computed(() => {
   if (!order.value) return false
   const isWriter = userRole.value === 'writer'
+  const isAdminLike = authStore.isAdmin || authStore.isSuperAdmin
   const isAssignedWriter = order.value.writer?.id === userId.value || order.value.writer_id === userId.value || order.value.assigned_writer_id === userId.value
   const status = order.value.status?.toLowerCase()
   // Can start revision when revision is requested
-  return isWriter && isAssignedWriter && status === 'revision_requested'
+  // Admins/Superadmins can also start revisions
+  return (isWriter && isAssignedWriter && status === 'revision_requested') ||
+    (isAdminLike && status === 'revision_requested')
 })
 
 const revisionEligibility = computed(() => {
@@ -3147,94 +3619,10 @@ const lastActivity = computed(() => {
   return activities[0]
 })
 
-// Comprehensive status label mapping (covers all OrderStatus enum values)
-const statusLabelMap = {
-  // Initial states
-  created: 'Order Created',
-  pending: 'Pending',
-  unpaid: 'Unpaid',
-  
-  // Assignment states
-  available: 'Available for Writers',
-  assigned: 'Writer Assigned',
-  pending_writer_assignment: 'Pending Writer Assignment',
-  pending_preferred: 'Pending Preferred Writer',
-  reassigned: 'Reassigned',
-  
-  // Active work states
-  in_progress: 'In Progress',
-  draft: 'Draft Saved',
-  on_hold: 'On Hold',
-  under_editing: 'Under Editing',
-  critical: 'Critical',
-  late: 'Late',
-  
-  // Submission and review states
-  submitted: 'Submitted for Review',
-  in_review: 'In Review',
-  under_review: 'Under Review',
-  reviewed: 'Reviewed',
-  rated: 'Rated',
-  
-  // Revision states
-  revision_requested: 'Revision Requested',
-  revision_in_progress: 'Revision In Progress',
-  on_revision: 'On Revision',
-  revised: 'Revision Submitted',
-  
-  // Completion states
-  approved: 'Approved',
-  completed: 'Completed',
-  closed: 'Closed',
-  archived: 'Archived',
-  
-  // Cancellation/refund states
-  cancelled: 'Cancelled',
-  refunded: 'Refunded',
-  disputed: 'Disputed',
-  
-  // System states
-  expired: 'Expired',
-  re_opened: 'Reopened',
-  rejected: 'Rejected'
-}
-
-// Status icon mapping
-const statusIconMap = {
-  created: '🟢',
-  pending: '⏳',
-  unpaid: '💳',
-  available: '📋',
-  assigned: '👤',
-  pending_writer_assignment: '⏳',
-  pending_preferred: '⭐',
-  reassigned: '🔄',
-  in_progress: '⚙️',
-  draft: '📝',
-  on_hold: '⏸️',
-  under_editing: '✏️',
-  critical: '🚨',
-  late: '⏰',
-  submitted: '📤',
-  in_review: '🔍',
-  under_review: '🔍',
-  reviewed: '✅',
-  rated: '⭐',
-  revision_requested: '🔁',
-  revision_in_progress: '✏️',
-  on_revision: '🔁',
-  revised: '✅',
-  approved: '🎉',
-  completed: '🏁',
-  closed: '🔒',
-  archived: '📦',
-  cancelled: '✖️',
-  refunded: '💰',
-  disputed: '⚠️',
-  expired: '⏱️',
-  re_opened: '🔓',
-  rejected: '❌'
-}
+// Status mappings now use centralized orderStatus utility
+// Helper functions for backward compatibility
+const getStatusLabelFromMap = (status) => getStatusLabel(status)
+const getStatusIconFromMap = (status) => getStatusIcon(status)
 
 const formatStatusLabel = (value) => {
   if (!value) return 'Status Update'
@@ -3288,11 +3676,11 @@ const statusTimeline = computed(() => {
     entries.push({
       key,
       status: normalizedStatus,
-      label: extra.label || statusLabelMap[normalizedStatus] || formatStatusLabel(status),
+      label: extra.label || getStatusLabel(normalizedStatus) || formatStatusLabel(status),
       timestamp: timestampDate.toISOString(),
       relativeTime: formatRelativeTime(timestamp),
       description: extra.description || null,
-      icon: extra.icon || statusIconMap[normalizedStatus] || '•',
+      icon: extra.icon || getStatusIcon(normalizedStatus) || '•',
       source: extra.source || 'unknown', // Track data source for debugging
     })
   }
@@ -3421,6 +3809,9 @@ const paymentInstallments = computed(() => paymentSummary.value?.installments ||
 const hasReview = ref(false)
 const orderReview = ref(null)
 const showRevisionModal = ref(false)
+const showAssignModal = ref(false)
+const showReassignModal = ref(false)
+const showEditInstructions = ref(false)
 const revisionReason = ref('')
 const requestingRevision = ref(false)
 const showTipModal = ref(false)
@@ -3438,57 +3829,7 @@ const deadlineExtensionForm = ref({
 const showOrderRequestModal = ref(false)
 const orderRequestReason = ref('')
 
-const statusBadgeClass = computed(() => {
-  if (!order.value || !order.value.status) {
-    return 'bg-gray-100 text-gray-700'
-  }
-  const status = order.value.status.toLowerCase()
-  const statusClasses = {
-    // Initial States
-    created: 'bg-gray-100 text-gray-700',
-    pending: 'bg-yellow-100 text-yellow-700',
-    unpaid: 'bg-orange-100 text-orange-700',
-    paid: 'bg-green-100 text-green-700',
-
-    // Assignment & Availability
-    pending_writer_assignment: 'bg-indigo-100 text-indigo-700',
-    available: 'bg-blue-100 text-blue-700',
-    reassigned: 'bg-cyan-100 text-cyan-700',
-
-    // Active Work
-    in_progress: 'bg-blue-100 text-blue-700',
-    on_hold: 'bg-gray-100 text-gray-700',
-    submitted: 'bg-purple-100 text-purple-700',
-
-    // Review & Rating
-    reviewed: 'bg-teal-100 text-teal-700',
-    rated: 'bg-amber-100 text-amber-700',
-    approved: 'bg-green-100 text-green-700',
-    completed: 'bg-emerald-100 text-emerald-700',
-
-    // Revisions
-    revision_requested: 'bg-yellow-100 text-yellow-700',
-    revision_in_progress: 'bg-orange-100 text-orange-700',
-    revised: 'bg-lime-100 text-lime-700',
-    on_revision: 'bg-yellow-100 text-yellow-700',
-
-    // Editing
-    under_editing: 'bg-purple-100 text-purple-700',
-
-    // Issues
-    disputed: 'bg-red-100 text-red-700',
-    late: 'bg-red-100 text-red-700',
-
-    // Final States
-    cancelled: 'bg-gray-100 text-gray-700',
-    reopened: 'bg-blue-100 text-blue-700',
-    refunded: 'bg-pink-100 text-pink-700',
-    archived: 'bg-gray-100 text-gray-700',
-    closed: 'bg-slate-100 text-slate-700',
-  }
-
-  return statusClasses[status] || 'bg-gray-100 text-gray-700'
-})
+// statusBadgeClass removed - using EnhancedStatusBadge component instead
 
 // Auto-Assignment
 const showAutoAssignModal = ref(false)
@@ -3519,6 +3860,27 @@ const latestProgressPercentage = ref(0)
 const latestProgressUpdate = ref(null)
 const progressHistoryRef = ref(null)
 
+// Computed progress that shows 100% for completed orders, but adjusts if order returns to revision/in progress
+const displayProgressPercentage = computed(() => {
+  if (!order.value) return 0
+  
+  const status = order.value.status?.toLowerCase()
+  
+  // Completed/approved/closed orders show 100%
+  if (['completed', 'approved', 'closed'].includes(status)) {
+    return 100
+  }
+  
+  // If order is in revision or returned to progress, show actual progress
+  // This handles cases where a completed order goes back to revision_requested or in_progress
+  if (['revision_requested', 'revision_in_progress', 'in_progress', 'assigned', 'draft', 'submitted', 'under_editing'].includes(status)) {
+    return latestProgressPercentage.value
+  }
+  
+  // For other statuses, return the actual progress
+  return latestProgressPercentage.value
+})
+
 const canSubmitProgress = computed(() => {
   if (!order.value) return false
   const isWriter = userRole.value === 'writer'
@@ -3540,7 +3902,9 @@ const loadLatestProgress = async () => {
       latestProgressUpdate.value = null
     }
   } catch (error) {
-    console.error('Failed to load latest progress:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load latest progress:', error)
+    }
     latestProgressPercentage.value = 0
     latestProgressUpdate.value = null
   }
@@ -3972,7 +4336,9 @@ const openActionModal = async (action = null) => {
       availableActions.value = response.data.available_actions
     }
   } catch (error) {
-    console.error('Failed to load available actions:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load available actions:', error)
+    }
     availableActions.value = []
   }
   
@@ -3982,7 +4348,9 @@ const openActionModal = async (action = null) => {
       const writersResponse = await usersAPI.list({ role: 'writer', website: order.value.website_id })
       availableWriters.value = writersResponse.data?.results || writersResponse.data || []
     } catch (error) {
-      console.error('Failed to load writers:', error)
+      if (import.meta.env.DEV) {
+        console.error('Failed to load writers:', error)
+      }
       availableWriters.value = []
     }
   }
@@ -4102,6 +4470,127 @@ const handleActionError = (error) => {
   }, 8000)
 }
 
+// Status change handler
+const handleStatusChange = async (targetStatus) => {
+  if (!order.value) return
+  
+  const statusLabels = {
+    'on_hold': 'Put on Hold',
+    'in_progress': 'Resume/Start',
+    'cancelled': 'Cancel',
+    'archived': 'Archive'
+  }
+  
+  const confirmed = await confirm.showDialog(
+    `${statusLabels[targetStatus] || 'Change status'} for Order #${order.value.id}?`,
+    'Change Order Status',
+    {
+      details: `You are about to change the order status to "${targetStatus.replace('_', ' ')}". This will update the order workflow.`,
+      variant: 'warning',
+      icon: '🔄',
+      confirmText: 'Confirm',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  processingAction.value = true
+  actionError.value = ''
+  actionSuccess.value = ''
+  
+  try {
+    const response = await ordersAPI.transition(order.value.id, targetStatus, `Status changed to ${targetStatus}`)
+    const message = response.data.message || `Order status changed to "${targetStatus.replace('_', ' ')}" successfully.`
+    actionSuccess.value = message
+    showSuccessToast(message)
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to change status', `Unable to change status for Order #${order.value.id}.`)
+    actionError.value = errorMsg
+    showErrorToast(errorMsg)
+  } finally {
+    processingAction.value = false
+  }
+}
+
+// Archive order handler
+const handleArchiveOrder = async () => {
+  if (!order.value) return
+  
+  const confirmed = await confirm.showDialog(
+    `Archive Order #${order.value.id}?`,
+    'Archive Order',
+    {
+      details: `You are about to archive "${order.value.topic || 'Untitled'}". The order will be moved to archived status.`,
+      variant: 'default',
+      icon: '📦',
+      confirmText: 'Archive',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  processingAction.value = true
+  actionError.value = ''
+  actionSuccess.value = ''
+  
+  try {
+    await ordersAPI.archiveOrder(order.value.id)
+    const message = `Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been archived.`
+    actionSuccess.value = message
+    showSuccessToast(message)
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to archive order', `Unable to archive Order #${order.value.id}.`)
+    actionError.value = errorMsg
+    showErrorToast(errorMsg)
+  } finally {
+    processingAction.value = false
+  }
+}
+
+// Submit order handler (for writers)
+const handleSubmitOrder = async () => {
+  if (!order.value) return
+  
+  const confirmed = await confirm.showDialog(
+    `Submit Order #${order.value.id}?`,
+    'Submit Order',
+    {
+      details: `You are about to submit "${order.value.topic || 'Untitled'}" for review. Make sure all work is complete and files are uploaded.`,
+      variant: 'default',
+      icon: '✅',
+      confirmText: 'Submit',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  processingAction.value = true
+  actionError.value = ''
+  actionSuccess.value = ''
+  
+  try {
+    const response = await ordersAPI.transition(order.value.id, 'submitted', 'Order submitted by writer')
+    const message = response.data.message || `Order #${order.value.id} has been submitted for review.`
+    actionSuccess.value = message
+    showSuccessToast(message)
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to submit order', `Unable to submit Order #${order.value.id}.`)
+    actionError.value = errorMsg
+    showErrorToast(errorMsg)
+  } finally {
+    processingAction.value = false
+  }
+}
+
+// Alias for cancelOrder to match Actions tab
+const handleCancelOrder = cancelOrder
+
 const files = ref([])
 const extraServiceFiles = ref([])
 const links = ref([])
@@ -4169,7 +4658,9 @@ const loadOrder = async () => {
       }
     }
   } catch (error) {
-    console.error('Failed to load order:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load order:', error)
+    }
   } finally {
     loading.value = false
   }
@@ -4191,7 +4682,9 @@ const loadOrderReview = async () => {
       orderReview.value = null
     }
   } catch (error) {
-    console.error('Failed to load review:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load review:', error)
+    }
     hasReview.value = false
   }
 }
@@ -4315,7 +4808,9 @@ const loadWalletBalance = async () => {
     const res = await walletAPI.getBalance()
     walletBalance.value = parseFloat(res.data.balance || res.data.wallet?.balance || 0)
   } catch (error) {
-    console.error('Failed to load wallet balance:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load wallet balance:', error)
+    }
     walletBalance.value = 0
   }
 }
@@ -4328,7 +4823,9 @@ const loadPaymentSummary = async () => {
     const res = await ordersAPI.getPaymentSummary(order.value.id)
     paymentSummary.value = res.data
   } catch (error) {
-    console.error('Failed to load payment summary:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load payment summary:', error)
+    }
     paymentSummaryError.value = getErrorMessage(error, 'Failed to load payment summary', 'Unable to load payment summary')
   } finally {
     loadingPaymentSummary.value = false
@@ -4354,7 +4851,9 @@ const loadCategories = async () => {
     const res = await orderFilesAPI.listCategories({ website_id: websiteId })
     categories.value = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
   } catch (error) {
-    console.error('Failed to load categories:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load categories:', error)
+    }
     categories.value = []
   }
 }
@@ -4373,7 +4872,9 @@ const loadFiles = async () => {
         return new Date(timeB) - new Date(timeA)
       })
   } catch (error) {
-    console.error('Failed to load files:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load files:', error)
+    }
     files.value = []
     showMessage('Failed to load files: ' + (error.response?.data?.detail || error.message), false)
   } finally {
@@ -4388,7 +4889,9 @@ const loadExtraServiceFiles = async () => {
     const res = await orderFilesAPI.listExtraServiceFiles({ order: order.value.id })
     extraServiceFiles.value = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
   } catch (error) {
-    console.error('Failed to load extra service files:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load extra service files:', error)
+    }
     extraServiceFiles.value = []
   } finally {
     loadingExtraServiceFiles.value = false
@@ -4720,7 +5223,9 @@ const loadLinks = async () => {
     const res = await orderFilesAPI.listExternalLinks({ order: order.value.id })
     links.value = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
   } catch (error) {
-    console.error('Failed to load links:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load links:', error)
+    }
     links.value = []
   } finally {
     loadingLinks.value = false
@@ -4745,7 +5250,9 @@ const toggleFileDownload = async (file) => {
     await orderFilesAPI.toggleDownload(file.id)
     await loadFiles() // Reload files to get updated status
   } catch (error) {
-    console.error('Failed to toggle file download:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to toggle file download:', error)
+    }
     alert('Failed to update file download status')
   }
 }
@@ -4756,7 +5263,9 @@ const approveLink = async (link) => {
     await orderFilesAPI.approveExternalLink(link.id)
     await loadLinks() // Reload links to get updated status
   } catch (error) {
-    console.error('Failed to approve link:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to approve link:', error)
+    }
     alert('Failed to approve link')
   } finally {
     processingLink.value = null
@@ -4782,7 +5291,9 @@ const rejectLink = async (link) => {
     await orderFilesAPI.rejectExternalLink(link.id)
     await loadLinks() // Reload links to get updated status
   } catch (error) {
-    console.error('Failed to reject link:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to reject link:', error)
+    }
     alert('Failed to reject link')
   } finally {
     processingLink.value = null
@@ -4908,7 +5419,9 @@ const loadAvailableRecipients = async () => {
     const res = await communicationsAPI.getOrderRecipients(order.value.id)
     availableRecipients.value = Array.isArray(res.data) ? res.data : []
   } catch (error) {
-    console.error('Failed to load recipients:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load recipients:', error)
+    }
     sendMessageError.value = 'Failed to load recipients: ' + (error.response?.data?.detail || error.message)
     availableRecipients.value = []
   } finally {
@@ -4951,7 +5464,9 @@ const startChatWithMessage = async () => {
     initialMessage.value = ''
     recipientSearch.value = ''
   } catch (error) {
-    console.error('Failed to start chat:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to start chat:', error)
+    }
     sendMessageError.value = error.response?.data?.detail || error.response?.data?.error || error.message || 'Failed to start chat'
   } finally {
     sendingNewMessage.value = false
@@ -5011,7 +5526,9 @@ const loadThreads = async () => {
       }
     })
   } catch (error) {
-    console.error('Failed to load threads:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load threads:', error)
+    }
   } finally {
     loadingThreads.value = false
   }
@@ -5129,7 +5646,9 @@ const loadThreadMessages = async (threadId, url = null, silent = false) => {
       }
     }
   } catch (error) {
-    console.error('Failed to load messages:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load messages:', error)
+    }
     threadMessages.value[threadId] = []
     threadErrors.value[threadId] = 'Failed to load messages'
   } finally {
@@ -5143,7 +5662,9 @@ const loadThreadRecipients = async (threadId) => {
     const res = await communicationsAPI.getAvailableRecipients(threadId)
     threadRecipients.value[threadId] = Array.isArray(res.data) ? res.data : []
   } catch (error) {
-    console.error('Failed to load recipients:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load recipients:', error)
+    }
     threadRecipients.value[threadId] = []
   } finally {
     loadingRecipientsForThread.value[threadId] = false
@@ -5222,7 +5743,9 @@ const sendMessageToThread = async (threadId) => {
       loadThreads()
     ])
   } catch (error) {
-    console.error('Failed to send message:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to send message:', error)
+    }
     threadErrors.value[threadId] = error.response?.data?.detail || 
                                    error.response?.data?.error || 
                                    error.message || 
@@ -5306,7 +5829,9 @@ const downloadAttachment = async (threadId, messageId, filename) => {
     link.click()
     document.body.removeChild(link)
   } catch (error) {
-    console.error('Failed to download attachment:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to download attachment:', error)
+    }
     alert('Failed to download file')
   }
 }
@@ -5418,22 +5943,37 @@ const loadDraftRequests = async () => {
     const res = await draftRequestsAPI.listDraftRequests({ order_id: order.value.id })
     draftRequests.value = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
   } catch (error) {
-    console.error('Failed to load draft requests:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load draft requests:', error)
+    }
     draftRequests.value = []
   } finally {
     loadingDraftRequests.value = false
   }
 }
 
-const checkDraftEligibility = async () => {
+const checkDraftEligibility = async (showError = true) => {
   if (!order.value) return
   loadingDraftEligibility.value = true
   try {
     const res = await draftRequestsAPI.checkEligibility(order.value.id)
     draftEligibility.value = res.data
   } catch (error) {
-    console.error('Failed to check eligibility:', error)
-    showErrorToast('Failed to check eligibility: ' + (error.response?.data?.error || error.message))
+    // Only show error toast for user-initiated checks
+    // Silent failures for automatic checks (e.g., after creating requests)
+    if (showError) {
+      const errorMsg = getErrorMessage(
+        error,
+        'Failed to check eligibility',
+        'Unable to check draft eligibility. This feature may not be available for this order.'
+      )
+      showErrorToast(errorMsg)
+    }
+    // Clear eligibility on error
+    draftEligibility.value = null
+    if (import.meta.env.DEV) {
+      console.error('Failed to check eligibility:', error)
+    }
   } finally {
     loadingDraftEligibility.value = false
   }
@@ -5468,7 +6008,7 @@ const createDraftRequest = async () => {
     showDraftRequestModal.value = false
     draftRequestForm.value.message = ''
     await loadDraftRequests()
-    await checkDraftEligibility()
+    await checkDraftEligibility(false) // Silent check after creating request
   } catch (error) {
     const errorMsg = getErrorMessage(error, 'Failed to create draft request', `Unable to submit draft request for Order #${order.value.id}. Please try again or contact support if the issue persists.`)
     showErrorToast(errorMsg)
@@ -5497,7 +6037,7 @@ const cancelDraftRequest = async (requestId) => {
     const message = `Draft request for Order #${order.value.id} has been cancelled successfully.`
     showSuccessToast(message)
     await loadDraftRequests()
-    await checkDraftEligibility()
+    await checkDraftEligibility(false) // Silent check after creating request
   } catch (error) {
     const errorMsg = getErrorMessage(error, 'Failed to cancel draft request', `Unable to cancel draft request for Order #${order.value.id}. Please try again or contact support if the issue persists.`)
     showErrorToast(errorMsg)
@@ -5658,7 +6198,9 @@ const loadWriterContext = async () => {
     const requestedOrderIds = queueData.requested_order_ids || []
     isOrderRequested.value = requestedOrderIds.includes(order.value?.id) || order.value?.is_requested || false
   } catch (error) {
-    console.error('Failed to load writer context:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load writer context:', error)
+    }
   }
 }
 
@@ -5794,7 +6336,7 @@ onMounted(async () => {
     await loadThreads()
     await loadDraftRequests()
     if (authStore.isClient) {
-      await checkDraftEligibility()
+      await checkDraftEligibility(false) // Silent check on mount
     }
     if (authStore.isWriter && order.value.status === 'available') {
       await loadWriterContext()

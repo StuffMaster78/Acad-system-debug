@@ -56,7 +56,7 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
             'messages',
             queryset=CommunicationMessage.objects.filter(is_deleted=False).select_related(
                 'sender', 'recipient'
-            ).prefetch_related('read_by').order_by('-sent_at')
+            ).prefetch_related('read_by').order_by('sent_at')  # Oldest first for chronological display
         )
     )
     serializer_class = CommunicationThreadSerializer
@@ -71,47 +71,65 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         return self.serializer_class
 
     def get_queryset(self):
-        """Filter threads based on user's order access."""
+        """
+        Filter threads based on participants and role-based visibility.
+        
+        Rules:
+        - Users can see threads where they are participants (always)
+        - Admin/superadmin/support/editor can see client-writer threads as observers
+        - Writers CANNOT see admin-client threads (only their own participant threads)
+        - Clients CANNOT see threads they're not participants in
+        """
         queryset = super().get_queryset()
         user = self.request.user
         role = getattr(user, "role", None)
         
-        # Admins can see all threads
-        if role in {"admin", "superadmin"}:
-            return queryset
-        
-        # Filter threads where user is a participant OR has access to the order
         from django.db.models import Q, Exists, OuterRef
         from orders.models import Order
         
-        # Threads where user is a participant
+        # Threads where user is a participant (always visible)
         participant_filter = Q(participants=user)
         
-        # Threads for orders where user has access - use subqueries instead of separate queries
-        order_access_filter = Q()
+        # For writers and clients: ONLY threads where they are participants
+        if role in {"writer", "client"}:
+            return queryset.filter(participant_filter).distinct().order_by('-updated_at', '-id')
         
-        # Client's orders - use subquery to avoid separate query
-        client_orders_subquery = Order.objects.filter(
-            client=user,
-            id=OuterRef('order_id')
-        )
-        order_access_filter |= Q(Exists(client_orders_subquery))
+        # For admin/superadmin: can see all threads
+        if role in {"admin", "superadmin"}:
+            return queryset.order_by('-updated_at', '-id')
         
-        # Writer's assigned orders - use subquery to avoid separate query
-        writer_orders_subquery = Order.objects.filter(
-            assigned_writer=user,
-            id=OuterRef('order_id')
-        )
-        order_access_filter |= Q(Exists(writer_orders_subquery))
+        # For support/editor: can see threads where they are participants OR client-writer threads
+        # But NOT admin-client threads where they're not participants
+        if role in {"support", "editor"}:
+            # Threads where they are participants
+            participant_threads = Q(participants=user)
+            
+            # Client-writer threads (where sender_role is client and recipient_role is writer, or vice versa)
+            # AND user is NOT a participant (so they're observing)
+            client_writer_threads = (
+                (
+                    (Q(sender_role='client') & Q(recipient_role='writer')) |
+                    (Q(sender_role='writer') & Q(recipient_role='client'))
+                ) &
+                ~Q(participants=user)  # Not a participant
+            )
+            
+            # Exclude admin-client threads where they're not participants
+            # Admin-client threads have admin/superadmin/support/editor as sender/recipient and client as the other
+            admin_client_threads = (
+                (
+                    (Q(sender_role__in=['admin', 'superadmin', 'support', 'editor']) & Q(recipient_role='client')) |
+                    (Q(sender_role='client') & Q(recipient_role__in=['admin', 'superadmin', 'support', 'editor']))
+                ) &
+                ~Q(participants=user)  # Not a participant
+            )
+            
+            # Combine: participant threads OR client-writer threads (but exclude admin-client threads where not participant)
+            combined_filter = participant_threads | (client_writer_threads & ~admin_client_threads)
+            return queryset.filter(combined_filter).distinct().order_by('-updated_at', '-id')
         
-        # Staff roles can see all order threads
-        if role in {"editor", "support"}:
-            order_access_filter |= Q(order__isnull=False)
-        
-        # Combine both filters
-        combined_filter = participant_filter | order_access_filter
-        
-        return queryset.filter(combined_filter).distinct().order_by('-updated_at', '-id')
+        # Default: only participant threads
+        return queryset.filter(participant_filter).distinct().order_by('-updated_at', '-id')
 
     @action(detail=True, methods=['post'], url_path='typing')
     def typing(self, request, pk=None):
@@ -482,17 +500,20 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='start-for-order')
     def start_for_order(self, request):
         """
-        Start a conversation thread for an order.
-        This is a simplified endpoint that automatically sets up participants.
+        Start a conversation thread for an order with a specific recipient.
+        Creates a thread with only the sender and the selected recipient to ensure proper threading.
         
         POST /api/v1/order-communications/communication-threads/start-for-order/
         
         Body:
         {
-            "order_id": 123
+            "order_id": 123,
+            "recipient_id": 456  # Optional: specific recipient for the thread
         }
         """
         order_id = request.data.get('order_id')
+        recipient_id = request.data.get('recipient_id')
+        
         if not order_id:
             return Response(
                 {"detail": "order_id is required."},
@@ -508,23 +529,9 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Check if thread already exists for this order
-        existing_thread = CommunicationThread.objects.filter(order=order).first()
-        if existing_thread:
-            # Return existing thread
-            serializer = CommunicationThreadSerializer(existing_thread, context={'request': request})
-            return Response(
-                {
-                    "detail": "Conversation thread already exists for this order.",
-                    "thread": serializer.data
-                },
-                status=status.HTTP_200_OK
-            )
-        
-        # Check permissions using the guard service
         user = request.user
         
-        # Use the existing permission check
+        # Check permissions using the guard service
         try:
             CommunicationGuardService.assert_can_start_thread(user, order)
         except PermissionDenied as e:
@@ -533,7 +540,6 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         except Exception as perm_error:
-            # Catch any other permission-related errors
             import logging
             logger = logging.getLogger(__name__)
             logger.warning(f"Permission check failed for user {user.id} on order {order_id}: {str(perm_error)}")
@@ -542,33 +548,75 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        # Auto-determine participants
-        participants = [user]  # Always include the creator
+        # Determine participants: only sender + recipient (if specified)
+        participants = [user]  # Always include the sender
         
-        # Add order client if exists and different from creator
-        if order.client and order.client != user:
-            participants.append(order.client)
-        
-        # Add assigned writer if exists and different from creator
-        if order.assigned_writer and order.assigned_writer != user:
-            participants.append(order.assigned_writer)
-        
-        # Ensure we have at least 2 participants (creator + one other)
-        # If no client or writer, add support/admin as fallback
-        if len(participants) == 1:
-            # Only creator, try to add support/admin
+        if recipient_id:
+            # If recipient is specified, use only sender + recipient
             from django.contrib.auth import get_user_model
             User = get_user_model()
-            website = order.website
-            if website:
-                support_user = User.objects.filter(
-                    role__in=['admin', 'superadmin', 'support'],
-                    website=website
-                ).first()
-                if support_user and support_user != user:
-                    participants.append(support_user)
+            try:
+                recipient = User.objects.get(pk=recipient_id)
+                # Validate recipient has access to the order
+                role = getattr(recipient, "role", None)
+                has_access = (
+                    order.client == recipient or
+                    order.assigned_writer == recipient or
+                    role in {"admin", "superadmin", "editor", "support"}
+                )
+                if not has_access:
+                    return Response(
+                        {"detail": "Selected recipient does not have access to this order."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                if recipient != user:
+                    participants.append(recipient)
+            except User.DoesNotExist:
+                return Response(
+                    {"detail": "Recipient not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            # No recipient specified - use legacy behavior (auto-determine)
+            # Add order client if exists and different from creator
+            if order.client and order.client != user:
+                participants.append(order.client)
+            
+            # Add assigned writer if exists and different from creator
+            if order.assigned_writer and order.assigned_writer != user:
+                participants.append(order.assigned_writer)
+            
+            # Ensure we have at least 2 participants (creator + one other)
+            if len(participants) == 1:
+                from django.contrib.auth import get_user_model
+                User = get_user_model()
+                website = order.website
+                if website:
+                    support_user = User.objects.filter(
+                        role__in=['admin', 'superadmin', 'support'],
+                        website=website
+                    ).first()
+                    if support_user and support_user != user:
+                        participants.append(support_user)
         
-        # Create the thread
+        # Check if a thread already exists with these exact participants for this order
+        # This prevents creating duplicate threads for the same sender-recipient pair
+        existing_threads = CommunicationThread.objects.filter(order=order)
+        for thread in existing_threads:
+            thread_participants = set(thread.participants.all())
+            requested_participants = set(participants)
+            if thread_participants == requested_participants:
+                # Thread with these exact participants already exists
+                serializer = CommunicationThreadSerializer(thread, context={'request': request})
+                return Response(
+                    {
+                        "detail": "Conversation thread already exists for this order and recipient.",
+                        "thread": serializer.data
+                    },
+                    status=status.HTTP_200_OK
+                )
+        
+        # Create the thread with only the specified participants
         try:
             thread = ThreadService.create_thread(
                 order=order,
@@ -768,9 +816,11 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
         
         # Editors can see all messages in threads they have access to
         if user_role == "editor":
-            return thread.messages.filter(is_deleted=False).order_by("-sent_at")
+            return thread.messages.filter(is_deleted=False).order_by("sent_at")  # Oldest first for chronological display
         
-        return MessageService.get_visible_messages(user, thread)
+        # Get visible messages and order by sent_at (oldest first)
+        messages = MessageService.get_visible_messages(user, thread)
+        return messages.order_by("sent_at")  # Oldest first for chronological display
 
     def get_serializer_context(self):
         """Add thread context to serializer."""
@@ -909,51 +959,65 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
     
     @action(detail=False, methods=['get'])
     def available_recipients(self, request, thread_pk=None):
-        """Get list of available recipients for this thread."""
-        thread = CommunicationThread.objects.get(pk=thread_pk)
-        sender = request.user
-        
-        # Get all users with access to the order
-        recipients = []
-        
-        if thread.order:
-            order = thread.order
-            # Add client
-            if order.client and order.client != sender:
-                recipients.append({
-                    'id': order.client.id,
-                    'username': order.client.username,
-                    'email': order.client.email,
-                    'role': getattr(order.client, 'role', None),
-                })
-            # Add assigned writer
-            if order.assigned_writer and order.assigned_writer != sender:
-                recipients.append({
-                    'id': order.assigned_writer.id,
-                    'username': order.assigned_writer.username,
-                    'email': order.assigned_writer.email,
-                    'role': getattr(order.assigned_writer, 'role', None),
-                })
-            # Add all participants
-            for participant in thread.participants.exclude(id=sender.id):
-                if not any(r['id'] == participant.id for r in recipients):
+        """
+        Get list of available recipients for this thread.
+        This is best-effort only; callers must handle an empty list and can
+        fall back to simplified send if needed.
+        """
+        try:
+            try:
+                thread = CommunicationThread.objects.get(pk=thread_pk)
+            except CommunicationThread.DoesNotExist:
+                # Old or invalid thread id – no recipients to suggest.
+                return Response([], status=status.HTTP_200_OK)
+
+            sender = request.user
+            recipients = []
+
+            if thread.order:
+                order = thread.order
+                # Add client
+                if getattr(order, "client", None) and order.client != sender:
                     recipients.append({
-                        'id': participant.id,
-                        'username': participant.username,
-                        'email': participant.email,
-                        'role': getattr(participant, 'role', None),
+                        "id": order.client.id,
+                        "username": order.client.username,
+                        "email": order.client.email,
+                        "role": getattr(order.client, "role", None),
                     })
-        else:
-            # For threads without orders, just return participants
-            for participant in thread.participants.exclude(id=sender.id):
-                recipients.append({
-                    'id': participant.id,
-                    'username': participant.username,
-                    'email': participant.email,
-                    'role': getattr(participant, 'role', None),
-                })
-        
-        return Response(recipients)
+                # Add assigned writer
+                if getattr(order, "assigned_writer", None) and order.assigned_writer != sender:
+                    recipients.append({
+                        "id": order.assigned_writer.id,
+                        "username": order.assigned_writer.username,
+                        "email": order.assigned_writer.email,
+                        "role": getattr(order.assigned_writer, "role", None),
+                    })
+                # Add all participants
+                for participant in thread.participants.exclude(id=sender.id):
+                    if not any(r["id"] == participant.id for r in recipients):
+                        recipients.append({
+                            "id": participant.id,
+                            "username": participant.username,
+                            "email": participant.email,
+                            "role": getattr(participant, "role", None),
+                        })
+            else:
+                # For threads without orders, just return participants
+                for participant in thread.participants.exclude(id=sender.id):
+                    recipients.append({
+                        "id": participant.id,
+                        "username": participant.username,
+                        "email": participant.email,
+                        "role": getattr(participant, "role", None),
+                    })
+
+            return Response(recipients, status=status.HTTP_200_OK)
+        except Exception as exc:
+            # Never 500 here – the composer will fall back to simplified send.
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception("available_recipients failed for thread %s: %s", thread_pk, exc)
+            return Response([], status=status.HTTP_200_OK)
 
 
 class OrderMessageNotificationViewSet(viewsets.ModelViewSet):

@@ -22,6 +22,7 @@ from django.shortcuts import get_object_or_404
 from admin_management.permissions import IsAdmin
 from orders.models import Order, Dispute
 from orders.order_enums import OrderStatus
+from orders.services.status_transition_service import VALID_TRANSITIONS
 from refunds.models import Refund
 from reviews_system.models import WebsiteReview, WriterReview, OrderReview
 from special_orders.models import SpecialOrder, InstallmentPayment
@@ -625,6 +626,28 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
             total=Sum('total_price')
         )['total'] or 0
         
+        # Calculate transition-based counts
+        # For each target status, count orders that can transition to it
+        transition_counts = {}
+        target_statuses = [
+            'in_progress', 'submitted', 'completed', 'cancelled', 
+            'on_hold', 'available', 'revision_requested', 'disputed',
+            'under_editing', 'closed', 'reopened'
+        ]
+        
+        for target_status in target_statuses:
+            # Find all current statuses that can transition to this target
+            valid_source_statuses = [
+                source for source, transitions in VALID_TRANSITIONS.items()
+                if target_status in transitions
+            ]
+            
+            if valid_source_statuses:
+                count = all_orders.filter(status__in=valid_source_statuses).count()
+                transition_counts[f'can_transition_to_{target_status}'] = count
+            else:
+                transition_counts[f'can_transition_to_{target_status}'] = 0
+        
         return Response({
             'summary': {
                 'total_orders': all_orders.count(),
@@ -633,10 +656,12 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
                 'stuck_orders': stuck_orders.count(),
                 'recent_orders': recent_orders.count(),
                 'total_revenue': str(total_revenue),
+                **transition_counts,  # Add transition counts to summary
             },
             'status_breakdown': {
                 item['status']: item['count'] for item in status_breakdown
             },
+            'transition_counts': transition_counts,  # Also include as separate field
             'needs_assignment_list': [
                 {
                     'id': order.id,
@@ -1480,6 +1505,65 @@ class AdminAdvancedAnalyticsDashboardViewSet(viewsets.ViewSet):
                 'revenue_change_amount': str(period1_revenue - period2_revenue),
             },
         })
+    
+    @action(detail=False, methods=['get'], url_path='export')
+    def export_analytics(self, request):
+        """Export analytics data as CSV/JSON."""
+        import csv
+        import json
+        from django.http import HttpResponse
+        
+        format_type = request.query_params.get('format', 'json')  # json or csv
+        analytics_type = request.query_params.get('type', 'dashboard')  # dashboard, orders, reviews, etc.
+        
+        # Get dashboard data
+        dashboard_data = self.dashboard(request)
+        data = dashboard_data.data
+        
+        if format_type == 'csv':
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="analytics_export_{timezone.now().date()}.csv"'
+            
+            writer = csv.writer(response)
+            
+            # Write summary
+            if 'summary' in data:
+                writer.writerow(['Metric', 'Value'])
+                for key, value in data['summary'].items():
+                    writer.writerow([key.replace('_', ' ').title(), value])
+                writer.writerow([])
+            
+            # Write revenue analytics
+            if 'revenue_analytics' in data and 'daily_breakdown' in data['revenue_analytics']:
+                writer.writerow(['Date', 'Revenue', 'Orders'])
+                for item in data['revenue_analytics']['daily_breakdown']:
+                    writer.writerow([
+                        item.get('date', ''),
+                        item.get('revenue', 0),
+                        item.get('order_count', 0)
+                    ])
+                writer.writerow([])
+            
+            # Write weekly trends
+            if 'weekly_trends' in data:
+                writer.writerow(['Week', 'Orders Created', 'Orders Completed', 'Revenue'])
+                for item in data['weekly_trends']:
+                    writer.writerow([
+                        item.get('week', ''),
+                        item.get('orders_created', 0),
+                        item.get('orders_completed', 0),
+                        item.get('revenue', 0)
+                    ])
+            
+            return response
+        else:
+            # JSON export
+            response = HttpResponse(
+                json.dumps(data, indent=2, default=str),
+                content_type='application/json'
+            )
+            response['Content-Disposition'] = f'attachment; filename="analytics_export_{timezone.now().date()}.json"'
+            return response
 
 
 class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):

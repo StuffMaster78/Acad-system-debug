@@ -3,7 +3,7 @@
     <div v-if="show" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="$emit('close')">
       <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
+        <div class="bg-linear-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-xl font-bold text-white">New Message</h3>
@@ -22,49 +22,115 @@
         </div>
 
         <!-- Content -->
-        <div class="flex-1 overflow-y-auto p-6 space-y-6">
+        <div class="flex-1 overflow-y-auto p-6 space-y-5">
           <!-- Order Context -->
-          <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
-            <p class="text-sm font-medium text-blue-900 dark:text-blue-200 mb-1">About Order #{{ orderId }}</p>
-            <p class="text-xs text-blue-700 dark:text-blue-300">This message will be linked to this order</p>
-          </div>
+          <section class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
+            <p class="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
+              About Order #{{ orderId }}
+            </p>
+            <p class="text-xs text-blue-700 dark:text-blue-300">
+              This message will be linked to this order.
+            </p>
+          </section>
 
-          <!-- Recipient Type Selection -->
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              <span class="flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                Message To
-                <span class="text-red-500">*</span>
-              </span>
-            </label>
+          <!-- Step 1: Choose who to message -->
+          <section class="p-4 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3">
+            <div class="flex items-center justify-between">
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-100">
+                <span class="flex items-center gap-2">
+                  <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-xs font-bold text-white">
+                    1
+                  </span>
+                  Message To
+                  <span class="text-red-500">*</span>
+                </span>
+              </label>
+            </div>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
               <button
-                v-for="tab in recipientTabs"
+                v-for="tab in visibleRecipientTabs"
                 :key="tab.id"
                 @click="selectedRecipientType = tab.id; selectedRecipient = null"
                 :class="[
-                  'p-4 border-2 rounded-xl transition-all text-center',
+                  'p-3 border-2 rounded-xl transition-all text-center flex flex-col items-center justify-center gap-1',
                   selectedRecipientType === tab.id
-                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md'
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 shadow-sm'
                     : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600'
                 ]"
               >
-                <component :is="tab.icon" class="w-6 h-6 mx-auto mb-2" />
-                <p class="text-sm font-medium">{{ tab.label }}</p>
+                <component :is="tab.icon" class="w-5 h-5" />
+                <p class="text-xs font-medium">{{ tab.label }}</p>
               </button>
             </div>
-          </div>
+          </section>
 
-          <!-- Message Input -->
-          <div v-if="selectedRecipientType">
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+          <!-- Step 2: Pick a specific recipient (hidden when auto-selected) -->
+          <section
+            v-if="!selectedRecipient"
+            class="p-4 bg-gray-50 dark:bg-gray-900/40 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3"
+          >
+            <div class="flex items-center justify-between">
+              <label class="block text-sm font-semibold text-gray-800 dark:text-gray-100">
+                <span class="flex items-center gap-2">
+                  <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-xs font-bold text-white">
+                    2
+                  </span>
+                  Select Recipient
+                  <span class="text-red-500">*</span>
+                </span>
+              </label>
+              <div v-if="filteredRecipients.length > 0" class="w-40">
+                <input
+                  v-model="recipientSearch"
+                  type="text"
+                  placeholder="Search..."
+                  class="w-full px-3 py-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div v-if="!selectedRecipientType" class="p-3 text-sm text-gray-500 dark:text-gray-400">
+              Choose who you want to message first.
+            </div>
+            <div v-else-if="loadingRecipients" class="p-3 text-sm text-gray-500 dark:text-gray-400">
+              Loading recipients...
+            </div>
+            <div v-else-if="filteredRecipients.length === 0" class="p-3 text-sm text-gray-500 dark:text-gray-400">
+              No {{ selectedRecipientType }} recipients are available for this order.
+              Try a different recipient type above.
+            </div>
+            <div v-else class="space-y-2 max-h-40 overflow-y-auto">
+              <button
+                v-for="recipient in filteredRecipients"
+                :key="recipient.id"
+                @click="selectRecipient(recipient)"
+                class="w-full p-3 text-left border-2 border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-between gap-3"
+              >
+                <div class="min-w-0">
+                  <div class="font-medium text-sm text-gray-900 dark:text-white truncate">
+                    {{ recipient.username || recipient.email || 'User' }}
+                  </div>
+                  <div v-if="recipient.email" class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                    {{ recipient.email }}
+                  </div>
+                </div>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 uppercase">
+                  {{ (recipient.role || '').replace('_', ' ') || 'recipient' }}
+                </span>
+              </button>
+            </div>
+          </section>
+
+          <!-- Step 3: Write your message -->
+          <section
+            v-if="selectedRecipient"
+            class="p-4 bg-white dark:bg-gray-900/60 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2"
+          >
+            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
               <span class="flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
+                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-xs font-bold text-white">
+                  3
+                </span>
                 Your Message
                 <span class="text-red-500">*</span>
               </span>
@@ -72,11 +138,11 @@
             <textarea
               v-model="message"
               placeholder="Type your message about this order..."
-              rows="6"
-              class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white resize-none"
+              rows="5"
+              class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white resize-none text-sm"
             ></textarea>
-            <p v-if="error" class="mt-2 text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-          </div>
+            <p v-if="error" class="mt-1 text-xs text-red-600 dark:text-red-400">{{ error }}</p>
+          </section>
         </div>
 
         <!-- Footer -->
@@ -91,7 +157,7 @@
           <button
             @click="sendMessage"
             :disabled="!canSend || sending"
-            class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+            class="flex-1 px-4 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
           >
             <svg v-if="sending" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -106,8 +172,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
-import { communicationsAPI, usersAPI } from '@/api'
+import { ref, computed, watch } from 'vue'
+import { communicationsAPI } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps({
@@ -132,6 +198,7 @@ const currentUser = authStore.user
 
 const selectedRecipientType = ref(props.defaultRecipientType || null)
 const selectedRecipient = ref(null)
+const allOrderRecipients = ref([]) // fetched once per modal open
 const availableRecipients = ref([])
 const recipientSearch = ref('')
 const message = ref('')
@@ -170,6 +237,28 @@ const recipientTabs = computed(() => {
   return tabs
 })
 
+// Only show tabs that actually have at least one possible recipient
+const visibleRecipientTabs = computed(() => {
+  if (!allOrderRecipients.value.length) {
+    // Before we know recipients, show all tabs so the user can try them.
+    return recipientTabs.value
+  }
+
+  const roleMap = {
+    admin: ['admin', 'superadmin'],
+    support: ['support'],
+    writer: ['writer'],
+    editor: ['editor'],
+    client: ['client']
+  }
+
+  return recipientTabs.value.filter(tab => {
+    const roles = roleMap[tab.id] || []
+    if (!roles.length) return false
+    return allOrderRecipients.value.some(r => roles.includes(r.role))
+  })
+})
+
 const filteredRecipients = computed(() => {
   if (!recipientSearch.value) return availableRecipients.value
   
@@ -182,45 +271,46 @@ const filteredRecipients = computed(() => {
 })
 
 const canSend = computed(() => {
-  return selectedRecipientType.value && message.value.trim().length > 0
+  return selectedRecipient.value && message.value.trim().length > 0
 })
 
 const loadRecipients = async () => {
-  if (!selectedRecipientType.value) return
+  if (!selectedRecipientType.value || !props.orderId) return
 
   loadingRecipients.value = true
   error.value = ''
+  availableRecipients.value = []
   
   try {
     const activeTab = recipientTabs.value.find(t => t.id === selectedRecipientType.value)
     if (!activeTab) return
 
-    // Map tab IDs to roles
+    // Map tab IDs to roles (matches roles returned by order_recipients API)
     const roleMap = {
-      'admin': ['admin', 'superadmin'],
-      'support': ['support'],
-      'writer': ['writer'],
-      'editor': ['editor'],
-      'client': ['client']
+      admin: ['admin', 'superadmin'],
+      support: ['support'],
+      writer: ['writer'],
+      editor: ['editor'],
+      client: ['client']
     }
 
     const roles = roleMap[selectedRecipientType.value] || []
     if (roles.length === 0) return
 
-    // Fetch users - filter by role on frontend
-    try {
-      const response = await usersAPI.list({ 
-        is_active: true 
-      })
-      
-      const allUsers = response.data.results || response.data || []
-      // Filter by roles on the frontend
-      availableRecipients.value = allUsers.filter(user => 
-        roles.includes(user.role)
-      )
-    } catch (err) {
-      console.error('Failed to load recipients:', err)
-      error.value = 'Failed to load recipients. Please try again.'
+    // Fetch once per modal open and cache
+    if (!allOrderRecipients.value.length) {
+      const response = await communicationsAPI.getOrderRecipients(props.orderId)
+      allOrderRecipients.value = response.data || []
+    }
+
+    availableRecipients.value = allOrderRecipients.value.filter(recipient =>
+      roles.includes(recipient.role)
+    )
+
+    // If exactly one recipient matches this type, auto-select it to avoid
+    // forcing the user through two redundant steps.
+    if (availableRecipients.value.length === 1) {
+      selectRecipient(availableRecipients.value[0])
     }
   } catch (err) {
     console.error('Failed to load recipients:', err)
@@ -236,27 +326,37 @@ const selectRecipient = (recipient) => {
 }
 
 const sendMessage = async () => {
-  if (!canSend.value) return
+  if (!canSend.value || !selectedRecipient.value) return
 
   sending.value = true
   error.value = ''
 
   try {
-    // Use the order-specific thread creation endpoint
-    const threadResponse = await communicationsAPI.startThreadForOrder(props.orderId)
+    // Use the order-specific thread creation endpoint with explicit recipient
+    // This ensures threads are created with only sender + recipient, not all participants
+    const threadResponse = await communicationsAPI.startThreadForOrder(props.orderId, selectedRecipient.value.id)
     const thread = threadResponse.data.thread || threadResponse.data
 
-    // Send the message using the simplified endpoint
-    await communicationsAPI.sendMessageSimple(
-      thread.id,
-      message.value.trim()
-    )
+    // Send the message with explicit recipient to ensure it's received
+    const messageResponse = await communicationsAPI.sendMessage(thread.id, {
+      recipient: selectedRecipient.value.id,
+      message: message.value.trim(),
+      message_type: 'text'
+    })
 
-    emit('message-sent')
-    resetForm()
+    // Show success feedback
+    emit('message-sent', true) // Emit success
+    
+    // Close modal after a brief delay to show success
+    setTimeout(() => {
+      resetForm()
+      emit('close')
+    }, 500)
   } catch (err) {
     console.error('Failed to send message:', err)
-    error.value = err.response?.data?.detail || err.response?.data?.error || 'Failed to send message. Please try again.'
+    const errorMsg = err.response?.data?.detail || err.response?.data?.error || 'Failed to send message. Please try again.'
+    error.value = errorMsg
+    emit('message-sent', false) // Emit failure
   } finally {
     sending.value = false
   }

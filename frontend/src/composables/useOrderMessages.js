@@ -226,17 +226,12 @@ export function useOrderMessages(orderId) {
   let refreshInterval = null
   
   const startAutoRefresh = () => {
-    // Use shared refresh system
-    refreshInterval = messagesStore.startSharedRefresh(() => {
-      loadThreads()
-    }, 30000) // 30 seconds
+    // Prefer SSE-based updates; this is a no-op if already connected.
+    messagesStore.connectRealtime()
   }
   
   const stopAutoRefresh = () => {
-    if (refreshInterval) {
-      messagesStore.stopRefresh(refreshInterval)
-      refreshInterval = null
-    }
+    // Keep SSE connection shared across consumers; no-op here.
   }
   
   onMounted(() => {
