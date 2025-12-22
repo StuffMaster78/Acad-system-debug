@@ -28,9 +28,9 @@
     </div>
 
     <!-- Error State - Only show for actual errors, not 404/403 -->
-    <div v-else-if="error && endpointAvailable" class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+    <div v-else-if="error && endpointAvailable" class="bg-linear-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
       <div class="flex items-start gap-3">
-        <div class="flex-shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+        <div class="shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
           <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
@@ -43,7 +43,7 @@
     </div>
 
     <!-- Endpoint Not Available - Show graceful message -->
-    <div v-else-if="!loading && !error && !statusData && !endpointAvailable" class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center shadow-sm">
+    <div v-else-if="!loading && !error && !statusData && !endpointAvailable" class="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center shadow-sm">
       <div class="flex flex-col items-center gap-4">
         <div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
           <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -63,7 +63,7 @@
       <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Current Status</h3>
-          <div class="px-4 py-2 bg-gradient-to-r from-primary-100 to-primary-50 dark:from-primary-900/30 dark:to-primary-800/30 text-primary-700 dark:text-primary-300 rounded-lg font-semibold text-sm border border-primary-200 dark:border-primary-700">
+          <div class="px-4 py-2 bg-linear-to-r from-primary-100 to-primary-50 dark:from-primary-900/30 dark:to-primary-800/30 text-primary-700 dark:text-primary-300 rounded-lg font-semibold text-sm border border-primary-200 dark:border-primary-700">
             {{ formatStatus(statusData.current_status) }}
           </div>
         </div>
@@ -74,7 +74,7 @@
           </div>
           <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
             <div
-              class="bg-gradient-to-r from-primary-500 to-primary-600 h-3 rounded-full transition-all duration-500 shadow-sm"
+              class="bg-linear-to-r from-primary-500 to-primary-600 h-3 rounded-full transition-all duration-500 shadow-sm"
               :style="{ width: `${statusData.progress.percentage}%` }"
             ></div>
           </div>
@@ -90,7 +90,7 @@
           Estimated Completion
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="p-5 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800">
+          <div class="p-5 bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800">
             <div class="flex items-center gap-2 mb-2">
               <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -101,7 +101,7 @@
               {{ formatDateTime(statusData.estimated_completion.deadline) }}
             </div>
           </div>
-          <div class="p-5 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800">
+          <div class="p-5 bg-linear-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800">
             <div class="flex items-center gap-2 mb-2">
               <svg class="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -113,7 +113,7 @@
               <span class="text-sm font-normal text-gray-600 dark:text-gray-400">({{ statusData.estimated_completion.hours_remaining }}h)</span>
             </div>
           </div>
-          <div class="p-5 rounded-xl border" :class="statusData.estimated_completion.is_overdue ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800'">
+          <div class="p-5 rounded-xl border" :class="statusData.estimated_completion.is_overdue ? 'bg-linear-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800' : 'bg-linear-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800'">
             <div class="flex items-center gap-2 mb-2">
               <svg class="w-4 h-4" :class="statusData.estimated_completion.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -173,21 +173,21 @@
           Quality Metrics
         </h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="text-center p-5 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800">
+          <div class="text-center p-5 bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800">
             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">{{ statusData.quality_metrics.revision_count || 0 }}</div>
             <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Revisions</div>
           </div>
-          <div class="text-center p-5 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800">
+          <div class="text-center p-5 bg-linear-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800">
             <div class="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">{{ statusData.quality_metrics.dispute_count || 0 }}</div>
             <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Disputes</div>
           </div>
-          <div class="text-center p-5 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800">
+          <div class="text-center p-5 bg-linear-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800">
             <div class="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
               {{ statusData.quality_metrics.average_rating || 'N/A' }}
             </div>
             <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Avg Rating</div>
           </div>
-          <div class="text-center p-5 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800">
+          <div class="text-center p-5 bg-linear-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800">
             <div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
               {{ statusData.quality_metrics.has_reviews ? '✅' : '❌' }}
             </div>
@@ -210,7 +210,7 @@
             :key="index"
             class="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
           >
-            <div class="w-14 h-14 bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/30 dark:to-primary-800/30 rounded-xl flex items-center justify-center border border-primary-200 dark:border-primary-800 flex-shrink-0">
+            <div class="w-14 h-14 bg-linear-to-br from-primary-100 to-primary-50 dark:from-primary-900/30 dark:to-primary-800/30 rounded-xl flex items-center justify-center border border-primary-200 dark:border-primary-800 shrink-0">
               <span class="text-primary-700 dark:text-primary-300 font-bold text-lg">{{ update.progress_percentage }}%</span>
             </div>
             <div class="flex-1 min-w-0">
@@ -269,7 +269,7 @@
           <div
             v-for="(reassignment, index) in statusData.writer_reassignments"
             :key="index"
-            class="p-5 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800"
+            class="p-5 bg-linear-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800"
           >
             <div class="flex items-center justify-between mb-3">
               <div class="font-semibold text-gray-900 dark:text-gray-100">

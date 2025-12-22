@@ -163,9 +163,46 @@ class SupportWorkloadTrackerSerializer(serializers.ModelSerializer):
 class OrderDisputeSLASerializer(serializers.ModelSerializer):
     """Ensures support agents meet SLA compliance for orders and disputes."""
     
+    assigned_to_username = serializers.CharField(source='assigned_to.username', read_only=True)
+    assigned_to_email = serializers.CharField(source='assigned_to.email', read_only=True)
+    order_id = serializers.IntegerField(source='order.id', read_only=True)
+    dispute_id = serializers.IntegerField(source='dispute.id', read_only=True)
+    time_remaining_display = serializers.SerializerMethodField()
+    breach_duration_display = serializers.SerializerMethodField()
+    
     class Meta:
         model = OrderDisputeSLA
         fields = '__all__'
+        extra_fields = [
+            'assigned_to_username',
+            'assigned_to_email',
+            'order_id',
+            'dispute_id',
+            'time_remaining_display',
+            'breach_duration_display',
+        ]
+    
+    def get_time_remaining_display(self, obj):
+        """Get human-readable time remaining."""
+        if obj.time_remaining_minutes is None:
+            return None
+        if obj.time_remaining_minutes < 0:
+            return "Breached"
+        hours = obj.time_remaining_minutes // 60
+        minutes = obj.time_remaining_minutes % 60
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        return f"{minutes}m"
+    
+    def get_breach_duration_display(self, obj):
+        """Get human-readable breach duration."""
+        if obj.breach_duration_minutes is None:
+            return None
+        hours = obj.breach_duration_minutes // 60
+        minutes = obj.breach_duration_minutes % 60
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        return f"{minutes}m"
 
 
 ### **1️⃣8️⃣ FAQ Category Serializer**

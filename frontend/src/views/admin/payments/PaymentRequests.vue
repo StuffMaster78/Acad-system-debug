@@ -8,22 +8,22 @@
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg shadow border border-yellow-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div class="bg-linear-to-br from-yellow-50 to-yellow-100 rounded-lg shadow border border-yellow-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-yellow-700 truncate">Pending Requests</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-yellow-900 break-all leading-tight">{{ summary.pending || 0 }}</p>
         <p class="text-xs text-yellow-600">awaiting review</p>
       </div>
-      <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div class="bg-linear-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-green-700 truncate">Approved</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-green-900 break-all leading-tight">{{ summary.approved || 0 }}</p>
         <p class="text-xs text-green-600">approved requests</p>
       </div>
-      <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow border border-red-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div class="bg-linear-to-br from-red-50 to-red-100 rounded-lg shadow border border-red-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-red-700 truncate">Rejected</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-red-900 break-all leading-tight">{{ summary.rejected || 0 }}</p>
         <p class="text-xs text-red-600">rejected requests</p>
       </div>
-      <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-blue-700 truncate">Total Amount</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight">${{ formatCurrency(summary.total_amount || 0) }}</p>
         <p class="text-xs text-blue-600">all requests</p>

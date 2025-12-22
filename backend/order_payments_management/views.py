@@ -143,50 +143,54 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
             )
         
         for payment in order_payments.select_related('client', 'website', 'order', 'special_order', 'class_purchase'):
-            # Determine the payment type label
-            payment_type_label = payment.get_payment_type_display() if hasattr(payment, 'get_payment_type_display') else payment.payment_type
-            
-            # Get related object ID based on payment type
-            related_id = None
-            related_type = None
-            if payment.order:
-                related_id = payment.order.id
-                related_type = 'order'
-            elif payment.special_order:
-                related_id = payment.special_order.id
-                related_type = 'special_order'
-            elif payment.class_purchase:
-                related_id = payment.class_purchase.id
-                related_type = 'class_purchase'
-            
-            transactions.append({
-                'id': f'order_payment_{payment.id}',
-                'type': 'order_payment',
-                'payment_type': payment.payment_type,
-                'payment_type_label': payment_type_label,
-                'amount': float(payment.amount),
-                'status': payment.status,
-                'payment_method': payment.payment_method or 'N/A',
-                'client': {
-                    'id': payment.client.id,
-                    'email': payment.client.email,
-                    'username': payment.client.username
-                },
-                'website': {
-                    'id': payment.website.id,
-                    'name': payment.website.name,
-                    'domain': payment.website.domain
-                },
-                'order_id': payment.order.id if payment.order else None,
-                'special_order_id': payment.special_order.id if payment.special_order else None,
-                'class_purchase_id': payment.class_purchase.id if payment.class_purchase else None,
-                'related_id': related_id,
-                'related_type': related_type,
-                'reference_id': payment.reference_id,
-                'transaction_id': payment.transaction_id,
-                'created_at': payment.created_at,
-                'confirmed_at': payment.confirmed_at,
-            })
+            try:
+                # Determine the payment type label
+                payment_type_label = payment.get_payment_type_display() if hasattr(payment, 'get_payment_type_display') else payment.payment_type
+                
+                # Get related object ID based on payment type
+                related_id = None
+                related_type = None
+                if payment.order:
+                    related_id = payment.order.id
+                    related_type = 'order'
+                elif payment.special_order:
+                    related_id = payment.special_order.id
+                    related_type = 'special_order'
+                elif payment.class_purchase:
+                    related_id = payment.class_purchase.id
+                    related_type = 'class_purchase'
+                
+                transactions.append({
+                    'id': f'order_payment_{payment.id}',
+                    'type': 'order_payment',
+                    'payment_type': payment.payment_type,
+                    'payment_type_label': payment_type_label,
+                    'amount': float(payment.amount) if payment.amount else 0.0,
+                    'status': payment.status,
+                    'payment_method': payment.payment_method or 'N/A',
+                    'client': {
+                        'id': payment.client.id if payment.client else None,
+                        'email': payment.client.email if payment.client else None,
+                        'username': payment.client.username if payment.client else None
+                    } if payment.client else None,
+                    'website': {
+                        'id': payment.website.id if payment.website else None,
+                        'name': payment.website.name if payment.website else None,
+                        'domain': payment.website.domain if payment.website else None
+                    } if payment.website else None,
+                    'order_id': payment.order.id if payment.order else None,
+                    'special_order_id': payment.special_order.id if payment.special_order else None,
+                    'class_purchase_id': payment.class_purchase.id if payment.class_purchase else None,
+                    'related_id': related_id,
+                    'related_type': related_type,
+                    'reference_id': payment.reference_id,
+                    'transaction_id': payment.transaction_id,
+                    'created_at': payment.created_at,
+                    'confirmed_at': payment.confirmed_at,
+                })
+            except Exception as e:
+                logger.error(f"Error processing order payment {payment.id}: {e}", exc_info=True)
+                continue  # Skip this payment and continue with others
         
         # Get Client Wallet Transactions (new model)
         client_wallet_transactions = ClientWalletTransaction.objects.all()
@@ -204,33 +208,40 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
             )
         
         for transaction in client_wallet_transactions.select_related('wallet__user', 'wallet__website'):
-            transactions.append({
-                'id': f'client_wallet_{transaction.id}',
-                'type': 'client_wallet',
-                'payment_type': 'wallet_transaction',
-                'payment_type_label': transaction.transaction_type.replace('_', ' ').title() if hasattr(transaction, 'transaction_type') else 'Wallet Transaction',
-                'amount': float(transaction.amount),
-                'status': 'completed',
-                'payment_method': 'wallet',
-                'client': {
-                    'id': transaction.wallet.user.id,
-                    'email': transaction.wallet.user.email,
-                    'username': transaction.wallet.user.username
-                },
-                'website': {
-                    'id': transaction.wallet.website.id,
-                    'name': transaction.wallet.website.name,
-                    'domain': transaction.wallet.website.domain
-                } if transaction.wallet.website else None,
-                'order_id': None,
-                'reference_id': transaction.transaction_reference or f'wallet_{transaction.id}',
-                'transaction_id': f'wallet_{transaction.id}',
-                'created_at': transaction.created_at,
-                'confirmed_at': transaction.created_at,
-                'is_credit': transaction.is_credit if hasattr(transaction, 'is_credit') else None,
-                'source': transaction.source if hasattr(transaction, 'source') else None,
-                'description': transaction.description if hasattr(transaction, 'description') else None,
-            })
+            try:
+                if not transaction.wallet or not transaction.wallet.user:
+                    continue  # Skip transactions with missing wallet or user
+                
+                transactions.append({
+                    'id': f'client_wallet_{transaction.id}',
+                    'type': 'client_wallet',
+                    'payment_type': 'wallet_transaction',
+                    'payment_type_label': transaction.transaction_type.replace('_', ' ').title() if hasattr(transaction, 'transaction_type') else 'Wallet Transaction',
+                    'amount': float(transaction.amount) if transaction.amount else 0.0,
+                    'status': 'completed',
+                    'payment_method': 'wallet',
+                    'client': {
+                        'id': transaction.wallet.user.id,
+                        'email': transaction.wallet.user.email,
+                        'username': transaction.wallet.user.username
+                    },
+                    'website': {
+                        'id': transaction.wallet.website.id if transaction.wallet.website else None,
+                        'name': transaction.wallet.website.name if transaction.wallet.website else None,
+                        'domain': transaction.wallet.website.domain if transaction.wallet.website else None
+                    } if transaction.wallet.website else None,
+                    'order_id': None,
+                    'reference_id': transaction.transaction_reference or f'wallet_{transaction.id}',
+                    'transaction_id': f'wallet_{transaction.id}',
+                    'created_at': transaction.created_at,
+                    'confirmed_at': transaction.created_at,
+                    'is_credit': transaction.is_credit if hasattr(transaction, 'is_credit') else None,
+                    'source': transaction.source if hasattr(transaction, 'source') else None,
+                    'description': transaction.description if hasattr(transaction, 'description') else None,
+                })
+            except Exception as e:
+                logger.error(f"Error processing client wallet transaction {transaction.id}: {e}", exc_info=True)
+                continue  # Skip this transaction and continue with others
         
         # Get Client Wallet Transactions (old model - wallet app)
         try:
@@ -293,30 +304,37 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
             )
         
         for transaction in writer_wallet_transactions.select_related('writer_wallet__writer', 'writer_wallet__website', 'order'):
-            transactions.append({
-                'id': f'writer_wallet_{transaction.id}',
-                'type': 'writer_wallet',
-                'payment_type': transaction.transaction_type.lower().replace(' ', '_'),
-                'payment_type_label': transaction.transaction_type,
-                'amount': float(transaction.amount),
-                'status': 'completed',
-                'payment_method': 'wallet',
-                'writer': {
-                    'id': transaction.writer_wallet.writer.id,
-                    'email': transaction.writer_wallet.writer.email,
-                    'username': transaction.writer_wallet.writer.username
-                },
-                'website': {
-                    'id': transaction.writer_wallet.website.id,
-                    'name': transaction.writer_wallet.website.name,
-                    'domain': transaction.writer_wallet.website.domain
-                } if transaction.writer_wallet.website else None,
-                'order_id': transaction.order.id if transaction.order else None,
-                'reference_id': transaction.reference_code or f'writer_wallet_{transaction.id}',
-                'transaction_id': f'writer_wallet_{transaction.id}',
-                'created_at': transaction.created_at,
-                'confirmed_at': transaction.created_at,
-            })
+            try:
+                if not transaction.writer_wallet or not transaction.writer_wallet.writer:
+                    continue  # Skip transactions with missing wallet or writer
+                
+                transactions.append({
+                    'id': f'writer_wallet_{transaction.id}',
+                    'type': 'writer_wallet',
+                    'payment_type': transaction.transaction_type.lower().replace(' ', '_') if hasattr(transaction, 'transaction_type') else 'unknown',
+                    'payment_type_label': transaction.transaction_type if hasattr(transaction, 'transaction_type') else 'Writer Wallet Transaction',
+                    'amount': float(transaction.amount) if transaction.amount else 0.0,
+                    'status': 'completed',
+                    'payment_method': 'wallet',
+                    'writer': {
+                        'id': transaction.writer_wallet.writer.id,
+                        'email': transaction.writer_wallet.writer.email,
+                        'username': transaction.writer_wallet.writer.username
+                    },
+                    'website': {
+                        'id': transaction.writer_wallet.website.id if transaction.writer_wallet.website else None,
+                        'name': transaction.writer_wallet.website.name if transaction.writer_wallet.website else None,
+                        'domain': transaction.writer_wallet.website.domain if transaction.writer_wallet.website else None
+                    } if transaction.writer_wallet.website else None,
+                    'order_id': transaction.order.id if transaction.order else None,
+                    'reference_id': transaction.reference_code or f'writer_wallet_{transaction.id}',
+                    'transaction_id': f'writer_wallet_{transaction.id}',
+                    'created_at': transaction.created_at,
+                    'confirmed_at': transaction.created_at,
+                })
+            except Exception as e:
+                logger.error(f"Error processing writer wallet transaction {transaction.id}: {e}", exc_info=True)
+                continue  # Skip this transaction and continue with others
         
         # Get Tips
         tips = Tip.objects.all()
@@ -335,37 +353,44 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
             )
         
         for tip in tips.select_related('client', 'writer', 'website', 'order'):
-            tip_date = tip.sent_at if hasattr(tip, 'sent_at') and tip.sent_at else (tip.created_at if hasattr(tip, 'created_at') else timezone.now())
-            transactions.append({
-                'id': f'tip_{tip.id}',
-                'type': 'tip',
-                'payment_type': 'tip',
-                'payment_type_label': f'Tip ({tip.get_tip_type_display() if hasattr(tip, "get_tip_type_display") else tip.tip_type})',
-                'amount': float(tip.tip_amount),
-                'status': 'completed',
-                'payment_method': 'tip',
-                'client': {
-                    'id': tip.client.id,
-                    'email': tip.client.email,
-                    'username': tip.client.username
-                },
-                'writer': {
-                    'id': tip.writer.id,
-                    'email': tip.writer.email,
-                    'username': tip.writer.username
-                },
-                'website': {
-                    'id': tip.website.id,
-                    'name': tip.website.name,
-                    'domain': tip.website.domain
-                } if tip.website else None,
-                'order_id': tip.order.id if tip.order else None,
-                'reference_id': f'tip_{tip.id}',
-                'transaction_id': f'tip_{tip.id}',
-                'created_at': tip_date,
-                'confirmed_at': tip_date,
-                'tip_reason': tip.tip_reason if hasattr(tip, 'tip_reason') else None,
-            })
+            try:
+                if not tip.client or not tip.writer:
+                    continue  # Skip tips with missing client or writer
+                
+                tip_date = tip.sent_at if hasattr(tip, 'sent_at') and tip.sent_at else (tip.created_at if hasattr(tip, 'created_at') else timezone.now())
+                transactions.append({
+                    'id': f'tip_{tip.id}',
+                    'type': 'tip',
+                    'payment_type': 'tip',
+                    'payment_type_label': f'Tip ({tip.get_tip_type_display() if hasattr(tip, "get_tip_type_display") else tip.tip_type})',
+                    'amount': float(tip.tip_amount) if tip.tip_amount else 0.0,
+                    'status': 'completed',
+                    'payment_method': 'tip',
+                    'client': {
+                        'id': tip.client.id,
+                        'email': tip.client.email,
+                        'username': tip.client.username
+                    },
+                    'writer': {
+                        'id': tip.writer.id,
+                        'email': tip.writer.email,
+                        'username': tip.writer.username
+                    },
+                    'website': {
+                        'id': tip.website.id if tip.website else None,
+                        'name': tip.website.name if tip.website else None,
+                        'domain': tip.website.domain if tip.website else None
+                    } if tip.website else None,
+                    'order_id': tip.order.id if tip.order else None,
+                    'reference_id': f'tip_{tip.id}',
+                    'transaction_id': f'tip_{tip.id}',
+                    'created_at': tip_date,
+                    'confirmed_at': tip_date,
+                    'tip_reason': tip.tip_reason if hasattr(tip, 'tip_reason') else None,
+                })
+            except Exception as e:
+                logger.error(f"Error processing tip {tip.id}: {e}", exc_info=True)
+                continue  # Skip this tip and continue with others
         
         # Get Writer Bonuses
         bonuses = WriterBonus.objects.all()
@@ -382,34 +407,41 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
             )
         
         for bonus in bonuses.select_related('writer', 'website', 'special_order'):
-            transactions.append({
-                'id': f'bonus_{bonus.id}',
-                'type': 'bonus',
-                'payment_type': 'bonus',
-                'payment_type_label': f'Bonus ({bonus.get_category_display() if hasattr(bonus, "get_category_display") else bonus.category})',
-                'amount': float(bonus.amount),
-                'status': 'completed' if bonus.is_paid else 'pending',
-                'payment_method': 'bonus',
-                'writer': {
-                    'id': bonus.writer.id,
-                    'email': bonus.writer.email,
-                    'username': bonus.writer.username
-                },
-                'website': {
-                    'id': bonus.website.id,
-                    'name': bonus.website.name,
-                    'domain': bonus.website.domain
-                } if bonus.website else None,
-                'special_order_id': bonus.special_order.id if bonus.special_order else None,
-                'reference_id': f'bonus_{bonus.id}',
-                'transaction_id': f'bonus_{bonus.id}',
-                'created_at': bonus.granted_at,
-                'confirmed_at': bonus.granted_at if bonus.is_paid else None,
-                'bonus_reason': bonus.reason if hasattr(bonus, 'reason') else None,
-            })
+            try:
+                if not bonus.writer:
+                    continue  # Skip bonuses with missing writer
+                
+                transactions.append({
+                    'id': f'bonus_{bonus.id}',
+                    'type': 'bonus',
+                    'payment_type': 'bonus',
+                    'payment_type_label': f'Bonus ({bonus.get_category_display() if hasattr(bonus, "get_category_display") else bonus.category})',
+                    'amount': float(bonus.amount) if bonus.amount else 0.0,
+                    'status': 'completed' if bonus.is_paid else 'pending',
+                    'payment_method': 'bonus',
+                    'writer': {
+                        'id': bonus.writer.id,
+                        'email': bonus.writer.email,
+                        'username': bonus.writer.username
+                    },
+                    'website': {
+                        'id': bonus.website.id if bonus.website else None,
+                        'name': bonus.website.name if bonus.website else None,
+                        'domain': bonus.website.domain if bonus.website else None
+                    } if bonus.website else None,
+                    'special_order_id': bonus.special_order.id if bonus.special_order else None,
+                    'reference_id': f'bonus_{bonus.id}',
+                    'transaction_id': f'bonus_{bonus.id}',
+                    'created_at': bonus.granted_at,
+                    'confirmed_at': bonus.granted_at if bonus.is_paid else None,
+                    'bonus_reason': bonus.reason if hasattr(bonus, 'reason') else None,
+                })
+            except Exception as e:
+                logger.error(f"Error processing bonus {bonus.id}: {e}", exc_info=True)
+                continue  # Skip this bonus and continue with others
         
-        # Sort by created_at descending
-        transactions.sort(key=lambda x: x['created_at'], reverse=True)
+        # Sort by created_at descending (handle None values)
+        transactions.sort(key=lambda x: x.get('created_at') or timezone.now(), reverse=True)
         
         # Paginate
         paginator = PaymentLogPagination()
@@ -664,8 +696,8 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
         except Exception:
             pass  # Old model might not exist
         
-        # Sort by created_at descending
-        transactions.sort(key=lambda x: x['created_at'], reverse=True)
+        # Sort by created_at descending (handle None values)
+        transactions.sort(key=lambda x: x.get('created_at') or timezone.now(), reverse=True)
         
         # Paginate
         paginator = ClientPaymentPagination()
@@ -897,6 +929,46 @@ class OrderPaymentViewSet(viewsets.ModelViewSet):
                     logger.error(f"Wallet payment processing failed: {e}")
                     return Response(
                         {"error": f"Payment processing failed: {str(e)}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            elif payment_method == 'smart':
+                # Smart payment: wallet → points → gateway
+                try:
+                    external_gateway = request.data.get('external_gateway', 'stripe')
+                    external_id = request.data.get('external_id')
+                    
+                    result = OrderPaymentService.process_smart_payment(
+                        payment=payment,
+                        external_gateway=external_gateway,
+                        external_id=external_id
+                    )
+                    
+                    response_data = {
+                        "message": "Smart payment processed." if result['status'] == 'completed' else "Partial payment processed. Gateway payment pending.",
+                        "payment": TransactionSerializer(payment).data,
+                        "payment_identifier": OrderPaymentService.get_payment_identifier(payment),
+                        "breakdown": {
+                            "wallet_amount": float(result['wallet_amount']),
+                            "points_used": result['points_used'],
+                            "points_amount": float(result['points_amount']),
+                            "gateway_amount": float(result['gateway_amount']),
+                            "total_paid": float(result['total_paid']),
+                            "remaining": float(result['remaining'])
+                        },
+                        "status": result['status']
+                    }
+                    
+                    if result['status'] == 'pending':
+                        response_data["message"] += f" Please complete payment of ${result['remaining']} via {external_gateway}."
+                    
+                    return Response(
+                        response_data,
+                        status=status.HTTP_201_CREATED
+                    )
+                except Exception as e:
+                    logger.error(f"Smart payment processing failed: {e}", exc_info=True)
+                    return Response(
+                        {"error": f"Smart payment processing failed: {str(e)}"},
                         status=status.HTTP_400_BAD_REQUEST
                     )
             else:

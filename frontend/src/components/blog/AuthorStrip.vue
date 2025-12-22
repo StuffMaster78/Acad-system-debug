@@ -7,7 +7,7 @@
         class="flex items-start gap-4 flex-1 min-w-[280px]"
       >
         <!-- Author Avatar -->
-        <div class="flex-shrink-0">
+        <div class="shrink-0">
           <img
             v-if="author.profile_picture"
             :src="author.profile_picture"
@@ -16,7 +16,7 @@
           />
           <div
             v-else
-            class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-xl font-semibold"
+            class="w-16 h-16 rounded-full bg-linear-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-xl font-semibold"
           >
             {{ author.name?.charAt(0)?.toUpperCase() || 'A' }}
           </div>

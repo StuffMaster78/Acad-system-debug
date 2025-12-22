@@ -389,7 +389,7 @@
       </button>
       <button
         type="submit"
-        class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-gradient-to-r from-primary-600 to-primary-700 text-white text-sm font-semibold hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+        class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-linear-to-r from-primary-600 to-primary-700 text-white text-sm font-semibold hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
         :disabled="saving"
       >
         <span v-if="saving" class="inline-flex items-center gap-2">

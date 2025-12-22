@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 px-4">
+  <div class="min-h-screen flex items-center justify-center bg-linear-to-br from-primary-50 to-primary-100 px-4">
     <div class="max-w-md w-full">
       <div class="card">
         <div class="text-center mb-8">

@@ -88,7 +88,7 @@
                 </div>
                 <router-link
                   :to="`/orders/${revision.id}`"
-                  class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-primary-600 hover:bg-primary-50 rounded-lg transition-all shadow-sm hover:shadow-md whitespace-nowrap flex-shrink-0"
+                  class="inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold text-primary-600 hover:bg-primary-50 rounded-lg transition-all shadow-sm hover:shadow-md whitespace-nowrap shrink-0"
                 >
                   Review
                 </router-link>
@@ -253,7 +253,7 @@
               </div>
               <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
                 <div
-                  class="bg-gradient-to-r from-primary-500 to-primary-600 h-4 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-2"
+                  class="bg-linear-to-r from-primary-500 to-primary-600 h-4 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-2"
                   :style="{ width: `${summary.level_progress.progress_percentage || 0}%` }"
                 >
                   <span
@@ -295,7 +295,7 @@
 
         <!-- Quick Stats Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
@@ -305,14 +305,14 @@
                   {{ summary.active_orders || 0 }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">📝</span>
                 </div>
               </div>
             </div>
           </div>
-          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
@@ -322,14 +322,14 @@
                   {{ summary.completed_this_month || 0 }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">✅</span>
                 </div>
               </div>
             </div>
           </div>
-          <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-2">
@@ -339,14 +339,14 @@
                   ${{ formatCurrency(summary.total_earnings || 0) }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">💰</span>
                 </div>
               </div>
             </div>
           </div>
-          <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-md p-6 border-l-4 border-orange-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-orange-50 to-orange-100 rounded-xl shadow-md p-6 border-l-4 border-orange-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-orange-700 uppercase tracking-wide mb-2">
@@ -356,7 +356,7 @@
                   ${{ formatCurrency(summary.pending_payments || 0) }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">⏳</span>
                 </div>
@@ -372,7 +372,7 @@
         class="bg-red-50 border-2 border-red-300 rounded-xl p-6 sm:p-8"
       >
         <div class="flex items-start gap-4">
-          <div class="flex-shrink-0">
+          <div class="shrink-0">
             <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
               <span class="text-xl">❌</span>
             </div>

@@ -37,5 +37,11 @@ export default {
   createFAQ: (data) => apiClient.post('/support-management/faqs/', data),
   updateFAQ: (id, data) => apiClient.patch(`/support-management/faqs/${id}/`, data),
   deleteFAQ: (id) => apiClient.delete(`/support-management/faqs/${id}/`),
+
+  // SLA Management
+  getSLABreaches: () => apiClient.get('/support-management/support-dashboard/sla/breaches/'),
+  getSLADashboard: (params) => apiClient.get('/support-management/support-dashboard/sla/dashboard/', { params }),
+  getSLAMetrics: (params) => apiClient.get('/support-management/support-dashboard/sla/metrics/', { params }),
+  getSLAUpcoming: (params) => apiClient.get('/support-management/support-dashboard/sla/upcoming/', { params }),
 }
 

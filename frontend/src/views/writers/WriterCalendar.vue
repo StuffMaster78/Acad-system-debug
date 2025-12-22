@@ -1,6 +1,6 @@
 <template>
   <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100 shadow-sm">
+    <div class="flex items-center justify-between bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100 shadow-sm">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
           <span class="text-4xl">📅</span>
@@ -51,7 +51,7 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-blue-700 mb-1">Total Orders</p>
@@ -60,7 +60,7 @@
           <div class="text-4xl opacity-20">📋</div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-red-50 to-red-100 border border-red-200 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-red-50 to-red-100 border border-red-200 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-red-700 mb-1">Overdue</p>
@@ -69,7 +69,7 @@
           <div class="text-4xl opacity-20">⚠️</div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-orange-700 mb-1">Urgent (24h)</p>
@@ -173,7 +173,7 @@
       @click.self="selectedDay = null"
     >
       <div class="bg-white h-full w-full max-w-2xl shadow-2xl overflow-y-auto">
-        <div class="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 shadow-lg">
+        <div class="sticky top-0 bg-linear-to-r from-blue-600 to-indigo-600 text-white p-6 shadow-lg">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-2xl font-bold">Tasks Due</h2>

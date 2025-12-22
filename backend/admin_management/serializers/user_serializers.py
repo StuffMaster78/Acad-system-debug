@@ -4,6 +4,7 @@ Comprehensive user serializers for admin management.
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from users.mixins import UserRole
 
 User = get_user_model()
 
@@ -275,12 +276,17 @@ class CreateUserSerializer(serializers.ModelSerializer):
 class UserUpdateSerializer(serializers.ModelSerializer):
     """Serializer for updating user information."""
     phone_number = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    role = serializers.ChoiceField(
+        choices=UserRole.choices,
+        required=False,
+        allow_null=False
+    )
     
     class Meta:
         model = User
         fields = [
             'username', 'email', 'first_name', 'last_name',
-            'phone_number', 'is_active', 'website',
+            'phone_number', 'is_active', 'website', 'role',
         ]
         read_only_fields = ['id']
     

@@ -46,8 +46,15 @@ try:
 except ImportError:
     LoginAlertPreference = None
 
+try:
+    from .user_edit_requests import UserEditRequest
+except ImportError:
+    UserEditRequest = None
+
 # Build __all__ with all exported models
 _all_list = ['LoginAlertPreference']
+if 'UserEditRequest' in globals() and UserEditRequest:
+    _all_list.append('UserEditRequest')
 # Explicitly export common models
 if 'User' in globals():
     _all_list.insert(0, 'User')

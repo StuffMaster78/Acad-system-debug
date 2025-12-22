@@ -31,6 +31,7 @@ from users.views.privacy_controls import PrivacyControlsViewSet
 from users.views.security_activity import SecurityActivityViewSet
 from users.views.login_alerts import LoginAlertPreferenceViewSet
 from users.views.profile_change_viewset import ProfileChangeRequestViewSet, WriterAvatarViewSet
+from users.views.user_edit_request_viewset import UserEditRequestViewSet
 from users.views.subscription_viewset import SubscriptionViewSet
 from users.views.privacy_security_viewset import PrivacySecurityViewSet
 
@@ -71,6 +72,9 @@ router.register(r'account-deletion', AccountDeletionRequestViewSet, basename="ac
 # Profile change requests (Writers - requires admin approval)
 router.register(r'profile-changes', ProfileChangeRequestViewSet, basename="profile-changes")
 router.register(r'avatar-uploads', WriterAvatarViewSet, basename="avatar-uploads")
+
+# Unified User Edit Requests (all users)
+router.register(r'edit-requests', UserEditRequestViewSet, basename="user-edit-requests")
 
 # Subscription Management (Clients)
 router.register(r'subscriptions', SubscriptionViewSet, basename="subscriptions")

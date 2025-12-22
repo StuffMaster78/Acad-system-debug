@@ -23,12 +23,56 @@
         <div v-if="loadingProfile" class="loading-state">
           <p>Loading profile...</p>
         </div>
-        <form v-else @submit.prevent="updateProfile" class="settings-form">
-          <!-- Avatar Display -->
-          <div class="form-group avatar-group" v-if="profileData.avatar_url">
+        <form v-else @submit.prevent="updateProfile" class="settings-form" enctype="multipart/form-data">
+          <!-- Avatar Display & Upload -->
+          <div class="form-group avatar-group">
             <label>Profile Picture</label>
-            <div class="avatar-preview">
-              <img :src="profileData.avatar_url" alt="Avatar" class="avatar-image" />
+            <div class="avatar-upload-container">
+              <div class="avatar-preview">
+                <Avatar
+                  :image-url="avatarPreview || profileData.avatar_url"
+                  :first-name="profileForm.first_name"
+                  :last-name="profileForm.last_name"
+                  :username="profileForm.username"
+                  :email="profileForm.email"
+                  :name="fullName"
+                  size="md"
+                  shape="circle"
+                />
+              </div>
+              <div class="avatar-upload-controls">
+                <label for="avatar-upload" class="btn btn-secondary btn-upload">
+                  <input
+                    id="avatar-upload"
+                    type="file"
+                    accept="image/*"
+                    @change="handleAvatarUpload"
+                    class="file-input"
+                  />
+                  {{ avatarPreview ? 'Change Picture' : 'Upload Picture' }}
+                </label>
+                <button
+                  v-if="avatarPreview && avatarFile"
+                  type="button"
+                  @click="saveAvatarOnly"
+                  :disabled="loading"
+                  class="btn btn-primary btn-sm btn-save-image"
+                >
+                  {{ loading ? 'Saving...' : 'Save Image' }}
+                </button>
+                <button
+                  v-if="profileData.avatar_url || avatarPreview"
+                  type="button"
+                  @click="removeAvatar"
+                  class="btn btn-danger btn-sm btn-remove"
+                >
+                  Remove
+                </button>
+              </div>
+              <p class="help-text">
+                Upload a profile picture or we'll use the first letter of your name
+                <span v-if="avatarPreview && avatarFile" class="text-blue-600"> • Click "Save Image" to upload</span>
+              </p>
             </div>
           </div>
 
@@ -331,6 +375,7 @@ import SessionManagement from '@/components/settings/SessionManagement.vue'
 import ProfileUpdateRequests from '@/components/profile/ProfileUpdateRequests.vue'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import Tooltip from '@/components/common/Tooltip.vue'
+import Avatar from '@/components/common/Avatar.vue'
 
 export default {
   name: 'AccountSettings',
@@ -338,7 +383,8 @@ export default {
     SessionManagement,
     ProfileUpdateRequests,
     RichTextEditor,
-    Tooltip
+    Tooltip,
+    Avatar
   },
   setup() {
     const authStore = useAuthStore()
@@ -385,7 +431,10 @@ export default {
       deletionReason: '',
       deletionRequested: false,
       deleting: false,
-      deletionError: null
+      deletionError: null,
+      avatarPreview: null,
+      avatarFile: null,
+      removeAvatarOnSave: false
     }
   },
   computed: {
@@ -453,16 +502,43 @@ export default {
           null
         
         // Update profileData with avatar_url if available
-        const avatarUrl = userData.avatar_url || data.avatar_url
+        // Check multiple possible locations for avatar URL
+        let avatarUrl = userData.avatar_url || 
+                       data.avatar_url || 
+                       userData.profile_picture || 
+                       data.profile_picture ||
+                       (userData.user && (userData.user.avatar_url || userData.user.profile_picture)) ||
+                       (data.user && (data.user.avatar_url || data.user.profile_picture)) ||
+                       (userData.user_main_profile && (userData.user_main_profile.avatar_url || userData.user_main_profile.profile_picture))
+        
+        // Also check nested user_main_profile structure
+        if (!avatarUrl && userData.user_main_profile) {
+          avatarUrl = userData.user_main_profile.avatar_url || userData.user_main_profile.profile_picture
+        }
+        
+        // Debug logging to help troubleshoot
+        if (avatarUrl) {
+          console.log('Found avatar URL:', avatarUrl)
+        }
+        
         if (avatarUrl) {
           // Ensure avatar URL is absolute if it's a relative path
           if (avatarUrl.startsWith('http') || avatarUrl.startsWith('//')) {
             this.profileData.avatar_url = avatarUrl
           } else {
-            // Construct full URL for relative paths
+            // Construct full URL for relative paths (handle /media/ paths)
             const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || 'http://localhost:8000'
-            this.profileData.avatar_url = `${apiBaseUrl.replace('/api/v1', '')}${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`
+            // Remove /api/v1 if present, and ensure we have the base URL
+            const baseUrl = apiBaseUrl.replace('/api/v1', '').replace(/\/$/, '')
+            // Handle both /media/... and media/... paths
+            const cleanPath = avatarUrl.startsWith('/') ? avatarUrl : `/${avatarUrl}`
+            this.profileData.avatar_url = `${baseUrl}${cleanPath}`
+            console.log('Constructed avatar URL:', this.profileData.avatar_url)
           }
+        } else {
+          // Clear avatar_url if not found (user removed it)
+          this.profileData.avatar_url = null
+          console.log('No avatar URL found')
         }
       } catch (err) {
         console.error('Failed to load profile:', err)
@@ -474,12 +550,127 @@ export default {
       }
     },
 
+    handleAvatarUpload(event) {
+      const file = event.target.files[0]
+      if (!file) return
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        this.error = 'Please select an image file'
+        return
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        this.error = 'Image size must be less than 5MB'
+        return
+      }
+      
+      // Create preview
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        this.avatarPreview = e.target.result
+      }
+      reader.readAsDataURL(file)
+      
+      this.avatarFile = file
+      this.error = null
+    },
+    
+    removeAvatar() {
+      this.avatarPreview = null
+      this.avatarFile = null
+      // Set a flag to remove the avatar on save
+      this.removeAvatarOnSave = true
+    },
+    
+    async saveAvatarOnly() {
+      // Save just the avatar without updating other profile fields
+      if (!this.avatarFile) {
+        this.error = 'Please select an image first'
+        return
+      }
+      
+      this.loading = true
+      this.error = null
+      this.success = null
+      
+      try {
+        const formData = new FormData()
+        formData.append('profile_picture', this.avatarFile)
+        
+        await authApi.updateProfile(formData)
+        
+        // Reload profile to get the updated avatar URL
+        await this.loadProfile()
+        
+        // Clear the file and preview after successful upload
+        this.avatarFile = null
+        this.avatarPreview = null
+        
+        this.success = 'Profile picture saved successfully!'
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          this.success = null
+        }, 5000)
+      } catch (error) {
+        console.error('Avatar upload error:', error)
+        this.error = error.response?.data?.error || 
+                    error.response?.data?.detail || 
+                    'Failed to save profile picture. Please try again.'
+      } finally {
+        this.loading = false
+      }
+    },
+
     async updateProfile() {
       this.loading = true
       this.error = null
       this.success = null
 
       try {
+        // If avatar file is selected, upload it first
+        if (this.avatarFile) {
+          const formData = new FormData()
+          formData.append('profile_picture', this.avatarFile)
+          
+          // Upload avatar separately
+          try {
+            const avatarResponse = await authApi.updateProfile(formData)
+            
+            // Reload profile immediately after upload to get the updated avatar URL
+            await this.loadProfile()
+            
+            this.success = 'Profile picture uploaded successfully!'
+          } catch (avatarError) {
+            console.error('Avatar upload error:', avatarError)
+            this.error = avatarError.response?.data?.error || 
+                        avatarError.response?.data?.detail || 
+                        'Failed to upload profile picture. Please try again.'
+            this.loading = false
+            return
+          }
+          
+          // Clear the file after successful upload
+          this.avatarFile = null
+          this.avatarPreview = null
+        }
+        
+        // Handle avatar removal
+        if (this.removeAvatarOnSave) {
+          const formData = new FormData()
+          formData.append('remove_picture', 'true')
+          try {
+            await authApi.updateProfile(formData)
+            // Reload profile after removal to clear avatar
+            await this.loadProfile()
+          } catch (removeError) {
+            console.error('Avatar removal error:', removeError)
+          }
+          this.removeAvatarOnSave = false
+        }
+        
         // Prepare update data - only include fields that have values or are being cleared
         const updateData = {}
         
@@ -493,16 +684,29 @@ export default {
         if (this.profileForm.timezone !== undefined) updateData.timezone = this.profileForm.timezone || null
         if (this.profileForm.avatar) updateData.avatar = this.profileForm.avatar
         
-        const response = await authApi.updateProfile(updateData)
+        // Only update other fields if avatar was not just uploaded
+        if (!this.avatarFile && !this.removeAvatarOnSave && Object.keys(updateData).length > 0) {
+          const response = await authApi.updateProfile(updateData)
         
-        // Check if response includes updated user data
-        if (response.data && response.data.user) {
-          this.profileData = response.data.user
+          // Check if response includes updated user data
+          if (response.data && response.data.user) {
+            this.profileData = response.data.user
+          }
+          
+          this.success = response.data?.message || 'Profile updated successfully!'
+        } else if (this.avatarFile || this.removeAvatarOnSave) {
+          // If only avatar was updated, show success message
+          this.success = this.success || 'Profile updated successfully!'
         }
         
-        this.success = response.data?.message || 'Profile updated successfully!'
-        
         // Reload profile to get latest data from database
+        // This ensures avatar_url is properly loaded after any updates
+        await this.loadProfile()
+        
+        // Force a small delay to ensure backend has processed the image
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Reload one more time to ensure we get the latest avatar URL
         await this.loadProfile()
         
         // Clear success message after 5 seconds
@@ -511,10 +715,13 @@ export default {
         }, 5000)
       } catch (err) {
         console.error('Profile update error:', err)
-        this.error = err.response?.data?.error || 
-                    err.response?.data?.detail || 
-                    err.response?.data?.message ||
-                    'Failed to update profile. Please try again.'
+        // Extract error message from various possible locations
+        const errorMessage = err.response?.data?.error || 
+                            err.response?.data?.detail || 
+                            err.response?.data?.message ||
+                            err.message ||
+                            (typeof err === 'string' ? err : 'Failed to update profile. Please try again.')
+        this.error = errorMessage || 'Failed to update profile. Please try again.'
       } finally {
         this.loading = false
       }
@@ -776,16 +983,35 @@ export default {
   text-align: center;
 }
 
-.avatar-preview {
-  margin: 10px 0;
+.avatar-upload-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
 }
 
-.avatar-image {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 3px solid #667eea;
+.avatar-preview {
+  margin: 10px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.file-input {
+  display: none;
+}
+
+.btn-upload {
+  position: relative;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.btn-save-image {
+  margin-left: 10px;
+}
+
+.btn-remove {
+  margin-left: 10px;
 }
 
 .loading-state {

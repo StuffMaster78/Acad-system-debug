@@ -7,7 +7,7 @@
     >
       <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
         <div class="flex items-start">
-          <div class="flex-shrink-0">
+          <div class="shrink-0">
             <svg
               class="h-6 w-6 text-yellow-600"
               fill="none"

@@ -29,7 +29,7 @@
     </div>
 
     <!-- Create Order Button - Prominent -->
-    <div class="card bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg shadow-lg p-6 text-white">
+    <div class="card bg-linear-to-r from-primary-600 to-primary-700 rounded-lg shadow-lg p-6 text-white">
       <div class="flex items-center justify-between">
         <div>
           <h2 class="text-2xl font-bold mb-2">Ready to Place an Order?</h2>
@@ -134,7 +134,7 @@
 
     <!-- Loyalty Status -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="card bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg shadow-sm p-6 border border-yellow-200">
+      <div class="card bg-linear-to-br from-yellow-50 to-yellow-100 rounded-lg shadow-sm p-6 border border-yellow-200">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-xl font-bold text-gray-900">Loyalty Status</h2>
           <span class="text-3xl">⭐</span>
@@ -303,7 +303,7 @@
 
     <!-- Recent Orders -->
     <div class="card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-      <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200 px-6 py-4">
+      <div class="bg-linear-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200 px-6 py-4">
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -346,7 +346,7 @@
             <tr v-for="o in recentOrders" :key="o.id" class="hover:bg-blue-50/50 transition-all duration-150">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                  <div class="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
                     #
                   </div>
                   <span class="text-sm font-semibold text-gray-900">#{{ o.id }}</span>

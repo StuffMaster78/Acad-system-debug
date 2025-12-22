@@ -2,7 +2,7 @@
   <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="handleClose">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-7xl w-full h-[90vh] flex flex-col">
       <!-- Header -->
-      <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
+      <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
         <div class="flex items-center gap-3">
           <div class="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
             <svg class="w-6 h-6 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

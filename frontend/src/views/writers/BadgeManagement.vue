@@ -98,7 +98,7 @@
         <div 
           v-for="badge in filteredEarnedBadges" 
           :key="badge.id"
-          class="card bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg shadow-sm p-6 border-2 border-yellow-300 hover:shadow-lg transition-all cursor-pointer"
+          class="card bg-linear-to-br from-yellow-50 to-yellow-100 rounded-lg shadow-sm p-6 border-2 border-yellow-300 hover:shadow-lg transition-all cursor-pointer"
           @click="showBadgeDetail(badge)"
         >
           <div class="text-center">

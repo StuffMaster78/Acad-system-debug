@@ -33,8 +33,18 @@ def check_sla_breaches():
     Runs every 5 minutes.
     """
     try:
-        check_sla_status()
-        return "SLA breach check completed"
+        from .services.sla_service import SLAService
+        
+        # Check and update all SLA statuses
+        result = SLAService.check_and_update_all_slas()
+        
+        # Send warning alerts for approaching deadlines
+        warning_count = SLAService.send_warning_alerts()
+        
+        # Send breach alerts
+        breach_count = SLAService.send_breach_alerts()
+        
+        return f"SLA check completed: {result['checked']} checked, {result['new_breaches']} new breaches, {result['new_warnings']} new warnings, {breach_count} breach alerts sent, {warning_count} warning alerts sent"
     except Exception as e:
         return f"Error checking SLA breaches: {str(e)}"
 
@@ -82,29 +92,12 @@ def send_sla_breach_alerts():
     """
     Send alerts for SLA breaches that haven't been resolved.
     Runs every 15 minutes.
+    This task is now handled by check_sla_breaches, but kept for backward compatibility.
     """
     try:
-        breached_tasks = OrderDisputeSLA.objects.filter(
-            sla_breached=True,
-            actual_resolution_time__isnull=True
-        ).select_related('assigned_to', 'order', 'dispute')
-        
-        alert_count = 0
-        for task in breached_tasks:
-            if task.assigned_to:
-                # Send notification
-                try:
-                    support_profile = task.assigned_to.support_profile
-                    send_support_notification(
-                        support_profile,
-                        f"⚠️ SLA BREACH: {task.sla_type} - {'Order' if task.order else 'Dispute'} {task.order.id if task.order else task.dispute.id}",
-                        priority="high"
-                    )
-                    alert_count += 1
-                except Exception:
-                    continue
-        
-        return f"Sent {alert_count} SLA breach alerts"
+        from .services.sla_service import SLAService
+        breach_count = SLAService.send_breach_alerts()
+        return f"Sent {breach_count} SLA breach alerts"
     except Exception as e:
         return f"Error sending SLA alerts: {str(e)}"
 

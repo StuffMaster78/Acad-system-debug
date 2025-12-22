@@ -87,14 +87,32 @@ from writer_management.views.tips import TipViewSet, TipListView
 from writer_management.views.capacity import WriterCapacityViewSet, EditorWorkloadViewSet
 from writer_management.views.feedback import FeedbackViewSet, FeedbackHistoryViewSet
 from writer_management.views.portfolio import WriterPortfolioViewSet, PortfolioSampleViewSet
-# Import pen name and resource views
+# Import pen name and resource views directly from views.py
 try:
-    from writer_management.views import (
-        WriterPenNameChangeRequestViewSet,
-        WriterResourceViewSet,
-        WriterResourceCategoryViewSet
-    )
-except (ImportError, AttributeError):
+    import sys
+    import os
+    import importlib.util
+    views_py_path = os.path.join(os.path.dirname(__file__), 'views.py')
+    if os.path.exists(views_py_path):
+        spec = importlib.util.spec_from_file_location("writer_management.views_direct", views_py_path)
+        if spec and spec.loader:
+            views_main = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(views_main)
+            WriterPenNameChangeRequestViewSet = getattr(views_main, 'WriterPenNameChangeRequestViewSet', None)
+            WriterResourceViewSet = getattr(views_main, 'WriterResourceViewSet', None)
+            WriterResourceCategoryViewSet = getattr(views_main, 'WriterResourceCategoryViewSet', None)
+        else:
+            WriterPenNameChangeRequestViewSet = None
+            WriterResourceViewSet = None
+            WriterResourceCategoryViewSet = None
+    else:
+        WriterPenNameChangeRequestViewSet = None
+        WriterResourceViewSet = None
+        WriterResourceCategoryViewSet = None
+except (ImportError, AttributeError, Exception) as e:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.warning(f"Failed to import writer resource viewsets: {e}")
     WriterPenNameChangeRequestViewSet = None
     WriterResourceViewSet = None
     WriterResourceCategoryViewSet = None

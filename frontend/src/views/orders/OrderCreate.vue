@@ -14,12 +14,48 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium mb-1">Paper Type *</label>
-          <input v-model.number="form.paper_type_id" type="number" min="1" required class="w-full border rounded px-3 py-2" />
-          <p class="text-xs text-gray-500 mt-1">Enter the Paper Type ID (temporary)</p>
+          <select
+            v-model="form.paper_type_id"
+            required
+            class="w-full border rounded px-3 py-2"
+          >
+            <option value="">Select paper type</option>
+            <option v-for="pt in paperTypes" :key="pt.id" :value="pt.id">
+              {{ pt.name }}
+            </option>
+          </select>
         </div>
         <div>
           <label class="block text-sm font-medium mb-1">Number of Pages *</label>
           <input v-model.number="form.number_of_pages" type="number" min="1" required class="w-full border rounded px-3 py-2" />
+        </div>
+      </div>
+
+      <!-- Academic Level and Subject -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium mb-1">Academic Level</label>
+          <select
+            v-model="form.academic_level_id"
+            class="w-full border rounded px-3 py-2"
+          >
+            <option value="">Select academic level</option>
+            <option v-for="level in academicLevels" :key="level.id" :value="level.id">
+              {{ level.name }}
+            </option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1">Subject</label>
+          <select
+            v-model="form.subject_id"
+            class="w-full border rounded px-3 py-2"
+          >
+            <option value="">Select subject</option>
+            <option v-for="subject in subjects" :key="subject.id" :value="subject.id">
+              {{ subject.name }}
+            </option>
+          </select>
         </div>
       </div>
 
@@ -67,9 +103,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import ordersAPI from '@/api/orders'
 import { useRouter } from 'vue-router'
+import dropdownOptionsAPI from '@/api/dropdown-options'
 import DiscountCodeInput from '@/components/common/DiscountCodeInput.vue'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import Tooltip from '@/components/common/Tooltip.vue'
@@ -80,6 +117,8 @@ const form = ref({
   topic: '',
   paper_type_id: null,
   number_of_pages: 1,
+  academic_level_id: null,
+  subject_id: null,
   client_deadline: '',
   order_instructions: '',
   discount_code: '',
@@ -92,11 +131,33 @@ const discountCode = ref('')
 const discountAmount = ref(0)
 const appliedDiscount = ref(null)
 
+const paperTypes = ref([])
+const academicLevels = ref([])
+const subjects = ref([])
+
 const estimatedTotal = computed(() => {
   // This would be calculated based on paper type and pages
   // For now, return a placeholder
   return 100
 })
+
+const loadDropdownOptions = async () => {
+  try {
+    const [paperTypesRes, academicLevelsRes, subjectsRes] = await Promise.all([
+      dropdownOptionsAPI.getPaperTypes().catch(() => ({ data: [] })),
+      dropdownOptionsAPI.getAcademicLevels().catch(() => ({ data: [] })),
+      dropdownOptionsAPI.getSubjects().catch(() => ({ data: [] }))
+    ])
+
+    paperTypes.value = Array.isArray(paperTypesRes.data) ? paperTypesRes.data : []
+    academicLevels.value = Array.isArray(academicLevelsRes.data) ? academicLevelsRes.data : []
+    subjects.value = Array.isArray(subjectsRes.data) ? subjectsRes.data : []
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      console.error('Failed to load dropdown options:', err)
+    }
+  }
+}
 
 const handleDiscountApplied = (discount, amount) => {
   appliedDiscount.value = discount
@@ -115,14 +176,38 @@ const submit = async () => {
   message.value = ''
   loading.value = true
   try {
-    const payload = { ...form.value }
+    const payload = {
+      topic: form.value.topic,
+      paper_type_id: form.value.paper_type_id,
+      number_of_pages: form.value.number_of_pages,
+      client_deadline: form.value.client_deadline,
+      order_instructions: form.value.order_instructions
+    }
+
+    if (form.value.academic_level_id) {
+      payload.academic_level_id = form.value.academic_level_id
+    }
+    if (form.value.subject_id) {
+      payload.subject_id = form.value.subject_id
+    }
+    if (form.value.discount_code || appliedDiscount.value?.code) {
+      payload.discount_code = form.value.discount_code || appliedDiscount.value?.code
+    }
+
     const res = await ordersAPI.createClient(payload)
     message.value = `Order #${res.data.id} created successfully.`
     setTimeout(() => router.push(`/orders/${res.data.id}`), 800)
   } catch (e) {
     error.value = e?.response?.data?.detail || e.message || 'Failed to create order'
+    if (import.meta.env.DEV) {
+      console.error('Failed to create order:', e)
+    }
   } finally {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  loadDropdownOptions()
+})
 </script>

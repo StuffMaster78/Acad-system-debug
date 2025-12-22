@@ -9,17 +9,17 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Pending Requests</p>
         <p class="text-3xl font-bold text-yellow-900">{{ stats.pending || 0 }}</p>
         <p class="text-xs text-yellow-600 mt-1">Awaiting review</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Confirmed</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.confirmed || 0 }}</p>
         <p class="text-xs text-green-600 mt-1">Accounts frozen</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+      <div class="card p-4 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
         <p class="text-sm font-medium text-red-700 mb-1">Rejected</p>
         <p class="text-3xl font-bold text-red-900">{{ stats.rejected || 0 }}</p>
         <p class="text-xs text-red-600 mt-1">Requests denied</p>

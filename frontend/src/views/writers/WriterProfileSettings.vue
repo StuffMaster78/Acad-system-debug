@@ -39,7 +39,7 @@
     </div>
 
     <!-- Writer Hierarchy Information -->
-    <div v-if="writerProfile?.writer_level_details" class="bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-lg shadow-sm p-6 border-2 border-indigo-200">
+    <div v-if="writerProfile?.writer_level_details" class="bg-linear-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-lg shadow-sm p-6 border-2 border-indigo-200">
       <div class="flex items-center justify-between mb-4">
         <div>
           <h2 class="text-xl font-bold text-gray-900">Writer Hierarchy</h2>

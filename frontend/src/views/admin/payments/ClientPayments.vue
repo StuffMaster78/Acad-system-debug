@@ -58,27 +58,27 @@
 
     <!-- Summary Cards -->
     <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
-      <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
         <div class="text-sm font-medium opacity-90">Total Payments</div>
         <div class="text-3xl font-bold mt-2">${{ formatCurrency(summary.totalAmount) }}</div>
         <div class="text-xs opacity-75 mt-1">{{ summary.totalTransactions }} transactions</div>
       </div>
-      <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
         <div class="text-sm font-medium opacity-90">Order Payments</div>
         <div class="text-3xl font-bold mt-2">${{ formatCurrency(summary.orderPayments) }}</div>
         <div class="text-xs opacity-75 mt-1">{{ summary.orderPaymentCount }} payments</div>
       </div>
-      <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-lg p-6 text-white">
         <div class="text-sm font-medium opacity-90">Class Payments</div>
         <div class="text-3xl font-bold mt-2">${{ formatCurrency(summary.classPayments) }}</div>
         <div class="text-xs opacity-75 mt-1">{{ summary.classPaymentCount }} payments</div>
       </div>
-      <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-purple-500 to-purple-600 rounded-lg shadow-lg p-6 text-white">
         <div class="text-sm font-medium opacity-90">Wallet Top-ups</div>
         <div class="text-3xl font-bold mt-2">${{ formatCurrency(summary.walletTopups) }}</div>
         <div class="text-xs opacity-75 mt-1">{{ summary.walletTopupCount }} top-ups</div>
       </div>
-      <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-orange-500 to-orange-600 rounded-lg shadow-lg p-6 text-white">
         <div class="text-sm font-medium opacity-90">Tips Given</div>
         <div class="text-3xl font-bold mt-2">${{ formatCurrency(summary.tips) }}</div>
         <div class="text-xs opacity-75 mt-1">{{ summary.tipCount }} tips</div>
@@ -196,7 +196,7 @@
       
       <div v-else class="overflow-x-auto shadow-sm rounded-lg border border-gray-200">
         <table class="min-w-full divide-y divide-gray-200" style="min-width: 1200px;">
-          <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
+          <thead class="bg-linear-to-r from-blue-50 to-indigo-50 border-b-2 border-blue-200">
             <tr>
               <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">
                 <div class="flex items-center gap-2">
@@ -272,7 +272,7 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                  <div class="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
                     {{ (payment.client?.username || 'N/A').charAt(0).toUpperCase() }}
                   </div>
                   <div>

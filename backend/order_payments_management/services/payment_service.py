@@ -21,6 +21,7 @@ from notifications_system.services.notification_helper import NotificationHelper
 # Valid payment methods
 VALID_PAYMENT_METHODS = [
     'wallet',
+    'smart',  # Smart payment: wallet → points → gateway
     'manual',  # Admin-processed external payment
     'stripe',  # Future: Stripe integration
     'paypal',  # Future: PayPal integration
@@ -240,6 +241,192 @@ class OrderPaymentService:
                 logger.error(f"Failed to send payment completed notification: {e}")
         
         return payment
+
+    @staticmethod
+    @transaction.atomic
+    def process_smart_payment(
+        payment: OrderPayment,
+        external_gateway: str = 'stripe',
+        external_id: str = None
+    ) -> dict:
+        """
+        Process smart payment that automatically uses:
+        1. Wallet balance first
+        2. Loyalty points (converted to wallet) second
+        3. External payment gateway for remainder
+        
+        Args:
+            payment: OrderPayment instance to process
+            external_gateway: Gateway to use for remainder ('stripe', 'paypal', etc.)
+            external_id: Optional external payment ID if already initiated
+            
+        Returns:
+            dict: {
+                'status': 'completed' | 'pending',
+                'wallet_amount': Decimal,
+                'points_used': int,
+                'points_amount': Decimal,
+                'gateway_amount': Decimal,
+                'split_payments': list of SplitPayment records
+            }
+            
+        Raises:
+            ValueError: If payment cannot be completed
+        """
+        from wallet.models import Wallet
+        from client_management.models import ClientProfile
+        from loyalty_management.services.loyalty_conversion_service import LoyaltyConversionService
+        from loyalty_management.models import LoyaltyPointsConversionConfig
+        from ..models import SplitPayment
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        
+        total_amount = payment.discounted_amount or payment.amount
+        remaining = total_amount
+        split_payments_data = []
+        
+        # Step 1: Use wallet balance first
+        # Get or create wallet, then lock it
+        wallet, created = Wallet.objects.get_or_create(
+            user=payment.client,
+            website=payment.website,
+            defaults={'balance': Decimal('0.00')}
+        )
+        # Lock the wallet for update
+        wallet = Wallet.objects.select_for_update().get(id=wallet.id)
+        wallet_amount = min(wallet.balance, remaining)
+        
+        if wallet_amount > 0:
+            wallet.balance -= wallet_amount
+            wallet.save(update_fields=['balance'])
+            remaining -= wallet_amount
+            split_payments_data.append({
+                'method': 'wallet',
+                'amount': wallet_amount
+            })
+            logger.info(f"Smart payment: Used ${wallet_amount} from wallet for payment {payment.id}")
+        
+        # Step 2: Convert and use loyalty points if still needed
+        points_used = 0
+        points_amount = Decimal('0.00')
+        
+        if remaining > 0:
+            try:
+                client_profile = ClientProfile.objects.get(user=payment.client, website=payment.website)
+                total_points = LoyaltyConversionService.get_total_points(client_profile)
+                
+                if total_points > 0:
+                    # Get conversion config
+                    config = LoyaltyPointsConversionConfig.objects.filter(
+                        website=payment.website,
+                        active=True
+                    ).first()
+                    
+                    if config and config.min_conversion_points > 0:
+                        # Calculate how many points we need to cover remaining amount
+                        # points_needed = remaining / conversion_rate
+                        points_needed_decimal = remaining / config.conversion_rate
+                        points_needed = int(points_needed_decimal)
+                        
+                        # Use available points (up to what we need)
+                        points_to_use = min(total_points, points_needed)
+                        
+                        # Ensure we meet minimum conversion requirement
+                        if points_to_use >= config.min_conversion_points:
+                            # Convert points to wallet amount
+                            points_amount = Decimal(points_to_use) * config.conversion_rate
+                            
+                            # If points amount exceeds remaining, adjust
+                            if points_amount > remaining:
+                                # Recalculate points needed for exact remaining amount
+                                points_to_use = int(remaining / config.conversion_rate)
+                                points_amount = Decimal(points_to_use) * config.conversion_rate
+                            
+                            # Deduct points and add to wallet
+                            LoyaltyConversionService.deduct_points(
+                                client_profile=client_profile,
+                                points=points_to_use,
+                                website=payment.website,
+                                reason=f"Payment for Order {payment.order.id if payment.order else 'N/A'}"
+                            )
+                            
+                            # Add converted amount to wallet
+                            wallet.balance += points_amount
+                            wallet.save(update_fields=['balance'])
+                            
+                            # Deduct from wallet for payment
+                            wallet.balance -= points_amount
+                            wallet.save(update_fields=['balance'])
+                            
+                            remaining -= points_amount
+                            points_used = points_to_use
+                            split_payments_data.append({
+                                'method': 'loyalty_points',
+                                'amount': points_amount,
+                                'points': points_to_use
+                            })
+                            logger.info(f"Smart payment: Converted and used {points_to_use} points (${points_amount}) for payment {payment.id}")
+            except ClientProfile.DoesNotExist:
+                logger.warning(f"ClientProfile not found for user {payment.client.id}, skipping points")
+            except Exception as e:
+                logger.error(f"Error processing loyalty points for payment {payment.id}: {e}", exc_info=True)
+                # Continue with gateway payment even if points conversion fails
+        
+        # Step 3: Use external payment gateway for remainder
+        gateway_amount = Decimal('0.00')
+        if remaining > 0:
+            gateway_amount = remaining
+            # Mark payment as pending external processing
+            payment.status = 'pending'
+            payment.payment_method = external_gateway
+            if external_id:
+                payment.external_id = external_id
+            payment.save()
+            
+            split_payments_data.append({
+                'method': external_gateway,
+                'amount': gateway_amount
+            })
+            logger.info(f"Smart payment: Remaining ${gateway_amount} to be paid via {external_gateway} for payment {payment.id}")
+        else:
+            # All paid, mark as completed
+            payment.status = 'completed'
+            payment.confirmed_at = timezone.now()
+            payment.save()
+            
+            # Send notification
+            if payment.order and payment.order.client:
+                try:
+                    NotificationHelper.notify_order_paid(
+                        order=payment.order,
+                        payment_amount=total_amount,
+                        payment_method='smart_payment'
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send payment completed notification: {e}")
+        
+        # Create SplitPayment records for tracking
+        split_payments = []
+        for split_data in split_payments_data:
+            split_payment = SplitPayment.objects.create(
+                payment=payment,
+                website=payment.website,
+                method=split_data['method'],
+                amount=split_data['amount']
+            )
+            split_payments.append(split_payment)
+        
+        return {
+            'status': 'completed' if remaining == 0 else 'pending',
+            'wallet_amount': wallet_amount,
+            'points_used': points_used,
+            'points_amount': points_amount,
+            'gateway_amount': gateway_amount,
+            'split_payments': split_payments,
+            'total_paid': wallet_amount + points_amount + gateway_amount,
+            'remaining': remaining
+        }
 
     @staticmethod
     @transaction.atomic

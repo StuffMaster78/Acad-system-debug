@@ -3,7 +3,7 @@
     <div v-if="show" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="$emit('close')">
       <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
+        <div class="bg-linear-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-xl font-bold text-white">New Message</h3>
@@ -83,14 +83,14 @@
                 ]"
               >
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
+                  <div class="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
                     {{ (recipient.username || recipient.email || 'U')[0].toUpperCase() }}
                   </div>
                   <div class="flex-1">
                     <p class="font-medium text-gray-900 dark:text-white">{{ recipient.username || recipient.email }}</p>
                     <p class="text-xs text-gray-500 dark:text-gray-400">{{ recipient.email }}</p>
                   </div>
-                  <div v-if="selectedRecipient?.id === recipient.id" class="flex-shrink-0">
+                  <div v-if="selectedRecipient?.id === recipient.id" class="shrink-0">
                     <div class="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
                       <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -135,7 +135,7 @@
           <button
             @click="sendMessage"
             :disabled="!canSend || sending"
-            class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+            class="flex-1 px-4 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
           >
             <svg v-if="sending" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

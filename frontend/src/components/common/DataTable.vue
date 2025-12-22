@@ -15,7 +15,7 @@
     <!-- Table -->
     <div v-else class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
+        <thead class="bg-linear-to-r from-gray-50 to-gray-100">
           <tr>
             <th
               v-for="(column, index) in columns"

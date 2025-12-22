@@ -25,19 +25,19 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+      <div class="card p-4 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
         <p class="text-sm font-medium text-red-700 mb-1">Total Fines</p>
         <p class="text-3xl font-bold text-red-900">{{ stats.total_fines || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Pending Appeals</p>
         <p class="text-3xl font-bold text-yellow-900">{{ stats.pending_appeals || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Waived</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.waived_fines || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Amount</p>
         <p class="text-3xl font-bold text-blue-900">${{ stats.total_amount || '0.00' }}</p>
         <p class="text-xs text-blue-600 mt-1" v-if="stats.recent_count">
@@ -372,7 +372,23 @@
                 View
               </button>
               <button
-                v-if="item.status === 'disputed'"
+                v-if="item.appeal && item.appeal.status === 'pending'"
+                @click="approveDispute(item.appeal.id)"
+                class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors"
+                title="Approve Appeal"
+              >
+                Approve
+              </button>
+              <button
+                v-if="item.appeal && item.appeal.status === 'pending'"
+                @click="rejectDispute(item.appeal.id)"
+                class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-md hover:bg-red-100 transition-colors"
+                title="Reject Appeal"
+              >
+                Reject
+              </button>
+              <button
+                v-if="item.status === 'disputed' && !item.appeal"
                 @click="resolveDispute(item.id)"
                 class="px-3 py-1.5 text-xs font-medium text-green-600 bg-green-50 rounded-md hover:bg-green-100 transition-colors"
                 title="Resolve Dispute"
@@ -535,7 +551,7 @@
     <div v-if="showFineTypeModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="closeFineTypeModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-purple-50 to-purple-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex justify-between items-center">
             <div>
               <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ editingFineType ? 'Edit Fine Type' : 'Create Fine Type' }}</h3>
@@ -905,7 +921,7 @@
     <div v-if="showFineDetailModal && selectedFine" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showFineDetailModal = false">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-blue-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Fine Details</h3>
@@ -1002,7 +1018,7 @@
     <div v-if="showAppealDetailModal && selectedAppeal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showAppealDetailModal = false">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-orange-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-orange-50 to-orange-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Appeal Details</h3>

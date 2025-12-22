@@ -155,6 +155,152 @@
       </div>
     </div>
 
+    <!-- Edit Sample Modal -->
+    <div v-if="showEditSampleModal && editingSample" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeEditSampleModal">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Edit PDF Sample</h3>
+            <button @click="closeEditSampleModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <form @submit.prevent="saveSample" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
+              <input
+                v-model="sampleForm.title"
+                type="text"
+                required
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white"
+                placeholder="Enter sample title"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Service Page ID</label>
+              <input
+                v-model.number="sampleForm.service_page_id"
+                type="number"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white"
+                placeholder="Service page ID (optional)"
+              />
+            </div>
+            
+            <div>
+              <label class="flex items-center gap-2">
+                <input
+                  v-model="sampleForm.is_active"
+                  type="checkbox"
+                  class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
+              </label>
+            </div>
+            
+            <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                @click="closeEditSampleModal"
+                class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                :disabled="saving"
+                class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {{ saving ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Section Modal -->
+    <div v-if="showEditSectionModal && editingSection" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeEditSectionModal">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white">Edit PDF Sample Section</h3>
+            <button @click="closeEditSectionModal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <form @submit.prevent="saveSection" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title *</label>
+              <input
+                v-model="sectionForm.title"
+                type="text"
+                required
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white"
+                placeholder="Enter section title"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">PDF Sample ID *</label>
+              <input
+                v-model.number="sectionForm.pdf_sample_id"
+                type="number"
+                required
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white"
+                placeholder="PDF Sample ID"
+              />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Display Order</label>
+              <input
+                v-model.number="sectionForm.display_order"
+                type="number"
+                min="0"
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 dark:bg-gray-700 dark:text-white"
+                placeholder="Display order (0 for default)"
+              />
+            </div>
+            
+            <div>
+              <label class="flex items-center gap-2">
+                <input
+                  v-model="sectionForm.is_active"
+                  type="checkbox"
+                  class="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                />
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Active</span>
+              </label>
+            </div>
+            
+            <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                type="button"
+                @click="closeEditSectionModal"
+                class="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                :disabled="saving"
+                class="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {{ saving ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Confirmation Dialog -->
     <ConfirmationDialog
       v-model:show="confirm.show.value"
@@ -188,6 +334,22 @@ const sections = ref([])
 const stats = ref({ total_samples: 0, total_sections: 0, total_downloads: 0, active_samples: 0 })
 const showCreateSampleModal = ref(false)
 const showCreateSectionModal = ref(false)
+const showEditSampleModal = ref(false)
+const showEditSectionModal = ref(false)
+const editingSample = ref(null)
+const editingSection = ref(null)
+const saving = ref(false)
+const sampleForm = ref({
+  title: '',
+  service_page_id: null,
+  is_active: true
+})
+const sectionForm = ref({
+  title: '',
+  pdf_sample_id: null,
+  display_order: 0,
+  is_active: true
+})
 
 const loadSamples = async () => {
   loading.value = true
@@ -231,8 +393,40 @@ const viewSample = (sample) => {
 }
 
 const editSample = (sample) => {
-  // TODO: Implement edit modal
-  showError('Edit functionality coming soon')
+  editingSample.value = sample
+  sampleForm.value = {
+    title: sample.title || '',
+    service_page_id: sample.service_page_id || sample.service_page?.id || null,
+    is_active: sample.is_active !== false
+  }
+  showEditSampleModal.value = true
+}
+
+const closeEditSampleModal = () => {
+  showEditSampleModal.value = false
+  editingSample.value = null
+  sampleForm.value = {
+    title: '',
+    service_page_id: null,
+    is_active: true
+  }
+}
+
+const saveSample = async () => {
+  if (!editingSample.value) return
+  
+  saving.value = true
+  try {
+    await blogPagesAPI.updatePDFSample(editingSample.value.id, sampleForm.value)
+    showSuccess('PDF sample updated successfully')
+    await loadSamples()
+    closeEditSampleModal()
+  } catch (error) {
+    console.error('Failed to update sample:', error)
+    showError('Failed to update sample: ' + (error.response?.data?.detail || error.message))
+  } finally {
+    saving.value = false
+  }
 }
 
 const deleteSample = async (sample) => {
@@ -263,8 +457,42 @@ const viewSection = (section) => {
 }
 
 const editSection = (section) => {
-  // TODO: Implement edit modal
-  showError('Edit functionality coming soon')
+  editingSection.value = section
+  sectionForm.value = {
+    title: section.title || '',
+    pdf_sample_id: section.pdf_sample_id || section.pdf_sample?.id || null,
+    display_order: section.display_order || 0,
+    is_active: section.is_active !== false
+  }
+  showEditSectionModal.value = true
+}
+
+const closeEditSectionModal = () => {
+  showEditSectionModal.value = false
+  editingSection.value = null
+  sectionForm.value = {
+    title: '',
+    pdf_sample_id: null,
+    display_order: 0,
+    is_active: true
+  }
+}
+
+const saveSection = async () => {
+  if (!editingSection.value) return
+  
+  saving.value = true
+  try {
+    await blogPagesAPI.updatePDFSampleSection(editingSection.value.id, sectionForm.value)
+    showSuccess('PDF sample section updated successfully')
+    await loadSections()
+    closeEditSectionModal()
+  } catch (error) {
+    console.error('Failed to update section:', error)
+    showError('Failed to update section: ' + (error.response?.data?.detail || error.message))
+  } finally {
+    saving.value = false
+  }
 }
 
 const deleteSection = async (section) => {

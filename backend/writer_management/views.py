@@ -125,14 +125,10 @@ try:
     from writer_management.models.pen_name_requests import WriterPenNameChangeRequest
 except ImportError:
     WriterPenNameChangeRequest = None
-try:
-    from writer_management.models.resources import (
-        WriterResource, WriterResourceCategory, WriterResourceView
-    )
-except ImportError:
-    WriterResource = None
-    WriterResourceCategory = None
-    WriterResourceView = None
+# Import writer resource models - these should always be available
+from writer_management.models.resources import (
+    WriterResource, WriterResourceCategory, WriterResourceView
+)
 from rest_framework.response import Response
 from collections import defaultdict
 
@@ -398,37 +394,37 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
             config = WriterConfig.objects.filter(website=writer.website).first()
             max_requests = config.max_requests_per_writer if config else 5
         
-            # Count active requests (excluding this one if it exists)
-            active_requests = WriterOrderRequest.objects.filter(
-                writer=writer,
-                approved=False
-            ).count()
+        # Count active requests (excluding this one if it exists)
+        active_requests = WriterOrderRequest.objects.filter(
+            writer=writer,
+            approved=False
+        ).count()
 
         if active_requests >= max_requests:
-                raise ValidationError(
-                    f"You have reached your maximum request limit ({max_requests}). "
-                    "Please wait for existing requests to be reviewed or submit work to free up capacity."
-                )
+            raise ValidationError(
+                f"You have reached your maximum request limit ({max_requests}). "
+                "Please wait for existing requests to be reviewed or submit work to free up capacity."
+            )
 
-            request_instance = serializer.save(writer=writer)
-            
-            # Log activity
-            try:
-                safe_log_activity(
-                    user=writer.user,
-                    website=writer.website,
-                    action_type="ORDER",
-                    description=f"You requested order #{order.id}",
-                    metadata={
-                        "order_id": order.id,
-                        "request_id": request_instance.id,
-                        "reason": request_instance.reason[:200] if request_instance.reason else None,
-                    },
-                    triggered_by=writer.user,
-                )
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).warning(f"Failed to log activity for order request: {e}")
+        request_instance = serializer.save(writer=writer)
+        
+        # Log activity
+        try:
+            safe_log_activity(
+                user=writer.user,
+                website=writer.website,
+                action_type="ORDER",
+                description=f"You requested order #{order.id}",
+                metadata={
+                    "order_id": order.id,
+                    "request_id": request_instance.id,
+                    "reason": request_instance.reason[:200] if request_instance.reason else None,
+                },
+                triggered_by=writer.user,
+            )
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to log activity for order request: {e}")
             
             # Notify admins about the new request
             try:
@@ -503,9 +499,9 @@ class WriterOrderRequestViewSet(viewsets.ModelViewSet):
                 )
             
             # Approve the request
-        request_obj.approved = True
+            request_obj.approved = True
             request_obj.reviewed_by = request.user
-        request_obj.save()
+            request_obj.save()
             
             # Get payment amount from request if provided
             writer_payment_amount = request.data.get('writer_payment_amount')
@@ -679,7 +675,7 @@ class WriterOrderTakeViewSet(viewsets.ModelViewSet):
                 raise ValidationError("This order is already assigned to you.")
             
             # Check if order is already assigned to another writer
-        if order.assigned_writer is not None:
+            if order.assigned_writer is not None:
                 raise ValidationError("This order is already assigned to another writer.")
             
             # Validate order status - must be available
@@ -2049,7 +2045,7 @@ class WriterResourceCategoryViewSet(viewsets.ModelViewSet):
     ViewSet for managing writer resource categories.
     Admin/superadmin only.
     """
-    queryset = WriterResourceCategory.objects.all().select_related('website') if WriterResourceCategory else WriterResourceCategory.objects.none()
+    queryset = WriterResourceCategory.objects.all().select_related('website')
     serializer_class = WriterResourceCategorySerializer
     permission_classes = [IsAuthenticated, IsAdminUser]
     filter_backends = [DjangoFilterBackend, OrderingFilter]
@@ -2059,6 +2055,17 @@ class WriterResourceCategoryViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         """Create a resource category."""
+        # Set website from user if not provided
+        if not serializer.validated_data.get('website'):
+            user = self.request.user
+            if hasattr(user, 'website') and user.website:
+                serializer.validated_data['website'] = user.website
+            elif hasattr(user, 'website_id') and user.website_id:
+                from websites.models import Website
+                try:
+                    serializer.validated_data['website'] = Website.objects.get(id=user.website_id)
+                except Website.DoesNotExist:
+                    pass
         serializer.save()
 
 
@@ -2069,7 +2076,7 @@ class WriterResourceViewSet(viewsets.ModelViewSet):
     """
     queryset = WriterResource.objects.all().select_related(
         'category', 'website', 'created_by', 'updated_by'
-    ) if WriterResource else WriterResource.objects.none()
+    )
     serializer_class = WriterResourceSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [DjangoFilterBackend, OrderingFilter, SearchFilter]
@@ -2107,6 +2114,18 @@ class WriterResourceViewSet(viewsets.ModelViewSet):
         """Create a resource (admin/superadmin only)."""
         if self.request.user.role not in ['admin', 'superadmin']:
             raise ValidationError("Only admins can create resources")
+        
+        # Set website from user if not provided
+        if not serializer.validated_data.get('website'):
+            user = self.request.user
+            if hasattr(user, 'website') and user.website:
+                serializer.validated_data['website'] = user.website
+            elif hasattr(user, 'website_id') and user.website_id:
+                from websites.models import Website
+                try:
+                    serializer.validated_data['website'] = Website.objects.get(id=user.website_id)
+                except Website.DoesNotExist:
+                    pass
         
         serializer.save(created_by=self.request.user)
     

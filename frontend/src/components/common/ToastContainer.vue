@@ -18,7 +18,7 @@
           ]"
         >
           <!-- Icon -->
-          <div class="flex-shrink-0 mt-0.5">
+          <div class="shrink-0 mt-0.5">
             <!-- Success Icon -->
             <svg
               v-if="toast.type === 'success'"
@@ -71,7 +71,7 @@
           <!-- Close Button -->
           <button
             @click="removeToast(toast.id)"
-            class="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+            class="shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
             aria-label="Close notification"
           >
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,17 +137,17 @@ const getProgressBarColor = (type) => {
 <style scoped>
 .toast-enter-active,
 .toast-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .toast-enter-from {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translateX(100%) scale(0.95);
 }
 
 .toast-leave-to {
   opacity: 0;
-  transform: translateX(100%);
+  transform: translateX(100%) scale(0.95);
 }
 
 .toast-move {

@@ -114,9 +114,17 @@ class SessionManagementViewSet(viewsets.ViewSet):
             if cached_status:
                 return Response(cached_status, status=status.HTTP_200_OK)
             
-            # Get last activity from session
+            # Get last activity from session (handle case where session might not be available)
             last_activity_key = f'last_activity_{user.id}'
-            last_activity = request.session.get(last_activity_key, timezone.now().timestamp())
+            try:
+                if hasattr(request, 'session') and request.session:
+                    last_activity = request.session.get(last_activity_key, timezone.now().timestamp())
+                else:
+                    # Fallback: use cache or current time
+                    last_activity = cache.get(f'last_activity_{user.id}', timezone.now().timestamp())
+            except Exception:
+                # If session access fails, use current time
+                last_activity = timezone.now().timestamp()
             
             # Calculate times
             now = timezone.now().timestamp()

@@ -1704,6 +1704,153 @@ class AdminReviewModerationViewSet(viewsets.ViewSet):
                 )
             }
         })
+    
+    @action(detail=False, methods=['post'], url_path='bulk-approve')
+    def bulk_approve(self, request):
+        """Bulk approve multiple reviews."""
+        from reviews_system.services.review_moderation_service import ReviewModerationService
+        
+        review_ids = request.data.get('review_ids', [])
+        review_type = request.data.get('review_type')  # website, writer, order
+        moderation_notes = request.data.get('moderation_notes', '')
+        
+        if not review_ids or not isinstance(review_ids, list):
+            return Response(
+                {"detail": "review_ids must be a list of review IDs."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not review_type:
+            return Response(
+                {"detail": "review_type is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        approved = []
+        failed = []
+        
+        for review_id in review_ids:
+            try:
+                review = self._get_review_by_type_and_id(review_type, review_id)
+                ReviewModerationService.moderate_review(review, {
+                    'is_approved': True,
+                    'is_shadowed': False,
+                    'moderation_notes': moderation_notes
+                })
+                approved.append(review_id)
+            except Exception as e:
+                failed.append({'review_id': review_id, 'error': str(e)})
+        
+        return Response({
+            "detail": f"Bulk approval completed. {len(approved)} approved, {len(failed)} failed.",
+            "approved": approved,
+            "failed": failed
+        })
+    
+    @action(detail=False, methods=['post'], url_path='bulk-reject')
+    def bulk_reject(self, request):
+        """Bulk reject (shadow) multiple reviews."""
+        from reviews_system.services.review_moderation_service import ReviewModerationService
+        
+        review_ids = request.data.get('review_ids', [])
+        review_type = request.data.get('review_type')
+        reason = request.data.get('reason', 'Bulk rejected by admin')
+        moderation_notes = request.data.get('moderation_notes', '')
+        
+        if not review_ids or not isinstance(review_ids, list):
+            return Response(
+                {"detail": "review_ids must be a list of review IDs."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not review_type:
+            return Response(
+                {"detail": "review_type is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        rejected = []
+        failed = []
+        
+        for review_id in review_ids:
+            try:
+                review = self._get_review_by_type_and_id(review_type, review_id)
+                ReviewModerationService.moderate_review(review, {
+                    'is_approved': False,
+                    'is_shadowed': True,
+                    'flag_reason': reason,
+                    'moderation_notes': moderation_notes
+                })
+                rejected.append(review_id)
+            except Exception as e:
+                failed.append({'review_id': review_id, 'error': str(e)})
+        
+        return Response({
+            "detail": f"Bulk rejection completed. {len(rejected)} rejected, {len(failed)} failed.",
+            "rejected": rejected,
+            "failed": failed
+        })
+    
+    @action(detail=False, methods=['get'], url_path='moderation-history')
+    def moderation_history(self, request):
+        """Get moderation history for a review."""
+        from reviews_system.models import WebsiteReview, WriterReview, OrderReview
+        from django.db.models import Q
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        review_type = request.query_params.get('review_type')
+        review_id = request.query_params.get('review_id')
+        days = int(request.query_params.get('days', 30))
+        
+        if not review_type or not review_id:
+            return Response(
+                {"detail": "review_type and review_id are required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            review = self._get_review_by_type_and_id(review_type, review_id)
+        except Exception as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Build history from review fields
+        history = []
+        
+        if review.moderated_at:
+            history.append({
+                'action': 'moderated',
+                'timestamp': review.moderated_at.isoformat(),
+                'details': {
+                    'is_approved': review.is_approved,
+                    'is_shadowed': review.is_shadowed,
+                    'is_flagged': review.is_flagged,
+                    'flag_reason': review.flag_reason,
+                    'moderation_notes': review.moderation_notes
+                }
+            })
+        
+        if review.submitted_at:
+            history.append({
+                'action': 'submitted',
+                'timestamp': review.submitted_at.isoformat(),
+                'details': {
+                    'rating': review.rating,
+                    'has_comment': bool(review.comment)
+                }
+            })
+        
+        # Sort by timestamp descending
+        history.sort(key=lambda x: x['timestamp'], reverse=True)
+        
+        return Response({
+            'review_id': review.id,
+            'review_type': review_type,
+            'history': history
+        })
 
 
 # Admin Order Management ViewSet

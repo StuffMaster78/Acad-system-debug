@@ -523,91 +523,145 @@ class AuthenticationViewSet(viewsets.ViewSet):
             "user": {...}
         }
         """
-        from users.models import ProfileUpdateRequest
+        from django.core.exceptions import ValidationError
+        import logging
+        
+        logger = logging.getLogger(__name__)
         
         user = request.user
         update_fields = request.data
-
-        # Fields that require admin approval
-        admin_approval_fields = ["email", "role", "website"]
-
-        # Separate updates
-        auto_approve_updates = {}
-        admin_approval_updates = {}
-
-        for field, value in update_fields.items():
-            if field in admin_approval_fields:
-                admin_approval_updates[field] = value
+        
+        # Try to use the new unified edit service first
+        try:
+            from users.services.user_edit_service import UserEditService
+            
+            service = UserEditService(user)
+            result = service.create_edit_request(
+                field_changes=update_fields,
+                request_type='profile_update',
+                reason=request.data.get('reason', '')
+            )
+            
+            response_data = {
+                'message': 'Profile update request processed.',
+                'auto_approved': result.get('auto_approved', {}),
+            }
+            
+            if result.get('edit_request'):
+                response_data['edit_request_id'] = result['edit_request'].id
+                response_data['pending_approval'] = result.get('pending_approval', {})
+                response_data['message'] = 'Profile updated. Some changes require admin approval.'
             else:
-                auto_approve_updates[field] = value
+                response_data['message'] = 'All changes were applied immediately.'
+            
+            # Get updated user data
+            user.refresh_from_db()
+            response_data['user'] = self._get_user_data(user)
+            
+            return Response(response_data, status=status.HTTP_200_OK)
+        except ValidationError as e:
+            logger.warning(f"Validation error updating user {user.id}: {e}")
+            return Response(
+                {'error': str(e), 'detail': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            logger.error(f"Error updating user {user.id} with new service: {e}", exc_info=True)
+            # Fall through to legacy code
+        
+        # Legacy code (fallback if new service fails)
+        try:
+            from users.models import ProfileUpdateRequest
+            
+            # Fields that require admin approval
+            admin_approval_fields = ["email", "role", "website"]
 
-        # Auto-approve basic updates - save to database
-        # Separate User fields from UserProfile fields
-        from users.models import UserProfile
-        
-        user_updates = {}
-        profile_updates = {}
-        
-        # UserProfile fields that can be updated
-        profile_fields = ['phone_number', 'bio', 'avatar', 'country', 'state', 'profile_picture']
-        
-        if auto_approve_updates:
-            for field, value in auto_approve_updates.items():
-                if field in profile_fields:
-                    profile_updates[field] = value
-                elif hasattr(user, field):
-                    user_updates[field] = value
-            
-            # Update User model fields
-            if user_updates:
-                for field, value in user_updates.items():
-                    setattr(user, field, value)
-                user.save(update_fields=list(user_updates.keys()))
-            
-            # Update UserProfile fields
-            if profile_updates:
-                profile, created = UserProfile.objects.get_or_create(
-                    user=user,
-                    defaults={}
-                )
-                for field, value in profile_updates.items():
-                    if hasattr(profile, field):
-                        setattr(profile, field, value)
-                profile.save(update_fields=list(profile_updates.keys()))
+            # Separate updates
+            auto_approve_updates = {}
+            admin_approval_updates = {}
 
-        # Store admin approval request if necessary
-        if admin_approval_updates:
-            # Get user's website or use a default
-            user_website = getattr(user, 'website', None)
-            if not user_website:
-                # Try to get website from user's profile or use first available
-                from websites.models import Website
-                try:
-                    user_website = Website.objects.first()
-                except:
-                    pass
+            for field, value in update_fields.items():
+                if field in admin_approval_fields:
+                    admin_approval_updates[field] = value
+                else:
+                    auto_approve_updates[field] = value
+
+            # Auto-approve basic updates - save to database
+            # Separate User fields from UserProfile fields
+            from users.models import UserProfile
             
-            if user_website:
-                ProfileUpdateRequest.objects.create(
-                    user=user,
-                    website=user_website,
-                    requested_data=admin_approval_updates
-                )
-            else:
-                # If no website available, just log a warning
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Cannot create ProfileUpdateRequest for user {user.id}: no website available")
+            user_updates = {}
+            profile_updates = {}
+            
+            # UserProfile fields that can be updated
+            profile_fields = ['phone_number', 'bio', 'avatar', 'country', 'state', 'profile_picture']
+            
+            if auto_approve_updates:
+                for field, value in auto_approve_updates.items():
+                    if field in profile_fields:
+                        profile_updates[field] = value
+                    elif hasattr(user, field):
+                        user_updates[field] = value
+                
+                # Update User model fields
+                if user_updates:
+                    for field, value in user_updates.items():
+                        setattr(user, field, value)
+                    user.save(update_fields=list(user_updates.keys()))
+                
+                # Update UserProfile fields
+                if profile_updates:
+                    profile, created = UserProfile.objects.get_or_create(
+                        user=user,
+                        defaults={}
+                    )
+                    for field, value in profile_updates.items():
+                        if hasattr(profile, field):
+                            setattr(profile, field, value)
+                    profile.save(update_fields=list(profile_updates.keys()))
+
+            # Store admin approval request if necessary
+            if admin_approval_updates:
+                # Get user's website or use a default
+                user_website = getattr(user, 'website', None)
+                if not user_website:
+                    # Try to get website from user's profile or use first available
+                    from websites.models import Website
+                    try:
+                        user_website = Website.objects.first()
+                    except:
+                        pass
+                
+                if user_website:
+                    ProfileUpdateRequest.objects.create(
+                        user=user,
+                        website=user_website,
+                        requested_data=admin_approval_updates
+                    )
+                else:
+                    # If no website available, just log a warning
+                    logger.warning(f"Cannot create ProfileUpdateRequest for user {user.id}: no website available")
+                return Response({
+                    "message": "Profile updated. Some changes require admin approval.",
+                    "user": self._get_user_data(user)
+                })
+
+            # Return updated user data from database
             return Response({
-                "message": "Profile updated. Some changes require admin approval.",
+                "message": "Profile updated successfully.",
                 "user": self._get_user_data(user)
             })
+        except Exception as e:
+            logger.error(f"Error updating user {user.id}: {e}", exc_info=True)
+            return Response(
+                {
+                    'error': f'Failed to update profile: {str(e)}',
+                    'detail': str(e),
+                    'message': f'Failed to update profile: {str(e)}'
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-        # Return updated user data from database
-        return Response({
-            "message": "Profile updated successfully.",
-            "user": self._get_user_data(user)
-        })
     
     def _get_user_data(self, user):
         """Helper method to get user data for response."""

@@ -507,6 +507,111 @@ class SupportDashboardViewSet(viewsets.ModelViewSet):
             'count': breaches.count()
         })
     
+    @action(detail=False, methods=["get"], url_path="sla/dashboard")
+    def sla_dashboard(self, request):
+        """Get comprehensive SLA dashboard data."""
+        from .services.sla_service import SLAService
+        from .models import OrderDisputeSLA
+        from .serializers import OrderDisputeSLASerializer
+        
+        if request.user.role not in ["support", "admin", "superadmin"]:
+            return Response(
+                {"detail": "Only support staff can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        assigned_to = request.user if request.user.role == "support" else None
+        
+        # Get metrics
+        metrics = SLAService.get_sla_metrics(assigned_to=assigned_to, days=days)
+        
+        # Get active SLAs by status
+        active_queryset = OrderDisputeSLA.objects.filter(actual_resolution_time__isnull=True)
+        if assigned_to:
+            active_queryset = active_queryset.filter(assigned_to=assigned_to)
+        
+        on_track = active_queryset.filter(status="on_track").count()
+        warnings = active_queryset.filter(status="warning").count()
+        breached = active_queryset.filter(status="breached").count()
+        
+        # Get upcoming deadlines (next 24 hours)
+        upcoming = SLAService.get_upcoming_deadlines(hours_ahead=24)
+        if assigned_to:
+            upcoming = upcoming.filter(assigned_to=assigned_to)
+        
+        upcoming_serializer = OrderDisputeSLASerializer(upcoming[:10], many=True)
+        
+        # Get recent breaches
+        recent_breaches = OrderDisputeSLA.objects.filter(
+            sla_breached=True,
+            actual_resolution_time__isnull=True
+        ).order_by('-expected_resolution_time')
+        
+        if assigned_to:
+            recent_breaches = recent_breaches.filter(assigned_to=assigned_to)
+        
+        breaches_serializer = OrderDisputeSLASerializer(recent_breaches[:10], many=True)
+        
+        return Response({
+            'metrics': metrics,
+            'active_status': {
+                'on_track': on_track,
+                'warning': warnings,
+                'breached': breached,
+                'total_active': on_track + warnings + breached,
+            },
+            'upcoming_deadlines': upcoming_serializer.data,
+            'recent_breaches': breaches_serializer.data,
+        })
+    
+    @action(detail=False, methods=["get"], url_path="sla/metrics")
+    def sla_metrics(self, request):
+        """Get SLA metrics."""
+        from .services.sla_service import SLAService
+        
+        if request.user.role not in ["support", "admin", "superadmin"]:
+            return Response(
+                {"detail": "Only support staff can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        days = int(request.query_params.get('days', 30))
+        assigned_to = request.user if request.user.role == "support" else None
+        sla_type = request.query_params.get('sla_type')
+        
+        metrics = SLAService.get_sla_metrics(
+            assigned_to=assigned_to,
+            sla_type=sla_type,
+            days=days
+        )
+        
+        return Response(metrics)
+    
+    @action(detail=False, methods=["get"], url_path="sla/upcoming")
+    def sla_upcoming(self, request):
+        """Get upcoming SLA deadlines."""
+        from .services.sla_service import SLAService
+        from .serializers import OrderDisputeSLASerializer
+        
+        if request.user.role not in ["support", "admin", "superadmin"]:
+            return Response(
+                {"detail": "Only support staff can access this endpoint."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        hours_ahead = int(request.query_params.get('hours', 24))
+        upcoming = SLAService.get_upcoming_deadlines(hours_ahead=hours_ahead)
+        
+        if request.user.role == "support":
+            upcoming = upcoming.filter(assigned_to=request.user)
+        
+        serializer = OrderDisputeSLASerializer(upcoming, many=True)
+        return Response({
+            'upcoming': serializer.data,
+            'count': upcoming.count()
+        })
+    
     @action(detail=False, methods=["get"], url_path="orders")
     def dashboard_orders(self, request):
         """Get order management dashboard for support."""

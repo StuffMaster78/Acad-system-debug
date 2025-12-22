@@ -75,7 +75,7 @@
 
     <!-- Summary Cards -->
     <div v-if="summary" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold">Countries</h3>
           <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +86,7 @@
         <p class="text-sm opacity-90 mt-1">Unique countries</p>
       </div>
 
-      <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold">States/Provinces</h3>
           <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -98,7 +98,7 @@
         <p class="text-sm opacity-90 mt-1">Unique states/provinces</p>
       </div>
 
-      <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold">Subjects</h3>
           <svg class="w-8 h-8 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -119,7 +119,7 @@
     <div v-else class="space-y-6">
       <!-- By Country -->
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 border-b border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 bg-linear-to-r from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 border-b border-gray-200 dark:border-gray-700">
           <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -168,7 +168,7 @@
 
       <!-- By State -->
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="px-6 py-4 bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 border-b border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 bg-linear-to-r from-green-50 to-green-100 dark:from-green-900 dark:to-green-800 border-b border-gray-200 dark:border-gray-700">
           <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -218,7 +218,7 @@
 
       <!-- By Subject -->
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <div class="px-6 py-4 bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 border-b border-gray-200 dark:border-gray-700">
+        <div class="px-6 py-4 bg-linear-to-r from-purple-50 to-purple-100 dark:from-purple-900 dark:to-purple-800 border-b border-gray-200 dark:border-gray-700">
           <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
