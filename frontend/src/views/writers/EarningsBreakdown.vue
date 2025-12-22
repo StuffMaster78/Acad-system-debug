@@ -68,7 +68,7 @@
       <div v-else-if="breakdown" class="mb-8">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <!-- Total Earnings -->
-          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
@@ -78,7 +78,7 @@
                   ${{ formatCurrency(breakdown.summary.total_earnings) }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">💰</span>
                 </div>
@@ -87,7 +87,7 @@
           </div>
           
           <!-- Regular Orders -->
-          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
@@ -100,7 +100,7 @@
                   {{ breakdown.breakdown.regular_orders.count }} order{{ breakdown.breakdown.regular_orders.count !== 1 ? 's' : '' }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">📄</span>
                 </div>
@@ -109,7 +109,7 @@
           </div>
           
           <!-- Special Orders -->
-          <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-2">
@@ -122,7 +122,7 @@
                   {{ breakdown.breakdown.special_orders.count }} order{{ breakdown.breakdown.special_orders.count !== 1 ? 's' : '' }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">⭐</span>
                 </div>
@@ -131,7 +131,7 @@
           </div>
           
           <!-- Class Bonuses -->
-          <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
@@ -144,7 +144,7 @@
                   {{ breakdown.breakdown.class_bonuses.count }} classe{{ breakdown.breakdown.class_bonuses.count !== 1 ? 's' : '' }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">🎓</span>
                 </div>
@@ -153,7 +153,7 @@
           </div>
           
           <!-- Tips -->
-          <div class="bg-gradient-to-br from-pink-50 to-pink-100 rounded-xl shadow-md p-6 border-l-4 border-pink-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-pink-50 to-pink-100 rounded-xl shadow-md p-6 border-l-4 border-pink-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-pink-700 uppercase tracking-wide mb-2">
@@ -163,7 +163,7 @@
                   ${{ formatCurrency(breakdown.summary.tips) }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-pink-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">💝</span>
                 </div>
@@ -172,7 +172,7 @@
           </div>
           
           <!-- Other Bonuses -->
-          <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-md p-6 border-l-4 border-indigo-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-md p-6 border-l-4 border-indigo-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-indigo-700 uppercase tracking-wide mb-2">
@@ -182,7 +182,7 @@
                   ${{ formatCurrency(breakdown.summary.other_bonuses) }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">🎁</span>
                 </div>

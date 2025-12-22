@@ -15,11 +15,11 @@
 
     <!-- Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 dark:from-blue-900/20 dark:to-blue-800/20 dark:border-blue-700">
+      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200 dark:from-blue-900/20 dark:to-blue-800/20 dark:border-blue-700">
         <p class="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Total Images</p>
         <p class="text-3xl font-bold text-blue-900 dark:text-blue-100">{{ images.length }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700">
+      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700">
         <p class="text-sm font-medium text-green-700 dark:text-green-300 mb-1">Unique Blogs</p>
         <p class="text-3xl font-bold text-green-900 dark:text-green-100">{{ uniqueBlogs.length }}</p>
       </div>

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="min-h-screen bg-linear-to-br from-gray-50 to-blue-50 py-12 px-4 sm:px-6 lg:px-8">
     <div class="max-w-5xl mx-auto">
       <!-- Header -->
       <div class="text-center mb-8">
@@ -269,7 +269,7 @@
               <button
                 type="submit"
                 :disabled="loading || !canSubmit"
-                class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white py-3.5 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+                class="w-full bg-linear-to-r from-blue-600 to-indigo-600 text-white py-3.5 rounded-lg font-semibold hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
               >
                 <span v-if="loading" class="flex items-center justify-center gap-2">
                   <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
@@ -444,6 +444,7 @@ import ordersAPI from '@/api/orders'
 import orderConfigsAPI from '@/api/orderConfigs'
 import { mockGuestCheckoutAPI } from '@/api/mock/guestCheckout'
 import { useToast } from '@/composables/useToast'
+import { debounce } from '@/utils/debounce'
 
 // Enable mock mode via query parameter or environment variable
 const route = useRoute()
@@ -551,7 +552,7 @@ const loadOrderConfigs = async () => {
   }
 }
 
-const calculatePrice = async () => {
+const calculatePriceInternal = async () => {
   if (!orderForm.value.paper_type_id || !orderForm.value.number_of_pages || !orderForm.value.client_deadline) {
     quote.value = null
     return
@@ -584,12 +585,18 @@ const calculatePrice = async () => {
   }
 }
 
+// Debounced version for input changes (500ms delay)
+const calculatePrice = debounce(calculatePriceInternal, 500)
+
+// Non-debounced version for immediate calculation (e.g., on form submit)
+const calculatePriceImmediate = calculatePriceInternal
+
 const applyDiscount = async () => {
   if (!discountCode.value) return
   
   try {
-    // Recalculate price with discount
-    await calculatePrice()
+    // Recalculate price with discount (immediate, not debounced)
+    await calculatePriceImmediate()
     // If quote has discount info, mark as applied
     if (quote.value && quote.value.breakdown?.discount > 0) {
       appliedDiscount.value = { code: discountCode.value }

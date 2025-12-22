@@ -127,7 +127,7 @@
 
     <!-- Best Year Highlights -->
     <div v-if="bestYearData" class="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold">Best Year: {{ bestYearData.year }}</h3>
           <div class="text-3xl">🏆</div>
@@ -148,7 +148,7 @@
           </div>
         </div>
       </div>
-      <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold">Peak Orders</h3>
           <div class="text-3xl">📈</div>
@@ -157,7 +157,7 @@
         <div class="text-4xl font-bold">{{ formatNumber(peakOrdersYear.count) }}</div>
         <p class="text-green-100 text-sm mt-2">orders</p>
       </div>
-      <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+      <div class="bg-linear-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold">Peak Revenue</h3>
           <div class="text-3xl">💰</div>

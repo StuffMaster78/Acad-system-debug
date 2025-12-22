@@ -69,7 +69,7 @@
       <!-- File Upload Button -->
       <button
         @click="triggerFileInput"
-        class="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
+        class="shrink-0 p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors"
         title="Attach file"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +95,7 @@
         @click="sendMessage"
         :disabled="!canSend"
         :class="[
-          'flex-shrink-0 p-2 rounded-lg transition-colors',
+          'shrink-0 p-2 rounded-lg transition-colors',
           canSend
             ? 'bg-primary-600 text-white hover:bg-primary-700'
             : 'bg-gray-300 dark:bg-gray-600 text-gray-500 cursor-not-allowed'
@@ -155,7 +155,8 @@ const props = defineProps({
   },
   recipientId: {
     type: [Number, String],
-    required: true
+    required: false,
+    default: null
   },
   replyTo: {
     type: Object,
@@ -272,38 +273,101 @@ const sendMessage = async () => {
   error.value = ''
 
   try {
-    // Use simplified endpoint that auto-detects recipient (better UX)
     const message = messageText.value.trim()
     const attachment = selectedFiles.value.length > 0 ? selectedFiles.value[0] : null
     const replyToId = props.replyTo?.id || null
 
-    // If multiple files, send them one by one
-    if (selectedFiles.value.length > 1) {
-      // Send first file with message if any
-      await communicationsAPI.sendMessageSimple(
-        props.threadId,
-        message || '📎 File attachments',
-        selectedFiles.value[0],
-        replyToId
-      )
-      
-      // Send remaining files
-      for (let i = 1; i < selectedFiles.value.length; i++) {
-        await communicationsAPI.sendMessageSimple(
-          props.threadId,
-          '',
-          selectedFiles.value[i],
-          null
-        )
+    // Always try to get explicit recipient first
+    let recipientToUse = props.recipientId
+    
+    // If no recipient provided, fetch available recipients
+    if (!recipientToUse) {
+      try {
+        const response = await communicationsAPI.getAvailableRecipients(props.threadId)
+        const recipients = response.data?.recipients || []
+        if (recipients.length > 0) {
+          // If replying, prefer the original sender
+          if (replyToId && props.replyTo?.sender?.id) {
+            const replySender = recipients.find(r => 
+              (typeof r === 'object' ? r.id : r) === props.replyTo.sender.id
+            )
+            if (replySender) {
+              recipientToUse = typeof replySender === 'object' ? replySender.id : replySender
+            }
+          }
+          
+          // Otherwise use first recipient
+          if (!recipientToUse) {
+            recipientToUse = typeof recipients[0] === 'object' ? recipients[0].id : recipients[0]
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to load recipients, falling back to auto-detection:', error)
+      }
+    }
+    
+    // If we have an explicit recipient, use the regular sendMessage endpoint
+    // Otherwise, fall back to sendMessageSimple for auto-detection
+    if (recipientToUse) {
+      // Use explicit recipient to ensure message is received
+      if (selectedFiles.value.length > 1) {
+        // Send first file with message if any
+        await communicationsAPI.sendMessage(props.threadId, {
+          recipient: recipientToUse,
+          message: message || '📎 File attachments',
+          attachment: selectedFiles.value[0],
+          reply_to: replyToId,
+          message_type: 'file'
+        })
+        
+        // Send remaining files
+        for (let i = 1; i < selectedFiles.value.length; i++) {
+          await communicationsAPI.sendMessage(props.threadId, {
+            recipient: recipientToUse,
+            message: '',
+            attachment: selectedFiles.value[i],
+            message_type: 'file'
+          })
+        }
+      } else {
+        // Single file or text only
+        await communicationsAPI.sendMessage(props.threadId, {
+          recipient: recipientToUse,
+          message: message || '📎 File attachment',
+          attachment: attachment,
+          reply_to: replyToId,
+          message_type: attachment ? 'file' : 'text'
+        })
       }
     } else {
-      // Single file or text only
-      await communicationsAPI.sendMessageSimple(
-        props.threadId,
-        message,
-        attachment,
-        replyToId
-      )
+      // Fall back to auto-detection when no explicit recipient
+      if (selectedFiles.value.length > 1) {
+        // Send first file with message if any
+        await communicationsAPI.sendMessageSimple(
+          props.threadId,
+          message || '📎 File attachments',
+          selectedFiles.value[0],
+          replyToId
+        )
+        
+        // Send remaining files
+        for (let i = 1; i < selectedFiles.value.length; i++) {
+          await communicationsAPI.sendMessageSimple(
+            props.threadId,
+            '',
+            selectedFiles.value[i],
+            null
+          )
+        }
+      } else {
+        // Single file or text only
+        await communicationsAPI.sendMessageSimple(
+          props.threadId,
+          message,
+          attachment,
+          replyToId
+        )
+      }
     }
 
     // Clear form

@@ -166,67 +166,195 @@
       </div>
     </div>
 
-    <div class="card p-4 space-y-4">
+    <!-- Active Filters Summary -->
+    <div v-if="activeFilterChips.length > 0" class="card p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-sm font-medium text-blue-900">Active Filters:</span>
+        <span
+          v-for="chip in activeFilterChips"
+          :key="chip.key"
+          class="inline-flex items-center gap-2 bg-white text-blue-700 rounded-full px-3 py-1.5 text-sm font-medium shadow-sm border border-blue-200"
+        >
+          <span>{{ chip.label }}</span>
+          <button
+            type="button"
+            class="text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-full p-0.5 transition-colors"
+            @click="removeFilterChip(chip.key)"
+            title="Remove filter"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </span>
+        <button
+          type="button"
+          class="ml-auto text-sm text-blue-700 hover:text-blue-900 font-medium underline"
+          @click="clearAllFilters"
+        >
+          Clear All
+        </button>
+      </div>
+    </div>
 
-      <!-- Results -->
-      <div v-if="loading" class="text-sm text-gray-500">Loading...</div>
-      <div v-else>
-        <div v-if="!orders.length" class="text-sm text-gray-500">No orders found.</div>
-        <div v-else class="space-y-2">
-          <!-- Select All (Admin Only) -->
-          <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="flex items-center gap-2 pb-2 border-b">
+    <!-- Results -->
+    <div v-if="loading" class="card p-12">
+      <div class="flex flex-col items-center justify-center">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
+        <p class="text-gray-600 font-medium">Loading orders...</p>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div v-else-if="!orders.length" class="card p-12">
+      <div class="flex flex-col items-center justify-center text-center">
+        <div class="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+          <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        </div>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">
+          {{ activeFilterChips.length > 0 ? 'No orders match your filters' : 'No orders found' }}
+        </h3>
+        <p class="text-gray-500 mb-6 max-w-md">
+          <span v-if="activeFilterChips.length > 0">
+            Try adjusting your filters or 
+            <button @click="clearAllFilters" class="text-primary-600 hover:text-primary-700 font-medium underline">
+              clear all filters
+            </button>
+            to see more results.
+          </span>
+          <span v-else>
+            Get started by creating your first order.
+          </span>
+        </p>
+        <button
+          v-if="canCreateOrder && activeFilterChips.length === 0"
+          @click="createOrder"
+          class="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-lg hover:shadow-xl"
+        >
+          Create Your First Order
+        </button>
+      </div>
+    </div>
+
+    <!-- Orders Grid -->
+    <div v-else class="space-y-4">
+      <!-- Select All (Admin Only) -->
+      <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <input
+          type="checkbox"
+          :checked="selectedOrders.length === orders.length && orders.length > 0"
+          @change="toggleSelectAll"
+          class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+        />
+        <span class="text-sm font-medium text-gray-700">
+          Select All ({{ selectedOrders.length }} of {{ orders.length }} selected)
+        </span>
+      </div>
+
+      <!-- Orders Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div
+          v-for="o in orders"
+          :key="o.id"
+          class="group relative bg-white border-2 border-gray-200 rounded-xl p-5 hover:border-primary-300 hover:shadow-lg transition-all duration-200 cursor-pointer"
+          @click="router.push(`/orders/${o.id}`)"
+        >
+          <!-- Checkbox (Admin Only) -->
+          <div
+            v-if="authStore.isAdmin || authStore.isSuperAdmin"
+            class="absolute top-4 right-4 z-10"
+            @click.stop
+          >
             <input
               type="checkbox"
-              :checked="selectedOrders.length === orders.length && orders.length > 0"
-              @change="toggleSelectAll"
-              class="rounded border-gray-300"
+              :value="o.id"
+              v-model="selectedOrders"
+              class="w-5 h-5 rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+              @click.stop
             />
-            <span class="text-sm text-gray-600">Select All</span>
           </div>
-          
-          <ul class="divide-y divide-gray-200">
-            <li v-for="o in orders" :key="o.id" class="py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors">
-              <!-- Checkbox (Admin Only) -->
-              <input
-                v-if="authStore.isAdmin || authStore.isSuperAdmin"
-                type="checkbox"
-                :value="o.id"
-                v-model="selectedOrders"
-                class="rounded border-gray-300"
-                @click.stop
-              />
-              
-              <div class="flex-1 cursor-pointer" @click="router.push(`/orders/${o.id}`)">
-                <div class="font-medium">#{{ o.id }} · {{ o.topic }}</div>
-                <div class="text-xs text-gray-500">
-                  <span :class="badgeClass(o.status)" class="inline-block px-2 py-0.5 rounded mr-2">{{ o.status }}</span>
-                  <span v-if="o.is_paid" class="inline-block px-2 py-0.5 rounded bg-green-100 text-green-700 mr-2">Paid</span>
-                  <span v-else class="inline-block px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 mr-2">Unpaid</span>
-                  Created: {{ toDT(o.created_at) }}
-                </div>
+
+          <!-- Order Header -->
+          <div class="mb-4 pr-8">
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="flex-1 min-w-0">
+                <h3 class="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition-colors truncate">
+                  #{{ o.id }}
+                </h3>
+                <p class="text-sm text-gray-600 mt-1 line-clamp-2">{{ o.topic || 'No topic' }}</p>
               </div>
-              <div class="flex items-center gap-2" @click.stop>
-                <router-link
-                  :to="`/orders/${o.id}/messages`"
-                  class="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm flex items-center gap-1"
-                  title="View Messages"
-                  @click.stop
-                >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                  </svg>
-                  Messages
-                </router-link>
-                <router-link 
-                  :to="`/orders/${o.id}`" 
-                  class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
-                  @click.stop
-                >
-                  Open
-                </router-link>
-              </div>
-            </li>
-          </ul>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap mt-3">
+              <EnhancedStatusBadge :status="o.status" :show-tooltip="true" size="sm" />
+              <span
+                v-if="o.is_paid"
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200"
+              >
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                Paid
+              </span>
+              <span
+                v-else
+                class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 border border-yellow-200"
+              >
+                <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                Unpaid
+              </span>
+            </div>
+          </div>
+
+          <!-- Order Details -->
+          <div class="space-y-2 mb-4 text-sm text-gray-600">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span class="truncate">Created: {{ toDT(o.created_at) }}</span>
+            </div>
+            <div v-if="o.deadline" class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span class="truncate">Deadline: {{ toDT(o.deadline) }}</span>
+            </div>
+            <div v-if="o.assigned_writer" class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              <span class="truncate">Writer: {{ o.assigned_writer?.username || 'Unassigned' }}</span>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="flex items-center gap-2 pt-4 border-t border-gray-100" @click.stop>
+            <router-link
+              :to="`/orders/${o.id}/messages`"
+              class="flex-1 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+              title="View Messages"
+              @click.stop
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Messages
+            </router-link>
+            <router-link
+              :to="`/orders/${o.id}`"
+              class="flex-1 px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium flex items-center justify-center gap-2 shadow-sm hover:shadow-md"
+              @click.stop
+            >
+              <span>View</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </router-link>
+          </div>
         </div>
       </div>
     </div>
@@ -360,18 +488,20 @@
       {{ message }}
     </div>
 
-    <!-- Confirmation Dialog -->
+    <!-- Confirmation Dialog (Admin Only) -->
     <ConfirmationDialog
-      v-model:show="confirm.show"
-      :title="confirm.title"
-      :message="confirm.message"
-      :details="confirm.details"
-      :variant="confirm.variant"
-      :confirm-text="confirm.confirmText"
-      :cancel-text="confirm.cancelText"
-      :icon="confirm.icon"
+      v-if="authStore.isAdmin || authStore.isSuperAdmin"
+      v-model:show="confirmShow"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :details="confirmDetails"
+      :variant="confirmVariant"
+      :confirm-text="confirmConfirmText"
+      :cancel-text="confirmCancelText"
+      :icon="confirmIcon"
       @confirm="confirm.onConfirm"
       @cancel="confirm.onCancel"
+      @update:show="(val) => confirm.show.value = val"
     />
   </div>
 </template>
@@ -394,11 +524,22 @@ import orderConfigsAPI from '@/api/orderConfigs'
 import AdvancedFiltersDrawer from '@/components/orders/AdvancedFiltersDrawer.vue'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+import EnhancedStatusBadge from '@/components/common/EnhancedStatusBadge.vue'
 
 const authStore = useAuthStore()
 const confirm = useConfirmDialog()
 const router = useRouter()
 const route = useRoute()
+
+// Computed properties to unwrap refs for ConfirmationDialog
+const confirmShow = computed(() => confirm.show.value)
+const confirmTitle = computed(() => confirm.title.value)
+const confirmMessage = computed(() => confirm.message.value)
+const confirmDetails = computed(() => confirm.details.value)
+const confirmVariant = computed(() => confirm.variant.value)
+const confirmConfirmText = computed(() => confirm.confirmText.value)
+const confirmCancelText = computed(() => confirm.cancelText.value)
+const confirmIcon = computed(() => confirm.icon.value)
 
 const loading = ref(false)
 const orders = ref([])
@@ -781,53 +922,7 @@ const createOrder = () => {
 }
 
 const toDT = (v) => (v ? new Date(v).toLocaleString() : '')
-const badgeClass = (status) => {
-  const statusClasses = {
-    // Initial States
-    'created': 'bg-gray-100 text-gray-700',
-    'pending': 'bg-yellow-100 text-yellow-700',
-    'unpaid': 'bg-orange-100 text-orange-700',
-    'paid': 'bg-green-100 text-green-700',
-    
-    // Assignment & Availability
-    'pending_writer_assignment': 'bg-indigo-100 text-indigo-700',
-    'available': 'bg-blue-100 text-blue-700',
-    'reassigned': 'bg-cyan-100 text-cyan-700',
-    
-    // Active Work
-    'in_progress': 'bg-blue-100 text-blue-700',
-    'on_hold': 'bg-gray-100 text-gray-700',
-    'submitted': 'bg-purple-100 text-purple-700',
-    
-    // Review & Rating
-    'reviewed': 'bg-teal-100 text-teal-700',
-    'rated': 'bg-amber-100 text-amber-700',
-    'approved': 'bg-green-100 text-green-700',
-    'completed': 'bg-emerald-100 text-emerald-700',
-    
-    // Revisions
-    'revision_requested': 'bg-yellow-100 text-yellow-700',
-    'revision_in_progress': 'bg-orange-100 text-orange-700',
-    'revised': 'bg-lime-100 text-lime-700',
-    'on_revision': 'bg-yellow-100 text-yellow-700',
-    
-    // Editing
-    'under_editing': 'bg-purple-100 text-purple-700',
-    
-    // Issues
-    'disputed': 'bg-red-100 text-red-700',
-    'late': 'bg-red-100 text-red-700',
-    
-    // Final States
-    'cancelled': 'bg-gray-100 text-gray-700',
-    'reopened': 'bg-blue-100 text-blue-700',
-    'refunded': 'bg-pink-100 text-pink-700',
-    'archived': 'bg-gray-100 text-gray-700',
-    'closed': 'bg-slate-100 text-slate-700',
-  }
-  
-  return statusClasses[status] || 'bg-gray-100 text-gray-700'
-}
+// badgeClass function removed - using EnhancedStatusBadge component instead
 
 const buildQueryParams = () => {
   const params = {
@@ -1078,8 +1173,8 @@ const submitBulkAssign = async () => {
 const submitBulkAction = async () => {
   if (!bulkActionForm.value.action || selectedOrders.value.length === 0) return
 
-  // Require confirmation for destructive actions
-  if (bulkActionForm.value.action === 'cancel') {
+  // Require confirmation for destructive actions (skip confirmation on disputes page)
+  if (bulkActionForm.value.action === 'cancel' && filters.value.status !== 'disputed') {
     const confirmed = await confirm.showDestructive(
       `Are you sure you want to cancel ${selectedOrders.value.length} order(s)? This action cannot be undone.`,
       'Cancel Orders',

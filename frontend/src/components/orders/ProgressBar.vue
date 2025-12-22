@@ -24,7 +24,7 @@
           :style="{ width: `${Math.min(progressPercentage, 100)}%` }"
         >
           <!-- Animated shine effect -->
-          <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+          <div class="absolute inset-0 bg-linear-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
           
           <!-- Progress segments for visual feedback -->
           <div 
@@ -99,11 +99,11 @@ const formatRelativeTime = (dateString) => {
 
 const getProgressBarClass = (percentage) => {
   if (percentage === 0) return 'bg-gray-300 dark:bg-gray-600'
-  if (percentage < 25) return 'bg-gradient-to-r from-red-500 to-orange-500'
-  if (percentage < 50) return 'bg-gradient-to-r from-orange-500 to-yellow-500'
-  if (percentage < 75) return 'bg-gradient-to-r from-yellow-500 to-blue-500'
-  if (percentage < 100) return 'bg-gradient-to-r from-blue-500 to-indigo-500'
-  return 'bg-gradient-to-r from-green-500 to-emerald-500'
+  if (percentage < 25) return 'bg-linear-to-r from-red-500 to-orange-500'
+  if (percentage < 50) return 'bg-linear-to-r from-orange-500 to-yellow-500'
+  if (percentage < 75) return 'bg-linear-to-r from-yellow-500 to-blue-500'
+  if (percentage < 100) return 'bg-linear-to-r from-blue-500 to-indigo-500'
+  return 'bg-linear-to-r from-green-500 to-emerald-500'
 }
 
 const getProgressBadgeClass = (percentage) => {

@@ -167,7 +167,7 @@
       <div class="bg-white rounded-lg shadow-sm p-6">
         <h2 class="text-xl font-bold text-gray-900 mb-4">Quality Metrics</h2>
         <div class="space-y-4">
-          <div class="p-4 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200">
+          <div class="p-4 bg-linear-to-r from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-700">Average Rating</span>
               <span class="text-2xl font-bold text-yellow-600">
@@ -178,7 +178,7 @@
               Client reviews
             </div>
           </div>
-          <div class="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+          <div class="p-4 bg-linear-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-700">Completion Rate</span>
               <span class="text-2xl font-bold text-blue-600">
@@ -189,7 +189,7 @@
               Orders completed on time
             </div>
           </div>
-          <div class="p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
+          <div class="p-4 bg-linear-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
             <div class="flex items-center justify-between mb-2">
               <span class="text-sm font-medium text-gray-700">On-Time Rate</span>
               <span class="text-2xl font-bold text-green-600">

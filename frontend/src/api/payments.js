@@ -17,10 +17,7 @@ export default {
   rejectPaymentRequest: (id, data = {}) => apiClient.post(`/writer-wallet/payment-requests/${id}/reject/`, data),
   
   // Payment Actions
-  initiate: (orderId, paymentData) => apiClient.post('/order_payments_management/order-payments/initiate/', {
-    order_id: orderId,
-    ...paymentData
-  }),
+  initiate: (orderId, paymentData) => apiClient.post(`/order-payments/order-payments/orders/${orderId}/initiate/`, paymentData),
   confirm: (paymentId, data = {}) => apiClient.post(`/order_payments_management/order-payments/${paymentId}/confirm/`, data),
   cancel: (paymentId) => apiClient.post(`/order_payments_management/order-payments/${paymentId}/cancel/`),
   refund: (paymentId, data = {}) => apiClient.post(`/order_payments_management/order-payments/${paymentId}/refund/`, data),

@@ -31,43 +31,43 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3">
       <router-link
         to="/admin/deletion-requests"
-        class="card p-3 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 hover:shadow-md transition-shadow cursor-pointer"
+        class="card p-3 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200 hover:shadow-md transition-shadow cursor-pointer"
       >
         <p class="text-xs font-medium text-orange-700 mb-0.5">Deletion Requests</p>
         <p class="text-xl sm:text-2xl font-bold text-orange-900">{{ pendingDeletionCount || 0 }}</p>
         <p class="text-xs text-orange-600 mt-0.5">Click to review</p>
       </router-link>
-      <div class="card p-3 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-3 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-xs font-medium text-blue-700 mb-0.5">Total Users</p>
         <p class="text-xl sm:text-2xl font-bold text-blue-900">{{ userStats.total_users || 0 }}</p>
         <p class="text-xs text-blue-600 mt-0.5">All roles</p>
       </div>
-      <div class="card p-3 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-3 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-xs font-medium text-green-700 mb-0.5">Active</p>
         <p class="text-xl sm:text-2xl font-bold text-green-900">{{ userStats.active_users || 0 }}</p>
         <p class="text-xs text-green-600 mt-0.5">{{ userStats.total_users ? ((userStats.active_users / userStats.total_users) * 100).toFixed(1) : 0 }}%</p>
       </div>
-      <div class="card p-3 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+      <div class="card p-3 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
         <p class="text-xs font-medium text-red-700 mb-0.5">Suspended</p>
         <p class="text-xl sm:text-2xl font-bold text-red-900">{{ userStats.suspended_users || 0 }}</p>
         <p class="text-xs text-red-600 mt-0.5">Attention</p>
       </div>
-      <div class="card p-3 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-3 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-xs font-medium text-purple-700 mb-0.5">Clients</p>
         <p class="text-xl sm:text-2xl font-bold text-purple-900">{{ userStats.by_role?.client || 0 }}</p>
         <p class="text-xs text-purple-600 mt-0.5">Registered</p>
       </div>
-      <div class="card p-3 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+      <div class="card p-3 bg-linear-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
         <p class="text-xs font-medium text-indigo-700 mb-0.5">Writers</p>
         <p class="text-xl sm:text-2xl font-bold text-indigo-900">{{ userStats.by_role?.writer || 0 }}</p>
         <p class="text-xs text-indigo-600 mt-0.5">Active</p>
       </div>
-      <div class="card p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-3 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-xs font-medium text-yellow-700 mb-0.5">Probation</p>
         <p class="text-xl sm:text-2xl font-bold text-yellow-900">{{ userStats.on_probation || 0 }}</p>
         <p class="text-xs text-yellow-600 mt-0.5">Review</p>
       </div>
-      <div class="card p-3 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
+      <div class="card p-3 bg-linear-to-br from-gray-50 to-gray-100 border border-gray-200">
         <p class="text-xs font-medium text-gray-700 mb-0.5">Blacklisted</p>
         <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ userStats.blacklisted_users || 0 }}</p>
         <p class="text-xs text-gray-600 mt-0.5">Banned</p>
@@ -175,7 +175,7 @@
       
       <template #cell-user="{ item }">
         <div class="flex items-center gap-2">
-          <div class="flex-shrink-0 h-7 w-7 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold text-xs">
+          <div class="shrink-0 h-7 w-7 rounded-full bg-linear-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold text-xs">
             {{ getUserInitials(item) }}
           </div>
           <div class="min-w-0 flex-1">
@@ -371,7 +371,7 @@
     <div v-if="showCreateModal || editingUser" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ editingUser ? 'Edit User' : 'Create User' }}</h2>
@@ -536,7 +536,7 @@
     <div v-if="showActionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="closeActionModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full my-auto overflow-hidden flex flex-col max-h-[90vh]">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-red-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-orange-50 to-red-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ actionModalTitle }}</h3>
@@ -637,7 +637,7 @@
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-4">
-              <div class="h-16 w-16 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-2xl">
+              <div class="h-16 w-16 rounded-full bg-linear-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-2xl">
                 {{ getUserInitials(viewingUser) }}
               </div>
               <div>
@@ -759,8 +759,12 @@
     </div>
 
     <!-- Messages -->
-    <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
-      {{ message }}
+    <div v-if="message" class="p-4 rounded-lg mb-4 shadow-sm border" :class="messageSuccess ? 'bg-green-50 border-green-200 text-green-800' : 'bg-red-50 border-red-200 text-red-800'">
+      <div class="flex items-center gap-2">
+        <span v-if="messageSuccess" class="text-green-600 text-xl font-bold">✓</span>
+        <span v-else class="text-red-600 text-xl font-bold">✗</span>
+        <span class="font-medium">{{ message }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -970,19 +974,42 @@ const saveUser = async () => {
     if (editingUser.value) {
       const data = { ...userForm.value }
       delete data.password
-      await adminManagementAPI.patchUser(editingUser.value.id, data)
-      message.value = 'User updated successfully'
+      const response = await adminManagementAPI.patchUser(editingUser.value.id, data)
+      const successMsg = 'User updated successfully!'
+      message.value = successMsg
+      messageSuccess.value = true
+      showSuccess(successMsg)
+      // Keep message visible for a moment before closing modal
+      setTimeout(() => {
+        closeModal()
+      }, 1500)
+      await loadUsers()
+      await loadStats()
     } else {
       await adminManagementAPI.createUser(userForm.value)
-      message.value = 'User created successfully'
+      const successMsg = 'User created successfully!'
+      message.value = successMsg
+      messageSuccess.value = true
+      showSuccess(successMsg)
+      // Keep message visible for a moment before closing modal
+      setTimeout(() => {
+        closeModal()
+      }, 1500)
+      await loadUsers()
+      await loadStats()
     }
-    messageSuccess.value = true
-    closeModal()
-    await loadUsers()
-    await loadStats()
   } catch (e) {
-    message.value = 'Failed to save user: ' + (e.response?.data?.detail || JSON.stringify(e.response?.data))
+    console.error('Error saving user:', e)
+    const errorMsg = e.response?.data?.error || 
+                     e.response?.data?.detail || 
+                     e.response?.data?.message ||
+                     (typeof e.response?.data === 'string' ? e.response.data : JSON.stringify(e.response?.data)) ||
+                     e.message ||
+                     'Failed to save user. Please try again.'
+    const fullErrorMsg = 'Failed to save user: ' + errorMsg
+    message.value = fullErrorMsg
     messageSuccess.value = false
+    showError(fullErrorMsg)
   } finally {
     saving.value = false
   }
@@ -1172,6 +1199,17 @@ const closeModal = () => {
     password: '',
     is_active: true,
   }
+  // Clear message after modal closes (but keep it visible for a few seconds if it's a success)
+  if (messageSuccess.value) {
+    setTimeout(() => {
+      message.value = ''
+      messageSuccess.value = false
+    }, 5000) // Keep success message visible for 5 seconds
+  } else {
+    // Clear error messages immediately when modal closes
+    message.value = ''
+    messageSuccess.value = false
+  }
 }
 
 const toggleActionsMenu = (userId) => {
@@ -1195,7 +1233,7 @@ const unsuspendUserAction = async (user) => {
   if (!confirmed) return
   try {
     await adminManagementAPI.unsuspendUser(user.id)
-    showSuccess(`User ${user.username} unsuspended`)
+    showSuccess(`User ${user.username} unsuspended successfully`)
     await loadUsers()
     await loadStats()
   } catch (e) {
@@ -1222,7 +1260,7 @@ const removeProbationAction = async (user) => {
   if (!confirmed) return
   try {
     await adminManagementAPI.removeFromProbation(user.id)
-    showSuccess(`User ${user.username} removed from probation`)
+    showSuccess(`User ${user.username} removed from probation successfully`)
     await loadUsers()
     await loadStats()
   } catch (e) {
@@ -1268,7 +1306,7 @@ const promoteToAdminAction = async (user) => {
   if (!confirmed) return
   try {
     await adminManagementAPI.promoteToAdmin(user.id)
-    showSuccess(`User ${user.username} promoted to admin`)
+    showSuccess(`User ${user.username} promoted to admin successfully`)
     await loadUsers()
     await loadStats()
   } catch (e) {
@@ -1289,7 +1327,7 @@ const deleteUserAction = async (user) => {
   if (!confirmed) return
   try {
     await adminManagementAPI.deleteUser(user.id)
-    showSuccess(`User ${user.username} deleted`)
+    showSuccess(`User ${user.username} deleted successfully`)
     await loadUsers()
     await loadStats()
   } catch (e) {
@@ -1317,7 +1355,7 @@ const unblacklistUserAction = async (user) => {
   try {
     // Note: Backend might need an unblacklist endpoint, for now we'll use a workaround
     await adminManagementAPI.patchUser(user.id, { is_blacklisted: false })
-    showSuccess(`User ${user.username} unblacklisted`)
+    showSuccess(`User ${user.username} unblacklisted successfully`)
     await loadUsers()
     await loadStats()
   } catch (e) {
@@ -1335,7 +1373,7 @@ const activateUserAction = async (user) => {
   if (!confirmed) return
   try {
     await adminManagementAPI.patchUser(user.id, { is_active: true })
-    showSuccess(`User ${user.username} activated`)
+    showSuccess(`User ${user.username} activated successfully`)
     await loadUsers()
     await loadStats()
   } catch (e) {
@@ -1353,7 +1391,7 @@ const deactivateUserAction = async (user) => {
   if (!confirmed) return
   try {
     await adminManagementAPI.patchUser(user.id, { is_active: false })
-    showSuccess(`User ${user.username} deactivated`)
+    showSuccess(`User ${user.username} deactivated successfully`)
     await loadUsers()
     await loadStats()
   } catch (e) {
@@ -1367,37 +1405,48 @@ const confirmAction = async () => {
   saving.value = true
   message.value = ''
   try {
+    let successMsg = ''
     if (currentAction.value === 'suspend') {
       await adminManagementAPI.suspendUser(
         currentUser.value.id,
         actionData.value.reason,
         actionData.value.duration_days
       )
-      message.value = `User ${currentUser.value.username} suspended`
+      successMsg = `User ${currentUser.value.username} suspended successfully`
     } else if (currentAction.value === 'probation') {
       await adminManagementAPI.placeOnProbation(
         currentUser.value.id,
         actionData.value.reason,
         actionData.value.duration_days
       )
-      message.value = `User ${currentUser.value.username} placed on probation`
+      successMsg = `User ${currentUser.value.username} placed on probation successfully`
     } else if (currentAction.value === 'blacklist') {
       await adminManagementAPI.blacklistUser(
         currentUser.value.id,
         actionData.value.reason
       )
-      message.value = `User ${currentUser.value.username} blacklisted`
+      successMsg = `User ${currentUser.value.username} blacklisted successfully`
     } else if (currentAction.value === 'change_role') {
       await adminManagementAPI.changeRole(currentUser.value.id, actionData.value.role)
-      message.value = `User ${currentUser.value.username} role changed to ${actionData.value.role}`
+      successMsg = `User ${currentUser.value.username} role changed to ${actionData.value.role} successfully`
     }
-    messageSuccess.value = true
-    closeActionModal()
-    await loadUsers()
-    await loadStats()
+    
+    if (successMsg) {
+      message.value = successMsg
+      messageSuccess.value = true
+      showSuccess(successMsg)
+      // Keep message visible for a moment before closing modal
+      setTimeout(() => {
+        closeActionModal()
+      }, 1500)
+      await loadUsers()
+      await loadStats()
+    }
   } catch (e) {
-    message.value = 'Failed to perform action: ' + (e.response?.data?.detail || e.message)
+    const errorMsg = getErrorMessage(e, 'Failed to perform action. Please try again.')
+    message.value = errorMsg
     messageSuccess.value = false
+    showError(errorMsg)
   } finally {
     saving.value = false
   }
@@ -1408,6 +1457,17 @@ const closeActionModal = () => {
   currentAction.value = ''
   currentUser.value = null
   actionData.value = { reason: '', duration_days: 30, role: '' }
+  // Clear message after modal closes (but keep it visible for a few seconds if it's a success)
+  if (messageSuccess.value) {
+    setTimeout(() => {
+      message.value = ''
+      messageSuccess.value = false
+    }, 5000) // Keep success message visible for 5 seconds
+  } else {
+    // Clear error messages immediately when modal closes
+    message.value = ''
+    messageSuccess.value = false
+  }
 }
 
 const resetFilters = () => {

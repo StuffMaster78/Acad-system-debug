@@ -203,7 +203,9 @@ const loadDropdownOptions = async () => {
     academicLevels.value = Array.isArray(academicLevelsRes.data) ? academicLevelsRes.data : []
     subjects.value = Array.isArray(subjectsRes.data) ? subjectsRes.data : []
   } catch (err) {
-    console.error('Failed to load dropdown options:', err)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load dropdown options:', err)
+    }
   }
 }
 
@@ -244,7 +246,9 @@ const submitOrder = async () => {
       router.push(`/client/orders/${response.data.id}`)
     }, 1500)
   } catch (err) {
-    console.error('Failed to create order:', err)
+    if (import.meta.env.DEV) {
+      console.error('Failed to create order:', err)
+    }
     error.value = err.response?.data?.detail || err.response?.data?.error || 'Failed to create order. Please try again.'
   } finally {
     loading.value = false

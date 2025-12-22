@@ -9,23 +9,23 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Reviews</p>
         <p class="text-3xl font-bold text-blue-900">{{ stats.total_reviews || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Average Rating</p>
         <p class="text-3xl font-bold text-yellow-900">{{ stats.average_rating ? stats.average_rating.toFixed(1) : 'N/A' }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">5 Star</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.five_star || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200">
         <p class="text-sm font-medium text-orange-700 mb-1">Flagged</p>
         <p class="text-3xl font-bold text-orange-900">{{ stats.flagged || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">This Month</p>
         <p class="text-3xl font-bold text-purple-900">{{ stats.this_month || 0 }}</p>
       </div>
@@ -76,7 +76,7 @@
       </div>
       <div v-else class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gradient-to-r from-gray-50 via-gray-50 to-gray-100">
+          <thead class="bg-linear-to-r from-gray-50 via-gray-50 to-gray-100">
           <tr>
               <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200">
                 Date
@@ -113,7 +113,7 @@
               </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <div class="flex items-center">
-                  <div class="flex-shrink-0 h-8 w-8 bg-primary-100 rounded-full flex items-center justify-center">
+                  <div class="shrink-0 h-8 w-8 bg-primary-100 rounded-full flex items-center justify-center">
                     <span class="text-primary-600 text-xs font-semibold">
                       {{ (review.reviewer_name || 'A')[0].toUpperCase() }}
                     </span>

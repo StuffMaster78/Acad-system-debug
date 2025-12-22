@@ -4,7 +4,7 @@
       class="rounded-lg p-4 border-l-4 flex items-start gap-3"
       :class="errorClasses"
     >
-      <div class="flex-shrink-0 text-xl">{{ errorIcon }}</div>
+      <div class="shrink-0 text-xl">{{ errorIcon }}</div>
       <div class="flex-1 min-w-0">
         <h4 v-if="title" class="font-semibold mb-1 text-sm">{{ title }}</h4>
         <p class="text-sm" v-html="formattedMessage"></p>
@@ -26,7 +26,7 @@
       <button
         v-if="dismissible"
         @click="$emit('dismiss')"
-        class="flex-shrink-0 text-current opacity-50 hover:opacity-100 transition-opacity"
+        class="shrink-0 text-current opacity-50 hover:opacity-100 transition-opacity"
         aria-label="Dismiss error"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

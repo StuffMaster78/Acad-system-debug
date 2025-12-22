@@ -26,15 +26,15 @@
 
     <!-- Stats Summary -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Total Paid</p>
         <p class="text-2xl font-bold text-green-900">{{ formatCurrency(stats.totalPaid) }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">This Month</p>
         <p class="text-2xl font-bold text-blue-900">{{ formatCurrency(stats.thisMonth) }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">Total Transactions</p>
         <p class="text-2xl font-bold text-purple-900">{{ stats.totalTransactions }}</p>
       </div>

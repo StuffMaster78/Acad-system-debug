@@ -93,7 +93,7 @@ const router = createRouter({
         {
           path: 'orders',
           name: 'ClientOrders',
-          component: () => import('@/client/views/ClientOrders.vue'),
+          component: () => import('@/views/orders/OrderList.vue'),
           meta: { requiresAuth: true, title: 'My Orders', roles: ['client'] },
         },
         {
@@ -1503,6 +1503,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Tip Management & Earnings',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/writer-resources',
+          name: 'WriterResourcesManagement',
+          component: () => import('@/views/admin/WriterResourcesManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Writer Resources & Samples Management',
             roles: ['admin', 'superadmin'],
           },
         },

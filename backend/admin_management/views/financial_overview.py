@@ -74,8 +74,8 @@ class FinancialOverviewViewSet(ViewSet):
         if date_from:
             # Filter orders by OrderPayment created_at (when payment was made)
             orders_qs = orders_qs.filter(
-                orderpayment__status='completed',
-                orderpayment__created_at__gte=date_from
+                payments__status='completed',
+                payments__created_at__gte=date_from
             ).distinct()
             # For special orders, filter by installments paid_at or created_at
             special_orders_qs = special_orders_qs.filter(
@@ -88,8 +88,8 @@ class FinancialOverviewViewSet(ViewSet):
         if date_to:
             # Filter orders by OrderPayment created_at (when payment was made)
             orders_qs = orders_qs.filter(
-                orderpayment__status='completed',
-                orderpayment__created_at__lte=date_to
+                payments__status='completed',
+                payments__created_at__lte=date_to
             ).distinct()
             # For special orders, filter by installments paid_at or created_at
             special_orders_qs = special_orders_qs.filter(

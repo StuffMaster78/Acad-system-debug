@@ -61,11 +61,11 @@
             <!-- Avatar -->
             <div
               v-if="shouldShowAvatar(message, index)"
-              class="flex-shrink-0 w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-semibold"
+              class="shrink-0 w-8 h-8 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center text-sm font-semibold"
             >
               {{ getInitials(message.sender) }}
             </div>
-            <div v-else class="flex-shrink-0 w-8"></div>
+            <div v-else class="shrink-0 w-8"></div>
 
             <!-- Message Bubble -->
             <div

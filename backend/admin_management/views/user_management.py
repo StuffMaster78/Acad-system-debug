@@ -197,53 +197,199 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
 
     def update(self, request, pk=None):
         """Update user information."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         user = self.get_object()
         
         # Prevent admins from modifying superadmins
         if user.role == 'superadmin' and request.user.role != 'superadmin':
             return Response(
-                {"error": "Cannot modify superadmin users."},
+                {"error": "Cannot modify superadmin users.", "detail": "Cannot modify superadmin users."},
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        serializer = UserUpdateSerializer(user, data=request.data, partial=False)
-        serializer.is_valid(raise_exception=True)
+        # Prevent role changes that aren't allowed
+        if 'role' in request.data:
+            new_role = request.data.get('role')
+            # Only superadmin can change roles to/from admin/superadmin
+            if new_role in ['admin', 'superadmin'] and request.user.role != 'superadmin':
+                return Response(
+                    {"error": "Only superadmin can assign admin or superadmin roles.", "detail": "Only superadmin can assign admin or superadmin roles."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            # Cannot change superadmin role
+            if user.role == 'superadmin' and new_role != 'superadmin':
+                return Response(
+                    {"error": "Cannot change superadmin role.", "detail": "Cannot change superadmin role."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
         
-        with transaction.atomic():
-            updated_user = serializer.save()
-            
-            AdminActivityLog.objects.create(
-                admin=request.user,
-                action=f"Updated user {updated_user.username}",
-                details=f"Updated user: {updated_user.email}"
+        # Track changes for audit
+        old_values = {}
+        changed_fields = list(request.data.keys())
+        for field in changed_fields:
+            if hasattr(user, field):
+                old_values[field] = getattr(user, field)
+        
+        try:
+            serializer = UserUpdateSerializer(user, data=request.data, partial=False)
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            logger.error(f"Serializer validation error for user {user.id}: {e}", exc_info=True)
+            error_detail = str(e)
+            if hasattr(e, 'detail'):
+                error_detail = e.detail
+            elif hasattr(e, 'message_dict'):
+                error_detail = str(e.message_dict)
+            return Response(
+                {
+                    "error": f"Validation error: {error_detail}",
+                    "detail": error_detail,
+                    "message": f"Validation error: {error_detail}"
+                },
+                status=status.HTTP_400_BAD_REQUEST
             )
         
-        return Response(UserDetailSerializer(updated_user).data)
+        try:
+            with transaction.atomic():
+                updated_user = serializer.save()
+                
+                # Create audit log with detailed changes
+                changes_summary = []
+                for field, old_value in old_values.items():
+                    new_value = getattr(updated_user, field, None)
+                    if old_value != new_value:
+                        changes_summary.append(f"{field}: {old_value} → {new_value}")
+                
+                action_text = f"Updated user {updated_user.username} ({updated_user.email}). Changes: {', '.join(changes_summary) if changes_summary else 'No changes detected'}"
+                # Truncate to 255 characters (max_length of action field)
+                if len(action_text) > 255:
+                    action_text = action_text[:252] + "..."
+                AdminActivityLog.objects.create(
+                    admin=request.user,
+                    action=action_text
+                )
+                
+                # Also log to UserAuditLog
+                from users.models import UserAuditLog
+                UserAuditLog.objects.create(
+                    user=updated_user,
+                    action='admin_direct_edit',
+                    details=f"Admin {request.user.email} directly edited user. Changes: {', '.join(changes_summary) if changes_summary else 'No changes detected'}",
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')
+                )
+            
+            return Response(UserDetailSerializer(updated_user).data)
+        except Exception as e:
+            logger.error(f"Error updating user {user.id}: {e}", exc_info=True)
+            return Response(
+                {
+                    "error": f"Failed to update user: {str(e)}",
+                    "detail": str(e),
+                    "message": f"Failed to update user: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def partial_update(self, request, pk=None):
         """Partially update user information."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         user = self.get_object()
         
         # Prevent admins from modifying superadmins
         if user.role == 'superadmin' and request.user.role != 'superadmin':
             return Response(
-                {"error": "Cannot modify superadmin users."},
+                {"error": "Cannot modify superadmin users.", "detail": "Cannot modify superadmin users."},
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
+        # Prevent role changes that aren't allowed
+        if 'role' in request.data:
+            new_role = request.data.get('role')
+            # Only superadmin can change roles to/from admin/superadmin
+            if new_role in ['admin', 'superadmin'] and request.user.role != 'superadmin':
+                return Response(
+                    {"error": "Only superadmin can assign admin or superadmin roles.", "detail": "Only superadmin can assign admin or superadmin roles."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+            # Cannot change superadmin role
+            if user.role == 'superadmin' and new_role != 'superadmin':
+                return Response(
+                    {"error": "Cannot change superadmin role.", "detail": "Cannot change superadmin role."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
         
-        with transaction.atomic():
-            updated_user = serializer.save()
-            
-            AdminActivityLog.objects.create(
-                admin=request.user,
-                action=f"Partially updated user {updated_user.username}",
-                details=f"Updated user: {updated_user.email}"
+        # Track changes for audit
+        old_values = {}
+        changed_fields = list(request.data.keys())
+        for field in changed_fields:
+            if hasattr(user, field):
+                old_values[field] = getattr(user, field)
+        
+        try:
+            serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+        except Exception as e:
+            logger.error(f"Serializer validation error for user {user.id}: {e}", exc_info=True)
+            error_detail = str(e)
+            if hasattr(e, 'detail'):
+                error_detail = e.detail
+            elif hasattr(e, 'message_dict'):
+                error_detail = str(e.message_dict)
+            return Response(
+                {
+                    "error": f"Validation error: {error_detail}",
+                    "detail": error_detail,
+                    "message": f"Validation error: {error_detail}"
+                },
+                status=status.HTTP_400_BAD_REQUEST
             )
         
-        return Response(UserDetailSerializer(updated_user).data)
+        try:
+            with transaction.atomic():
+                updated_user = serializer.save()
+                
+                # Create audit log with detailed changes
+                changes_summary = []
+                for field, old_value in old_values.items():
+                    new_value = getattr(updated_user, field, None)
+                    if old_value != new_value:
+                        changes_summary.append(f"{field}: {old_value} → {new_value}")
+                
+                action_text = f"Partially updated user {updated_user.username} ({updated_user.email}). Changes: {', '.join(changes_summary) if changes_summary else 'No changes detected'}"
+                # Truncate to 255 characters (max_length of action field)
+                if len(action_text) > 255:
+                    action_text = action_text[:252] + "..."
+                AdminActivityLog.objects.create(
+                    admin=request.user,
+                    action=action_text
+                )
+                
+                # Also log to UserAuditLog
+                from users.models import UserAuditLog
+                UserAuditLog.objects.create(
+                    user=updated_user,
+                    action='admin_direct_edit',
+                    details=f"Admin {request.user.email} directly edited user. Changes: {', '.join(changes_summary) if changes_summary else 'No changes detected'}",
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    user_agent=request.META.get('HTTP_USER_AGENT', '')
+                )
+            
+            return Response(UserDetailSerializer(updated_user).data)
+        except Exception as e:
+            logger.error(f"Error updating user {user.id}: {e}", exc_info=True)
+            return Response(
+                {
+                    "error": f"Failed to update user: {str(e)}",
+                    "detail": str(e),
+                    "message": f"Failed to update user: {str(e)}"
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
     def destroy(self, request, pk=None):
         """Delete user (superadmin only)."""

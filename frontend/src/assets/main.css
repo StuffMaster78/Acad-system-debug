@@ -2,5 +2,8 @@
 /* Import the main Tailwind styles */
 @import '../style.css';
 
+/* Import smooth transitions and animations */
+@import './css/transitions.css';
+
 /* Additional global styles can be added here */
 

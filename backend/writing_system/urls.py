@@ -104,6 +104,8 @@ urlpatterns = [
     path('api/v1/dropdown-options/', include('core.urls')),
     # Dashboard configuration endpoint
     path('api/v1/dashboard-config/', include('core.urls_dashboard')),
+    # Configuration versioning
+    path('api/v1/config-versioning/', include('core.urls_config_versioning')),
     # Note: Backward-compatible aliases removed to avoid URL namespace conflicts
     # Tests should use the /api/v1/ prefixed URLs instead
 ]

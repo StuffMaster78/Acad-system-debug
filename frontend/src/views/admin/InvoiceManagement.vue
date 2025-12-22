@@ -20,23 +20,23 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Invoices</p>
         <p class="text-3xl font-bold text-blue-900">{{ statistics?.total_invoices || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Paid</p>
         <p class="text-3xl font-bold text-green-900">{{ statistics?.paid_invoices || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Unpaid</p>
         <p class="text-3xl font-bold text-yellow-900">{{ statistics?.unpaid_invoices || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+      <div class="card p-4 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
         <p class="text-sm font-medium text-red-700 mb-1">Overdue</p>
         <p class="text-3xl font-bold text-red-900">{{ statistics?.overdue_invoices || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">Total Amount</p>
         <p class="text-3xl font-bold text-purple-900">${{ formatCurrency(statistics?.total_amount || 0) }}</p>
       </div>

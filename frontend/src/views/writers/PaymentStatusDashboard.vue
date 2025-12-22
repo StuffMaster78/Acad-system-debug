@@ -34,7 +34,7 @@
       <div v-else-if="paymentStatus" class="mb-8">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <!-- Pending -->
-          <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
@@ -47,7 +47,7 @@
                   {{ getStatusCount('Pending') }} payment{{ getStatusCount('Pending') !== 1 ? 's' : '' }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">⏳</span>
                 </div>
@@ -56,7 +56,7 @@
           </div>
           
           <!-- Delayed -->
-          <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-red-50 to-red-100 rounded-xl shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-red-700 uppercase tracking-wide mb-2">
@@ -69,7 +69,7 @@
                   {{ getStatusCount('Delayed') }} payment{{ getStatusCount('Delayed') !== 1 ? 's' : '' }}
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">⚠️</span>
                 </div>
@@ -78,7 +78,7 @@
           </div>
           
           <!-- Paid (30 days) -->
-          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
@@ -91,7 +91,7 @@
                   Last 30 days
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">✅</span>
                 </div>
@@ -100,7 +100,7 @@
           </div>
           
           <!-- Total Earnings -->
-          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+          <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
@@ -113,7 +113,7 @@
                   All time
                 </p>
               </div>
-              <div class="ml-4 flex-shrink-0">
+              <div class="ml-4 shrink-0">
                 <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">💰</span>
                 </div>
@@ -230,7 +230,7 @@
                   </p>
                 </div>
               </div>
-              <div class="flex-shrink-0">
+              <div class="shrink-0">
                 <div class="flex flex-col items-center gap-2">
                   <div
                     class="w-4 h-4 rounded-full animate-pulse shadow-lg"
@@ -410,7 +410,7 @@
                   Requested: <span class="text-gray-900">{{ formatDate(request.requested_at) }}</span>
                 </p>
               </div>
-              <div class="flex-shrink-0">
+              <div class="shrink-0">
                 <span
                   class="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold uppercase tracking-wide"
                   :class="getStatusBadgeClass(request.status)"

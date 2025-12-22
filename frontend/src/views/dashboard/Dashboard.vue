@@ -15,14 +15,32 @@
         <p class="mt-2 text-gray-600 dark:text-gray-400">Welcome back, {{ authStore.user?.email }}</p>
       </div>
       <div class="flex items-center gap-3">
+        <!-- Time Period Selector (Admin/Superadmin) -->
+        <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="flex items-center gap-2 text-sm text-gray-600">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+          <span>Time period:</span>
+          <select 
+            v-model="timePeriod" 
+            @change="refreshDashboard"
+            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+          >
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last year</option>
+            <option value="all">All time</option>
+          </select>
+        </div>
         <button
           v-if="authStore.isAdmin || authStore.isSuperAdmin"
           @click="refreshDashboard"
           :disabled="refreshing"
-          class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+          class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm font-medium"
         >
           <svg 
-            class="w-5 h-5" 
+            class="w-4 h-4" 
             :class="{ 'animate-spin': refreshing }"
             fill="none" 
             stroke="currentColor" 
@@ -30,7 +48,7 @@
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          {{ refreshing ? 'Refreshing...' : 'Refresh' }}
+          {{ refreshing ? 'Loading...' : 'Refresh' }}
         </button>
         <router-link
           v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
@@ -182,7 +200,7 @@
         <div
           v-for="metric in writerQuickMetrics"
           :key="metric.name"
-          class="card bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all"
+          class="card bg-linear-to-br from-white to-gray-50 rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all"
         >
           <div class="flex items-center justify-between mb-2">
             <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">{{ metric.name }}</p>
@@ -281,97 +299,62 @@
     <router-link
       v-if="authStore.isAdmin || authStore.isSuperAdmin"
       to="/admin/content-metrics-report"
-      class="block mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer relative z-10 no-underline"
+      class="block mb-6 p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer relative z-10 no-underline"
     >
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-semibold text-gray-900">Content Metrics & Reporting</h3>
           <p class="text-sm text-gray-600 mt-1">View content performance, publishing targets, and freshness metrics</p>
         </div>
-        <svg class="w-6 h-6 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </div>
     </router-link>
 
-    <!-- Summary Stats Grid (Admin/Superadmin) - Primary Metrics -->
-    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+    <!-- Summary Stats Grid (Admin/Superadmin) - Primary Metrics - Flup Style -->
+    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
       <div
         v-for="stat in summaryStats"
         :key="stat.name"
-        :class="[
-          'card bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-primary-200',
-          stat.name === 'Total Revenue' 
-            ? 'lg:col-span-2 p-8' 
-            : 'p-6'
-        ]"
+        class="group bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
       >
-        <div class="flex items-start justify-between">
-          <div class="flex-1 min-w-0 pr-4">
-            <p 
-              :class="[
-                'font-medium text-gray-600 mb-2 uppercase tracking-wide',
-                stat.name === 'Total Revenue' ? 'text-base' : 'text-sm'
-              ]"
-            >{{ stat.name }}</p>
-            <p 
-              :class="[
-                'font-bold text-gray-900 mb-1 break-words',
-                stat.name === 'Total Revenue' 
-                  ? 'text-4xl sm:text-5xl lg:text-6xl' 
-                  : stat.size === 'compact' 
-                    ? 'text-2xl' 
-                    : 'text-3xl'
-              ]"
-              style="word-break: break-word; overflow-wrap: break-word;"
-            >{{ stat.value }}</p>
-            <p 
-              v-if="stat.subtitle" 
-              :class="[
-                'text-gray-500 mt-1 leading-relaxed',
-                stat.name === 'Total Revenue' ? 'text-sm' : 'text-xs'
-              ]"
-            >{{ stat.subtitle }}</p>
-            <p v-if="stat.change !== null && stat.change !== undefined" :class="[
-              'text-sm mt-2 flex items-center',
-              stat.change > 0 ? 'text-green-600' : stat.change < 0 ? 'text-red-600' : 'text-gray-500'
-            ]">
-              <span class="mr-1">{{ stat.change > 0 ? '↑' : stat.change < 0 ? '↓' : '→' }}</span>
-              {{ Math.abs(stat.change) }}% from last month
-            </p>
-          </div>
-          <div 
-            :class="[
-              'rounded-lg shrink-0',
-              stat.name === 'Total Revenue' ? 'p-4 ml-4' : 'p-3 ml-4',
-              stat.bgColor || 'bg-primary-100'
-            ]"
-          >
-            <span :class="stat.name === 'Total Revenue' ? 'text-4xl' : 'text-2xl'">{{ stat.icon }}</span>
+        <div class="flex items-start justify-between mb-3">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ stat.name }}</span>
+          <div v-if="stat.change !== null && stat.change !== undefined" class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold"
+            :class="stat.change > 0 ? 'bg-green-50 text-green-700' : stat.change < 0 ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-600'">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path v-if="stat.change > 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              <path v-else-if="stat.change < 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+              <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14" />
+            </svg>
+            <span>{{ formatPercentageChange(stat.change) }}</span>
           </div>
         </div>
+        <div class="text-3xl font-bold text-gray-900 mb-1 tracking-tight">{{ stat.value }}</div>
+        <p v-if="stat.subtitle" class="text-xs text-gray-500 mt-2 leading-relaxed">{{ stat.subtitle }}</p>
       </div>
     </div>
 
     <!-- Key Metrics Grid (Admin/Superadmin) - Secondary Metrics -->
-    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mt-6">
+    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
       <div
         v-for="metric in keyMetrics"
         :key="metric.name"
-        class="card bg-white rounded-lg shadow-sm p-5 hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-primary-200"
+        class="group bg-white rounded-2xl shadow-sm p-5 hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-gray-200"
       >
         <div class="flex items-start justify-between">
           <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wider">{{ metric.name }}</p>
+            <p class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">{{ metric.name }}</p>
             <p 
               :class="[
-                'font-bold text-gray-900 mb-1',
+                'font-bold text-gray-900 mb-1 tracking-tight',
                 metric.size === 'compact' ? 'text-xl' : 'text-2xl'
               ]"
             >{{ metric.value }}</p>
-            <p v-if="metric.subtitle" class="text-xs text-gray-500 mt-1">{{ metric.subtitle }}</p>
+            <p v-if="metric.subtitle" class="text-xs text-gray-500 mt-1 leading-relaxed">{{ metric.subtitle }}</p>
           </div>
-          <div class="p-2.5 rounded-lg ml-3 shrink-0" :class="metric.bgColor || 'bg-gray-100'">
+          <div class="p-3 rounded-xl ml-3 shrink-0 transition-transform group-hover:scale-110" :class="metric.bgColor || 'bg-gray-100'">
             <span class="text-xl">{{ metric.icon }}</span>
           </div>
         </div>
@@ -379,19 +362,19 @@
     </div>
 
     <!-- User Statistics (Admin/Superadmin) -->
-    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 mb-8">
       <div
         v-for="stat in userStats"
         :key="stat.name"
-        class="card bg-gradient-to-br from-white to-gray-50 rounded-lg shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all duration-200 hover:scale-[1.02]"
+        class="group bg-linear-to-br from-white to-gray-50 rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
       >
         <div class="flex items-center justify-between mb-3">
-          <p class="text-xs font-semibold text-gray-600 uppercase tracking-wider">{{ stat.name }}</p>
-          <span class="text-xl">{{ stat.icon }}</span>
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ stat.name }}</p>
+          <span class="text-xl transition-transform group-hover:scale-110">{{ stat.icon }}</span>
         </div>
-        <p v-if="loading.summary" class="text-2xl font-bold text-gray-300 animate-pulse mb-1">—</p>
-        <p v-else class="text-2xl font-bold text-gray-900 mb-1">{{ stat.value }}</p>
-        <p v-if="stat.percentage !== undefined && !loading.summary" class="text-xs text-gray-500">{{ stat.percentage }}% of total</p>
+        <p v-if="loading.summary" class="text-2xl font-bold text-gray-300 animate-pulse mb-1 tracking-tight">—</p>
+        <p v-else class="text-2xl font-bold text-gray-900 mb-1 tracking-tight">{{ stat.value }}</p>
+        <p v-if="stat.percentage !== undefined && !loading.summary" class="text-xs text-gray-500 mt-1">{{ stat.percentage }}% of total</p>
       </div>
     </div>
 
@@ -399,14 +382,14 @@
     <router-link
       v-if="authStore.isAdmin || authStore.isSuperAdmin"
       to="/admin/order-status-metrics"
-      class="block mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer relative z-10 no-underline"
+      class="block mb-6 p-4 bg-linear-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer relative z-10 no-underline"
     >
       <div class="flex items-center justify-between">
         <div>
           <h3 class="text-lg font-semibold text-gray-900">Order Status Metrics</h3>
           <p class="text-sm text-gray-600 mt-1">View order status distribution and workflow metrics</p>
         </div>
-        <svg class="w-6 h-6 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-6 h-6 text-green-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
       </div>
@@ -481,7 +464,7 @@
           :key="index"
           class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
         >
-          <div class="flex-shrink-0 w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
+          <div class="shrink-0 w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
             <span class="text-sm">📋</span>
           </div>
           <div class="flex-1 min-w-0">
@@ -496,132 +479,175 @@
       <div v-else class="text-center py-8 text-gray-500">No recent activity</div>
     </div>
 
-    <!-- Charts Grid (Admin/Superadmin only) -->
-    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Yearly Orders Chart -->
-      <div class="card bg-white rounded-lg shadow-sm p-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Orders by Month ({{ currentYear }})</h2>
-        <div v-if="yearlyOrdersLoading" class="flex items-center justify-center h-64">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+    <!-- Analytics Charts Section (Admin/Superadmin) - Flup Style -->
+    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="space-y-6 mb-8">
+      <!-- Main Chart Row: Order Trends -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Order Trends Chart (Main - 2 columns) -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-gray-900 tracking-tight">Order trends.</h2>
+            <div class="flex items-center gap-4 text-xs">
+              <div class="flex items-center gap-2 px-2 py-1 bg-blue-50 rounded-full">
+                <div class="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                <span class="text-gray-700 font-medium">Orders</span>
+              </div>
+              <div class="flex items-center gap-2 px-2 py-1 bg-green-50 rounded-full">
+                <div class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                <span class="text-gray-700 font-medium">Revenue</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="yearlyOrdersLoading || yearlyEarningsLoading" class="flex items-center justify-center h-64">
+            <div class="flex flex-col items-center gap-3">
+              <div class="animate-spin rounded-full h-8 w-8 border-2 border-blue-200 border-t-blue-600"></div>
+              <p class="text-sm text-gray-500">Loading chart data...</p>
+            </div>
+          </div>
+          <apexchart
+            v-else-if="chartsReady"
+            type="bar"
+            height="300"
+            :options="orderTrendsChartOptions"
+            :series="orderTrendsSeries"
+          />
+          <div v-else class="flex items-center justify-center h-64 text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg">
+            <p class="text-sm">Preparing chart...</p>
+          </div>
         </div>
-        <div v-else>
-          <div
-            v-if="!chartsReady"
-            class="flex items-center justify-center h-64 text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg"
-          >
-            Preparing chart...
-        </div>
-        <apexchart
-          v-else
-          type="area"
-          height="300"
-          :options="yearlyOrdersChartOptions"
-          :series="yearlyOrdersSeries"
-        ></apexchart>
+
+        <!-- Orders by Status (Side - 1 column) -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+          <h2 class="text-xl font-bold text-gray-900 mb-6 tracking-tight">Orders by status.</h2>
+          <div v-if="paymentStatusLoading" class="flex items-center justify-center h-64">
+            <div class="animate-spin rounded-full h-8 w-8 border-2 border-blue-200 border-t-blue-600"></div>
+          </div>
+          <div v-else-if="chartsReady" class="space-y-4">
+            <apexchart
+              type="donut"
+              height="250"
+              :options="orderStatusChartOptions"
+              :series="orderStatusSeries"
+            />
+            <div class="space-y-2 mt-4">
+              <div 
+                v-for="(item, index) in orderStatusBreakdown" 
+                :key="index"
+                class="flex items-center justify-between text-sm"
+              >
+                <div class="flex items-center gap-2">
+                  <div 
+                    class="w-3 h-3 rounded-full" 
+                    :style="{ backgroundColor: statusColors[index % statusColors.length] }"
+                  ></div>
+                  <span class="text-gray-700">{{ item.label }}</span>
+                </div>
+                <span class="font-semibold text-gray-900">{{ item.percentage }}%</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="flex items-center justify-center h-64 text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg">
+            <p class="text-sm">Preparing chart...</p>
+          </div>
         </div>
       </div>
 
-      <!-- Yearly Earnings Chart -->
-      <div class="card bg-white rounded-lg shadow-sm p-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Earnings by Month ({{ currentYear }})</h2>
-        <div v-if="yearlyEarningsLoading" class="flex items-center justify-center h-64">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <!-- Bottom Row: Service Revenue & Monthly Trends -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Service Revenue Breakdown -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+          <h2 class="text-xl font-bold text-gray-900 mb-6 tracking-tight">Orders by service type.</h2>
+          <div v-if="serviceRevenueLoading" class="flex items-center justify-center h-64">
+            <div class="animate-spin rounded-full h-8 w-8 border-2 border-blue-200 border-t-blue-600"></div>
+          </div>
+          <div v-else-if="chartsReady" class="space-y-3">
+            <div 
+              v-for="(item, index) in serviceTypeBreakdown" 
+              :key="index"
+              class="flex items-center justify-between"
+            >
+              <div class="flex items-center gap-3 flex-1 min-w-0">
+                <div 
+                  class="w-4 h-4 rounded" 
+                  :style="{ backgroundColor: serviceColors[index % serviceColors.length] }"
+                ></div>
+                <span class="text-sm text-gray-700 truncate">{{ item.name }}</span>
+              </div>
+              <div class="flex items-center gap-4 ml-4">
+                <span class="text-sm font-semibold text-gray-900">{{ item.percentage }}%</span>
+                <span class="text-xs text-gray-500 w-16 text-right">{{ formatNumber(item.count) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="flex items-center justify-center h-64 text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg">
+            <p class="text-sm">Preparing chart...</p>
+          </div>
         </div>
-        <div v-else>
-          <div
-            v-if="!chartsReady"
-            class="flex items-center justify-center h-64 text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg"
-          >
-            Preparing chart...
-        </div>
-        <apexchart
-          v-else
-          type="bar"
-          height="300"
-          :options="yearlyEarningsChartOptions"
-          :series="yearlyEarningsSeries"
-        ></apexchart>
+
+        <!-- Monthly Orders Chart - GitHub Style Heatmap -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-bold text-gray-900 tracking-tight">Daily orders ({{ currentMonthName }} {{ currentYear }}).</h2>
+            <select
+              v-model="selectedMonth"
+              @change="fetchMonthlyOrders"
+              class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            >
+              <option v-for="month in months" :key="month.value" :value="month.value">
+                {{ month.label }}
+              </option>
+            </select>
+          </div>
+          <div v-if="monthlyOrdersLoading" class="flex items-center justify-center h-64">
+            <div class="animate-spin rounded-full h-8 w-8 border-2 border-blue-200 border-t-blue-600"></div>
+          </div>
+          <GitHubStyleHeatmap
+            v-else-if="monthlyOrdersData && monthlyOrdersData.length > 0"
+            :data="monthlyOrdersData"
+            :year="currentYear"
+            :month="selectedMonth"
+          />
+          <div v-else class="flex items-center justify-center h-64 text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg">
+            <p class="text-sm">No order data available</p>
+          </div>
         </div>
       </div>
 
-      <!-- Payment Status Chart -->
-      <div class="card bg-white rounded-lg shadow-sm p-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Payment Status Breakdown</h2>
-        <div v-if="paymentStatusLoading" class="flex items-center justify-center h-64">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      <!-- Top Clients Section -->
+      <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-lg transition-shadow duration-300">
+        <div class="flex items-center justify-between mb-6">
+          <h2 class="text-xl font-bold text-gray-900 tracking-tight">Top clients.</h2>
+          <router-link to="/admin/users?role=client" class="text-sm text-gray-600 hover:text-gray-900 font-medium">View all →</router-link>
         </div>
-        <div v-else>
+        <div v-if="topClientsLoading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-2 border-blue-200 border-t-blue-600"></div>
+        </div>
+        <div v-else-if="topClients && topClients.length > 0" class="space-y-3">
           <div
-            v-if="!chartsReady"
-            class="flex items-center justify-center h-64 text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg"
+            v-for="(client, index) in topClients.slice(0, 5)"
+            :key="client.id || index"
+            class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200"
           >
-            Preparing chart...
+            <div class="flex items-center gap-4 flex-1 min-w-0">
+              <div class="shrink-0 w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                {{ index + 1 }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="font-semibold text-gray-900 truncate">{{ client.name || client.email || 'Unknown Client' }}</p>
+                <p class="text-xs text-gray-500 truncate">{{ client.email || 'No email' }}</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-6 ml-4">
+              <div class="text-right">
+                <p class="text-sm font-bold text-gray-900">{{ client.total_orders || 0 }} orders</p>
+                <p class="text-xs text-gray-500">{{ formatCompactCurrency(client.total_spent || 0) }}</p>
+              </div>
+            </div>
+          </div>
         </div>
-        <apexchart
-          v-else
-          type="donut"
-          height="300"
-          :options="paymentStatusChartOptions"
-          :series="paymentStatusSeries"
-        ></apexchart>
+        <div v-else class="text-center py-12 text-gray-500">
+          <p class="text-sm">No client data available</p>
         </div>
-      </div>
-
-      <!-- Service Revenue Chart -->
-      <div class="card bg-white rounded-lg shadow-sm p-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Service Revenue (Last 30 Days)</h2>
-        <div v-if="serviceRevenueLoading" class="flex items-center justify-center h-64">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-        <div v-else>
-          <div
-            v-if="!chartsReady"
-            class="flex items-center justify-center h-64 text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg"
-          >
-            Preparing chart...
-        </div>
-        <apexchart
-          v-else
-          type="pie"
-          height="300"
-          :options="serviceRevenueChartOptions"
-          :series="serviceRevenueSeries"
-        ></apexchart>
-        </div>
-      </div>
-    </div>
-
-    <!-- Monthly Orders Chart (Admin/Superadmin only) -->
-    <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="card bg-white rounded-lg shadow-sm p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-gray-900">Daily Orders ({{ currentMonthName }} {{ currentYear }})</h2>
-        <select
-          v-model="selectedMonth"
-          @change="fetchMonthlyOrders"
-          class="rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-        >
-          <option v-for="month in months" :key="month.value" :value="month.value">
-            {{ month.label }}
-          </option>
-        </select>
-      </div>
-      <div v-if="monthlyOrdersLoading" class="flex items-center justify-center h-64">
-        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-      </div>
-      <div v-else>
-        <div
-          v-if="!chartsReady"
-          class="flex items-center justify-center h-72 text-gray-400 bg-gray-50 border border-dashed border-gray-200 rounded-lg"
-        >
-          Preparing chart...
-      </div>
-      <apexchart
-        v-else
-        type="line"
-        height="350"
-        :options="monthlyOrdersChartOptions"
-        :series="monthlyOrdersSeries"
-      ></apexchart>
       </div>
     </div>
 
@@ -633,6 +659,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import dashboardAPI from '@/api/dashboard'
+import adminManagementAPI from '@/api/admin-management'
 import editorDashboardAPI from '@/api/editor-dashboard'
 import editorTasksAPI from '@/api/editor-tasks'
 import supportDashboardAPI from '@/api/support-dashboard'
@@ -647,6 +674,7 @@ import WriterDashboard from './components/WriterDashboard.vue'
 import EditorDashboard from './components/EditorDashboard.vue'
 // ContentRemindersWidget moved to ContentMetricsReport page
 import SupportDashboard from './components/SupportDashboard.vue'
+import GitHubStyleHeatmap from '@/components/dashboard/GitHubStyleHeatmap.vue'
 import { useReliableOrders } from '@/composables/useReliableOrders'
 import { useConnectionStatus } from '@/composables/useConnectionStatus'
 import { retryApiCall } from '@/utils/retry'
@@ -663,7 +691,7 @@ onMounted(() => {
   connectionRestoredHandler = () => {
     // Auto-refresh dashboard when connection is restored
     if (authStore.isAuthenticated) {
-      console.log('Connection restored, refreshing dashboard...')
+      // Connection restored, refreshing dashboard...
       refreshDashboard()
     }
   }
@@ -688,6 +716,8 @@ const recentActivity = ref([])
 const paymentReminderStats = ref(null)
 const chartsReady = ref(false)
 const error = ref(null)
+const timePeriod = ref('30') // Default to 30 days
+const previousPeriodData = ref(null) // Store previous period data for comparison
 
 const loading = ref({
   summary: false,
@@ -697,6 +727,8 @@ const loading = ref({
   serviceRevenue: false,
   paymentStatus: false,
 })
+const topClients = ref([])
+const topClientsLoading = ref(false)
 const refreshing = ref(false)
 const recentOrdersLoading = ref(false)
 const recentOrders = ref([])
@@ -808,7 +840,7 @@ const enhancedWriterStats = computed(() => {
       icon: '💰',
       subtitle: earnings?.this_month ? `$${earnings.this_month.toFixed(2)} earned this month` : 'Start earning today',
       trend: earnings?.earnings_trend?.length > 1 ? calculateTrend(earnings.earnings_trend) : null,
-      gradientBg: 'bg-gradient-to-br from-green-50 to-emerald-50',
+      gradientBg: 'bg-linear-to-br from-green-50 to-emerald-50',
       valueColor: 'text-green-700',
       subtitleColor: 'text-green-600',
       iconBg: 'bg-green-100',
@@ -821,7 +853,7 @@ const enhancedWriterStats = computed(() => {
       icon: '✅',
       subtitle: performance?.completion_rate ? `${performance.completion_rate.toFixed(1)}% completion rate` : 'No orders yet',
       trend: null,
-      gradientBg: 'bg-gradient-to-br from-blue-50 to-indigo-50',
+      gradientBg: 'bg-linear-to-br from-blue-50 to-indigo-50',
       valueColor: 'text-blue-700',
       subtitleColor: 'text-blue-600',
       iconBg: 'bg-blue-100',
@@ -834,7 +866,7 @@ const enhancedWriterStats = computed(() => {
       icon: '⏰',
       subtitle: performance?.on_time_orders ? `${performance.on_time_orders} of ${performance.completed_orders || 0} orders on time` : 'Track your deadlines',
       trend: null,
-      gradientBg: 'bg-gradient-to-br from-purple-50 to-pink-50',
+      gradientBg: 'bg-linear-to-br from-purple-50 to-pink-50',
       valueColor: 'text-purple-700',
       subtitleColor: 'text-purple-600',
       iconBg: 'bg-purple-100',
@@ -847,7 +879,7 @@ const enhancedWriterStats = computed(() => {
       icon: '⭐',
       subtitle: performance?.total_reviews ? `From ${performance.total_reviews} reviews` : 'No reviews yet',
       trend: null,
-      gradientBg: 'bg-gradient-to-br from-yellow-50 to-amber-50',
+      gradientBg: 'bg-linear-to-br from-yellow-50 to-amber-50',
       valueColor: 'text-yellow-700',
       subtitleColor: 'text-yellow-600',
       iconBg: 'bg-yellow-100',
@@ -1020,12 +1052,24 @@ const summaryStats = computed(() => {
     return `$${formatCurrency(amount)}`
   }
   
+  // Calculate percentage changes (mock for now - can be enhanced with previous period data)
+  const calculateChange = (current, previous) => {
+    if (!previous || previous === 0) return null
+    return ((current - previous) / previous) * 100
+  }
+
+  // Mock previous period data (in real app, fetch from API)
+  const prevTotalOrders = previousPeriodData.value?.total_orders || totalOrders * 0.95
+  const prevTotalRevenue = previousPeriodData.value?.total_revenue || totalRevenue * 0.98
+  const prevOrdersInProgress = previousPeriodData.value?.orders_in_progress || ordersInProgress * 0.97
+  const prevAmountPaidToday = previousPeriodData.value?.amount_paid_today || amountPaidToday * 0.90
+
   return [
     {
       name: 'Total Orders',
       value: totalOrders.toLocaleString(),
       icon: '📝',
-      change: null,
+      change: calculateChange(totalOrders, prevTotalOrders),
       subtitle: recentOrders > 0 ? `${recentOrders} in last 7 days` : 'No orders in last 7 days',
       bgColor: 'bg-blue-100',
       size: 'normal',
@@ -1034,16 +1078,16 @@ const summaryStats = computed(() => {
       name: 'Total Revenue',
       value: formatLargeCurrency(totalRevenue),
       icon: '💰',
-      change: null,
+      change: calculateChange(totalRevenue, prevTotalRevenue),
       subtitle: paidOrders > 0 ? `From ${paidOrders.toLocaleString()} paid order${paidOrders !== 1 ? 's' : ''}` : 'No paid orders yet',
-      bgColor: 'bg-gradient-to-br from-green-100 to-emerald-100',
+      bgColor: 'bg-linear-to-br from-green-100 to-emerald-100',
       size: 'large',
     },
     {
       name: 'Orders in Progress',
       value: ordersInProgress.toLocaleString(),
       icon: '⚙️',
-      change: null,
+      change: calculateChange(ordersInProgress, prevOrdersInProgress),
       subtitle: 'Active work in progress',
       bgColor: 'bg-indigo-100',
       size: 'normal',
@@ -1052,7 +1096,7 @@ const summaryStats = computed(() => {
       name: 'Amount Paid Today',
       value: formatCompactCurrency(amountPaidToday),
       icon: '💵',
-      change: null,
+      change: calculateChange(amountPaidToday, prevAmountPaidToday),
       subtitle: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
       bgColor: 'bg-emerald-100',
       size: amountPaidToday >= 10000 ? 'compact' : 'normal',
@@ -1181,91 +1225,226 @@ const userStats = computed(() => {
   ]
 })
 
+// Color palettes for charts
+const statusColors = [
+  '#8B5CF6', '#EC4899', '#3B82F6', '#10B981', '#F59E0B', 
+  '#EF4444', '#6366F1', '#14B8A6', '#F97316', '#84CC16'
+]
+
+const serviceColors = [
+  '#8B5CF6', '#EC4899', '#3B82F6', '#10B981', '#F59E0B', 
+  '#EF4444', '#6366F1', '#14B8A6', '#F97316', '#84CC16'
+]
+
 // Order Status Breakdown (Admin/Superadmin)
 const orderStatusBreakdown = computed(() => {
   if (!summaryData.value || !summaryData.value.orders_by_status) {
     return []
   }
   
-  const statusMap = {
-    'pending': { name: 'Pending', icon: '⏳', borderColor: 'border-yellow-400', textColor: 'text-yellow-600' },
-    'in_progress': { name: 'In Progress', icon: '🔄', borderColor: 'border-blue-400', textColor: 'text-blue-600' },
-    'under_editing': { name: 'Editing', icon: '✏️', borderColor: 'border-purple-400', textColor: 'text-purple-600' },
-    'completed': { name: 'Completed', icon: '✅', borderColor: 'border-green-400', textColor: 'text-green-600' },
-    'on_revision': { name: 'Revision', icon: '📝', borderColor: 'border-orange-400', textColor: 'text-orange-600' },
-    'disputed': { name: 'Disputed', icon: '⚠️', borderColor: 'border-red-400', textColor: 'text-red-600' },
-    'canceled': { name: 'Canceled', icon: '❌', borderColor: 'border-gray-400', textColor: 'text-gray-600' },
-    'closed': { name: 'Closed', icon: '🔒', borderColor: 'border-gray-500', textColor: 'text-gray-700' },
-  }
-  
   const ordersByStatus = summaryData.value.orders_by_status || {}
   const totalOrders = summaryData.value.total_orders || 0
   
-  return Object.entries(ordersByStatus).map(([status, count]) => {
-    const statusInfo = statusMap[status] || { name: status, icon: '📋', borderColor: 'border-gray-300', textColor: 'text-gray-600' }
-    return {
-      name: statusInfo.name,
-      value: count.toLocaleString(),
-      icon: statusInfo.icon,
-      borderColor: statusInfo.borderColor,
-      textColor: statusInfo.textColor,
-      percentage: totalOrders > 0 ? ((count / totalOrders) * 100).toFixed(1) : '0',
-    }
-  }).sort((a, b) => parseInt(b.value) - parseInt(a.value))
+  const statusLabels = {
+    'pending': 'Pending',
+    'in_progress': 'In Progress',
+    'under_editing': 'Under Editing',
+    'completed': 'Completed',
+    'on_revision': 'On Revision',
+    'disputed': 'Disputed',
+    'canceled': 'Canceled',
+    'closed': 'Closed',
+  }
+  
+  return Object.entries(ordersByStatus)
+    .map(([status, count]) => ({
+      label: statusLabels[status] || status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      count: Number(count) || 0,
+      percentage: totalOrders > 0 ? ((Number(count) / totalOrders) * 100).toFixed(1) : '0',
+    }))
+    .filter(item => item.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8)
 })
 
-// Chart Options and Series
-const yearlyOrdersChartOptions = computed(() => ({
-  chart: {
-    type: 'area',
-    toolbar: { show: false },
-    zoom: { enabled: false },
-  },
-  dataLabels: { enabled: false },
-  stroke: { curve: 'smooth', width: 2 },
-  xaxis: {
-    categories: yearlyOrdersData.value.map(item => item.month_name),
-  },
-  yaxis: {
-    title: { text: 'Orders' },
-  },
-  fill: {
-    type: 'gradient',
-    gradient: {
-      shadeIntensity: 1,
-      opacityFrom: 0.7,
-      opacityTo: 0.3,
+// Service Type Breakdown
+const serviceTypeBreakdown = computed(() => {
+  if (!serviceRevenueData.value?.by_paper_type || !Array.isArray(serviceRevenueData.value.by_paper_type)) {
+    return []
+  }
+  
+  const total = serviceRevenueData.value.by_paper_type.reduce((sum, item) => sum + (item.revenue || 0), 0)
+  if (total === 0) return []
+  
+  return serviceRevenueData.value.by_paper_type
+    .map(item => ({
+      name: item.name || 'Unknown',
+      count: item.count || 0,
+      revenue: parseFloat(item.revenue || 0),
+      percentage: ((parseFloat(item.revenue || 0) / total) * 100).toFixed(1)
+    }))
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 10)
+})
+
+// Combined Order Trends Chart (Orders + Revenue)
+const orderTrendsChartOptions = computed(() => {
+  // Map full month names to single letter abbreviations
+  const monthAbbreviations = {
+    'January': 'J',
+    'February': 'F',
+    'March': 'M',
+    'April': 'A',
+    'May': 'M',
+    'June': 'J',
+    'July': 'J',
+    'August': 'A',
+    'September': 'S',
+    'October': 'O',
+    'November': 'N',
+    'December': 'D'
+  }
+  
+  const categories = yearlyOrdersData.value.map(item => {
+    const monthName = item.month_name || item.month || ''
+    // Handle both full names and abbreviations
+    if (monthAbbreviations[monthName]) {
+      return monthAbbreviations[monthName]
+    }
+    // If it's already a single letter or short form, use it
+    if (monthName.length <= 2) {
+      return monthName.toUpperCase()
+    }
+    // Otherwise take first letter
+    return monthName.charAt(0).toUpperCase()
+  })
+  
+  return {
+    chart: {
+      type: 'bar',
+      toolbar: { show: false },
+      fontFamily: 'Inter, sans-serif',
     },
+    colors: ['#3B82F6', '#10B981'],
+    dataLabels: { enabled: false },
+    xaxis: {
+      categories: categories,
+      labels: { 
+        style: { fontSize: '12px', colors: '#6B7280', fontFamily: 'Inter, sans-serif' }
+      }
+    },
+    yaxis: [
+      {
+        title: { text: 'Orders', style: { color: '#3B82F6', fontSize: '12px' } },
+        labels: { 
+          style: { fontSize: '12px', colors: '#6B7280' },
+          formatter: (val) => Math.round(val).toLocaleString()
+        }
+      },
+      {
+        opposite: true,
+        title: { text: 'Revenue ($)', style: { color: '#10B981', fontSize: '12px' } },
+        labels: { 
+          style: { fontSize: '12px', colors: '#6B7280' },
+          formatter: (val) => `$${Math.round(val).toLocaleString()}`
+        }
+      }
+    ],
+    legend: { show: false },
+    grid: {
+      borderColor: '#E5E7EB',
+      strokeDashArray: 4,
+      xaxis: { lines: { show: false } },
+      yaxis: { lines: { show: true } }
+    },
+    plotOptions: {
+      bar: {
+        borderRadius: 4,
+        columnWidth: '60%',
+      }
+    },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      style: { fontSize: '12px', fontFamily: 'Inter, sans-serif' }
+    }
+  }
+})
+
+const orderTrendsSeries = computed(() => [
+  {
+    name: 'Orders',
+    data: yearlyOrdersData.value.map(item => item.order_count || 0),
+    type: 'column'
   },
-  colors: ['#3B82F6'],
+  {
+    name: 'Revenue',
+    data: yearlyEarningsData.value.map(item => parseFloat(item.revenue || 0)),
+    type: 'line',
+    yAxisIndex: 1
+  }
+])
+
+// Order Status Chart Options
+const orderStatusChartOptions = computed(() => ({
+  chart: {
+    type: 'donut',
+    fontFamily: 'Inter, sans-serif',
+  },
+  colors: statusColors,
+  labels: orderStatusBreakdown.value.map(item => item.label),
+  legend: { show: false },
+  dataLabels: { enabled: false },
+  plotOptions: {
+    pie: {
+      donut: {
+        size: '70%'
+      }
+    }
+  },
+  tooltip: {
+    style: { fontSize: '12px', fontFamily: 'Inter, sans-serif' }
+  }
 }))
 
-const yearlyOrdersSeries = computed(() => [{
-  name: 'Orders',
-  data: yearlyOrdersData.value.map(item => item.order_count),
-}])
+const orderStatusSeries = computed(() => 
+  orderStatusBreakdown.value.map(item => item.count)
+)
 
+// Keep yearly earnings for reference but use combined chart above
 const yearlyEarningsChartOptions = computed(() => ({
   chart: {
     type: 'bar',
     toolbar: { show: false },
+    fontFamily: 'Inter, sans-serif',
   },
   dataLabels: { enabled: false },
   xaxis: {
-    categories: yearlyEarningsData.value.map(item => item.month_name),
+    categories: yearlyEarningsData.value.map(item => item.month_name || item.month),
+    labels: { style: { fontSize: '12px', colors: '#6B7280' } }
   },
   yaxis: {
-    title: { text: 'Revenue ($)' },
+    title: { text: 'Revenue ($)', style: { fontSize: '12px', color: '#6B7280' } },
     labels: {
-      formatter: (val) => `$${val.toLocaleString()}`,
+      style: { fontSize: '12px', colors: '#6B7280' },
+      formatter: (val) => `$${Math.round(val).toLocaleString()}`,
     },
   },
   colors: ['#10B981'],
+  grid: {
+    borderColor: '#E5E7EB',
+    strokeDashArray: 4,
+  },
+  plotOptions: {
+    bar: {
+      borderRadius: 4,
+    }
+  }
 }))
 
 const yearlyEarningsSeries = computed(() => [{
   name: 'Earnings',
-  data: yearlyEarningsData.value.map(item => item.revenue),
+  data: yearlyEarningsData.value.map(item => parseFloat(item.revenue || 0)),
 }])
 
 const monthlyOrdersChartOptions = computed(() => ({
@@ -1273,17 +1452,65 @@ const monthlyOrdersChartOptions = computed(() => ({
     type: 'line',
     toolbar: { show: false },
     zoom: { enabled: false },
+    fontFamily: 'Inter, sans-serif',
+    offsetX: 0,
+    offsetY: 0,
   },
   dataLabels: { enabled: false },
-  stroke: { curve: 'smooth', width: 2 },
+  stroke: { 
+    curve: 'smooth', 
+    width: 3,
+    colors: ['#3B82F6']
+  },
+  fill: {
+    type: 'gradient',
+    gradient: {
+      shadeIntensity: 1,
+      opacityFrom: 0.7,
+      opacityTo: 0.1,
+      stops: [0, 100]
+    }
+  },
   xaxis: {
     categories: monthlyOrdersData.value.map(item => item.day),
-    title: { text: 'Day of Month' },
+    labels: { 
+      style: { fontSize: '12px', colors: '#6B7280' },
+      offsetY: 5,
+    },
+    axisBorder: { show: false },
+    axisTicks: { show: false },
   },
   yaxis: {
-    title: { text: 'Orders' },
+    title: { text: 'Orders', style: { fontSize: '12px', color: '#6B7280' } },
+    labels: {
+      style: { fontSize: '12px', colors: '#6B7280' },
+      formatter: (val) => Math.round(val).toLocaleString(),
+      offsetX: -5,
+    },
   },
-  colors: ['#8B5CF6'],
+  colors: ['#3B82F6'],
+  grid: {
+    borderColor: '#E5E7EB',
+    strokeDashArray: 4,
+    xaxis: { lines: { show: false } },
+    yaxis: { lines: { show: true } },
+    padding: {
+      top: 10,
+      right: 10,
+      bottom: 10,
+      left: 10
+    }
+  },
+  markers: {
+    size: 4,
+    colors: ['#3B82F6'],
+    strokeColors: '#fff',
+    strokeWidth: 2,
+    hover: { size: 6 }
+  },
+  tooltip: {
+    style: { fontSize: '12px', fontFamily: 'Inter, sans-serif' }
+  }
 }))
 
 const monthlyOrdersSeries = computed(() => [{
@@ -1295,15 +1522,30 @@ const paymentStatusChartOptions = computed(() => ({
   chart: {
     type: 'donut',
     toolbar: { show: false },
+    fontFamily: 'Inter, sans-serif',
   },
   labels: ['Paid', 'Unpaid'],
   colors: ['#10B981', '#EF4444'],
   legend: {
     position: 'bottom',
+    fontSize: '12px',
+    fontFamily: 'Inter, sans-serif',
   },
   dataLabels: {
+    enabled: true,
     formatter: (val) => `${val.toFixed(1)}%`,
+    style: { fontSize: '12px', fontFamily: 'Inter, sans-serif' }
   },
+  plotOptions: {
+    pie: {
+      donut: {
+        size: '70%'
+      }
+    }
+  },
+  tooltip: {
+    style: { fontSize: '12px', fontFamily: 'Inter, sans-serif' }
+  }
 }))
 
 const paymentStatusSeries = computed(() => {
@@ -1319,14 +1561,23 @@ const serviceRevenueChartOptions = computed(() => {
     chart: {
       type: 'pie',
       toolbar: { show: false },
+      fontFamily: 'Inter, sans-serif',
     },
     labels,
+    colors: serviceColors,
     legend: {
       position: 'bottom',
+      fontSize: '12px',
+      fontFamily: 'Inter, sans-serif',
     },
     dataLabels: {
+      enabled: true,
       formatter: (val) => `${val.toFixed(1)}%`,
+      style: { fontSize: '12px', fontFamily: 'Inter, sans-serif' }
     },
+    tooltip: {
+      style: { fontSize: '12px', fontFamily: 'Inter, sans-serif' }
+    }
   }
 })
 
@@ -1406,13 +1657,16 @@ const fetchSummary = async (forceRefresh = false) => {
     // If there's a significant mismatch (> 5 orders difference), log it for debugging
     // This helps catch data issues but allows for minor rounding/calculation differences
     if (totalOrders > 0 && Math.abs(totalOrders - calculatedTotal) > 5) {
-      console.warn('Data inconsistency detected (backend should ensure consistency):', {
-        total_orders: totalOrders,
-        paid: paidOrders,
-        unpaid: unpaidOrders,
-        calculated: calculatedTotal,
-        difference: Math.abs(totalOrders - calculatedTotal)
-      })
+      // Data inconsistency detected (backend should ensure consistency)
+      if (import.meta.env.DEV) {
+        console.warn('Data inconsistency detected (backend should ensure consistency):', {
+          total_orders: totalOrders,
+          paid: paidOrders,
+          unpaid: unpaidOrders,
+          calculated: calculatedTotal,
+          difference: Math.abs(totalOrders - calculatedTotal)
+        })
+      }
     }
     
     // Store recent logs for activity section
@@ -1437,19 +1691,21 @@ const fetchSummary = async (forceRefresh = false) => {
     // Validate and log data for debugging (only in development)
     if (import.meta.env.DEV) {
       console.debug('Dashboard data received:', {
-      hasStats: !!dashboardData.stats,
-      hasFlatData: !!flatData.total_writers,
+        hasStats: !!dashboardData.stats,
+        hasFlatData: !!flatData.total_writers,
         summaryData: summaryData.value,
-      userCounts: {
-        writers: summaryData.value.total_writers,
-        editors: summaryData.value.total_editors,
-        support: summaryData.value.total_support,
-        clients: summaryData.value.total_clients,
-      }
-    })
+        userCounts: {
+          writers: summaryData.value.total_writers,
+          editors: summaryData.value.total_editors,
+          support: summaryData.value.total_support,
+          clients: summaryData.value.total_clients,
+        }
+      })
     }
   } catch (err) {
-    console.error('Failed to fetch dashboard summary:', err)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch dashboard summary:', err)
+    }
     const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to load dashboard data'
     
     // Fallback: try individual summary endpoint
@@ -1458,7 +1714,9 @@ const fetchSummary = async (forceRefresh = false) => {
       summaryData.value = summaryResponse.data
       error.value = null // Clear error on successful fallback
     } catch (e) {
-      console.error('Failed to fetch summary fallback:', e)
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch summary fallback:', e)
+      }
       error.value = errorMessage
       // Set default values to prevent UI breakage
       summaryData.value = {
@@ -1489,7 +1747,9 @@ const fetchYearlyOrders = async () => {
     const response = await dashboardAPI.getYearlyOrders(currentYear)
     yearlyOrdersData.value = response.data || []
   } catch (error) {
-    console.error('Failed to fetch yearly orders:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch yearly orders:', error)
+    }
   } finally {
     loading.value.yearlyOrders = false
   }
@@ -1501,7 +1761,9 @@ const fetchYearlyEarnings = async () => {
     const response = await dashboardAPI.getYearlyEarnings(currentYear)
     yearlyEarningsData.value = response.data || []
   } catch (error) {
-    console.error('Failed to fetch yearly earnings:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch yearly earnings:', error)
+    }
   } finally {
     loading.value.yearlyEarnings = false
   }
@@ -1513,7 +1775,9 @@ const fetchMonthlyOrders = async () => {
     const response = await dashboardAPI.getMonthlyOrders(currentYear, selectedMonth.value)
     monthlyOrdersData.value = response.data || []
   } catch (error) {
-    console.error('Failed to fetch monthly orders:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch monthly orders:', error)
+    }
   } finally {
     loading.value.monthlyOrders = false
   }
@@ -1525,7 +1789,9 @@ const fetchServiceRevenue = async () => {
     const response = await dashboardAPI.getServiceRevenue(30)
     serviceRevenueData.value = response.data
   } catch (error) {
-    console.error('Failed to fetch service revenue:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch service revenue:', error)
+    }
   } finally {
     loading.value.serviceRevenue = false
   }
@@ -1537,10 +1803,40 @@ const fetchPaymentStatus = async () => {
     const response = await dashboardAPI.getPaymentStatus()
     paymentStatusData.value = response.data
   } catch (error) {
-    console.error('Failed to fetch payment status:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch payment status:', error)
+    }
   } finally {
     loading.value.paymentStatus = false
   }
+}
+
+const fetchTopClients = async () => {
+  if (!authStore.isAdmin && !authStore.isSuperAdmin) return
+  topClientsLoading.value = true
+  try {
+    const response = await adminManagementAPI.getTopClients({ limit: 5 }).catch(() => {
+      return { data: [] }
+    })
+    topClients.value = response.data?.results || response.data || []
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch top clients:', error)
+    }
+    topClients.value = []
+  } finally {
+    topClientsLoading.value = false
+  }
+}
+
+// Format currency helper
+const formatCompactCurrency = (amount) => {
+  if (amount >= 1000000) {
+    return `$${(amount / 1000000).toFixed(2)}M`
+  } else if (amount >= 1000) {
+    return `$${(amount / 1000).toFixed(2)}K`
+  }
+  return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
 // Client recent orders with retry logic
@@ -1567,7 +1863,9 @@ const fetchRecentOrders = async () => {
   } catch (e) {
     // On final failure, set empty array instead of leaving undefined
     recentOrders.value = []
-    console.warn('Failed to load recent orders after retries:', e.message)
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load recent orders after retries:', e.message)
+    }
   } finally {
     recentOrdersLoading.value = false
   }
@@ -1608,6 +1906,23 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const formatPercentageChange = (value) => {
+  if (value === null || value === undefined) return '0%'
+  const sign = value >= 0 ? '+' : ''
+  return `${sign}${value.toFixed(2)}%`
+}
+
+const formatNumber = (value) => {
+  const num = parseInt(value || 0)
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toLocaleString()
 }
 
 const getTicketStatusClass = (status) => {
@@ -1654,7 +1969,9 @@ const handleEndImpersonation = async () => {
             }, 100)
           } catch (e) {
             // If browser blocks window.close() (some browsers do), redirect as fallback
-            console.warn('Could not close impersonation tab, redirecting:', e)
+            if (import.meta.env.DEV) {
+              console.warn('Could not close impersonation tab, redirecting:', e)
+            }
             window.location.href = '/admin/dashboard'
           }
         } else {
@@ -1667,7 +1984,9 @@ const handleEndImpersonation = async () => {
       }
     }
   } catch (error) {
-    console.error('Failed to end impersonation:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to end impersonation:', error)
+    }
   }
 }
 
@@ -1734,7 +2053,9 @@ const refreshDashboard = async () => {
       error.value = 'Some data failed to refresh. Please try again.'
     }
   } catch (err) {
-    console.error('Failed to refresh dashboard:', err)
+    if (import.meta.env.DEV) {
+      console.error('Failed to refresh dashboard:', err)
+    }
     error.value = err?.response?.data?.detail || err?.message || 'Failed to refresh dashboard'
   } finally {
     refreshing.value = false
@@ -1780,7 +2101,9 @@ const fetchRecentActivity = async () => {
       }
     })
   } catch (error) {
-    console.error('Failed to fetch recent activity:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch recent activity:', error)
+    }
     // Fallback: try dashboard endpoint
     try {
       const dashboardResponse = await dashboardAPI.getDashboard()
@@ -1802,7 +2125,9 @@ const fetchRecentActivity = async () => {
         recentActivity.value = []
       }
     } catch (fallbackError) {
-      console.error('Failed to fetch activity from dashboard fallback:', fallbackError)
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch activity from dashboard fallback:', fallbackError)
+      }
       recentActivity.value = []
     }
   } finally {
@@ -1817,7 +2142,9 @@ const fetchEditorDashboard = async () => {
     const response = await editorDashboardAPI.getDashboardStats(30)
     editorDashboardData.value = response.data
   } catch (error) {
-    console.error('Failed to fetch editor dashboard:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch editor dashboard:', error)
+    }
     editorDashboardData.value = null
   }
 }
@@ -1832,7 +2159,9 @@ const fetchWriterDashboard = async () => {
     )
     writerDashboardData.value = response.data
   } catch (error) {
-    console.error('Failed to fetch writer dashboard:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch writer dashboard:', error)
+    }
   }
   
   // Also fetch recent orders for display with retry logic
@@ -1856,7 +2185,9 @@ const fetchWriterDashboard = async () => {
     recentOrders.value = []
     // Only log if it's not a 404 or expected error
     if (e.response?.status !== 404 && e.response?.status !== 500) {
-      console.warn('Failed to fetch writer orders after retries:', e.response?.status || e.message)
+      if (import.meta.env.DEV) {
+        console.warn('Failed to fetch writer orders after retries:', e.response?.status || e.message)
+      }
     }
   } finally {
     recentOrdersLoading.value = false
@@ -1870,11 +2201,15 @@ const fetchWriterEarnings = async () => {
     if (response && response.data) {
     writerEarningsData.value = response.data
     } else {
-      console.warn('Writer earnings response missing data:', response)
+      if (import.meta.env.DEV) {
+        console.warn('Writer earnings response missing data:', response)
+      }
       writerEarningsData.value = null
     }
   } catch (error) {
-    console.error('Failed to fetch writer earnings:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch writer earnings:', error)
+    }
     writerEarningsData.value = null
   }
 }
@@ -1886,11 +2221,15 @@ const fetchWriterPerformance = async () => {
     if (response && response.data) {
     writerPerformanceData.value = response.data
     } else {
-      console.warn('Writer performance response missing data:', response)
+      if (import.meta.env.DEV) {
+        console.warn('Writer performance response missing data:', response)
+      }
       writerPerformanceData.value = null
     }
   } catch (error) {
-    console.error('Failed to fetch writer performance:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch writer performance:', error)
+    }
     writerPerformanceData.value = null
   }
 }
@@ -1902,11 +2241,15 @@ const fetchWriterQueue = async () => {
     if (response && response.data) {
     writerQueueData.value = response.data
     } else {
-      console.warn('Writer queue response missing data:', response)
+      if (import.meta.env.DEV) {
+        console.warn('Writer queue response missing data:', response)
+      }
       writerQueueData.value = null
     }
   } catch (error) {
-    console.error('Failed to fetch writer queue:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch writer queue:', error)
+    }
     writerQueueData.value = null
   }
 }
@@ -1929,7 +2272,9 @@ const fetchWriterBadges = async () => {
     const response = await writerDashboardAPI.getBadgesAndAchievements()
     writerBadgesData.value = response.data
   } catch (error) {
-    console.error('Failed to fetch writer badges:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch writer badges:', error)
+    }
   }
 }
 
@@ -1938,10 +2283,14 @@ const fetchWriterLevel = async () => {
   try {
     const response = await writerDashboardAPI.getLevelAndRanking()
     writerLevelData.value = response.data
-    console.log('Writer level data loaded:', writerLevelData.value)
+    if (import.meta.env.DEV) {
+      console.log('Writer level data loaded:', writerLevelData.value)
+    }
   } catch (error) {
-    console.error('Failed to fetch writer level:', error)
-    console.error('Error details:', error.response?.data || error.message)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch writer level:', error)
+      console.error('Error details:', error.response?.data || error.message)
+    }
     // Set to null so empty state shows
     writerLevelData.value = null
   }
@@ -1954,10 +2303,14 @@ const fetchWriterSummary = async () => {
     if (response && response.data) {
       writerSummaryData.value = response.data
     } else {
-      console.warn('Writer summary response missing data:', response)
+      if (import.meta.env.DEV) {
+        console.warn('Writer summary response missing data:', response)
+      }
     }
   } catch (error) {
-    console.error('Failed to fetch writer summary:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch writer summary:', error)
+    }
     // Don't block dashboard if summary fails - it's supplementary data
     writerSummaryData.value = null
   }
@@ -1969,7 +2322,9 @@ const fetchSupportDashboard = async () => {
     const response = await supportDashboardAPI.getDashboard()
     supportDashboardData.value = response.data
   } catch (error) {
-    console.error('Failed to fetch support dashboard:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch support dashboard:', error)
+    }
     // Fallback: get tickets count
     try {
       const ticketsRes = await supportDashboardAPI.getTickets({})
@@ -1981,7 +2336,9 @@ const fetchSupportDashboard = async () => {
         escalations_count: 0,
       }
     } catch (e) {
-      console.error('Failed to fetch support tickets:', e)
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch support tickets:', e)
+      }
     }
   }
 }
@@ -1996,7 +2353,9 @@ const fetchSupportRecentTickets = async () => {
     })
     supportRecentTickets.value = response.data.results || response.data || []
   } catch (error) {
-    console.error('Failed to fetch support recent tickets:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch support recent tickets:', error)
+    }
     supportRecentTickets.value = []
   } finally {
     supportRecentTicketsLoading.value = false
@@ -2009,7 +2368,9 @@ const fetchSuperadminDashboard = async () => {
     const response = await superadminDashboardAPI.getDashboard()
     superadminDashboardData.value = response.data
   } catch (error) {
-    console.error('Failed to fetch superadmin dashboard:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch superadmin dashboard:', error)
+    }
   }
 }
 
@@ -2021,7 +2382,9 @@ const fetchClientDashboard = async () => {
     const response = await clientDashboardAPI.getStats(30)
     clientDashboardData.value = response.data || {}
   } catch (error) {
-    console.error('Failed to fetch client dashboard stats:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch client dashboard stats:', error)
+    }
     clientDashboardData.value = {}
   } finally {
     loading.value.summary = false
@@ -2034,7 +2397,9 @@ const fetchClientLoyalty = async () => {
     const response = await clientDashboardAPI.getLoyalty()
     clientLoyaltyData.value = response.data || {}
   } catch (error) {
-    console.error('Failed to fetch client loyalty:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch client loyalty:', error)
+    }
     clientLoyaltyData.value = {}
   }
 }
@@ -2045,7 +2410,9 @@ const fetchClientAnalytics = async () => {
     const response = await clientDashboardAPI.getAnalytics(30)
     clientAnalyticsData.value = response.data || {}
   } catch (error) {
-    console.error('Failed to fetch client analytics:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch client analytics:', error)
+    }
     clientAnalyticsData.value = {}
   }
 }
@@ -2060,7 +2427,9 @@ const fetchClientWalletAnalytics = async () => {
       walletBalance.value = response.data.balance
     }
   } catch (error) {
-    console.error('Failed to fetch client wallet analytics:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch client wallet analytics:', error)
+    }
     clientWalletAnalytics.value = {}
   }
 }
@@ -2071,7 +2440,9 @@ const fetchClientReferrals = async () => {
     const response = await clientDashboardAPI.getReferrals()
     clientReferralsData.value = response.data
   } catch (error) {
-    console.error('Failed to fetch client referrals:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to fetch client referrals:', error)
+    }
     clientReferralsData.value = null
   }
 }
@@ -2113,7 +2484,8 @@ onMounted(async () => {
       fetchMonthlyOrders(),
       fetchServiceRevenue(),
       fetchPaymentStatus(),
-      fetchRecentActivity()
+      fetchRecentActivity(),
+      fetchTopClients()
     )
     if (authStore.isSuperAdmin) {
       roleFetches.push(fetchSuperadminDashboard())

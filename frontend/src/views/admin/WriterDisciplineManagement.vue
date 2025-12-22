@@ -488,7 +488,7 @@
     <div v-if="showSuspendModal || showSuspendWriterModal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] my-auto flex flex-col shadow-xl">
         <!-- Header - Fixed -->
-        <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Suspend Writer</h2>
           <button 
             @click="closeSuspendModal" 
@@ -565,7 +565,7 @@
         </div>
 
         <!-- Footer - Fixed -->
-        <div class="flex justify-end gap-2 p-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div class="flex justify-end gap-2 p-6 pt-4 border-t border-gray-200 dark:border-gray-700 shrink-0">
           <button 
             type="button" 
             @click="closeSuspendModal" 
@@ -589,7 +589,7 @@
     <div v-if="showBlacklistModal || showBlacklistWriterModal" class="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 z-50 flex items-center justify-center p-4 overflow-y-auto">
       <div class="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] my-auto flex flex-col shadow-xl">
         <!-- Header - Fixed -->
-        <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div class="flex items-center justify-between p-6 pb-4 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Blacklist Writer</h2>
           <button 
             @click="closeBlacklistModal" 
@@ -656,7 +656,7 @@
         </div>
 
         <!-- Footer - Fixed -->
-        <div class="flex justify-end gap-2 p-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <div class="flex justify-end gap-2 p-6 pt-4 border-t border-gray-200 dark:border-gray-700 shrink-0">
           <button 
             type="button" 
             @click="closeBlacklistModal" 

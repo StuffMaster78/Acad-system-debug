@@ -16,11 +16,11 @@
         @click="navigateToContent(item)"
       >
         <div class="flex items-start gap-3">
-          <div class="flex-shrink-0">
+          <div class="shrink-0">
             <div
               :class="[
                 'w-12 h-12 rounded-lg flex items-center justify-center text-white font-semibold text-sm',
-                item.type === 'blog' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-green-500 to-green-600'
+                item.type === 'blog' ? 'bg-linear-to-br from-purple-500 to-purple-600' : 'bg-linear-to-br from-green-500 to-green-600'
               ]"
             >
               {{ item.type === 'blog' ? 'B' : 'P' }}
@@ -48,7 +48,7 @@
               </span>
             </div>
           </div>
-          <div class="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div class="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
             <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>

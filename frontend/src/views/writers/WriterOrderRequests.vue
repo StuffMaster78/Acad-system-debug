@@ -32,7 +32,7 @@
 
       <!-- Statistics -->
       <div v-if="requestData" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+        <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
@@ -42,14 +42,14 @@
                 {{ requestData.statistics.total || 0 }}
               </p>
             </div>
-            <div class="ml-4 flex-shrink-0">
+            <div class="ml-4 shrink-0">
               <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span class="text-2xl">📊</span>
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
+        <div class="bg-linear-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
@@ -59,14 +59,14 @@
                 {{ requestData.statistics.pending || 0 }}
               </p>
             </div>
-            <div class="ml-4 flex-shrink-0">
+            <div class="ml-4 shrink-0">
               <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
                 <span class="text-2xl">⏳</span>
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+        <div class="bg-linear-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
@@ -76,14 +76,14 @@
                 {{ requestData.statistics.approved || 0 }}
               </p>
             </div>
-            <div class="ml-4 flex-shrink-0">
+            <div class="ml-4 shrink-0">
               <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
                 <span class="text-2xl">✅</span>
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
+        <div class="bg-linear-to-br from-red-50 to-red-100 rounded-xl shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-red-700 uppercase tracking-wide mb-2">
@@ -93,7 +93,7 @@
                 {{ requestData.statistics.rejected || 0 }}
               </p>
             </div>
-            <div class="ml-4 flex-shrink-0">
+            <div class="ml-4 shrink-0">
               <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
                 <span class="text-2xl">❌</span>
               </div>
@@ -102,7 +102,7 @@
         </div>
         <div
           v-if="requestData.statistics.recent_7_days !== undefined"
-          class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-md p-6 border-l-4 border-indigo-600 hover:shadow-lg transition-shadow"
+          class="bg-linear-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-md p-6 border-l-4 border-indigo-600 hover:shadow-lg transition-shadow"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
@@ -113,7 +113,7 @@
                 {{ requestData.statistics.recent_7_days || 0 }}
               </p>
             </div>
-            <div class="ml-4 flex-shrink-0">
+            <div class="ml-4 shrink-0">
               <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center">
                 <span class="text-2xl">📅</span>
               </div>
@@ -361,7 +361,7 @@
                   </div>
                 </div>
 
-                <div class="flex flex-col gap-3 lg:ml-6 lg:flex-shrink-0">
+                <div class="flex flex-col gap-3 lg:ml-6 lg:shrink-0">
                   <router-link
                     :to="`/orders/${request.order_id}`"
                     class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all shadow-sm text-sm whitespace-nowrap"
@@ -385,20 +385,19 @@
     </div>
   </div>
 
-    <!-- Confirmation Dialog -->
-    <ConfirmationDialog
-      v-model:show="confirm.show"
-      :title="confirm.title"
-      :message="confirm.message"
-      :details="confirm.details"
-      :variant="confirm.variant"
-      :confirm-text="confirm.confirmText"
-      :cancel-text="confirm.cancelText"
-      :icon="confirm.icon"
-      @confirm="confirm.onConfirm"
-      @cancel="confirm.onCancel"
-    />
-  </div>
+  <!-- Confirmation Dialog -->
+  <ConfirmationDialog
+    v-model:show="confirm.show"
+    :title="confirm.title"
+    :message="confirm.message"
+    :details="confirm.details"
+    :variant="confirm.variant"
+    :confirm-text="confirm.confirmText"
+    :cancel-text="confirm.cancelText"
+    :icon="confirm.icon"
+    @confirm="confirm.onConfirm"
+    @cancel="confirm.onCancel"
+  />
 </template>
 
 <script setup>

@@ -9,19 +9,19 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Orders</p>
         <p class="text-3xl font-bold text-blue-900">{{ dashboardData?.summary?.total_orders || stats.total_orders || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Awaiting Approval</p>
         <p class="text-3xl font-bold text-yellow-900">{{ dashboardData?.summary?.awaiting_approval || stats.awaiting_approval || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">In Progress</p>
         <p class="text-3xl font-bold text-green-900">{{ dashboardData?.summary?.in_progress || stats.in_progress || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">Completed</p>
         <p class="text-3xl font-bold text-purple-900">{{ dashboardData?.summary?.completed || stats.completed || 0 }}</p>
       </div>
@@ -29,19 +29,19 @@
     
     <!-- Additional Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
+      <div class="card p-4 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200">
         <p class="text-sm font-medium text-orange-700 mb-1">Needs Approval</p>
         <p class="text-3xl font-bold text-orange-900">{{ dashboardData?.summary?.needs_approval || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+      <div class="card p-4 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
         <p class="text-sm font-medium text-red-700 mb-1">Needs Estimation</p>
         <p class="text-3xl font-bold text-red-900">{{ dashboardData?.summary?.needs_estimation || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+      <div class="card p-4 bg-linear-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
         <p class="text-sm font-medium text-indigo-700 mb-1">Total Revenue</p>
         <p class="text-3xl font-bold text-indigo-900">${{ formatCurrency(dashboardData?.summary?.total_revenue || 0) }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200">
+      <div class="card p-4 bg-linear-to-br from-pink-50 to-pink-100 border border-pink-200">
         <p class="text-sm font-medium text-pink-700 mb-1">Pending Installments</p>
         <p class="text-3xl font-bold text-pink-900">{{ dashboardData?.summary?.pending_installments || 0 }}</p>
       </div>
@@ -872,7 +872,7 @@
 
           <div class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 p-4 rounded">
             <div class="flex items-start">
-              <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-yellow-600 dark:text-yellow-400 mt-0.5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
               <div>
@@ -940,7 +940,7 @@
 
           <div class="bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400 p-4 rounded">
             <div class="flex items-start">
-              <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5 mr-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div>
@@ -1010,7 +1010,7 @@
 
           <div :class="unlockFilesOrder.admin_unlocked_files ? 'bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400' : 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-400'" class="p-4 rounded">
             <div class="flex items-start">
-              <svg class="w-5 h-5 mt-0.5 mr-3 flex-shrink-0" :class="unlockFilesOrder.admin_unlocked_files ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 mt-0.5 mr-3 shrink-0" :class="unlockFilesOrder.admin_unlocked_files ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <div>
@@ -1080,7 +1080,7 @@
         <div v-else class="space-y-4">
           <!-- Summary Cards -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
+            <div class="bg-linear-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-medium text-green-700 dark:text-green-400">Total Amount</p>
@@ -1093,7 +1093,7 @@
                 </svg>
               </div>
             </div>
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
+            <div class="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-medium text-blue-700 dark:text-blue-400">Paid</p>
@@ -1106,7 +1106,7 @@
                 </svg>
               </div>
             </div>
-            <div class="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+            <div class="bg-linear-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm font-medium text-orange-700 dark:text-orange-400">Pending</p>

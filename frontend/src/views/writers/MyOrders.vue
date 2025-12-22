@@ -24,7 +24,7 @@
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+        <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
@@ -34,14 +34,14 @@
                 {{ stats.in_progress || 0 }}
               </p>
             </div>
-            <div class="ml-4 flex-shrink-0">
+            <div class="ml-4 shrink-0">
               <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
                 <span class="text-2xl">📝</span>
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
+        <div class="bg-linear-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
@@ -51,14 +51,14 @@
                 {{ stats.due_soon || 0 }}
               </p>
             </div>
-            <div class="ml-4 flex-shrink-0">
+            <div class="ml-4 shrink-0">
               <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
                 <span class="text-2xl">⏰</span>
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+        <div class="bg-linear-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
@@ -68,14 +68,14 @@
                 {{ stats.submitted || 0 }}
               </p>
             </div>
-            <div class="ml-4 flex-shrink-0">
+            <div class="ml-4 shrink-0">
               <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
                 <span class="text-2xl">✅</span>
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
+        <div class="bg-linear-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-2">
@@ -85,7 +85,7 @@
                 {{ stats.total_active || 0 }}
               </p>
             </div>
-            <div class="ml-4 flex-shrink-0">
+            <div class="ml-4 shrink-0">
               <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
                 <span class="text-2xl">📊</span>
               </div>
@@ -382,12 +382,11 @@
                     <span>{{ getPriorityIcon(order.priority || 'medium') }}</span>
                     <span>{{ formatPriority(order.priority || 'medium') }}</span>
                   </span>
-                  <span
-                    :class="getStatusBadgeClass(order.status)"
-                    class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide"
-                  >
-                    {{ formatStatus(order.status) }}
-                  </span>
+                  <EnhancedStatusBadge
+                    :status="order.status"
+                    :show-tooltip="true"
+                    :show-priority="true"
+                  />
                   <span
                     v-if="isDueSoon(order.writer_deadline || order.client_deadline || order.deadline)"
                     class="px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-700 uppercase tracking-wide"
@@ -399,6 +398,73 @@
                 <p class="text-base font-semibold text-gray-900 mb-4 line-clamp-2">
                   {{ order.topic || 'No topic' }}
                 </p>
+                
+                <!-- Revision Notes Section -->
+                <div v-if="order.status === 'revision_requested'" class="mb-4 p-4 bg-orange-50 border-l-4 border-orange-500 rounded-lg">
+                  <div class="flex items-start gap-3">
+                    <div class="shrink-0 mt-0.5">
+                      <span class="text-2xl">⚠️</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <h4 class="text-sm font-bold text-orange-900 uppercase tracking-wide mb-2">
+                        Revision Required
+                      </h4>
+                      <div v-if="order.revision_request || order.revision_notes || order.revision_instructions" class="space-y-2">
+                        <div v-if="order.revision_request?.title || order.revision_request?.description" class="text-sm text-gray-800">
+                          <p v-if="order.revision_request?.title" class="font-semibold text-gray-900 mb-1">
+                            {{ order.revision_request.title }}
+                          </p>
+                          <p v-if="order.revision_request?.description" class="text-gray-700 whitespace-pre-wrap">
+                            {{ order.revision_request.description }}
+                          </p>
+                        </div>
+                        <div v-if="order.revision_request?.client_notes" class="text-sm text-gray-700 bg-white p-3 rounded border border-orange-200">
+                          <p class="font-semibold text-gray-900 mb-1">Client Notes:</p>
+                          <p class="whitespace-pre-wrap">{{ order.revision_request.client_notes }}</p>
+                        </div>
+                        <div v-if="order.revision_request?.changes_required && order.revision_request.changes_required.length > 0" class="text-sm">
+                          <p class="font-semibold text-gray-900 mb-2">Specific Changes Required:</p>
+                          <ul class="list-disc list-inside space-y-1 text-gray-700 ml-2">
+                            <li v-for="(change, idx) in order.revision_request.changes_required" :key="idx">
+                              <span v-if="change.section" class="font-medium">{{ change.section }}:</span>
+                              <span v-if="change.issue">{{ change.issue }}</span>
+                              <span v-if="change.request" class="text-gray-600"> - {{ change.request }}</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div v-if="order.revision_notes" class="text-sm text-gray-700 bg-white p-3 rounded border border-orange-200">
+                          <p class="font-semibold text-gray-900 mb-1">Revision Notes:</p>
+                          <p class="whitespace-pre-wrap">{{ order.revision_notes }}</p>
+                        </div>
+                        <div v-if="order.revision_instructions" class="text-sm text-gray-700 bg-white p-3 rounded border border-orange-200">
+                          <p class="font-semibold text-gray-900 mb-1">Revision Instructions:</p>
+                          <p class="whitespace-pre-wrap">{{ order.revision_instructions }}</p>
+                        </div>
+                        <div v-if="order.revision_request?.severity" class="flex items-center gap-2 text-xs">
+                          <span class="font-semibold text-gray-700">Severity:</span>
+                          <span 
+                            class="px-2 py-1 rounded-full font-medium"
+                            :class="{
+                              'bg-red-100 text-red-700': order.revision_request.severity === 'critical',
+                              'bg-orange-100 text-orange-700': order.revision_request.severity === 'major',
+                              'bg-yellow-100 text-yellow-700': order.revision_request.severity === 'moderate',
+                              'bg-blue-100 text-blue-700': order.revision_request.severity === 'minor'
+                            }"
+                          >
+                            {{ order.revision_request.severity?.charAt(0).toUpperCase() + order.revision_request.severity?.slice(1) }}
+                          </span>
+                        </div>
+                        <div v-if="order.revision_request?.agreed_deadline || order.revision_request?.requested_deadline" class="text-xs text-gray-600">
+                          <span class="font-semibold">Deadline:</span>
+                          {{ formatDateTime(order.revision_request.agreed_deadline || order.revision_request.requested_deadline) }}
+                        </div>
+                      </div>
+                      <div v-else class="text-sm text-gray-700">
+                        <p>Please review the order details for revision requirements.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
@@ -439,7 +505,7 @@
                 </div>
               </div>
 
-              <div class="flex flex-col gap-3 lg:ml-6 lg:flex-shrink-0">
+              <div class="flex flex-col gap-3 lg:ml-6 lg:shrink-0">
                 <router-link
                   :to="`/orders/${order.id}`"
                   class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all shadow-sm text-sm whitespace-nowrap"
@@ -504,91 +570,93 @@
           </button>
         </div>
       </div>
+    </div>
 
-    <!-- Priority Modal -->
-    <Modal
-      v-model:visible="showPriorityModalFlag"
-      title="Set Order Priority"
-      size="md"
-    >
-      <div v-if="selectedOrderForPriority" class="space-y-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p class="text-sm font-medium text-blue-900 mb-1">
-            Order #{{ selectedOrderForPriority.id }}
-          </p>
-          <p class="text-sm text-blue-700">
-            {{ selectedOrderForPriority.topic || 'No topic' }}
-          </p>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Priority Level
-          </label>
-          <select
-            v-model="priorityForm.priority"
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500"
-          >
-            <option value="high">🔴 High Priority</option>
-            <option value="medium">🟡 Medium Priority</option>
-            <option value="low">🟢 Low Priority</option>
-          </select>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Notes (Optional)
-          </label>
-          <textarea
-            v-model="priorityForm.notes"
-            rows="3"
-            placeholder="Add notes about why you set this priority..."
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 resize-none"
-            maxlength="500"
-          ></textarea>
-          <p class="text-xs text-gray-500 mt-1">
-            {{ (priorityForm.notes || '').length }}/500 characters
-          </p>
-        </div>
+  <!-- Priority Modal -->
+  <Modal
+    v-model:visible="showPriorityModalFlag"
+    title="Set Order Priority"
+    size="md"
+  >
+    <div v-if="selectedOrderForPriority" class="space-y-4">
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p class="text-sm font-medium text-blue-900 mb-1">
+          Order #{{ selectedOrderForPriority.id }}
+        </p>
+        <p class="text-sm text-blue-700">
+          {{ selectedOrderForPriority.topic || 'No topic' }}
+        </p>
       </div>
       
-      <template #footer>
-        <div class="flex justify-end gap-3">
-          <button
-            @click="closePriorityModal"
-            class="btn btn-secondary"
-          >
-            Cancel
-          </button>
-          <button
-            @click="savePriority"
-            :disabled="savingPriority"
-            class="btn btn-primary"
-          >
-            {{ savingPriority ? 'Saving...' : 'Save Priority' }}
-          </button>
-        </div>
-      </template>
-    </Modal>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Priority Level
+        </label>
+        <select
+          v-model="priorityForm.priority"
+          class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500"
+        >
+          <option value="high">🔴 High Priority</option>
+          <option value="medium">🟡 Medium Priority</option>
+          <option value="low">🟢 Low Priority</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Notes (Optional)
+        </label>
+        <textarea
+          v-model="priorityForm.notes"
+          rows="3"
+          placeholder="Add notes about why you set this priority..."
+          class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 resize-none"
+          maxlength="500"
+        ></textarea>
+        <p class="text-xs text-gray-500 mt-1">
+          {{ (priorityForm.notes || '').length }}/500 characters
+        </p>
+      </div>
+    </div>
+    
+    <template #footer>
+      <div class="flex justify-end gap-3">
+        <button
+          @click="closePriorityModal"
+          class="btn btn-secondary"
+        >
+          Cancel
+        </button>
+        <button
+          @click="savePriority"
+          :disabled="savingPriority"
+          class="btn btn-primary"
+        >
+          {{ savingPriority ? 'Saving...' : 'Save Priority' }}
+        </button>
+      </div>
+    </template>
+  </Modal>
 
-    <!-- Confirmation Dialog -->
-    <ConfirmationDialog
-      v-model:show="confirm.show"
-      :title="confirm.title"
-      :message="confirm.message"
-      :details="confirm.details"
-      :variant="confirm.variant"
-      :icon="confirm.icon"
-      :confirm-text="confirm.confirmText"
-      :cancel-text="confirm.cancelText"
-      @confirm="confirm.onConfirm"
-      @cancel="confirm.onCancel"
-    />
-  </div>
+  <!-- Confirmation Dialog -->
+  <ConfirmationDialog
+    v-if="confirm.show.value"
+    v-model:show="confirm.show"
+    :title="unref(confirm.title)"
+    :message="unref(confirm.message)"
+    :details="unref(confirm.details)"
+    :variant="unref(confirm.variant)"
+    :icon="unref(confirm.icon)"
+    :confirm-text="unref(confirm.confirmText)"
+    :cancel-text="unref(confirm.cancelText)"
+    @confirm="confirm.onConfirm"
+    @cancel="confirm.onCancel"
+  />
+</div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, unref } from 'vue'
 import { useRouter } from 'vue-router'
 import ordersAPI from '@/api/orders'
 import writerDashboardAPI from '@/api/writer-dashboard'
@@ -598,6 +666,7 @@ import { getErrorMessage } from '@/utils/errorHandler'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import Modal from '@/components/common/Modal.vue'
+import EnhancedStatusBadge from '@/components/common/EnhancedStatusBadge.vue'
 
 const router = useRouter()
 const { error: showError, success: showSuccess } = useToast()
@@ -611,12 +680,22 @@ const submittingOrder = ref(null)
 const filters = ref({
   status: '',
   priority: '',
+  deadline_from: '',
+  deadline_to: '',
+  min_payment: null,
+  max_payment: null,
+  client_name: '',
+  service_type: '',
+  subject: '',
+  min_pages: null,
+  max_pages: null,
 })
 
 const sortBy = ref('deadline_asc')
 const searchQuery = ref('')
 const showAdvancedFilters = ref(false)
 const priorities = ref({})
+const serviceTypes = ref([])
 const showPriorityModalFlag = ref(false)
 const selectedOrderForPriority = ref(null)
 const priorityForm = ref({
@@ -964,6 +1043,18 @@ const isDueSoon = (deadline) => {
   const diffMs = date - now
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
   return diffDays <= 2 && diffMs > 0
+}
+
+const formatDateTime = (dateString) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const formatCurrency = (amount) => {

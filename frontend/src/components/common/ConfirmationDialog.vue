@@ -1,49 +1,55 @@
 <template>
-  <div v-if="showValue" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" @click.self="handleCancel">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
-      <div class="p-6">
-        <div class="flex items-start">
-          <div v-if="iconValue" class="flex-shrink-0 mr-4 text-4xl">{{ iconValue }}</div>
-          <div class="flex-1">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              {{ titleValue || 'Confirm Action' }}
-            </h3>
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              {{ messageValue || 'Are you sure you want to proceed?' }}
-            </p>
-            <div v-if="detailsValue" class="mb-6 p-3 bg-gray-50 dark:bg-gray-700 rounded text-sm text-gray-700 dark:text-gray-300">
-              {{ detailsValue }}
-            </div>
-            <div class="flex gap-3 justify-end">
-              <button
-                @click="handleCancel"
-                class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
-              >
-                {{ cancelTextValue || 'Cancel' }}
-              </button>
-              <button
-                @click="handleConfirm"
-                :class="[
-                  'px-4 py-2 rounded-md transition-colors text-sm font-medium',
-                  variantValue === 'danger'
-                    ? 'bg-red-600 text-white hover:bg-red-700'
-                    : variantValue === 'warning'
-                    ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                    : 'bg-primary-600 text-white hover:bg-primary-700'
-                ]"
-              >
-                {{ confirmTextValue || 'Confirm' }}
-              </button>
+  <Teleport to="body">
+    <Transition name="fade">
+      <div v-if="showValue" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]" @click.self="handleCancel">
+        <Transition name="scale">
+          <div v-if="showValue" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4" @click.stop>
+            <div class="p-6">
+              <div class="flex items-start">
+                <div v-if="iconValue" class="shrink-0 mr-4 text-4xl">{{ iconValue }}</div>
+                <div class="flex-1">
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                    {{ titleValue || 'Confirm Action' }}
+                  </h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                    {{ messageValue || 'Are you sure you want to proceed?' }}
+                  </p>
+                  <div v-if="detailsValue" class="mb-6 p-3 bg-gray-50 dark:bg-gray-700 rounded text-sm text-gray-700 dark:text-gray-300">
+                    {{ detailsValue }}
+                  </div>
+                  <div class="flex gap-3 justify-end">
+                    <button
+                      @click="handleCancel"
+                      class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors text-sm font-medium"
+                    >
+                      {{ cancelTextValue || 'Cancel' }}
+                    </button>
+                    <button
+                      @click="handleConfirm"
+                      :class="[
+                        'px-4 py-2 rounded-md transition-colors text-sm font-medium',
+                        variantValue === 'danger'
+                          ? 'bg-red-600 text-white hover:bg-red-700'
+                          : variantValue === 'warning'
+                          ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                          : 'bg-primary-600 text-white hover:bg-primary-700'
+                      ]"
+                    >
+                      {{ confirmTextValue || 'Confirm' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
+        </Transition>
       </div>
-    </div>
-  </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { watch, computed } from 'vue'
+import { watch, computed, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   show: {
@@ -103,19 +109,63 @@ const handleCancel = () => {
   emit('update:show', false)
 }
 
-// Close on Escape key
+// Close on Escape key and manage body scroll
+let escapeHandler = null
+
 watch(() => showValue.value, (newVal) => {
   if (newVal) {
-    const handleEscape = (e) => {
+    // Prevent body scroll when dialog is open
+    document.body.style.overflow = 'hidden'
+    
+    // Add escape key handler
+    escapeHandler = (e) => {
       if (e.key === 'Escape') {
         handleCancel()
       }
     }
-    document.addEventListener('keydown', handleEscape)
-    return () => {
-      document.removeEventListener('keydown', handleEscape)
+    document.addEventListener('keydown', escapeHandler)
+  } else {
+    // Restore body scroll
+    document.body.style.overflow = ''
+    
+    // Remove escape key handler
+    if (escapeHandler) {
+      document.removeEventListener('keydown', escapeHandler)
+      escapeHandler = null
     }
   }
 })
+
+onUnmounted(() => {
+  // Cleanup on unmount
+  document.body.style.overflow = ''
+  if (escapeHandler) {
+    document.removeEventListener('keydown', escapeHandler)
+    escapeHandler = null
+  }
+})
 </script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.scale-enter-active,
+.scale-leave-active {
+  transition: all 0.2s ease;
+}
+
+.scale-enter-from,
+.scale-leave-to {
+  opacity: 0;
+  transform: scale(0.95);
+}
+</style>
 

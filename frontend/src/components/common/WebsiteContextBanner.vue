@@ -1,12 +1,12 @@
 <template>
   <div
     v-if="website"
-    class="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-6 mb-6"
+    class="bg-linear-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-6 mb-6"
   >
     <div class="flex items-start justify-between">
       <div class="flex-1">
         <div class="flex items-center gap-3 mb-2">
-          <div class="flex-shrink-0">
+          <div class="shrink-0">
             <div
               v-if="website.logo"
               class="w-12 h-12 rounded-lg bg-white dark:bg-gray-800 p-1 border border-gray-200 dark:border-gray-700"

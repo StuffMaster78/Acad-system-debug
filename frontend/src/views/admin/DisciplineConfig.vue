@@ -278,7 +278,7 @@
       >
         <svg
           v-if="messageSuccess"
-          class="w-5 h-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5"
+          class="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -287,7 +287,7 @@
         </svg>
         <svg
           v-else
-          class="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5"
+          class="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

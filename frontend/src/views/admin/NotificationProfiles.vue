@@ -388,11 +388,11 @@
                           </button>
                           <hr class="my-1 border-gray-200 dark:border-gray-700">
                           <button
-                            @click="deleteProfile(profile); activeDropdown = null"
+                            @click="openDeleteConfirm(profile); activeDropdown = null"
                             class="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
                           >
                             Delete
-          </button>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -920,14 +920,70 @@
         </div>
       </div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div
+      v-if="showDeleteConfirm && deletingProfile"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+      @click="closeDeleteConfirm"
+    >
+      <div
+        class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full"
+        @click.stop
+      >
+        <div class="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+            Delete Notification Profile
+          </h2>
+          <button
+            @click="closeDeleteConfirm"
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div class="p-6 space-y-4">
+          <p class="text-sm text-gray-700 dark:text-gray-300">
+            Are you sure you want to delete
+            <span class="font-semibold">
+              “{{ deletingProfile?.name }}”
+            </span>
+            ? This will remove the profile configuration but will not delete any users.
+          </p>
+        </div>
+        <div class="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            type="button"
+            @click="closeDeleteConfirm"
+            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            @click="confirmDelete"
+            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import { useToast } from '@/composables/useToast'
 import { notificationProfilesApi } from '@/api/admin/notifications'
 
 export default {
   name: 'NotificationProfiles',
+  setup() {
+    const { success: showSuccess, error: showError } = useToast()
+    return { showSuccess, showError }
+  },
   data() {
     return {
       loading: false,
@@ -986,6 +1042,9 @@ export default {
       statsData: null,
       statsLoading: false,
       statsError: null,
+      // Delete confirmation state
+      deletingProfile: null,
+      showDeleteConfirm: false,
     }
   },
   mounted() {
@@ -1091,7 +1150,9 @@ export default {
         this.profiles = response.data
       } catch (err) {
         this.error = err.response?.data?.detail || 'Failed to load profiles'
-        console.error('Load profiles error:', err)
+        if (import.meta.env.DEV) {
+          console.error('Load profiles error:', err)
+        }
       } finally {
         this.loading = false
       }
@@ -1102,7 +1163,9 @@ export default {
         const response = await notificationProfilesApi.getSummary()
         this.summary = response.data
       } catch (err) {
-        console.error('Load summary error:', err)
+        if (import.meta.env.DEV) {
+          console.error('Load summary error:', err)
+        }
       }
     },
     
@@ -1175,35 +1238,50 @@ export default {
       try {
         if (this.showEditModal && this.selectedProfile) {
           await notificationProfilesApi.updateProfile(this.selectedProfile.id, this.formData)
-          alert('Profile updated successfully!')
+          this.showSuccess?.('Profile updated successfully!')
         } else {
           await notificationProfilesApi.createProfile(this.formData)
-          alert('Profile created successfully!')
+          this.showSuccess?.('Profile created successfully!')
         }
         this.closeModal()
         this.loadProfiles()
         this.loadSummary()
       } catch (err) {
         this.error = err.response?.data?.detail || err.response?.data?.error || 'Failed to save profile'
-        alert(this.error)
+        this.showError?.(this.error)
       } finally {
         this.saving = false
       }
     },
     
+    openDeleteConfirm(profile) {
+      this.deletingProfile = profile
+      this.showDeleteConfirm = true
+    },
+
+    closeDeleteConfirm() {
+      this.showDeleteConfirm = false
+      this.deletingProfile = null
+    },
+
     async deleteProfile(profile) {
-      if (!confirm(`Are you sure you want to delete "${profile.name}"?`)) {
-        return
-      }
-      
       try {
         await notificationProfilesApi.deleteProfile(profile.id)
-        alert('Profile deleted successfully!')
+        this.showSuccess?.('Profile deleted successfully!')
         this.loadProfiles()
         this.loadSummary()
       } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to delete profile')
+        this.showError?.(err.response?.data?.detail || 'Failed to delete profile')
       }
+    },
+
+    async confirmDelete() {
+      if (!this.deletingProfile) {
+        this.closeDeleteConfirm()
+        return
+      }
+      await this.deleteProfile(this.deletingProfile)
+      this.closeDeleteConfirm()
     },
     
     async duplicateProfile(profile) {
@@ -1212,11 +1290,11 @@ export default {
       
       try {
         await notificationProfilesApi.duplicateProfile(profile.id, { new_name: newName })
-        alert('Profile duplicated successfully!')
+        this.showSuccess?.('Profile duplicated successfully!')
         this.loadProfiles()
         this.loadSummary()
       } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to duplicate profile')
+        this.showError?.(err.response?.data?.detail || 'Failed to duplicate profile')
       }
     },
     
@@ -1284,13 +1362,13 @@ export default {
     
     async confirmApply() {
       if (!this.applyUserIds.trim()) {
-        alert('Please enter user IDs')
+        this.showError?.('Please enter user IDs')
         return
       }
       
       const userIds = this.applyUserIds.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
       if (userIds.length === 0) {
-        alert('Please enter valid user IDs')
+        this.showError?.('Please enter valid user IDs')
         return
       }
       
@@ -1300,10 +1378,10 @@ export default {
           user_ids: userIds,
           override_existing: this.overrideExisting
         })
-        alert(`Profile applied to ${response.data.successful} user(s) successfully!`)
+        this.showSuccess?.(`Profile applied to ${response.data.successful} user(s) successfully!`)
         this.showApplyModal = false
       } catch (err) {
-        alert(err.response?.data?.detail || 'Failed to apply profile')
+        this.showError?.(err.response?.data?.detail || 'Failed to apply profile')
       } finally {
         this.applying = false
       }

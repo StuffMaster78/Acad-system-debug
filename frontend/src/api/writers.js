@@ -18,5 +18,13 @@ export default {
   
   // Resource Categories
   getResourceCategories: (params) => apiClient.get('/writer-management/writer-resource-categories/', { params }),
+  createResourceCategory: (data) => apiClient.post('/writer-management/writer-resource-categories/', data),
+  updateResourceCategory: (id, data) => apiClient.patch(`/writer-management/writer-resource-categories/${id}/`, data),
+  deleteResourceCategory: (id) => apiClient.delete(`/writer-management/writer-resource-categories/${id}/`),
+  
+  // Admin Resource Management
+  createResource: (data) => apiClient.post('/writer-management/writer-resources/', data),
+  updateResource: (id, data) => apiClient.patch(`/writer-management/writer-resources/${id}/`, data),
+  deleteResource: (id) => apiClient.delete(`/writer-management/writer-resources/${id}/`),
 }
 

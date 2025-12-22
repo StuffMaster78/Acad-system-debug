@@ -29,5 +29,17 @@ export default {
   // Impersonation - generate token for user
   // Uses the new token-based impersonation endpoint
   generateImpersonationToken: (userId) => apiClient.post('/auth/impersonate/create_token/', { target_user: userId }),
+
+  // User Edit Requests
+  createEditRequest: (data) => apiClient.post('/users/edit-requests/request/', data),
+  getMyEditRequests: (params) => apiClient.get('/users/edit-requests/my-requests/', { params }),
+  cancelEditRequest: (requestId) => apiClient.post(`/users/edit-requests/${requestId}/cancel/`),
+  getEditRequestDetail: (requestId) => apiClient.get(`/users/edit-requests/${requestId}/detail/`),
+  
+  // Admin: Edit Requests Management
+  getPendingEditRequests: (params) => apiClient.get('/users/edit-requests/admin/pending/', { params }),
+  getAllEditRequests: (params) => apiClient.get('/users/edit-requests/admin/all/', { params }),
+  approveEditRequest: (requestId, notes) => apiClient.post(`/users/edit-requests/${requestId}/admin/approve/`, { notes }),
+  rejectEditRequest: (requestId, reason) => apiClient.post(`/users/edit-requests/${requestId}/admin/reject/`, { reason }),
 }
 

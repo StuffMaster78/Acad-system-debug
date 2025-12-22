@@ -188,6 +188,14 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
         "task": "order_payments_management.tasks.send_deadline_percentage_reminders",
         "schedule": crontab(minute="*/15"),  # Every 15 minutes
     },
+    "send-payment-reminders": {
+        "task": "order_payments_management.tasks.send_payment_reminders",
+        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+    },
+    "expire-unpaid-orders": {
+        "task": "order_payments_management.tasks.expire_unpaid_orders",
+        "schedule": crontab(minute=0, hour="*/1"),  # Every hour
+    },
     "send-deletion-messages-expired-orders": {
         "task": "order_payments_management.tasks.send_deletion_messages_for_expired_orders",
         "schedule": crontab(minute="*/30"),  # Every 30 minutes
@@ -228,6 +236,14 @@ app.conf.beat_schedule = {  # type: ignore[attr-defined]
     "auto-reassign-unresolved-tasks": {
         "task": "support_management.tasks.auto_reassign_unresolved_tasks",
         "schedule": crontab(minute="*/30"),  # Every 30 minutes
+    },
+    "auto-reassign-breached-slas": {
+        "task": "support_management.tasks.auto_reassign_breached_slas",
+        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+    },
+    "balance-support-workload": {
+        "task": "support_management.tasks.balance_support_workload",
+        "schedule": crontab(minute=0),  # Every hour
     },
     "update-support-workload-trackers": {
         "task": "support_management.tasks.update_support_workload_trackers",

@@ -17,34 +17,34 @@
 
     <!-- Stats Cards -->
     <div v-if="dashboardData && dashboardData.summary" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
-      <div class="card p-5 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-5 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-2">Total Tips</p>
         <p class="text-2xl sm:text-3xl font-bold text-purple-900 break-words">{{ dashboardData.summary?.total_tips || 0 }}</p>
       </div>
-      <div class="card p-5 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-5 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-2">Total Amount</p>
         <p class="text-2xl sm:text-3xl font-bold text-blue-900 break-words">${{ formatCurrency(dashboardData.summary?.total_tip_amount) }}</p>
       </div>
-      <div class="card p-5 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-5 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-2">Writer Earnings</p>
         <p class="text-2xl sm:text-3xl font-bold text-green-900 break-words">${{ formatCurrency(dashboardData.summary?.total_writer_earnings) }}</p>
       </div>
-      <div class="card p-5 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+      <div class="card p-5 bg-linear-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
         <p class="text-sm font-medium text-indigo-700 mb-2">Platform Profit</p>
         <p class="text-2xl sm:text-3xl font-bold text-indigo-900 break-words">${{ formatCurrency(dashboardData.summary?.total_platform_profit) }}</p>
       </div>
-      <div class="card p-5 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-5 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-2">Avg Tip</p>
         <p class="text-2xl sm:text-3xl font-bold text-yellow-900 break-words">${{ formatCurrency(dashboardData.summary?.avg_tip_amount) }}</p>
       </div>
-      <div class="card p-5 bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200">
+      <div class="card p-5 bg-linear-to-br from-pink-50 to-pink-100 border border-pink-200">
         <p class="text-sm font-medium text-pink-700 mb-2">Avg Writer %</p>
         <p class="text-2xl sm:text-3xl font-bold text-pink-900 break-words">{{ (dashboardData.summary?.avg_writer_percentage || 0).toFixed(1) }}%</p>
       </div>
     </div>
 
     <!-- Recent Summary -->
-    <div v-if="dashboardData && dashboardData.recent_summary" class="card p-6 bg-gradient-to-r from-purple-500 to-indigo-600 text-white">
+    <div v-if="dashboardData && dashboardData.recent_summary" class="card p-6 bg-linear-to-r from-purple-500 to-indigo-600 text-white">
       <h2 class="text-xl font-bold mb-4">Last {{ dashboardData.recent_summary.days }} Days Summary</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div>
@@ -189,7 +189,7 @@
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
         
-        <div v-else>
+        <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
@@ -366,7 +366,7 @@
       
       <div v-else-if="earningsData" class="space-y-6">
         <!-- Overall Earnings -->
-        <div v-if="earningsData && earningsData.overall" class="card p-6 bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+        <div v-if="earningsData && earningsData.overall" class="card p-6 bg-linear-to-r from-indigo-500 to-purple-600 text-white">
           <h3 class="text-xl font-bold mb-4">Overall Earnings Summary</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>

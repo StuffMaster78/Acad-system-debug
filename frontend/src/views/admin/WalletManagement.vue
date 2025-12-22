@@ -205,56 +205,56 @@
 
     <!-- Summary Cards -->
     <div v-if="summary || activeTab === 'writers'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div v-if="activeTab === 'clients' && summary" class="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-blue-700 truncate">Client Total Balance</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight" :title="`$${summary.total_balance.toFixed(2)}`">
           ${{ formatCurrency(summary.total_balance) }}
         </p>
         <p class="text-xs text-blue-600">{{ summary.total_wallets || 0 }} wallets</p>
       </div>
-      <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow border border-indigo-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div v-if="activeTab === 'clients' && summary" class="bg-linear-to-br from-indigo-50 to-indigo-100 rounded-lg shadow border border-indigo-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-indigo-700 truncate">Client Wallets</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-indigo-900 break-all leading-tight">
           {{ summary.total_wallets || 0 }}
         </p>
         <p class="text-xs text-indigo-600">active wallets</p>
       </div>
-      <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div v-if="activeTab === 'clients' && summary" class="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-purple-700 truncate">Loyalty Points</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">
           {{ summary.total_loyalty_points.toLocaleString() }}
         </p>
         <p class="text-xs text-purple-600">total points</p>
       </div>
-      <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow border border-orange-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div v-if="activeTab === 'clients' && summary" class="bg-linear-to-br from-orange-50 to-orange-100 rounded-lg shadow border border-orange-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-orange-700 truncate">Avg Balance</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-orange-900 break-all leading-tight">
           ${{ formatCurrency(summary.total_wallets ? (summary.total_balance / summary.total_wallets) : 0) }}
         </p>
         <p class="text-xs text-orange-600">per wallet</p>
       </div>
-      <div v-if="activeTab === 'writers'" class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg shadow border border-emerald-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div v-if="activeTab === 'writers'" class="bg-linear-to-br from-emerald-50 to-emerald-100 rounded-lg shadow border border-emerald-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-emerald-700 truncate">Writer Total Balance</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-emerald-900 break-all leading-tight" :title="`$${writerTotalBalance.toFixed(2)}`">
           ${{ formatCurrency(writerTotalBalance) }}
         </p>
         <p class="text-xs text-emerald-600">{{ writerWallets.length }} wallets</p>
       </div>
-      <div v-if="activeTab === 'writers'" class="bg-gradient-to-br from-teal-50 to-teal-100 rounded-lg shadow border border-teal-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div v-if="activeTab === 'writers'" class="bg-linear-to-br from-teal-50 to-teal-100 rounded-lg shadow border border-teal-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-teal-700 truncate">Writer Wallets</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-teal-900 break-all leading-tight">
           {{ writerWallets.length }}
         </p>
         <p class="text-xs text-teal-600">active wallets</p>
       </div>
-      <div v-if="activeTab === 'writers'" class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div v-if="activeTab === 'writers'" class="bg-linear-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-green-700 truncate">Total Earnings</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-green-900 break-all leading-tight" :title="`$${writerTotalEarnings.toFixed(2)}`">
           ${{ formatCurrency(writerTotalEarnings) }}
         </p>
         <p class="text-xs text-green-600">total earnings</p>
       </div>
-      <div v-if="activeTab === 'writers'" class="bg-gradient-to-br from-cyan-50 to-cyan-100 rounded-lg shadow border border-cyan-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div v-if="activeTab === 'writers'" class="bg-linear-to-br from-cyan-50 to-cyan-100 rounded-lg shadow border border-cyan-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-cyan-700 truncate">Avg Balance</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-cyan-900 break-all leading-tight">
           ${{ formatCurrency(writerWallets.length ? (writerTotalBalance / writerWallets.length) : 0) }}
@@ -321,9 +321,9 @@
         <div v-for="(site, index) in summary.website_totals.slice(0, 3)" :key="site.website__id" 
           :class="[
             'p-4 rounded-lg min-w-0 overflow-hidden h-28 flex flex-col justify-between shadow border',
-            index === 0 ? 'bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200' : '',
-            index === 1 ? 'bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200' : '',
-            index === 2 ? 'bg-gradient-to-br from-rose-50 to-rose-100 border-rose-200' : ''
+            index === 0 ? 'bg-linear-to-br from-amber-50 to-amber-100 border-amber-200' : '',
+            index === 1 ? 'bg-linear-to-br from-orange-50 to-orange-100 border-orange-200' : '',
+            index === 2 ? 'bg-linear-to-br from-rose-50 to-rose-100 border-rose-200' : ''
           ]">
           <div :class="[
             'text-xs font-medium truncate',
@@ -346,7 +346,7 @@
             index === 2 ? 'text-rose-600' : ''
           ]">{{ site.wallet_count || 0 }} wallets</div>
         </div>
-        <div v-if="summary.website_totals.length > 3" class="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg flex items-center justify-center h-28 border border-slate-200 shadow">
+        <div v-if="summary.website_totals.length > 3" class="p-4 bg-linear-to-br from-slate-50 to-slate-100 rounded-lg flex items-center justify-center h-28 border border-slate-200 shadow">
           <span class="text-sm text-slate-600">+{{ summary.website_totals.length - 3 }} more websites</span>
         </div>
       </div>

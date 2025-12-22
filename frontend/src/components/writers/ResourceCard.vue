@@ -3,7 +3,7 @@
     <div class="flex items-start gap-3 mb-3">
       <div
         :class="[
-          'w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold flex-shrink-0',
+          'w-10 h-10 rounded-lg flex items-center justify-center text-white font-semibold shrink-0',
           typeColors[resource.resource_type] || 'bg-gray-500'
         ]"
       >
@@ -17,7 +17,7 @@
       </div>
       <span
         v-if="resource.is_featured"
-        class="flex-shrink-0 text-yellow-500"
+        class="shrink-0 text-yellow-500"
         title="Featured"
       >
         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

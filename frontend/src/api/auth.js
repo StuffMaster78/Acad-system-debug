@@ -64,6 +64,7 @@ export const authAPI = {
 
   // Update current user profile
   updateProfile: (data) => {
+    // Content-Type header will be handled by the request interceptor for FormData
     return apiClient.patch('/auth/auth/user/', data)
   },
 

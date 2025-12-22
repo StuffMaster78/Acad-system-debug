@@ -107,157 +107,467 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Websites</p>
         <p class="text-3xl font-bold text-blue-900">{{ stats.total || 0 }}</p>
         <p class="text-xs text-blue-600 mt-1">All websites</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Active</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.active || 0 }}</p>
         <p class="text-xs text-green-600 mt-1">Currently active</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+      <div class="card p-4 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
         <p class="text-sm font-medium text-red-700 mb-1">Inactive</p>
         <p class="text-3xl font-bold text-red-900">{{ stats.inactive || 0 }}</p>
         <p class="text-xs text-red-600 mt-1">Deactivated</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
+      <div class="card p-4 bg-linear-to-br from-gray-50 to-gray-100 border border-gray-200">
         <p class="text-sm font-medium text-gray-700 mb-1">Deleted</p>
         <p class="text-3xl font-bold text-gray-900">{{ stats.deleted || 0 }}</p>
         <p class="text-xs text-gray-600 mt-1">Soft deleted</p>
       </div>
     </div>
 
-    <!-- Filters -->
+    <!-- Filters & View Toggle -->
     <div class="card p-4">
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label class="block text-sm font-medium mb-1">Status</label>
-          <select v-model="filters.status" @change="loadWebsites" class="w-full border rounded px-3 py-2">
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-            <option value="deleted">Deleted</option>
-          </select>
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+          <div>
+            <label class="block text-sm font-medium mb-1.5 text-gray-700">Status Filter</label>
+            <select 
+              v-model="filters.status" 
+              @change="loadWebsites" 
+              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            >
+              <option value="">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="deleted">Deleted</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium mb-1.5 text-gray-700">Search</label>
+            <div class="relative">
+              <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                v-model="filters.search"
+                @input="debouncedSearch"
+                type="text"
+                placeholder="Search by name, domain..."
+                class="w-full border border-gray-300 rounded-lg pl-10 pr-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+              />
+            </div>
+          </div>
+          <div class="flex items-end">
+            <button 
+              @click="resetFilters" 
+              class="btn btn-secondary w-full flex items-center justify-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Reset
+            </button>
+          </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Search</label>
-          <input
-            v-model="filters.search"
-            @input="debouncedSearch"
-            type="text"
-            placeholder="Search by name, domain..."
-            class="w-full border rounded px-3 py-2"
-          />
-        </div>
-        <div class="flex items-end">
-          <button @click="resetFilters" class="btn btn-secondary w-full">Reset</button>
+        <div class="flex items-end gap-2">
+          <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <button
+              @click="viewMode = 'table'"
+              :class="viewMode === 'table' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+              class="px-3 py-1.5 rounded-md text-sm font-medium transition-all"
+              title="Table View"
+            >
+              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+              Table
+            </button>
+            <button
+              @click="viewMode = 'grid'"
+              :class="viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'"
+              class="px-3 py-1.5 rounded-md text-sm font-medium transition-all"
+              title="Grid View"
+            >
+              <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+              </svg>
+              Grid
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Websites Table -->
-    <div class="card overflow-hidden">
-      <div v-if="loading" class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <!-- Websites List -->
+    <div class="card overflow-hidden p-0">
+      <div v-if="loading" class="flex items-center justify-center py-16">
+        <div class="flex flex-col items-center gap-3">
+          <div class="animate-spin rounded-full h-10 w-10 border-4 border-blue-200 border-t-blue-600"></div>
+          <p class="text-sm text-gray-500">Loading websites...</p>
+        </div>
       </div>
       
-      <div v-else>
-        <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Website</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Domain</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Settings</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">SEO</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="website in websites" :key="website.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center">
-                  <div v-if="website.logo" class="flex-shrink-0 h-10 w-10 mr-3">
-                    <img :src="website.logo" :alt="website.name" class="h-10 w-10 rounded object-cover" />
+      <!-- Table View -->
+      <div v-else-if="viewMode === 'table'">
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Website</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Domain</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Settings</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">SEO</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-100">
+              <tr 
+                v-for="website in websites" 
+                :key="website.id" 
+                class="hover:bg-gray-50 transition-colors website-table-row"
+              >
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <div class="flex items-center gap-3">
+                    <div v-if="website.logo" class="shrink-0 h-10 w-10">
+                      <img :src="website.logo" :alt="website.name" class="h-10 w-10 rounded-lg object-cover border border-gray-200" />
+                    </div>
+                    <div v-else class="shrink-0 h-10 w-10 rounded-lg bg-linear-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                      {{ getWebsiteInitials(website) }}
+                    </div>
+                    <div class="min-w-0">
+                      <div class="font-semibold text-gray-900 text-sm">{{ website.name }}</div>
+                      <div class="text-xs text-gray-500 mt-0.5">{{ website.slug }}</div>
+                    </div>
                   </div>
-                  <div v-else class="flex-shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm mr-3">
-                    {{ getWebsiteInitials(website) }}
-                  </div>
-                  <div>
-                    <div class="font-medium text-gray-900">{{ website.name }}</div>
-                    <div class="text-sm text-gray-500">{{ website.slug }}</div>
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <a :href="website.domain" target="_blank" class="text-blue-600 hover:underline text-sm">
-                  {{ website.domain }}
-                </a>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex flex-col gap-1">
-                  <span :class="getStatusBadgeClass(website)" class="px-2 py-1 rounded-full text-xs font-medium inline-block w-fit">
-                    {{ getStatusText(website) }}
-                  </span>
-                  <span v-if="website.is_deleted" class="text-xs text-gray-500">
-                    Deleted: {{ formatDate(website.deleted_at) }}
-                  </span>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm">
-                <div class="space-y-1">
-                  <div class="flex items-center gap-2">
-                    <span :class="website.allow_registration ? 'text-green-600' : 'text-gray-400'" class="text-xs">
-                      {{ website.allow_registration ? '✓' : '✗' }} Registration
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <a 
+                    :href="website.domain" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium flex items-center gap-1 group"
+                  >
+                    <span>{{ formatDomain(website.domain) }}</span>
+                    <svg class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <div class="flex flex-col gap-1.5">
+                    <span :class="getStatusBadgeClass(website)" class="px-2.5 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1.5 w-fit">
+                      <span :class="getStatusDotClass(website)" class="w-1.5 h-1.5 rounded-full"></span>
+                      {{ getStatusText(website) }}
+                    </span>
+                    <span v-if="website.is_deleted" class="text-xs text-gray-500">
+                      {{ formatDate(website.deleted_at) }}
                     </span>
                   </div>
-                  <div class="flex items-center gap-2">
-                    <span :class="website.allow_guest_checkout ? 'text-green-600' : 'text-gray-400'" class="text-xs">
-                      {{ website.allow_guest_checkout ? '✓' : '✗' }} Guest Checkout
-                    </span>
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <div class="flex items-center gap-3 text-xs">
+                    <div class="flex items-center gap-1" :class="website.allow_registration ? 'text-green-600' : 'text-gray-400'">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path v-if="website.allow_registration" fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        <path v-else fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="font-medium">Registration</span>
+                    </div>
+                    <div class="flex items-center gap-1" :class="website.allow_guest_checkout ? 'text-green-600' : 'text-gray-400'">
+                      <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                        <path v-if="website.allow_guest_checkout" fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                        <path v-else fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                      </svg>
+                      <span class="font-medium">Guest</span>
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <div class="space-y-1">
-                  <div v-if="website.meta_title" class="text-xs truncate max-w-xs" :title="website.meta_title">
-                    Title: {{ website.meta_title }}
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <div class="flex flex-col gap-1 text-xs">
+                    <div v-if="website.meta_title" class="text-gray-700 truncate max-w-xs font-medium" :title="website.meta_title">
+                      {{ website.meta_title }}
+                    </div>
+                    <div v-if="website.google_analytics_id" class="flex items-center gap-1 text-blue-600">
+                      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                      </svg>
+                      <span>{{ website.google_analytics_id }}</span>
+                    </div>
+                    <div v-else class="text-gray-400">No analytics</div>
                   </div>
-                  <div v-if="website.google_analytics_id" class="text-xs text-blue-600">
-                    GA: {{ website.google_analytics_id }}
-                  </div>
-                </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm">
-                <div class="flex items-center gap-2">
-                  <button @click="viewWebsiteDetail(website)" class="text-blue-600 hover:underline" title="View Details">👁️</button>
-                  <button @click="editWebsite(website)" class="text-green-600 hover:underline" title="Edit">✏️</button>
-                  <div class="relative">
-                    <button @click="toggleActionsMenu(website.id)" class="text-gray-600 hover:text-gray-900">⋯</button>
-                    <div v-if="actionsMenuOpen === website.id" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 border">
-                      <div class="py-1">
-                        <button @click="viewSEOSettings(website)" class="block w-full text-left px-4 py-2 text-sm text-purple-600 hover:bg-gray-100">SEO Settings</button>
-                        <button @click="openTermsModal(website)" class="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-gray-100">Edit Terms</button>
-                        <button @click="viewActionLogs(website)" class="block w-full text-left px-4 py-2 text-sm text-indigo-600 hover:bg-gray-100">Action Logs</button>
-                        <button @click="toggleActive(website)" v-if="!website.is_deleted" class="block w-full text-left px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100">
+                </td>
+                <td class="px-4 py-3 whitespace-nowrap text-right">
+                  <div class="flex items-center justify-end gap-1">
+                    <button 
+                      @click="viewWebsiteDetail(website)" 
+                      class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                      title="View Details"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                    </button>
+                    <button 
+                      @click="editWebsite(website)" 
+                      class="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                      title="Edit"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <div class="relative">
+                      <button 
+                        @click="toggleActionsMenu(website.id)" 
+                        class="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors"
+                        title="More Actions"
+                      >
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                        </svg>
+                      </button>
+                      <div 
+                        v-if="actionsMenuOpen === website.id" 
+                        class="absolute right-0 mt-1 w-56 bg-white rounded-lg shadow-lg z-20 border border-gray-200 py-1"
+                      >
+                        <button @click="viewSEOSettings(website)" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                          <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          SEO Settings
+                        </button>
+                        <button @click="openTermsModal(website)" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                          <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                          Edit Terms
+                        </button>
+                        <button @click="viewActionLogs(website)" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                          <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Action Logs
+                        </button>
+                        <div class="border-t border-gray-100 my-1"></div>
+                        <button @click="toggleActive(website)" v-if="!website.is_deleted" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                          <svg class="w-4 h-4 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="website.is_active ? 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' : 'M13 10V3L4 14h7v7l9-11h-7z'" />
+                          </svg>
                           {{ website.is_active ? 'Deactivate' : 'Activate' }}
                         </button>
-                        <button @click="softDeleteWebsite(website)" v-if="!website.is_deleted && authStore.isSuperAdmin" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100">Soft Delete</button>
-                        <button @click="restoreWebsite(website)" v-if="website.is_deleted && authStore.isSuperAdmin" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-gray-100">Restore</button>
-                        <button @click="deleteWebsitePermanently(website)" v-if="authStore.isSuperAdmin" class="block w-full text-left px-4 py-2 text-sm text-red-800 hover:bg-gray-100">Delete Permanently</button>
+                        <button @click="softDeleteWebsite(website)" v-if="!website.is_deleted && authStore.isSuperAdmin" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                          Soft Delete
+                        </button>
+                        <button @click="restoreWebsite(website)" v-if="website.is_deleted && authStore.isSuperAdmin" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 flex items-center gap-2">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                          Restore
+                        </button>
+                        <button @click="deleteWebsitePermanently(website)" v-if="authStore.isSuperAdmin" class="block w-full text-left px-4 py-2 text-sm text-red-800 hover:bg-red-50 flex items-center gap-2">
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Delete Permanently
+                        </button>
                       </div>
                     </div>
                   </div>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
         
-        <div v-if="!websites.length" class="text-center py-12 text-gray-500">
-          No websites found.
+        <div v-if="!websites.length && !loading" class="text-center py-16">
+          <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 mb-1">No websites found</h3>
+          <p class="text-sm text-gray-500 mb-4">{{ filters.search || filters.status ? 'Try adjusting your filters' : 'Get started by creating your first website' }}</p>
+          <button v-if="authStore.isSuperAdmin && !filters.search && !filters.status" @click="showCreateModal = true" class="btn btn-primary">
+            Create Website
+          </button>
+        </div>
+      </div>
+
+      <!-- Grid View -->
+      <div v-else class="p-6">
+        <div v-if="!websites.length && !loading" class="text-center py-16">
+          <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 mb-1">No websites found</h3>
+          <p class="text-sm text-gray-500 mb-4">{{ filters.search || filters.status ? 'Try adjusting your filters' : 'Get started by creating your first website' }}</p>
+          <button v-if="authStore.isSuperAdmin && !filters.search && !filters.status" @click="showCreateModal = true" class="btn btn-primary">
+            Create Website
+          </button>
+        </div>
+        <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div 
+            v-for="website in websites" 
+            :key="website.id"
+            class="bg-white border border-gray-200 rounded-lg p-5 hover:shadow-md transition-all hover:border-blue-300 group flex flex-col overflow-hidden"
+          >
+            <!-- Header Section -->
+            <div class="flex items-start justify-between mb-4 min-w-0">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <div v-if="website.logo" class="shrink-0 h-12 w-12">
+                  <img :src="website.logo" :alt="website.name" class="h-12 w-12 rounded-lg object-cover border border-gray-200" />
+                </div>
+                <div v-else class="shrink-0 h-12 w-12 rounded-lg bg-linear-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-base shadow-sm">
+                  {{ getWebsiteInitials(website) }}
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="font-semibold text-gray-900 text-sm truncate" :title="website.name">{{ website.name }}</h3>
+                  <p class="text-xs text-gray-500 mt-0.5 truncate" :title="website.slug">{{ website.slug }}</p>
+                </div>
+              </div>
+              <span :class="getStatusBadgeClass(website)" class="px-2 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1.5 shrink-0 ml-2">
+                <span :class="getStatusDotClass(website)" class="w-1.5 h-1.5 rounded-full"></span>
+                <span class="whitespace-nowrap">{{ getStatusText(website) }}</span>
+              </span>
+            </div>
+            
+            <!-- Content Section -->
+            <div class="space-y-3 mb-4 flex-1 min-h-0">
+              <div class="min-w-0">
+                <a 
+                  :href="website.domain" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  class="text-blue-600 hover:text-blue-800 hover:underline text-sm font-medium flex items-center gap-1.5 group/link min-w-0"
+                >
+                  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  <span class="truncate min-w-0" :title="formatDomain(website.domain)">{{ formatDomain(website.domain) }}</span>
+                </a>
+              </div>
+              
+              <div class="flex items-center gap-3 text-xs flex-wrap">
+                <div class="flex items-center gap-1 shrink-0" :class="website.allow_registration ? 'text-green-600' : 'text-gray-400'">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path v-if="website.allow_registration" fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    <path v-else fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="whitespace-nowrap">Registration</span>
+                </div>
+                <div class="flex items-center gap-1 shrink-0" :class="website.allow_guest_checkout ? 'text-green-600' : 'text-gray-400'">
+                  <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path v-if="website.allow_guest_checkout" fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                    <path v-else fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="whitespace-nowrap">Guest</span>
+                </div>
+              </div>
+              
+              <div v-if="website.meta_title || website.google_analytics_id" class="pt-2 border-t border-gray-100 min-w-0">
+                <div v-if="website.meta_title" class="text-xs text-gray-600 truncate mb-1.5" :title="website.meta_title">
+                  {{ website.meta_title }}
+                </div>
+                <div v-if="website.google_analytics_id" class="flex items-center gap-1 text-xs text-blue-600 min-w-0">
+                  <svg class="w-3 h-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+                  </svg>
+                  <span class="truncate min-w-0" :title="website.google_analytics_id">{{ website.google_analytics_id }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Actions Section -->
+            <div class="flex items-center justify-between pt-4 border-t border-gray-100 shrink-0">
+              <div class="flex items-center gap-1">
+                <button 
+                  @click="viewWebsiteDetail(website)" 
+                  class="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors shrink-0"
+                  title="View Details"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </button>
+                <button 
+                  @click="editWebsite(website)" 
+                  class="p-1.5 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors shrink-0"
+                  title="Edit"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              </div>
+              <div class="relative">
+                <button 
+                  @click="toggleActionsMenu(website.id)" 
+                  class="p-1.5 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors shrink-0"
+                  title="More Actions"
+                >
+                  <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                  </svg>
+                </button>
+                <div 
+                  v-if="actionsMenuOpen === website.id" 
+                  class="absolute right-0 bottom-full mb-1 w-56 bg-white rounded-lg shadow-lg z-20 border border-gray-200 py-1 max-h-80 overflow-y-auto"
+                >
+                  <button @click="viewSEOSettings(website)" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 text-purple-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    SEO Settings
+                  </button>
+                  <button @click="openTermsModal(website)" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Edit Terms
+                  </button>
+                  <button @click="viewActionLogs(website)" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Action Logs
+                  </button>
+                  <div class="border-t border-gray-100 my-1"></div>
+                  <button @click="toggleActive(website)" v-if="!website.is_deleted" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 text-yellow-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="website.is_active ? 'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636' : 'M13 10V3L4 14h7v7l9-11h-7z'" />
+                    </svg>
+                    {{ website.is_active ? 'Deactivate' : 'Activate' }}
+                  </button>
+                  <button @click="softDeleteWebsite(website)" v-if="!website.is_deleted && authStore.isSuperAdmin" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Soft Delete
+                  </button>
+                  <button @click="restoreWebsite(website)" v-if="website.is_deleted && authStore.isSuperAdmin" class="block w-full text-left px-4 py-2 text-sm text-green-600 hover:bg-green-50 flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Restore
+                  </button>
+                  <button @click="deleteWebsitePermanently(website)" v-if="authStore.isSuperAdmin" class="block w-full text-left px-4 py-2 text-sm text-red-800 hover:bg-red-50 flex items-center gap-2 whitespace-nowrap">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    Delete Permanently
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -441,7 +751,7 @@
               <div v-if="viewingWebsite.logo" class="h-16 w-16">
                 <img :src="viewingWebsite.logo" :alt="viewingWebsite.name" class="h-16 w-16 rounded object-cover" />
               </div>
-              <div v-else class="h-16 w-16 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-2xl">
+              <div v-else class="h-16 w-16 rounded-full bg-linear-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-2xl">
                 {{ getWebsiteInitials(viewingWebsite) }}
               </div>
               <div>
@@ -570,6 +880,7 @@ const editingWebsite = ref(null)
 const viewingWebsite = ref(null)
 const selectedWebsite = ref(null)
 const actionsMenuOpen = ref(null)
+const viewMode = ref('table') // 'table' or 'grid'
 
 const filters = ref({
   status: '',
@@ -914,10 +1225,26 @@ const getStatusBadgeClass = (website) => {
   return 'bg-red-100 text-red-800'
 }
 
+const getStatusDotClass = (website) => {
+  if (website.is_deleted) return 'bg-gray-500'
+  if (website.is_active) return 'bg-green-500'
+  return 'bg-red-500'
+}
+
 const getStatusText = (website) => {
   if (website.is_deleted) return 'Deleted'
   if (website.is_active) return 'Active'
   return 'Inactive'
+}
+
+const formatDomain = (domain) => {
+  if (!domain) return '—'
+  try {
+    const url = new URL(domain)
+    return url.hostname.replace(/^www\./, '')
+  } catch {
+    return domain.replace(/^https?:\/\//, '').replace(/^www\./, '')
+  }
 }
 
 const getWebsiteInitials = (website) => {
@@ -942,8 +1269,11 @@ const formatDate = (dateString) => {
 onMounted(async () => {
   await loadWebsites()
   
+  // Close actions menu when clicking outside
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('.relative')) {
+    const clickedElement = e.target
+    const isClickInsideMenu = clickedElement.closest('.relative') || clickedElement.closest('[class*="absolute"]')
+    if (!isClickInsideMenu) {
       actionsMenuOpen.value = null
     }
   })
@@ -963,6 +1293,10 @@ onMounted(async () => {
 }
 .card {
   @apply bg-white rounded-lg shadow-sm p-6;
+}
+.website-table-row td {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
 }
 </style>
 

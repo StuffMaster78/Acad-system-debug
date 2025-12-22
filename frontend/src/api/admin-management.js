@@ -1,6 +1,10 @@
 import apiClient from './client'
 
 export default {
+  // Dashboard
+  getDashboard: (params) => apiClient.get('/admin-management/dashboard/', { params }),
+  getOrderAnalytics: (params) => apiClient.get('/admin-management/order-management/analytics/', { params }),
+  
   // User Management
   listUsers: (params) => apiClient.get('/admin-management/user-management/', { params }),
   getUser: (id) => apiClient.get(`/admin-management/user-management/${id}/`),
@@ -120,6 +124,17 @@ export default {
   
   // Financial Overview
   getFinancialOverview: (params) => apiClient.get('/admin-management/financial-overview/overview/', { params }),
+  
+  // Advanced Analytics
+  getAdvancedAnalytics: (params) => apiClient.get('/admin-management/advanced-analytics/dashboard/', { params }),
+  getAdvancedAnalyticsComparison: (params) => apiClient.get('/admin-management/advanced-analytics/comparison/', { params }),
+  exportAdvancedAnalytics: (params) => apiClient.get('/admin-management/advanced-analytics/export/', { params, responseType: 'blob' }),
+  
+  // Configuration Versioning
+  getConfigVersionHistory: (params) => apiClient.get('/config-versioning/history/', { params }),
+  getConfigVersion: (versionId) => apiClient.get(`/config-versioning/version/${versionId}/`),
+  restoreConfigVersion: (versionId, notes = '') => apiClient.post('/config-versioning/restore/', { version_id: versionId, notes }),
+  compareConfigVersions: (version1Id, version2Id) => apiClient.get('/config-versioning/compare/', { params: { version1_id: version1Id, version2_id: version2Id } }),
   getAllPayments: (params) => apiClient.get('/admin-management/financial-overview/all-payments/', { params }),
   
   // Advanced Analytics Dashboard
@@ -166,6 +181,9 @@ export default {
   // Loyalty Tracking
   listLoyaltyTransactions: (params) => apiClient.get('/admin-management/loyalty/tracking/', { params }),
   getLoyaltyStats: () => apiClient.get('/admin-management/loyalty/tracking/statistics/'),
+  
+  // Top Clients
+  getTopClients: (params) => apiClient.get('/admin-management/dashboard/top-clients/', { params }),
   
   // Generic API methods for flexible endpoint access
   get: (path, config) => apiClient.get(`/admin-management${path}`, config),

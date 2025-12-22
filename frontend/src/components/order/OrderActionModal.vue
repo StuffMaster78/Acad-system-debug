@@ -66,7 +66,7 @@
         class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 rounded"
       >
         <div class="flex">
-          <div class="flex-shrink-0">
+          <div class="shrink-0">
             <svg class="h-5 w-5 text-yellow-400 dark:text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
             </svg>
@@ -131,7 +131,7 @@
                 ID: {{ selectedWriterDetails.writer_id || `WRTR${selectedWriterDetails.id?.toString().padStart(6, '0') || 'N/A'}` }}
               </p>
             </div>
-            <div class="text-right ml-4 flex-shrink-0">
+            <div class="text-right ml-4 shrink-0">
               <div class="text-lg font-bold text-blue-600 dark:text-blue-400">{{ selectedWriterDetails.profile?.rating || selectedWriterDetails.rating || 0 }}</div>
               <div class="text-xs text-gray-500 dark:text-gray-400">Rating</div>
             </div>
@@ -206,14 +206,14 @@
 
     <!-- Confirmation Dialog -->
     <ConfirmationDialog
-      v-model:show="confirm.show"
-      :title="confirm.title"
-      :message="confirm.message"
-      :details="confirm.details"
-      :variant="confirm.variant"
-      :icon="confirm.icon"
-      :confirm-text="confirm.confirmText"
-      :cancel-text="confirm.cancelText"
+      v-model:show="confirmShow"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :details="confirmDetails"
+      :variant="confirmVariant"
+      :icon="confirmIcon"
+      :confirm-text="confirmConfirmText"
+      :cancel-text="confirmCancelText"
       @confirm="confirm.onConfirm"
       @cancel="confirm.onCancel"
     />
@@ -245,7 +245,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, unref } from 'vue'
 import Modal from '@/components/common/Modal.vue'
 import { ordersAPI } from '@/api'
 import writerAssignmentAPI from '@/api/writer-assignment'
@@ -286,6 +286,29 @@ const errorDetails = ref(null)
 const loadingWriters = ref(false)
 const selectedWriterDetails = ref(null)
 const confirm = useConfirmDialog()
+
+// Create local refs for v-model binding (Vue 3 v-model requires refs, not computed)
+const confirmShow = ref(false)
+
+// Computed properties to unwrap refs for ConfirmationDialog
+const confirmTitle = computed(() => confirm.title.value)
+const confirmMessage = computed(() => confirm.message.value)
+const confirmDetails = computed(() => confirm.details.value)
+const confirmVariant = computed(() => confirm.variant.value)
+const confirmIcon = computed(() => confirm.icon.value)
+const confirmConfirmText = computed(() => confirm.confirmText.value)
+const confirmCancelText = computed(() => confirm.cancelText.value)
+
+// Sync local refs with composable refs
+watch(() => confirm.show.value, (newVal) => {
+  confirmShow.value = newVal
+}, { immediate: true })
+
+watch(confirmShow, (newVal) => {
+  if (confirm.show.value !== newVal) {
+    confirm.show.value = newVal
+  }
+})
 
 const actionForm = ref({
   action: props.selectedAction || '',
@@ -555,7 +578,6 @@ const handleSubmit = async () => {
     } else {
       // Complex action - use executeAction endpoint
       const payload = {
-        action: actionForm.value.action,
         reason: actionForm.value.reason || undefined
       }
       
@@ -564,7 +586,7 @@ const handleSubmit = async () => {
         payload.writer_id = actionForm.value.writer_id
       }
       
-      response = await ordersAPI.executeAction(props.order.id, payload.action, payload)
+      response = await ordersAPI.executeAction(props.order.id, actionForm.value.action, payload)
       
       if (response.data.status === 'success') {
         // Create a detailed success message

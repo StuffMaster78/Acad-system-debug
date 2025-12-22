@@ -12,23 +12,23 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Bundles</p>
         <p class="text-3xl font-bold text-blue-900">{{ stats.total || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">In Progress</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.in_progress || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Not Started</p>
         <p class="text-3xl font-bold text-yellow-900">{{ stats.not_started || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">Completed</p>
         <p class="text-3xl font-bold text-purple-900">{{ stats.completed || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+      <div class="card p-4 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
         <p class="text-sm font-medium text-red-700 mb-1">Exhausted</p>
         <p class="text-3xl font-bold text-red-900">{{ stats.exhausted || 0 }}</p>
       </div>
@@ -737,19 +737,6 @@
       {{ message }}
     </div>
 
-    <!-- Confirmation Dialog -->
-    <ConfirmationDialog
-      v-model:show="confirm.show"
-      :title="confirm.title"
-      :message="confirm.message"
-      :details="confirm.details"
-      :variant="confirm.variant"
-      :icon="confirm.icon"
-      :confirm-text="confirm.confirmText"
-      :cancel-text="confirm.cancelText"
-      @confirm="confirm.onConfirm"
-      @cancel="confirm.onCancel"
-    />
   </div>
   <!-- Error Display -->
   <div v-else-if="componentError" class="p-6">
@@ -772,10 +759,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { classManagementAPI, usersAPI, writerAssignmentAPI } from '@/api'
 import apiClient from '@/api/client'
-import { useConfirmDialog } from '@/composables/useConfirmDialog'
-import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
-
-const confirm = useConfirmDialog()
 const componentError = ref(null)
 const initialLoading = ref(true)
 const loading = ref(false)
@@ -1177,17 +1160,6 @@ const editConfig = (config) => {
 }
 
 const deleteConfig = async (config) => {
-  const confirmed = await confirm.showDestructive(
-    `This will permanently delete the configuration "${config.name || 'this config'}". This action cannot be undone.`,
-    'Delete Configuration',
-    {
-      confirmText: 'Delete',
-      cancelText: 'Cancel'
-    }
-  )
-  
-  if (!confirmed) return
-  
   try {
     await classManagementAPI.deleteConfig(config.id)
     showMessage('Config deleted successfully', true)

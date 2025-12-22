@@ -668,6 +668,13 @@ class OrderDisputeSLA(models.Model):
         ("order_resolution", "Order Resolution"),
         ("dispute_resolution", "Dispute Resolution"),
     )
+    
+    SLA_STATUS_CHOICES = (
+        ("on_track", "On Track"),
+        ("warning", "Warning (Approaching Deadline)"),
+        ("breached", "Breached"),
+        ("resolved", "Resolved"),
+    )
 
     order = models.OneToOneField(
         Order, on_delete=models.CASCADE, null=True, blank=True, related_name="sla_tracking"
@@ -684,20 +691,93 @@ class OrderDisputeSLA(models.Model):
     expected_resolution_time = models.DateTimeField()
     actual_resolution_time = models.DateTimeField(blank=True, null=True)
     sla_breached = models.BooleanField(default=False)
+    
+    # Enhanced tracking fields
+    warning_sent_at = models.DateTimeField(blank=True, null=True, help_text="When warning was sent (before breach)")
+    breach_notified_at = models.DateTimeField(blank=True, null=True, help_text="When breach notification was sent")
+    email_alert_sent = models.BooleanField(default=False, help_text="Whether email alert was sent")
+    status = models.CharField(
+        max_length=20, 
+        choices=SLA_STATUS_CHOICES, 
+        default="on_track",
+        help_text="Current SLA status"
+    )
+    time_remaining_minutes = models.IntegerField(
+        null=True, blank=True,
+        help_text="Minutes remaining until deadline (cached for performance)"
+    )
+    breach_duration_minutes = models.IntegerField(
+        null=True, blank=True,
+        help_text="Minutes past deadline if breached (cached for performance)"
+    )
+    
+    class Meta:
+        verbose_name = "Order/Dispute SLA"
+        verbose_name_plural = "Order/Dispute SLAs"
+        ordering = ['-expected_resolution_time']
+        indexes = [
+            models.Index(fields=['sla_breached', 'actual_resolution_time']),
+            models.Index(fields=['assigned_to', 'sla_breached']),
+            models.Index(fields=['status', 'expected_resolution_time']),
+            models.Index(fields=['expected_resolution_time']),
+        ]
 
     def check_sla_status(self):
         """
-        Checks whether the SLA is breached and updates the status accordingly.
+        Checks whether the SLA is breached or approaching deadline and updates the status accordingly.
         """
-        if not self.actual_resolution_time and now() > self.expected_resolution_time:
-            self.sla_breached = True
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        if self.actual_resolution_time:
+            # Already resolved
+            self.status = "resolved"
+            self.sla_breached = self.actual_resolution_time > self.expected_resolution_time
             self.save()
+            return
+        
+        now = timezone.now()
+        time_remaining = self.expected_resolution_time - now
+        time_remaining_minutes = int(time_remaining.total_seconds() / 60)
+        
+        # Update cached time remaining
+        self.time_remaining_minutes = time_remaining_minutes
+        
+        # Check if breached
+        if now > self.expected_resolution_time:
+            breach_duration = now - self.expected_resolution_time
+            self.breach_duration_minutes = int(breach_duration.total_seconds() / 60)
+            self.sla_breached = True
+            self.status = "breached"
+        # Check if warning threshold (within 30 minutes or 10% of time remaining)
+        elif time_remaining_minutes <= 30 or (time_remaining_minutes / max(1, (self.expected_resolution_time - self.created_at).total_seconds() / 60)) <= 0.1:
+            self.status = "warning"
+        else:
+            self.status = "on_track"
+        
+        self.save()
 
     def mark_resolved(self):
         """Marks the order/dispute as resolved and logs resolution time."""
-        self.actual_resolution_time = now()
-        self.sla_breached = now() > self.expected_resolution_time
+        from django.utils import timezone
+        self.actual_resolution_time = timezone.now()
+        self.sla_breached = self.actual_resolution_time > self.expected_resolution_time
+        self.status = "resolved"
         self.save()
+
+    def get_time_remaining(self):
+        """Get time remaining until deadline as timedelta."""
+        from django.utils import timezone
+        if self.actual_resolution_time:
+            return None
+        return self.expected_resolution_time - timezone.now()
+    
+    def get_breach_duration(self):
+        """Get duration past deadline if breached."""
+        from django.utils import timezone
+        if not self.sla_breached or self.actual_resolution_time:
+            return None
+        return timezone.now() - self.expected_resolution_time
 
     @staticmethod
     def send_sla_alerts():
@@ -713,7 +793,7 @@ class OrderDisputeSLA(models.Model):
             print(f"ALERT: SLA breached for {task.sla_type} - ID: {task.id}")
 
     def __str__(self):
-        return f"SLA for {self.sla_type} - {'Breached' if self.sla_breached else 'Within SLA'}"
+        return f"SLA for {self.sla_type} - {self.get_status_display()}"
 
 class FAQCategory(models.Model):
     """

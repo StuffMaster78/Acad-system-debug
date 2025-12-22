@@ -87,7 +87,7 @@
 
     <!-- Performance Metrics -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="card bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
+      <div class="card bg-linear-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold text-gray-900">Response Time</h3>
           <span class="text-3xl">⚡</span>
@@ -97,7 +97,7 @@
         </div>
         <p class="text-sm text-gray-600 mt-2">Average response time</p>
       </div>
-      <div class="card bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-sm p-6 border border-green-200">
+      <div class="card bg-linear-to-br from-green-50 to-green-100 rounded-lg shadow-sm p-6 border border-green-200">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold text-gray-900">Resolution Rate</h3>
           <span class="text-3xl">✅</span>
@@ -107,7 +107,7 @@
         </div>
         <p class="text-sm text-gray-600 mt-2">Tickets resolved</p>
       </div>
-      <div class="card bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-sm p-6 border border-purple-200">
+      <div class="card bg-linear-to-br from-purple-50 to-purple-100 rounded-lg shadow-sm p-6 border border-purple-200">
         <div class="flex items-center justify-between mb-2">
           <h3 class="text-lg font-semibold text-gray-900">Satisfaction</h3>
           <span class="text-3xl">⭐</span>

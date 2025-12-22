@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { normalizeApiError, isAuthError } from '@/utils/error'
 import { maskEndpoint } from '@/utils/endpoint-masker'
+import { getCachedResponse, cacheResponse, invalidateCache } from '@/utils/requestCache'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || '/api/v1',
@@ -99,9 +100,25 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Request interceptor - add auth token and mask endpoints
+// Request interceptor - add auth token, cache check, and mask endpoints
 apiClient.interceptors.request.use(
   (config) => {
+    // Check cache for GET requests (skip cache if _skipCache flag is set)
+    if (config.method === 'get' && !config._skipCache) {
+      const cached = getCachedResponse(config)
+      if (cached) {
+        // Return cached response
+        return Promise.reject({
+          __cached: true,
+          data: cached,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config
+        })
+      }
+    }
+    
     const token = localStorage.getItem('access_token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
@@ -111,6 +128,11 @@ apiClient.interceptors.request.use(
     const website = localStorage.getItem('current_website')
     if (website) {
       config.headers['X-Website'] = website
+    }
+    
+    // If data is FormData, remove Content-Type header to let browser set it with boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
     }
     
     // Endpoint masking with backend proxy
@@ -164,10 +186,45 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 )
 
-// Response interceptor - handle token refresh and retries
+// Response interceptor - handle caching, token refresh and retries
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Cache successful GET responses (skip cache if _skipCache flag is set)
+    if (response.config.method === 'get' && !response.config._skipCache) {
+      // Determine TTL based on endpoint
+      let ttl = 5 * 60 * 1000 // Default 5 minutes
+      
+      // Longer cache for dashboard/analytics data
+      if (response.config.url?.includes('/dashboard/') || 
+          response.config.url?.includes('/analytics/') ||
+          response.config.url?.includes('/stats/')) {
+        ttl = 2 * 60 * 1000 // 2 minutes for dashboard data
+      }
+      
+      // Shorter cache for lists that change frequently
+      // Check if URL includes '/orders/' but doesn't have a number (i.e., it's a list, not a detail page)
+      if (response.config.url?.includes('/orders/') && 
+          !/\d+/.test(response.config.url)) {
+        ttl = 1 * 60 * 1000 // 1 minute for order lists
+      }
+      
+      cacheResponse(response.config, response.data, ttl)
+    }
+    
+    return response
+  },
   async (error) => {
+    // Handle cached responses
+    if (error.__cached) {
+      return Promise.resolve({
+        data: error.data,
+        status: error.status,
+        statusText: error.statusText,
+        headers: error.headers,
+        config: error.config
+      })
+    }
+    
     const originalRequest = error.config
 
     // Simple retry for network errors (once)
@@ -260,6 +317,22 @@ apiClient.interceptors.response.use(
       }
     }
 
+    // Invalidate cache on mutations (POST, PUT, PATCH, DELETE)
+    if (originalRequest && originalRequest.method !== 'get') {
+      if (originalRequest.url) {
+        invalidateCache(originalRequest.url)
+        // Also invalidate related dashboard/analytics caches
+        if (originalRequest.url.includes('/orders/') || 
+            originalRequest.url.includes('/payments/') ||
+            originalRequest.url.includes('/users/') ||
+            originalRequest.url.includes('/writers/')) {
+          invalidateCache('/dashboard/')
+          invalidateCache('/analytics/')
+          invalidateCache('/stats/')
+        }
+      }
+    }
+    
     // Suppress noisy backend errors (404/403/429) for known missing endpoints
     // These are expected and don't need to spam the console
     const status = error.response?.status
@@ -275,6 +348,20 @@ apiClient.interceptors.response.use(
       '/order-configs/api/types-of-work/',
       '/order-configs/api/subjects/',
       '/auth/auth/refresh-token/',
+      '/order-files/order-files/',
+      '/order-files/extra-service-files/',
+      '/client-management/dashboard/enhanced-order-status/',
+      '/orders/progress/order/',
+      '/writer-management/writers/my_profile/',
+      '/writer-management/writer-profiles/',
+      '/writer-management/writer-resources/',
+      '/writer-management/writer-resource-categories/',
+      '/writer-management/badge-performance/',
+      '/writer-management/dashboard/communications/',
+      '/writer-wallet/writer-wallets/',
+      '/order-communications/communication-threads/',
+      '/users/users/profile/',
+      '/orders/draft-requests/check-eligibility/',
     ]
     
     const isExpectedFailure = expectedFailures.some(endpoint => url.includes(endpoint))
