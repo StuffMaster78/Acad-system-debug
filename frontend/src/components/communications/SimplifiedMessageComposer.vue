@@ -1,5 +1,5 @@
 <template>
-  <div class="simplified-message-composer bg-white border-t border-gray-200 p-4">
+  <div class="simplified-message-composer bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
     <!-- Reply Preview -->
     <div v-if="replyTo" class="mb-3 p-3 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
       <div class="flex items-center justify-between">
@@ -13,7 +13,7 @@
         </div>
         <button
           @click="$emit('cancel-reply')"
-          class="text-blue-500 hover:text-blue-700 ml-2 flex-shrink-0"
+          class="text-blue-500 hover:text-blue-700 ml-2 shrink-0"
           title="Cancel reply"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -37,7 +37,7 @@
         <span class="text-xs text-gray-500">({{ formatFileSize(file.size) }})</span>
         <button
           @click="removeFile(index)"
-          class="text-red-500 hover:text-red-700 flex-shrink-0"
+          class="text-red-500 hover:text-red-700 shrink-0"
           title="Remove file"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -45,6 +45,22 @@
           </svg>
         </button>
       </div>
+    </div>
+
+    <!-- Success Message -->
+    <div v-if="successMessage" class="mb-2 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg text-sm text-green-700 dark:text-green-300 flex items-center gap-2">
+      <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+      </svg>
+      <span>{{ successMessage }}</span>
+    </div>
+
+    <!-- Error Message -->
+    <div v-if="error" class="mb-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-700 dark:text-red-300 flex items-center gap-2">
+      <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+      </svg>
+      <span>{{ error }}</span>
     </div>
 
     <!-- Typing Indicator -->
@@ -57,11 +73,11 @@
     </div>
 
     <!-- Composer Area -->
-    <div class="flex items-end gap-2">
+    <div class="flex items-end gap-3 w-full">
       <!-- File Upload Button -->
       <button
         @click="triggerFileInput"
-        class="flex-shrink-0 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+        class="shrink-0 p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
         title="Attach file"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,8 +94,8 @@
         @keydown.enter.shift.exact="handleShiftEnter"
         :placeholder="replyTo ? 'Type your reply...' : 'Type a message...'"
         rows="1"
-        class="flex-1 resize-none border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 placeholder-gray-400"
-        style="max-height: 120px; min-height: 40px;"
+        class="flex-1 resize-none border-2 border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 min-w-0"
+        style="max-height: 120px; min-height: 48px;"
       />
 
       <!-- Send Button -->
@@ -87,7 +103,7 @@
         @click="sendMessage"
         :disabled="!canSend || sending"
         :class="[
-          'flex-shrink-0 px-4 py-2 rounded-lg font-medium transition-colors',
+          'shrink-0 px-4 py-2 rounded-lg font-medium transition-colors',
           canSend && !sending
             ? 'bg-primary-600 text-white hover:bg-primary-700'
             : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -110,16 +126,6 @@
       </button>
     </div>
 
-    <!-- Error Message -->
-    <div v-if="error" class="mt-2 p-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-      {{ error }}
-    </div>
-
-    <!-- Success Message -->
-    <div v-if="successMessage" class="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg text-sm text-green-600">
-      {{ successMessage }}
-    </div>
-
     <!-- Hidden File Input -->
     <input
       ref="fileInput"
@@ -133,7 +139,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { communicationsAPI } from '@/api'
 import { useToast } from '@/composables/useToast'
 
@@ -168,15 +174,19 @@ const sending = ref(false)
 const error = ref('')
 const successMessage = ref('')
 const typingTimeout = ref(null)
+const lastTypingSent = ref(0)
+const TYPING_THROTTLE_MS = 3000 // Only send typing indicator every 3 seconds
 
 const canSend = computed(() => {
   return (messageText.value.trim().length > 0 || selectedFiles.value.length > 0) && !sending.value
 })
 
 const handleTyping = () => {
-  // Send typing indicator
-  if (messageText.value.trim().length > 0) {
+  // Throttle typing indicators to avoid rate limiting
+  const now = Date.now()
+  if (messageText.value.trim().length > 0 && (now - lastTypingSent.value) >= TYPING_THROTTLE_MS) {
     communicationsAPI.setTyping(props.threadId).catch(() => {})
+    lastTypingSent.value = now
   }
 
   // Clear existing timeout
@@ -252,6 +262,51 @@ const formatFileSize = (bytes) => {
   return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
 }
 
+const recipientId = ref(null)
+const loadingRecipient = ref(false)
+const useSimpleSend = ref(false)
+
+// Fetch available recipients and determine the appropriate recipient
+const loadRecipient = async () => {
+  if (!props.threadId) return
+  
+  loadingRecipient.value = true
+  try {
+    const response = await communicationsAPI.getAvailableRecipients(props.threadId)
+    const data = response.data
+    const recipients = Array.isArray(data) ? data : (data?.recipients || [])
+    
+    if (recipients.length > 0) {
+      useSimpleSend.value = false
+      // If replying, prefer the original sender
+      if (props.replyTo?.sender?.id) {
+        const replySender = recipients.find(r => 
+          (typeof r === 'object' ? r.id : r) === props.replyTo.sender.id
+        )
+        if (replySender) {
+          recipientId.value = typeof replySender === 'object' ? replySender.id : replySender
+          return
+        }
+      }
+      
+      // Otherwise use first recipient
+      const first = recipients[0]
+      recipientId.value = typeof first === 'object' ? first.id : first
+    } else {
+      console.warn('No recipients available for thread', props.threadId)
+      recipientId.value = null
+      // Fallback: allow using the simplified send endpoint which auto-detects recipient
+      useSimpleSend.value = true
+    }
+  } catch (error) {
+    console.error('Failed to load recipients:', error)
+    recipientId.value = null
+    useSimpleSend.value = true
+  } finally {
+    loadingRecipient.value = false
+  }
+}
+
 const sendMessage = async () => {
   if (!canSend.value) return
 
@@ -260,38 +315,65 @@ const sendMessage = async () => {
   successMessage.value = ''
 
   try {
-    // Use simplified endpoint that auto-detects recipient
     const message = messageText.value.trim()
     const attachment = selectedFiles.value.length > 0 ? selectedFiles.value[0] : null
     const replyToId = props.replyTo?.id || null
+    const hasMultipleFiles = selectedFiles.value.length > 1
 
-    // If multiple files, send them one by one
-    if (selectedFiles.value.length > 1) {
-      // Send first file with message if any
-      await communicationsAPI.sendMessageSimple(
-        props.threadId,
-        message || '📎 File attachments',
-        selectedFiles.value[0],
-        replyToId
-      )
-      
-      // Send remaining files
-      for (let i = 1; i < selectedFiles.value.length; i++) {
+    // If we couldn't determine explicit recipients, fall back to simplified send
+    if (useSimpleSend.value || !recipientId.value) {
+      if (hasMultipleFiles) {
+        // First file with message
         await communicationsAPI.sendMessageSimple(
           props.threadId,
-          '',
-          selectedFiles.value[i],
-          null
+          message || '📎 File attachments',
+          selectedFiles.value[0],
+          replyToId
+        )
+        // Remaining files as separate messages
+        for (let i = 1; i < selectedFiles.value.length; i++) {
+          await communicationsAPI.sendMessageSimple(
+            props.threadId,
+            '',
+            selectedFiles.value[i],
+            null
+          )
+        }
+      } else {
+        await communicationsAPI.sendMessageSimple(
+          props.threadId,
+          message || (attachment ? '📎 File attachment' : ''),
+          attachment,
+          replyToId
         )
       }
     } else {
-      // Single file or text only
-      await communicationsAPI.sendMessageSimple(
-        props.threadId,
-        message,
-        attachment,
-        replyToId
-      )
+      // Normal path: explicit recipient required
+      if (hasMultipleFiles) {
+        await communicationsAPI.sendMessage(props.threadId, {
+          recipient: recipientId.value,
+          message: message || '📎 File attachments',
+          attachment: selectedFiles.value[0],
+          reply_to: replyToId,
+          message_type: 'file'
+        })
+        for (let i = 1; i < selectedFiles.value.length; i++) {
+          await communicationsAPI.sendMessage(props.threadId, {
+            recipient: recipientId.value,
+            message: '',
+            attachment: selectedFiles.value[i],
+            message_type: 'file'
+          })
+        }
+      } else {
+        await communicationsAPI.sendMessage(props.threadId, {
+          recipient: recipientId.value,
+          message: message || (attachment ? '📎 File attachment' : ''),
+          attachment: attachment,
+          reply_to: replyToId,
+          message_type: attachment ? 'file' : 'text'
+        })
+      }
     }
 
     // Clear form
@@ -327,8 +409,14 @@ const sendMessage = async () => {
   }
 }
 
-// Auto-focus on mount
+// Load recipient on mount and when thread changes
+onMounted(() => {
+  loadRecipient()
+})
+
 watch(() => props.threadId, () => {
+  recipientId.value = null
+  loadRecipient()
   nextTick(() => {
     if (props.autoFocus && messageInput.value) {
       messageInput.value.focus()
@@ -336,8 +424,11 @@ watch(() => props.threadId, () => {
   })
 }, { immediate: true })
 
+// Update recipient when replying (prefer the original sender)
 watch(() => props.replyTo, (newVal) => {
   if (newVal && messageInput.value) {
+    // Reload recipient to get the reply sender
+    loadRecipient()
     nextTick(() => {
       messageInput.value.focus()
     })

@@ -556,8 +556,7 @@ class ScreenedWordManagementViewSet(viewsets.ModelViewSet):
         
         AdminActivityLog.objects.create(
             admin=self.request.user,
-            action="Added screened word",
-            details=f"Added word: {word}"
+            action=f"Added screened word: {word}"
         )
     
     def perform_update(self, serializer):
@@ -575,8 +574,7 @@ class ScreenedWordManagementViewSet(viewsets.ModelViewSet):
         
         AdminActivityLog.objects.create(
             admin=self.request.user,
-            action="Updated screened word",
-            details=f"Updated word: {old_word} → {new_word}"
+            action=f"Updated screened word: {old_word} → {new_word}"
         )
     
     def perform_destroy(self, instance):
@@ -586,8 +584,7 @@ class ScreenedWordManagementViewSet(viewsets.ModelViewSet):
         
         AdminActivityLog.objects.create(
             admin=self.request.user,
-            action="Removed screened word",
-            details=f"Removed word: {word}"
+            action=f"Removed screened word: {word}"
         )
     
     @action(detail=False, methods=['post'])
@@ -626,8 +623,7 @@ class ScreenedWordManagementViewSet(viewsets.ModelViewSet):
         
         AdminActivityLog.objects.create(
             admin=request.user,
-            action="Bulk added screened words",
-            details=f"Added {len(created)} words, {len(errors)} errors"
+            action=f"Bulk added screened words: {len(created)} words, {len(errors)} errors"
         )
         
         return Response({

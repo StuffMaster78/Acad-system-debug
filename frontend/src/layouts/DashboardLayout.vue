@@ -3,7 +3,7 @@
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-50 w-72 bg-gradient-to-b from-white to-gray-50 dark:from-[#0f0f0f] dark:to-[#1a1a1a] border-r border-gray-200/50 dark:border-gray-800/50 backdrop-blur-sm transform transition-all duration-300 ease-in-out shadow-xl',
+        'fixed inset-y-0 left-0 z-30 w-72 bg-linear-to-b from-white to-gray-50 dark:from-[#0f0f0f] dark:to-[#1a1a1a] border-r border-gray-200/50 dark:border-gray-800/50 backdrop-blur-sm transform transition-all duration-300 ease-in-out shadow-xl',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         'lg:translate-x-0'
       ]"
@@ -11,7 +11,7 @@
       <div class="flex flex-col h-full">
         <!-- Logo -->
         <div class="flex items-center justify-between h-20 px-6 border-b border-gray-200/60 dark:border-gray-800/60 bg-white/80 dark:bg-[#0f0f0f]/80 backdrop-blur-md transition-colors duration-300">
-          <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-400 dark:to-primary-500 bg-clip-text text-transparent transition-colors duration-300 leading-tight">{{ appName }}</h1>
+          <h1 class="text-lg font-bold tracking-tight bg-linear-to-r from-primary-600 to-primary-700 dark:from-primary-400 dark:to-primary-500 bg-clip-text text-transparent transition-colors duration-300 leading-tight">{{ appName }}</h1>
           <button
             @click="sidebarOpen = false"
             class="lg:hidden p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
@@ -26,10 +26,11 @@
         <div class="px-5 pt-5 pb-4 border-b border-gray-200/60 dark:border-gray-800/60">
           <div class="relative">
             <input
+              ref="sidebarSearchInput"
               v-model="sidebarSearchQuery"
               type="text"
-              placeholder="Search menu..."
-              class="w-full px-4 py-2.5 pl-11 text-sm font-normal leading-relaxed bg-white/60 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500 backdrop-blur-sm shadow-sm hover:shadow-md"
+              :placeholder="`Search menu... (${isMac ? '⌘' : 'Ctrl'}+K)`"
+              class="w-full px-4 py-2.5 pl-11 pr-20 text-sm font-normal leading-relaxed bg-white/60 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500 backdrop-blur-sm shadow-sm hover:shadow-md search-input"
             />
             <svg class="absolute left-3.5 top-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -55,7 +56,7 @@
             :class="[
               'flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 mb-4 group relative overflow-hidden leading-relaxed',
               $route.name === 'Dashboard' || $route.path === '/dashboard'
-                ? 'bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 scale-[1.02]'
+                ? 'bg-linear-to-r from-primary-500 via-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 scale-[1.02]'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:shadow-lg hover:scale-[1.01] hover:-translate-y-0.5'
             ]"
           >
@@ -79,7 +80,7 @@
           <div v-if="authStore.isClient" class="mb-5">
             <router-link
               to="/orders/wizard"
-              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed"
+              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-linear-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed"
             >
               <svg class="w-4.5 h-4.5 mr-2.5 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -93,7 +94,7 @@
           <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="mb-5">
             <router-link
               to="/admin/orders/create"
-              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed"
+              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-linear-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed"
             >
               <svg class="w-4.5 h-4.5 mr-2.5 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -105,7 +106,7 @@
 
           <!-- Orders section - Simplified and at top -->
           <div v-if="authStore.isClient && shouldShowItem('Orders', 'All Orders Pending In Progress Completed Disputed Templates')" class="space-y-2 mb-5">
-            <div class="px-4 py-2 mb-2 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/60 dark:border-blue-800/60 backdrop-blur-sm">
+            <div class="px-4 py-2 mb-2 bg-linear-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/60 dark:border-blue-800/60 backdrop-blur-sm">
               <h3 class="text-[11px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-2 leading-tight">
                 <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
                 <span>Orders</span>
@@ -131,7 +132,7 @@
                     </div>
                     <span class="truncate">All Orders</span>
                   </div>
-                <span v-if="orderStatusCounts.total > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 shadow-sm flex-shrink-0">
+                <span v-if="orderStatusCounts.total > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 shadow-sm shrink-0">
                   {{ orderStatusCounts.total }}
                 </span>
               </router-link>
@@ -144,22 +145,16 @@
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'false' ? 'bg-orange-100 dark:bg-orange-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30'">
                       <SidebarIcon icon-name="credit-card" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'false' ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-orange-600 dark:group-hover:text-orange-400'" tooltip="Orders awaiting payment" />
                     </div>
-                    <span class="truncate">Unpaid</span>
+                    <span class="truncate">Unpaid <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.unpaid }})</span></span>
                   </div>
-                  <span v-if="orderStatusCounts.unpaid > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-orange-100 dark:bg-orange-900/60 text-orange-800 dark:text-orange-200 shadow-sm flex-shrink-0">
-                    {{ orderStatusCounts.unpaid }}
-                  </span>
               </router-link>
                 <router-link v-if="shouldShowItem('Paid', 'Paid orders')" :to="authStore.isClient ? '/client/orders?is_paid=true' : '/orders?is_paid=true'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-green-50/80 dark:hover:bg-green-900/20 hover:translate-x-1 hover:shadow-sm group leading-relaxed" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'true' ? 'bg-green-50/90 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-semibold border-l-3 border-green-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'true' ? 'bg-green-100 dark:bg-green-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-green-100 dark:group-hover:bg-green-900/30'">
                       <SidebarIcon icon-name="check-circle" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'true' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400'" tooltip="Paid orders" />
                     </div>
-                    <span class="truncate">Paid</span>
+                    <span class="truncate">Paid <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.paid }})</span></span>
                   </div>
-                  <span v-if="orderStatusCounts.paid > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-200 shadow-sm flex-shrink-0">
-                    {{ orderStatusCounts.paid }}
-                  </span>
               </router-link>
               </div>
               
@@ -171,44 +166,48 @@
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-yellow-100 dark:group-hover:bg-yellow-900/30'">
                       <SidebarIcon icon-name="clock" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'pending' ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-yellow-600 dark:group-hover:text-yellow-400'" tooltip="Pending orders" />
                     </div>
-                    <span class="truncate">Pending</span>
+                    <span class="truncate">Pending <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.pending }})</span></span>
                   </div>
-                  <span v-if="orderStatusCounts.pending > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-yellow-100 dark:bg-yellow-900/60 text-yellow-800 dark:text-yellow-200 shadow-sm flex-shrink-0">
-                    {{ orderStatusCounts.pending }}
-                  </span>
               </router-link>
                 <router-link v-if="shouldShowItem('In Progress', 'Orders in progress')" :to="authStore.isClient ? '/client/orders?status=in_progress' : '/orders?status=in_progress'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 leading-relaxed" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'in_progress' ? 'bg-blue-50/90 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold border-l-3 border-blue-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'in_progress' ? 'bg-blue-100 dark:bg-blue-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30'">
                       <SidebarIcon icon-name="cog" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'in_progress' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'" class="animate-spin-slow" tooltip="Orders in progress" />
                     </div>
-                    <span class="truncate">In Progress</span>
+                    <span class="truncate">In Progress <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.in_progress }})</span></span>
                   </div>
-                  <span v-if="orderStatusCounts.in_progress > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 shadow-sm flex-shrink-0">
-                    {{ orderStatusCounts.in_progress }}
-                  </span>
               </router-link>
                 <router-link v-if="shouldShowItem('Submitted', 'Submitted orders')" :to="authStore.isClient ? '/client/orders?status=submitted' : '/orders?status=submitted'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-indigo-50/80 dark:hover:bg-indigo-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'submitted' ? 'bg-indigo-50/90 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-semibold border-l-3 border-indigo-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'submitted' ? 'bg-indigo-100 dark:bg-indigo-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30'">
                       <SidebarIcon icon-name="paper-airplane" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'submitted' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'" tooltip="Submitted orders" />
                     </div>
-                    <span class="truncate">Submitted</span>
+                    <span class="truncate">Submitted <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.submitted }})</span></span>
                   </div>
-                  <span v-if="orderStatusCounts.submitted > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-indigo-100 dark:bg-indigo-900/60 text-indigo-800 dark:text-indigo-200 shadow-sm flex-shrink-0">
-                    {{ orderStatusCounts.submitted }}
-                  </span>
               </router-link>
-                <router-link v-if="shouldShowItem('Under Editing', 'Orders under editing')" :to="authStore.isClient ? '/client/orders?status=under_editing' : '/orders?status=under_editing'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-purple-50/80 dark:hover:bg-purple-900/20 hover:translate-x-1 hover:shadow-sm group" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'under_editing' ? 'bg-purple-50/90 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-semibold border-l-3 border-purple-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Under Editing', 'Orders under editing')" :to="authStore.isClient ? '/client/orders?status=under_editing' : '/orders?status=under_editing'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-purple-50/80 dark:hover:bg-purple-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'under_editing' ? 'bg-purple-50/90 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-semibold border-l-3 border-purple-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'under_editing' ? 'bg-purple-100 dark:bg-purple-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30'">
                       <SidebarIcon icon-name="pencil" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'under_editing' ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'" tooltip="Orders under editing" />
                     </div>
-                    <span class="truncate">Under Editing</span>
+                    <span class="truncate">Under Editing <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.under_editing }})</span></span>
                   </div>
-                  <span v-if="orderStatusCounts.under_editing > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 shadow-sm flex-shrink-0">
-                    {{ orderStatusCounts.under_editing }}
-                  </span>
+              </router-link>
+                <router-link v-if="shouldShowItem('Available', 'Available orders')" :to="authStore.isClient ? '/client/orders?status=available' : '/orders?status=available'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-emerald-50/80 dark:hover:bg-emerald-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'available' ? 'bg-emerald-50/90 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-semibold border-l-3 border-emerald-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                  <div class="flex items-center min-w-0 flex-1">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'available' ? 'bg-emerald-100 dark:bg-emerald-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/30'">
+                      <SidebarIcon icon-name="clipboard" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'available' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400'" tooltip="Available orders" />
+                    </div>
+                    <span class="truncate">Available <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.available }})</span></span>
+                  </div>
+              </router-link>
+                <router-link v-if="shouldShowItem('On Hold', 'Orders on hold')" :to="authStore.isClient ? '/client/orders?status=on_hold' : '/orders?status=on_hold'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-orange-50/80 dark:hover:bg-orange-900/20 hover:translate-x-1 hover:shadow-sm group" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'on_hold' ? 'bg-orange-50/90 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-semibold border-l-3 border-orange-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                  <div class="flex items-center min-w-0 flex-1">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'on_hold' ? 'bg-orange-100 dark:bg-orange-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30'">
+                      <SidebarIcon icon-name="clock" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'on_hold' ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-orange-600 dark:group-hover:text-orange-400'" tooltip="Orders on hold" />
+                    </div>
+                    <span class="truncate">On Hold <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.on_hold }})</span></span>
+                  </div>
               </router-link>
               </div>
               
@@ -220,11 +219,8 @@
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'completed' ? 'bg-green-100 dark:bg-green-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-green-100 dark:group-hover:bg-green-900/30'">
                       <SidebarIcon icon-name="check-circle" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400'" tooltip="Completed orders" />
                     </div>
-                    <span class="truncate">Completed</span>
+                    <span class="truncate">Completed <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.completed }})</span></span>
                   </div>
-                  <span v-if="orderStatusCounts.completed > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-200 shadow-sm flex-shrink-0">
-                    {{ orderStatusCounts.completed }}
-                  </span>
               </router-link>
               </div>
               
@@ -236,32 +232,100 @@
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'revision_requested' ? 'bg-amber-100 dark:bg-amber-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30'">
                       <SidebarIcon icon-name="arrow-left" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'revision_requested' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-amber-600 dark:group-hover:text-amber-400'" tooltip="Orders requiring revision" />
                     </div>
-                    <span class="truncate">Revision Requested</span>
+                    <span class="truncate">Revision Requested <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.revision_requested }})</span></span>
                   </div>
-                  <span v-if="orderStatusCounts.revision_requested > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200 shadow-sm flex-shrink-0">
-                    {{ orderStatusCounts.revision_requested }}
-                  </span>
               </router-link>
                 <router-link v-if="shouldShowItem('Disputed', 'Disputed orders')" :to="authStore.isClient ? '/client/orders?status=disputed' : '/orders?status=disputed'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-red-50/80 dark:hover:bg-red-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'disputed' ? 'bg-red-50/90 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-semibold border-l-3 border-red-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'disputed' ? 'bg-red-100 dark:bg-red-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-red-100 dark:group-hover:bg-red-900/30'">
                       <SidebarIcon icon-name="exclamation-triangle" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'disputed' ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400'" tooltip="Disputed orders" />
                     </div>
-                    <span class="truncate">Disputed</span>
+                    <span class="truncate">Disputed <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.disputed }})</span></span>
                   </div>
-                  <span v-if="orderStatusCounts.disputed > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-red-100 dark:bg-red-900/60 text-red-800 dark:text-red-200 shadow-sm flex-shrink-0">
-                    {{ orderStatusCounts.disputed }}
-                  </span>
               </router-link>
                 <router-link v-if="shouldShowItem('Cancelled', 'Cancelled orders')" to="/orders?status=cancelled" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:translate-x-1 hover:shadow-sm group" :class="$route.path === '/orders' && $route.query.status === 'cancelled' ? 'bg-gray-100/90 dark:bg-gray-800/90 text-gray-700 dark:text-gray-300 font-semibold border-l-3 border-gray-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="$route.path === '/orders' && $route.query.status === 'cancelled' ? 'bg-gray-200 dark:bg-gray-700/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-gray-200 dark:group-hover:bg-gray-700/50'">
                       <SidebarIcon icon-name="ban" size="sm" :icon-class="$route.path === '/orders' && $route.query.status === 'cancelled' ? 'text-gray-600 dark:text-gray-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-400'" tooltip="Cancelled orders" />
                     </div>
-                    <span class="truncate">Cancelled</span>
+                    <span class="truncate">Cancelled <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.cancelled }})</span></span>
                   </div>
-                  <span v-if="orderStatusCounts.cancelled > 0" class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 shadow-sm flex-shrink-0">
-                    {{ orderStatusCounts.cancelled }}
+                </router-link>
+              </div>
+              
+              <!-- Order Transitions (Admin/SuperAdmin only) -->
+              <div v-if="(authStore.isAdmin || authStore.isSuperAdmin) && hasTransitionCounts" class="pt-3 mt-2 border-t border-gray-200/50 dark:border-gray-700/50">
+                <div class="px-3.5 py-2 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider leading-tight mb-2">Available Transitions</div>
+                
+                <router-link v-if="orderStatusCounts.can_transition_to_in_progress > 0" to="/admin/orders" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="'text-gray-700 dark:text-gray-300'">
+                  <div class="flex items-center min-w-0 flex-1">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300 bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30">
+                      <SidebarIcon icon-name="arrow-right" size="sm" icon-class="text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" tooltip="Orders that can transition to In Progress" />
+                    </div>
+                    <span class="truncate text-xs">→ In Progress</span>
+                  </div>
+                  <span class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-800 dark:text-blue-200 shadow-sm shrink-0">
+                    {{ orderStatusCounts.can_transition_to_in_progress }}
+                  </span>
+                </router-link>
+                
+                <router-link v-if="orderStatusCounts.can_transition_to_submitted > 0" to="/admin/orders" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-purple-50/80 dark:hover:bg-purple-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="'text-gray-700 dark:text-gray-300'">
+                  <div class="flex items-center min-w-0 flex-1">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300 bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30">
+                      <SidebarIcon icon-name="arrow-right" size="sm" icon-class="text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400" tooltip="Orders that can transition to Submitted" />
+                    </div>
+                    <span class="truncate text-xs">→ Submitted</span>
+                  </div>
+                  <span class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-purple-100 dark:bg-purple-900/60 text-purple-800 dark:text-purple-200 shadow-sm shrink-0">
+                    {{ orderStatusCounts.can_transition_to_submitted }}
+                  </span>
+                </router-link>
+                
+                <router-link v-if="orderStatusCounts.can_transition_to_completed > 0" to="/admin/orders" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-green-50/80 dark:hover:bg-green-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="'text-gray-700 dark:text-gray-300'">
+                  <div class="flex items-center min-w-0 flex-1">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300 bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-green-100 dark:group-hover:bg-green-900/30">
+                      <SidebarIcon icon-name="arrow-right" size="sm" icon-class="text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400" tooltip="Orders that can transition to Completed" />
+                    </div>
+                    <span class="truncate text-xs">→ Completed</span>
+                  </div>
+                  <span class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-green-100 dark:bg-green-900/60 text-green-800 dark:text-green-200 shadow-sm shrink-0">
+                    {{ orderStatusCounts.can_transition_to_completed }}
+                  </span>
+                </router-link>
+                
+                <router-link v-if="orderStatusCounts.can_transition_to_on_hold > 0" to="/admin/orders" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-orange-50/80 dark:hover:bg-orange-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="'text-gray-700 dark:text-gray-300'">
+                  <div class="flex items-center min-w-0 flex-1">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300 bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30">
+                      <SidebarIcon icon-name="arrow-right" size="sm" icon-class="text-gray-500 dark:text-gray-400 group-hover:text-orange-600 dark:group-hover:text-orange-400" tooltip="Orders that can transition to On Hold" />
+                    </div>
+                    <span class="truncate text-xs">→ On Hold</span>
+                  </div>
+                  <span class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-orange-100 dark:bg-orange-900/60 text-orange-800 dark:text-orange-200 shadow-sm shrink-0">
+                    {{ orderStatusCounts.can_transition_to_on_hold }}
+                  </span>
+                </router-link>
+                
+                <router-link v-if="orderStatusCounts.can_transition_to_revision_requested > 0" to="/admin/orders" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-yellow-50/80 dark:hover:bg-yellow-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="'text-gray-700 dark:text-gray-300'">
+                  <div class="flex items-center min-w-0 flex-1">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300 bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-yellow-100 dark:group-hover:bg-yellow-900/30">
+                      <SidebarIcon icon-name="arrow-right" size="sm" icon-class="text-gray-500 dark:text-gray-400 group-hover:text-yellow-600 dark:group-hover:text-yellow-400" tooltip="Orders that can transition to Revision Requested" />
+                    </div>
+                    <span class="truncate text-xs">→ Revision</span>
+                  </div>
+                  <span class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-yellow-100 dark:bg-yellow-900/60 text-yellow-800 dark:text-yellow-200 shadow-sm shrink-0">
+                    {{ orderStatusCounts.can_transition_to_revision_requested }}
+                  </span>
+                </router-link>
+                
+                <router-link v-if="orderStatusCounts.can_transition_to_cancelled > 0" to="/admin/orders" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-red-50/80 dark:hover:bg-red-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="'text-gray-700 dark:text-gray-300'">
+                  <div class="flex items-center min-w-0 flex-1">
+                    <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300 bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-red-100 dark:group-hover:bg-red-900/30">
+                      <SidebarIcon icon-name="arrow-right" size="sm" icon-class="text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400" tooltip="Orders that can transition to Cancelled" />
+                    </div>
+                    <span class="truncate text-xs">→ Cancelled</span>
+                  </div>
+                  <span class="ml-2.5 px-2 py-0.5 text-[11px] font-semibold rounded-full bg-red-100 dark:bg-red-900/60 text-red-800 dark:text-red-200 shadow-sm shrink-0">
+                    {{ orderStatusCounts.can_transition_to_cancelled }}
                   </span>
                 </router-link>
               </div>
@@ -287,7 +351,7 @@
 
           <!-- Client Account section (Wallet, Referrals, Loyalty) -->
           <div v-if="authStore.isClient && shouldShowItem('Account', 'Wallet Referrals Loyalty Discounts')" class="space-y-1.5 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <div class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <div class="px-4 py-3 mb-3 bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
               <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
                 <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
                 <span>Account</span>
@@ -393,7 +457,7 @@
           <template v-if="authStore.isWriter">
             <!-- Orders Group -->
             <div v-if="shouldShowItem('Orders & Work', 'My Orders Queue Requests Revision Workload Calendar')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <h3 class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
                   <span>Orders & Work</span>
@@ -490,7 +554,7 @@
 
             <!-- Finances Group -->
             <div v-if="shouldShowItem('Finances', 'Payments Payment Requests Advance Payments Tips Fines')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
                 <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
                   <span>Finances</span>
@@ -531,7 +595,7 @@
 
             <!-- Reviews & Ratings Group -->
             <div v-if="shouldShowItem('Reviews & Performance', 'Reviews Performance Badges Level')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                 <h3 class="text-xs font-bold text-yellow-700 dark:text-yellow-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="star" size="sm" icon-class="text-yellow-600 dark:text-yellow-400" />
                   <span>Reviews & Performance</span>
@@ -572,7 +636,7 @@
 
             <!-- User Management Group -->
             <div v-if="shouldShowItem('Account Management', 'Profile Settings Pen Name Resources')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                 <h3 class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="user" size="sm" icon-class="text-purple-600 dark:text-purple-400" />
                   <span>Account Management</span>
@@ -605,7 +669,7 @@
 
             <!-- Activity Group -->
             <div v-if="shouldShowItem('Activity & Communication', 'Dashboard Summary Communications Tickets Activity Logs')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
                 <h3 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="table" size="sm" icon-class="text-gray-600 dark:text-gray-400" />
                   <span>Activity & Communication</span>
@@ -642,7 +706,7 @@
 
             <!-- Discipline Group -->
             <div v-if="shouldShowItem('Discipline & Appeals', 'Discipline Status History Appeal')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
                 <h3 class="text-xs font-bold text-red-700 dark:text-red-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="scale" size="sm" icon-class="text-red-600 dark:text-red-400" />
                   <span>Discipline & Appeals</span>
@@ -674,7 +738,7 @@
           <template v-if="authStore.isAdmin || authStore.isSuperAdmin">
             <!-- Core Operations Group -->
             <div v-if="shouldShowItem('Core Operations', 'Orders Special Orders Users Support Tickets')" class="mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
                 <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="cog" size="sm" icon-class="text-primary-600 dark:text-primary-400" />
                   <span>Core Operations</span>
@@ -904,6 +968,7 @@
               </button>
                   <div v-if="adminGroups.users" class="ml-6 space-y-1 animate-fade-in">
                     <router-link 
+                      v-if="shouldShowItem('All Users', 'View all users')"
                       to="/admin/users" 
                       class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                       :class="isRouteActive({ to: '/admin/users' }) ? 'bg-primary-50 text-primary-700 font-medium' : ''"
@@ -912,6 +977,7 @@
                       All Users
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Clients', 'Client users')"
                       to="/admin/users?role=client" 
                       class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
@@ -919,6 +985,7 @@
                       Clients
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Writers', 'Writer users')"
                       to="/admin/users?role=writer" 
                       class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
@@ -926,6 +993,7 @@
                       Writers
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Editors', 'Editor users')"
                       to="/admin/users?role=editor" 
                       class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
@@ -933,6 +1001,7 @@
                       Editors
                     </router-link>
                     <router-link 
+                      v-if="shouldShowItem('Support', 'Support users')"
                       to="/admin/users?role=support" 
                       class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
@@ -940,7 +1009,7 @@
                       Support
                     </router-link>
                     <router-link 
-                      v-if="authStore.isSuperAdmin"
+                      v-if="authStore.isSuperAdmin && shouldShowItem('Admins', 'Admin users')"
                       to="/admin/users?role=admin" 
                       class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                     >
@@ -969,7 +1038,7 @@
             
             <!-- Financial Management Group -->
             <div v-if="shouldShowItem('Financial Management', 'Payments Refunds Disputes Tips Fines Wallets Invoices')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
                 <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
                   <span>Financial Management</span>
@@ -995,7 +1064,7 @@
                       to="/admin/payments/client-payments"
                       class="flex items-center px-4 py-3 text-sm rounded-xl transition-all duration-300 hover:scale-[1.02] group leading-relaxed border-2"
                       :class="isRouteActive({ to: '/admin/payments/client-payments' }) 
-                        ? 'bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-bold shadow-lg border-blue-400' 
+                        ? 'bg-linear-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-bold shadow-lg border-blue-400' 
                         : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 font-semibold shadow-sm'"
                     >
                       <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-3"
@@ -1022,7 +1091,7 @@
                       v-if="shouldShowItem('Payment Requests', 'Manage writer payment requests')"
                       to="/admin/payments/payment-requests"
                       class="flex items-center px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-amber-50 hover:translate-x-1 group leading-relaxed shadow-sm"
-                      :class="isRouteActive({ to: '/admin/payments/payment-requests' }) ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold shadow-md' : 'text-amber-700 hover:text-amber-800'"
+                      :class="isRouteActive({ to: '/admin/payments/payment-requests' }) ? 'bg-linear-to-r from-amber-500 to-amber-600 text-white font-bold shadow-md' : 'text-amber-700 hover:text-amber-800'"
                     >
                       <div class="w-8 h-8 flex items-center justify-center rounded-lg mr-3 transition-colors"
                            :class="isRouteActive({ to: '/admin/payments/payment-requests' }) 
@@ -1198,7 +1267,7 @@
             
             <!-- Content & Services Group -->
             <div v-if="shouldShowItem('Content & Services', 'Reviews Class Management Express Classes Blog SEO Media')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <h3 class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="newspaper" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
                   <span>Content & Services</span>
@@ -1374,7 +1443,7 @@
 
             <!-- Analytics & Reporting Group -->
             <div v-if="shouldShowItem('Analytics & Reporting', 'Advanced Enhanced Pricing Discount Writer Performance Referral Loyalty Campaign Refined')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                 <h3 class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="chart-bar" size="sm" icon-class="text-purple-600 dark:text-purple-400" />
                   <span>Analytics & Reporting</span>
@@ -1567,7 +1636,7 @@
 
             <!-- System Management Group -->
             <div v-if="shouldShowItem('System Management', 'Configurations Screened Words Flagged Messages System Health Activity Logs Email Notification Duplicate')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
                 <h3 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-600 dark:text-gray-400" />
                   <span>System Management</span>
@@ -1704,7 +1773,7 @@
 
             <!-- Discipline & Appeals Group -->
             <div v-if="shouldShowItem('Discipline & Appeals', 'Writer Discipline Appeals Config Blacklist')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
                 <h3 class="text-xs font-bold text-red-700 dark:text-red-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="scale" size="sm" icon-class="text-red-600 dark:text-red-400" />
                   <span>Discipline & Appeals</span>
@@ -1769,9 +1838,62 @@
               </div>
             </div>
 
+            <!-- Writer Management Group -->
+            <div v-if="shouldShowItem('Writer Management', 'Writer Management Resources Samples Hierarchy')" class="mb-8">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+                <h3 class="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-widest flex items-center gap-2">
+                  <SidebarIcon icon-name="pencil" size="sm" icon-class="text-indigo-600 dark:text-indigo-400" />
+                  <span>Writer Management</span>
+                </h3>
+              </div>
+              <div class="space-y-1.5">
+                <router-link
+                  v-if="shouldShowItem('Writer Management', 'Manage writers')"
+                  to="/admin/users?role=writer"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                    isRouteActive({ to: '/admin/users', query: { role: 'writer' } })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                  ]"
+                >
+                  <SidebarIcon icon-name="users" size="md" icon-class="text-gray-600 group-hover:text-primary-600" class="mr-3" tooltip="Manage writers" />
+                  Writer Management
+                </router-link>
+                
+                <router-link
+                  v-if="shouldShowItem('Writer Resources & Samples', 'Manage writer resources and samples')"
+                  to="/admin/writer-resources"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                    isRouteActive({ to: '/admin/writer-resources' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                  ]"
+                >
+                  <SidebarIcon icon-name="book" size="md" icon-class="text-gray-600 group-hover:text-primary-600" class="mr-3" tooltip="Manage writer resources and samples" />
+                  Writer Resources & Samples
+                </router-link>
+                
+                <router-link
+                  v-if="shouldShowItem('Writer Hierarchy', 'Writer hierarchy management')"
+                  to="/admin/writer-hierarchy"
+                  :class="[
+                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                    isRouteActive({ to: '/admin/writer-hierarchy' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                  ]"
+                >
+                  <SidebarIcon icon-name="chart-bar" size="md" icon-class="text-gray-600 group-hover:text-primary-600" class="mr-3" tooltip="Writer hierarchy management" />
+                  Writer Hierarchy
+                </router-link>
+              </div>
+            </div>
+
             <!-- Multi-Tenant Group -->
             <div v-if="shouldShowItem('Multi-Tenant', 'Websites')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-cyan-900/20 dark:to-teal-900/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-cyan-50 to-teal-50 dark:from-cyan-900/20 dark:to-teal-900/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
                 <h3 class="text-xs font-bold text-cyan-700 dark:text-cyan-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="home" size="sm" icon-class="text-cyan-600 dark:text-cyan-400" />
                   <span>Multi-Tenant</span>
@@ -1796,7 +1918,7 @@
 
             <!-- Superadmin Only -->
             <div v-if="authStore.isSuperAdmin && shouldShowItem('Superadmin', 'Superadmin dashboard')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div class="px-4 py-3 mb-3 bg-linear-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                 <h3 class="text-xs font-bold text-yellow-700 dark:text-yellow-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="star" size="sm" icon-class="text-yellow-600 dark:text-yellow-400" />
                   <span>Superadmin</span>
@@ -1893,7 +2015,7 @@
     </aside>
 
     <!-- Main content -->
-    <div class="lg:pl-64 h-screen overflow-hidden flex flex-col">
+    <div class="lg:pl-72 h-screen overflow-hidden flex flex-col">
       <!-- Top bar -->
       <header class="sticky top-0 z-40 bg-white dark:bg-[#111111] border-b border-gray-200 dark:border-gray-800 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
         <div class="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
@@ -2077,7 +2199,7 @@
                       @click="handleNotificationClick(notif)"
                     >
                       <div class="flex items-start gap-2">
-                        <div v-if="!notif.is_read" class="flex-shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                        <div v-if="!notif.is_read" class="shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
                         <div class="flex-1 min-w-0">
                           <p class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-1 leading-relaxed">
                             {{ notif.title }}
@@ -2150,7 +2272,7 @@
                   <router-link
                     to="/notifications"
                     @click="closeProfileDropdown"
-                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center justify-between"
+                    class="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg flex items-center justify-between"
                   >
                     <span>Notifications</span>
                     <span v-if="unreadCount > 0" class="px-2 py-0.5 text-xs font-bold text-white bg-red-600 rounded-full">
@@ -2228,6 +2350,7 @@ import { useTheme } from '@/composables/useTheme'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import ordersAPI from '@/api/orders'
 import adminOrdersAPI from '@/api/admin-orders'
+import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts'
 
 const router = useRouter()
 const route = useRoute()
@@ -2235,6 +2358,24 @@ const authStore = useAuthStore()
 const sidebarOpen = ref(false)
 const sidebarSearchQuery = ref('')
 const ordersOpen = ref(true)
+const sidebarSearchInput = ref(null)
+
+// Keyboard shortcuts
+const { register, isMac } = useKeyboardShortcuts()
+
+// Register Cmd/Ctrl+K to focus sidebar search
+onMounted(() => {
+  register(isMac ? 'cmd+k' : 'ctrl+k', () => {
+    // Focus the sidebar search input
+    if (sidebarSearchInput.value) {
+      sidebarSearchInput.value.focus()
+      sidebarSearchInput.value.select()
+    }
+  }, {
+    description: 'Focus sidebar search',
+    preventDefault: true
+  })
+})
 
 // Filter sidebar items based on search query
 const shouldShowItem = (label, description = '') => {
@@ -2257,49 +2398,82 @@ watch(sidebarSearchQuery, (newQuery) => {
   
   // Admin/Superadmin groups
   if (authStore.isAdmin || authStore.isSuperAdmin) {
-    if (query.includes('order') || query.includes('pending') || query.includes('progress') || query.includes('completed') || query.includes('disputed')) {
+    if (query.includes('order') || query.includes('pending') || query.includes('progress') || query.includes('completed') || query.includes('disputed') || query.includes('submitted') || query.includes('revision') || query.includes('cancelled') || query.includes('special')) {
       adminGroups.value.orders = true
     }
-    if (query.includes('user') || query.includes('client') || query.includes('writer') || query.includes('editor')) {
+    if (query.includes('user') || query.includes('client') || query.includes('writer') || query.includes('editor') || query.includes('support') || query.includes('admin')) {
       adminGroups.value.users = true
     }
-    if (query.includes('payment') || query.includes('refund') || query.includes('dispute') || query.includes('tip') || query.includes('fine') || query.includes('wallet') || query.includes('invoice') || query.includes('financial')) {
+    if (query.includes('payment') || query.includes('refund') || query.includes('dispute') || query.includes('tip') || query.includes('fine') || query.includes('wallet') || query.includes('invoice') || query.includes('financial') || query.includes('advance') || query.includes('transaction')) {
       adminGroups.value.payments = true
     }
-    if (query.includes('review') || query.includes('rating') || query.includes('moderation')) {
+    if (query.includes('review') || query.includes('rating') || query.includes('moderation') || query.includes('feedback')) {
       adminGroups.value.reviews = true
     }
-    if (query.includes('blog') || query.includes('seo') || query.includes('media') || query.includes('file') || query.includes('content')) {
+    if (query.includes('blog') || query.includes('seo') || query.includes('media') || query.includes('file') || query.includes('content') || query.includes('page') || query.includes('article')) {
       adminGroups.value.contentManagement = true
+    }
+    // Auto-expand analytics when searching
+    if (query.includes('analytics') || query.includes('report') || query.includes('statistic') || query.includes('metric') || query.includes('dashboard') || query.includes('chart') || query.includes('graph') || query.includes('pricing') || query.includes('discount') || query.includes('referral') || query.includes('loyalty') || query.includes('campaign') || query.includes('geographic')) {
+      // Analytics section doesn't have a collapsible group, but we can ensure it's visible
+    }
+    // Auto-expand system management when searching
+    if (query.includes('config') || query.includes('setting') || query.includes('system') || query.includes('health') || query.includes('log') || query.includes('notification') || query.includes('email') || query.includes('duplicate') || query.includes('screened') || query.includes('flagged') || query.includes('message')) {
+      // System management section visibility
+    }
+    // Auto-expand discipline when searching
+    if (query.includes('discipline') || query.includes('appeal') || query.includes('blacklist') || query.includes('warning')) {
+      // Discipline section visibility
+    }
+    // Auto-expand multi-tenant when searching
+    if (query.includes('tenant') || query.includes('website') || query.includes('domain') || query.includes('multi')) {
+      // Multi-tenant section visibility
     }
   }
   
   // Writer groups
   if (authStore.isWriter) {
-    if (query.includes('order') || query.includes('queue') || query.includes('workload') || query.includes('calendar')) {
+    if (query.includes('order') || query.includes('queue') || query.includes('workload') || query.includes('calendar') || query.includes('available') || query.includes('assigned') || query.includes('my order')) {
       writerOrdersOpen.value = true
     }
-    if (query.includes('payment') || query.includes('finance') || query.includes('tip') || query.includes('fine') || query.includes('advance')) {
+    if (query.includes('payment') || query.includes('finance') || query.includes('tip') || query.includes('fine') || query.includes('advance') || query.includes('request') || query.includes('wallet')) {
       writerFinancesOpen.value = true
     }
-    if (query.includes('review') || query.includes('performance') || query.includes('badge')) {
+    if (query.includes('review') || query.includes('performance') || query.includes('badge') || query.includes('rating') || query.includes('analytics')) {
       writerReviewsOpen.value = true
     }
-    if (query.includes('profile') || query.includes('account') || query.includes('pen name') || query.includes('resource')) {
+    if (query.includes('profile') || query.includes('account') || query.includes('pen name') || query.includes('resource') || query.includes('setting')) {
       writerUserManagementOpen.value = true
     }
-    if (query.includes('activity') || query.includes('communication') || query.includes('ticket') || query.includes('dashboard')) {
+    if (query.includes('activity') || query.includes('communication') || query.includes('ticket') || query.includes('dashboard') || query.includes('message')) {
       writerActivityOpen.value = true
     }
-    if (query.includes('discipline') || query.includes('appeal')) {
+    if (query.includes('discipline') || query.includes('appeal') || query.includes('status') || query.includes('history')) {
       writerDisciplineOpen.value = true
     }
   }
   
   // Client groups
   if (authStore.isClient) {
-    if (query.includes('order')) {
+    if (query.includes('order') || query.includes('pending') || query.includes('progress') || query.includes('completed') || query.includes('unpaid') || query.includes('paid') || query.includes('template')) {
       ordersOpen.value = true
+    }
+    if (query.includes('wallet') || query.includes('balance') || query.includes('transaction')) {
+      // Wallet section
+    }
+  }
+  
+  // Editor groups
+  if (authStore.isEditor) {
+    if (query.includes('task') || query.includes('available') || query.includes('performance')) {
+      // Editor sections
+    }
+  }
+  
+  // Support groups
+  if (authStore.isSupport) {
+    if (query.includes('ticket') || query.includes('support') || query.includes('help')) {
+      // Support sections
     }
   }
 })
@@ -2371,6 +2545,18 @@ const orderStatusCounts = ref({
   unpaid: 0,
   paid: 0,
   total: 0,
+  // Transition counts
+  can_transition_to_in_progress: 0,
+  can_transition_to_submitted: 0,
+  can_transition_to_completed: 0,
+  can_transition_to_cancelled: 0,
+  can_transition_to_on_hold: 0,
+  can_transition_to_available: 0,
+  can_transition_to_revision_requested: 0,
+  can_transition_to_disputed: 0,
+  can_transition_to_under_editing: 0,
+  can_transition_to_closed: 0,
+  can_transition_to_reopened: 0,
 })
 
 const loadWriterSidebarMetrics = async () => {
@@ -2422,6 +2608,7 @@ const loadOrderStatusCounts = async () => {
       const resp = await adminOrdersAPI.getDashboard().catch(() => null)
       if (resp?.data?.summary) {
         const summary = resp.data.summary
+        const transitionCounts = resp.data.transition_counts || {}
     orderStatusCounts.value = {
       pending: summary.pending_orders || 0,
       in_progress: summary.in_progress_orders || 0,
@@ -2436,6 +2623,18 @@ const loadOrderStatusCounts = async () => {
       unpaid: summary.unpaid_orders || 0,
       paid: summary.paid_orders || 0,
       total: summary.total_orders || 0,
+      // Add transition counts
+      can_transition_to_in_progress: summary.can_transition_to_in_progress || transitionCounts.can_transition_to_in_progress || 0,
+      can_transition_to_submitted: summary.can_transition_to_submitted || transitionCounts.can_transition_to_submitted || 0,
+      can_transition_to_completed: summary.can_transition_to_completed || transitionCounts.can_transition_to_completed || 0,
+      can_transition_to_cancelled: summary.can_transition_to_cancelled || transitionCounts.can_transition_to_cancelled || 0,
+      can_transition_to_on_hold: summary.can_transition_to_on_hold || transitionCounts.can_transition_to_on_hold || 0,
+      can_transition_to_available: summary.can_transition_to_available || transitionCounts.can_transition_to_available || 0,
+      can_transition_to_revision_requested: summary.can_transition_to_revision_requested || transitionCounts.can_transition_to_revision_requested || 0,
+      can_transition_to_disputed: summary.can_transition_to_disputed || transitionCounts.can_transition_to_disputed || 0,
+      can_transition_to_under_editing: summary.can_transition_to_under_editing || transitionCounts.can_transition_to_under_editing || 0,
+      can_transition_to_closed: summary.can_transition_to_closed || transitionCounts.can_transition_to_closed || 0,
+      can_transition_to_reopened: summary.can_transition_to_reopened || transitionCounts.can_transition_to_reopened || 0,
     }
         return
       }
@@ -2528,6 +2727,23 @@ const BACKOFF_MULTIPLIER = 2
 let orderCountsInterval = null
 
 const appName = import.meta.env.VITE_APP_NAME || 'Writing System'
+
+const hasTransitionCounts = computed(() => {
+  if (!authStore.isAdmin && !authStore.isSuperAdmin) return false
+  return (
+    orderStatusCounts.value.can_transition_to_in_progress > 0 ||
+    orderStatusCounts.value.can_transition_to_submitted > 0 ||
+    orderStatusCounts.value.can_transition_to_completed > 0 ||
+    orderStatusCounts.value.can_transition_to_on_hold > 0 ||
+    orderStatusCounts.value.can_transition_to_revision_requested > 0 ||
+    orderStatusCounts.value.can_transition_to_cancelled > 0 ||
+    orderStatusCounts.value.can_transition_to_available > 0 ||
+    orderStatusCounts.value.can_transition_to_disputed > 0 ||
+    orderStatusCounts.value.can_transition_to_under_editing > 0 ||
+    orderStatusCounts.value.can_transition_to_closed > 0 ||
+    orderStatusCounts.value.can_transition_to_reopened > 0
+  )
+})
 
 const userInitials = computed(() => {
   const user = authStore.user
@@ -2719,6 +2935,13 @@ const navigationItems = computed(() => {
       to: '/admin/users?role=writer',
       label: 'Writer Management',
       icon: '✍️',
+      roles: ['admin', 'superadmin'],
+    },
+    {
+      name: 'WriterResourcesManagement',
+      to: '/admin/writer-resources',
+      label: 'Writer Resources & Samples',
+      icon: '📚',
       roles: ['admin', 'superadmin'],
     },
     {

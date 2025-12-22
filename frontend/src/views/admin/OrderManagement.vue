@@ -20,23 +20,23 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Orders</p>
         <p class="text-3xl font-bold text-blue-900">{{ dashboardData?.summary?.total_orders || stats.total || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">In Progress</p>
         <p class="text-3xl font-bold text-yellow-900">{{ dashboardData?.summary?.in_progress_orders || stats.in_progress || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Completed</p>
         <p class="text-3xl font-bold text-green-900">{{ dashboardData?.summary?.completed_orders || stats.completed || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
+      <div class="card p-4 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200">
         <p class="text-sm font-medium text-orange-700 mb-1">Needs Assignment</p>
         <p class="text-3xl font-bold text-orange-900">{{ dashboardData?.summary?.needs_assignment || 0 }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
+      <div class="card p-4 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
         <p class="text-sm font-medium text-red-700 mb-1">Overdue</p>
         <p class="text-3xl font-bold text-red-900">{{ dashboardData?.summary?.overdue_orders || 0 }}</p>
       </div>
@@ -44,17 +44,35 @@
     
     <!-- Additional Stats Row -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">Total Revenue</p>
         <p class="text-3xl font-bold text-purple-900">${{ formatCurrency(dashboardData?.summary?.total_revenue || 0) }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+      <div class="card p-4 bg-linear-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
         <p class="text-sm font-medium text-indigo-700 mb-1">Avg Order Value</p>
         <p class="text-3xl font-bold text-indigo-900">${{ formatCurrency(dashboardData?.summary?.avg_order_value || 0) }}</p>
       </div>
-      <div class="card p-4 bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200">
+      <div class="card p-4 bg-linear-to-br from-pink-50 to-pink-100 border border-pink-200">
         <p class="text-sm font-medium text-pink-700 mb-1">Pending Orders</p>
         <p class="text-3xl font-bold text-pink-900">{{ dashboardData?.summary?.pending_orders || 0 }}</p>
+      </div>
+    </div>
+    
+    <!-- Order Transition Counts -->
+    <div v-if="dashboardData?.summary || dashboardData?.transition_counts" class="card p-6 bg-white rounded-lg shadow-sm">
+      <h2 class="text-xl font-bold text-gray-900 mb-4">Orders by Available Transitions</h2>
+      <p class="text-sm text-gray-600 mb-4">Count of orders that can transition to each status</p>
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div
+          v-for="transition in orderTransitions"
+          :key="transition.key"
+          class="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+        >
+          <div class="text-xs font-medium text-gray-600 mb-1">{{ transition.label }}</div>
+          <div class="text-2xl font-bold" :class="transition.colorClass">
+            {{ transition.count }}
+          </div>
+        </div>
       </div>
     </div>
     
@@ -380,103 +398,134 @@
 
     <!-- Filters -->
     <div class="card p-4">
-      <div class="grid grid-cols-1 md:grid-cols-8 gap-4">
-        <div>
-          <label class="block text-sm font-medium mb-1">Search</label>
-          <input
-            v-model="filters.search"
-            @input="debouncedSearch"
-            type="text"
-            placeholder="Order ID, topic, client..."
-            class="w-full border rounded px-3 py-2"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Website</label>
-          <select v-model="filters.website" @change="loadOrders" class="w-full border rounded px-3 py-2">
-            <option value="">All Websites</option>
-            <option v-for="website in uniqueWebsites" :key="website.id || website" :value="website.id || website">
-              {{ typeof website === 'string' ? website : (website.name || website.domain || website.id || 'N/A') }}
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Status</label>
-          <select v-model="filters.status" @change="loadOrders" class="w-full border rounded px-3 py-2">
-            <option value="">All Statuses</option>
-            <option value="created">Created</option>
-            <option value="pending">Pending</option>
-            <option value="unpaid">Unpaid</option>
-            <option value="available">Available</option>
-            <option value="in_progress">In Progress</option>
-            <option value="on_hold">On Hold</option>
-            <option value="submitted">Submitted</option>
-            <option value="under_editing">Under Editing</option>
-            <option value="completed">Completed</option>
-            <option value="disputed">Disputed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="archived">Archived</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Payment</label>
-          <select v-model="filters.is_paid" @change="loadOrders" class="w-full border rounded px-3 py-2">
-            <option value="">All</option>
-            <option value="true">Paid</option>
-            <option value="false">Unpaid</option>
-          </select>
-        </div>
-        <div class="flex items-center gap-2 pt-6">
-          <label class="flex items-center gap-2 cursor-pointer">
+      <div class="space-y-4">
+        <!-- First Row: Main Filters -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Search</label>
             <input
-              type="checkbox"
-              v-model="filters.include_deleted"
-              @change="loadOrders"
-              class="rounded"
+              v-model="filters.search"
+              @input="debouncedSearch"
+              type="text"
+              placeholder="Order ID"
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
             />
-            <span class="text-sm font-medium">Include Deleted</span>
-          </label>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Website</label>
+            <select 
+              v-model="filters.website" 
+              @change="loadOrders" 
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="">All Websites</option>
+              <option v-for="website in uniqueWebsites" :key="website.id || website" :value="website.id || website">
+                {{ typeof website === 'string' ? website : (website.name || website.domain || website.id || 'N/A') }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Status</label>
+            <select 
+              v-model="filters.status" 
+              @change="loadOrders" 
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="">All Statuses</option>
+              <option value="created">Created</option>
+              <option value="pending">Pending</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="available">Available</option>
+              <option value="in_progress">In Progress</option>
+              <option value="on_hold">On Hold</option>
+              <option value="submitted">Submitted</option>
+              <option value="under_editing">Under Editing</option>
+              <option value="completed">Completed</option>
+              <option value="disputed">Disputed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Payment</label>
+            <select 
+              v-model="filters.is_paid" 
+              @change="loadOrders" 
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option value="">All</option>
+              <option value="true">Paid</option>
+              <option value="false">Unpaid</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Include Archived</label>
+            <select 
+              v-model="filters.include_archived" 
+              @change="loadOrders" 
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+            >
+              <option :value="true">Yes (All Orders)</option>
+              <option :value="false">No (Exclude Archived)</option>
+            </select>
+          </div>
         </div>
-        <div class="flex items-center gap-2 pt-6">
-          <label class="flex items-center gap-2 cursor-pointer">
+
+        <!-- Second Row: Additional Filters and Actions -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Client</label>
             <input
-              type="checkbox"
-              v-model="filters.only_deleted"
-              @change="loadOrders"
-              class="rounded"
+              v-model="filters.client"
+              @input="debouncedSearch"
+              type="text"
+              placeholder="Client username"
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
             />
-            <span class="text-sm font-medium">Only Deleted</span>
-          </label>
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Include Archived</label>
-          <select v-model="filters.include_archived" @change="loadOrders" class="w-full border rounded px-3 py-2">
-            <option :value="true">Yes (All Orders)</option>
-            <option :value="false">No (Exclude Archived)</option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Client</label>
-          <input
-            v-model="filters.client"
-            @input="debouncedSearch"
-            type="text"
-            placeholder="Client username..."
-            class="w-full border rounded px-3 py-2"
-          />
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1">Writer</label>
-          <input
-            v-model="filters.writer"
-            @input="debouncedSearch"
-            type="text"
-            placeholder="Writer username..."
-            class="w-full border rounded px-3 py-2"
-          />
-        </div>
-        <div class="flex items-end">
-          <button @click="resetFilters" class="btn btn-secondary w-full">Reset</button>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Writer</label>
+            <input
+              v-model="filters.writer"
+              @input="debouncedSearch"
+              type="text"
+              placeholder="Writer username"
+              class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+          <div class="flex items-end">
+            <label class="flex items-center gap-2 cursor-pointer h-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <input
+                type="checkbox"
+                v-model="filters.include_deleted"
+                @change="loadOrders"
+                class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Include Deleted</span>
+            </label>
+          </div>
+          <div class="flex items-end">
+            <label class="flex items-center gap-2 cursor-pointer h-10 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              <input
+                type="checkbox"
+                v-model="filters.only_deleted"
+                @change="loadOrders"
+                class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              />
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Only Deleted</span>
+            </label>
+          </div>
+          <div class="flex items-end sm:col-span-2 lg:col-span-1">
+            <button 
+              @click="resetFilters" 
+              class="w-full px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Reset
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -680,7 +729,7 @@
       <div v-if="showAssignModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="closeAssignModal">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full my-auto max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
           <!-- Header -->
-          <div class="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
+          <div class="bg-linear-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-xl font-bold text-white">Assign Writer</h3>
@@ -769,7 +818,7 @@
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2">
-                      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
+                      <div class="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
                         {{ (writer.username || writer.email || 'W')[0].toUpperCase() }}
                       </div>
                       <div>
@@ -789,7 +838,7 @@
                       </span>
                     </div>
                   </div>
-                  <div v-if="assignForm.writerId === writer.id" class="flex-shrink-0">
+                  <div v-if="assignForm.writerId === writer.id" class="shrink-0">
                     <div class="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center">
                       <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -826,7 +875,7 @@
             <button
               @click="confirmAssign"
               :disabled="!assignForm.writerId || assigning"
-              class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+              class="flex-1 px-4 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
             >
               <svg v-if="assigning" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -928,8 +977,8 @@
 
   <!-- Confirmation Dialog - Only render when needed -->
     <ConfirmationDialog
-      v-if="confirm.show.value"
-      v-model:show="confirm.show"
+      v-if="confirmShow"
+      v-model:show="confirmShow"
       :title="unref(confirm.title)"
       :message="unref(confirm.message)"
       :details="unref(confirm.details)"
@@ -952,10 +1001,28 @@ import OrderActionModal from '@/components/order/OrderActionModal.vue'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import { getErrorMessage } from '@/utils/errorHandler'
+import { useToast } from '@/composables/useToast'
 
 const route = useRoute()
 
 const confirm = useConfirmDialog()
+const confirmShow = ref(false)
+const { success: showSuccessToast, error: showErrorToast } = useToast()
+
+// Keep local v-model ref in sync with composable state
+watch(
+  () => confirm.show.value,
+  (val) => {
+    confirmShow.value = val
+  },
+  { immediate: true }
+)
+
+watch(confirmShow, (val) => {
+  if (confirm.show.value !== val) {
+    confirm.show.value = val
+  }
+})
 
 const loading = ref(false)
 const orders = ref([])
@@ -1084,6 +1151,39 @@ const uniqueWebsites = computed(() => {
     }
   })
   return Array.from(websitesMap.values())
+})
+
+const orderTransitions = computed(() => {
+  const summary = dashboardData.value?.summary || {}
+  const transitionCounts = dashboardData.value?.transition_counts || {}
+  
+  // Map transition keys to readable labels and colors
+  const transitionMap = {
+    'can_transition_to_in_progress': { label: '→ In Progress', colorClass: 'text-blue-600' },
+    'can_transition_to_submitted': { label: '→ Submitted', colorClass: 'text-purple-600' },
+    'can_transition_to_completed': { label: '→ Completed', colorClass: 'text-green-600' },
+    'can_transition_to_cancelled': { label: '→ Cancelled', colorClass: 'text-red-600' },
+    'can_transition_to_on_hold': { label: '→ On Hold', colorClass: 'text-orange-600' },
+    'can_transition_to_available': { label: '→ Available', colorClass: 'text-indigo-600' },
+    'can_transition_to_revision_requested': { label: '→ Revision', colorClass: 'text-yellow-600' },
+    'can_transition_to_disputed': { label: '→ Disputed', colorClass: 'text-red-600' },
+    'can_transition_to_under_editing': { label: '→ Under Editing', colorClass: 'text-pink-600' },
+    'can_transition_to_closed': { label: '→ Closed', colorClass: 'text-gray-600' },
+    'can_transition_to_reopened': { label: '→ Reopened', colorClass: 'text-teal-600' },
+  }
+  
+  // Get counts from either summary or transition_counts
+  const allCounts = { ...summary, ...transitionCounts }
+  
+  return Object.entries(transitionMap)
+    .map(([key, config]) => ({
+      key,
+      label: config.label,
+      colorClass: config.colorClass,
+      count: allCounts[key] || 0
+    }))
+    .filter(item => item.count > 0) // Only show transitions with orders
+    .sort((a, b) => b.count - a.count) // Sort by count descending
 })
 
 const debouncedSearch = () => {
@@ -1355,10 +1455,14 @@ const confirmAssign = async () => {
   try {
     if (isReassign) {
       await ordersAPI.reassignWriter(currentOrderForAction.value.id, assignForm.value.writerId, assignForm.value.reason)
-      showMessage(`Order #${currentOrderForAction.value.id} has been reassigned to ${writerName} successfully!`, true)
+      const successMsg = `Order #${currentOrderForAction.value.id} has been reassigned to ${writerName} successfully!`
+      showMessage(successMsg, true)
+      showSuccessToast(successMsg)
     } else {
       await ordersAPI.assignWriter(currentOrderForAction.value.id, assignForm.value.writerId, assignForm.value.reason)
-      showMessage(`Order #${currentOrderForAction.value.id} has been assigned to ${writerName} successfully! The writer has been notified.`, true)
+      const successMsg = `Order #${currentOrderForAction.value.id} has been assigned to ${writerName} successfully! The writer has been notified.`
+      showMessage(successMsg, true)
+      showSuccessToast(successMsg)
     }
     closeAssignModal()
     await loadOrders()
@@ -1369,6 +1473,7 @@ const confirmAssign = async () => {
   } catch (error) {
     const errorMsg = getErrorMessage(error, 'Failed to assign writer', `Unable to ${isReassign ? 'reassign' : 'assign'} writer for Order #${currentOrderForAction.value.id}. Please try again or contact support if the issue persists.`)
     showMessage(errorMsg, false)
+    showErrorToast(errorMsg)
   } finally {
     assigning.value = false
   }

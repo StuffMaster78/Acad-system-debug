@@ -1,17 +1,20 @@
 <template>
   <div class="order-messages-tabbed">
     <!-- Header with Order Context -->
-    <div class="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+    <div class="mb-6 p-5 bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-700 shadow-sm">
       <div class="flex items-center justify-between">
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Order Messages</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+        <div class="flex-1">
+          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Order Messages</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
             Order #{{ orderId }} • {{ orderTopic || 'N/A' }}
+          </p>
+          <p v-if="authStore.isWriter" class="text-xs text-blue-700 dark:text-blue-300 font-medium">
+            💬 You can message the client, admin, support, or editor about this order
           </p>
         </div>
         <button
           @click="openNewMessageModal"
-          class="px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+          class="ml-4 px-5 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 shrink-0"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -85,7 +88,7 @@
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold flex-shrink-0">
+                <div class="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold shrink-0">
                   {{ getThreadInitials(thread) }}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -101,7 +104,7 @@
                 {{ thread.last_message.message || '📎 File attachment' }}
               </p>
             </div>
-            <div class="flex flex-col items-end gap-2 flex-shrink-0">
+            <div class="flex flex-col items-end gap-2 shrink-0">
               <span class="text-xs text-gray-500 dark:text-gray-400">
                 {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
               </span>
@@ -145,6 +148,9 @@ import { useAuthStore } from '@/stores/auth'
 import messagesStore from '@/stores/messages'
 import OrderNewMessageModal from '@/components/order/OrderNewMessageModal.vue'
 import ThreadViewModal from '@/components/messages/ThreadViewModal.vue'
+import { useToast } from '@/composables/useToast'
+
+const { success: showSuccess, error: showError } = useToast()
 
 const props = defineProps({
   orderId: {
@@ -219,36 +225,90 @@ const WriterIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="
 const EditorIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>' }
 const SupportIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>' }
 
+// Helper: derive the "other participant" role for this thread relative to the current user.
+// We prioritize the recipient_role from the last message to determine which tab to show it under.
+// This ensures threads appear in only ONE tab based on who the message was sent TO.
+const getOtherParticipantRoles = (thread) => {
+  const roles = new Set()
+  const viewerRole = currentUser?.role || null
+
+  // PRIORITY 1: Use recipient_role from last message (most reliable for tab filtering)
+  // This tells us who the message was sent TO, which determines the tab
+  const last = thread.last_message
+  if (last && last.recipient_role) {
+    // The recipient_role is the definitive answer for which tab this thread belongs to
+    // If admin sends to support, recipient_role is 'support' -> appears in Support tab only
+    // If admin sends to client, recipient_role is 'client' -> appears in Client tab only
+    // IMPORTANT: We ONLY use recipient_role and ignore participant roles to prevent
+    // threads from appearing in multiple tabs
+    const recipientRole = last.recipient_role
+    // Normalize role (e.g., 'superadmin' -> 'admin' for tab matching)
+    if (recipientRole === 'superadmin') {
+      roles.add('admin')
+    } else {
+      roles.add(recipientRole)
+    }
+    // Return early with just the recipient role to avoid matching multiple tabs
+    return Array.from(roles)
+  }
+
+  // PRIORITY 2: Fallback to participant roles if no last message
+  // But only if we're the viewer, we want to know who the OTHER participants are
+  const participants = thread.participants || []
+  const otherParticipants = participants.filter(p => {
+    const participantId = typeof p === 'object' ? p.id : p
+    return participantId !== currentUser?.id
+  })
+
+  // Extract roles from other participants (fallback only)
+  otherParticipants.forEach(p => {
+    const role = typeof p === 'object' ? p.role : null
+    if (role) roles.add(role)
+  })
+
+  return Array.from(roles)
+}
+
 const filteredThreads = computed(() => {
   const activeTabData = recipientTabs.value.find(t => t.id === activeTab.value)
   if (!activeTabData) return []
 
   // Filter threads that are related to this order
-  const orderThreads = threads.value.filter(thread => 
-    thread.order === props.orderId || thread.order_id === props.orderId
-  )
+  const orderThreads = threads.value.filter(thread => {
+    const threadOrderId = thread.order || thread.order_id
+    return threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
+  })
 
+  // Filter threads based on the recipient role of the last message
+  // This ensures threads appear under the correct tab (only ONE tab)
   return orderThreads.filter(thread => {
-    // Get other participants (excluding current user)
-    const otherParticipants = thread.participants?.filter(p => {
-      const participantId = typeof p === 'object' ? p.id : p
-      return participantId !== currentUser?.id
-    }) || []
-
-    if (otherParticipants.length === 0) return false
-
-    // Check if any participant matches the active tab's roles
-    return otherParticipants.some(participant => {
-      let participantRole = null
+    const otherRoles = getOtherParticipantRoles(thread)
+    if (!otherRoles.length) {
+      // If no roles found, check if thread has participants with roles
+      const participants = thread.participants || []
+      const otherParticipants = participants.filter(p => {
+        const participantId = typeof p === 'object' ? p.id : p
+        return participantId !== currentUser?.id
+      })
       
-      if (typeof participant === 'object') {
-        participantRole = participant.role || null
+      // Extract roles from participants
+      const participantRoles = otherParticipants
+        .map(p => typeof p === 'object' ? p.role : null)
+        .filter(Boolean)
+      
+      if (participantRoles.length > 0) {
+        // Only match if ONE of the participant roles matches the active tab
+        return participantRoles.some(role => activeTabData.roles.includes(role))
       }
       
-      return participantRole && activeTabData.roles.includes(participantRole)
-    })
+      return false
+    }
+    
+    // Check if the recipient role (from last message) matches the active tab
+    // This ensures threads appear in only ONE tab based on who the message was sent TO
+    return otherRoles.some(role => activeTabData.roles.includes(role))
   }).sort((a, b) => {
-    // Sort by last message time or updated time
+    // Sort by last message time or updated time (newest first)
     const aTime = a.last_message?.sent_at || a.updated_at || a.created_at
     const bTime = b.last_message?.sent_at || b.updated_at || b.created_at
     return new Date(bTime) - new Date(aTime)
@@ -338,15 +398,44 @@ const getThreadInitials = (thread) => {
 
 const formatTime = (dateString) => {
   if (!dateString) return ''
-  const date = new Date(dateString)
-  const now = new Date()
-  const diff = now - date
-  const minutes = Math.floor(diff / 60000)
   
-  if (minutes < 1) return 'Just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`
-  return date.toLocaleDateString()
+  try {
+    const date = new Date(dateString)
+    const now = new Date()
+    
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return 'Invalid date'
+    }
+    
+    const diff = now - date
+    const minutes = Math.floor(diff / 60000)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+    
+    // Show relative time for recent messages
+    if (minutes < 1) return 'Just now'
+    if (minutes < 60) return `${minutes}m ago`
+    if (hours < 24) return `${hours}h ago`
+    if (days < 7) return `${days}d ago`
+    
+    // For older messages, show formatted date and time
+    const isToday = date.toDateString() === now.toDateString()
+    const isYesterday = date.toDateString() === new Date(now.getTime() - 86400000).toDateString()
+    
+    if (isToday) {
+      return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    } else if (isYesterday) {
+      return `Yesterday ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
+    } else if (days < 365) {
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true })
+    } else {
+      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+    }
+  } catch (error) {
+    console.error('Error formatting time:', error, dateString)
+    return 'Invalid date'
+  }
 }
 
 const openNewMessageModal = () => {
@@ -363,17 +452,27 @@ const closeThread = () => {
   selectedThreadId.value = null
 }
 
-const handleMessageSent = () => {
-  showNewMessageModal.value = false
-  // Invalidate cache and reload
-  messagesStore.invalidateThreadsCache()
-  loadThreads(true) // Force refresh
+const handleMessageSent = (success = true) => {
+  if (success) {
+    showSuccess('Message sent successfully!')
+    showNewMessageModal.value = false
+    // Invalidate cache and reload
+    messagesStore.invalidateThreadsCache()
+    loadThreads(true) // Force refresh
+  } else {
+    showError('Failed to send message. Please try again.')
+  }
 }
 
-const handleThreadUpdated = () => {
-  // Invalidate cache and reload
-  messagesStore.invalidateThreadsCache()
-  loadThreads(true) // Force refresh
+const handleThreadUpdated = (success = true) => {
+  if (success) {
+    showSuccess('Message sent successfully!')
+    // Invalidate cache and reload
+    messagesStore.invalidateThreadsCache()
+    loadThreads(true) // Force refresh
+  } else {
+    showError('Failed to send message. Please try again.')
+  }
 }
 
 watch(activeTab, () => {
@@ -390,15 +489,13 @@ watch(() => props.orderId, () => {
 onMounted(async () => {
   if (props.orderId) {
     await loadThreads()
-    // Use shared refresh system (only one active at a time)
-    messagesStore.startSharedRefresh(() => {
-      loadThreads()
-    }, 30000)
+    // Prefer SSE-based updates over polling to reduce HTTP chatter
+    messagesStore.connectRealtime()
   }
 })
 
 onUnmounted(() => {
-  // Cleanup handled by shared store
+  // Keep SSE connection alive for other consumers; no explicit disconnect here.
 })
 </script>
 

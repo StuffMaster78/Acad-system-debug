@@ -230,10 +230,15 @@ class MessageAttachmentSerializer(serializers.Serializer):
             pass
         return None
     
+from django.contrib.auth import get_user_model
+
+
 class CommunicationMessageSerializer(serializers.ModelSerializer):
     sender = serializers.SerializerMethodField()
     sender_role = serializers.CharField(read_only=True)
     recipient = serializers.SerializerMethodField()
+    # Explicit recipient role for frontend routing/tab logic (null-safe)
+    recipient_role = serializers.SerializerMethodField()
     sender_display_name = serializers.SerializerMethodField()
     recipient_display_name = serializers.SerializerMethodField()
     reply_to_id = serializers.PrimaryKeyRelatedField(
@@ -257,7 +262,7 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
     is_link_approved = serializers.BooleanField(read_only=True)
     link_domain = serializers.CharField(read_only=True)
     is_read = serializers.SerializerMethodField()
-    sent_at = serializers.DateTimeField(format="%Y-%m-%d %H:%M:%S", read_only=True)
+    sent_at = serializers.DateTimeField(read_only=True)  # ISO format for timezone-aware display
     flagged_message = serializers.SerializerMethodField()
     read_receipts = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
@@ -267,7 +272,7 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
     class Meta:
         model = CommunicationMessage
         fields = [
-            "id", "thread", "sender", "sender_role", "recipient", "message",
+            "id", "thread", "sender", "sender_role", "recipient", "recipient_role", "message",
             "sender_display_name", "recipient_display_name",
             "reply_to_id", "message_type", "link_url", "link_domain",
             "is_flagged", "is_hidden", "contains_link", "is_link_approved",
@@ -341,6 +346,9 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
     
     def get_recipient(self, obj):
         """Return anonymized recipient info based on viewer's role."""
+        # Guard against any unexpected null recipients
+        if not getattr(obj, "recipient", None):
+          return None
         request = self.context.get("request")
         if not request or not request.user:
             return SimpleUserSerializer(obj.recipient).data
@@ -397,6 +405,11 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
         
         # Default: return full info
         return SimpleUserSerializer(obj.recipient).data
+    
+    def get_recipient_role(self, obj):
+        """Return the raw recipient role for routing/tab logic."""
+        recipient = getattr(obj, "recipient", None)
+        return getattr(recipient, "role", None) if recipient else None
     
     def get_sender_display_name(self, obj):
         """Get display name for sender (anonymized if needed)."""
@@ -503,13 +516,16 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
         ]
 
 
+User = get_user_model()
+
+
 class CreateCommunicationMessageSerializer(serializers.Serializer):
     """"
     Serializer for creating a new communication message.
     This is used for sending messages in a thread.
     """
-    recipient = serializers.IntegerField(
-        required=True,
+    recipient = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.all(),
         help_text="Recipient user ID - must be selected by the sender"
     )
     message = serializers.CharField(required=True)
@@ -532,22 +548,12 @@ class CreateCommunicationMessageSerializer(serializers.Serializer):
 
 
     def validate_recipient(self, value):
-        """Validate recipient exists and is not the sender."""
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        
-        try:
-            recipient = User.objects.get(id=value)
-        except User.DoesNotExist:
-            raise serializers.ValidationError("Recipient user does not exist.")
-        
-        # Get sender from context
+        """Validate recipient is not the sender."""
+        # `value` is already a User instance from PrimaryKeyRelatedField
         request = self.context.get('request')
-        if request and request.user:
-            if recipient.id == request.user.id:
-                raise serializers.ValidationError("You cannot send a message to yourself.")
-        
-        return recipient
+        if request and request.user and value.id == request.user.id:
+            raise serializers.ValidationError("You cannot send a message to yourself.")
+        return value
     
     def validate_reply_to(self, value):
         """Validate reply_to message exists if provided."""
@@ -650,10 +656,27 @@ class ScreenedWordSerializer(serializers.ModelSerializer):
     """
     Serializer for admin-configured screened (banned) words.
     """
+    word = serializers.CharField(
+        max_length=100,
+        required=True,
+        allow_blank=False,
+        trim_whitespace=True
+    )
+    
     class Meta:
         model = ScreenedWord
         fields = ["id", "word"]
         read_only_fields = ["id"]
+    
+    def validate_word(self, value):
+        """Validate and normalize the word."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Word cannot be empty.")
+        # Normalize to lowercase and strip whitespace
+        word = value.strip().lower()
+        if len(word) > 100:
+            raise serializers.ValidationError("Word cannot exceed 100 characters.")
+        return word
 
 class FlaggedMessageSerializer(serializers.ModelSerializer):
     """
@@ -671,30 +694,29 @@ class FlaggedMessageSerializer(serializers.ModelSerializer):
     reviewed_by = serializers.CharField(
         source="reviewed_by.username", read_only=True
     )
-    category_display = serializers.CharField(
-        source="get_category_display", read_only=True
-    )
-
     class Meta:
         model = FlaggedMessage
         fields = [
-            "id", "order_id", "sender_username", "sanitized_message",
-            "flagged_reason", "category", "category_display",
-            "flagged_at", "admin_comment", "reviewed_by",
-            "reviewed_at", "is_unblocked"
+            "id",
+            "order_id",
+            "sender_username",
+            "sanitized_message",
+            "flagged_reason",
+            "flagged_at",
+            "admin_comment",
+            "reviewed_by",
+            "reviewed_at",
+            "is_unblocked",
         ]
         read_only_fields = [
-            "id", "order_id", "sender_username", "sanitized_message",
-            "flagged_at", "reviewed_by", "reviewed_at", "category_display"
+            "id",
+            "order_id",
+            "sender_username",
+            "sanitized_message",
+            "flagged_at",
+            "reviewed_by",
+            "reviewed_at",
         ]
-    def validate(self, attrs):
-        """
-        Ensure that the category is valid and not empty.
-        """
-        if not attrs.get("category"):
-            raise serializers.ValidationError("Category cannot be empty.")
-        return attrs
-    
 
 class AdminEditFlaggedMessageSerializer(serializers.ModelSerializer):
     """

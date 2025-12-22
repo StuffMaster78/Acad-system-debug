@@ -330,17 +330,19 @@ const saveWord = async () => {
   formError.value = ''
 
   try {
+    const wordData = {
+      word: wordForm.value.word.trim().toLowerCase()
+    }
+    
     if (showEditModal.value && editingWord.value) {
       // Update existing word
-      await adminManagementAPI.patch(`/configs/screened-words/${editingWord.value.id}/`, {
-        word: wordForm.value.word.trim().toLowerCase()
-      })
+      const response = await adminManagementAPI.patch(`/configs/screened-words/${editingWord.value.id}/`, wordData)
+      console.log('Update response:', response)
       showSuccess('Screened word updated successfully')
     } else {
       // Create new word
-      await adminManagementAPI.post('/configs/screened-words/', {
-        word: wordForm.value.word.trim().toLowerCase()
-      })
+      const response = await adminManagementAPI.post('/configs/screened-words/', wordData)
+      console.log('Create response:', response)
       showSuccess('Screened word added successfully')
     }
     
@@ -348,9 +350,30 @@ const saveWord = async () => {
     await loadScreenedWords()
     await loadStats()
   } catch (error) {
-    const errorMsg = error.response?.data?.word?.[0] || error.response?.data?.detail || error.message
+    console.error('Error saving word:', error)
+    console.error('Error response:', error.response)
+    
+    // Better error handling
+    let errorMsg = 'Failed to save word'
+    if (error.response?.data) {
+      if (error.response.data.word) {
+        // Field-specific error
+        errorMsg = Array.isArray(error.response.data.word) 
+          ? error.response.data.word[0] 
+          : error.response.data.word
+      } else if (error.response.data.detail) {
+        errorMsg = error.response.data.detail
+      } else if (error.response.data.error) {
+        errorMsg = error.response.data.error
+      } else if (typeof error.response.data === 'string') {
+        errorMsg = error.response.data
+      }
+    } else if (error.message) {
+      errorMsg = error.message
+    }
+    
     formError.value = errorMsg
-    showError('Failed to save word: ' + errorMsg)
+    showError(errorMsg)
   } finally {
     saving.value = false
   }
