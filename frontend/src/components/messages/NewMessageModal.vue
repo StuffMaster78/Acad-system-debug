@@ -193,6 +193,10 @@ const sending = ref(false)
 const error = ref('')
 const loadingRecipients = ref(false)
 
+// Cache recipients by role to avoid repeated API calls
+const recipientsCache = ref(new Map())
+const cacheExpiry = 5 * 60 * 1000 // 5 minutes
+
 const recipientTabs = computed(() => {
   const role = currentUser?.role
   const tabs = []
@@ -246,45 +250,57 @@ const canSend = computed(() => {
 const loadRecipients = async () => {
   if (!selectedRecipientType.value) return
 
+  // Map tab IDs to roles
+  const roleMap = {
+    'admin': ['admin', 'superadmin'],
+    'support': ['support'],
+    'writer': ['writer'],
+    'editor': ['editor'],
+    'client': ['client']
+  }
+
+  const roles = roleMap[selectedRecipientType.value] || []
+  if (roles.length === 0) return
+
+  // Check cache first
+  const cacheKey = selectedRecipientType.value
+  const cached = recipientsCache.value.get(cacheKey)
+  if (cached && (Date.now() - cached.timestamp) < cacheExpiry) {
+    availableRecipients.value = cached.data
+    // Auto-select if only one recipient
+    if (cached.data.length === 1) {
+      selectedRecipient.value = cached.data[0]
+    }
+    return
+  }
+
   loadingRecipients.value = true
   error.value = ''
   
   try {
-    const activeTab = recipientTabs.value.find(t => t.id === selectedRecipientType.value)
-    if (!activeTab) return
+    // Fetch users with role filter if API supports it, otherwise filter on frontend
+    const response = await usersAPI.list({
+      is_active: true,
+      role: roles[0] // Try to filter by first role if API supports it
+    })
+    
+    const allUsers = response.data.results || response.data || []
+    // Filter by roles on the frontend (in case API doesn't filter properly)
+    const filtered = allUsers.filter(user =>
+      roles.includes(user.role)
+    )
+    
+    // Cache the results
+    recipientsCache.value.set(cacheKey, {
+      data: filtered,
+      timestamp: Date.now()
+    })
+    
+    availableRecipients.value = filtered
 
-    // Map tab IDs to roles
-    const roleMap = {
-      'admin': ['admin', 'superadmin'],
-      'support': ['support'],
-      'writer': ['writer'],
-      'editor': ['editor'],
-      'client': ['client']
-    }
-
-    const roles = roleMap[selectedRecipientType.value] || []
-    if (roles.length === 0) return
-
-    // Fetch users - filter by role on frontend since API might not support role__in
-    try {
-      const response = await usersAPI.list({
-        is_active: true
-      })
-      
-      const allUsers = response.data.results || response.data || []
-      // Filter by roles on the frontend
-      const filtered = allUsers.filter(user =>
-        roles.includes(user.role)
-      )
-      availableRecipients.value = filtered
-
-      // If exactly one recipient, auto-select to streamline the flow
-      if (filtered.length === 1) {
-        selectedRecipient.value = filtered[0]
-      }
-    } catch (err) {
-      console.error('Failed to load recipients:', err)
-      error.value = 'Failed to load recipients. Please try again.'
+    // If exactly one recipient, auto-select to streamline the flow
+    if (filtered.length === 1) {
+      selectedRecipient.value = filtered[0]
     }
   } catch (err) {
     console.error('Failed to load recipients:', err)

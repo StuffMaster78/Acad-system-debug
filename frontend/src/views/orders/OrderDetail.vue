@@ -280,6 +280,64 @@
               <span>Revision request submitted. The writer is working on your changes.</span>
             </div>
           </div>
+
+          <!-- Revision Instructions Section -->
+          <div v-if="order.status === 'revision_requested'" class="mt-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-300 rounded-xl p-6 shadow-lg">
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white text-xl font-bold">
+                  📝
+                </div>
+                <div>
+                  <h3 class="text-lg font-bold text-gray-900">Revision Instructions</h3>
+                  <p class="text-sm text-gray-600 mt-1">Provide detailed instructions to guide the writer on how to revise the order/paper</p>
+                </div>
+              </div>
+              <button
+                v-if="authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
+                @click="showRevisionInstructionsModal = true"
+                class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold flex items-center gap-2"
+              >
+                <span>{{ order.revision_instructions ? '✏️ Edit' : '➕ Add' }}</span>
+                <span>Instructions</span>
+              </button>
+            </div>
+
+            <div v-if="order.revision_instructions" class="bg-white rounded-lg p-4 border border-orange-200">
+              <div class="prose max-w-none">
+                <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">{{ order.revision_instructions }}</p>
+              </div>
+            </div>
+            <div v-else class="bg-white/50 rounded-lg p-4 border-2 border-dashed border-orange-300 text-center">
+              <p class="text-gray-600 text-sm">
+                <span v-if="authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport">
+                  No revision instructions provided yet. Click "Add Instructions" above to provide guidance for the writer.
+                </span>
+                <span v-else>
+                  Waiting for revision instructions from the client or support team.
+                </span>
+              </p>
+            </div>
+
+            <!-- Display existing revision request details if available -->
+            <div v-if="order.revision_request" class="mt-4 space-y-3">
+              <div v-if="order.revision_request.title || order.revision_request.description" class="bg-white rounded-lg p-4 border border-orange-200">
+                <h4 class="font-semibold text-gray-900 mb-2">Revision Request Details</h4>
+                <p v-if="order.revision_request.title" class="font-medium text-gray-800 mb-2">{{ order.revision_request.title }}</p>
+                <p v-if="order.revision_request.description" class="text-sm text-gray-700 whitespace-pre-wrap">{{ order.revision_request.description }}</p>
+              </div>
+              <div v-if="order.revision_request.changes_required && order.revision_request.changes_required.length > 0" class="bg-white rounded-lg p-4 border border-orange-200">
+                <h4 class="font-semibold text-gray-900 mb-2">Specific Changes Required</h4>
+                <ul class="list-disc list-inside space-y-1 text-sm text-gray-700">
+                  <li v-for="(change, idx) in order.revision_request.changes_required" :key="idx">
+                    <span v-if="change.section" class="font-medium">{{ change.section }}:</span>
+                    <span v-if="change.issue">{{ change.issue }}</span>
+                    <span v-if="change.request" class="text-gray-600"> - {{ change.request }}</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div class="card p-6">
@@ -2910,6 +2968,49 @@
       </div>
     </Modal>
     
+    <!-- Revision Instructions Modal -->
+    <Modal
+      v-model:visible="showRevisionInstructionsModal"
+      title="Revision Instructions"
+      size="lg"
+    >
+      <div class="space-y-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+          <p><strong>Note:</strong> Provide clear, detailed instructions to guide the writer on how to revise the order. Be specific about what needs to be changed, added, or improved.</p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Revision Instructions <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            v-model="revisionInstructions"
+            rows="10"
+            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            placeholder="Paste or write detailed revision instructions here. For example:&#10;&#10;1. Add more citations in the introduction section&#10;2. Expand the methodology section with more details&#10;3. Fix formatting issues in tables&#10;4. Add a conclusion paragraph summarizing key findings..."
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">You can use numbered lists, bullet points, or paragraphs. Be as specific as possible.</p>
+        </div>
+        
+        <div class="flex gap-2 justify-end">
+          <button
+            @click="showRevisionInstructionsModal = false"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            :disabled="savingRevisionInstructions"
+          >
+            Cancel
+          </button>
+          <button
+            @click="saveRevisionInstructions"
+            :disabled="savingRevisionInstructions || !revisionInstructions.trim()"
+            class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+          >
+            {{ savingRevisionInstructions ? 'Saving...' : 'Save Instructions' }}
+          </button>
+        </div>
+      </div>
+    </Modal>
+
     <!-- Revision Request Modal -->
     <Modal
       v-model:visible="showRevisionModal"
@@ -3072,6 +3173,125 @@
           class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {{ requestingOrder ? 'Submitting...' : 'Submit Request' }}
+        </button>
+      </template>
+    </Modal>
+
+    <!-- Submit Order Checklist Modal -->
+    <Modal
+      v-model:visible="showSubmitChecklist"
+      title="Pre-Submission Checklist"
+      size="lg"
+    >
+      <div class="space-y-6">
+        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+          <p class="text-sm text-blue-800">
+            <strong>Before submitting:</strong> Please verify that you've completed all the items below. This ensures quality and helps avoid revision requests.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Word Count Check -->
+          <label class="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                 :class="submitChecklist.wordCountMet ? 'border-green-500 bg-green-50' : 'border-gray-200'">
+            <input
+              type="checkbox"
+              v-model="submitChecklist.wordCountMet"
+              class="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+            />
+            <div class="flex-1">
+              <p class="font-semibold text-gray-900">Word Count Met</p>
+              <p class="text-sm text-gray-600 mt-1">I have verified that the paper meets the required word count/page count specified in the order.</p>
+            </div>
+          </label>
+
+          <!-- Revised Check -->
+          <label class="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                 :class="submitChecklist.revised ? 'border-green-500 bg-green-50' : 'border-gray-200'">
+            <input
+              type="checkbox"
+              v-model="submitChecklist.revised"
+              class="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+            />
+            <div class="flex-1">
+              <p class="font-semibold text-gray-900">Revised</p>
+              <p class="text-sm text-gray-600 mt-1">I have reviewed and revised the paper to ensure it meets all requirements and quality standards.</p>
+            </div>
+          </label>
+
+          <!-- Edited Check -->
+          <label class="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                 :class="submitChecklist.edited ? 'border-green-500 bg-green-50' : 'border-gray-200'">
+            <input
+              type="checkbox"
+              v-model="submitChecklist.edited"
+              class="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+            />
+            <div class="flex-1">
+              <p class="font-semibold text-gray-900">Edited</p>
+              <p class="text-sm text-gray-600 mt-1">I have edited the paper for grammar, spelling, punctuation, and style consistency.</p>
+            </div>
+          </label>
+
+          <!-- Requirements Met Check -->
+          <label class="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                 :class="submitChecklist.requirementsMet ? 'border-green-500 bg-green-50' : 'border-gray-200'">
+            <input
+              type="checkbox"
+              v-model="submitChecklist.requirementsMet"
+              class="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded focus:ring-green-500"
+            />
+            <div class="flex-1">
+              <p class="font-semibold text-gray-900">All Requirements Met</p>
+              <p class="text-sm text-gray-600 mt-1">I have reviewed the order instructions and confirmed that all requirements, guidelines, and specifications have been met.</p>
+            </div>
+          </label>
+
+          <!-- Final File Selected Check -->
+          <label class="flex items-start gap-3 p-4 border-2 rounded-lg"
+                 :class="submitChecklist.finalFileSelected ? 'border-green-500 bg-green-50' : 'border-red-200 bg-red-50'">
+            <input
+              type="checkbox"
+              v-model="submitChecklist.finalFileSelected"
+              disabled
+              class="mt-1 w-5 h-5 text-green-600 border-gray-300 rounded"
+            />
+            <div class="flex-1">
+              <p class="font-semibold" :class="submitChecklist.finalFileSelected ? 'text-gray-900' : 'text-red-900'">
+                Final File Marked
+              </p>
+              <p class="text-sm mt-1" :class="submitChecklist.finalFileSelected ? 'text-gray-600' : 'text-red-700'">
+                <span v-if="submitChecklist.finalFileSelected">
+                  ✓ A file has been marked as the final paper.
+                </span>
+                <span v-else>
+                  ⚠️ You must upload and mark a file as "Final Paper" before submitting. Go to the Files tab to upload and mark your final file.
+                </span>
+              </p>
+            </div>
+          </label>
+        </div>
+
+        <div v-if="!canProceedWithSubmission" class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+          <p class="text-sm text-yellow-800">
+            Please complete all checklist items above before proceeding with submission.
+          </p>
+        </div>
+      </div>
+
+      <template #footer>
+        <button
+          @click="closeSubmitChecklist"
+          class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          @click="submitOrder"
+          :disabled="!canProceedWithSubmission || processingAction"
+          class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {{ processingAction ? 'Submitting...' : 'Submit Order' }}
         </button>
       </template>
     </Modal>
@@ -3809,6 +4029,9 @@ const paymentInstallments = computed(() => paymentSummary.value?.installments ||
 const hasReview = ref(false)
 const orderReview = ref(null)
 const showRevisionModal = ref(false)
+const showRevisionInstructionsModal = ref(false)
+const revisionInstructions = ref('')
+const savingRevisionInstructions = ref(false)
 const showAssignModal = ref(false)
 const showReassignModal = ref(false)
 const showEditInstructions = ref(false)
@@ -3927,15 +4150,64 @@ const handleProgressError = (error) => {
 }
 
 // Order action functions
+// Pre-submission checklist state
+const showSubmitChecklist = ref(false)
+const submitChecklist = ref({
+  wordCountMet: false,
+  revised: false,
+  edited: false,
+  requirementsMet: false,
+  finalFileSelected: false
+})
+
+const openSubmitChecklist = () => {
+  if (!order.value) return
+  
+  // Pre-populate checklist based on current state
+  submitChecklist.value.finalFileSelected = hasFinalPaperFile.value
+  
+  // Reset other checks (user must confirm)
+  submitChecklist.value.wordCountMet = false
+  submitChecklist.value.revised = false
+  submitChecklist.value.edited = false
+  submitChecklist.value.requirementsMet = false
+  
+  showSubmitChecklist.value = true
+}
+
+const closeSubmitChecklist = () => {
+  showSubmitChecklist.value = false
+}
+
+const canProceedWithSubmission = computed(() => {
+  return submitChecklist.value.wordCountMet &&
+         submitChecklist.value.revised &&
+         submitChecklist.value.edited &&
+         submitChecklist.value.requirementsMet &&
+         submitChecklist.value.finalFileSelected
+})
+
 const submitOrder = async () => {
   if (!order.value) return
   
-  // Confirm submission
+  // If checklist not shown, show it first
+  if (!showSubmitChecklist.value) {
+    openSubmitChecklist()
+    return
+  }
+  
+  // Validate checklist
+  if (!canProceedWithSubmission.value) {
+    showErrorToast('Please complete all checklist items before submitting.')
+    return
+  }
+  
+  // Final confirmation
   const confirmed = await confirm.showDialog(
-    `Are you sure you want to submit Order #${order.value.id}?`,
-    'Submit Order for Review',
+    `Submit Order #${order.value.id} for review?`,
+    'Final Confirmation',
     {
-      details: `Once submitted, the order "${order.value.topic || 'Untitled'}" will be sent to the client for review. You won't be able to make further changes until the client responds.`,
+      details: `Once submitted, "${order.value.topic || 'Untitled'}" will be sent to the client for review. You won't be able to make further changes until the client responds.`,
       variant: 'default',
       icon: '📤',
       confirmText: 'Submit Order',
@@ -3948,6 +4220,7 @@ const submitOrder = async () => {
   processingAction.value = true
   actionError.value = ''
   actionSuccess.value = ''
+  showSubmitChecklist.value = false
   
   try {
     // Use unified transition endpoint
@@ -4743,6 +5016,35 @@ const requestRevision = async () => {
     requestingRevision.value = false
   }
 }
+
+const saveRevisionInstructions = async () => {
+  if (!revisionInstructions.value.trim()) {
+    showErrorToast('Please provide revision instructions')
+    return
+  }
+  
+  savingRevisionInstructions.value = true
+  try {
+    await ordersAPI.patch(order.value.id, {
+      revision_instructions: revisionInstructions.value.trim()
+    })
+    showSuccessToast('Revision instructions saved successfully!')
+    showRevisionInstructionsModal.value = false
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to save revision instructions', 'Unable to save revision instructions. Please try again.')
+    showErrorToast(errorMsg)
+  } finally {
+    savingRevisionInstructions.value = false
+  }
+}
+
+// Watch for modal opening to initialize instructions
+watch(showRevisionInstructionsModal, (isOpen) => {
+  if (isOpen && order.value) {
+    revisionInstructions.value = order.value.revision_instructions || ''
+  }
+})
 
 const submitTip = async () => {
   if (!tipAmount.value || tipAmount.value <= 0) {
@@ -6251,7 +6553,11 @@ const submitOrderRequest = async () => {
     showSuccessToast('Order request submitted successfully! Waiting for admin review.')
     isOrderRequested.value = true
     closeOrderRequestModal()
-    await loadOrder() // Reload order to get updated info
+    // Reload both order and writer context to ensure state is updated
+    await Promise.all([
+      loadOrder(),
+      loadWriterContext()
+    ])
   } catch (error) {
     const errorMsg = getErrorMessage(error, 'Failed to submit order request. Please try again.')
     showErrorToast(errorMsg)
