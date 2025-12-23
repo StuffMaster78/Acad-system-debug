@@ -4925,14 +4925,35 @@ const handleActionSuccess = async (data) => {
 
 const handleActionError = (error) => {
   const orderId = order.value?.id || 'this order'
-  const errorMessage = getErrorMessage(
+  
+  // Check if error is about payment requirement for assign/reassign actions
+  const errorMessage = error?.detail || error?.message || (typeof error === 'string' ? error : '')
+  const isPaymentError = errorMessage && (
+    errorMessage.toLowerCase().includes('payment') ||
+    errorMessage.toLowerCase().includes('must have a completed payment') ||
+    errorMessage.toLowerCase().includes('order must be paid')
+  )
+  
+  // Check if this is an assign/reassign action
+  const isAssignAction = selectedAction.value === 'assign_order' || selectedAction.value === 'reassign_order'
+  
+  // If it's a payment error for assign/reassign, show the warning modal instead
+  if (isPaymentError && isAssignAction && order.value && !order.value.is_paid) {
+    showActionModal.value = false // Close the action modal
+    showUnpaidWarningModal.value = true // Show the warning modal
+    actionError.value = ''
+    return
+  }
+  
+  // Otherwise, show the generic error
+  const finalErrorMessage = getErrorMessage(
     error, 
     'Failed to execute action', 
     `Unable to perform action on Order #${orderId}. Please try again or contact support if the issue persists.`
   )
-  actionError.value = errorMessage
+  actionError.value = finalErrorMessage
   actionSuccess.value = ''
-  showErrorToast(errorMessage)
+  showErrorToast(finalErrorMessage)
   
   // Clear error message after 8 seconds
   setTimeout(() => {
