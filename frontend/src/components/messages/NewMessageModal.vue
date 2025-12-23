@@ -23,16 +23,18 @@
 
         <!-- Content -->
         <div class="flex-1 overflow-y-auto p-6 space-y-6">
+          <!-- Flow summary -->
+          <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            <span class="font-semibold">You ({{ currentUserRoleLabel }})</span>
+            <span v-if="activeRecipientTab">
+              &nbsp;→&nbsp;<span class="font-semibold">{{ activeRecipientTab.label }}</span>
+            </span>
+          </div>
+
           <!-- Recipient Type Selection -->
           <div>
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-              <span class="flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-                Message To
-                <span class="text-red-500">*</span>
-              </span>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
+              Step 1 of 3 · Choose who you want to message
             </label>
             <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
               <button
@@ -48,14 +50,17 @@
               >
                 <component :is="tab.icon" class="w-6 h-6 mx-auto mb-2" />
                 <p class="text-sm font-medium">{{ tab.label }}</p>
+                <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400" v-if="tab.tooltip">
+                  {{ tab.tooltip }}
+                </p>
               </button>
             </div>
           </div>
 
           <!-- Specific Recipient Selection -->
           <div v-if="selectedRecipientType && availableRecipients.length > 0">
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              Select Recipient <span class="text-red-500">*</span>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
+              Step 2 of 3 · Select the specific recipient
             </label>
             <div class="relative">
               <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -104,14 +109,18 @@
 
           <!-- Message Input -->
           <div v-if="selectedRecipient">
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-              <span class="flex items-center gap-2">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Your Message
-                <span class="text-red-500">*</span>
+            <!-- To summary -->
+            <div class="mb-2 text-xs text-gray-600 dark:text-gray-300">
+              To:
+              <span class="font-semibold">
+                {{ selectedRecipient.username || selectedRecipient.email || 'User' }}
               </span>
+              <span v-if="selectedRecipient.role" class="text-gray-500 dark:text-gray-400">
+                ({{ selectedRecipient.role.charAt(0).toUpperCase() + selectedRecipient.role.slice(1) }})
+              </span>
+            </div>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
+              Step 3 of 3 · Type your message
             </label>
             <textarea
               v-model="message"
@@ -170,6 +179,11 @@ const emit = defineEmits(['close', 'message-sent'])
 const authStore = useAuthStore()
 const currentUser = authStore.user
 
+const currentUserRoleLabel = computed(() => {
+  const role = currentUser?.role || 'user'
+  return role.charAt(0).toUpperCase() + role.slice(1)
+})
+
 const selectedRecipientType = ref(props.defaultRecipientType || null)
 const selectedRecipient = ref(null)
 const availableRecipients = ref([])
@@ -185,29 +199,33 @@ const recipientTabs = computed(() => {
 
   if (role === 'client') {
     tabs.push(
-      { id: 'admin', label: 'Admin', icon: 'AdminIcon' },
-      { id: 'support', label: 'Support', icon: 'SupportIcon' },
-      { id: 'writer', label: 'Writer', icon: 'WriterIcon' },
-      { id: 'editor', label: 'Editor', icon: 'EditorIcon' }
+      { id: 'admin', label: 'Admin', icon: 'AdminIcon', tooltip: 'Message the admin team about your account or orders.' },
+      { id: 'support', label: 'Support', icon: 'SupportIcon', tooltip: 'Get help from support for general issues.' },
+      { id: 'writer', label: 'Writer', icon: 'WriterIcon', tooltip: 'Talk directly to your assigned writer.' },
+      { id: 'editor', label: 'Editor', icon: 'EditorIcon', tooltip: 'Discuss quality or edits with an editor.' }
     )
   } else if (role === 'writer') {
     tabs.push(
-      { id: 'client', label: 'Client', icon: 'ClientIcon' },
-      { id: 'admin', label: 'Admin', icon: 'AdminIcon' },
-      { id: 'support', label: 'Support', icon: 'SupportIcon' },
-      { id: 'editor', label: 'Editor', icon: 'EditorIcon' }
+      { id: 'client', label: 'Client', icon: 'ClientIcon', tooltip: 'Message the client about order details.' },
+      { id: 'admin', label: 'Admin', icon: 'AdminIcon', tooltip: 'Contact admin for escalations or clarifications.' },
+      { id: 'support', label: 'Support', icon: 'SupportIcon', tooltip: 'Get internal help from support.' },
+      { id: 'editor', label: 'Editor', icon: 'EditorIcon', tooltip: 'Coordinate with editors on revisions.' }
     )
   } else {
     tabs.push(
-      { id: 'client', label: 'Client', icon: 'ClientIcon' },
-      { id: 'writer', label: 'Writer', icon: 'WriterIcon' },
-      { id: 'editor', label: 'Editor', icon: 'EditorIcon' },
-      { id: 'support', label: 'Support', icon: 'SupportIcon' },
-      { id: 'admin', label: 'Admin', icon: 'AdminIcon' }
+      { id: 'client', label: 'Client', icon: 'ClientIcon', tooltip: 'Message any client on the platform.' },
+      { id: 'writer', label: 'Writer', icon: 'WriterIcon', tooltip: 'Reach out to writers for coordination.' },
+      { id: 'editor', label: 'Editor', icon: 'EditorIcon', tooltip: 'Discuss editing or quality issues.' },
+      { id: 'support', label: 'Support', icon: 'SupportIcon', tooltip: 'Internal conversations with support staff.' },
+      { id: 'admin', label: 'Admin', icon: 'AdminIcon', tooltip: 'Conversations between admin/superadmin staff.' }
     )
   }
 
   return tabs
+})
+
+const activeRecipientTab = computed(() => {
+  return recipientTabs.value.find(t => t.id === selectedRecipientType.value) || null
 })
 
 const filteredRecipients = computed(() => {
@@ -249,15 +267,21 @@ const loadRecipients = async () => {
 
     // Fetch users - filter by role on frontend since API might not support role__in
     try {
-      const response = await usersAPI.list({ 
-        is_active: true 
+      const response = await usersAPI.list({
+        is_active: true
       })
       
       const allUsers = response.data.results || response.data || []
       // Filter by roles on the frontend
-      availableRecipients.value = allUsers.filter(user => 
+      const filtered = allUsers.filter(user =>
         roles.includes(user.role)
       )
+      availableRecipients.value = filtered
+
+      // If exactly one recipient, auto-select to streamline the flow
+      if (filtered.length === 1) {
+        selectedRecipient.value = filtered[0]
+      }
     } catch (err) {
       console.error('Failed to load recipients:', err)
       error.value = 'Failed to load recipients. Please try again.'
@@ -302,7 +326,8 @@ const sendMessage = async () => {
 }
 
 const resetForm = () => {
-  selectedRecipientType.value = props.defaultRecipientType || null
+  // Keep the current recipient type (tab) so the user doesn't have to reselect it
+  // when reopening the modal; just clear the concrete recipient and message.
   selectedRecipient.value = null
   availableRecipients.value = []
   recipientSearch.value = ''
@@ -310,20 +335,31 @@ const resetForm = () => {
   error.value = ''
 }
 
-watch(selectedRecipientType, () => {
-  selectedRecipient.value = null
-  recipientSearch.value = ''
-  loadRecipients()
-})
-
-watch(() => props.show, (newVal) => {
-  if (newVal) {
-    resetForm()
-    if (props.defaultRecipientType) {
-      loadRecipients()
-    }
+watch(selectedRecipientType, (newVal, oldVal) => {
+  // When the user changes the tab, clear the current recipient and reload the list
+  if (newVal !== oldVal) {
+    selectedRecipient.value = null
+    recipientSearch.value = ''
+    loadRecipients()
   }
 })
+
+watch(
+  () => props.show,
+  (newVal) => {
+    if (newVal) {
+      resetForm()
+      // If a default recipient type is provided and no tab is selected yet, set it
+      if (!selectedRecipientType.value && props.defaultRecipientType) {
+        selectedRecipientType.value = props.defaultRecipientType
+        // loadRecipients will be called by the watcher above
+      } else if (selectedRecipientType.value) {
+        // If a tab is already selected (e.g., admin preselected), just load its recipients
+        loadRecipients()
+      }
+    }
+  }
+)
 
 // Icon components
 const AdminIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>' }

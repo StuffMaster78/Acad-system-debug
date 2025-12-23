@@ -23,6 +23,14 @@
 
         <!-- Content -->
         <div class="flex-1 overflow-y-auto p-6 space-y-5">
+          <!-- Flow summary -->
+          <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+            <span class="font-semibold">You ({{ currentUserRoleLabel }})</span>
+            <span v-if="activeRecipientTab">
+              &nbsp;→&nbsp;<span class="font-semibold">{{ activeRecipientTab.label }}</span>
+            </span>
+          </div>
+
           <!-- Order Context -->
           <section class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
             <p class="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
@@ -60,6 +68,9 @@
               >
                 <component :is="tab.icon" class="w-5 h-5" />
                 <p class="text-xs font-medium">{{ tab.label }}</p>
+                <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400" v-if="tab.tooltip">
+                  {{ tab.tooltip }}
+                </p>
               </button>
             </div>
           </section>
@@ -126,14 +137,18 @@
             v-if="selectedRecipient"
             class="p-4 bg-white dark:bg-gray-900/60 rounded-xl border border-gray-200 dark:border-gray-700 space-y-2"
           >
-            <label class="block text-sm font-semibold text-gray-800 dark:text-gray-100 mb-1">
-              <span class="flex items-center gap-2">
-                <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-xs font-bold text-white">
-                  3
-                </span>
-                Your Message
-                <span class="text-red-500">*</span>
+            <!-- To summary -->
+            <div class="mb-2 text-xs text-gray-600 dark:text-gray-300">
+              To:
+              <span class="font-semibold">
+                {{ selectedRecipient.username || selectedRecipient.email || 'User' }}
               </span>
+              <span v-if="selectedRecipient.role" class="text-gray-500 dark:text-gray-400">
+                ({{ selectedRecipient.role.charAt(0).toUpperCase() + selectedRecipient.role.slice(1) }})
+              </span>
+            </div>
+            <label class="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1 uppercase tracking-wide">
+              Step 3 of 3 · Type your message
             </label>
             <textarea
               v-model="message"
@@ -196,6 +211,11 @@ const emit = defineEmits(['close', 'message-sent'])
 const authStore = useAuthStore()
 const currentUser = authStore.user
 
+const currentUserRoleLabel = computed(() => {
+  const role = currentUser?.role || 'user'
+  return role.charAt(0).toUpperCase() + role.slice(1)
+})
+
 const selectedRecipientType = ref(props.defaultRecipientType || null)
 const selectedRecipient = ref(null)
 const allOrderRecipients = ref([]) // fetched once per modal open
@@ -212,29 +232,33 @@ const recipientTabs = computed(() => {
 
   if (role === 'client') {
     tabs.push(
-      { id: 'admin', label: 'Admin', icon: 'AdminIcon' },
-      { id: 'support', label: 'Support', icon: 'SupportIcon' },
-      { id: 'writer', label: 'Writer', icon: 'WriterIcon' },
-      { id: 'editor', label: 'Editor', icon: 'EditorIcon' }
+      { id: 'admin', label: 'Admin', icon: 'AdminIcon', tooltip: 'Message the admin team about this order.' },
+      { id: 'support', label: 'Support', icon: 'SupportIcon', tooltip: 'Get help from support about this order.' },
+      { id: 'writer', label: 'Writer', icon: 'WriterIcon', tooltip: 'Talk directly to the assigned writer.' },
+      { id: 'editor', label: 'Editor', icon: 'EditorIcon', tooltip: 'Discuss editing or quality for this order.' }
     )
   } else if (role === 'writer') {
     tabs.push(
-      { id: 'client', label: 'Client', icon: 'ClientIcon' },
-      { id: 'admin', label: 'Admin', icon: 'AdminIcon' },
-      { id: 'support', label: 'Support', icon: 'SupportIcon' },
-      { id: 'editor', label: 'Editor', icon: 'EditorIcon' }
+      { id: 'client', label: 'Client', icon: 'ClientIcon', tooltip: 'Message the client about order details.' },
+      { id: 'admin', label: 'Admin', icon: 'AdminIcon', tooltip: 'Coordinate with admin about this order.' },
+      { id: 'support', label: 'Support', icon: 'SupportIcon', tooltip: 'Get internal help from support.' },
+      { id: 'editor', label: 'Editor', icon: 'EditorIcon', tooltip: 'Work with editors on revisions or reviews.' }
     )
   } else {
     tabs.push(
-      { id: 'client', label: 'Client', icon: 'ClientIcon' },
-      { id: 'writer', label: 'Writer', icon: 'WriterIcon' },
-      { id: 'editor', label: 'Editor', icon: 'EditorIcon' },
-      { id: 'support', label: 'Support', icon: 'SupportIcon' },
-      { id: 'admin', label: 'Admin', icon: 'AdminIcon' }
+      { id: 'client', label: 'Client', icon: 'ClientIcon', tooltip: 'Message the client for this order.' },
+      { id: 'writer', label: 'Writer', icon: 'WriterIcon', tooltip: 'Talk to the assigned writer for this order.' },
+      { id: 'editor', label: 'Editor', icon: 'EditorIcon', tooltip: 'Coordinate with editors on editing/review.' },
+      { id: 'support', label: 'Support', icon: 'SupportIcon', tooltip: 'Internal support conversations for this order.' },
+      { id: 'admin', label: 'Admin', icon: 'AdminIcon', tooltip: 'Admin/admin conversations related to this order.' }
     )
   }
 
   return tabs
+})
+
+const activeRecipientTab = computed(() => {
+  return visibleRecipientTabs.value.find(t => t.id === selectedRecipientType.value) || null
 })
 
 // Only show tabs that actually have at least one possible recipient
@@ -363,7 +387,7 @@ const sendMessage = async () => {
 }
 
 const resetForm = () => {
-  selectedRecipientType.value = props.defaultRecipientType || null
+  // Preserve current tab selection; only clear concrete recipient + message state
   selectedRecipient.value = null
   availableRecipients.value = []
   recipientSearch.value = ''
@@ -371,20 +395,29 @@ const resetForm = () => {
   error.value = ''
 }
 
-watch(selectedRecipientType, () => {
-  selectedRecipient.value = null
-  recipientSearch.value = ''
-  loadRecipients()
-})
-
-watch(() => props.show, (newVal) => {
-  if (newVal) {
-    resetForm()
-    if (props.defaultRecipientType) {
-      loadRecipients()
-    }
+watch(selectedRecipientType, (newVal, oldVal) => {
+  if (newVal !== oldVal) {
+    selectedRecipient.value = null
+    recipientSearch.value = ''
+    loadRecipients()
   }
 })
+
+watch(
+  () => props.show,
+  (newVal) => {
+    if (newVal) {
+      resetForm()
+      // If there is no tab selected yet, use the default and let the watcher load recipients
+      if (!selectedRecipientType.value && props.defaultRecipientType) {
+        selectedRecipientType.value = props.defaultRecipientType
+      } else if (selectedRecipientType.value) {
+        // If a tab is already selected (e.g., admin preselected), just load its recipients
+        loadRecipients()
+      }
+    }
+  }
+)
 
 // Icon components
 const AdminIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>' }

@@ -55,6 +55,20 @@
             : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
         ]"
       >
+        <!-- Status / moderation label -->
+        <div
+          v-if="statusLabel"
+          :class="[
+            'mb-1 text-[11px] font-semibold uppercase tracking-wide',
+            statusClass
+          ]"
+          :title="moderationTooltip"
+          role="status"
+          aria-live="polite"
+        >
+          {{ statusLabel }}
+        </div>
+
         <!-- Reply Preview -->
         <div
           v-if="message.reply_to"
@@ -68,12 +82,15 @@
         </div>
 
         <!-- Message Text -->
-        <div v-if="message.message" class="whitespace-pre-wrap break-words">
+        <div
+          v-if="!hideContent && message.message"
+          class="whitespace-pre-wrap wrap-break-word"
+        >
           {{ message.message }}
         </div>
 
         <!-- Attachment -->
-        <div v-if="message.attachment" class="mt-2">
+        <div v-if="!hideContent && message.attachment" class="mt-2">
           <div
             class="flex items-center gap-2 p-2 bg-white dark:bg-gray-800 rounded border cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
             @click="downloadAttachment"
@@ -89,7 +106,7 @@
         </div>
 
         <!-- Reactions -->
-        <div v-if="message.reactions && message.reactions.length > 0" class="mt-2 flex flex-wrap gap-1">
+        <div v-if="!hideContent && message.reactions && message.reactions.length > 0" class="mt-2 flex flex-wrap gap-1">
           <button
             v-for="reactionGroup in message.reactions"
             :key="reactionGroup.reaction"
@@ -109,7 +126,7 @@
 
       <!-- Reaction Picker -->
       <div
-        v-if="showReactionPicker"
+        v-if="showReactionPicker && !hideContent"
         class="mt-1 flex gap-1 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700"
       >
         <button
@@ -132,15 +149,23 @@
         <button
           @click="showReactionPicker = !showReactionPicker"
           class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          v-if="!hideContent"
         >
           😊 React
         </button>
         <button
-          v-if="!isOwnMessage"
+          v-if="!isOwnMessage && !hideContent"
           @click="$emit('reply', message)"
           class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
         >
           Reply
+        </button>
+        <button
+          v-if="canSoftDelete"
+          @click="handleDelete"
+          class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+        >
+          Delete for everyone
         </button>
       </div>
     </div>
@@ -172,6 +197,65 @@ const availableReactions = ['👍', '❤️', '😊', '🎉', '✅', '❌', '⚠
 
 const isOwnMessage = computed(() => {
   return props.message.sender?.id === authStore.user?.id || props.message.is_sender
+})
+
+const statusLabel = computed(() => {
+  const msg = props.message || {}
+  // Explicit admin deletion
+  if (msg.is_deleted) {
+    return 'Deleted by admin'
+  }
+  // System shadowing (e.g. auto-moderation)
+  if (msg.is_system && (msg.system_type === 'shadowed' || msg.system_type === 'auto_shadow')) {
+    return 'Shadowed by system'
+  }
+  // Flagged for banned/screened words (not yet unblocked)
+  if (msg.is_flagged && !msg.is_unblocked) {
+    return 'Flagged by system (banned word)'
+  }
+  return ''
+})
+
+const statusClass = computed(() => {
+  const label = statusLabel.value
+  if (label.startsWith('Deleted')) {
+    return 'text-red-500 dark:text-red-300'
+  }
+  if (label.startsWith('Shadowed')) {
+    return 'text-orange-500 dark:text-orange-300'
+  }
+  if (label.startsWith('Flagged')) {
+    return 'text-amber-600 dark:text-amber-300'
+  }
+  return 'text-gray-500 dark:text-gray-400'
+})
+
+const moderationTooltip = computed(() => {
+  const msg = props.message || {}
+  if (msg.is_deleted) {
+    return 'This message was deleted by an admin. Its original content is hidden from participants.'
+  }
+  if (msg.is_system && (msg.system_type === 'shadowed' || msg.system_type === 'auto_shadow')) {
+    return 'This message was shadowed by the system (for example, due to moderation rules). It is hidden from regular participants.'
+  }
+  if (msg.is_flagged && !msg.is_unblocked) {
+    return 'This message was flagged because it contains screened or banned words. It may require moderator review.'
+  }
+  return ''
+})
+
+const hideContent = computed(() => {
+  const msg = props.message || {}
+  // Hide full content when admin deleted OR system shadowed;
+  // still keep the header + status label.
+  if (msg.is_deleted) return true
+  if (msg.is_system && (msg.system_type === 'shadowed' || msg.system_type === 'auto_shadow')) return true
+  return false
+})
+
+const canSoftDelete = computed(() => {
+  const role = authStore.user?.role
+  return role === 'admin' || role === 'superadmin'
 })
 
 const senderInitials = computed(() => {
@@ -221,6 +305,20 @@ const addReaction = async (reaction) => {
 
 const toggleReaction = (reaction) => {
   addReaction(reaction)
+}
+
+const handleDelete = async () => {
+  if (!canSoftDelete.value) return
+  const confirmed = window.confirm('Delete this message for everyone? This cannot be undone.')
+  if (!confirmed) return
+
+  try {
+    await communicationsAPI.deleteMessage(props.threadId, props.message.id)
+    // Let the parent reload messages/thread state
+    emit('reaction-updated') // reuse event to trigger refresh
+  } catch (error) {
+    console.error('Failed to delete message:', error)
+  }
 }
 
 const downloadAttachment = async () => {
