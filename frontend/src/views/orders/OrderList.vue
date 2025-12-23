@@ -1027,35 +1027,81 @@ const syncFiltersToRoute = () => {
 
 const fetchOrders = async () => {
   loading.value = true
+  const params = buildQueryParams()
+  
   try {
-    const res = await ordersAPI.list(buildQueryParams())
+    // Try to get from cache first
+    const { getCachedOrderList, cacheOrderList, cachedApiCall } = await import('@/utils/orderCache')
+    const cached = getCachedOrderList(params)
     
-    // Handle paginated response (backend uses LimitedPagination)
-    if (res.data?.results) {
-      // Paginated response with metadata
-      orders.value = res.data.results
-      pagination.value.totalItems = res.data.count || 0
-      pagination.value.currentPage = res.data.current_page || pagination.value.currentPage
-      pagination.value.totalPages = res.data.total_pages || 1
-    } else if (Array.isArray(res.data)) {
-      // Fallback: Non-paginated response (legacy support)
-      orders.value = res.data
-      pagination.value.totalItems = res.data.length
-      pagination.value.currentPage = 1
-      pagination.value.totalPages = 1
-    } else {
+    if (cached && cached.fromCache) {
+      // Show cached data immediately
+      const cachedData = cached.data
+      if (cachedData?.results) {
+        orders.value = cachedData.results
+        pagination.value.totalItems = cachedData.count || 0
+        pagination.value.currentPage = cachedData.current_page || pagination.value.currentPage
+        pagination.value.totalPages = cachedData.total_pages || 1
+      } else if (Array.isArray(cachedData)) {
+        orders.value = cachedData
+        pagination.value.totalItems = cachedData.length
+        pagination.value.currentPage = 1
+        pagination.value.totalPages = 1
+      }
+      
+      // Show indicator that data is from cache
+      if (import.meta.env.DEV) {
+        console.log(`Loaded ${orders.value.length} orders from cache`)
+      }
+    }
+    
+    // Always try to fetch fresh data
+    try {
+      const res = await ordersAPI.list(params)
+      
+      // Handle paginated response (backend uses LimitedPagination)
+      if (res.data?.results) {
+        // Paginated response with metadata
+        orders.value = res.data.results
+        pagination.value.totalItems = res.data.count || 0
+        pagination.value.currentPage = res.data.current_page || pagination.value.currentPage
+        pagination.value.totalPages = res.data.total_pages || 1
+        
+        // Cache the response
+        cacheOrderList(params, res.data)
+      } else if (Array.isArray(res.data)) {
+        // Fallback: Non-paginated response (legacy support)
+        orders.value = res.data
+        pagination.value.totalItems = res.data.length
+        pagination.value.currentPage = 1
+        pagination.value.totalPages = 1
+        
+        // Cache the response
+        cacheOrderList(params, res.data)
+      } else {
+        orders.value = []
+        pagination.value.totalItems = 0
+        pagination.value.totalPages = 0
+      }
+      
+      // Debug logging (can be removed in production)
+      console.log(`Fetched ${orders.value.length} orders (page ${pagination.value.currentPage}/${pagination.value.totalPages}, total: ${pagination.value.totalItems})`)
+    } catch (apiError) {
+      // If API call fails and we don't have cached data, show error
+      if (!cached || !cached.fromCache) {
+        throw apiError
+      }
+      // Otherwise, we already have cached data displayed, just log the error
+      console.warn('Failed to fetch fresh orders, using cached data:', apiError)
+    }
+  } catch (error) {
+    console.error('Error fetching orders:', error)
+    // Only clear if we don't have cached data
+    if (!orders.value || orders.value.length === 0) {
       orders.value = []
       pagination.value.totalItems = 0
       pagination.value.totalPages = 0
     }
-    
-    // Debug logging (can be removed in production)
-    console.log(`Fetched ${orders.value.length} orders (page ${pagination.value.currentPage}/${pagination.value.totalPages}, total: ${pagination.value.totalItems})`)
-  } catch (error) {
-    console.error('Error fetching orders:', error)
-    orders.value = []
-    pagination.value.totalItems = 0
-    pagination.value.totalPages = 0
   } finally {
     loading.value = false
   }
