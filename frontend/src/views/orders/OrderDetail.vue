@@ -2479,23 +2479,47 @@
                     </p>
                   </div>
                   <button
+                    v-if="order.is_paid"
                     @click="showReassignModal = true"
                     :disabled="processingAction"
                     class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50"
                   >
                     Reassign
                   </button>
+                  <button
+                    v-else
+                    @click="showUnpaidWarningModal = true"
+                    class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors font-medium"
+                    title="Order must be paid before reassigning"
+                  >
+                    ⚠️ Reassign
+                  </button>
                 </div>
               </div>
-              <button
-                v-else
-                @click="showAssignModal = true"
-                :disabled="processingAction"
-                class="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <span>➕</span>
-                <span>Assign Writer</span>
-              </button>
+              <div v-else class="space-y-3">
+                <button
+                  v-if="order.is_paid"
+                  @click="showAssignModal = true"
+                  :disabled="processingAction"
+                  class="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  <span>➕</span>
+                  <span>Assign Writer</span>
+                </button>
+                <div v-else class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                  <div class="flex items-start gap-3">
+                    <span class="text-xl">⚠️</span>
+                    <div class="flex-1">
+                      <p class="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-1">
+                        Order Not Paid
+                      </p>
+                      <p class="text-xs text-yellow-700 dark:text-yellow-300">
+                        Only paid orders can be assigned to writers. Please mark this order as paid first.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -3167,6 +3191,55 @@
             class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
           >
             {{ creatingDraftRequest ? 'Submitting...' : 'Submit Request' }}
+          </button>
+        </div>
+      </div>
+    </Modal>
+
+    <!-- Unpaid Order Warning Modal -->
+    <Modal
+      v-model:visible="showUnpaidWarningModal"
+      title="Order Not Paid"
+      size="md"
+    >
+      <div class="space-y-4">
+        <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+          <div class="flex items-start gap-3">
+            <span class="text-2xl">⚠️</span>
+            <div class="flex-1">
+              <p class="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                Cannot Assign Writer
+              </p>
+              <p class="text-sm text-yellow-700 dark:text-yellow-300">
+                Only paid orders can be assigned to writers. This order has not been marked as paid yet.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+          <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+            <strong>To assign a writer:</strong>
+          </p>
+          <ol class="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+            <li>Mark this order as paid first</li>
+            <li>Then proceed with writer assignment</li>
+          </ol>
+        </div>
+        
+        <div class="flex gap-2 justify-end">
+          <button
+            @click="showUnpaidWarningModal = false"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+          >
+            Close
+          </button>
+          <button
+            v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
+            @click="openActionModal('mark_paid'); showUnpaidWarningModal = false"
+            class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+          >
+            Mark as Paid
           </button>
         </div>
       </div>
@@ -4151,6 +4224,7 @@ const revisionInstructions = ref('')
 const savingRevisionInstructions = ref(false)
 const showAssignModal = ref(false)
 const showReassignModal = ref(false)
+const showUnpaidWarningModal = ref(false)
 const showEditInstructions = ref(false)
 const revisionReason = ref('')
 const requestingRevision = ref(false)
@@ -4716,6 +4790,12 @@ const hardDeleteOrder = async () => {
 // Order Action Modal functions (for admin/superadmin/support)
 const openActionModal = async (action = null) => {
   if (!order.value) return
+  
+  // Check payment status for assign/reassign actions
+  if ((action === 'assign_order' || action === 'reassign_order') && !order.value.is_paid) {
+    showUnpaidWarningModal.value = true
+    return
+  }
   
   selectedAction.value = action
   

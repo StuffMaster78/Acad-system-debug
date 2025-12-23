@@ -699,18 +699,34 @@
               💬 View Messages
             </button>
             <button 
-              v-if="!viewingOrder.assigned_writer" 
+              v-if="!viewingOrder.assigned_writer && viewingOrder.is_paid" 
               @click="openActionModal(viewingOrder, 'assign_order')" 
               class="btn btn-primary"
             >
               Assign Writer
             </button>
             <button 
-              v-else 
+              v-else-if="!viewingOrder.assigned_writer && !viewingOrder.is_paid"
+              @click="showUnpaidWarningModal = true"
+              class="btn btn-secondary bg-yellow-600 hover:bg-yellow-700"
+              title="Order must be paid before assigning writer"
+            >
+              ⚠️ Assign Writer
+            </button>
+            <button 
+              v-else-if="viewingOrder.assigned_writer && viewingOrder.is_paid"
               @click="openActionModal(viewingOrder, 'reassign_order')" 
               class="btn btn-primary bg-yellow-600 hover:bg-yellow-700"
             >
               Reassign Writer
+            </button>
+            <button 
+              v-else-if="viewingOrder.assigned_writer && !viewingOrder.is_paid"
+              @click="showUnpaidWarningModal = true"
+              class="btn btn-secondary bg-yellow-600 hover:bg-yellow-700"
+              title="Order must be paid before reassigning writer"
+            >
+              ⚠️ Reassign Writer
             </button>
             <button 
               @click="openActionModal(viewingOrder)" 
@@ -937,6 +953,56 @@
     </div>
 
     <!-- Order Threads Modal -->
+    
+    <!-- Unpaid Order Warning Modal -->
+    <Transition name="modal">
+      <div v-if="showUnpaidWarningModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="showUnpaidWarningModal = false">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/50 flex items-center justify-center">
+              <span class="text-2xl">⚠️</span>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white">Order Not Paid</h3>
+          </div>
+          
+          <div class="space-y-4">
+            <div class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+              <p class="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                Cannot Assign Writer
+              </p>
+              <p class="text-sm text-yellow-700 dark:text-yellow-300">
+                Only paid orders can be assigned to writers. Order #{{ currentOrderForAction?.id || 'N/A' }} has not been marked as paid yet.
+              </p>
+            </div>
+            
+            <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+              <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                <strong>To assign a writer:</strong>
+              </p>
+              <ol class="list-decimal list-inside text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                <li>Mark this order as paid first</li>
+                <li>Then proceed with writer assignment</li>
+              </ol>
+            </div>
+            
+            <div class="flex gap-2 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                @click="showUnpaidWarningModal = false"
+                class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                @click="openActionModal(currentOrderForAction, 'mark_paid'); showUnpaidWarningModal = false"
+                class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+              >
+                Mark as Paid
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
     <OrderThreadsModal
       v-if="showOrderThreadsModal && viewingOrder"
       :order-id="viewingOrder.id"
@@ -1029,6 +1095,7 @@ const orders = ref([])
 const selectedOrders = ref([])
 const viewingOrder = ref(null)
 const showAssignModal = ref(false)
+const showUnpaidWarningModal = ref(false)
 const showEditModal = ref(false)
 const showOrderThreadsModal = ref(false)
 const showActionModal = ref(false)
@@ -1537,6 +1604,13 @@ const saveEdit = async () => {
 
 // Open action modal with optional pre-selected action
 const openActionModal = async (order, action = null) => {
+  // Check payment status for assign/reassign actions
+  if ((action === 'assign_order' || action === 'reassign_order') && !order.is_paid) {
+    currentOrderForAction.value = order
+    showUnpaidWarningModal.value = true
+    return
+  }
+  
   currentOrderForAction.value = order
   selectedAction.value = action
   
