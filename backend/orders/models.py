@@ -1627,6 +1627,11 @@ class DraftRequest(models.Model):
         null=True,
         help_text="Optional message from client about what they want to see"
     )
+    deadline = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Client's requested deadline for the draft"
+    )
     requested_at = models.DateTimeField(
         auto_now_add=True,
         help_text="When the draft was requested"
