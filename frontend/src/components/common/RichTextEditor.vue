@@ -101,7 +101,6 @@ const getToolbarConfig = () => {
       [{ 'script': 'sub' }, { 'script': 'super' }],
       [{ 'list': 'ordered' }, { 'list': 'bullet' }],
       [{ 'indent': '-1' }, { 'indent': '+1' }],
-      [{ 'direction': 'rtl' }],
       [{ 'align': [] }],
       ['link', ...imageButton, 'video'],
       ['blockquote', 'code-block'],

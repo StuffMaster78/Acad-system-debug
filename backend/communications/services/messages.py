@@ -161,6 +161,17 @@ class MessageService:
             details=sanitized_message[:200]
         )
 
+        # Update thread's recipient_role based on actual message recipient
+        # This ensures threads appear in the correct tabs based on who messages are sent TO
+        if thread.recipient_role != recipient_role:
+            thread.recipient_role = recipient_role
+            thread.save(update_fields=['recipient_role'])
+        
+        # Also update sender_role if different (for consistency)
+        if thread.sender_role != sender_role:
+            thread.sender_role = sender_role
+            thread.save(update_fields=['sender_role'])
+
         # Log to ActivityLog for activity page
         try:
             from activity.services.logger import ActivityLogger

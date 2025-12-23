@@ -323,6 +323,36 @@
             ></textarea>
           </div>
 
+          <!-- File Upload -->
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Attachments (Optional)
+            </label>
+            <input
+              type="file"
+              @change="handleFileSelect"
+              multiple
+              class="w-full border rounded px-3 py-2 text-sm"
+              accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+            />
+            <div v-if="createForm.attachments && createForm.attachments.length > 0" class="mt-2 space-y-1">
+              <div
+                v-for="(file, index) in createForm.attachments"
+                :key="index"
+                class="flex items-center justify-between p-2 bg-gray-50 rounded text-sm"
+              >
+                <span class="text-gray-700">{{ file.name }}</span>
+                <button
+                  @click="removeFile(index)"
+                  class="text-red-600 hover:text-red-800 text-xs"
+                >
+                  Remove
+                </button>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">You can attach files after creating the ticket as well.</p>
+          </div>
+
           <!-- Actions -->
           <div class="flex justify-end gap-3 pt-4 border-t">
             <button @click="closeCreateModal" class="btn btn-secondary">Cancel</button>
@@ -391,6 +421,7 @@ const createForm = ref({
   description: '',
   category: 'general',
   priority: 'medium',
+  attachments: []
 })
 const userSearchResults = ref([])
 const showUserDropdown = ref(false)
@@ -638,6 +669,20 @@ const clearUserSelection = () => {
   showUserDropdown.value = false
 }
 
+const handleFileSelect = (event) => {
+  const files = Array.from(event.target.files || [])
+  if (!createForm.value.attachments) {
+    createForm.value.attachments = []
+  }
+  createForm.value.attachments.push(...files)
+}
+
+const removeFile = (index) => {
+  if (createForm.value.attachments) {
+    createForm.value.attachments.splice(index, 1)
+  }
+}
+
 // Create Ticket
 const createTicket = async () => {
   if (!canCreateTicket.value) {
@@ -654,6 +699,23 @@ const createTicket = async () => {
       category: createForm.value.category,
       priority: createForm.value.priority,
     })
+    
+    const ticketId = response.data.id
+    
+    // Upload attachments if any
+    if (createForm.value.attachments && createForm.value.attachments.length > 0) {
+      for (const file of createForm.value.attachments) {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('ticket', ticketId)
+        try {
+          await supportTicketsAPI.uploadAttachment(formData)
+        } catch (fileError) {
+          console.error('Failed to upload attachment:', fileError)
+          // Continue with other files even if one fails
+        }
+      }
+    }
     
     // Reset form
     closeCreateModal()
@@ -684,6 +746,7 @@ const closeCreateModal = () => {
     description: '',
     category: 'general',
     priority: 'medium',
+    attachments: []
   }
   selectedUser.value = null
   userSearchResults.value = []

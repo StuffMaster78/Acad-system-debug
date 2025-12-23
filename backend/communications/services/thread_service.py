@@ -62,7 +62,7 @@ class ThreadService:
             raise PermissionDenied("Website is required for thread creation.")
         
         # Determine sender_role and recipient_role from participants
-        # This is important for filtering threads correctly
+        # Use created_by as the actual sender to ensure correct tab filtering
         sender_role = "client"  # Default
         recipient_role = "writer"  # Default
         
@@ -70,33 +70,33 @@ class ThreadService:
             from django.contrib.auth import get_user_model
             User = get_user_model()
             
-            # Get all participant roles
-            participant_roles = []
+            # Get all participants as User objects
+            participant_users = []
             for p in participants:
                 if isinstance(p, User):
-                    participant = p
+                    participant_users.append(p)
                 else:
-                    participant = User.objects.get(id=p)
-                
-                role = getattr(participant, 'role', None)
-                if role:
-                    participant_roles.append(role)
+                    participant_users.append(User.objects.get(id=p))
             
-            # Set sender_role and recipient_role based on participant roles
-            # Priority: admin/superadmin/support/editor > client > writer
-            if len(participant_roles) >= 2:
-                # Sort roles by priority for consistent assignment
-                role_priority = {'superadmin': 0, 'admin': 1, 'support': 2, 'editor': 3, 'client': 4, 'writer': 5}
-                sorted_roles = sorted(participant_roles, key=lambda r: role_priority.get(r, 99))
-                sender_role = sorted_roles[0]
-                recipient_role = sorted_roles[1]
-            elif len(participant_roles) == 1:
-                sender_role = participant_roles[0]
-                # If only one participant, set recipient_role to the other expected role
+            # Get the actual sender (created_by) - this is who initiated the thread
+            sender = created_by
+            sender_role = getattr(sender, 'role', 'client')
+            
+            # Find the recipient (the other participant, not the sender)
+            recipients = [p for p in participant_users if p.id != sender.id]
+            
+            if recipients:
+                # Use the first recipient's role
+                recipient = recipients[0]
+                recipient_role = getattr(recipient, 'role', 'writer')
+            elif len(participant_users) == 1:
+                # Only one participant (the sender), determine recipient based on sender role
                 if sender_role in ['admin', 'superadmin', 'support', 'editor']:
                     recipient_role = 'client'
                 elif sender_role == 'client':
                     recipient_role = 'writer'
+                elif sender_role == 'writer':
+                    recipient_role = 'support'  # Writers typically message support
                 else:
                     recipient_role = 'client'
         
