@@ -42,8 +42,29 @@ class CommunicationThreadSerializer(serializers.ModelSerializer):
         Get the last non-deleted message in the thread.
         Returns None if no messages are present.
         Optimized to use prefetched messages if available.
+        Admin/superadmin can see all messages regardless of visibility rules.
         """
-        # Use prefetched messages if available (from prefetch_related)
+        request = self.context.get("request")
+        user = request.user if request else None
+        user_role = getattr(user, "role", None) if user else None
+        
+        # Admin/superadmin can see all messages (including those between other recipients)
+        if user_role in {"admin", "superadmin"}:
+            # Use prefetched messages if available
+            if hasattr(obj, '_prefetched_objects_cache') and 'messages' in obj._prefetched_objects_cache:
+                messages = [m for m in obj._prefetched_objects_cache['messages'] if not m.is_deleted]
+                if messages:
+                    last = sorted(messages, key=lambda m: m.sent_at, reverse=True)[0]
+                    return CommunicationMessageSerializer(last, context=self.context).data
+                return None
+            
+            # Fallback to database query
+            last = obj.messages.filter(is_deleted=False).order_by("-sent_at").first()
+            if last:
+                return CommunicationMessageSerializer(last, context=self.context).data
+            return None
+        
+        # For other users, use prefetched messages if available
         if hasattr(obj, '_prefetched_objects_cache') and 'messages' in obj._prefetched_objects_cache:
             messages = [m for m in obj._prefetched_objects_cache['messages'] if not m.is_deleted]
             if messages:

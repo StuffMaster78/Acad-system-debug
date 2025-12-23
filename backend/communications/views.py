@@ -810,9 +810,17 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         thread_id = self.kwargs.get("thread_pk")
-        thread = CommunicationThread.objects.get(pk=thread_id)
+        try:
+            thread = CommunicationThread.objects.get(pk=thread_id)
+        except CommunicationThread.DoesNotExist:
+            return CommunicationMessage.objects.none()
+        
         user = self.request.user
         user_role = getattr(user, "role", None)
+        
+        # Admin/superadmin can see ALL messages in ANY thread, even if not a participant
+        if user_role in {"admin", "superadmin"}:
+            return thread.messages.filter(is_deleted=False).order_by("sent_at")
         
         # Editors can see all messages in threads they have access to
         if user_role == "editor":
