@@ -1252,33 +1252,59 @@
 
             <div
               v-if="finalPaperFile"
-              class="mt-4 p-4 bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-300 dark:border-green-700 rounded-xl flex items-center justify-between shadow-sm"
+              class="mt-4 p-5 bg-linear-to-r from-green-50 via-emerald-50 to-green-50 dark:from-green-900/30 dark:via-emerald-900/30 dark:to-green-900/30 border-3 border-green-400 dark:border-green-600 rounded-xl flex items-center justify-between shadow-lg animate-pulse-once"
             >
-              <div class="flex items-center gap-3">
-                <div class="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                  <svg class="w-6 h-6 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-green-200 dark:bg-green-800 rounded-xl flex items-center justify-center shadow-md">
+                  <svg class="w-8 h-8 text-green-700 dark:text-green-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-              <div>
-                  <p class="text-sm font-bold text-green-800 dark:text-green-300">
-                  Final Paper is ready to download
-                </p>
-                  <p class="text-xs text-green-700 dark:text-green-400 mt-0.5">
-                  Version {{ finalPaperFile.version || '1' }} •
-                  {{ formatDateTime(finalPaperFile.created_at) }}
-                </p>
+                <div>
+                  <div class="flex items-center gap-2 mb-1">
+                    <p class="text-base font-bold text-green-900 dark:text-green-100">
+                      ✅ Final Paper Ready
+                    </p>
+                    <span class="px-2 py-0.5 bg-green-200 dark:bg-green-800 text-green-900 dark:text-green-100 rounded-full text-xs font-bold uppercase tracking-wide">
+                      Final Draft
+                    </span>
+                  </div>
+                  <p class="text-sm text-green-700 dark:text-green-300">
+                    Version {{ finalPaperFile.version || '1' }} • 
+                    {{ formatDateTime(finalPaperFile.created_at) }}
+                    <span v-if="finalPaperFile.download_count" class="ml-2">
+                      • Downloaded {{ finalPaperFile.download_count }} time{{ finalPaperFile.download_count !== 1 ? 's' : '' }}
+                    </span>
+                  </p>
+                  <p v-if="finalPaperFile.file_name" class="text-xs text-green-600 dark:text-green-400 mt-1 font-mono">
+                    📄 {{ finalPaperFile.file_name }}
+                  </p>
                 </div>
               </div>
-              <button
-                @click="downloadFile(finalPaperFile)"
-                class="px-4 py-2.5 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 text-sm font-medium flex items-center gap-2 shadow-md transition-all"
-              >
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download Final Paper
-              </button>
+              <div class="flex items-center gap-3">
+                <button
+                  v-if="authStore.isAdmin || authStore.isSuperAdmin"
+                  @click="toggleFileDownload(finalPaperFile)"
+                  :class="[
+                    'px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                    finalPaperFile.is_downloadable 
+                      ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200' 
+                      : 'bg-red-100 text-red-800 hover:bg-red-200'
+                  ]"
+                  :title="finalPaperFile.is_downloadable ? 'Lock file' : 'Unlock file'"
+                >
+                  {{ finalPaperFile.is_downloadable ? '🔓 Unlock' : '🔒 Lock' }}
+                </button>
+                <button
+                  @click="downloadFile(finalPaperFile)"
+                  class="px-5 py-3 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 text-sm font-bold flex items-center gap-2 shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                >
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download Final Paper
+                </button>
+              </div>
             </div>
           </div>
           <button
@@ -1296,13 +1322,26 @@
           </button>
         </div>
 
+        <!-- Quick Upload Button (Writers) -->
+        <div v-if="authStore.isWriter" class="mb-4">
+          <button
+            @click="showQuickUpload = !showQuickUpload"
+            class="w-full px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 font-semibold flex items-center justify-center gap-2 shadow-md transition-all transform hover:scale-[1.02]"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            {{ showQuickUpload ? 'Hide Quick Upload' : 'Quick Upload Files' }}
+          </button>
+        </div>
+
         <!-- File Upload Form -->
-        <div class="mb-6 p-6 bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm">
+        <div v-if="!authStore.isWriter || showQuickUpload" class="mb-6 p-6 bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm">
           <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
-            Upload Files
+            {{ authStore.isWriter ? 'Quick Upload' : 'Upload Files' }}
           </h4>
           <div class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -4947,6 +4986,7 @@ const extraServiceFiles = ref([])
 const links = ref([])
 const processingLink = ref(null)
 const categories = ref([])
+const showQuickUpload = ref(false)
 const uploadError = ref('')
 const uploadSuccess = ref('')
 const uploadingFiles = ref(false)
@@ -4968,19 +5008,67 @@ const loadOrder = async () => {
   loading.value = true
   try {
     const orderId = route.params.id
-    const res = await ordersAPI.get(orderId)
-    order.value = res.data
-    paymentSummary.value = null
-    // Load files, links, categories, wallet balance, and review after order is loaded
-    await Promise.all([
-      loadFiles(),
-      loadExtraServiceFiles(),
-      loadLinks(),
-      loadCategories(),
-      loadWalletBalance(),
-      loadOrderReview(),
-      loadPaymentSummary()
-    ])
+    
+    // Try to get from cache first
+    const { getCachedOrder, cacheOrder } = await import('@/utils/orderCache')
+    const cached = getCachedOrder(orderId)
+    
+    if (cached && cached.fromCache) {
+      // Show cached data immediately
+      order.value = cached.data
+      paymentSummary.value = null
+      
+      // Load related data (these may also fail, but we have the order cached)
+      try {
+        await Promise.all([
+          loadFiles(),
+          loadExtraServiceFiles(),
+          loadLinks(),
+          loadCategories(),
+          loadWalletBalance(),
+          loadOrderReview(),
+          loadPaymentSummary()
+        ])
+      } catch (relatedError) {
+        // Silently handle related data errors when using cache
+        if (import.meta.env.DEV) {
+          console.warn('Some related data failed to load:', relatedError)
+        }
+      }
+      
+      // Show indicator that data is from cache
+      if (import.meta.env.DEV) {
+        console.log(`Loaded order ${orderId} from cache`)
+      }
+    }
+    
+    // Always try to fetch fresh data
+    try {
+      const res = await ordersAPI.get(orderId)
+      order.value = res.data
+      paymentSummary.value = null
+      
+      // Cache the order
+      cacheOrder(orderId, res.data)
+      
+      // Load files, links, categories, wallet balance, and review after order is loaded
+      await Promise.all([
+        loadFiles(),
+        loadExtraServiceFiles(),
+        loadLinks(),
+        loadCategories(),
+        loadWalletBalance(),
+        loadOrderReview(),
+        loadPaymentSummary()
+      ])
+    } catch (apiError) {
+      // If API call fails and we don't have cached data, show error
+      if (!cached || !cached.fromCache) {
+        throw apiError
+      }
+      // Otherwise, we already have cached data displayed, just log the error
+      console.warn('Failed to fetch fresh order data, using cached data:', apiError)
+    }
     
     // Start polling for unread messages every 30 seconds
     if (unreadMessageInterval) {
