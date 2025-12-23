@@ -1922,6 +1922,13 @@ const openAssignModalFromRequest = async (req) => {
     showUnpaidWarningModal.value = true
     return
   }
+  // Check payment status before opening assign modal
+  const order = req.order || req
+  if (order && !order.is_paid) {
+    currentOrderForAction.value = order
+    showUnpaidWarningModal.value = true
+    return
+  }
   // Confirm with the admin before assigning
   const writerLabel =
     req.writer_name ||
