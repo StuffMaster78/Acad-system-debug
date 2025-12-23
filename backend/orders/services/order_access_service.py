@@ -39,6 +39,6 @@ class OrderAccessService:
 
     @staticmethod
     def can_be_assigned(writer, order, by_admin=False) -> bool:
-        if by_admin or order.admin_override:
+        if by_admin:
             return True
         return OrderAccessService.writer_meets_level(writer, order)
