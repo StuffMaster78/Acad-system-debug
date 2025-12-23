@@ -53,7 +53,7 @@ class DraftRequestSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'website', 'order', 'order_topic', 'order_status',
             'requested_by', 'requested_by_username', 'requested_by_email',
-            'status', 'message', 'requested_at', 'fulfilled_at',
+            'status', 'message', 'deadline', 'requested_at', 'fulfilled_at',
             'cancelled_at', 'files', 'files_count', 'can_request'
         ]
         read_only_fields = ['id', 'requested_at', 'fulfilled_at', 'cancelled_at']
@@ -110,7 +110,7 @@ class DraftRequestCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = DraftRequest
-        fields = ['order', 'message']
+        fields = ['order', 'message', 'deadline']
     
     def validate_order(self, value):
         """Validate the order."""

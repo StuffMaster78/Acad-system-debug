@@ -1051,6 +1051,65 @@
       />
     </div>
 
+    <!-- My Order Requests -->
+    <div v-if="writerQueueData && (writerQueueData.order_requests?.length > 0 || writerQueueData.writer_requests?.length > 0)" class="card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 mb-6">
+      <div class="bg-linear-to-r from-violet-50 to-purple-50 border-b-2 border-violet-200 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
+            <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            My Order Requests
+          </h2>
+          <router-link to="/writer/order-requests" class="text-violet-600 hover:text-violet-800 text-sm font-semibold flex items-center gap-1 transition-colors">
+            View all
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </router-link>
+        </div>
+      </div>
+      <div class="p-4 space-y-3">
+        <div
+          v-for="request in [...(writerQueueData.order_requests || []), ...(writerQueueData.writer_requests || [])].slice(0, 5)"
+          :key="`${request.type || 'request'}-${request.id}`"
+          class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <div class="flex-1">
+            <div class="font-medium text-gray-900">
+              Order #{{ request.order_id || request.order?.id }}
+              <span v-if="request.order_topic || request.order?.topic" class="text-gray-600">· {{ request.order_topic || request.order?.topic }}</span>
+            </div>
+            <div class="text-sm text-gray-500 mt-1">
+              <span v-if="request.status" class="capitalize">{{ request.status }}</span>
+              <span v-if="request.requested_at || request.created_at" class="ml-2">
+                Requested: {{ formatDate(request.requested_at || request.created_at) }}
+              </span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span
+              :class="{
+                'bg-yellow-100 text-yellow-800': request.status === 'pending' || request.status === 'under_review',
+                'bg-green-100 text-green-800': request.status === 'approved' || request.status === 'accepted',
+                'bg-red-100 text-red-800': request.status === 'rejected' || request.status === 'denied',
+                'bg-gray-100 text-gray-800': !request.status
+              }"
+              class="px-2 py-1 text-xs font-semibold rounded-full"
+            >
+              {{ request.status ? request.status.replace('_', ' ').toUpperCase() : 'PENDING' }}
+            </span>
+            <router-link
+              :to="`/orders/${request.order_id || request.order?.id}`"
+              class="px-3 py-1.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-xs font-semibold transition-colors"
+            >
+              View
+            </router-link>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Recent Orders -->
     <div class="card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
       <div class="bg-linear-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-200 px-6 py-4">

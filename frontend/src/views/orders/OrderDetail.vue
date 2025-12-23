@@ -1315,11 +1315,30 @@
                   class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option :value="null">Select Category (Optional)</option>
-                  <option v-for="category in categories" :key="category.id" :value="category.id">
-                    {{ category.name }}
-                    <span v-if="category.is_final_draft"> (Final Draft)</span>
-                  </option>
+                  <!-- Role-based category suggestions -->
+                  <optgroup v-if="authStore.isWriter && writerCategorySuggestions.length > 0" label="Suggested for Writers">
+                    <option v-for="suggestion in writerCategorySuggestions" :key="`suggest-${suggestion}`" :value="null" disabled class="text-gray-500 italic">
+                      {{ suggestion }} (create category to use)
+                    </option>
+                  </optgroup>
+                  <optgroup v-if="authStore.isClient && clientCategorySuggestions.length > 0" label="Suggested for Clients">
+                    <option v-for="suggestion in clientCategorySuggestions" :key="`suggest-${suggestion}`" :value="null" disabled class="text-gray-500 italic">
+                      {{ suggestion }} (create category to use)
+                    </option>
+                  </optgroup>
+                  <!-- Existing categories -->
+                  <optgroup v-if="categories.length > 0" :label="authStore.isWriter ? 'Available Categories' : 'Available Categories'">
+                    <option v-for="category in categories" :key="category.id" :value="category.id">
+                      {{ category.name }}
+                      <span v-if="category.is_final_draft"> (Final Draft)</span>
+                      <span v-if="category.is_extra_service"> (Extra Service)</span>
+                    </option>
+                  </optgroup>
                 </select>
+                <p class="text-xs text-gray-500 mt-1">
+                  <span v-if="authStore.isWriter">Common categories: Final Draft, First Draft, DRAFT, Outline, Resource, Plagiarism Report, AI Similarity Report</span>
+                  <span v-else-if="authStore.isClient">Common categories: Materials, Sample, My Previous Papers, Friends Paper, Reading Materials, Syllabus, Rubric, Guidelines</span>
+                </p>
                 <p v-if="uploadForm.category && getCategoryById(uploadForm.category)?.is_final_draft" class="text-xs text-orange-600 mt-1">
                   ⚠️ Final Draft files require payment completion for client download
                 </p>
@@ -2129,6 +2148,9 @@
                   <div class="font-medium text-gray-900">Request #{{ request.id }}</div>
                   <div class="text-sm text-gray-500">
                     Requested {{ formatDateTime(request.requested_at) }}
+                    <span v-if="request.deadline" class="ml-2 font-semibold text-orange-600">
+                      • Deadline: {{ formatDateTime(request.deadline) }}
+                    </span>
                   </div>
                   <p v-if="request.message" class="text-sm text-gray-700 mt-2">
                     {{ request.message }}
@@ -3055,6 +3077,62 @@
       </div>
     </Modal>
     
+    <!-- Draft Request Modal -->
+    <Modal
+      v-model:visible="showDraftRequestModal"
+      title="Request Draft"
+      size="md"
+    >
+      <div class="space-y-4">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
+          <p><strong>Note:</strong> Request a draft to see order progress before final submission. The writer will be notified and can upload a draft file for your review.</p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Message (Optional)
+          </label>
+          <textarea
+            v-model="draftRequestForm.message"
+            rows="4"
+            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Optional message about what you'd like to see in the draft..."
+          ></textarea>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Draft Deadline <span class="text-gray-400">(Optional)</span>
+          </label>
+          <input
+            v-model="draftRequestForm.deadline"
+            type="datetime-local"
+            :min="new Date().toISOString().slice(0, 16)"
+            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            placeholder="Select deadline for draft delivery"
+          />
+          <p class="text-xs text-gray-500 mt-1">If not specified, the writer will deliver the draft at their convenience.</p>
+        </div>
+        
+        <div class="flex gap-2 justify-end">
+          <button
+            @click="showDraftRequestModal = false"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            :disabled="creatingDraftRequest"
+          >
+            Cancel
+          </button>
+          <button
+            @click="createDraftRequest"
+            :disabled="creatingDraftRequest"
+            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
+          >
+            {{ creatingDraftRequest ? 'Submitting...' : 'Submit Request' }}
+          </button>
+        </div>
+      </div>
+    </Modal>
+
     <!-- Extend Deadline Modal -->
     <Modal
       v-model:visible="showDeadlineExtensionModal"
@@ -3479,7 +3557,7 @@ const loadingDraftRequests = ref(false)
 const draftEligibility = ref(null)
 const loadingDraftEligibility = ref(false)
 const showDraftRequestModal = ref(false)
-const draftRequestForm = ref({ message: '' })
+const draftRequestForm = ref({ message: '', deadline: '' })
 const creatingDraftRequest = ref(false)
 const uploadingDraft = ref({})
 const draftSelectedFiles = ref({})
@@ -5160,6 +5238,23 @@ const loadCategories = async () => {
   }
 }
 
+// Role-based category suggestions
+const writerCategorySuggestions = computed(() => {
+  const common = ['Final Draft', 'First Draft', 'DRAFT', 'Outline', 'Resource', 'Plagiarism Report', 'AI Similarity Report']
+  // Filter out suggestions that already exist as categories
+  return common.filter(suggestion => 
+    !categories.value.some(cat => cat.name.toLowerCase() === suggestion.toLowerCase())
+  )
+})
+
+const clientCategorySuggestions = computed(() => {
+  const common = ['Materials', 'Sample', 'My Previous Papers', 'Friends Paper', 'Reading Materials', 'Syllabus', 'Rubric', 'Guidelines']
+  // Filter out suggestions that already exist as categories
+  return common.filter(suggestion => 
+    !categories.value.some(cat => cat.name.toLowerCase() === suggestion.toLowerCase())
+  )
+})
+
 const loadFiles = async () => {
   if (!order.value) return
   loadingFiles.value = true
@@ -6301,14 +6396,20 @@ const createDraftRequest = async () => {
   
   creatingDraftRequest.value = true
   try {
-    await draftRequestsAPI.createDraftRequest({
+    const requestData = {
       order: order.value.id,
       message: draftRequestForm.value.message || ''
-    })
+    }
+    // Add deadline if provided
+    if (draftRequestForm.value.deadline) {
+      requestData.deadline = draftRequestForm.value.deadline
+    }
+    
+    await draftRequestsAPI.createDraftRequest(requestData)
     const message = `Draft request for Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been submitted successfully! The writer will be notified and can upload a draft for your review.`
     showSuccessToast(message)
     showDraftRequestModal.value = false
-    draftRequestForm.value.message = ''
+    draftRequestForm.value = { message: '', deadline: '' }
     await loadDraftRequests()
     await checkDraftEligibility(false) // Silent check after creating request
   } catch (error) {
