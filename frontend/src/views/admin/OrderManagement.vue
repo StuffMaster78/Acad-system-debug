@@ -254,10 +254,19 @@
             
             <div class="flex flex-col gap-2">
               <button
+                v-if="order.is_paid"
                 @click.stop="openAssignModal(order)"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium whitespace-nowrap"
               >
                 Assign Writer
+              </button>
+              <button
+                v-else
+                @click.stop="showUnpaidWarningModal = true; currentOrderForAction = order"
+                class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium whitespace-nowrap"
+                title="Order must be paid before assigning writer"
+              >
+                ⚠️ Assign Writer
               </button>
               <button
                 @click.stop="viewOrder(order)"
@@ -601,8 +610,20 @@
                 <span v-if="order.writer_username || order.assigned_writer">
                   {{ order.writer_username || order.assigned_writer?.username || 'N/A' }}
                 </span>
-                <button v-else @click="openAssignModal(order)" class="text-blue-600 hover:underline text-xs">
+                <button 
+                  v-else-if="order.is_paid" 
+                  @click="openAssignModal(order)" 
+                  class="text-blue-600 hover:underline text-xs"
+                >
                   Assign
+                </button>
+                <button 
+                  v-else 
+                  @click="showUnpaidWarningModal = true; currentOrderForAction = order" 
+                  class="text-yellow-600 hover:underline text-xs font-semibold"
+                  title="Order must be paid before assigning writer"
+                >
+                  ⚠️ Assign
                 </button>
               </td>
               <td class="px-6 py-4 whitespace-nowrap">
@@ -664,8 +685,20 @@
                   <span v-if="viewingOrder.writer_username || viewingOrder.assigned_writer">
                     {{ viewingOrder.writer_username || viewingOrder.assigned_writer?.username || 'N/A' }}
                   </span>
-                  <button v-else @click="openAssignModal(viewingOrder)" class="text-blue-600 hover:underline text-xs">
+                  <button 
+                    v-else-if="viewingOrder.is_paid" 
+                    @click="openAssignModal(viewingOrder)" 
+                    class="text-blue-600 hover:underline text-xs"
+                  >
                     Assign Writer
+                  </button>
+                  <button 
+                    v-else 
+                    @click="showUnpaidWarningModal = true" 
+                    class="text-yellow-600 hover:underline text-xs font-semibold"
+                    title="Order must be paid before assigning writer"
+                  >
+                    ⚠️ Assign Writer
                   </button>
                 </div>
                 <div><span class="font-medium text-gray-600">Total Price:</span> ${{ parseFloat(viewingOrder.total_price || 0).toFixed(2) }}</div>
@@ -1476,6 +1509,13 @@ const viewOrder = async (order) => {
 }
 
 const openAssignModal = async (order) => {
+  // Check payment status before opening assign modal
+  if (!order.is_paid) {
+    currentOrderForAction.value = order
+    showUnpaidWarningModal.value = true
+    return
+  }
+  
   currentOrderForAction.value = order
   if (availableWriters.value.length === 0) {
     await loadWriters()
@@ -1875,6 +1915,13 @@ const bulkStatusChange = async () => {
 }
 
 const openAssignModalFromRequest = async (req) => {
+  // Check payment status before opening assign modal
+  const order = req.order || req
+  if (order && !order.is_paid) {
+    currentOrderForAction.value = order
+    showUnpaidWarningModal.value = true
+    return
+  }
   // Confirm with the admin before assigning
   const writerLabel =
     req.writer_name ||
