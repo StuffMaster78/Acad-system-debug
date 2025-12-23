@@ -13,6 +13,8 @@ from orders.services.status_transition_service import StatusTransitionService, V
 STATUS_ACTIONS_MAP: Dict[str, List[Dict[str, any]]] = {
     "pending": [
         {"action": "mark_paid", "label": "Mark as Paid", "target_status": "paid", "roles": ["admin", "superadmin", "support"]},
+        {"action": "assign_writer", "label": "Assign Writer", "target_status": "pending_writer_assignment", "roles": ["admin", "superadmin", "support"]},
+        {"action": "assign_order", "label": "Assign Writer", "target_status": "pending_writer_assignment", "roles": ["admin", "superadmin", "support"]},
         {"action": "cancel_order", "label": "Cancel Order", "target_status": "cancelled", "roles": ["admin", "superadmin", "client"]},
     ],
     "unpaid": [

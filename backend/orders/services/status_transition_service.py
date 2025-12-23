@@ -16,7 +16,7 @@ from orders.exceptions import (
 
 VALID_TRANSITIONS: Dict[str, List[str]] = {
     # Initial states
-    "pending": ["unpaid", "cancelled", "deleted"],
+    "pending": ["unpaid", "cancelled", "deleted", "pending_writer_assignment", "available", "paid"],
     "created": ["pending", "unpaid", "cancelled"],
     
     # Payment states
