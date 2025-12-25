@@ -29,11 +29,36 @@ class OrderAssignmentAction(BaseOrderAction):
             writer_payment_amount=writer_payment_amount
         )
 
+        # Sanitize params for audit log (remove any non-serializable objects like User instances)
+        import json
+        sanitized_params = {}
+        for key, value in self.params.items():
+            try:
+                # Try to serialize the value to check if it's JSON-serializable
+                json.dumps(value)
+                sanitized_params[key] = value
+            except (TypeError, ValueError):
+                # If not serializable, convert to a serializable format
+                if hasattr(value, 'id'):
+                    # Model instance - store ID and type
+                    sanitized_params[key] = {
+                        'id': value.id,
+                        'type': value.__class__.__name__
+                    }
+                elif hasattr(value, '__dict__'):
+                    # Object with __dict__ - convert to dict of serializable values
+                    sanitized_params[key] = {
+                        k: v for k, v in value.__dict__.items()
+                        if isinstance(v, (str, int, float, bool, type(None)))
+                    }
+                else:
+                    # Fallback: convert to string
+                    sanitized_params[key] = str(value)
+        
         AuditLogService.log_auto(
             actor=self.user,
             action="ASSIGN",
-            target="orders.Order",
-            target_id=self.order_id,
-            metadata={"message": "Order assigned.", "params": self.params}
+            target=self.order,
+            metadata={"message": "Order assigned.", "params": sanitized_params}
         )
         return result

@@ -25,6 +25,7 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
         """
         Get list of available writers with their workload and details.
         Optionally filter by order_id to get writers suitable for a specific order.
+        Only returns writers for orders that are paid and in 'available' status.
         """
         order_id = request.query_params.get('order_id')
         order = None
@@ -35,6 +36,19 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                     'client', 'assigned_writer', 'website',
                     'paper_type', 'academic_level', 'subject', 'type_of_work'
                 ).get(id=order_id)
+                
+                # Check if order is paid and available for assignment
+                if not order.is_paid:
+                    return Response(
+                        {"detail": "Only paid orders can be assigned to writers."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                if order.status != 'available':
+                    return Response(
+                        {"detail": f"Order must be in 'available' status to be assigned. Current status: {order.status}"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
             except Order.DoesNotExist:
                 return Response(
                     {"detail": "Order not found."},
@@ -77,14 +91,17 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
             ).aggregate(avg_rating=Avg('rating'))
             avg_rating = avg_rating_result['avg_rating'] or 0
             
-            # Get writer level info
+            # Get writer level info and max orders limit
             writer_level = None
+            max_orders = 5  # Default limit
             if profile.writer_level:
                 writer_level = {
                     'id': profile.writer_level.id,
                     'name': profile.writer_level.name,
                     'level': profile.writer_level.level,
+                    'max_orders': profile.writer_level.max_orders or 5,
                 }
+                max_orders = profile.writer_level.max_orders or 5
             
             # Format active orders for display
             active_orders_list = []
@@ -98,6 +115,9 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                     'paper_type': o.paper_type.name if o.paper_type else None,
                     'academic_level': o.academic_level.name if o.academic_level else None,
                 })
+            
+            active_count = active_orders.count()
+            capacity = max_orders - active_count  # Available slots
             
             writer_data = {
                 'id': writer.id,
@@ -113,7 +133,9 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
                     'pen_name': getattr(profile, 'pen_name', None),
                 },
                 'workload': {
-                    'active_orders_count': active_orders.count(),
+                    'active_orders_count': active_count,
+                    'max_orders': max_orders,
+                    'capacity': capacity,  # Available slots (max - active)
                     'active_orders': active_orders_list,
                     'avg_rating': round(avg_rating, 2),
                 },
@@ -125,11 +147,17 @@ class WriterAssignmentViewSet(viewsets.ViewSet):
             
             writer_list.append(writer_data)
         
-        # Sort by rating and workload (prefer higher rating, lower workload)
+        # Sort writers by:
+        # 1. Capacity (available slots) - higher capacity first
+        # 2. Writer level (higher level first) - if level exists
+        # 3. Active orders count (lower workload first)
+        # 4. Rating (higher rating first) - as tiebreaker
         writer_list.sort(
             key=lambda w: (
-                -w['profile']['rating'],  # Higher rating first
-                w['workload']['active_orders_count']  # Lower workload first
+                -w['workload']['capacity'],  # Higher capacity first (more available slots)
+                -(w['profile']['writer_level']['level'] if w['profile']['writer_level'] else 0),  # Higher level first
+                w['workload']['active_orders_count'],  # Lower workload first
+                -w['profile']['rating'],  # Higher rating first (tiebreaker)
             )
         )
         

@@ -147,6 +147,13 @@
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                 <div class="flex items-center gap-2">
                   <button @click="viewExpressClass(expressClass)" class="text-blue-600 hover:underline">View</button>
+                  <button 
+                    @click="openMessagesForClass(expressClass)" 
+                    class="text-blue-600 hover:underline flex items-center gap-1"
+                    title="View Messages"
+                  >
+                    💬
+                  </button>
                 </div>
               </td>
             </tr>
@@ -157,6 +164,34 @@
       <div v-if="!loading && expressClasses.length === 0" class="text-center py-12 text-gray-500">
         <p>No express classes found</p>
       </div>
+
+      <!-- Pagination -->
+      <div v-if="expressClassesPagination.totalPages > 1" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+        <div class="text-sm text-gray-700">
+          Showing {{ ((expressClassesPagination.page - 1) * expressClassesPagination.pageSize) + 1 }} to 
+          {{ Math.min(expressClassesPagination.page * expressClassesPagination.pageSize, expressClassesPagination.total) }} 
+          of {{ expressClassesPagination.total }} results
+        </div>
+        <div class="flex gap-2">
+          <button
+            @click="goToExpressClassesPage(expressClassesPagination.page - 1)"
+            :disabled="expressClassesPagination.page === 1"
+            class="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Previous
+          </button>
+          <span class="px-3 py-1 text-sm text-gray-700">
+            Page {{ expressClassesPagination.page }} of {{ expressClassesPagination.totalPages }}
+          </span>
+          <button
+            @click="goToExpressClassesPage(expressClassesPagination.page + 1)"
+            :disabled="expressClassesPagination.page >= expressClassesPagination.totalPages"
+            class="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Next
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Express Class Detail Modal -->
@@ -164,7 +199,21 @@
       <div class="bg-white rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold">Express Class #{{ viewingExpressClass.id }}</h2>
+            <div class="flex items-center gap-4">
+              <h2 class="text-2xl font-bold">Express Class #{{ viewingExpressClass.id }}</h2>
+              <button 
+                @click="showThreadsModal = true" 
+                class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+                title="View and manage messages for this class"
+              >
+                <span class="text-lg">💬</span>
+                <span>Messages</span>
+                <span v-if="viewingExpressClass.threads_count !== undefined && viewingExpressClass.threads_count > 0" 
+                      class="ml-1 px-2 py-0.5 bg-blue-800 rounded-full text-xs font-bold">
+                  {{ viewingExpressClass.threads_count }}
+                </span>
+              </button>
+            </div>
             <button @click="viewingExpressClass = null" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
           </div>
 
@@ -304,9 +353,6 @@
             >
               Mark Complete
             </button>
-            <button @click="showThreadsModal = true" class="btn btn-primary bg-blue-600 hover:bg-blue-700">
-              💬 View Messages
-            </button>
           </div>
         </div>
       </div>
@@ -326,8 +372,10 @@
               v-model="scopeReviewForm.scope_review_notes" 
               rows="5" 
               class="w-full border rounded px-3 py-2"
+              :class="{ 'border-red-500': scopeReviewFormErrors.scope_review_notes }"
               placeholder="Enter your scope review notes..."
             ></textarea>
+            <p v-if="scopeReviewFormErrors.scope_review_notes" class="text-xs text-red-600 mt-1">{{ scopeReviewFormErrors.scope_review_notes }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Price *</label>
@@ -336,8 +384,10 @@
               type="number" 
               step="0.01" 
               class="w-full border rounded px-3 py-2"
+              :class="{ 'border-red-500': scopeReviewFormErrors.price }"
               placeholder="0.00"
             />
+            <p v-if="scopeReviewFormErrors.price" class="text-xs text-red-600 mt-1">{{ scopeReviewFormErrors.price }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Installments Needed</label>
@@ -346,8 +396,10 @@
               type="number" 
               min="0" 
               class="w-full border rounded px-3 py-2"
+              :class="{ 'border-red-500': scopeReviewFormErrors.installments_needed }"
               placeholder="0 for full payment"
             />
+            <p v-if="scopeReviewFormErrors.installments_needed" class="text-xs text-red-600 mt-1">{{ scopeReviewFormErrors.installments_needed }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Admin Notes (optional)</label>
@@ -367,35 +419,133 @@
     </div>
 
     <!-- Assign Writer Modal -->
-    <div v-if="showAssignWriterModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-lg max-w-md w-full p-6">
+    <div v-if="showAssignWriterModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-3xl w-full my-auto p-6 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold">Assign Writer</h3>
+          <h3 class="text-xl font-bold">Assign Writer to Express Class #{{ currentExpressClassForAction?.id }}</h3>
           <button @click="closeAssignWriterModal" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
         </div>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium mb-1">Writer *</label>
-            <select v-model.number="assignWriterForm.writer_id" class="w-full border rounded px-3 py-2">
-              <option value="">Select writer...</option>
-              <option v-for="writer in writers" :key="writer.id" :value="writer.id">
-                {{ formatWriterName(writer) }}
-              </option>
-            </select>
+        
+        <div v-if="currentExpressClassForAction" class="mb-4 p-4 bg-gray-50 rounded">
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <strong class="text-gray-700">Client:</strong>
+              <span class="text-gray-600 ml-2">{{ currentExpressClassForAction.client_username || currentExpressClassForAction.client_email || 'N/A' }}</span>
+            </div>
+            <div>
+              <strong class="text-gray-700">Course:</strong>
+              <span class="text-gray-600 ml-2">{{ currentExpressClassForAction.course || 'N/A' }}</span>
+            </div>
+            <div>
+              <strong class="text-gray-700">Status:</strong>
+              <span :class="getStatusClass(currentExpressClassForAction.status)" class="ml-2 px-2 py-1 rounded-full text-xs font-medium">
+                {{ currentExpressClassForAction.status_display || currentExpressClassForAction.status }}
+              </span>
+            </div>
+            <div>
+              <strong class="text-gray-700">Price:</strong>
+              <span class="text-gray-600 ml-2">${{ parseFloat(currentExpressClassForAction.price || 0).toFixed(2) }}</span>
+            </div>
+            <div v-if="currentExpressClassForAction.assigned_writer" class="col-span-2">
+              <strong class="text-gray-700">Currently Assigned Writer:</strong>
+              <span class="text-gray-600 ml-2">
+                {{ currentExpressClassForAction.assigned_writer_username || 'N/A' }}
+              </span>
+              <span class="text-xs text-yellow-600 ml-2">(Will be replaced)</span>
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium mb-1">Admin Notes (optional)</label>
-            <textarea 
-              v-model="assignWriterForm.admin_notes" 
-              rows="3" 
+        </div>
+
+        <!-- Admin Notes Section -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Admin Notes (Optional)</label>
+          <textarea
+            v-model="assignWriterForm.admin_notes"
+            rows="3"
+            placeholder="Add any notes about this assignment..."
+            class="w-full border rounded px-3 py-2 text-sm"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">These notes will be saved with the assignment</p>
+        </div>
+        
+        <div v-if="writersLoading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span class="ml-3 text-gray-600">Loading available writers...</span>
+        </div>
+        
+        <div v-else-if="availableWriters.length === 0" class="text-center py-12 text-gray-500">
+          <p>No available writers found</p>
+        </div>
+        
+        <div v-else class="space-y-3">
+          <div class="mb-4">
+            <input
+              v-model="writerSearchQuery"
+              type="text"
+              placeholder="Search writers by name, email, or username..."
               class="w-full border rounded px-3 py-2"
-              placeholder="Optional notes..."
-            ></textarea>
+            />
           </div>
-          <div class="flex gap-2 pt-4">
-            <button @click="saveAssignWriter" class="btn btn-primary flex-1">Assign Writer</button>
-            <button @click="closeAssignWriterModal" class="btn btn-secondary flex-1">Cancel</button>
+          
+          <div class="max-h-96 overflow-y-auto space-y-2">
+            <div
+              v-for="writer in filteredWriters"
+              :key="writer.id"
+              class="p-4 border rounded hover:bg-gray-50 cursor-pointer transition-colors"
+              :class="{ 'bg-blue-50 border-blue-300': selectedWriterId === writer.id }"
+              @click="selectedWriterId = writer.id"
+            >
+              <div class="flex items-center justify-between">
+                <div class="flex-1">
+                  <div class="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      :id="`writer-${writer.id}`"
+                      :value="writer.id"
+                      v-model="selectedWriterId"
+                      class="cursor-pointer"
+                    />
+                    <label :for="`writer-${writer.id}`" class="cursor-pointer flex-1">
+                      <div class="font-medium text-gray-900">
+                        {{ writer.username || writer.email || `Writer #${writer.id}` }}
+                      </div>
+                      <div class="text-sm text-gray-600 mt-1">
+                        <span v-if="writer.email">{{ writer.email }}</span>
+                        <span v-if="writer.writer_profile">
+                          <span v-if="writer.writer_profile.rating" class="ml-2">
+                            ⭐ {{ parseFloat(writer.writer_profile.rating).toFixed(1) }}
+                          </span>
+                          <span v-if="writer.workload" class="ml-2">
+                            Workload: {{ writer.workload.active_orders_count || 0 }}/{{ writer.workload.max_orders || 'N/A' }}
+                            <span v-if="writer.workload.capacity !== undefined" class="ml-1">
+                              (Capacity: {{ writer.workload.capacity }})
+                            </span>
+                          </span>
+                        </span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+        
+        <div class="flex gap-2 pt-4 border-t mt-4">
+          <button
+            @click="selectedWriterId && saveAssignWriter()"
+            :disabled="!selectedWriterId || assigningWriter"
+            class="btn btn-primary flex-1"
+          >
+            {{ assigningWriter ? 'Assigning...' : (currentExpressClassForAction?.assigned_writer ? 'Reassign Writer' : 'Assign Writer') }}
+          </button>
+          <button 
+            @click="closeAssignWriterModal" 
+            :disabled="assigningWriter"
+            class="btn btn-secondary flex-1"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -409,10 +559,6 @@
       @close="showThreadsModal = false"
     />
 
-    <!-- Messages -->
-    <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
-      {{ message }}
-    </div>
   </div>
   <!-- Error Display -->
   <div v-else-if="componentError" class="p-6">
@@ -433,20 +579,29 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { expressClassesAPI, usersAPI } from '@/api'
+import { expressClassesAPI, usersAPI, writerAssignmentAPI } from '@/api'
 import apiClient from '@/api/client'
-import { formatWriterName } from '@/utils/formatDisplay'
 import ClassMessageThreads from '@/components/classes/ClassMessageThreads.vue'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useToast } from '@/composables/useToast'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const confirm = useConfirmDialog()
+const { handleError, handleSuccess, handleValidationError, handleWarning } = useErrorHandler()
+const { warning: showWarning } = useToast()
+
 const componentError = ref(null)
 const initialLoading = ref(true)
 const loading = ref(false)
 const expressClasses = ref([])
 const websites = ref([])
 const writers = ref([])
+const availableWriters = ref([])
+const writersLoading = ref(false)
+const assigningWriter = ref(false)
+const selectedWriterId = ref(null)
+const writerSearchQuery = ref('')
 const viewingExpressClass = ref(null)
 const showScopeReviewModal = ref(false)
 const showAssignWriterModal = ref(false)
@@ -458,6 +613,14 @@ const filters = ref({
   search: '',
   website: '',
   has_writer: '',
+})
+
+// Pagination
+const expressClassesPagination = ref({
+  page: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 0
 })
 
 const stats = ref({
@@ -477,13 +640,12 @@ const scopeReviewForm = ref({
   admin_notes: '',
 })
 
+const scopeReviewFormErrors = ref({})
+
 const assignWriterForm = ref({
   writer_id: '',
   admin_notes: '',
 })
-
-const message = ref('')
-const messageSuccess = ref(false)
 
 let searchTimeout = null
 
@@ -494,10 +656,13 @@ const debouncedSearch = () => {
   }, 500)
 }
 
-const loadExpressClasses = async () => {
+const loadExpressClasses = async (page = 1) => {
   loading.value = true
   try {
-    const params = {}
+    const params = {
+      page,
+      page_size: expressClassesPagination.value.pageSize
+    }
     if (filters.value.status) params.status = filters.value.status
     if (filters.value.search) params.search = filters.value.search
     if (filters.value.website) params.website = filters.value.website
@@ -512,17 +677,29 @@ const loadExpressClasses = async () => {
     const res = await expressClassesAPI.list(params)
     expressClasses.value = res.data.results || res.data || []
     
-    // Calculate stats
-    stats.value.total = expressClasses.value.length
-    stats.value.inquiry = expressClasses.value.filter(c => c.status === 'inquiry').length
-    stats.value.scope_review = expressClasses.value.filter(c => c.status === 'scope_review').length
-    stats.value.priced = expressClasses.value.filter(c => c.status === 'priced').length
-    stats.value.assigned = expressClasses.value.filter(c => c.status === 'assigned').length
-    stats.value.in_progress = expressClasses.value.filter(c => c.status === 'in_progress').length
-    stats.value.completed = expressClasses.value.filter(c => c.status === 'completed').length
+    // Update pagination
+    if (res.data.count !== undefined) {
+      expressClassesPagination.value = {
+        page: res.data.page || page,
+        pageSize: res.data.page_size || expressClassesPagination.value.pageSize,
+        total: res.data.count || 0,
+        totalPages: Math.ceil((res.data.count || 0) / (res.data.page_size || expressClassesPagination.value.pageSize))
+      }
+    }
+    
+    // Calculate stats from all classes (if no pagination) or current page
+    if (!res.data.count) {
+      stats.value.total = expressClasses.value.length
+      stats.value.inquiry = expressClasses.value.filter(c => c.status === 'inquiry').length
+      stats.value.scope_review = expressClasses.value.filter(c => c.status === 'scope_review').length
+      stats.value.priced = expressClasses.value.filter(c => c.status === 'priced').length
+      stats.value.assigned = expressClasses.value.filter(c => c.status === 'assigned').length
+      stats.value.in_progress = expressClasses.value.filter(c => c.status === 'in_progress').length
+      stats.value.completed = expressClasses.value.filter(c => c.status === 'completed').length
+    }
   } catch (error) {
     console.error('Error loading express classes:', error)
-    showMessage('Failed to load express classes: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'loading express classes' })
   } finally {
     loading.value = false
   }
@@ -560,10 +737,36 @@ const viewExpressClass = async (expressClass) => {
   try {
     const res = await expressClassesAPI.get(expressClass.id)
     viewingExpressClass.value = res.data
+    
+    // Load thread count if available
+    try {
+      const threadsRes = await expressClassesAPI.getThreads(expressClass.id)
+      if (threadsRes.data) {
+        viewingExpressClass.value.threads_count = Array.isArray(threadsRes.data) ? threadsRes.data.length : (threadsRes.data.count || 0)
+      }
+    } catch (threadError) {
+      // Threads endpoint might not be available, ignore
+      console.debug('Could not load thread count:', threadError)
+    }
   } catch (error) {
     console.error('Error loading express class:', error)
-    showMessage('Failed to load express class details: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'loading express class details' })
   }
+}
+
+const openMessagesForClass = async (expressClass) => {
+  // Set viewing class so the modal has the correct class ID
+  if (!viewingExpressClass.value || viewingExpressClass.value.id !== expressClass.id) {
+    try {
+      const res = await expressClassesAPI.get(expressClass.id)
+      viewingExpressClass.value = res.data
+    } catch (error) {
+      console.error('Error loading express class for messages:', error)
+      // Still open modal with the class ID we have
+      viewingExpressClass.value = { id: expressClass.id }
+    }
+  }
+  showThreadsModal.value = true
 }
 
 const openScopeReviewModal = (expressClass) => {
@@ -586,68 +789,171 @@ const closeScopeReviewModal = () => {
     installments_needed: 0,
     admin_notes: '',
   }
+  scopeReviewFormErrors.value = {}
+}
+
+const validateScopeReviewForm = () => {
+  scopeReviewFormErrors.value = {}
+  let isValid = true
+
+  if (!scopeReviewForm.value.scope_review_notes?.trim()) {
+    scopeReviewFormErrors.value.scope_review_notes = 'Scope review notes are required'
+    isValid = false
+  }
+  if (!scopeReviewForm.value.price || scopeReviewForm.value.price <= 0) {
+    scopeReviewFormErrors.value.price = 'Price must be greater than 0'
+    isValid = false
+  }
+  if (scopeReviewForm.value.installments_needed < 0) {
+    scopeReviewFormErrors.value.installments_needed = 'Installments cannot be negative'
+    isValid = false
+  }
+
+  return isValid
 }
 
 const saveScopeReview = async () => {
   if (!currentExpressClassForAction.value) return
   
+  if (!validateScopeReviewForm()) {
+    handleWarning('Please correct the errors in the form')
+    return
+  }
+  
   try {
     await expressClassesAPI.reviewScope(currentExpressClassForAction.value.id, scopeReviewForm.value)
-    showMessage('Scope reviewed and price set successfully', true)
+    handleSuccess('Scope reviewed and price set successfully')
     closeScopeReviewModal()
     if (viewingExpressClass.value && viewingExpressClass.value.id === currentExpressClassForAction.value.id) {
       await viewExpressClass(currentExpressClassForAction.value)
     }
     loadExpressClasses()
   } catch (error) {
-    showMessage('Failed to review scope: ' + (error.response?.data?.detail || error.message), false)
+    if (error?.response?.status === 422) {
+      handleValidationError(error)
+      if (error.response?.data?.errors) {
+        scopeReviewFormErrors.value = { ...scopeReviewFormErrors.value, ...error.response.data.errors }
+      }
+    } else {
+      handleError(error, { action: 'reviewing scope' })
+    }
   }
 }
 
-const openAssignWriterModal = (expressClass) => {
-  currentExpressClassForAction.value = expressClass
-  assignWriterForm.value = {
-    writer_id: expressClass.assigned_writer || '',
-    admin_notes: '',
+const filteredWriters = computed(() => {
+  if (!writerSearchQuery.value) return availableWriters.value
+  
+  const query = writerSearchQuery.value.toLowerCase()
+  return availableWriters.value.filter(writer => {
+    const username = (writer.username || '').toLowerCase()
+    const email = (writer.email || '').toLowerCase()
+    const fullName = (writer.full_name || writer.get_full_name || '').toLowerCase()
+    return username.includes(query) || email.includes(query) || fullName.includes(query)
+  })
+})
+
+const openAssignWriterModal = async (expressClass) => {
+  if (!expressClass || !expressClass.id) {
+    handleError('Invalid express class data', { action: 'opening assign writer modal' })
+    return
   }
+  currentExpressClassForAction.value = expressClass
   showAssignWriterModal.value = true
+  await loadAvailableWriters()
 }
 
 const closeAssignWriterModal = () => {
   showAssignWriterModal.value = false
-  currentExpressClassForAction.value = null
+  availableWriters.value = []
+  selectedWriterId.value = null
+  writerSearchQuery.value = ''
   assignWriterForm.value = {
     writer_id: '',
     admin_notes: '',
+  }
+  // Don't clear currentExpressClassForAction immediately - might be needed for retry
+}
+
+const loadAvailableWriters = async () => {
+  writersLoading.value = true
+  try {
+    // Use the same endpoint as order assignment for consistency
+    const response = await writerAssignmentAPI.getAvailableWriters()
+    availableWriters.value = response.data.results || response.data || []
+  } catch (error) {
+    console.error('Failed to load available writers:', error)
+    handleError(error, { action: 'loading available writers' })
+  } finally {
+    writersLoading.value = false
   }
 }
 
 const saveAssignWriter = async () => {
   if (!currentExpressClassForAction.value) return
   
+  const writerId = selectedWriterId.value || assignWriterForm.value.writer_id
+  if (!writerId) {
+    handleWarning('Please select a writer to assign')
+    return
+  }
+  
+  const isReassignment = currentExpressClassForAction.value.assigned_writer && 
+                         currentExpressClassForAction.value.assigned_writer.id !== writerId
+  
+  // Confirm reassignment if writer is already assigned
+  if (isReassignment) {
+    const currentWriter = currentExpressClassForAction.value.assigned_writer?.username || 
+                         currentExpressClassForAction.value.assigned_writer?.email || 
+                         'another writer'
+    const confirmed = await confirm.showDialog(
+      `This express class is already assigned to ${currentWriter}. Do you want to reassign it to the selected writer?`,
+      'Reassign Writer',
+      {
+        variant: 'warning',
+        icon: '⚠️',
+        confirmText: 'Reassign',
+        cancelText: 'Cancel'
+      }
+    )
+    if (!confirmed) return
+  }
+  
+  const expressClassId = currentExpressClassForAction.value.id
+  assigningWriter.value = true
   try {
-    await expressClassesAPI.assignWriter(currentExpressClassForAction.value.id, assignWriterForm.value)
-    showMessage('Writer assigned successfully', true)
+    await expressClassesAPI.assignWriter(expressClassId, {
+      writer_id: writerId,
+      admin_notes: assignWriterForm.value.admin_notes || undefined
+    })
+    handleSuccess(isReassignment ? 'Writer reassigned successfully' : 'Writer assigned successfully')
     closeAssignWriterModal()
-    if (viewingExpressClass.value && viewingExpressClass.value.id === currentExpressClassForAction.value.id) {
-      await viewExpressClass(currentExpressClassForAction.value)
+    currentExpressClassForAction.value = null
+    if (viewingExpressClass.value && viewingExpressClass.value.id === expressClassId) {
+      await viewExpressClass({ id: expressClassId })
     }
     loadExpressClasses()
   } catch (error) {
-    showMessage('Failed to assign writer: ' + (error.response?.data?.detail || error.message), false)
+    if (error?.response?.status === 422) {
+      handleValidationError(error)
+    } else {
+      handleError(error, { action: 'assigning writer' })
+    }
+    // Don't clear currentExpressClassForAction on error so user can retry
+  } finally {
+    assigningWriter.value = false
   }
 }
 
 const startProgress = async (expressClass) => {
   try {
     await expressClassesAPI.startProgress(expressClass.id)
-    showMessage('Progress started successfully', true)
+    handleSuccess('Progress started successfully')
     if (viewingExpressClass.value && viewingExpressClass.value.id === expressClass.id) {
       await viewExpressClass(expressClass)
     }
     loadExpressClasses()
   } catch (error) {
-    showMessage('Failed to start progress: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'starting progress' })
   }
 }
 
@@ -667,13 +973,13 @@ const completeExpressClass = async (expressClass) => {
   
   try {
     await expressClassesAPI.complete(expressClass.id)
-    showMessage('Express class marked as completed', true)
+    handleSuccess('Express class marked as completed')
     if (viewingExpressClass.value && viewingExpressClass.value.id === expressClass.id) {
       await viewExpressClass(expressClass)
     }
     loadExpressClasses()
   } catch (error) {
-    showMessage('Failed to complete express class: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'completing express class' })
   }
 }
 
@@ -700,14 +1006,10 @@ const formatDateTime = (date) => {
   return new Date(date).toLocaleString()
 }
 
-// Threads are now handled by ClassMessageThreads component
-
-const showMessage = (msg, success) => {
-  message.value = msg
-  messageSuccess.value = success
-  setTimeout(() => {
-    message.value = ''
-  }, 5000)
+// Pagination helpers
+const goToExpressClassesPage = (page) => {
+  expressClassesPagination.value.page = page
+  loadExpressClasses(page)
 }
 
 onMounted(async () => {

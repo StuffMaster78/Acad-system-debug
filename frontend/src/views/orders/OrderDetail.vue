@@ -2498,7 +2498,7 @@
               </div>
               <div v-else class="space-y-3">
                 <button
-                  v-if="order.is_paid"
+                  v-if="!order.assigned_writer && !order.writer_id && !order.writer_username && order.is_paid"
                   @click="showAssignModal = true"
                   :disabled="processingAction"
                   class="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
@@ -2506,7 +2506,7 @@
                   <span>➕</span>
                   <span>Assign Writer</span>
                 </button>
-                <div v-else class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                <div v-else-if="!order.assigned_writer && !order.writer_id && !order.writer_username && !order.is_paid" class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                   <div class="flex items-start gap-3">
                     <span class="text-xl">⚠️</span>
                     <div class="flex-1">

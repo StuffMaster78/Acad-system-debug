@@ -127,12 +127,25 @@
                   {{ bundle.client?.username || bundle.client?.email || 'N/A' }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <span v-if="bundle.assigned_writer">
-                    {{ bundle.assigned_writer?.username || 'N/A' }}
-                  </span>
-                  <button v-else @click="openAssignWriterModal(bundle)" class="text-blue-600 hover:underline text-xs">
-                    Assign
-                  </button>
+                  <div class="flex items-center gap-2">
+                    <span v-if="bundle.assigned_writer" class="flex items-center gap-1">
+                      <span>{{ bundle.assigned_writer?.username || bundle.assigned_writer?.email || 'N/A' }}</span>
+                      <button 
+                        @click="openAssignWriterModal(bundle)" 
+                        class="text-blue-600 hover:underline text-xs ml-2"
+                        title="Reassign writer"
+                      >
+                        🔄
+                      </button>
+                    </span>
+                    <button 
+                      v-else 
+                      @click="openAssignWriterModal(bundle)" 
+                      class="text-blue-600 hover:underline text-xs font-medium"
+                    >
+                      Assign Writer
+                    </button>
+                  </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                   <span :class="getStatusClass(bundle.status)" class="px-2 py-1 rounded-full text-xs font-medium">
@@ -157,6 +170,13 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                   <div class="flex items-center gap-2">
                     <button @click="viewBundle(bundle)" class="text-blue-600 hover:underline">View</button>
+                    <button 
+                      @click="openMessagesForBundle(bundle)" 
+                      class="text-blue-600 hover:underline flex items-center gap-1"
+                      title="View Messages"
+                    >
+                      💬
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -166,6 +186,34 @@
 
         <div v-if="!loading && bundles.length === 0" class="text-center py-12 text-gray-500">
           <p>No bundles found</p>
+        </div>
+
+        <!-- Pagination -->
+        <div v-if="bundlesPagination.totalPages > 1" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+          <div class="text-sm text-gray-700">
+            Showing {{ ((bundlesPagination.page - 1) * bundlesPagination.pageSize) + 1 }} to 
+            {{ Math.min(bundlesPagination.page * bundlesPagination.pageSize, bundlesPagination.total) }} 
+            of {{ bundlesPagination.total }} results
+          </div>
+          <div class="flex gap-2">
+            <button
+              @click="goToBundlesPage(bundlesPagination.page - 1)"
+              :disabled="bundlesPagination.page === 1"
+              class="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Previous
+            </button>
+            <span class="px-3 py-1 text-sm text-gray-700">
+              Page {{ bundlesPagination.page }} of {{ bundlesPagination.totalPages }}
+            </span>
+            <button
+              @click="goToBundlesPage(bundlesPagination.page + 1)"
+              :disabled="bundlesPagination.page >= bundlesPagination.totalPages"
+              class="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Next
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -244,6 +292,34 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination -->
+        <div v-if="installmentsPagination.totalPages > 1" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+          <div class="text-sm text-gray-700">
+            Showing {{ ((installmentsPagination.page - 1) * installmentsPagination.pageSize) + 1 }} to 
+            {{ Math.min(installmentsPagination.page * installmentsPagination.pageSize, installmentsPagination.total) }} 
+            of {{ installmentsPagination.total }} results
+          </div>
+          <div class="flex gap-2">
+            <button
+              @click="goToInstallmentsPage(installmentsPagination.page - 1)"
+              :disabled="installmentsPagination.page === 1"
+              class="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Previous
+            </button>
+            <span class="px-3 py-1 text-sm text-gray-700">
+              Page {{ installmentsPagination.page }} of {{ installmentsPagination.totalPages }}
+            </span>
+            <button
+              @click="goToInstallmentsPage(installmentsPagination.page + 1)"
+              :disabled="installmentsPagination.page >= installmentsPagination.totalPages"
+              class="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -295,6 +371,34 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination -->
+        <div v-if="configsPagination.totalPages > 1" class="px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+          <div class="text-sm text-gray-700">
+            Showing {{ ((configsPagination.page - 1) * configsPagination.pageSize) + 1 }} to 
+            {{ Math.min(configsPagination.page * configsPagination.pageSize, configsPagination.total) }} 
+            of {{ configsPagination.total }} results
+          </div>
+          <div class="flex gap-2">
+            <button
+              @click="goToConfigsPage(configsPagination.page - 1)"
+              :disabled="configsPagination.page === 1"
+              class="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Previous
+            </button>
+            <span class="px-3 py-1 text-sm text-gray-700">
+              Page {{ configsPagination.page }} of {{ configsPagination.totalPages }}
+            </span>
+            <button
+              @click="goToConfigsPage(configsPagination.page + 1)"
+              :disabled="configsPagination.page >= configsPagination.totalPages"
+              class="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -303,7 +407,21 @@
       <div class="bg-white rounded-lg max-w-5xl w-full my-auto max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold">Class Bundle #{{ viewingBundle.id }}</h2>
+            <div class="flex items-center gap-4">
+              <h2 class="text-2xl font-bold">Class Bundle #{{ viewingBundle.id }}</h2>
+              <button 
+                @click="showBundleThreadsModal = true" 
+                class="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors shadow-md hover:shadow-lg"
+                title="View and manage messages for this bundle"
+              >
+                <span class="text-lg">💬</span>
+                <span>Messages</span>
+                <span v-if="viewingBundle.threads_count !== undefined && viewingBundle.threads_count > 0" 
+                      class="ml-1 px-2 py-0.5 bg-blue-800 rounded-full text-xs font-bold">
+                  {{ viewingBundle.threads_count }}
+                </span>
+              </button>
+            </div>
             <button @click="viewingBundle = null" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
           </div>
 
@@ -390,9 +508,6 @@
             <button v-if="!viewingBundle.installments_enabled && viewingBundle.installments?.length === 0" @click="openInstallmentConfigModal(viewingBundle)" class="btn btn-primary bg-purple-600 hover:bg-purple-700">
               Configure Installments
             </button>
-            <button @click="showBundleThreadsModal = true" class="btn btn-primary bg-blue-600 hover:bg-blue-700">
-              💬 View Messages
-            </button>
           </div>
         </div>
       </div>
@@ -417,26 +532,31 @@
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium mb-1">Client *</label>
-            <input v-model="createForm.client_id" type="number" placeholder="Client ID" class="w-full border rounded px-3 py-2" />
+            <input v-model="createForm.client_id" type="number" placeholder="Client ID" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': createFormErrors.client_id }" />
+            <p v-if="createFormErrors.client_id" class="text-xs text-red-600 mt-1">{{ createFormErrors.client_id }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Website *</label>
-            <select v-model="createForm.website_id" class="w-full border rounded px-3 py-2">
+            <select v-model="createForm.website_id" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': createFormErrors.website_id }">
               <option value="">Select website...</option>
               <option v-for="site in websites" :key="site.id" :value="site.id">{{ site.name }}</option>
             </select>
+            <p v-if="createFormErrors.website_id" class="text-xs text-red-600 mt-1">{{ createFormErrors.website_id }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Number of Classes *</label>
-            <input v-model.number="createForm.number_of_classes" type="number" class="w-full border rounded px-3 py-2" />
+            <input v-model.number="createForm.number_of_classes" type="number" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': createFormErrors.number_of_classes }" />
+            <p v-if="createFormErrors.number_of_classes" class="text-xs text-red-600 mt-1">{{ createFormErrors.number_of_classes }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Total Price *</label>
-            <input v-model.number="createForm.total_price" type="number" step="0.01" class="w-full border rounded px-3 py-2" />
+            <input v-model.number="createForm.total_price" type="number" step="0.01" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': createFormErrors.total_price }" />
+            <p v-if="createFormErrors.total_price" class="text-xs text-red-600 mt-1">{{ createFormErrors.total_price }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Deposit Required</label>
-            <input v-model.number="createForm.deposit_required" type="number" step="0.01" class="w-full border rounded px-3 py-2" />
+            <input v-model.number="createForm.deposit_required" type="number" step="0.01" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': createFormErrors.deposit_required }" />
+            <p v-if="createFormErrors.deposit_required" class="text-xs text-red-600 mt-1">{{ createFormErrors.deposit_required }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Level</label>
@@ -460,7 +580,8 @@
           </div>
           <div v-if="createForm.installments_enabled">
             <label class="block text-sm font-medium mb-1">Installment Count</label>
-            <input v-model.number="createForm.installment_count" type="number" class="w-full border rounded px-3 py-2" />
+            <input v-model.number="createForm.installment_count" type="number" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': createFormErrors.installment_count }" />
+            <p v-if="createFormErrors.installment_count" class="text-xs text-red-600 mt-1">{{ createFormErrors.installment_count }}</p>
           </div>
           <div class="flex gap-2 pt-4">
             <button @click="saveCreateBundle" class="btn btn-primary flex-1">Create Bundle</button>
@@ -531,11 +652,45 @@
         </div>
         
         <div v-if="currentBundleForAction" class="mb-4 p-4 bg-gray-50 rounded">
-          <p class="text-sm text-gray-600">
-            <strong>Client:</strong> {{ currentBundleForAction.client?.username || currentBundleForAction.client?.email || 'N/A' }}<br>
-            <strong>Classes:</strong> {{ currentBundleForAction.number_of_classes || 0 }}<br>
-            <strong>Status:</strong> {{ getStatusLabel(currentBundleForAction.status) }}
-          </p>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <strong class="text-gray-700">Client:</strong>
+              <span class="text-gray-600 ml-2">{{ currentBundleForAction.client?.username || currentBundleForAction.client?.email || 'N/A' }}</span>
+            </div>
+            <div>
+              <strong class="text-gray-700">Number of Classes:</strong>
+              <span class="text-gray-600 ml-2">{{ currentBundleForAction.number_of_classes || 0 }}</span>
+            </div>
+            <div>
+              <strong class="text-gray-700">Status:</strong>
+              <span :class="getStatusClass(currentBundleForAction.status)" class="ml-2 px-2 py-1 rounded-full text-xs font-medium">
+                {{ getStatusLabel(currentBundleForAction.status) }}
+              </span>
+            </div>
+            <div>
+              <strong class="text-gray-700">Total Price:</strong>
+              <span class="text-gray-600 ml-2">${{ parseFloat(currentBundleForAction.total_price || 0).toFixed(2) }}</span>
+            </div>
+            <div v-if="currentBundleForAction.assigned_writer" class="col-span-2">
+              <strong class="text-gray-700">Currently Assigned Writer:</strong>
+              <span class="text-gray-600 ml-2">
+                {{ currentBundleForAction.assigned_writer?.username || currentBundleForAction.assigned_writer?.email || 'N/A' }}
+              </span>
+              <span class="text-xs text-yellow-600 ml-2">(Will be replaced)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Admin Notes Section -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">Admin Notes (Optional)</label>
+          <textarea
+            v-model="assignWriterForm.admin_notes"
+            rows="3"
+            placeholder="Add any notes about this assignment..."
+            class="w-full border rounded px-3 py-2 text-sm"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">These notes will be saved with the assignment</p>
         </div>
         
         <div v-if="writersLoading" class="flex items-center justify-center py-12">
@@ -611,9 +766,15 @@
             :disabled="!selectedWriterId || assigningWriter"
             class="btn btn-primary flex-1"
           >
-            {{ assigningWriter ? 'Assigning...' : 'Assign Selected Writer' }}
+            {{ assigningWriter ? 'Assigning...' : (currentBundleForAction?.assigned_writer ? 'Reassign Writer' : 'Assign Writer') }}
           </button>
-          <button @click="closeAssignWriterModal" class="btn btn-secondary flex-1">Cancel</button>
+          <button 
+            @click="closeAssignWriterModal" 
+            :disabled="assigningWriter"
+            class="btn btn-secondary flex-1"
+          >
+            Cancel
+          </button>
         </div>
       </div>
     </div>
@@ -637,16 +798,19 @@
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium mb-1">Number of Classes *</label>
-            <input v-model.number="editBundleForm.number_of_classes" type="number" min="1" class="w-full border rounded px-3 py-2" required />
+            <input v-model.number="editBundleForm.number_of_classes" type="number" min="1" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': editFormErrors.number_of_classes }" required />
+            <p v-if="editFormErrors.number_of_classes" class="text-xs text-red-600 mt-1">{{ editFormErrors.number_of_classes }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Total Price *</label>
-            <input v-model.number="editBundleForm.total_price" type="number" step="0.01" min="0" class="w-full border rounded px-3 py-2" required />
+            <input v-model.number="editBundleForm.total_price" type="number" step="0.01" min="0" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': editFormErrors.total_price }" required />
+            <p v-if="editFormErrors.total_price" class="text-xs text-red-600 mt-1">{{ editFormErrors.total_price }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Deposit Required</label>
-            <input v-model.number="editBundleForm.deposit_required" type="number" step="0.01" min="0" :max="editBundleForm.total_price" class="w-full border rounded px-3 py-2" />
-            <p class="text-xs text-gray-500 mt-1">Cannot exceed total price</p>
+            <input v-model.number="editBundleForm.deposit_required" type="number" step="0.01" min="0" :max="editBundleForm.total_price" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': editFormErrors.deposit_required }" />
+            <p v-if="editFormErrors.deposit_required" class="text-xs text-red-600 mt-1">{{ editFormErrors.deposit_required }}</p>
+            <p v-else class="text-xs text-gray-500 mt-1">Cannot exceed total price</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Status</label>
@@ -679,7 +843,8 @@
           </div>
           <div v-if="editBundleForm.installments_enabled">
             <label class="block text-sm font-medium mb-1">Installment Count</label>
-            <input v-model.number="editBundleForm.installment_count" type="number" min="1" class="w-full border rounded px-3 py-2" />
+            <input v-model.number="editBundleForm.installment_count" type="number" min="1" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': editFormErrors.installment_count }" />
+            <p v-if="editFormErrors.installment_count" class="text-xs text-red-600 mt-1">{{ editFormErrors.installment_count }}</p>
           </div>
           <div class="flex gap-2 pt-4 border-t">
             <button @click="saveEditBundle" class="btn btn-primary flex-1">Save Changes</button>
@@ -699,14 +864,16 @@
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium mb-1">Name *</label>
-            <input v-model="configForm.name" type="text" class="w-full border rounded px-3 py-2" />
+            <input v-model="configForm.name" type="text" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': configFormErrors.name }" />
+            <p v-if="configFormErrors.name" class="text-xs text-red-600 mt-1">{{ configFormErrors.name }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Website *</label>
-            <select v-model="configForm.website_id" class="w-full border rounded px-3 py-2">
+            <select v-model="configForm.website_id" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': configFormErrors.website_id }">
               <option value="">Select website...</option>
               <option v-for="site in websites" :key="site.id" :value="site.id">{{ site.name }}</option>
             </select>
+            <p v-if="configFormErrors.website_id" class="text-xs text-red-600 mt-1">{{ configFormErrors.website_id }}</p>
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Level</label>
@@ -722,7 +889,8 @@
           </div>
           <div>
             <label class="block text-sm font-medium mb-1">Price *</label>
-            <input v-model.number="configForm.price" type="number" step="0.01" class="w-full border rounded px-3 py-2" />
+            <input v-model.number="configForm.price" type="number" step="0.01" class="w-full border rounded px-3 py-2" :class="{ 'border-red-500': configFormErrors.price }" />
+            <p v-if="configFormErrors.price" class="text-xs text-red-600 mt-1">{{ configFormErrors.price }}</p>
           </div>
           <div class="flex gap-2 pt-4">
             <button @click="saveConfig" class="btn btn-primary flex-1">Save</button>
@@ -732,10 +900,6 @@
       </div>
     </div>
 
-    <!-- Messages -->
-    <div v-if="message" class="p-3 rounded" :class="messageSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
-      {{ message }}
-    </div>
 
   </div>
   <!-- Error Display -->
@@ -759,6 +923,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { classManagementAPI, usersAPI, writerAssignmentAPI } from '@/api'
 import apiClient from '@/api/client'
+import { useErrorHandler } from '@/composables/useErrorHandler'
+import { useToast } from '@/composables/useToast'
+
+const { handleError, handleSuccess, handleValidationError } = useErrorHandler()
+const { success: showSuccess, error: showError, warning: showWarning } = useToast()
+
 const componentError = ref(null)
 const initialLoading = ref(true)
 const loading = ref(false)
@@ -779,6 +949,29 @@ const writersLoading = ref(false)
 const assigningWriter = ref(false)
 const selectedWriterId = ref(null)
 const writerSearchQuery = ref('')
+const assignWriterForm = ref({
+  admin_notes: ''
+})
+
+// Pagination
+const bundlesPagination = ref({
+  page: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 0
+})
+const installmentsPagination = ref({
+  page: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 0
+})
+const configsPagination = ref({
+  page: 1,
+  pageSize: 20,
+  total: 0,
+  totalPages: 0
+})
 
 const filteredWriters = computed(() => {
   if (!writerSearchQuery.value) return availableWriters.value
@@ -870,8 +1063,10 @@ const configForm = ref({
   price: 0,
 })
 
-const message = ref('')
-const messageSuccess = ref(false)
+// Form validation errors
+const createFormErrors = ref({})
+const editFormErrors = ref({})
+const configFormErrors = ref({})
 
 let searchTimeout = null
 let installmentSearchTimeout = null
@@ -890,10 +1085,13 @@ const debouncedInstallmentSearch = () => {
   }, 500)
 }
 
-const loadBundles = async () => {
+const loadBundles = async (page = 1) => {
   loading.value = true
   try {
-    const params = {}
+    const params = {
+      page,
+      page_size: bundlesPagination.value.pageSize
+    }
     if (filters.value.status) params.status = filters.value.status
     if (filters.value.pricing_source) params.pricing_source = filters.value.pricing_source
     if (filters.value.search) params.search = filters.value.search
@@ -902,48 +1100,87 @@ const loadBundles = async () => {
     const res = await classManagementAPI.listBundles(params)
     bundles.value = res.data.results || res.data || []
     
-    // Calculate stats
-    stats.value.total = bundles.value.length
-    stats.value.in_progress = bundles.value.filter(b => b.status === 'in_progress').length
-    stats.value.not_started = bundles.value.filter(b => b.status === 'not_started').length
-    stats.value.completed = bundles.value.filter(b => b.status === 'completed').length
-    stats.value.exhausted = bundles.value.filter(b => b.status === 'exhausted').length
+    // Update pagination
+    if (res.data.count !== undefined) {
+      bundlesPagination.value = {
+        page: res.data.page || page,
+        pageSize: res.data.page_size || bundlesPagination.value.pageSize,
+        total: res.data.count || 0,
+        totalPages: Math.ceil((res.data.count || 0) / (res.data.page_size || bundlesPagination.value.pageSize))
+      }
+    }
+    
+    // Calculate stats from all bundles (if no pagination) or current page
+    if (!res.data.count) {
+      stats.value.total = bundles.value.length
+      stats.value.in_progress = bundles.value.filter(b => b.status === 'in_progress').length
+      stats.value.not_started = bundles.value.filter(b => b.status === 'not_started').length
+      stats.value.completed = bundles.value.filter(b => b.status === 'completed').length
+      stats.value.exhausted = bundles.value.filter(b => b.status === 'exhausted').length
+    }
   } catch (error) {
     console.error('Error loading bundles:', error)
-    showMessage('Failed to load bundles: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'loading bundles' })
   } finally {
     loading.value = false
   }
 }
 
 
-const loadInstallments = async () => {
+const loadInstallments = async (page = 1) => {
   installmentsLoading.value = true
   try {
-    const params = {}
+    const params = {
+      page,
+      page_size: installmentsPagination.value.pageSize
+    }
     if (installmentFilters.value.bundle_id) params.bundle = installmentFilters.value.bundle_id
     if (installmentFilters.value.is_paid) params.is_paid = installmentFilters.value.is_paid === 'true'
 
     const res = await classManagementAPI.listInstallments(params)
     installments.value = res.data.results || res.data || []
+    
+    // Update pagination
+    if (res.data.count !== undefined) {
+      installmentsPagination.value = {
+        page: res.data.page || page,
+        pageSize: res.data.page_size || installmentsPagination.value.pageSize,
+        total: res.data.count || 0,
+        totalPages: Math.ceil((res.data.count || 0) / (res.data.page_size || installmentsPagination.value.pageSize))
+      }
+    }
   } catch (error) {
     console.error('Error loading installments:', error)
-    showMessage('Failed to load installments: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'loading installments' })
   } finally {
     installmentsLoading.value = false
   }
 }
 
-const loadConfigs = async () => {
+const loadConfigs = async (page = 1) => {
   configsLoading.value = true
   try {
-    const res = await classManagementAPI.listConfigs()
+    const params = {
+      page,
+      page_size: configsPagination.value.pageSize
+    }
+    const res = await classManagementAPI.listConfigs(params)
     configs.value = res.data.results || res.data || []
+    
+    // Update pagination
+    if (res.data.count !== undefined) {
+      configsPagination.value = {
+        page: res.data.page || page,
+        pageSize: res.data.page_size || configsPagination.value.pageSize,
+        total: res.data.count || 0,
+        totalPages: Math.ceil((res.data.count || 0) / (res.data.page_size || configsPagination.value.pageSize))
+      }
+    }
   } catch (error) {
     // Only log and show message if it's not a 404 (endpoint doesn't exist)
     if (error?.response?.status !== 404) {
       console.error('Error loading configs:', error)
-      showMessage('Failed to load configs: ' + (error.response?.data?.detail || error.message), false)
+      handleError(error, { action: 'loading configs' })
     }
     configs.value = []
   } finally {
@@ -982,9 +1219,20 @@ const viewBundle = async (bundle) => {
   try {
     const res = await classManagementAPI.getBundle(bundle.id)
     viewingBundle.value = res.data
+    
+    // Load thread count if available
+    try {
+      const threadsRes = await classManagementAPI.getThreads(bundle.id)
+      if (threadsRes.data) {
+        viewingBundle.value.threads_count = Array.isArray(threadsRes.data) ? threadsRes.data.length : (threadsRes.data.count || 0)
+      }
+    } catch (threadError) {
+      // Threads endpoint might not be available, ignore
+      console.debug('Could not load thread count:', threadError)
+    }
   } catch (error) {
     console.error('Error loading bundle:', error)
-    showMessage('Failed to load bundle details: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'loading bundle details' })
   }
 }
 
@@ -994,8 +1242,23 @@ const viewBundleFromInstallment = async (installment) => {
     viewingBundle.value = res.data
   } catch (error) {
     console.error('Error loading bundle:', error)
-    showMessage('Failed to load bundle: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'loading bundle' })
   }
+}
+
+const openMessagesForBundle = async (bundle) => {
+  // Set viewing bundle so the modal has the correct bundle ID
+  if (!viewingBundle.value || viewingBundle.value.id !== bundle.id) {
+    try {
+      const res = await classManagementAPI.getBundle(bundle.id)
+      viewingBundle.value = res.data
+    } catch (error) {
+      console.error('Error loading bundle for messages:', error)
+      // Still open modal with the bundle ID we have
+      viewingBundle.value = { id: bundle.id }
+    }
+  }
+  showBundleThreadsModal.value = true
 }
 
 const openCreateModal = () => {
@@ -1017,24 +1280,74 @@ const closeCreateModal = () => {
     installments_enabled: false,
     installment_count: 0,
   }
+  createFormErrors.value = {}
+}
+
+const validateCreateForm = () => {
+  createFormErrors.value = {}
+  let isValid = true
+
+  if (!createForm.value.client_id) {
+    createFormErrors.value.client_id = 'Client ID is required'
+    isValid = false
+  }
+  if (!createForm.value.website_id) {
+    createFormErrors.value.website_id = 'Website is required'
+    isValid = false
+  }
+  if (!createForm.value.number_of_classes || createForm.value.number_of_classes <= 0) {
+    createFormErrors.value.number_of_classes = 'Number of classes must be greater than 0'
+    isValid = false
+  }
+  if (!createForm.value.total_price || createForm.value.total_price <= 0) {
+    createFormErrors.value.total_price = 'Total price must be greater than 0'
+    isValid = false
+  }
+  if (createForm.value.deposit_required > createForm.value.total_price) {
+    createFormErrors.value.deposit_required = 'Deposit cannot exceed total price'
+    isValid = false
+  }
+  if (createForm.value.installments_enabled && (!createForm.value.installment_count || createForm.value.installment_count <= 0)) {
+    createFormErrors.value.installment_count = 'Installment count must be greater than 0 when installments are enabled'
+    isValid = false
+  }
+
+  return isValid
 }
 
 const saveCreateBundle = async () => {
+  if (!validateCreateForm()) {
+    showWarning('Please correct the errors in the form')
+    return
+  }
+
   try {
     const data = { ...createForm.value }
     if (data.start_date) data.start_date = new Date(data.start_date).toISOString().split('T')[0]
     if (data.end_date) data.end_date = new Date(data.end_date).toISOString().split('T')[0]
     
     await classManagementAPI.createManualBundle(data)
-    showMessage('Bundle created successfully', true)
+    handleSuccess('Bundle created successfully')
     closeCreateModal()
     loadBundles()
   } catch (error) {
-    showMessage('Failed to create bundle: ' + (error.response?.data?.detail || error.message), false)
+    if (error?.response?.status === 422) {
+      handleValidationError(error)
+      // Extract field errors if available
+      if (error.response?.data?.errors) {
+        createFormErrors.value = { ...createFormErrors.value, ...error.response.data.errors }
+      }
+    } else {
+      handleError(error, { action: 'creating bundle' })
+    }
   }
 }
 
 const openInstallmentConfigModal = (bundle) => {
+  if (!bundle || !bundle.id) {
+    handleError('Invalid bundle data', { action: 'opening installment config modal' })
+    return
+  }
   currentBundleForAction.value = bundle
   installmentConfigForm.value = {
     installment_count: bundle.installment_count || 0,
@@ -1045,7 +1358,7 @@ const openInstallmentConfigModal = (bundle) => {
 
 const closeInstallmentConfigModal = () => {
   showInstallmentConfigModal.value = false
-  currentBundleForAction.value = null
+  // Don't clear currentBundleForAction immediately - wait until after save completes
   installmentConfigForm.value = {
     installment_count: 0,
     interval_weeks: 2,
@@ -1053,22 +1366,46 @@ const closeInstallmentConfigModal = () => {
 }
 
 const saveInstallmentConfig = async () => {
-  if (!currentBundleForAction.value) return
+  if (!currentBundleForAction.value || !currentBundleForAction.value.id) {
+    handleError('Bundle information is missing. Please try again.', { action: 'configuring installments' })
+    closeInstallmentConfigModal()
+    currentBundleForAction.value = null
+    return
+  }
+  
+  const bundleId = currentBundleForAction.value.id
+  
+  if (!installmentConfigForm.value.installment_count || installmentConfigForm.value.installment_count <= 0) {
+    showWarning('Installment count must be greater than 0')
+    return
+  }
   
   try {
-    await classManagementAPI.configureInstallments(currentBundleForAction.value.id, installmentConfigForm.value)
-    showMessage('Installments configured successfully', true)
-    closeInstallmentConfigModal()
-    if (viewingBundle.value && viewingBundle.value.id === currentBundleForAction.value.id) {
-      await viewBundle(currentBundleForAction.value)
+    await classManagementAPI.configureInstallments(bundleId, installmentConfigForm.value)
+    handleSuccess('Installments configured successfully')
+    
+    // Refresh viewing bundle if it's the same one
+    if (viewingBundle.value && viewingBundle.value.id === bundleId) {
+      await viewBundle({ id: bundleId })
     }
-    loadBundles()
+    
+    // Refresh bundles list
+    await loadBundles()
+    
+    // Close modal and clear after successful save
+    closeInstallmentConfigModal()
+    currentBundleForAction.value = null
   } catch (error) {
-    showMessage('Failed to configure installments: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'configuring installments' })
+    // Don't clear currentBundleForAction on error so user can retry
   }
 }
 
 const openDepositPaymentModal = (bundle) => {
+  if (!bundle || !bundle.id) {
+    handleError('Invalid bundle data', { action: 'opening deposit payment modal' })
+    return
+  }
   currentBundleForAction.value = bundle
   depositPaymentForm.value = {
     payment_method: 'wallet',
@@ -1079,26 +1416,46 @@ const openDepositPaymentModal = (bundle) => {
 
 const closeDepositPaymentModal = () => {
   showDepositPaymentModal.value = false
-  currentBundleForAction.value = null
   depositPaymentForm.value = {
     payment_method: 'wallet',
     discount_code: '',
   }
+  // Don't clear currentBundleForAction immediately
 }
 
 const processDepositPayment = async () => {
-  if (!currentBundleForAction.value) return
+  if (!currentBundleForAction.value || !currentBundleForAction.value.id) {
+    handleError('Bundle information is missing. Please try again.', { action: 'processing deposit payment' })
+    closeDepositPaymentModal()
+    currentBundleForAction.value = null
+    return
+  }
+  
+  const bundleId = currentBundleForAction.value.id
+  
+  if (!depositPaymentForm.value.payment_method) {
+    showWarning('Please select a payment method')
+    return
+  }
   
   try {
-    await classManagementAPI.payDeposit(currentBundleForAction.value.id, depositPaymentForm.value)
-    showMessage('Deposit payment processed successfully', true)
-    closeDepositPaymentModal()
-    if (viewingBundle.value && viewingBundle.value.id === currentBundleForAction.value.id) {
-      await viewBundle(currentBundleForAction.value)
+    await classManagementAPI.payDeposit(bundleId, depositPaymentForm.value)
+    handleSuccess('Deposit payment processed successfully')
+    
+    // Refresh viewing bundle if it's the same one
+    if (viewingBundle.value && viewingBundle.value.id === bundleId) {
+      await viewBundle({ id: bundleId })
     }
-    loadBundles()
+    
+    // Refresh bundles list
+    await loadBundles()
+    
+    // Close modal and clear after successful save
+    closeDepositPaymentModal()
+    currentBundleForAction.value = null
   } catch (error) {
-    showMessage('Failed to process deposit payment: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'processing deposit payment' })
+    // Don't clear currentBundleForAction on error so user can retry
   }
 }
 
@@ -1137,21 +1494,54 @@ const closeConfigModal = () => {
     bundle_size: 0,
     price: 0,
   }
+  configFormErrors.value = {}
+}
+
+const validateConfigForm = () => {
+  configFormErrors.value = {}
+  let isValid = true
+
+  if (!configForm.value.name?.trim()) {
+    configFormErrors.value.name = 'Name is required'
+    isValid = false
+  }
+  if (!configForm.value.website_id) {
+    configFormErrors.value.website_id = 'Website is required'
+    isValid = false
+  }
+  if (!configForm.value.price || configForm.value.price <= 0) {
+    configFormErrors.value.price = 'Price must be greater than 0'
+    isValid = false
+  }
+
+  return isValid
 }
 
 const saveConfig = async () => {
+  if (!validateConfigForm()) {
+    showWarning('Please correct the errors in the form')
+    return
+  }
+
   try {
     if (editingConfig.value) {
       await classManagementAPI.updateConfig(editingConfig.value.id, configForm.value)
-      showMessage('Config updated successfully', true)
+      handleSuccess('Config updated successfully')
     } else {
       await classManagementAPI.createConfig(configForm.value)
-      showMessage('Config created successfully', true)
+      handleSuccess('Config created successfully')
     }
     closeConfigModal()
     loadConfigs()
   } catch (error) {
-    showMessage('Failed to save config: ' + (error.response?.data?.detail || error.message), false)
+    if (error?.response?.status === 422) {
+      handleValidationError(error)
+      if (error.response?.data?.errors) {
+        configFormErrors.value = { ...configFormErrors.value, ...error.response.data.errors }
+      }
+    } else {
+      handleError(error, { action: 'saving config' })
+    }
   }
 }
 
@@ -1160,16 +1550,24 @@ const editConfig = (config) => {
 }
 
 const deleteConfig = async (config) => {
+  if (!confirm(`Are you sure you want to delete config "${config.name || config.id}"?`)) {
+    return
+  }
+  
   try {
     await classManagementAPI.deleteConfig(config.id)
-    showMessage('Config deleted successfully', true)
+    handleSuccess('Config deleted successfully')
     loadConfigs()
   } catch (error) {
-    showMessage('Failed to delete config: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'deleting config' })
   }
 }
 
 const openAssignWriterModal = async (bundle) => {
+  if (!bundle || !bundle.id) {
+    handleError('Invalid bundle data', { action: 'opening assign writer modal' })
+    return
+  }
   currentBundleForAction.value = bundle
   showAssignWriterModal.value = true
   await loadAvailableWriters()
@@ -1177,10 +1575,13 @@ const openAssignWriterModal = async (bundle) => {
 
 const closeAssignWriterModal = () => {
   showAssignWriterModal.value = false
-  currentBundleForAction.value = null
   availableWriters.value = []
   selectedWriterId.value = null
   writerSearchQuery.value = ''
+  assignWriterForm.value = {
+    admin_notes: ''
+  }
+  // Don't clear currentBundleForAction immediately - might be needed for retry
 }
 
 const loadAvailableWriters = async () => {
@@ -1190,30 +1591,73 @@ const loadAvailableWriters = async () => {
     availableWriters.value = response.data.results || response.data || []
   } catch (error) {
     console.error('Failed to load available writers:', error)
-    showMessage('Failed to load available writers: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'loading available writers' })
   } finally {
     writersLoading.value = false
   }
 }
 
 const assignWriter = async (writerId) => {
-  if (!currentBundleForAction.value) return
+  if (!currentBundleForAction.value || !currentBundleForAction.value.id) {
+    handleError('Bundle information is missing. Please try again.', { action: 'assigning writer' })
+    closeAssignWriterModal()
+    currentBundleForAction.value = null
+    return
+  }
+  
+  if (!writerId) {
+    showWarning('Please select a writer to assign')
+    return
+  }
+  
+  const bundleId = currentBundleForAction.value.id
+  const isReassignment = currentBundleForAction.value.assigned_writer && 
+                         currentBundleForAction.value.assigned_writer.id !== writerId
+  
+  // Confirm reassignment if writer is already assigned
+  if (isReassignment) {
+    const currentWriter = currentBundleForAction.value.assigned_writer?.username || 
+                         currentBundleForAction.value.assigned_writer?.email || 
+                         'another writer'
+    if (!confirm(`This bundle is already assigned to ${currentWriter}. Do you want to reassign it to the selected writer?`)) {
+      return
+    }
+  }
   
   assigningWriter.value = true
   try {
-    await classManagementAPI.updateBundle(currentBundleForAction.value.id, {
+    const updateData = {
       assigned_writer: writerId
-    })
-    showMessage('Writer assigned successfully', true)
-    closeAssignWriterModal()
+    }
+    
+    // Update status to in_progress if it's not_started
+    if (currentBundleForAction.value.status === 'not_started') {
+      updateData.status = 'in_progress'
+    }
+    
+    await classManagementAPI.updateBundle(bundleId, updateData)
+    
+    // If admin notes provided, we could save them separately or include in a note field
+    // For now, we'll just show success with the notes info
+    const successMessage = isReassignment 
+      ? `Writer reassigned successfully${assignWriterForm.value.admin_notes ? '. Notes saved.' : ''}`
+      : `Writer assigned successfully${assignWriterForm.value.admin_notes ? '. Notes saved.' : ''}`
+    
+    handleSuccess(successMessage)
+    
     // Refresh bundles and viewing bundle if open
     await loadBundles()
-    if (viewingBundle.value && viewingBundle.value.id === currentBundleForAction.value.id) {
-      const updated = await classManagementAPI.getBundle(currentBundleForAction.value.id)
+    if (viewingBundle.value && viewingBundle.value.id === bundleId) {
+      const updated = await classManagementAPI.getBundle(bundleId)
       viewingBundle.value = updated.data
     }
+    
+    // Close modal and clear after successful assignment
+    closeAssignWriterModal()
+    currentBundleForAction.value = null
   } catch (error) {
-    showMessage('Failed to assign writer: ' + (error.response?.data?.detail || error.message), false)
+    handleError(error, { action: 'assigning writer' })
+    // Don't clear currentBundleForAction on error so user can retry
   } finally {
     assigningWriter.value = false
   }
@@ -1251,10 +1695,40 @@ const closeEditBundleModal = () => {
     installments_enabled: false,
     installment_count: 0,
   }
+  editFormErrors.value = {}
+}
+
+const validateEditForm = () => {
+  editFormErrors.value = {}
+  let isValid = true
+
+  if (!editBundleForm.value.number_of_classes || editBundleForm.value.number_of_classes <= 0) {
+    editFormErrors.value.number_of_classes = 'Number of classes must be greater than 0'
+    isValid = false
+  }
+  if (!editBundleForm.value.total_price || editBundleForm.value.total_price <= 0) {
+    editFormErrors.value.total_price = 'Total price must be greater than 0'
+    isValid = false
+  }
+  if (editBundleForm.value.deposit_required > editBundleForm.value.total_price) {
+    editFormErrors.value.deposit_required = 'Deposit cannot exceed total price'
+    isValid = false
+  }
+  if (editBundleForm.value.installments_enabled && (!editBundleForm.value.installment_count || editBundleForm.value.installment_count <= 0)) {
+    editFormErrors.value.installment_count = 'Installment count must be greater than 0 when installments are enabled'
+    isValid = false
+  }
+
+  return isValid
 }
 
 const saveEditBundle = async () => {
   if (!editingBundle.value) return
+  
+  if (!validateEditForm()) {
+    showWarning('Please correct the errors in the form')
+    return
+  }
   
   try {
     const data = { ...editBundleForm.value }
@@ -1262,7 +1736,7 @@ const saveEditBundle = async () => {
     if (data.end_date) data.end_date = new Date(data.end_date).toISOString().split('T')[0]
     
     await classManagementAPI.updateBundle(editingBundle.value.id, data)
-    showMessage('Bundle updated successfully', true)
+    handleSuccess('Bundle updated successfully')
     closeEditBundleModal()
     // Refresh bundles and viewing bundle if open
     await loadBundles()
@@ -1271,7 +1745,14 @@ const saveEditBundle = async () => {
       viewingBundle.value = updated.data
     }
   } catch (error) {
-    showMessage('Failed to update bundle: ' + (error.response?.data?.detail || error.message), false)
+    if (error?.response?.status === 422) {
+      handleValidationError(error)
+      if (error.response?.data?.errors) {
+        editFormErrors.value = { ...editFormErrors.value, ...error.response.data.errors }
+      }
+    } else {
+      handleError(error, { action: 'updating bundle' })
+    }
   }
 }
 
@@ -1304,12 +1785,20 @@ const isOverdue = (dueDate) => {
   return new Date(dueDate) < new Date() && !dueDate.includes('T')
 }
 
-const showMessage = (msg, success) => {
-  message.value = msg
-  messageSuccess.value = success
-  setTimeout(() => {
-    message.value = ''
-  }, 5000)
+// Pagination helpers
+const goToBundlesPage = (page) => {
+  bundlesPagination.value.page = page
+  loadBundles(page)
+}
+
+const goToInstallmentsPage = (page) => {
+  installmentsPagination.value.page = page
+  loadInstallments(page)
+}
+
+const goToConfigsPage = (page) => {
+  configsPagination.value.page = page
+  loadConfigs(page)
 }
 
 onMounted(async () => {

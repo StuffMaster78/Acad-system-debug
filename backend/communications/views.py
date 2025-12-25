@@ -1009,8 +1009,76 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
                             "email": participant.email,
                             "role": getattr(participant, "role", None),
                         })
+            elif thread.content_type and thread.thread_type == 'class_bundle':
+                # Handle class bundle threads (via GenericForeignKey)
+                try:
+                    from class_management.models import ClassBundle, ExpressClass
+                    from django.contrib.contenttypes.models import ContentType
+                    
+                    bundle_content_type = ContentType.objects.get_for_model(ClassBundle)
+                    express_class_content_type = ContentType.objects.get_for_model(ExpressClass)
+                    
+                    if thread.content_type == bundle_content_type:
+                        # Class Bundle thread
+                        try:
+                            bundle = ClassBundle.objects.get(pk=thread.object_id)
+                            # Add client
+                            if getattr(bundle, "client", None) and bundle.client != sender:
+                                recipients.append({
+                                    "id": bundle.client.id,
+                                    "username": bundle.client.username,
+                                    "email": bundle.client.email,
+                                    "role": getattr(bundle.client, "role", None),
+                                })
+                            # Add assigned writer
+                            if getattr(bundle, "assigned_writer", None) and bundle.assigned_writer != sender:
+                                recipients.append({
+                                    "id": bundle.assigned_writer.id,
+                                    "username": bundle.assigned_writer.username,
+                                    "email": bundle.assigned_writer.email,
+                                    "role": getattr(bundle.assigned_writer, "role", None),
+                                })
+                        except ClassBundle.DoesNotExist:
+                            pass
+                    elif thread.content_type == express_class_content_type:
+                        # Express Class thread
+                        try:
+                            express_class = ExpressClass.objects.get(pk=thread.object_id)
+                            # Add client (express classes may have client as FK or email)
+                            if hasattr(express_class, 'client') and express_class.client and express_class.client != sender:
+                                recipients.append({
+                                    "id": express_class.client.id,
+                                    "username": express_class.client.username,
+                                    "email": express_class.client.email,
+                                    "role": getattr(express_class.client, "role", None),
+                                })
+                            # Add assigned writer
+                            if hasattr(express_class, 'assigned_writer') and express_class.assigned_writer and express_class.assigned_writer != sender:
+                                recipients.append({
+                                    "id": express_class.assigned_writer.id,
+                                    "username": express_class.assigned_writer.username,
+                                    "email": express_class.assigned_writer.email,
+                                    "role": getattr(express_class.assigned_writer, "role", None),
+                                })
+                        except ExpressClass.DoesNotExist:
+                            pass
+                except Exception as e:
+                    # If we can't load the class bundle/express class, just continue with participants
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Could not load class bundle/express class for thread {thread_pk}: {e}")
+                
+                # Always add all participants (for staff members, etc.)
+                for participant in thread.participants.exclude(id=sender.id):
+                    if not any(r["id"] == participant.id for r in recipients):
+                        recipients.append({
+                            "id": participant.id,
+                            "username": participant.username,
+                            "email": participant.email,
+                            "role": getattr(participant, "role", None),
+                        })
             else:
-                # For threads without orders, just return participants
+                # For threads without orders or class bundles, just return participants
                 for participant in thread.participants.exclude(id=sender.id):
                     recipients.append({
                         "id": participant.id,

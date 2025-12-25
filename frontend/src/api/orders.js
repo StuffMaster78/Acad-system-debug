@@ -17,8 +17,8 @@ export default {
   // Order Actions
   getAvailableActions: (id) => apiClient.get(`/orders/orders/${id}/action/`),
   executeAction: (id, action, params = {}) => apiClient.post(`/orders/orders/${id}/action/`, { action, ...params }),
-  assignWriter: (id, writerId, reason = '') => apiClient.post(`/orders/orders/${id}/action/`, { action: 'assign_writer', writer_id: writerId, reason }),
-  reassignWriter: (id, writerId, reason = '') => apiClient.post(`/orders/orders/${id}/action/`, { action: 'reassign_writer', writer_id: writerId, reason }),
+  assignWriter: (id, writerId, reason = '') => apiClient.post(`/orders/orders/${id}/action/`, { action: 'assign_order', writer_id: writerId, reason }),
+  reassignWriter: (id, writerId, reason = '') => apiClient.post(`/orders/orders/${id}/action/`, { action: 'reassign_order', writer_id: writerId, reason }),
   approveOrder: (id) => apiClient.post(`/orders/orders/${id}/action/`, { action: 'approve_order' }),
   cancelOrder: (id, reason = '') => apiClient.post(`/orders/orders/${id}/action/`, { action: 'cancel_order', reason }),
   completeOrder: (id) => apiClient.post(`/orders/orders/${id}/action/`, { action: 'complete_order' }),
