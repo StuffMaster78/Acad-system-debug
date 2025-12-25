@@ -254,14 +254,14 @@
             
             <div class="flex flex-col gap-2">
               <button
-                v-if="order.is_paid"
+                v-if="!order.assigned_writer && !order.writer_username && order.is_paid"
                 @click.stop="openAssignModal(order)"
                 class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium whitespace-nowrap"
               >
                 Assign Writer
               </button>
               <button
-                v-else
+                v-else-if="!order.assigned_writer && !order.writer_username && !order.is_paid"
                 @click.stop="showUnpaidWarningModal = true; currentOrderForAction = order"
                 class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm font-medium whitespace-nowrap"
                 title="Order must be paid before assigning writer"
@@ -876,15 +876,24 @@
                       </div>
                     </div>
                     <div class="flex flex-wrap gap-2 mt-2">
-                      <span v-if="writer.writer_level" class="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full font-medium">
-                        {{ writer.writer_level.name || writer.writer_level }}
+                      <span v-if="writer.profile?.writer_level" class="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full font-medium">
+                        {{ writer.profile.writer_level.name || writer.profile.writer_level.level || 'Level ' + (writer.profile.writer_level.level || 'N/A') }}
                       </span>
-                      <span v-if="writer.is_available !== false" class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
-                        Available
+                      <span v-if="writer.workload" class="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs rounded-full font-medium">
+                        {{ writer.workload.active_orders_count || 0 }}/{{ writer.workload.max_orders || 5 }} orders
                       </span>
-                      <span v-else class="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs rounded-full">
-                        Unavailable
+                      <span v-if="writer.workload?.capacity !== undefined && writer.workload.capacity > 0" class="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full">
+                        {{ writer.workload.capacity }} slot{{ writer.workload.capacity !== 1 ? 's' : '' }} available
                       </span>
+                      <span v-else-if="writer.workload?.capacity === 0" class="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs rounded-full">
+                        Full
+                      </span>
+                      <span v-if="writer.profile?.rating" class="px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-xs rounded-full">
+                        ⭐ {{ writer.profile.rating.toFixed(1) }}
+                      </span>
+                    </div>
+                    <div v-if="writer.workload" class="mt-2 text-xs text-gray-600 dark:text-gray-400">
+                      <p>Active: {{ writer.workload.active_orders_count || 0 }} | Max: {{ writer.workload.max_orders || 5 }} | Capacity: {{ writer.workload.capacity || 0 }}</p>
                     </div>
                   </div>
                   <div v-if="assignForm.writerId === writer.id" class="shrink-0">
@@ -1093,7 +1102,7 @@
 <script setup>
 import { ref, computed, onMounted, watch, unref } from 'vue'
 import { useRoute } from 'vue-router'
-import { ordersAPI, usersAPI, adminOrdersAPI, writerOrderRequestsAPI } from '@/api'
+import { ordersAPI, usersAPI, adminOrdersAPI, writerOrderRequestsAPI, writerAssignmentAPI } from '@/api'
 import { formatWriterName } from '@/utils/formatDisplay'
 import OrderThreadsModal from '@/components/order/OrderThreadsModal.vue'
 import OrderActionModal from '@/components/order/OrderActionModal.vue'
@@ -1448,14 +1457,17 @@ const getWebsiteColorClass = (website) => {
   return colors[Math.abs(hash) % colors.length]
 }
 
-const loadWriters = async () => {
+const loadWriters = async (orderId = null) => {
   loadingWriters.value = true
   try {
-    const res = await usersAPI.list({ role: 'writer', is_active: true })
-    availableWriters.value = res.data.results || res.data || []
+    // Use writer assignment API to get writers with workload, level, and limit info
+    const res = await writerAssignmentAPI.getAvailableWriters(orderId)
+    availableWriters.value = res.data.writers || res.data.results || res.data || []
   } catch (error) {
     console.error('Error loading writers:', error)
-    showMessage('Failed to load writers: ' + (error.response?.data?.detail || error.message), false)
+    const errorMsg = error.response?.data?.detail || error.message || 'Failed to load writers'
+    showMessage('Failed to load writers: ' + errorMsg, false)
+    availableWriters.value = []
   } finally {
     loadingWriters.value = false
   }
@@ -1509,17 +1521,27 @@ const viewOrder = async (order) => {
 }
 
 const openAssignModal = async (order) => {
-  // Check payment status before opening assign modal
+  // Check if order is paid and available
   if (!order.is_paid) {
     currentOrderForAction.value = order
     showUnpaidWarningModal.value = true
     return
   }
   
-  currentOrderForAction.value = order
-  if (availableWriters.value.length === 0) {
-    await loadWriters()
+  if (order.status !== 'available') {
+    showMessage(`Order must be in 'available' status to be assigned. Current status: ${order.status}`, false)
+    return
   }
+  
+  currentOrderForAction.value = order
+  assignForm.value = {
+    writerId: null,
+    reason: ''
+  }
+  
+  // Load writers with workload info for this specific order
+  await loadWriters(order.id)
+  
   showAssignModal.value = true
 }
 
@@ -1667,8 +1689,19 @@ const openActionModal = async (order, action = null) => {
   }
   
   // Load writers if needed for assign/reassign
-  if ((action === 'assign_order' || action === 'reassign_order') && availableWriters.value.length === 0) {
-    await loadWriters()
+  if ((action === 'assign_order' || action === 'reassign_order')) {
+    // Check if order is paid and available
+    if (action === 'assign_order' && (!order.is_paid || order.status !== 'available')) {
+      if (!order.is_paid) {
+        showUnpaidWarningModal.value = true
+        return
+      }
+      if (order.status !== 'available') {
+        showMessage(`Order must be in 'available' status to be assigned. Current status: ${order.status}`, false)
+        return
+      }
+    }
+    await loadWriters(order.id)
   }
   
   showActionModal.value = true
@@ -1922,11 +1955,10 @@ const openAssignModalFromRequest = async (req) => {
     showUnpaidWarningModal.value = true
     return
   }
-  // Check payment status before opening assign modal
-  const order = req.order || req
-  if (order && !order.is_paid) {
-    currentOrderForAction.value = order
-    showUnpaidWarningModal.value = true
+  
+  // Check if order is in available status
+  if (order && order.status !== 'available') {
+    showMessage(`Order must be in 'available' status to be assigned. Current status: ${order.status}`, false)
     return
   }
   // Confirm with the admin before assigning

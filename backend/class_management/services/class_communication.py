@@ -211,9 +211,14 @@ class ClassBundleCommunicationService:
         if bundle.client == user:
             return True
         
-        # Staff can access all
+        # Staff (admin, editor, superadmin, support) can access all
         if user.is_staff or user.is_superuser:
             return True
+        
+        # Check user role for support/editor access
+        if hasattr(user, 'role'):
+            if user.role in ['admin', 'superadmin', 'editor', 'support']:
+                return True
         
         # Assigned writer can access
         if bundle.assigned_writer == user:

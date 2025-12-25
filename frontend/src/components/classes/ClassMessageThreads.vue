@@ -5,20 +5,31 @@
         <!-- Header -->
         <div class="bg-linear-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
           <div class="flex items-center justify-between">
-            <div>
+            <div class="flex-1">
               <h3 class="text-xl font-bold text-white">Message Threads</h3>
               <p class="text-sm text-blue-100 mt-1">
                 {{ classType === 'bundle' ? `Class Bundle #${classId}` : `Express Class #${classId}` }}
               </p>
             </div>
-            <button 
-              @click="$emit('close')" 
-              class="text-white/80 hover:text-white hover:bg-white/20 rounded-lg p-1.5 transition-colors"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+            <div class="flex items-center gap-3">
+              <button 
+                @click="openCreateThreadModal"
+                :disabled="availableRecipients.length === 0"
+                class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 backdrop-blur-sm"
+                title="Send a new message"
+              >
+                <span>✉️</span>
+                <span>New Message</span>
+              </button>
+              <button 
+                @click="$emit('close')" 
+                class="text-white/80 hover:text-white hover:bg-white/20 rounded-lg p-1.5 transition-colors"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -37,9 +48,14 @@
             </svg>
             <p class="text-lg font-medium">No message threads yet</p>
             <p class="text-sm mt-2">Create a new thread to start communicating</p>
+            <div v-if="availableRecipients.length === 0" class="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg text-sm text-yellow-800 dark:text-yellow-200">
+              <p class="font-medium mb-1">⚠️ No recipients available</p>
+              <p class="text-xs">Make sure the class has a client or assigned writer, or you have permission to message other users.</p>
+            </div>
             <button 
-              @click="showCreateThreadModal = true"
-              class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              @click="openCreateThreadModal"
+              :disabled="availableRecipients.length === 0"
+              class="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Create Thread
             </button>
@@ -51,12 +67,17 @@
               <h4 class="text-lg font-semibold text-gray-900 dark:text-white">
                 {{ threads.length }} Thread{{ threads.length !== 1 ? 's' : '' }}
               </h4>
-              <button 
-                @click="showCreateThreadModal = true"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-              >
-                + New Thread
-              </button>
+              <div class="flex gap-2">
+                <button 
+                  @click="openCreateThreadModal"
+                  :disabled="availableRecipients.length === 0"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  title="Create a new message thread"
+                >
+                  <span>💬</span>
+                  <span>New Thread</span>
+                </button>
+              </div>
             </div>
 
             <div
@@ -120,12 +141,17 @@
             <form @submit.prevent="createThread" class="space-y-4">
               <div>
                 <label class="block text-sm font-medium mb-1">Recipient *</label>
+                <div v-if="availableRecipients.length === 0" class="p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-sm text-yellow-800 dark:text-yellow-200 mb-2">
+                  <p class="font-medium">⚠️ No recipients available</p>
+                  <p class="text-xs mt-1">Loading recipients... If this persists, you may not have permission to create threads for this class.</p>
+                </div>
                 <select 
                   v-model="newThreadForm.recipient_id" 
                   required
-                  class="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600"
+                  :disabled="availableRecipients.length === 0"
+                  class="w-full border rounded px-3 py-2 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <option value="">Select recipient...</option>
+                  <option value="">{{ availableRecipients.length === 0 ? 'No recipients available' : 'Select recipient...' }}</option>
                   <option 
                     v-for="user in availableRecipients" 
                     :key="user.id" 
@@ -134,6 +160,9 @@
                     {{ user.username || user.email }} ({{ user.role }})
                   </option>
                 </select>
+                <p v-if="availableRecipients.length > 0" class="text-xs text-gray-500 mt-1">
+                  {{ availableRecipients.length }} recipient{{ availableRecipients.length !== 1 ? 's' : '' }} available
+                </p>
               </div>
 
               <div>
@@ -195,7 +224,10 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { classManagementAPI, expressClassesAPI, communicationsAPI } from '@/api'
 import apiClient from '@/api/client'
 import { useAuthStore } from '@/stores/auth'
+import { useErrorHandler } from '@/composables/useErrorHandler'
 import ThreadViewModal from '@/components/messages/ThreadViewModal.vue'
+
+const { handleError, handleSuccess, handleWarning } = useErrorHandler()
 
 const props = defineProps({
   show: {
@@ -243,6 +275,11 @@ const loadThreads = async () => {
     threads.value = response.data || []
   } catch (error) {
     console.error('Failed to load threads:', error)
+    // Only show error if it's not a 404 (endpoint might not exist yet)
+    if (error?.response?.status !== 404) {
+      const errorMessage = error.response?.data?.detail || error.response?.data?.error || error.message || 'Failed to load threads'
+      console.error('Error details:', errorMessage)
+    }
     threads.value = []
   } finally {
     loading.value = false
@@ -263,48 +300,65 @@ const loadAvailableRecipients = async () => {
 
     // Build list of potential recipients from class participants
     const recipients = []
+    const recipientIds = new Set()
     
     // Add client
     if (classData?.client) {
-      recipients.push({
-        id: typeof classData.client === 'object' ? classData.client.id : classData.client,
-        username: typeof classData.client === 'object' ? classData.client.username : null,
-        email: typeof classData.client === 'object' ? classData.client.email : null,
-        role: 'client'
-      })
+      const clientId = typeof classData.client === 'object' ? classData.client.id : classData.client
+      if (!recipientIds.has(clientId)) {
+        recipients.push({
+          id: clientId,
+          username: typeof classData.client === 'object' ? classData.client.username : null,
+          email: typeof classData.client === 'object' ? classData.client.email : null,
+          role: 'client'
+        })
+        recipientIds.add(clientId)
+      }
     }
 
     // Add assigned writer
     if (classData?.assigned_writer) {
-      recipients.push({
-        id: typeof classData.assigned_writer === 'object' ? classData.assigned_writer.id : classData.assigned_writer,
-        username: typeof classData.assigned_writer === 'object' ? classData.assigned_writer.username : null,
-        email: typeof classData.assigned_writer === 'object' ? classData.assigned_writer.email : null,
-        role: 'writer'
-      })
+      const writerId = typeof classData.assigned_writer === 'object' ? classData.assigned_writer.id : classData.assigned_writer
+      if (!recipientIds.has(writerId)) {
+        recipients.push({
+          id: writerId,
+          username: typeof classData.assigned_writer === 'object' ? classData.assigned_writer.username : null,
+          email: typeof classData.assigned_writer === 'object' ? classData.assigned_writer.email : null,
+          role: 'writer'
+        })
+        recipientIds.add(writerId)
+      }
     }
 
-    // If user is admin/staff, also load other staff members
-    if (authStore.isAdmin || authStore.isSuperAdmin || authStore.isEditor) {
+    // If user is admin/staff/support, also load other staff members and support
+    const currentUser = authStore.user
+    if (currentUser && (currentUser.is_staff || currentUser.role === 'admin' || currentUser.role === 'superadmin' || currentUser.role === 'editor' || currentUser.role === 'support')) {
       try {
+        // Load staff members (admin, editor, superadmin, support)
         const response = await apiClient.get('/users/users/', { 
-          params: { role__in: 'admin,editor,superadmin' } 
+          params: { role__in: 'admin,editor,superadmin,support', is_active: true } 
         })
         const staff = response.data.results || response.data || []
-        // Add staff members that aren't already in the list
+        // Add staff members that aren't already in the list and aren't the current user
         staff.forEach(staffMember => {
-          if (!recipients.find(r => r.id === staffMember.id)) {
+          if (staffMember.id !== currentUser.id && !recipientIds.has(staffMember.id)) {
             recipients.push({
               id: staffMember.id,
               username: staffMember.username,
               email: staffMember.email,
               role: staffMember.role
             })
+            recipientIds.add(staffMember.id)
           }
         })
       } catch (error) {
         console.warn('Failed to load staff members:', error)
       }
+    }
+
+    // If no recipients found, show a helpful message
+    if (recipients.length === 0) {
+      console.warn('No available recipients found for class messaging')
     }
 
     availableRecipients.value = recipients
@@ -316,6 +370,16 @@ const loadAvailableRecipients = async () => {
 
 const createThread = async () => {
   if (!newThreadForm.value.recipient_id || !newThreadForm.value.initial_message) {
+    if (!newThreadForm.value.recipient_id) {
+      handleWarning('Please select a recipient')
+    } else if (!newThreadForm.value.initial_message) {
+      handleWarning('Please enter an initial message')
+    }
+    return
+  }
+
+  if (availableRecipients.value.length === 0) {
+    handleWarning('No recipients available. Please refresh the page or contact support.')
     return
   }
 
@@ -334,19 +398,34 @@ const createThread = async () => {
       response = await expressClassesAPI.createThread(props.classId, data)
     }
 
+    handleSuccess('Thread created successfully')
     closeCreateThreadModal()
     await loadThreads()
     
     // Optionally open the newly created thread
-    if (response.data?.id) {
-      selectedThread.value = response.data
+    if (response.data?.id || response.data?.thread_id) {
+      const threadId = response.data?.id || response.data?.thread_id
+      // Reload threads to get the full thread object
+      await loadThreads()
+      const newThread = threads.value.find(t => t.id === threadId)
+      if (newThread) {
+        selectedThread.value = newThread
+      }
     }
   } catch (error) {
     console.error('Failed to create thread:', error)
-    alert('Failed to create thread: ' + (error.response?.data?.detail || error.message))
+    handleError(error, { action: 'creating thread' })
   } finally {
     creatingThread.value = false
   }
+}
+
+const openCreateThreadModal = () => {
+  // Ensure recipients are loaded
+  if (availableRecipients.value.length === 0) {
+    loadAvailableRecipients()
+  }
+  showCreateThreadModal.value = true
 }
 
 const closeCreateThreadModal = () => {
@@ -409,6 +488,12 @@ watch(() => props.show, (newVal) => {
   if (newVal) {
     loadThreads()
     loadAvailableRecipients()
+  } else {
+    // Reset when modal closes
+    threads.value = []
+    availableRecipients.value = []
+    selectedThread.value = null
+    showCreateThreadModal.value = false
   }
 })
 
