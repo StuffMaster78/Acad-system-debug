@@ -327,8 +327,8 @@ watch([selectedStatus, currentPage], () => {
 
 watch(searchQuery, () => {
   // Debounce search
-  clearTimeout(searchQuery.timeout)
-  searchQuery.timeout = setTimeout(() => {
+  clearTimeout(searchQuery.value.timeout)
+  searchQuery.value.timeout = setTimeout(() => {
     currentPage.value = 1
     fetchOrders()
   }, 500)

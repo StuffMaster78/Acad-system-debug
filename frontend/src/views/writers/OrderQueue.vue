@@ -24,7 +24,7 @@
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
@@ -41,7 +41,7 @@
             </div>
           </div>
         </div>
-        <div class="bg-linear-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
+        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-2">
@@ -58,7 +58,7 @@
             </div>
           </div>
         </div>
-        <div class="bg-linear-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
+        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
@@ -75,7 +75,7 @@
             </div>
           </div>
         </div>
-        <div class="bg-linear-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
@@ -180,7 +180,7 @@
         <div
           v-for="order in recommendedOrders.slice(0, 6)"
           :key="`recommended-${order.id}`"
-          class="bg-linear-to-r from-blue-50 to-white border-2 border-blue-200 rounded-xl p-5 sm:p-6 hover:shadow-lg transition-all"
+          class="bg-gradient-to-r from-blue-50 to-white border-2 border-blue-200 rounded-xl p-5 sm:p-6 hover:shadow-lg transition-all"
         >
           <div class="flex flex-col lg:flex-row lg:items-start gap-4">
             <!-- Left Section: Order Info -->
@@ -546,7 +546,7 @@
           <div
             v-for="order in filteredPreferredOrders"
             :key="order.id"
-            class="bg-linear-to-r from-purple-50 to-white border-2 border-purple-200 rounded-xl p-5 sm:p-6 hover:shadow-lg transition-all"
+            class="bg-gradient-to-r from-purple-50 to-white border-2 border-purple-200 rounded-xl p-5 sm:p-6 hover:shadow-lg transition-all"
           >
             <div class="flex flex-col lg:flex-row lg:items-start gap-4">
               <!-- Left Section: Order Info -->
@@ -927,7 +927,7 @@
     >
       <div v-if="selectedOrderForRequest" class="space-y-6">
         <!-- Order Summary -->
-        <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg p-5 border-2 border-blue-200">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-5 border-2 border-blue-200">
           <div class="flex items-start justify-between mb-3">
             <div>
               <h3 class="text-xl font-bold text-gray-900 mb-1">Order #{{ selectedOrderForRequest.id }}</h3>
@@ -1040,7 +1040,7 @@
             type="button"
             @click.stop="handleSubmitClick"
             :disabled="!requestReason || !requestReason.trim() || requestingOrder === selectedOrderForRequest?.id"
-            class="order-1 sm:order-2 px-8 py-3 text-base font-bold text-white bg-linear-to-r from-primary-600 to-primary-700 rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none relative z-10"
+            class="order-1 sm:order-2 px-8 py-3 text-base font-bold text-white bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg hover:from-primary-700 hover:to-primary-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:from-gray-400 disabled:to-gray-500 transition-all flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:transform-none relative z-10"
             style="pointer-events: auto;"
           >
             <span v-if="requestingOrder === selectedOrderForRequest?.id" class="animate-spin text-xl">⏳</span>

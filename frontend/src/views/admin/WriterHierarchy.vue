@@ -13,25 +13,25 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div class="card bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <div class="p-4">
           <p class="text-sm font-medium text-gray-600">Total Levels</p>
           <p class="text-3xl font-bold text-blue-700 mt-1">{{ levels.length }}</p>
         </div>
       </div>
-      <div class="card bg-linear-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
         <div class="p-4">
           <p class="text-sm font-medium text-gray-600">Active Levels</p>
           <p class="text-3xl font-bold text-green-700 mt-1">{{ activeLevelsCount }}</p>
         </div>
       </div>
-      <div class="card bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
         <div class="p-4">
           <p class="text-sm font-medium text-gray-600">Total Writers</p>
           <p class="text-3xl font-bold text-purple-700 mt-1">{{ totalWriters }}</p>
         </div>
       </div>
-      <div class="card bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <div class="p-4">
           <p class="text-sm font-medium text-gray-600">Earning Modes</p>
           <p class="text-3xl font-bold text-yellow-700 mt-1">{{ uniqueEarningModes }}</p>
@@ -47,7 +47,7 @@
       </div>
       <div v-else-if="levels.length" class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-linear-to-r from-gray-50 to-gray-100">
+          <thead class="bg-gradient-to-r from-gray-50 to-gray-100">
             <tr>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Level</th>
               <th class="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Earning Mode</th>

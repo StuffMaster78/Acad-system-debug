@@ -6,7 +6,7 @@
   >
     <div class="bg-white dark:bg-gray-800 rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
       <!-- Header -->
-      <div class="bg-linear-to-r from-indigo-600 to-indigo-700 p-6 rounded-t-lg">
+      <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 p-6 rounded-t-lg">
         <div class="flex items-center justify-between">
           <div>
             <h2 class="text-2xl font-bold text-white">Edit Media</h2>
@@ -131,7 +131,7 @@
             <button
               type="submit"
               :disabled="saving"
-              class="flex-1 px-6 py-3 bg-linear-to-r from-indigo-600 to-indigo-700 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
+              class="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2"
             >
               <span v-if="saving" class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></span>
               <span v-else>Save Changes</span>

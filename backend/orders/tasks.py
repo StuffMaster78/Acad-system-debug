@@ -149,6 +149,15 @@ def archive_approved_orders():
 
 
 @shared_task
+def archive_closed_orders():
+    """
+    Archive orders that are in 'closed' state older than 30 days.
+    """
+    cutoff_date = now() - timedelta(days=30)
+    AutoArchiveService.archive_orders_older_than(cutoff_date, status="closed")
+
+
+@shared_task
 def move_complete_orders_to_approved():
     """
     Move orders from 'complete' to 'approved' if they are older than 3 weeks.

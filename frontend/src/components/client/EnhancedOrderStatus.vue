@@ -25,10 +25,13 @@
     <div v-if="loading" class="flex flex-col items-center justify-center py-16">
       <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
       <p class="text-sm text-gray-600 dark:text-gray-400">Loading enhanced status...</p>
+      <p v-if="retryCount > 0" class="text-xs text-gray-500 dark:text-gray-500 mt-2">
+        Retrying... ({{ retryCount }}/{{ maxRetries }})
+      </p>
     </div>
 
     <!-- Error State - Only show for actual errors, not 404/403 -->
-    <div v-else-if="error && endpointAvailable" class="bg-linear-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
+    <div v-else-if="error && endpointAvailable" class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border border-red-200 dark:border-red-800 rounded-xl p-6">
       <div class="flex items-start gap-3">
         <div class="shrink-0 w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
           <svg class="w-5 h-5 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,7 +46,7 @@
     </div>
 
     <!-- Endpoint Not Available - Show graceful message -->
-    <div v-else-if="!loading && !error && !statusData && !endpointAvailable" class="bg-linear-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center shadow-sm">
+    <div v-else-if="!loading && !error && !statusData && !endpointAvailable" class="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-8 text-center shadow-sm">
       <div class="flex flex-col items-center gap-4">
         <div class="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
           <svg class="w-8 h-8 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,7 +55,16 @@
         </div>
         <div>
           <p class="text-base text-gray-700 dark:text-gray-300 font-semibold mb-1">Enhanced status tracking is not available</p>
-          <p class="text-sm text-gray-500 dark:text-gray-400">This feature may not be enabled for this order or your account</p>
+          <p class="text-sm text-gray-500 dark:text-gray-400">
+            {{ isAdminUser ? 'Enhanced status data is not available for admin view. Please check the Overview tab for order details.' : 'This feature may not be enabled for this order or your account' }}
+          </p>
+          <button
+            v-if="isAdminUser"
+            @click="fetchStatus"
+            class="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+          >
+            Retry Loading
+          </button>
         </div>
       </div>
     </div>
@@ -63,7 +75,7 @@
       <div class="card bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <div class="flex items-center justify-between mb-6">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Current Status</h3>
-          <div class="px-4 py-2 bg-linear-to-r from-primary-100 to-primary-50 dark:from-primary-900/30 dark:to-primary-800/30 text-primary-700 dark:text-primary-300 rounded-lg font-semibold text-sm border border-primary-200 dark:border-primary-700">
+          <div class="px-4 py-2 bg-gradient-to-r from-primary-100 to-primary-50 dark:from-primary-900/30 dark:to-primary-800/30 text-primary-700 dark:text-primary-300 rounded-lg font-semibold text-sm border border-primary-200 dark:border-primary-700">
             {{ formatStatus(statusData.current_status) }}
           </div>
         </div>
@@ -74,7 +86,7 @@
           </div>
           <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
             <div
-              class="bg-linear-to-r from-primary-500 to-primary-600 h-3 rounded-full transition-all duration-500 shadow-sm"
+              class="bg-gradient-to-r from-primary-500 to-primary-600 h-3 rounded-full transition-all duration-500 shadow-sm"
               :style="{ width: `${statusData.progress.percentage}%` }"
             ></div>
           </div>
@@ -90,7 +102,7 @@
           Estimated Completion
         </h3>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div class="p-5 bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800">
+          <div class="p-5 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800">
             <div class="flex items-center gap-2 mb-2">
               <svg class="w-4 h-4 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -101,7 +113,7 @@
               {{ formatDateTime(statusData.estimated_completion.deadline) }}
             </div>
           </div>
-          <div class="p-5 bg-linear-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800">
+          <div class="p-5 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800">
             <div class="flex items-center gap-2 mb-2">
               <svg class="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -113,7 +125,7 @@
               <span class="text-sm font-normal text-gray-600 dark:text-gray-400">({{ statusData.estimated_completion.hours_remaining }}h)</span>
             </div>
           </div>
-          <div class="p-5 rounded-xl border" :class="statusData.estimated_completion.is_overdue ? 'bg-linear-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800' : 'bg-linear-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800'">
+          <div class="p-5 rounded-xl border" :class="statusData.estimated_completion.is_overdue ? 'bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border-red-200 dark:border-red-800' : 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-green-200 dark:border-green-800'">
             <div class="flex items-center gap-2 mb-2">
               <svg class="w-4 h-4" :class="statusData.estimated_completion.is_overdue ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -173,21 +185,21 @@
           Quality Metrics
         </h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div class="text-center p-5 bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800">
+          <div class="text-center p-5 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl border border-blue-200 dark:border-blue-800">
             <div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">{{ statusData.quality_metrics.revision_count || 0 }}</div>
             <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Revisions</div>
           </div>
-          <div class="text-center p-5 bg-linear-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800">
+          <div class="text-center p-5 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-800/20 rounded-xl border border-orange-200 dark:border-orange-800">
             <div class="text-3xl font-bold text-orange-600 dark:text-orange-400 mb-2">{{ statusData.quality_metrics.dispute_count || 0 }}</div>
             <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Disputes</div>
           </div>
-          <div class="text-center p-5 bg-linear-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800">
+          <div class="text-center p-5 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 rounded-xl border border-green-200 dark:border-green-800">
             <div class="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
               {{ statusData.quality_metrics.average_rating || 'N/A' }}
             </div>
             <div class="text-sm font-medium text-gray-700 dark:text-gray-300">Avg Rating</div>
           </div>
-          <div class="text-center p-5 bg-linear-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800">
+          <div class="text-center p-5 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl border border-purple-200 dark:border-purple-800">
             <div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
               {{ statusData.quality_metrics.has_reviews ? '✅' : '❌' }}
             </div>
@@ -210,7 +222,7 @@
             :key="index"
             class="flex items-start gap-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
           >
-            <div class="w-14 h-14 bg-linear-to-br from-primary-100 to-primary-50 dark:from-primary-900/30 dark:to-primary-800/30 rounded-xl flex items-center justify-center border border-primary-200 dark:border-primary-800 shrink-0">
+            <div class="w-14 h-14 bg-gradient-to-br from-primary-100 to-primary-50 dark:from-primary-900/30 dark:to-primary-800/30 rounded-xl flex items-center justify-center border border-primary-200 dark:border-primary-800 shrink-0">
               <span class="text-primary-700 dark:text-primary-300 font-bold text-lg">{{ update.progress_percentage }}%</span>
             </div>
             <div class="flex-1 min-w-0">
@@ -269,7 +281,7 @@
           <div
             v-for="(reassignment, index) in statusData.writer_reassignments"
             :key="index"
-            class="p-5 bg-linear-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800"
+            class="p-5 bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800"
           >
             <div class="flex items-center justify-between mb-3">
               <div class="font-semibold text-gray-900 dark:text-gray-100">
@@ -315,8 +327,11 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import clientDashboardAPI from '@/api/client-dashboard'
+import adminOrdersAPI from '@/api/admin-orders'
+import ordersAPI from '@/api/orders'
 
 const props = defineProps({
   orderId: {
@@ -329,23 +344,119 @@ const props = defineProps({
   }
 })
 
+const authStore = useAuthStore()
 const loading = ref(false)
 const error = ref(null)
 const statusData = ref(null)
 const endpointAvailable = ref(true) // Track if endpoint is available
+const retryCount = ref(0)
+const maxRetries = 2
 
-const fetchStatus = async () => {
+// Determine which API to use based on user role
+const isAdminUser = computed(() => {
+  return authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport
+})
+
+const fetchStatus = async (isRetry = false) => {
   if (!props.orderId) return
+  
+  // Don't retry if we've exceeded max retries
+  if (isRetry && retryCount.value >= maxRetries) {
+    endpointAvailable.value = false
+    loading.value = false
+    return
+  }
+  
+  if (isRetry) {
+    retryCount.value++
+  } else {
+    retryCount.value = 0
+  }
   
   loading.value = true
   error.value = null
+  
   try {
-    const response = await clientDashboardAPI.getEnhancedOrderStatus(props.orderId)
-    statusData.value = response?.data || null
-    endpointAvailable.value = true
+    let response
+    
+    // For admin users, try admin endpoint first, then fall back to client endpoint
+    if (isAdminUser.value) {
+      try {
+        // Try admin timeline endpoint as fallback for enhanced data
+        const timelineResponse = await adminOrdersAPI.getOrderTimeline(props.orderId)
+        if (timelineResponse?.data) {
+          // Transform timeline data to match enhanced status format
+          statusData.value = transformTimelineToEnhancedStatus(timelineResponse.data)
+          endpointAvailable.value = true
+          loading.value = false
+          retryCount.value = 0
+          return
+        }
+      } catch (adminErr) {
+        // If admin endpoint fails (500, 404, etc.), silently continue to fallback
+        // Only log in development mode
+        if (import.meta.env.DEV) {
+          console.log('Admin timeline endpoint not available:', adminErr.response?.status || 'network error')
+        }
+        // Don't return here - continue to try client endpoint or fallback to basic order data
+      }
+    }
+    
+    // Try client endpoint (works for clients, may work for admins if they have access)
+    try {
+      response = await clientDashboardAPI.getEnhancedOrderStatus(props.orderId)
+      statusData.value = response?.data || null
+      endpointAvailable.value = true
+      retryCount.value = 0 // Reset retry count on success
+      loading.value = false
+      return
+    } catch (clientErr) {
+      // If client endpoint also fails, fall back to basic order data for admins
+      if (isAdminUser.value && (clientErr.response?.status === 404 || clientErr.response?.status === 403)) {
+        try {
+          const orderResponse = await ordersAPI.get(props.orderId)
+          if (orderResponse?.data) {
+            // Create a basic enhanced status from order data
+            statusData.value = createBasicEnhancedStatus(orderResponse.data)
+            endpointAvailable.value = true
+            loading.value = false
+            retryCount.value = 0
+            return
+          }
+        } catch (orderErr) {
+          // Silently handle - order data fallback failed
+          if (import.meta.env.DEV) {
+            console.log('Could not fetch order data as fallback:', orderErr)
+          }
+        }
+      }
+      
+      // Re-throw to be handled by outer catch
+      throw clientErr
+    }
+    
   } catch (err) {
     // Handle 404 and 403 gracefully - endpoint may not be available or user may not have access
     if (err.response?.status === 404 || err.response?.status === 403) {
+      // For admin users, try to get basic order data as fallback (if not already tried)
+      if (isAdminUser.value) {
+        try {
+          const orderResponse = await ordersAPI.get(props.orderId)
+          if (orderResponse?.data) {
+            // Create a basic enhanced status from order data
+            statusData.value = createBasicEnhancedStatus(orderResponse.data)
+            endpointAvailable.value = true
+            loading.value = false
+            return
+          }
+        } catch (orderErr) {
+          // Silently handle - order data fallback failed
+          if (import.meta.env.DEV) {
+            console.log('Could not fetch order data as fallback')
+          }
+        }
+      }
+      
       // Silently handle - endpoint doesn't exist, isn't accessible, or user doesn't have permission
       statusData.value = null
       error.value = null // Don't show error for 404/403
@@ -353,21 +464,155 @@ const fetchStatus = async () => {
       loading.value = false
       return
     }
-    // Only show errors for server errors (5xx) or other unexpected errors
-    // Don't show errors for client errors (4xx) except 404/403 which are handled above
-    if (err.response?.status >= 500 || !err.response) {
-    console.error('Failed to fetch enhanced order status:', err)
-    error.value = err.response?.data?.detail || 'Failed to load order status'
+    
+    // Handle 500 errors - try fallback to basic order data for admins
+    if (err.response?.status >= 500) {
+      // Only log in development mode
+      if (import.meta.env.DEV) {
+        console.error('Server error fetching enhanced order status:', err)
+      }
+      
+      // For admin users, try to get basic order data as fallback
+      if (isAdminUser.value) {
+        try {
+          const orderResponse = await ordersAPI.get(props.orderId)
+          if (orderResponse?.data) {
+            // Create a basic enhanced status from order data
+            statusData.value = createBasicEnhancedStatus(orderResponse.data)
+            endpointAvailable.value = true
+            loading.value = false
+            // Don't show error if we successfully got fallback data
+            error.value = null
+            return
+          }
+        } catch (orderErr) {
+          // Silently handle - order data fallback failed
+          if (import.meta.env.DEV) {
+            console.log('Could not fetch order data as fallback after server error')
+          }
+        }
+      }
+      
+      // If fallback failed or not admin, show error and retry
+      error.value = err.response?.data?.detail || 'Failed to load order status'
       endpointAvailable.value = true // Keep endpoint as available for retry
+      
+      // Retry on server errors (only if we haven't already tried fallback)
+      if (!isRetry && retryCount.value < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount.value + 1))) // Exponential backoff
+        await fetchStatus(true)
+        return
+      }
+    } else if (!err.response) {
+      // Network error - try fallback for admins
+      if (isAdminUser.value) {
+        try {
+          const orderResponse = await ordersAPI.get(props.orderId)
+          if (orderResponse?.data) {
+            statusData.value = createBasicEnhancedStatus(orderResponse.data)
+            endpointAvailable.value = true
+            loading.value = false
+            error.value = null
+            return
+          }
+        } catch (orderErr) {
+          // Silently handle - order data fallback failed
+          if (import.meta.env.DEV) {
+            console.log('Could not fetch order data as fallback for network error')
+          }
+        }
+      }
+      
+      error.value = 'Network error. Please check your connection and try again.'
+      endpointAvailable.value = true
     } else {
       // For other 4xx errors, handle silently
-    statusData.value = null
+      statusData.value = null
       error.value = null
       endpointAvailable.value = false
     }
   } finally {
     loading.value = false
   }
+}
+
+// Transform timeline data to enhanced status format
+const transformTimelineToEnhancedStatus = (timelineData) => {
+  return {
+    current_status: timelineData.current_status || 'unknown',
+    progress: {
+      percentage: timelineData.progress_percentage || 0,
+      recent_updates: timelineData.recent_progress || []
+    },
+    estimated_completion: timelineData.estimated_completion || null,
+    writer_activity: timelineData.writer_activity || null,
+    quality_metrics: timelineData.quality_metrics || null,
+    status_timeline: timelineData.timeline || [],
+    writer_reassignments: timelineData.reassignments || [],
+    order_topic: timelineData.order_topic || '',
+    order_details: timelineData.order_details || {}
+  }
+}
+
+// Create basic enhanced status from order data
+const createBasicEnhancedStatus = (orderData) => {
+  return {
+    current_status: orderData.status || 'unknown',
+    progress: {
+      percentage: 0,
+      recent_updates: []
+    },
+    estimated_completion: orderData.writer_deadline ? {
+      deadline: orderData.writer_deadline,
+      days_remaining: calculateDaysRemaining(orderData.writer_deadline),
+      hours_remaining: calculateHoursRemaining(orderData.writer_deadline),
+      is_overdue: new Date(orderData.writer_deadline) < new Date()
+    } : null,
+    writer_activity: orderData.assigned_writer ? {
+      writer_username: orderData.assigned_writer?.username || orderData.writer_username || 'Unknown',
+      is_active: true,
+      last_activity: orderData.updated_at,
+      hours_since_activity: calculateHoursSince(orderData.updated_at)
+    } : null,
+    quality_metrics: {
+      revision_count: 0,
+      dispute_count: 0,
+      average_rating: null,
+      has_reviews: false
+    },
+    status_timeline: [],
+    writer_reassignments: [],
+    order_topic: orderData.topic || '',
+    order_details: {
+      type_of_work: orderData.type_of_work?.name || orderData.type_of_work_name,
+      paper_type: orderData.paper_type?.name || orderData.paper_type_name,
+      number_of_pages: orderData.number_of_pages
+    }
+  }
+}
+
+const calculateDaysRemaining = (deadline) => {
+  if (!deadline) return 0
+  const now = new Date()
+  const deadlineDate = new Date(deadline)
+  const diff = deadlineDate - now
+  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+}
+
+const calculateHoursRemaining = (deadline) => {
+  if (!deadline) return 0
+  const now = new Date()
+  const deadlineDate = new Date(deadline)
+  const diff = deadlineDate - now
+  return Math.ceil(diff / (1000 * 60 * 60))
+}
+
+const calculateHoursSince = (date) => {
+  if (!date) return 0
+  const now = new Date()
+  const dateObj = new Date(date)
+  const diff = now - dateObj
+  return Math.floor(diff / (1000 * 60 * 60))
 }
 
 const refreshStatus = () => {

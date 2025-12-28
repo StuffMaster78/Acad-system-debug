@@ -2015,7 +2015,7 @@ from pathlib import Path
 
 _models_dir = Path(__file__).parent / 'models'
 if _models_dir.exists():
-    for model_file in ['writer_acknowledgment', 'message_reminders', 'review_reminders']:
+    for model_file in ['writer_acknowledgment', 'message_reminders', 'review_reminders', 'cancellation_request']:
         try:
             spec = importlib.util.spec_from_file_location(
                 f"orders.models.{model_file}",

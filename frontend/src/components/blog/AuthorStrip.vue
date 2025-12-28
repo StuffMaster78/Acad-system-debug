@@ -16,7 +16,7 @@
           />
           <div
             v-else
-            class="w-16 h-16 rounded-full bg-linear-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-xl font-semibold"
+            class="w-16 h-16 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center text-white text-xl font-semibold"
           >
             {{ author.name?.charAt(0)?.toUpperCase() || 'A' }}
           </div>

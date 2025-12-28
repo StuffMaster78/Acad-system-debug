@@ -14,6 +14,7 @@ export default {
   approve: (id) => apiClient.post(`/special-orders/api/special-orders/${id}/approve/`),
   overridePayment: (id) => apiClient.post(`/special-orders/api/special-orders/${id}/override_payment/`),
   completeOrder: (id) => apiClient.post(`/special-orders/api/special-orders/${id}/complete_order/`),
+  assignWriter: (id, data) => apiClient.post(`/special-orders/api/special-orders/${id}/assign_writer/`, data),
   
   // Installment Payments
   listInstallments: (params) => apiClient.get('/special-orders/api/installment-payments/', { params }),

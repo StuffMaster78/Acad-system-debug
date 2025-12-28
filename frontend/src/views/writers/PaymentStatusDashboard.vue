@@ -34,7 +34,7 @@
       <div v-else-if="paymentStatus" class="mb-8">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <!-- Pending -->
-          <div class="bg-linear-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
@@ -56,7 +56,7 @@
           </div>
           
           <!-- Delayed -->
-          <div class="bg-linear-to-br from-red-50 to-red-100 rounded-xl shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-red-700 uppercase tracking-wide mb-2">
@@ -78,7 +78,7 @@
           </div>
           
           <!-- Paid (30 days) -->
-          <div class="bg-linear-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
@@ -100,7 +100,7 @@
           </div>
           
           <!-- Total Earnings -->
-          <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">

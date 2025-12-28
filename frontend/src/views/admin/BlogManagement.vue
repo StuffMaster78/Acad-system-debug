@@ -118,7 +118,7 @@
         
         <div v-else class="overflow-x-auto">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700" style="min-width: 1400px;">
-            <thead class="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 border-b-2 border-blue-200 dark:border-gray-600">
+            <thead class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-700 dark:to-gray-800 border-b-2 border-blue-200 dark:border-gray-600">
               <tr>
                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider whitespace-nowrap">
                   <div class="flex items-center gap-2">
@@ -226,7 +226,7 @@
               <tr v-for="blog in blogs" :key="blog.id" class="hover:bg-blue-50/50 dark:hover:bg-gray-700/50 transition-all duration-150">
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-linear-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
                       #
                     </div>
                     <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">#{{ blog.id }}</span>
@@ -258,7 +258,7 @@
                   class="px-6 py-4 whitespace-nowrap"
                 >
                   <div v-if="blog.website" class="flex items-center gap-2">
-                    <div class="w-8 h-8 rounded-full bg-linear-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
                       {{ blog.website.name.charAt(0).toUpperCase() }}
                     </div>
                     <div>
@@ -498,7 +498,7 @@
     <div v-if="showCreateModal || editingBlog" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ editingBlog ? 'Edit Blog Post' : 'Create Blog Post' }}</h2>
@@ -1074,7 +1074,7 @@
     <div v-if="showCategoryModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeCategoryModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-green-50 to-emerald-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-green-50 to-emerald-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ editingCategory ? 'Edit Category' : 'Create Category' }}</h2>
@@ -1236,7 +1236,7 @@
     <div v-if="showTagModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeTagModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-pink-50 to-rose-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-pink-50 to-rose-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ editingTag ? 'Edit Tag' : 'Create Tag' }}</h2>

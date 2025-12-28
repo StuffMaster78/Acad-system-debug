@@ -20,19 +20,19 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-800">
+      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-800">
         <p class="text-xs sm:text-sm font-medium text-yellow-700 dark:text-yellow-300 mb-1">Pending Reviews</p>
         <p class="text-2xl sm:text-3xl font-bold text-yellow-900 dark:text-yellow-100">{{ stats.pending || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800">
+      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800">
         <p class="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Website Reviews</p>
         <p class="text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-100">{{ countsByType.website || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800">
+      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800">
         <p class="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300 mb-1">Writer Reviews</p>
         <p class="text-2xl sm:text-3xl font-bold text-green-900 dark:text-green-100">{{ countsByType.writer || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800">
+      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800">
         <p class="text-xs sm:text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">Order Reviews</p>
         <p class="text-2xl sm:text-3xl font-bold text-purple-900 dark:text-purple-100">{{ countsByType.order || 0 }}</p>
       </div>

@@ -3,6 +3,7 @@ from orders.actions.base import BaseOrderAction
 from orders.services.submit_order_service import SubmitOrderService
 from orders.services.revisions import OrderRevisionService
 from orders.order_enums import OrderStatus
+from django.core.exceptions import PermissionDenied
 
 from audit_logging.services.audit_log_service import AuditLogService
 from orders.registry.decorator import register_order_action
@@ -88,16 +89,45 @@ class OrderRevisionAction(BaseOrderAction):
     """
     Action to request a revision for an order.
     This is typically used when a user wants to request changes to an order.
+    Supports revision requests from completed orders if within the revision period.
     """
     def execute(self):
-        service = OrderRevisionService()
-        result = service.request_revision(self.order_id, **self.params)
+        reason = self.params.get("reason", "")
+        notes = self.params.get("notes", "")
+        
+        # Combine reason and notes if both provided
+        revision_reason = reason
+        if notes and notes != reason:
+            revision_reason = f"{reason}\n\n{notes}" if reason else notes
+        
+        service = OrderRevisionService(order=self.order, user=self.user)
+        
+        # For completed orders, check if within revision period
+        # For other statuses, allow if action is available
+        if self.order.status == OrderStatus.COMPLETED.value:
+            if not service.is_within_revision_period():
+                raise ValueError(
+                    f"Revision period has expired. Revisions are only allowed within "
+                    f"{service.get_revision_deadline().days} days of completion."
+                )
+            # Check permission - clients can request, admins can override
+            if self.order.client != self.user:
+                user_role = getattr(self.user, 'role', None)
+                if user_role not in ['admin', 'superadmin', 'support']:
+                    raise PermissionDenied("Only the client or admin can request revisions for completed orders.")
+        
+        result = service.request_revision(reason=revision_reason)
 
-        AuditLogService.log_auto(
-            actor=self.user,
-            action="REQUEST_REVISION",
-            target="orders.Order",
-            target_id=self.order_id,
-            metadata={"params": self.params}
-        )
+        if result:
+            AuditLogService.log_auto(
+                actor=self.user,
+                action="REQUEST_REVISION",
+                target="orders.Order",
+                target_id=self.order_id,
+                metadata={
+                    "reason": revision_reason,
+                    "from_status": self.order.status,
+                    "to_status": "revision_requested"
+                }
+            )
         return result

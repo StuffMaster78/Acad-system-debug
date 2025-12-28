@@ -200,7 +200,7 @@
         <div
           v-for="metric in writerQuickMetrics"
           :key="metric.name"
-          class="card bg-linear-to-br from-white to-gray-50 rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all"
+          class="card bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all"
         >
           <div class="flex items-center justify-between mb-2">
             <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">{{ metric.name }}</p>
@@ -299,7 +299,7 @@
     <router-link
       v-if="authStore.isAdmin || authStore.isSuperAdmin"
       to="/admin/content-metrics-report"
-      class="block mb-6 p-4 bg-linear-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer relative z-10 no-underline"
+      class="block mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 hover:shadow-md transition-all cursor-pointer relative z-10 no-underline"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -366,7 +366,7 @@
       <div
         v-for="stat in userStats"
         :key="stat.name"
-        class="group bg-linear-to-br from-white to-gray-50 rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
+        class="group bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
       >
         <div class="flex items-center justify-between mb-3">
           <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ stat.name }}</p>
@@ -382,7 +382,7 @@
     <router-link
       v-if="authStore.isAdmin || authStore.isSuperAdmin"
       to="/admin/order-status-metrics"
-      class="block mb-6 p-4 bg-linear-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer relative z-10 no-underline"
+      class="block mb-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200 hover:shadow-md transition-all cursor-pointer relative z-10 no-underline"
     >
       <div class="flex items-center justify-between">
         <div>
@@ -629,7 +629,7 @@
             class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200"
           >
             <div class="flex items-center gap-4 flex-1 min-w-0">
-              <div class="shrink-0 w-10 h-10 bg-linear-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+              <div class="shrink-0 w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
                 {{ index + 1 }}
               </div>
               <div class="flex-1 min-w-0">
@@ -840,7 +840,7 @@ const enhancedWriterStats = computed(() => {
       icon: '💰',
       subtitle: earnings?.this_month ? `$${earnings.this_month.toFixed(2)} earned this month` : 'Start earning today',
       trend: earnings?.earnings_trend?.length > 1 ? calculateTrend(earnings.earnings_trend) : null,
-      gradientBg: 'bg-linear-to-br from-green-50 to-emerald-50',
+      gradientBg: 'bg-gradient-to-br from-green-50 to-emerald-50',
       valueColor: 'text-green-700',
       subtitleColor: 'text-green-600',
       iconBg: 'bg-green-100',
@@ -853,7 +853,7 @@ const enhancedWriterStats = computed(() => {
       icon: '✅',
       subtitle: performance?.completion_rate ? `${performance.completion_rate.toFixed(1)}% completion rate` : 'No orders yet',
       trend: null,
-      gradientBg: 'bg-linear-to-br from-blue-50 to-indigo-50',
+      gradientBg: 'bg-gradient-to-br from-blue-50 to-indigo-50',
       valueColor: 'text-blue-700',
       subtitleColor: 'text-blue-600',
       iconBg: 'bg-blue-100',
@@ -866,7 +866,7 @@ const enhancedWriterStats = computed(() => {
       icon: '⏰',
       subtitle: performance?.on_time_orders ? `${performance.on_time_orders} of ${performance.completed_orders || 0} orders on time` : 'Track your deadlines',
       trend: null,
-      gradientBg: 'bg-linear-to-br from-purple-50 to-pink-50',
+      gradientBg: 'bg-gradient-to-br from-purple-50 to-pink-50',
       valueColor: 'text-purple-700',
       subtitleColor: 'text-purple-600',
       iconBg: 'bg-purple-100',
@@ -879,7 +879,7 @@ const enhancedWriterStats = computed(() => {
       icon: '⭐',
       subtitle: performance?.total_reviews ? `From ${performance.total_reviews} reviews` : 'No reviews yet',
       trend: null,
-      gradientBg: 'bg-linear-to-br from-yellow-50 to-amber-50',
+      gradientBg: 'bg-gradient-to-br from-yellow-50 to-amber-50',
       valueColor: 'text-yellow-700',
       subtitleColor: 'text-yellow-600',
       iconBg: 'bg-yellow-100',
@@ -1080,7 +1080,7 @@ const summaryStats = computed(() => {
       icon: '💰',
       change: calculateChange(totalRevenue, prevTotalRevenue),
       subtitle: paidOrders > 0 ? `From ${paidOrders.toLocaleString()} paid order${paidOrders !== 1 ? 's' : ''}` : 'No paid orders yet',
-      bgColor: 'bg-linear-to-br from-green-100 to-emerald-100',
+      bgColor: 'bg-gradient-to-br from-green-100 to-emerald-100',
       size: 'large',
     },
     {
@@ -1815,13 +1815,21 @@ const fetchTopClients = async () => {
   if (!authStore.isAdmin && !authStore.isSuperAdmin) return
   topClientsLoading.value = true
   try {
-    const response = await adminManagementAPI.getTopClients({ limit: 5 }).catch(() => {
-      return { data: [] }
+    const response = await adminManagementAPI.getTopClients({ limit: 5 }).catch((error) => {
+      // Handle 404 gracefully - endpoint might not exist
+      if (error.response?.status === 404) {
+        return { data: [] }
+      }
+      // Re-throw other errors
+      throw error
     })
     topClients.value = response.data?.results || response.data || []
   } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to fetch top clients:', error)
+    // Silently handle 404/403/429 errors - these are expected
+    if (error.response?.status !== 404 && error.response?.status !== 403 && error.response?.status !== 429) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch top clients:', error)
+      }
     }
     topClients.value = []
   } finally {

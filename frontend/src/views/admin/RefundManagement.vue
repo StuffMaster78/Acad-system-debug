@@ -19,19 +19,19 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-800">
+      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 border border-yellow-200 dark:border-yellow-800">
         <p class="text-xs sm:text-sm font-medium text-yellow-700 dark:text-yellow-300 mb-1">Pending Refunds</p>
         <p class="text-2xl sm:text-3xl font-bold text-yellow-900 dark:text-yellow-100">{{ stats.pending || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800">
+      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800">
         <p class="text-xs sm:text-sm font-medium text-green-700 dark:text-green-300 mb-1">Processed</p>
         <p class="text-2xl sm:text-3xl font-bold text-green-900 dark:text-green-100">{{ stats.processed || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border border-red-200 dark:border-red-800">
+      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/20 border border-red-200 dark:border-red-800">
         <p class="text-xs sm:text-sm font-medium text-red-700 dark:text-red-300 mb-1">Rejected</p>
         <p class="text-2xl sm:text-3xl font-bold text-red-900 dark:text-red-100">{{ stats.rejected || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800">
+      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800">
         <p class="text-xs sm:text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Total Amount</p>
         <p class="text-2xl sm:text-3xl font-bold text-blue-900 dark:text-blue-100">${{ stats.total_amount.toFixed(2) }}</p>
       </div>
@@ -416,7 +416,7 @@
 
         <div v-else-if="viewingReceipt" class="space-y-6">
           <!-- Receipt Header -->
-          <div class="bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
+          <div class="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg p-6 border border-blue-200 dark:border-blue-800">
             <div class="flex items-center justify-between">
               <div>
                 <h4 class="text-lg font-semibold text-gray-900 dark:text-white">Receipt #{{ viewingReceipt.reference_code || viewingReceipt.id }}</h4>

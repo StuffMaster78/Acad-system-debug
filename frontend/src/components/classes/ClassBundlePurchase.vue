@@ -6,7 +6,7 @@
 
     <div v-else-if="bundle" class="space-y-6">
       <!-- Bundle Header -->
-      <div class="bg-linear-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white">
+      <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white">
         <h2 class="text-2xl font-bold mb-2">{{ bundle.name }}</h2>
         <p v-if="bundle.description" class="text-primary-100">{{ bundle.description }}</p>
       </div>

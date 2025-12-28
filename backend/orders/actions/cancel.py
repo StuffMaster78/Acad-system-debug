@@ -12,7 +12,7 @@ class CancelOrderAction(BaseOrderAction):
         old_status = self.order.status
 
         service = CancelOrderService()
-        result = service.cancel_order(self.order_id, self.reason)
+        result = service.cancel_order(self.order_id, self.reason, user=self.user)
 
         new_status = "cancelled"
 

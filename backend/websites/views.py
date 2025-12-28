@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from .models import Website, WebsiteActionLog, WebsiteStaticPage, WebsiteTermsAcceptance
+from .models_integrations import WebsiteIntegrationConfig
 from rest_framework.permissions import AllowAny
 from .serializers import (
     WebsiteSerializer,
@@ -13,6 +14,10 @@ from .serializers import (
     WebsiteStaticPageSerializer,
     WebsiteTermsAcceptanceSerializer,
     WebsiteTermsUpdateSerializer,
+)
+from .serializers_integrations import (
+    WebsiteIntegrationConfigSerializer,
+    WebsiteIntegrationConfigCreateUpdateSerializer,
 )
 from .permissions import IsAdminOrSuperadmin
 from rest_framework.pagination import PageNumberPagination
@@ -392,3 +397,29 @@ class WebsiteStaticPageViewSet(viewsets.ReadOnlyModelViewSet):
 
         serializer = WebsiteTermsAcceptanceSerializer(acceptance)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class WebsiteIntegrationConfigViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet for managing website integration configurations.
+    Only admins and superadmins can manage integrations.
+    """
+    permission_classes = [IsAdminOrSuperadmin]
+    
+    def get_queryset(self):
+        """Filter integrations by website if specified."""
+        queryset = WebsiteIntegrationConfig.objects.all()
+        website_id = self.request.query_params.get('website', None)
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        return queryset.order_by('-created_at')
+    
+    def get_serializer_class(self):
+        """Use different serializers for read vs write operations."""
+        if self.action in ['create', 'update', 'partial_update']:
+            return WebsiteIntegrationConfigCreateUpdateSerializer
+        return WebsiteIntegrationConfigSerializer
+    
+    def perform_create(self, serializer):
+        """Set created_by user on creation."""
+        serializer.save(created_by=self.request.user)

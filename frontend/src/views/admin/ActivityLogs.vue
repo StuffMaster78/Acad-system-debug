@@ -12,19 +12,19 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Logs</p>
         <p class="text-3xl font-bold text-blue-900">{{ stats.total_logs || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Today</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.today_logs || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">This Week</p>
         <p class="text-3xl font-bold text-yellow-900">{{ stats.week_logs || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">This Month</p>
         <p class="text-3xl font-bold text-purple-900">{{ stats.month_logs || 0 }}</p>
       </div>
@@ -111,7 +111,7 @@
                 <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-mono">{{ log.id }}</td>
                 <td class="px-4 py-3 whitespace-nowrap">
                   <div class="flex items-center">
-                    <div class="shrink-0 h-8 w-8 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xs mr-2">
+                    <div class="shrink-0 h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-xs mr-2">
                       {{ getInitials(log.admin_username || log.admin || 'N/A') }}
                     </div>
                     <div class="text-sm text-gray-900">{{ log.admin_username || log.admin || 'N/A' }}</div>

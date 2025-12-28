@@ -190,7 +190,7 @@
     <div v-if="showEditHistoryModal && selectedPageForHistory" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeEditHistoryModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-indigo-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Edit History</h2>
@@ -288,7 +288,7 @@
     <div v-if="showCreateModal || editingPage" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-indigo-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ editingPage ? 'Edit SEO Page' : 'Create SEO Page' }}</h2>
@@ -325,39 +325,37 @@
                 </select>
                 <p v-if="!canSelectWebsite && availableWebsites.length === 0" class="text-xs text-gray-500 mt-1">No websites available</p>
               </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Title <span class="text-red-500">*</span>
-                  </label>
-                  <input 
-                    v-model="pageForm.title" 
-                    type="text" 
-                    required 
-                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                    placeholder="Enter page title"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Slug</label>
-                  <input 
-                    v-model="pageForm.slug" 
-                    type="text" 
-                    class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                    placeholder="auto-generated-from-title"
-                  />
-                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty to auto-generate from title</p>
-                </div>
-              </div>
-              
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Short Description</label>
-                <textarea 
-                  v-model="pageForm.short_description" 
-                  rows="3" 
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Title <span class="text-red-500">*</span>
+                </label>
+                <input 
+                  v-model="pageForm.title" 
+                  type="text" 
+                  required 
                   class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                  placeholder="Brief description of the page"
-                ></textarea>
+                  placeholder="Enter page title"
+                />
               </div>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Slug</label>
+              <input 
+                v-model="pageForm.slug" 
+                type="text" 
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                placeholder="auto-generated-from-title"
+              />
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Leave empty to auto-generate from title</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Short Description</label>
+              <textarea 
+                v-model="pageForm.short_description" 
+                rows="3" 
+                class="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2.5 bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                placeholder="Brief description of the page"
+              ></textarea>
             </div>
             
             <!-- Content Section -->

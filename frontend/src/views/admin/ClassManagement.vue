@@ -12,23 +12,23 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Bundles</p>
         <p class="text-3xl font-bold text-blue-900">{{ stats.total || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">In Progress</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.in_progress || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Not Started</p>
         <p class="text-3xl font-bold text-yellow-900">{{ stats.not_started || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">Completed</p>
         <p class="text-3xl font-bold text-purple-900">{{ stats.completed || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
+      <div class="card p-4 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
         <p class="text-sm font-medium text-red-700 mb-1">Exhausted</p>
         <p class="text-3xl font-bold text-red-900">{{ stats.exhausted || 0 }}</p>
       </div>
@@ -681,6 +681,26 @@
           </div>
         </div>
 
+        <!-- Bonus Amount Section -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium mb-1">
+            Bonus Amount (Optional)
+            <span class="text-gray-400 text-xs font-normal">Leave empty to auto-calculate from bundle pricing</span>
+          </label>
+          <input
+            v-model.number="assignWriterForm.bonus_amount"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="Auto-calculated if empty"
+            class="w-full border rounded px-3 py-2 text-sm"
+          />
+          <p v-if="currentBundleForAction?.total_price" class="text-xs text-gray-500 mt-1">
+            Bundle total: ${{ parseFloat(currentBundleForAction.total_price || 0).toFixed(2) }} | 
+            Suggested (60%): ${{ parseFloat((currentBundleForAction.total_price * 0.6) || 0).toFixed(2) }}
+          </p>
+        </div>
+
         <!-- Admin Notes Section -->
         <div class="mb-4">
           <label class="block text-sm font-medium mb-1">Admin Notes (Optional)</label>
@@ -921,10 +941,14 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { classManagementAPI, usersAPI, writerAssignmentAPI } from '@/api'
 import apiClient from '@/api/client'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useToast } from '@/composables/useToast'
+import ClassMessageThreads from '@/components/classes/ClassMessageThreads.vue'
+
+const router = useRouter()
 
 const { handleError, handleSuccess, handleValidationError } = useErrorHandler()
 const { success: showSuccess, error: showError, warning: showWarning } = useToast()
@@ -950,6 +974,7 @@ const assigningWriter = ref(false)
 const selectedWriterId = ref(null)
 const writerSearchQuery = ref('')
 const assignWriterForm = ref({
+  bonus_amount: null,
   admin_notes: ''
 })
 
@@ -1216,24 +1241,8 @@ const resetInstallmentFilters = () => {
 }
 
 const viewBundle = async (bundle) => {
-  try {
-    const res = await classManagementAPI.getBundle(bundle.id)
-    viewingBundle.value = res.data
-    
-    // Load thread count if available
-    try {
-      const threadsRes = await classManagementAPI.getThreads(bundle.id)
-      if (threadsRes.data) {
-        viewingBundle.value.threads_count = Array.isArray(threadsRes.data) ? threadsRes.data.length : (threadsRes.data.count || 0)
-      }
-    } catch (threadError) {
-      // Threads endpoint might not be available, ignore
-      console.debug('Could not load thread count:', threadError)
-    }
-  } catch (error) {
-    console.error('Error loading bundle:', error)
-    handleError(error, { action: 'loading bundle details' })
-  }
+  // Navigate to the bundle detail page instead of opening a modal
+  router.push({ name: 'AdminClassBundleDetail', params: { id: bundle.id } })
 }
 
 const viewBundleFromInstallment = async (installment) => {
@@ -1570,6 +1579,12 @@ const openAssignWriterModal = async (bundle) => {
   }
   currentBundleForAction.value = bundle
   showAssignWriterModal.value = true
+  
+  // Pre-fill bonus amount suggestion if bundle has pricing
+  if (bundle?.total_price && !assignWriterForm.value.bonus_amount) {
+    assignWriterForm.value.bonus_amount = parseFloat((bundle.total_price * 0.6).toFixed(2))
+  }
+  
   await loadAvailableWriters()
 }
 
@@ -1579,6 +1594,7 @@ const closeAssignWriterModal = () => {
   selectedWriterId.value = null
   writerSearchQuery.value = ''
   assignWriterForm.value = {
+    bonus_amount: null,
     admin_notes: ''
   }
   // Don't clear currentBundleForAction immediately - might be needed for retry
@@ -1626,19 +1642,22 @@ const assignWriter = async (writerId) => {
   
   assigningWriter.value = true
   try {
-    const updateData = {
-      assigned_writer: writerId
+    const assignmentData = {
+      writer_id: writerId
     }
     
-    // Update status to in_progress if it's not_started
-    if (currentBundleForAction.value.status === 'not_started') {
-      updateData.status = 'in_progress'
+    // Include bonus_amount if provided in form
+    if (assignWriterForm.value.bonus_amount) {
+      assignmentData.bonus_amount = assignWriterForm.value.bonus_amount
     }
     
-    await classManagementAPI.updateBundle(bundleId, updateData)
+    // Include admin_notes if provided
+    if (assignWriterForm.value.admin_notes) {
+      assignmentData.admin_notes = assignWriterForm.value.admin_notes
+    }
     
-    // If admin notes provided, we could save them separately or include in a note field
-    // For now, we'll just show success with the notes info
+    await classManagementAPI.assignWriter(bundleId, assignmentData)
+    
     const successMessage = isReassignment 
       ? `Writer reassigned successfully${assignWriterForm.value.admin_notes ? '. Notes saved.' : ''}`
       : `Writer assigned successfully${assignWriterForm.value.admin_notes ? '. Notes saved.' : ''}`

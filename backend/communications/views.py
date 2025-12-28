@@ -24,7 +24,7 @@ from .serializers import (
     CommunicationLogSerializer, WebSocketAuditLogSerializer,
     OrderMessageNotificationSerializer
 )
-from .permissions import IsAdminOrOwner, CanSendOrderMessage
+from .permissions import IsAdminOrOwner, CanSendOrderMessage, can_view_thread
 from rest_framework.throttling import UserRateThrottle
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.views import APIView
@@ -153,6 +153,34 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
 
         # No-op success response
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['get'], url_path='typing_status')
+    def typing_status(self, request, pk=None):
+        """
+        Get the current typing status for a thread.
+        Returns information about who is currently typing in the thread.
+        
+        Note: Since we don't persist typing state in the database, this returns
+        an empty response. The frontend should use WebSocket/SSE for real-time
+        typing indicators if needed.
+        """
+        thread = self.get_object()
+        user = request.user
+
+        # Check if user has permission to view this thread
+        if not can_view_thread(user, thread):
+            return Response(
+                {"detail": "You do not have permission to view typing status for this thread."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Return empty typing status (since we don't persist it)
+        # Frontend can use WebSocket/SSE for real-time typing indicators
+        return Response({
+            "thread_id": thread.id,
+            "typing_users": [],  # Empty since we don't persist typing state
+            "is_typing": False
+        }, status=status.HTTP_200_OK)
 
     def create(self, request, *args, **kwargs):
         """
@@ -954,7 +982,7 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
             raise Http404("No attachment found")
         
         # Check if user has access to the thread
-        if not CommunicationGuardService.can_view_thread(request.user, message.thread):
+        if not can_view_thread(request.user, message.thread):
             return Response({"error": "Access denied"}, status=403)
         
         try:

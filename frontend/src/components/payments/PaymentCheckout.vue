@@ -41,7 +41,7 @@
 
       <!-- Smart Payment -->
       <div v-if="selectedPaymentMethod === 'smart'" class="space-y-4">
-        <div class="bg-linear-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-4">
+        <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border border-purple-200 rounded-lg p-4">
           <div class="flex items-center gap-2 mb-3">
             <span class="text-2xl">💡</span>
             <h4 class="font-semibold text-purple-900">Smart Payment</h4>

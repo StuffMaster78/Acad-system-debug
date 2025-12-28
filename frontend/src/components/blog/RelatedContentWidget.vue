@@ -20,7 +20,7 @@
             <div
               :class="[
                 'w-12 h-12 rounded-lg flex items-center justify-center text-white font-semibold text-sm',
-                item.type === 'blog' ? 'bg-linear-to-br from-purple-500 to-purple-600' : 'bg-linear-to-br from-green-500 to-green-600'
+                item.type === 'blog' ? 'bg-gradient-to-br from-purple-500 to-purple-600' : 'bg-gradient-to-br from-green-500 to-green-600'
               ]"
             >
               {{ item.type === 'blog' ? 'B' : 'P' }}

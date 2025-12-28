@@ -93,12 +93,22 @@ class OrderFilesConfigSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 class OrderFileCategorySerializer(serializers.ModelSerializer):
-    website_name = serializers.CharField(source='website.name', read_only=True)
-    website_domain = serializers.CharField(source='website.domain', read_only=True)
+    website_name = serializers.CharField(source='website.name', read_only=True, allow_null=True)
+    website_domain = serializers.CharField(source='website.domain', read_only=True, allow_null=True)
+    is_universal = serializers.SerializerMethodField()
+    scope = serializers.SerializerMethodField()
 
     class Meta:
         model = OrderFileCategory
         fields = "__all__"
+    
+    def get_is_universal(self, obj):
+        """Check if this is a universal category (available to all websites)"""
+        return obj.website is None
+    
+    def get_scope(self, obj):
+        """Get the scope of this category (Universal or website name)"""
+        return "Universal" if obj.website is None else obj.website.name
 
 class FileDownloadLogSerializer(serializers.ModelSerializer):
     """Serializer for File Download Logs"""

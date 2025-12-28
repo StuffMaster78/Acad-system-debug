@@ -21,6 +21,8 @@ class WebsiteSerializer(serializers.ModelSerializer):
             "guest_block_urgent_before_hours",
             "guest_magic_link_ttl_hours",
             "google_analytics_id", "google_search_console_id", "bing_webmaster_id",
+            "enable_live_chat", "tawkto_widget_id", "tawkto_property_id",
+            "communication_widget_type", "communication_widget_config",
             "is_deleted", "deleted_at",
         ]
         read_only_fields = ["slug", "deleted_at"]
@@ -137,6 +139,14 @@ class WebsiteSEOUpdateSerializer(serializers.ModelSerializer):
             'og_title',
             'og_description',
             'og_image',
+            'google_analytics_id',
+            'google_search_console_id',
+            'bing_webmaster_id',
+            'enable_live_chat',
+            'communication_widget_type',
+            'tawkto_widget_id',
+            'tawkto_property_id',
+            'communication_widget_config',
         ]
 
 

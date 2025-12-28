@@ -110,6 +110,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+@reference "tailwindcss";
 .prose :deep(h2) {
   @apply text-xl font-semibold mt-6 mb-2;
 }

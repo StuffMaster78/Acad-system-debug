@@ -71,6 +71,7 @@ STATUS_ACTIONS_MAP: Dict[str, List[Dict[str, any]]] = {
         {"action": "approve_order", "label": "Approve Order", "target_status": "approved", "roles": ["admin", "superadmin"]},
         {"action": "archive_order", "label": "Archive Order", "target_status": "archived", "roles": ["admin", "superadmin"]},
         {"action": "close_order", "label": "Close Order", "target_status": "closed", "roles": ["admin", "superadmin"]},
+        {"action": "request_revision", "label": "Request Revision", "target_status": "revision_requested", "roles": ["admin", "superadmin", "client", "support"]},
     ],
     "revision_requested": [
         {"action": "start_revision", "label": "Start Revision", "target_status": "revision_in_progress", "roles": ["writer", "admin", "superadmin"]},
@@ -139,6 +140,9 @@ class OrderActionService:
             List of available action dictionaries with action name, label, and metadata
         """
         current_status = order.status
+        # Normalize status - handle both "complete" and "completed"
+        if current_status == "complete":
+            current_status = "completed"
         all_actions = STATUS_ACTIONS_MAP.get(current_status, [])
         
         # Filter by user role

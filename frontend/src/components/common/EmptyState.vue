@@ -13,7 +13,7 @@
       <div v-if="actionLabel && actionHandler" class="flex justify-center gap-3 flex-wrap">
         <button
           @click="actionHandler"
-          class="px-6 py-3 bg-linear-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95"
+          class="px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 text-sm font-semibold shadow-md hover:shadow-lg transform hover:scale-105 active:scale-95"
         >
           {{ actionLabel }}
         </button>

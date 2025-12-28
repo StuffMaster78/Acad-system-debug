@@ -5,5 +5,169 @@
 /* Import smooth transitions and animations */
 @import './css/transitions.css';
 
+/* Responsive Design Utilities */
+/* Mobile-first approach with breakpoints for all screen sizes */
+
+/* Mobile: 320px - 640px (default) */
+/* Tablet Portrait: 640px - 768px (sm) */
+/* Tablet Landscape: 768px - 1024px (md) */
+/* Small Laptop/Desktop: 1024px - 1280px (lg) */
+/* Standard Desktop: 1280px - 1440px (xl) */
+/* Full HD Desktop: 1440px - 1920px (2xl) */
+/* Large Screens: 1920px+ (3xl) */
+
+/* Container max-widths for different screen sizes */
+.container-responsive {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    max-width: 640px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .container-responsive {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container-responsive {
+    max-width: 1280px;
+  }
+}
+
+@media (min-width: 1440px) {
+  .container-responsive {
+    max-width: 1440px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .container-responsive {
+    max-width: 1920px;
+  }
+}
+
+/* Responsive text sizing */
+.text-responsive-xs {
+  font-size: 0.75rem; /* 12px */
+}
+
+@media (min-width: 640px) {
+  .text-responsive-xs {
+    font-size: 0.875rem; /* 14px */
+  }
+}
+
+.text-responsive-sm {
+  font-size: 0.875rem; /* 14px */
+}
+
+@media (min-width: 640px) {
+  .text-responsive-sm {
+    font-size: 1rem; /* 16px */
+  }
+}
+
+.text-responsive-base {
+  font-size: 1rem; /* 16px */
+}
+
+@media (min-width: 640px) {
+  .text-responsive-base {
+    font-size: 1.125rem; /* 18px */
+  }
+}
+
+/* Responsive spacing utilities */
+.spacing-responsive {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .spacing-responsive {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .spacing-responsive {
+    padding: 2rem;
+  }
+}
+
+/* Touch-friendly targets on mobile */
+@media (max-width: 768px) {
+  button,
+  a,
+  [role="button"],
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Optimize for tablet landscape */
+@media (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  .min-h-screen {
+    min-height: auto;
+  }
+}
+
+/* Optimize for high DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  img,
+  svg {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Prevent horizontal scroll on mobile */
+@media (max-width: 640px) {
+  body {
+    overflow-x: hidden;
+  }
+  
+  * {
+    max-width: 100%;
+  }
+}
+
+/* Safe area insets for mobile devices (notch support) */
+@supports (padding: max(0px)) {
+  .safe-area-top {
+    padding-top: max(1rem, env(safe-area-inset-top));
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  
+  .safe-area-left {
+    padding-left: max(1rem, env(safe-area-inset-left));
+  }
+  
+  .safe-area-right {
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+}
+
 /* Additional global styles can be added here */
 

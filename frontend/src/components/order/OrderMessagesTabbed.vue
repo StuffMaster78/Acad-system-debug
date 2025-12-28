@@ -1,7 +1,7 @@
 <template>
   <div class="order-messages-tabbed">
     <!-- Header with Order Context -->
-    <div class="mb-6 p-5 bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-700 shadow-sm">
+    <div class="mb-6 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-700 shadow-sm">
       <div class="flex items-center justify-between">
         <div class="flex-1">
           <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Order Messages</h3>
@@ -14,7 +14,7 @@
         </div>
         <button
           @click="openNewMessageModal"
-          class="ml-4 px-5 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 shrink-0"
+          class="ml-4 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 shrink-0"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -88,7 +88,7 @@
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold shrink-0">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold shrink-0">
                   {{ getThreadInitials(thread) }}
                 </div>
                 <div class="flex-1 min-w-0">

@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-linear-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Breadcrumb Navigation -->
       <nav class="mb-6" aria-label="Breadcrumb">
@@ -28,7 +28,7 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div class="flex items-center gap-4">
             <div class="shrink-0">
-              <div class="w-12 h-12 rounded-xl bg-linear-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg">
+              <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
@@ -66,7 +66,7 @@
       <!-- Form Card -->
       <div v-else class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <!-- Card Header -->
-        <div class="bg-linear-to-r from-primary-50 to-primary-100 dark:from-gray-700 dark:to-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <div class="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-gray-700 dark:to-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

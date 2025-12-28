@@ -32,7 +32,7 @@
 
       <!-- Statistics -->
       <div v-if="requestData" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
-        <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
@@ -49,7 +49,7 @@
             </div>
           </div>
         </div>
-        <div class="bg-linear-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
+        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
@@ -66,7 +66,7 @@
             </div>
           </div>
         </div>
-        <div class="bg-linear-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
@@ -83,7 +83,7 @@
             </div>
           </div>
         </div>
-        <div class="bg-linear-to-br from-red-50 to-red-100 rounded-xl shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
+        <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
               <p class="text-sm font-semibold text-red-700 uppercase tracking-wide mb-2">
@@ -102,7 +102,7 @@
         </div>
         <div
           v-if="requestData.statistics.recent_7_days !== undefined"
-          class="bg-linear-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-md p-6 border-l-4 border-indigo-600 hover:shadow-lg transition-shadow"
+          class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-xl shadow-md p-6 border-l-4 border-indigo-600 hover:shadow-lg transition-shadow"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1 min-w-0">
