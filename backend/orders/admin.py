@@ -11,6 +11,13 @@ from .models import (
     OrderPricingSnapshot
 )
 from orders.models import WebhookDeliveryLog
+from orders.admin_filters import (
+    StatusGroupFilter,
+    CanTransitionToFilter,
+    RecentlyTransitionedFilter,
+    NeedsAttentionFilter,
+    TransitionCountFilter,
+)
 
 class PrettyJSONWidget(widgets.Textarea):
     def format_value(self, value):
@@ -31,8 +38,18 @@ class OrderAdmin(admin.ModelAdmin):
         'created_at', 'updated_at'
     )
     list_filter = (
-        'status', 'is_paid', 'created_at', 'client_deadline',
-        'requires_editing', 'is_urgent'
+        StatusGroupFilter,
+        'status',
+        CanTransitionToFilter,
+        NeedsAttentionFilter,
+        RecentlyTransitionedFilter,
+        TransitionCountFilter,
+        'is_paid',
+        'requires_editing',
+        'is_urgent',
+        'created_at',
+        'client_deadline',
+        'website',
     )
     search_fields = ('id', 'client__username', 'writer__username', 'topic')
     ordering = ('-created_at',)

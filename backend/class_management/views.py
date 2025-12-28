@@ -16,7 +16,8 @@ from class_management.serializers import (
     ClassBundleConfigSerializer, ClassBundleSerializer,
     AdminCreateClassBundleSerializer, AdminConfigureInstallmentsSerializer,
     ExpressClassSerializer, ExpressClassCreateSerializer,
-    ExpressClassScopeReviewSerializer, ExpressClassAssignWriterSerializer
+    ExpressClassScopeReviewSerializer, ExpressClassAssignWriterSerializer,
+    ClassBundleAssignWriterSerializer
 )
 from class_management.services.class_purchases import handle_purchase_request
 from class_management.services.pricing import get_class_price, InvalidPricingError
@@ -354,6 +355,97 @@ class ClassBundleViewSet(viewsets.ModelViewSet):
             'uploaded_at': bundle_file.uploaded_at,
             'message': 'File uploaded successfully.'
         }, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def assign_writer(self, request, pk=None):
+        """
+        Admin assigns a writer to the class bundle.
+        Class bundles can have payment calculated from bundle pricing or set manually.
+        
+        Request body:
+        {
+            "writer_id": 123,
+            "bonus_amount": 500.00,  // Optional: Payment amount for the bundle (paid as bonus). If not provided, calculated from bundle pricing.
+            "admin_notes": "Optional notes"
+        }
+        """
+        from decimal import Decimal
+        from special_orders.models import WriterBonus
+        
+        bundle = self.get_object()
+        
+        serializer = ClassBundleAssignWriterSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = serializer.validated_data
+        
+        try:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            writer = User.objects.get(id=data['writer_id'], role='writer', is_active=True)
+            
+            # Calculate bonus amount if not provided
+            bonus_amount = data.get('bonus_amount')
+            if not bonus_amount:
+                # Calculate from bundle pricing (e.g., percentage of total or per-class rate)
+                # For now, use a default calculation: 60% of total price or price_per_class * number_of_classes
+                if bundle.price_per_class and bundle.number_of_classes:
+                    bonus_amount = Decimal(str(bundle.price_per_class)) * bundle.number_of_classes * Decimal('0.6')
+                elif bundle.total_price:
+                    bonus_amount = Decimal(str(bundle.total_price)) * Decimal('0.6')
+                else:
+                    return Response(
+                        {'error': 'bonus_amount is required when bundle pricing is not set.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+            
+            # Check if already assigned (allow reassignment by admin)
+            is_reassignment = bundle.assigned_writer and bundle.assigned_writer.id != writer.id
+            
+            # Assign writer
+            bundle.assigned_writer = writer
+            if bundle.status == ClassBundle.NOT_STARTED:
+                bundle.status = ClassBundle.IN_PROGRESS
+            if data.get('admin_notes'):
+                # Append admin notes if bundle has a notes field, or store in a separate field
+                # For now, we'll just log it or store in a related model if needed
+                pass
+            
+            bundle.save()
+            
+            # Create a bonus for the bundle (bundles are paid as bonuses)
+            WriterBonus.objects.create(
+                website=bundle.website,
+                writer=writer,
+                special_order=None,  # Bundles don't have special orders
+                amount=Decimal(str(bonus_amount)),
+                category='class_payment',
+                reason=f"Payment for class bundle #{bundle.id}",
+                is_paid=False  # Will be marked as paid when payment is processed
+            )
+            
+            # Log the assignment
+            logger.info(
+                f"Writer {writer.id} {'reassigned' if is_reassignment else 'assigned'} to class bundle {bundle.id} "
+                f"by admin {request.user.id}"
+            )
+            
+            return Response(
+                ClassBundleSerializer(bundle).data,
+                status=status.HTTP_200_OK
+            )
+        except User.DoesNotExist:
+            return Response(
+                {'error': 'Writer not found or is not active.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.exception(f"Error assigning writer to class bundle: {e}")
+            return Response(
+                {'error': 'An error occurred assigning the writer.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=True, methods=['get'], permission_classes=[IsAuthenticated])
     def threads(self, request, pk=None):

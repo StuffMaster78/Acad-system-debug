@@ -3,13 +3,13 @@
     <!-- Header with Back Button -->
     <div class="flex items-center gap-4 mb-2">
       <router-link
-        :to="authStore.isWriter ? { name: 'WriterMyOrders' } : { name: 'Orders' }"
+        :to="getBackRoute()"
         class="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
       >
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
-        <span class="text-sm font-medium">Back to Orders</span>
+        <span class="text-sm font-medium">{{ getBackButtonText() }}</span>
       </router-link>
     </div>
     
@@ -121,7 +121,7 @@
         </div>
         
         <!-- Action Center & Last Activity Banner (for completed/submitted/closed orders) -->
-        <div v-if="order.status === 'completed' || order.status === 'submitted' || order.status === 'approved' || order.status === 'closed'" class="bg-linear-to-r from-primary-50 to-blue-50 rounded-lg border-2 border-primary-200 p-6 shadow-sm">
+        <div v-if="order.status === 'completed' || order.status === 'submitted' || order.status === 'approved' || order.status === 'closed'" class="bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg border-2 border-primary-200 p-6 shadow-sm">
           <div class="flex items-start justify-between mb-4">
             <div>
               <h2 class="text-xl font-bold text-gray-900 mb-1">Order {{ order.status === 'completed' ? 'Completed' : order.status === 'submitted' ? 'Submitted' : order.status === 'closed' ? 'Closed' : 'Approved' }}!</h2>
@@ -219,11 +219,11 @@
             <!-- Request Revision -->
             <button
               v-if="canRequestRevision && order.status !== 'revision_requested'"
-              @click="showRevisionModal = true"
+              @click="showRevisionForm = !showRevisionForm"
               class="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-orange-300 text-orange-700 rounded-lg hover:bg-orange-50 hover:border-orange-400 transition-all font-medium shadow-sm"
             >
               <span>🔄</span>
-              <span>Request Revision</span>
+              <span>{{ showRevisionForm ? 'Cancel Revision Request' : 'Request Revision' }}</span>
             </button>
             
             <!-- Rate & Review -->
@@ -273,6 +273,222 @@
             </button>
           </div>
           
+          <!-- Inline Revision Request Form -->
+          <div v-if="showRevisionForm && canRequestRevision && order.status !== 'revision_requested'" class="mt-6 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border-2 border-orange-300 dark:border-orange-700 shadow-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center text-xl">
+                  🔄
+                </div>
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Request Revision</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Provide details about what needs to be revised</p>
+                </div>
+              </div>
+              <button
+                @click="showRevisionForm = false; resetRevisionForm()"
+                class="p-2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Close"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div class="space-y-4">
+              <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-200">
+                <p><strong>Note:</strong> Please provide specific details about what needs to be revised. You can specify sections, issues, and what you'd like changed. This helps the writer make the necessary changes quickly.</p>
+              </div>
+              
+              <!-- General Revision Description -->
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  General Revision Description <span class="text-red-500">*</span>
+                </label>
+                <textarea
+                  v-model="revisionReason"
+                  rows="4"
+                  class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                  placeholder="Provide an overview of what needs to be revised..."
+                  required
+                ></textarea>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This will be the main description of your revision request.</p>
+              </div>
+              
+              <!-- Section-Specific Changes -->
+              <div>
+                <div class="flex items-center justify-between mb-2">
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                    Specific Sections to Address (Optional)
+                  </label>
+                  <button
+                    type="button"
+                    @click="addRevisionSection"
+                    class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                  >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Section
+                  </button>
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mb-3">Specify particular sections, pages, or areas that need changes.</p>
+                
+                <div v-if="revisionSections.length === 0" class="text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 rounded-lg p-3 border border-dashed border-gray-300 dark:border-gray-600">
+                  No specific sections added. Click "Add Section" to specify particular areas that need revision.
+                </div>
+                
+                <div v-else class="space-y-3">
+                  <div
+                    v-for="(section, index) in revisionSections"
+                    :key="index"
+                    class="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700 space-y-3"
+                  >
+                    <div class="flex items-start justify-between">
+                      <h4 class="text-sm font-semibold text-gray-900 dark:text-white">Section {{ index + 1 }}</h4>
+                      <button
+                        type="button"
+                        @click="removeRevisionSection(index)"
+                        class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm px-2 py-1 rounded hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Section/Area Name
+                      </label>
+                      <input
+                        v-model="section.section"
+                        type="text"
+                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                        placeholder="e.g., Introduction, Methodology, Page 5, Table 2"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Issue/Problem
+                      </label>
+                      <textarea
+                        v-model="section.issue"
+                        rows="2"
+                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                        placeholder="Describe the issue or problem with this section..."
+                      ></textarea>
+                    </div>
+                    
+                    <div>
+                      <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        What You Want Changed
+                      </label>
+                      <textarea
+                        v-model="section.request"
+                        rows="2"
+                        class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                        placeholder="Describe what changes you'd like to see..."
+                      ></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="flex gap-3 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  @click="showRevisionForm = false; resetRevisionForm()"
+                  class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium"
+                  :disabled="requestingRevision"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="requestRevision"
+                  :disabled="requestingRevision || !revisionReason.trim()"
+                  class="px-4 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded-lg hover:bg-orange-700 dark:hover:bg-orange-800 disabled:opacity-50 transition-colors font-medium flex items-center gap-2"
+                >
+                  <span v-if="requestingRevision" class="animate-spin">⏳</span>
+                  <span>{{ requestingRevision ? 'Submitting...' : 'Submit Revision Request' }}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Disputed Order Section -->
+          <div v-if="order.status === 'disputed'" class="mt-4 bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 rounded-xl p-6 shadow-lg">
+            <div class="flex items-start gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white text-xl font-bold">
+                ⚠️
+              </div>
+              <div class="flex-1">
+                <h3 class="text-lg font-bold text-gray-900">Order Disputed</h3>
+                <p class="text-sm text-gray-600 mt-1">This order has been disputed. You can work together to resolve the issue.</p>
+              </div>
+            </div>
+            
+            <!-- Client View: Agree to let writer continue -->
+            <div v-if="authStore.isClient && order.dispute && !order.dispute.client_agreed_to_continue" class="bg-white rounded-lg p-4 border border-red-200">
+              <div class="space-y-3">
+                <p class="text-sm text-gray-700">
+                  If you'd like the writer to fix the issues and continue working on this order, you can agree to let them proceed. The writer will be able to submit their work once you agree.
+                </p>
+                <button
+                  @click="agreeToContinueDisputedOrder"
+                  :disabled="processingDisputeAction"
+                  class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <span>✅</span>
+                  <span>{{ processingDisputeAction ? 'Processing...' : 'Agree to Let Writer Continue & Submit' }}</span>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Client View: Already agreed -->
+            <div v-if="authStore.isClient && order.dispute && order.dispute.client_agreed_to_continue" class="bg-green-50 rounded-lg p-4 border border-green-200">
+              <div class="flex items-center gap-2 text-sm text-green-800">
+                <span>✅</span>
+                <span>You've agreed to let the writer continue working. They can now submit their work.</span>
+              </div>
+            </div>
+            
+            <!-- Writer View: Client agreed, can submit -->
+            <div v-if="authStore.isWriter && order.dispute && order.dispute.client_agreed_to_continue" class="bg-green-50 rounded-lg p-4 border border-green-200">
+              <div class="space-y-3">
+                <div class="flex items-center gap-2 text-sm text-green-800">
+                  <span>✅</span>
+                  <span class="font-semibold">The client has agreed to let you continue working on this order.</span>
+                </div>
+                <p class="text-sm text-gray-700">
+                  You can now work on fixing the issues and submit your work. The order will move forward once you submit.
+                </p>
+                <button
+                  v-if="canSubmitOrder"
+                  @click="submitOrder"
+                  :disabled="processingAction"
+                  class="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <span>📤</span>
+                  <span>{{ processingAction ? 'Submitting...' : 'Submit Fixed Work' }}</span>
+                </button>
+              </div>
+            </div>
+            
+            <!-- Writer View: Waiting for client agreement -->
+            <div v-if="authStore.isWriter && order.dispute && !order.dispute.client_agreed_to_continue" class="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+              <div class="flex items-center gap-2 text-sm text-yellow-800">
+                <span>⏳</span>
+                <span>Waiting for client to agree to let you continue working on this order.</span>
+              </div>
+            </div>
+            
+            <!-- Dispute Reason Display -->
+            <div v-if="order.dispute && order.dispute.reason" class="mt-4 bg-white rounded-lg p-4 border border-gray-200">
+              <h4 class="font-semibold text-gray-900 mb-2">Dispute Reason</h4>
+              <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ order.dispute.reason }}</p>
+            </div>
+          </div>
+          
           <!-- Revision Requested Notice -->
           <div v-if="order.status === 'revision_requested'" class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
             <div class="flex items-center gap-2 text-sm text-orange-800">
@@ -281,7 +497,7 @@
             </div>
           </div>
 
-          <!-- Revision Instructions Section -->
+          <!-- Revision Instructions Section (Inline Editable) -->
           <div v-if="order.status === 'revision_requested'" class="mt-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-300 rounded-xl p-6 shadow-lg">
             <div class="flex items-start justify-between mb-4">
               <div class="flex items-center gap-3">
@@ -294,8 +510,8 @@
                 </div>
               </div>
               <button
-                v-if="authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
-                @click="showRevisionInstructionsModal = true"
+                v-if="canEditRevisionInstructions && !editingRevisionInstructions"
+                @click="startEditRevisionInstructions"
                 class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold flex items-center gap-2"
               >
                 <span>{{ order.revision_instructions ? '✏️ Edit' : '➕ Add' }}</span>
@@ -303,14 +519,45 @@
               </button>
             </div>
 
-            <div v-if="order.revision_instructions" class="bg-white rounded-lg p-4 border border-orange-200">
+            <!-- View Mode -->
+            <div v-if="!editingRevisionInstructions && order.revision_instructions" class="bg-white rounded-lg p-4 border border-orange-200">
               <div class="prose max-w-none">
-                <p class="text-gray-800 whitespace-pre-wrap leading-relaxed">{{ order.revision_instructions }}</p>
+                <SafeHtml :html="order.revision_instructions" />
               </div>
             </div>
-            <div v-else class="bg-white/50 rounded-lg p-4 border-2 border-dashed border-orange-300 text-center">
+            
+            <!-- Edit Mode -->
+            <div v-if="editingRevisionInstructions && canEditRevisionInstructions" class="bg-white rounded-lg p-4 border border-orange-200 space-y-4">
+              <div>
+                <RichTextEditor
+                  v-model="revisionInstructions"
+                  label="Revision Instructions"
+                  :required="true"
+                  placeholder="Provide detailed instructions to guide the writer on how to revise the order..."
+                  height="250px"
+                />
+              </div>
+              <div class="flex gap-2 justify-end pt-4 border-t border-gray-200">
+                <button
+                  @click="cancelEditRevisionInstructions"
+                  class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+                  :disabled="savingRevisionInstructions"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="saveRevisionInstructions"
+                  :disabled="savingRevisionInstructions || !revisionInstructions.trim()"
+                  class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
+                >
+                  {{ savingRevisionInstructions ? 'Saving...' : 'Save Instructions' }}
+                </button>
+              </div>
+            </div>
+            
+            <div v-if="!editingRevisionInstructions && !order.revision_instructions" class="bg-white/50 rounded-lg p-4 border-2 border-dashed border-orange-300 text-center">
               <p class="text-gray-600 text-sm">
-                <span v-if="authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport">
+                <span v-if="canEditRevisionInstructions">
                   No revision instructions provided yet. Click "Add Instructions" above to provide guidance for the writer.
                 </span>
                 <span v-else>
@@ -343,8 +590,47 @@
         <div class="card p-6">
       <!-- Overview Tab -->
       <div v-if="activeTab === 'overview'" class="space-y-6">
-        <!-- Order Details Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Edit Mode Toggle Button (Admin/SuperAdmin/Support) -->
+        <div v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport" class="flex justify-end">
+          <button
+            @click="editingOrderDetails = !editingOrderDetails"
+            :class="[
+              'px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2',
+              editingOrderDetails
+                ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            ]"
+          >
+            <svg v-if="!editingOrderDetails" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span>{{ editingOrderDetails ? 'Cancel Edit' : 'Edit Order Details' }}</span>
+          </button>
+        </div>
+
+        <!-- Inline Edit Form (Admin/SuperAdmin/Support) -->
+        <div v-if="editingOrderDetails && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)" class="bg-white dark:bg-gray-800 rounded-xl border-2 border-blue-300 dark:border-blue-700 shadow-lg p-6">
+          <div class="flex items-center gap-3 mb-6">
+            <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-xl">
+              ✏️
+            </div>
+            <div>
+              <h3 class="text-xl font-bold text-gray-900 dark:text-white">Edit Order Details</h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Modify order information, deadlines, pricing, and instructions</p>
+            </div>
+          </div>
+          <EditOrderInline
+            :order="order"
+            @success="handleEditOrderSuccess"
+            @error="handleEditOrderError"
+          />
+        </div>
+
+        <!-- Order Details Grid (Read-only view when not editing) -->
+        <div v-if="!editingOrderDetails" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <!-- Left Column: Basic Information -->
           <div class="space-y-6">
             <!-- Order Identification -->
@@ -475,7 +761,7 @@
                 >
                   <!-- Icon Circle moved closer to the left edge -->
                   <span 
-                    class="absolute -left-[30px] top-0.5 w-11 h-11 rounded-full bg-linear-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center text-xl transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl z-10"
+                    class="absolute -left-[30px] top-0.5 w-11 h-11 rounded-full bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/30 dark:to-primary-800/30 border-2 border-white dark:border-gray-800 shadow-lg flex items-center justify-center text-xl transition-all duration-200 group-hover:scale-110 group-hover:shadow-xl z-10"
                     :class="{
                       'ring-2 ring-primary-200 dark:ring-primary-800': index === statusTimeline.length - 1
                     }"
@@ -788,6 +1074,175 @@
           </div>
         </div>
 
+        <!-- Revision Notes & Instructions Section -->
+        <div v-if="order.status === 'revision_requested' || orderReasons.length > 0 || canAddRevisionNotes" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-xl">
+                📝
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Revision Notes & Instructions</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Additional notes and instructions for revisions</p>
+              </div>
+            </div>
+            <!-- Add Revision Note Button (Client, Admin, Support) -->
+            <button
+              v-if="canAddRevisionNotes"
+              @click="addNewReasonInline"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Add Note
+            </button>
+          </div>
+          
+          <!-- Add New Revision Note Inline Editor -->
+          <div v-if="showAddReasonInline && canAddRevisionNotes" class="mb-6 bg-blue-50 dark:bg-blue-900/10 border-2 border-blue-300 dark:border-blue-700 rounded-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h4 class="font-semibold text-gray-900 dark:text-white">Add Revision Note</h4>
+              <button
+                @click="cancelAddReason"
+                class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div class="space-y-4">
+              <div>
+                <RichTextEditor
+                  v-model="reasonForm.reason"
+                  label="Revision Note/Instructions"
+                  :required="true"
+                  placeholder="Enter additional notes or instructions for the revision..."
+                  height="200px"
+                />
+              </div>
+              
+              <div class="flex gap-2 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  @click="cancelAddReason"
+                  class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                  :disabled="savingReason"
+                >
+                  Cancel
+                </button>
+                <button
+                  @click="saveReason"
+                  :disabled="savingReason || !reasonForm.reason.trim()"
+                  class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                >
+                  {{ savingReason ? 'Saving...' : 'Save Note' }}
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div v-if="orderReasons.length === 0 && !showAddReasonInline" class="text-center py-8 text-gray-500 dark:text-gray-400">
+            <p>No revision notes added yet.</p>
+            <p v-if="canAddRevisionNotes" class="text-sm mt-2">
+              Click "Add Note" to provide additional revision instructions or notes.
+            </p>
+          </div>
+          
+          <div v-else class="space-y-4">
+            <div
+              v-for="(reason, index) in orderReasons"
+              :key="index"
+              class="border-l-4 pl-4 py-3 rounded-r-lg relative"
+              :class="getReasonBorderClass(reason.type)"
+            >
+              <!-- View Mode -->
+              <div v-if="editingReasonIndex !== index" class="flex items-start justify-between gap-4">
+                <div class="flex-1">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-lg">📝</span>
+                    <h4 class="font-semibold text-gray-900 dark:text-white">Revision Note</h4>
+                    <span v-if="reason.user" class="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
+                      {{ reason.user }}
+                    </span>
+                  </div>
+                  <div class="text-sm text-gray-700 dark:text-gray-300 prose prose-sm max-w-none">
+                    <SafeHtml :html="reason.reason || reason.notes || 'No reason provided'" />
+                  </div>
+                  <div v-if="reason.timestamp" class="mt-2 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{{ formatDateTime(reason.timestamp) }}</span>
+                    <span v-if="reason.user" class="text-gray-400">•</span>
+                    <span v-if="reason.user" class="font-medium">{{ reason.user }}</span>
+                  </div>
+                  <div v-if="reason.resolution" class="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                    <p class="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Resolution:</p>
+                    <div class="text-sm text-gray-700 dark:text-gray-300 prose prose-sm max-w-none">
+                      <SafeHtml :html="reason.resolution" />
+                    </div>
+                  </div>
+                </div>
+                <!-- Edit Button (Admin, Support, or original author) -->
+                <button
+                  v-if="canEditRevisionNote(reason)"
+                  @click="startEditReason(reason, index)"
+                  class="p-2 text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                  title="Edit note"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              </div>
+              
+              <!-- Edit Mode -->
+              <div v-else-if="canEditRevisionNote(reason)" class="space-y-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="font-semibold text-gray-900 dark:text-white">Edit Revision Note</h4>
+                  <button
+                    @click="cancelEditReason"
+                    class="p-1 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  >
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                
+                <div>
+                  <RichTextEditor
+                    v-model="reasonForm.reason"
+                    label="Revision Note/Instructions"
+                    :required="true"
+                    placeholder="Enter revision notes or instructions..."
+                    height="200px"
+                  />
+                </div>
+                
+                <div class="flex gap-2 justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <button
+                    @click="cancelEditReason"
+                    class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+                    :disabled="savingReason"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    @click="saveReason"
+                    :disabled="savingReason || !reasonForm.reason.trim()"
+                    class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                  >
+                    {{ savingReason ? 'Saving...' : 'Update Note' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Order Instructions - Full Width -->
         <div
           v-if="order.instructions || order.order_instructions || (isAdmin && editingInstructions)"
@@ -1048,11 +1503,11 @@
               {{ loadingSmartMatches ? 'Loading…' : 'Smart Match' }}
             </NaiveButton>
 
-            <!-- Order Actions -->
+            <!-- Order Actions - Navigate to Actions Tab -->
             <NaiveButton
               type="default"
               size="small"
-              @click="openActionModal()"
+              @click="activeTab = 'actions'"
             >
               <template #icon>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1252,7 +1707,7 @@
 
             <div
               v-if="finalPaperFile"
-              class="mt-4 p-5 bg-linear-to-r from-green-50 via-emerald-50 to-green-50 dark:from-green-900/30 dark:via-emerald-900/30 dark:to-green-900/30 border-3 border-green-400 dark:border-green-600 rounded-xl flex items-center justify-between shadow-lg animate-pulse-once"
+              class="mt-4 p-5 bg-gradient-to-r from-green-50 via-emerald-50 to-green-50 dark:from-green-900/30 dark:via-emerald-900/30 dark:to-green-900/30 border-3 border-green-400 dark:border-green-600 rounded-xl flex items-center justify-between shadow-lg animate-pulse-once"
             >
               <div class="flex items-center gap-4">
                 <div class="w-14 h-14 bg-green-200 dark:bg-green-800 rounded-xl flex items-center justify-center shadow-md">
@@ -1336,7 +1791,7 @@
         </div>
 
         <!-- File Upload Form -->
-        <div v-if="!authStore.isWriter || showQuickUpload" class="mb-6 p-6 bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm">
+        <div v-if="!authStore.isWriter || showQuickUpload" class="mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border border-blue-200 dark:border-blue-800 shadow-sm">
           <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
@@ -1365,9 +1820,17 @@
                       {{ suggestion }} (create category to use)
                     </option>
                   </optgroup>
-                  <!-- Existing categories -->
-                  <optgroup v-if="categories.length > 0" :label="authStore.isWriter ? 'Available Categories' : 'Available Categories'">
-                    <option v-for="category in categories" :key="category.id" :value="category.id">
+                  <!-- Universal categories (available to all websites) -->
+                  <optgroup v-if="universalCategories.length > 0" label="Universal Categories">
+                    <option v-for="category in universalCategories" :key="category.id" :value="category.id">
+                      {{ category.name }}
+                      <span v-if="category.is_final_draft"> (Final Draft)</span>
+                      <span v-if="category.is_extra_service"> (Extra Service)</span>
+                    </option>
+                  </optgroup>
+                  <!-- Website-specific categories -->
+                  <optgroup v-if="websiteSpecificCategories.length > 0" label="Website-Specific Categories">
+                    <option v-for="category in websiteSpecificCategories" :key="category.id" :value="category.id">
                       {{ category.name }}
                       <span v-if="category.is_final_draft"> (Final Draft)</span>
                       <span v-if="category.is_extra_service"> (Extra Service)</span>
@@ -1458,7 +1921,7 @@
           
           <!-- Staff Files -->
           <div v-if="staffFiles.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div class="bg-linear-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-gray-200">
+            <div class="bg-gradient-to-r from-purple-50 to-pink-50 px-6 py-4 border-b border-gray-200">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
                   <span class="text-purple-600 text-lg">🛟</span>
@@ -1584,7 +2047,7 @@
 
           <!-- Client Files -->
           <div v-if="clientFiles.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div class="bg-linear-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
+            <div class="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-200">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
                   <span class="text-green-600 text-lg">👤</span>
@@ -1710,7 +2173,7 @@
                 
           <!-- Writer Files -->
           <div v-if="writerFiles.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div class="bg-linear-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
+            <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
                   <span class="text-blue-600 text-lg">✍️</span>
@@ -1836,7 +2299,7 @@
 
           <!-- Other Files (Unknown uploader or by category if needed) -->
           <div v-if="otherFiles.length > 0" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div class="bg-linear-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
+            <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                   <span class="text-gray-600 text-lg">📁</span>
@@ -2038,7 +2501,7 @@
         <!-- Eligibility Check (Client; also visible read-only to admin/support) -->
         <div
           v-if="(authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && draftEligibility"
-          class="bg-linear-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 p-6 shadow-sm"
+          class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-800 p-6 shadow-sm"
         >
           <div class="flex items-start gap-4">
             <div class="shrink-0 w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
@@ -2259,7 +2722,7 @@
         </div>
 
         <!-- External Link Submission Form -->
-        <div class="mb-6 p-6 bg-linear-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 shadow-sm">
+        <div class="mb-6 p-6 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 shadow-sm">
           <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
             <svg class="w-5 h-5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
@@ -2399,14 +2862,24 @@
             <div class="flex-1">
               <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Order Actions</h2>
               <p class="text-sm text-gray-600 dark:text-gray-400">
-                Manage this order with quick actions based on your role. All actions are logged and tracked.
+                Manage this order with inline actions. Expand any section to perform actions. All actions are logged and tracked.
               </p>
             </div>
           </div>
         </div>
 
-        <!-- Admin/SuperAdmin/Support Actions -->
-        <div v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport" class="space-y-6">
+        <!-- Inline Actions Component (Admin/SuperAdmin/Support) -->
+        <div v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport">
+          <InlineOrderActions
+            :order="order"
+            :available-actions="availableActions"
+            @success="handleInlineActionSuccess"
+            @error="handleInlineActionError"
+          />
+        </div>
+
+        <!-- Admin/SuperAdmin/Support Actions (Legacy - keeping for reference) -->
+        <div v-if="false && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)" class="space-y-6">
           <!-- Status Management -->
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex items-center gap-3 mb-6">
@@ -2649,11 +3122,11 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <button
                 v-if="canRequestRevision"
-                @click="showRevisionModal = true"
+                @click="showRevisionForm = !showRevisionForm"
                 class="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all font-medium"
               >
                 <span class="text-xl">🔄</span>
-                <span>Request Revision</span>
+                <span>{{ showRevisionForm ? 'Cancel Revision Request' : 'Request Revision' }}</span>
               </button>
               <button
                 v-if="['pending', 'in_progress'].includes(order.status)"
@@ -2950,9 +3423,9 @@
       </div>
     </template>
 
-    <!-- Order Action Modal for Admin/Superadmin/Support -->
-    <OrderActionModal
-      v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
+    <!-- Order Action Modal - Disabled for Admin/Superadmin/Support (using inline actions instead) -->
+    <!-- <OrderActionModal
+      v-if="false && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
       v-model:visible="showActionModal"
       :order="order"
       :selected-action="selectedAction"
@@ -2960,7 +3433,7 @@
       :available-writers="availableWriters"
       @success="handleActionSuccess"
       @error="handleActionError"
-    />
+    /> -->
     
     <!-- Tip Writer Modal -->
     <Modal
@@ -3048,93 +3521,6 @@
             class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
           >
             {{ tipping ? 'Processing...' : `Tip $${tipAmount ? tipAmount.toFixed(2) : '0.00'}` }}
-          </button>
-        </div>
-      </div>
-    </Modal>
-    
-    <!-- Revision Instructions Modal -->
-    <Modal
-      v-model:visible="showRevisionInstructionsModal"
-      title="Revision Instructions"
-      size="lg"
-    >
-      <div class="space-y-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-          <p><strong>Note:</strong> Provide clear, detailed instructions to guide the writer on how to revise the order. Be specific about what needs to be changed, added, or improved.</p>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Revision Instructions <span class="text-red-500">*</span>
-          </label>
-          <textarea
-            v-model="revisionInstructions"
-            rows="10"
-            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-            placeholder="Paste or write detailed revision instructions here. For example:&#10;&#10;1. Add more citations in the introduction section&#10;2. Expand the methodology section with more details&#10;3. Fix formatting issues in tables&#10;4. Add a conclusion paragraph summarizing key findings..."
-          ></textarea>
-          <p class="text-xs text-gray-500 mt-1">You can use numbered lists, bullet points, or paragraphs. Be as specific as possible.</p>
-        </div>
-        
-        <div class="flex gap-2 justify-end">
-          <button
-            @click="showRevisionInstructionsModal = false"
-            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-            :disabled="savingRevisionInstructions"
-          >
-            Cancel
-          </button>
-          <button
-            @click="saveRevisionInstructions"
-            :disabled="savingRevisionInstructions || !revisionInstructions.trim()"
-            class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
-          >
-            {{ savingRevisionInstructions ? 'Saving...' : 'Save Instructions' }}
-          </button>
-        </div>
-      </div>
-    </Modal>
-
-    <!-- Revision Request Modal -->
-    <Modal
-      v-model:visible="showRevisionModal"
-      title="Request Revision"
-      size="md"
-    >
-      <div class="space-y-4">
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-800">
-          <p><strong>Note:</strong> Please provide specific details about what needs to be revised. This helps the writer make the necessary changes quickly.</p>
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">
-            Revision Details <span class="text-red-500">*</span>
-          </label>
-          <textarea
-            v-model="revisionReason"
-            rows="6"
-            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-            placeholder="Describe what needs to be revised. Be as specific as possible..."
-            required
-          ></textarea>
-          <p class="text-xs text-gray-500 mt-1">Examples: "Add more citations", "Expand section 3", "Fix formatting issues"</p>
-        </div>
-        
-        <div class="flex gap-2 justify-end">
-          <button
-            @click="showRevisionModal = false"
-            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-            :disabled="requestingRevision"
-          >
-            Cancel
-          </button>
-          <button
-            @click="requestRevision"
-            :disabled="requestingRevision || !revisionReason.trim()"
-            class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
-          >
-            {{ requestingRevision ? 'Submitting...' : 'Submit' }}
           </button>
         </div>
       </div>
@@ -3236,10 +3622,10 @@
           </button>
           <button
             v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
-            @click="openActionModal('mark_paid'); showUnpaidWarningModal = false"
+            @click="showUnpaidWarningModal = false; activeTab = 'actions'"
             class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
           >
-            Mark as Paid
+            Go to Actions Tab
           </button>
         </div>
       </div>
@@ -3543,7 +3929,9 @@ import ProgressHistory from '@/components/orders/ProgressHistory.vue'
 import OrderMessagesTabbed from '@/components/order/OrderMessagesTabbed.vue'
 import { useOnlineStatus } from '@/composables/useOnlineStatus'
 import progressAPI from '@/api/progress'
-import OrderActionModal from '@/components/order/OrderActionModal.vue'
+// import OrderActionModal from '@/components/order/OrderActionModal.vue' // Disabled - using inline actions instead
+import InlineOrderActions from '@/components/order/InlineOrderActions.vue'
+import EditOrderInline from '@/components/order/actions/EditOrderInline.vue'
 import usersAPI from '@/api/users'
 import { getErrorMessage, getSuccessMessage } from '@/utils/errorHandler'
 import { useToast } from '@/composables/useToast'
@@ -3564,6 +3952,25 @@ import NaiveButton from '@/components/naive/NaiveButton.vue'
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
+
+// Helper functions for admin route detection
+const isAdminRoute = computed(() => {
+  return route.path.startsWith('/admin/orders/')
+})
+
+const getBackRoute = () => {
+  if (isAdminRoute.value) {
+    return { name: 'OrderManagement' }
+  }
+  return authStore.isWriter ? { name: 'WriterMyOrders' } : { name: 'Orders' }
+}
+
+const getBackButtonText = () => {
+  if (isAdminRoute.value) {
+    return 'Back to Order Management'
+  }
+  return 'Back to Orders'
+}
 const { success: showSuccessToast, error: showErrorToast } = useToast()
 const confirm = useConfirmDialog()
 const inputModal = useInputModal()
@@ -3662,6 +4069,23 @@ const showActionModal = ref(false)
 const selectedAction = ref(null)
 const availableActions = ref([])
 const availableWriters = ref([])
+
+// Inline edit mode for Overview tab (admin/superadmin/support)
+const editingOrderDetails = ref(false)
+
+// Load available actions for the order
+const loadAvailableActions = async () => {
+  if (!order.value) return
+  try {
+    const response = await ordersAPI.getAvailableActions(order.value.id)
+    if (response.data && response.data.available_actions) {
+      availableActions.value = response.data.available_actions
+    }
+  } catch (error) {
+    console.error('Failed to load available actions:', error)
+    availableActions.value = []
+  }
+}
 
 // Draft Request state
 const draftRequests = ref([])
@@ -4216,18 +4640,181 @@ const hasOutstandingBalance = computed(() => outstandingBalance.value > 0.01)
 const paymentTransactions = computed(() => paymentSummary.value?.payments || [])
 const paymentInstallments = computed(() => paymentSummary.value?.installments || [])
 
+// Extract reasons from order for display
+// Only show revision-related notes (not cancellation, dispute, refund reasons - those are in transitions)
+const orderReasons = computed(() => {
+  if (!order.value) return []
+  
+  const reasons = []
+  
+  // Only check for revision-related notes from completion_notes (primary location)
+  if (order.value.completion_notes) {
+    try {
+      const notesObj = typeof order.value.completion_notes === 'string' 
+        ? JSON.parse(order.value.completion_notes) 
+        : order.value.completion_notes
+      
+      // Only include revision notes (not cancellation, dispute, refund - those are captured in transitions)
+      if (notesObj.revision_notes && Array.isArray(notesObj.revision_notes)) {
+        notesObj.revision_notes.forEach((note) => {
+          if (note.reason || note.notes) {
+            reasons.push({
+              type: 'revision',
+              label: 'Revision Note',
+              reason: note.reason || note.notes,
+              timestamp: note.timestamp || order.value.updated_at,
+              user: note.added_by?.username || note.user || 'Unknown',
+              added_by_id: note.added_by?.id || note.added_by_id,
+              is_admin_added: note.is_admin_added || false
+            })
+          }
+        })
+      }
+      
+      // Legacy: check admin_reasons but filter to only revision-related
+      if (notesObj.admin_reasons && Array.isArray(notesObj.admin_reasons)) {
+        notesObj.admin_reasons.forEach((adminReason) => {
+          // Only include if it's revision-related
+          if (adminReason.type === 'revision' && (adminReason.reason || adminReason.notes)) {
+            reasons.push({
+              type: 'revision',
+              label: 'Revision Note',
+              reason: adminReason.reason || adminReason.notes,
+              timestamp: adminReason.timestamp || order.value.updated_at,
+              user: adminReason.added_by?.username || 'Admin',
+              added_by_id: adminReason.added_by?.id || adminReason.added_by_id,
+              is_admin_added: adminReason.is_admin_added || true,
+              admin_reason_id: adminReason.id
+            })
+          }
+        })
+      }
+    } catch (e) {
+      // If completion_notes is not JSON, that's okay - it might be plain text
+      if (import.meta.env.DEV && order.value.completion_notes && typeof order.value.completion_notes === 'string' && order.value.completion_notes.length > 0) {
+        console.warn('Failed to parse completion_notes for revision notes:', e)
+      }
+    }
+  }
+  
+  // Sort by timestamp (most recent first)
+  return reasons.sort((a, b) => {
+    const dateA = a.timestamp ? new Date(a.timestamp).getTime() : 0
+    const dateB = b.timestamp ? new Date(b.timestamp).getTime() : 0
+    return dateB - dateA
+  })
+})
+
+// Computed properties for revision notes permissions
+const canAddRevisionNotes = computed(() => {
+  if (!order.value) return false
+  // Only show for revision-related statuses or if order has been in revision
+  const revisionStatuses = ['revision_requested', 'revision_in_progress']
+  const canEdit = authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport
+  return canEdit && (revisionStatuses.includes(order.value.status) || order.value.status_history?.some(s => revisionStatuses.includes(s)))
+})
+
+const canEditRevisionInstructions = computed(() => {
+  if (!order.value) return false
+  return authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport
+})
+
+const canEditRevisionNote = (note) => {
+  if (!note) return false
+  // Admin/Support can always edit
+  if (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) return true
+  // Client can edit their own notes
+  if (authStore.isClient && note.added_by_id === userId.value) return true
+  return false
+}
+
+// Helper functions for reason display
+const getReasonLabel = (type) => {
+  const labels = {
+    'cancelled': 'Cancellation Reason',
+    'cancel_order': 'Cancellation Reason',
+    'disputed': 'Dispute Reason',
+    'dispute': 'Dispute Reason',
+    'refunded': 'Refund Reason',
+    'refund': 'Refund Reason',
+    'on_hold': 'Hold Reason',
+    'hold_order': 'Hold Reason',
+    'archived': 'Archive Reason',
+    'archive_order': 'Archive Reason'
+  }
+  return labels[type] || 'Reason'
+}
+
+const getReasonIcon = (type) => {
+  const icons = {
+    'cancelled': '❌',
+    'cancel_order': '❌',
+    'disputed': '⚠️',
+    'dispute': '⚠️',
+    'refunded': '💰',
+    'refund': '💰',
+    'on_hold': '⏸️',
+    'hold_order': '⏸️',
+    'archived': '📦',
+    'archive_order': '📦'
+  }
+  return icons[type] || '📝'
+}
+
+const getReasonBorderClass = (type) => {
+  const classes = {
+    'cancelled': 'border-red-500 bg-red-50 dark:bg-red-900/10',
+    'cancel_order': 'border-red-500 bg-red-50 dark:bg-red-900/10',
+    'disputed': 'border-orange-500 bg-orange-50 dark:bg-orange-900/10',
+    'dispute': 'border-orange-500 bg-orange-50 dark:bg-orange-900/10',
+    'refunded': 'border-blue-500 bg-blue-50 dark:bg-blue-900/10',
+    'refund': 'border-blue-500 bg-blue-50 dark:bg-blue-900/10',
+    'on_hold': 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10',
+    'hold_order': 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/10',
+    'archived': 'border-gray-500 bg-gray-50 dark:bg-gray-900/10',
+    'archive_order': 'border-gray-500 bg-gray-50 dark:bg-gray-900/10'
+  }
+  return classes[type] || 'border-gray-300 bg-gray-50 dark:bg-gray-900/10'
+}
+
+const getReasonBadgeClass = (type) => {
+  const classes = {
+    'cancelled': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    'cancel_order': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
+    'disputed': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+    'dispute': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300',
+    'refunded': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+    'refund': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
+    'on_hold': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    'hold_order': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
+    'archived': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+    'archive_order': 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+  }
+  return classes[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+}
+
 const hasReview = ref(false)
 const orderReview = ref(null)
-const showRevisionModal = ref(false)
-const showRevisionInstructionsModal = ref(false)
+const showRevisionForm = ref(false)
+const editingRevisionInstructions = ref(false)
 const revisionInstructions = ref('')
 const savingRevisionInstructions = ref(false)
+const revisionReason = ref('')
+const requestingRevision = ref(false)
+const revisionSections = ref([])
+const processingDisputeAction = ref(false)
 const showAssignModal = ref(false)
+const showAddReasonInline = ref(false)
+const editingReasonIndex = ref(null)
+const savingReason = ref(false)
+const reasonForm = ref({
+  type: '',
+  reason: '',
+  resolution: ''
+})
 const showReassignModal = ref(false)
 const showUnpaidWarningModal = ref(false)
 const showEditInstructions = ref(false)
-const revisionReason = ref('')
-const requestingRevision = ref(false)
 const showTipModal = ref(false)
 const tipAmount = ref(null)
 const tipReason = ref('')
@@ -5105,6 +5692,53 @@ const linkForm = ref({
   description: '',
 })
 
+// Handle inline action success
+const handleInlineActionSuccess = async (data) => {
+  showSuccessToast('Action completed successfully!')
+  // Reload order to get updated data
+  await loadOrder()
+  // Reload related data
+  await Promise.all([
+    loadFiles(),
+    loadLinks(),
+    loadLatestProgress()
+  ])
+}
+
+// Handle inline action error
+const handleInlineActionError = (error) => {
+  if (error?.cancelled) return // User cancelled, don't show error
+  const errorMsg = error?.response?.data?.detail || error?.message || 'Action failed'
+  showErrorToast(errorMsg)
+}
+
+// Handle edit order success (from Overview tab inline edit)
+const handleEditOrderSuccess = async (data) => {
+  showSuccessToast('Order details updated successfully!')
+  // Reload order to get updated data
+  await loadOrder()
+  // Exit edit mode
+  editingOrderDetails.value = false
+  // Reload related data
+  await Promise.all([
+    loadFiles(),
+    loadLinks(),
+    loadLatestProgress(),
+    loadAvailableActions()
+  ])
+}
+
+// Handle edit order error (from Overview tab inline edit)
+const handleEditOrderError = (error) => {
+  if (error?.cancelled) {
+    // User cancelled, just exit edit mode
+    editingOrderDetails.value = false
+    return
+  }
+  const errorMsg = error?.response?.data?.detail || error?.message || 'Failed to update order'
+  showErrorToast(errorMsg)
+}
+
 const loadOrder = async () => {
   loading.value = true
   try {
@@ -5245,6 +5879,24 @@ const scrollToReview = () => {
   })
 }
 
+// Revision section management
+const addRevisionSection = () => {
+  revisionSections.value.push({
+    section: '',
+    issue: '',
+    request: ''
+  })
+}
+
+const removeRevisionSection = (index) => {
+  revisionSections.value.splice(index, 1)
+}
+
+const resetRevisionForm = () => {
+  revisionReason.value = ''
+  revisionSections.value = []
+}
+
 const requestRevision = async () => {
   if (!revisionReason.value.trim()) {
     showErrorToast('Please provide a reason for the revision request')
@@ -5268,13 +5920,32 @@ const requestRevision = async () => {
   
   requestingRevision.value = true
   try {
-    await ordersAPI.executeAction(order.value.id, 'request_revision', {
-      reason: revisionReason.value
-    })
+    // Prepare revision request data
+    const revisionData = {
+      reason: revisionReason.value.trim(),
+      description: revisionReason.value.trim()
+    }
+    
+    // Add section-specific changes if provided
+    if (revisionSections.value.length > 0) {
+      const changesRequired = revisionSections.value
+        .filter(s => s.section || s.issue || s.request)
+        .map(s => ({
+          section: s.section || 'General',
+          issue: s.issue || '',
+          request: s.request || ''
+        }))
+      
+      if (changesRequired.length > 0) {
+        revisionData.changes_required = changesRequired
+      }
+    }
+    
+    await ordersAPI.executeAction(order.value.id, 'request_revision', revisionData)
     const message = `Revision request for Order #${order.value.id} "${order.value.topic || 'Untitled'}" has been submitted successfully! The writer will be notified and will work on the requested changes.`
     showSuccessToast(message)
-    showRevisionModal.value = false
-    revisionReason.value = ''
+    showRevisionForm.value = false
+    resetRevisionForm()
     await loadOrder()
   } catch (error) {
     const errorMsg = getErrorMessage(error, 'Failed to request revision', `Unable to submit revision request for Order #${order.value.id}. Please try again or contact support if the issue persists.`)
@@ -5284,19 +5955,47 @@ const requestRevision = async () => {
   }
 }
 
+const startEditRevisionInstructions = () => {
+  editingRevisionInstructions.value = true
+  revisionInstructions.value = order.value?.revision_instructions || ''
+}
+
+const cancelEditRevisionInstructions = () => {
+  editingRevisionInstructions.value = false
+  revisionInstructions.value = ''
+}
+
 const saveRevisionInstructions = async () => {
-  if (!revisionInstructions.value.trim()) {
+  // Get HTML content from rich text editor
+  let instructionsText = revisionInstructions.value || ''
+  
+  // Import stripHtml to check if HTML content has actual text
+  const { stripHtml } = await import('@/utils/htmlUtils')
+  
+  // Check if instructions have content
+  const instructionsTextOnly = typeof instructionsText === 'string' ? stripHtml(instructionsText) : String(instructionsText || '')
+  if (!instructionsTextOnly.trim()) {
     showErrorToast('Please provide revision instructions')
     return
   }
   
   savingRevisionInstructions.value = true
   try {
-    await ordersAPI.patch(order.value.id, {
-      revision_instructions: revisionInstructions.value.trim()
-    })
+    // Try using executeAction first (if backend supports it)
+    // Otherwise fallback to PUT
+    try {
+      await ordersAPI.executeAction(order.value.id, 'update_revision_instructions', {
+        revision_instructions: typeof instructionsText === 'string' ? instructionsText : String(instructionsText)
+      })
+    } catch (actionError) {
+      // If action doesn't exist, try PUT with minimal data
+      const updateData = {
+        revision_instructions: typeof instructionsText === 'string' ? instructionsText : String(instructionsText)
+      }
+      await ordersAPI.update(order.value.id, updateData)
+    }
     showSuccessToast('Revision instructions saved successfully!')
-    showRevisionInstructionsModal.value = false
+    editingRevisionInstructions.value = false
     await loadOrder()
   } catch (error) {
     const errorMsg = getErrorMessage(error, 'Failed to save revision instructions', 'Unable to save revision instructions. Please try again.')
@@ -5306,12 +6005,194 @@ const saveRevisionInstructions = async () => {
   }
 }
 
-// Watch for modal opening to initialize instructions
-watch(showRevisionInstructionsModal, (isOpen) => {
-  if (isOpen && order.value) {
-    revisionInstructions.value = order.value.revision_instructions || ''
+// Reason management functions
+const startEditReason = (reason, index) => {
+  editingReasonIndex.value = index
+  reasonForm.value = {
+    type: 'revision', // Always revision type
+    reason: reason.reason || reason.notes || '',
+    resolution: '' // No resolution field for revision notes
   }
-})
+}
+
+const cancelEditReason = () => {
+  editingReasonIndex.value = null
+  reasonForm.value = {
+    type: '',
+    reason: '',
+    resolution: ''
+  }
+}
+
+const addNewReasonInline = () => {
+  showAddReasonInline.value = true
+  editingReasonIndex.value = null
+  reasonForm.value = {
+    type: '',
+    reason: '',
+    resolution: ''
+  }
+}
+
+const cancelAddReason = () => {
+  showAddReasonInline.value = false
+  reasonForm.value = {
+    type: '',
+    reason: '',
+    resolution: ''
+  }
+}
+
+const saveReason = async () => {
+  // Get HTML content from rich text editor (if it's HTML) or use plain text
+  let reasonText = reasonForm.value.reason || ''
+  
+  // Import stripHtml to check if HTML content has actual text
+  const { stripHtml } = await import('@/utils/htmlUtils')
+  
+  // Check if reason has content (strip HTML to check for actual text)
+  const reasonTextOnly = typeof reasonText === 'string' ? stripHtml(reasonText) : String(reasonText || '')
+  const hasReasonContent = reasonTextOnly.trim().length > 0
+  
+  if (!hasReasonContent) {
+    showErrorToast('Please provide revision notes')
+    return
+  }
+  
+  if (!order.value) return
+  
+  savingReason.value = true
+  try {
+    // Prepare the revision note data (always revision type)
+    const revisionNote = {
+      type: 'revision',
+      reason: typeof reasonText === 'string' ? reasonText : String(reasonText),
+      timestamp: new Date().toISOString(),
+      added_by: authStore.user?.id,
+      added_by_id: authStore.user?.id,
+      is_admin_added: authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport
+    }
+    
+    // Get existing revision notes from completion_notes (primary location)
+    let existingRevisionNotes = []
+    if (order.value.completion_notes) {
+      try {
+        const notesObj = typeof order.value.completion_notes === 'string' 
+          ? JSON.parse(order.value.completion_notes) 
+          : order.value.completion_notes
+        
+        // Get revision_notes array
+        if (notesObj.revision_notes && Array.isArray(notesObj.revision_notes)) {
+          existingRevisionNotes = [...notesObj.revision_notes]
+        }
+      } catch (e) {
+        // If parsing fails, start fresh
+        if (import.meta.env.DEV) {
+          console.warn('Failed to parse completion_notes for revision notes:', e)
+        }
+      }
+    }
+    
+    // If editing, replace the existing note; otherwise add new
+    if (editingReasonIndex.value !== null) {
+      const originalNote = orderReasons.value[editingReasonIndex.value]
+      const noteIndex = existingRevisionNotes.findIndex(n => 
+        n.timestamp === originalNote.timestamp && 
+        (n.added_by_id === originalNote.added_by_id || n.added_by?.id === originalNote.added_by_id)
+      )
+      if (noteIndex >= 0) {
+        existingRevisionNotes[noteIndex] = revisionNote
+      } else {
+        existingRevisionNotes.push(revisionNote)
+      }
+    } else {
+      existingRevisionNotes.push(revisionNote)
+    }
+    
+    // Store the revision notes in completion_notes as JSON (this field exists on the Order model)
+    // Preserve existing completion_notes if any
+    const existingNotes = order.value.completion_notes || ''
+    let notesObj = {}
+    
+    try {
+      // Try to parse existing notes as JSON
+      if (existingNotes) {
+        const parsed = typeof existingNotes === 'string' ? JSON.parse(existingNotes) : existingNotes
+        if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+          notesObj = { ...parsed }
+        } else {
+          // If it's not JSON, preserve it
+          notesObj = { original_notes: existingNotes }
+        }
+      }
+    } catch (e) {
+      // If not JSON, preserve original notes
+      notesObj = { original_notes: existingNotes }
+    }
+    
+    // Add/update revision notes
+    notesObj.revision_notes = existingRevisionNotes
+    notesObj.revision_notes_updated = new Date().toISOString()
+    notesObj.revision_notes_updated_by = authStore.user?.id
+    
+    const updateData = {
+      completion_notes: JSON.stringify(notesObj)
+    }
+    
+    // Use PUT (more commonly supported than PATCH)
+    await ordersAPI.update(order.value.id, updateData)
+    
+    showSuccessToast(editingReasonIndex.value !== null ? 'Revision note updated successfully!' : 'Revision note added successfully!')
+    
+    // Reset form and close inline editors
+    if (editingReasonIndex.value !== null) {
+      cancelEditReason()
+    } else {
+      cancelAddReason()
+    }
+    
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to save reason', 'Unable to save reason. Please try again.')
+    showErrorToast(errorMsg)
+  } finally {
+    savingReason.value = false
+  }
+}
+
+// Dispute resolution: Client agrees to let writer continue
+const agreeToContinueDisputedOrder = async () => {
+  if (!order.value || !order.value.dispute) return
+  
+  const confirmed = await confirm.showDialog(
+    `Agree to let writer continue working on Order #${order.value.id}?`,
+    'Agree to Continue',
+    {
+      details: `By agreeing, you're allowing the writer to fix the issues and submit their work. The order will move forward once the writer submits their fixed work.`,
+      variant: 'default',
+      icon: '✅',
+      confirmText: 'Agree & Allow Writer to Continue',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  processingDisputeAction.value = true
+  try {
+    // Call API to update dispute with client agreement
+    await ordersAPI.executeAction(order.value.id, 'client_agree_continue_dispute', {
+      dispute_id: order.value.dispute.id || order.value.dispute_id
+    })
+    showSuccessToast('You\'ve agreed to let the writer continue working. They can now submit their work.')
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to update dispute agreement', 'Unable to update dispute agreement. Please try again.')
+    showErrorToast(errorMsg)
+  } finally {
+    processingDisputeAction.value = false
+  }
+}
 
 const submitTip = async () => {
   if (!tipAmount.value || tipAmount.value <= 0) {
@@ -5427,10 +6308,19 @@ const loadCategories = async () => {
   }
 }
 
+// Separate universal and website-specific categories
+const universalCategories = computed(() => {
+  return categories.value.filter(cat => cat.is_universal || cat.website === null || cat.website_id === null)
+})
+
+const websiteSpecificCategories = computed(() => {
+  return categories.value.filter(cat => !cat.is_universal && cat.website !== null && cat.website_id !== null)
+})
+
 // Role-based category suggestions
 const writerCategorySuggestions = computed(() => {
   const common = ['Final Draft', 'First Draft', 'DRAFT', 'Outline', 'Resource', 'Plagiarism Report', 'AI Similarity Report']
-  // Filter out suggestions that already exist as categories
+  // Filter out suggestions that already exist as categories (check both universal and website-specific)
   return common.filter(suggestion => 
     !categories.value.some(cat => cat.name.toLowerCase() === suggestion.toLowerCase())
   )
@@ -5438,7 +6328,7 @@ const writerCategorySuggestions = computed(() => {
 
 const clientCategorySuggestions = computed(() => {
   const common = ['Materials', 'Sample', 'My Previous Papers', 'Friends Paper', 'Reading Materials', 'Syllabus', 'Rubric', 'Guidelines']
-  // Filter out suggestions that already exist as categories
+  // Filter out suggestions that already exist as categories (check both universal and website-specific)
   return common.filter(suggestion => 
     !categories.value.some(cat => cat.name.toLowerCase() === suggestion.toLowerCase())
   )

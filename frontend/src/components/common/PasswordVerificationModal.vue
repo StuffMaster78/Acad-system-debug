@@ -3,7 +3,7 @@
     <div v-if="show" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="handleCancel">
       <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-md w-full shadow-2xl transform transition-all">
         <!-- Header with gradient background -->
-        <div class="bg-linear-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 rounded-t-2xl p-6">
+        <div class="bg-gradient-to-r from-red-500 to-red-600 dark:from-red-600 dark:to-red-700 rounded-t-2xl p-6">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
               <div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center border-2 border-white/30">
@@ -149,7 +149,7 @@
             <button
               @click="handleConfirm"
               :disabled="loading || !password || (requireUsername && !username)"
-              class="flex-1 px-5 py-3 bg-linear-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
+              class="flex-1 px-5 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none"
             >
               <svg v-if="loading" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>

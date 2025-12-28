@@ -14,7 +14,7 @@
     <div v-if="error" class="p-4 rounded bg-red-50 text-red-700">{{ error }}</div>
 
     <!-- Wallet Balance Card -->
-    <div class="bg-linear-to-r from-primary-500 to-blue-600 p-6 rounded-lg shadow-lg text-white">
+    <div class="bg-gradient-to-r from-primary-500 to-blue-600 p-6 rounded-lg shadow-lg text-white">
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium opacity-90 mb-2">Available Balance</p>

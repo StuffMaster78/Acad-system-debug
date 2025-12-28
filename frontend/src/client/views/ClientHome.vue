@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-8">
     <!-- Welcome Section -->
-    <div class="bg-linear-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white shadow-lg">
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl p-8 text-white shadow-lg">
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-3xl font-bold mb-2">Welcome back, {{ authStore.user?.full_name || 'Client' }}!</h1>

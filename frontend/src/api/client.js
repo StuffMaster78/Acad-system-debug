@@ -362,6 +362,8 @@ apiClient.interceptors.response.use(
       '/order-communications/communication-threads/',
       '/users/users/profile/',
       '/orders/draft-requests/check-eligibility/',
+      '/admin-management/dashboard/top-clients/',
+      '/order-communications/communication-threads-stream/',
     ]
     
     const isExpectedFailure = expectedFailures.some(endpoint => url.includes(endpoint))

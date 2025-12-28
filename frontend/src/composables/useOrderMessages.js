@@ -42,18 +42,40 @@ export function useOrderMessages(orderId) {
         return sum + (thread.unread_count || 0)
       }, 0)
     } catch (err) {
-      if (err.message.includes('Authentication')) {
-        error.value = 'Authentication required. Please log in again.'
-      } else if (err.message.includes('permission')) {
-        error.value = 'You do not have permission to view these messages.'
-      } else if (err.message.includes('Too many requests')) {
+      // Handle rate limiting (429) gracefully
+      if (err.response?.status === 429 || err.message.includes('Too many requests')) {
         error.value = 'Too many requests. Please wait a moment.'
-        // Retry after a delay
-        setTimeout(() => loadThreads(), 5000)
-      } else {
-        error.value = err.message || 'Failed to load threads'
+        // Retry after a delay (only once)
+        if (!threads.value.length) {
+          setTimeout(() => loadThreads(), 5000)
+        }
+        return
+      }
+      
+      // Handle auth errors
+      if (err.response?.status === 401 || err.message.includes('Authentication')) {
+        error.value = 'Authentication required. Please log in again.'
+        return
+      }
+      
+      // Handle permission errors
+      if (err.response?.status === 403 || err.message.includes('permission')) {
+        error.value = 'You do not have permission to view these messages.'
+        return
+      }
+      
+      // Handle 404 gracefully (endpoint might not exist)
+      if (err.response?.status === 404) {
+        threads.value = []
+        return
+      }
+      
+      // Only log unexpected errors in dev mode
+      if (import.meta.env.DEV) {
         console.error('Failed to load threads:', err)
       }
+      
+      error.value = err.message || 'Failed to load threads'
     } finally {
       loading.value = false
     }

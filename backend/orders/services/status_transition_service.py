@@ -38,7 +38,7 @@ VALID_TRANSITIONS: Dict[str, List[str]] = {
     "reviewed": ["rated", "revision_requested", "approved"],
     "rated": ["approved", "revision_requested", "completed"],
     "approved": ["archived", "completed"],
-    "completed": ["approved", "archived", "closed"],
+    "completed": ["approved", "archived", "closed", "revision_requested"],
     
     # Revision states
     "revision_requested": ["revision_in_progress", "reassigned", "on_hold", "cancelled"],
@@ -57,7 +57,7 @@ VALID_TRANSITIONS: Dict[str, List[str]] = {
     "reopened": ["unpaid", "pending", "available"],
     "refunded": ["closed", "cancelled"],
     "archived": ["closed"],
-    "closed": [],
+    "closed": ["archived"],  # Can be archived after a period
     "deleted": [],
 }
 

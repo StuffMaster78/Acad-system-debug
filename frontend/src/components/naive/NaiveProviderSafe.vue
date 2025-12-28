@@ -28,7 +28,7 @@ onMounted(() => {
 let isDark = computed(() => false)
 try {
   const { isDark: themeIsDark } = useTheme()
-  isDark = themeIsDark
+  isDark.value = themeIsDark
 } catch (error) {
   console.warn('Theme not available, using light theme:', error)
 }

@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="website"
-    class="bg-linear-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-6 mb-6"
+    class="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 border border-primary-200 dark:border-primary-800 rounded-lg p-6 mb-6"
   >
     <div class="flex items-start justify-between">
       <div class="flex-1">

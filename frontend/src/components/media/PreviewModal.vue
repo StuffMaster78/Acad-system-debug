@@ -6,7 +6,7 @@
   >
     <div class="bg-white dark:bg-gray-800 rounded-lg max-w-6xl w-full max-h-[95vh] overflow-hidden shadow-2xl flex flex-col">
       <!-- Header -->
-      <div class="bg-linear-to-r from-gray-800 to-gray-900 dark:from-gray-700 dark:to-gray-800 p-4 flex items-center justify-between">
+      <div class="bg-gradient-to-r from-gray-800 to-gray-900 dark:from-gray-700 dark:to-gray-800 p-4 flex items-center justify-between">
         <div class="flex-1 min-w-0">
           <h2 class="text-xl font-bold text-white truncate">{{ asset.title || 'Untitled Asset' }}</h2>
           <p class="text-gray-300 text-sm mt-1">{{ formatFileSize(asset.size_bytes) }} • {{ asset.type || 'Unknown' }}</p>

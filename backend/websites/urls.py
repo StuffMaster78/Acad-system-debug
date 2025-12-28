@@ -2,7 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
     WebsiteViewSet, WebsiteActionLogViewSet, WebsiteStaticPageViewSet,
-    TenantBrandingViewSet, TenantFeatureToggleViewSet
+    TenantBrandingViewSet, TenantFeatureToggleViewSet,
+    WebsiteIntegrationConfigViewSet
 )
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
@@ -29,6 +30,7 @@ router.register(r'website-logs', WebsiteActionLogViewSet, basename='website-logs
 router.register(r"static-pages", WebsiteStaticPageViewSet, basename="static-page")
 router.register(r'branding', TenantBrandingViewSet, basename='tenant-branding')
 router.register(r'feature-toggles', TenantFeatureToggleViewSet, basename='tenant-feature-toggle')
+router.register(r'integrations', WebsiteIntegrationConfigViewSet, basename='website-integrations')
 
 urlpatterns = [
     # 🌍 Website Management API

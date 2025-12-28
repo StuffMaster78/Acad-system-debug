@@ -44,9 +44,26 @@ class OrderRevisionService:
         Returns:
             bool: True if revision is within the allowed period, False otherwise.
         """
-        if not self.order.completed_at:
-            return False
-        return timezone.now() - self.order.completed_at <= self.get_revision_deadline()
+        # If order is not completed, allow revision (for other statuses like submitted, reviewed, etc.)
+        if self.order.status != OrderStatus.COMPLETED.value:
+            return True
+        
+        # For completed orders, check if within revision period
+        # Get completion time from transition log since Order model doesn't have completed_at
+        from orders.models import OrderTransitionLog
+        completed_transition = OrderTransitionLog.objects.filter(
+            order=self.order,
+            new_status=OrderStatus.COMPLETED.value
+        ).order_by('-timestamp').first()
+        
+        if not completed_transition:
+            # If no transition log found, check updated_at as fallback
+            # This handles edge cases where transition log might be missing
+            completed_at = self.order.updated_at
+        else:
+            completed_at = completed_transition.timestamp
+            
+        return timezone.now() - completed_at <= self.get_revision_deadline()
 
 
     def can_request_revision(self):
@@ -62,9 +79,20 @@ class OrderRevisionService:
         Returns:
             bool: True if the revision can be requested, False otherwise.
         """
-        if self.order.client != self.user:
-            raise PermissionDenied("Only the client can request revisions.")
-        return self.is_within_revision_period()
+        # For completed orders, check client permission and revision period
+        if self.order.status == OrderStatus.COMPLETED.value:
+            user_role = getattr(self.user, 'role', None)
+            # Clients must be the order owner, admins can override
+            if self.order.client != self.user and user_role not in ['admin', 'superadmin', 'support']:
+                raise PermissionDenied("Only the client or admin can request revisions for completed orders.")
+            return self.is_within_revision_period()
+        else:
+            # For non-completed orders, check client permission
+            if self.order.client != self.user:
+                user_role = getattr(self.user, 'role', None)
+                if user_role not in ['admin', 'superadmin', 'support']:
+                    raise PermissionDenied("Only the client can request revisions.")
+            return True
 
 
     def request_revision(self, reason):

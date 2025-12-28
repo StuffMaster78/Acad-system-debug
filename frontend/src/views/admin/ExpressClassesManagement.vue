@@ -9,31 +9,31 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4">
-      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total</p>
         <p class="text-3xl font-bold text-blue-900">{{ stats.total || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Inquiry</p>
         <p class="text-3xl font-bold text-yellow-900">{{ stats.inquiry || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200">
+      <div class="card p-4 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
         <p class="text-sm font-medium text-orange-700 mb-1">Scope Review</p>
         <p class="text-3xl font-bold text-orange-900">{{ stats.scope_review || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">Priced</p>
         <p class="text-3xl font-bold text-purple-900">{{ stats.priced || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+      <div class="card p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
         <p class="text-sm font-medium text-indigo-700 mb-1">Assigned</p>
         <p class="text-3xl font-bold text-indigo-900">{{ stats.assigned || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">In Progress</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.in_progress || 0 }}</p>
       </div>
-      <div class="card p-4 bg-linear-to-br from-gray-50 to-gray-100 border border-gray-200">
+      <div class="card p-4 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
         <p class="text-sm font-medium text-gray-700 mb-1">Completed</p>
         <p class="text-3xl font-bold text-gray-900">{{ stats.completed || 0 }}</p>
       </div>
@@ -579,6 +579,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { expressClassesAPI, usersAPI, writerAssignmentAPI } from '@/api'
 import apiClient from '@/api/client'
 import ClassMessageThreads from '@/components/classes/ClassMessageThreads.vue'
@@ -586,6 +587,8 @@ import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { useErrorHandler } from '@/composables/useErrorHandler'
 import { useToast } from '@/composables/useToast'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
+
+const router = useRouter()
 
 const confirm = useConfirmDialog()
 const { handleError, handleSuccess, handleValidationError, handleWarning } = useErrorHandler()
@@ -734,24 +737,8 @@ const resetFilters = () => {
 }
 
 const viewExpressClass = async (expressClass) => {
-  try {
-    const res = await expressClassesAPI.get(expressClass.id)
-    viewingExpressClass.value = res.data
-    
-    // Load thread count if available
-    try {
-      const threadsRes = await expressClassesAPI.getThreads(expressClass.id)
-      if (threadsRes.data) {
-        viewingExpressClass.value.threads_count = Array.isArray(threadsRes.data) ? threadsRes.data.length : (threadsRes.data.count || 0)
-      }
-    } catch (threadError) {
-      // Threads endpoint might not be available, ignore
-      console.debug('Could not load thread count:', threadError)
-    }
-  } catch (error) {
-    console.error('Error loading express class:', error)
-    handleError(error, { action: 'loading express class details' })
-  }
+  // Navigate to the express class detail page instead of opening a modal
+  router.push({ name: 'AdminExpressClassDetail', params: { id: expressClass.id } })
 }
 
 const openMessagesForClass = async (expressClass) => {

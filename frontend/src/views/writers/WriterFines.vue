@@ -672,7 +672,7 @@ const refreshActiveAppeal = (fineId) => {
 }
 
 const submitAppeal = async () => {
-  if (!selectedFine.value || !appealReason.trim()) {
+  if (!selectedFine.value || !appealReason.value.trim()) {
     showError('Please provide an appeal reason.')
     return
   }
@@ -680,7 +680,7 @@ const submitAppeal = async () => {
   appealSubmitting.value = true
   try {
     const attachments = [...initialEvidenceFiles.value]
-    const disputeResponse = await finesAPI.disputeFine(fineId, { reason: appealReason.trim() })
+    const disputeResponse = await finesAPI.disputeFine(fineId, { reason: appealReason.value.trim() })
     const appealId = disputeResponse.data?.id
 
     if (appealId && attachments.length) {

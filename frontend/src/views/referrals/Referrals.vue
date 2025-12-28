@@ -339,7 +339,7 @@
       </div>
 
       <!-- How It Works -->
-      <div class="bg-linear-to-br from-primary-50 to-blue-50 rounded-2xl p-6 border border-primary-200">
+      <div class="bg-gradient-to-br from-primary-50 to-blue-50 rounded-2xl p-6 border border-primary-200">
         <h2 class="text-xl font-bold text-gray-900 mb-6 tracking-tight">How Referrals Work</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="flex items-start gap-4">

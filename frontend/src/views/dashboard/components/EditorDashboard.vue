@@ -48,7 +48,7 @@
 
     <!-- Recent Tasks -->
     <div class="card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-      <div class="bg-linear-to-r from-purple-50 to-indigo-50 border-b-2 border-purple-200 px-6 py-4">
+      <div class="bg-gradient-to-r from-purple-50 to-indigo-50 border-b-2 border-purple-200 px-6 py-4">
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
             <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -82,7 +82,7 @@
             <tr v-for="task in editorDashboardData.tasks.active_tasks.slice(0, 5)" :key="task.id" class="hover:bg-purple-50/50 transition-all duration-150">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-full bg-linear-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
                     #
                   </div>
                   <span class="text-sm font-semibold text-gray-900">#{{ task.order_id }}</span>

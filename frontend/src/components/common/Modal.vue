@@ -42,7 +42,7 @@
             :aria-labelledby="title ? 'modal-title' : undefined"
           >
             <!-- Header -->
-            <div v-if="title || $slots.header || icon" class="bg-linear-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 px-4 pt-5 pb-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
+            <div v-if="title || $slots.header || icon" class="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 px-4 pt-5 pb-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                   <div v-if="icon" class="text-2xl">{{ icon }}</div>

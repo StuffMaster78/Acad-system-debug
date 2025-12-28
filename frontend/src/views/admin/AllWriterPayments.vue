@@ -68,11 +68,11 @@
 
     <!-- Summary -->
     <div v-if="summary" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Payments</p>
         <p class="text-3xl font-bold text-blue-900">{{ summary.total || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Total Amount</p>
         <p class="text-3xl font-bold text-green-900">${{ formatCurrency(summary.total_amount || 0) }}</p>
       </div>

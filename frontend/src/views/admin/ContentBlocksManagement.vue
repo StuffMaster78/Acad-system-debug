@@ -45,19 +45,19 @@
 
       <!-- Stats -->
       <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200 dark:from-blue-900/20 dark:to-blue-800/20 dark:border-blue-700">
+        <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 dark:from-blue-900/20 dark:to-blue-800/20 dark:border-blue-700">
           <p class="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Total Templates</p>
           <p class="text-3xl font-bold text-blue-900 dark:text-blue-100">{{ templates.length }}</p>
         </div>
-        <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700">
+        <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700">
           <p class="text-sm font-medium text-green-700 dark:text-green-300 mb-1">Active</p>
           <p class="text-3xl font-bold text-green-900 dark:text-green-100">{{ templates.filter(t => t.is_active).length }}</p>
         </div>
-        <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200 dark:from-purple-900/20 dark:to-purple-800/20 dark:border-purple-700">
+        <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 dark:from-purple-900/20 dark:to-purple-800/20 dark:border-purple-700">
           <p class="text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">Block Types</p>
           <p class="text-3xl font-bold text-purple-900 dark:text-purple-100">{{ uniqueBlockTypes.length }}</p>
         </div>
-        <div class="card p-4 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700">
+        <div class="card p-4 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 dark:border-orange-700">
           <p class="text-sm font-medium text-orange-700 dark:text-orange-300 mb-1">In Use</p>
           <p class="text-3xl font-bold text-orange-900 dark:text-orange-100">{{ templatesInUse }}</p>
         </div>
@@ -165,15 +165,15 @@
 
       <!-- Stats -->
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200 dark:from-blue-900/20 dark:to-blue-800/20 dark:border-blue-700">
+        <div class="card p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 dark:from-blue-900/20 dark:to-blue-800/20 dark:border-blue-700">
           <p class="text-sm font-medium text-blue-700 dark:text-blue-300 mb-1">Total Blocks</p>
           <p class="text-3xl font-bold text-blue-900 dark:text-blue-100">{{ blogBlocks.length }}</p>
         </div>
-        <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700">
+        <div class="card p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200 dark:from-green-900/20 dark:to-green-800/20 dark:border-green-700">
           <p class="text-sm font-medium text-green-700 dark:text-green-300 mb-1">Active</p>
           <p class="text-3xl font-bold text-green-900 dark:text-green-100">{{ blogBlocks.filter(b => b.is_active).length }}</p>
         </div>
-        <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200 dark:from-purple-900/20 dark:to-purple-800/20 dark:border-purple-700">
+        <div class="card p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 dark:from-purple-900/20 dark:to-purple-800/20 dark:border-purple-700">
           <p class="text-sm font-medium text-purple-700 dark:text-purple-300 mb-1">Unique Blogs</p>
           <p class="text-3xl font-bold text-purple-900 dark:text-purple-100">{{ uniqueBlogs.length }}</p>
         </div>

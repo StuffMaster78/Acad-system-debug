@@ -148,29 +148,29 @@
         'grid gap-4',
         paymentTypeTab === 'all' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2'
       ]">
-        <div v-if="paymentTypeTab === 'all' || paymentTypeTab === 'biweekly'" class="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <div v-if="paymentTypeTab === 'all' || paymentTypeTab === 'biweekly'" class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-blue-700 truncate">Total Bi-Weekly</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight">${{ formatCurrency(summary.total_biweekly_amount || 0) }}</p>
           <p class="text-xs text-blue-600">{{ summary.total_biweekly_payments || 0 }} payments</p>
       </div>
-        <div v-if="paymentTypeTab === 'all' || paymentTypeTab === 'monthly'" class="bg-linear-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <div v-if="paymentTypeTab === 'all' || paymentTypeTab === 'monthly'" class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-green-700 truncate">Total Monthly</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-green-900 break-all leading-tight">${{ formatCurrency(summary.total_monthly_amount || 0) }}</p>
           <p class="text-xs text-green-600">{{ summary.total_monthly_payments || 0 }} payments</p>
       </div>
-        <div v-if="paymentTypeTab === 'all'" class="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <div v-if="paymentTypeTab === 'all'" class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-purple-700 truncate">Total Amount</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">${{ formatCurrency((summary.total_biweekly_amount || 0) + (summary.total_monthly_amount || 0)) }}</p>
       </div>
-        <div v-if="paymentTypeTab === 'all'" class="bg-linear-to-br from-orange-50 to-orange-100 rounded-lg shadow border border-orange-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <div v-if="paymentTypeTab === 'all'" class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow border border-orange-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-orange-700 truncate">Total Payments</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-orange-900 break-all leading-tight">{{ (summary.total_biweekly_payments || 0) + (summary.total_monthly_payments || 0) }}</p>
         </div>
-        <div v-if="paymentTypeTab === 'biweekly'" class="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <div v-if="paymentTypeTab === 'biweekly'" class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-purple-700 truncate">Total Amount</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">${{ formatCurrency(summary.total_biweekly_amount || 0) }}</p>
         </div>
-        <div v-if="paymentTypeTab === 'monthly'" class="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <div v-if="paymentTypeTab === 'monthly'" class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-purple-700 truncate">Total Amount</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">${{ formatCurrency(summary.total_monthly_amount || 0) }}</p>
       </div>
@@ -178,7 +178,7 @@
 
     <!-- Bi-Weekly Payments -->
       <div v-if="(paymentTypeTab === 'all' || paymentTypeTab === 'biweekly') && biweeklyPayments.length > 0" class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-        <div class="px-6 py-4 border-b border-gray-200 bg-linear-to-r from-blue-50 to-blue-100">
+        <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
           <h2 class="text-xl font-semibold text-blue-900">Bi-Weekly Payments</h2>
       </div>
       <div class="divide-y divide-gray-200">
@@ -358,7 +358,7 @@
 
     <!-- Monthly Payments -->
       <div v-if="(paymentTypeTab === 'all' || paymentTypeTab === 'monthly') && monthlyPayments.length > 0" class="bg-white rounded-lg shadow border border-gray-200 overflow-hidden">
-      <div class="px-6 py-4 border-b border-gray-200 bg-linear-to-r from-green-50 to-green-100">
+      <div class="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-green-50 to-green-100">
         <h2 class="text-xl font-semibold text-green-900">Monthly Payments</h2>
       </div>
       <div class="divide-y divide-gray-200">
@@ -793,22 +793,22 @@
     <div v-if="activeTab === 'requests'" class="space-y-6">
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-linear-to-br from-yellow-50 to-yellow-100 rounded-lg shadow border border-yellow-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg shadow border border-yellow-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-yellow-700 truncate">Pending Requests</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-yellow-900 break-all leading-tight">{{ paymentRequestsSummary.pending || 0 }}</p>
           <p class="text-xs text-yellow-600">awaiting review</p>
         </div>
-        <div class="bg-linear-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-green-700 truncate">Approved</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-green-900 break-all leading-tight">{{ paymentRequestsSummary.approved || 0 }}</p>
           <p class="text-xs text-green-600">approved requests</p>
         </div>
-        <div class="bg-linear-to-br from-red-50 to-red-100 rounded-lg shadow border border-red-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow border border-red-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-red-700 truncate">Rejected</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-red-900 break-all leading-tight">{{ paymentRequestsSummary.rejected || 0 }}</p>
           <p class="text-xs text-red-600">rejected requests</p>
         </div>
-        <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
           <p class="text-xs font-medium text-blue-700 truncate">Total Amount</p>
           <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight">${{ formatCurrency(paymentRequestsSummary.total_amount || 0) }}</p>
           <p class="text-xs text-blue-600">all requests</p>

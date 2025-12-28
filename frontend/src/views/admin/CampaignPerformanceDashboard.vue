@@ -51,19 +51,19 @@
 
       <!-- Revenue Metrics -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-lg shadow-sm p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
+        <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
           <p class="text-sm font-medium text-green-700 mb-1">Total Revenue</p>
           <p class="text-3xl font-bold text-green-900">${{ formatCurrency(analytics.revenue?.total_revenue || 0) }}</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
+        <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
           <p class="text-sm font-medium text-blue-700 mb-1">Net Revenue</p>
           <p class="text-3xl font-bold text-blue-900">${{ formatCurrency(analytics.revenue?.net_revenue || 0) }}</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-4 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200">
+        <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
           <p class="text-sm font-medium text-orange-700 mb-1">Discount Amount</p>
           <p class="text-3xl font-bold text-orange-900">${{ formatCurrency(analytics.revenue?.total_discount_amount || 0) }}</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
+        <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
           <p class="text-sm font-medium text-purple-700 mb-1">ROI</p>
           <p class="text-3xl font-bold text-purple-900">{{ formatCurrency(analytics.revenue?.roi || 0) }}%</p>
         </div>
@@ -71,19 +71,19 @@
 
       <!-- Usage Metrics -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white rounded-lg shadow-sm p-4 bg-linear-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+        <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
           <p class="text-sm font-medium text-indigo-700 mb-1">Total Uses</p>
           <p class="text-3xl font-bold text-indigo-900">{{ analytics.usage?.total_uses || 0 }}</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-4 bg-linear-to-br from-teal-50 to-teal-100 border border-teal-200">
+        <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200">
           <p class="text-sm font-medium text-teal-700 mb-1">Unique Users</p>
           <p class="text-3xl font-bold text-teal-900">{{ analytics.usage?.unique_users || 0 }}</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-4 bg-linear-to-br from-pink-50 to-pink-100 border border-pink-200">
+        <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200">
           <p class="text-sm font-medium text-pink-700 mb-1">Avg Uses/User</p>
           <p class="text-3xl font-bold text-pink-900">{{ formatCurrency(analytics.usage?.avg_uses_per_user || 0) }}</p>
         </div>
-        <div class="bg-white rounded-lg shadow-sm p-4 bg-linear-to-br from-cyan-50 to-cyan-100 border border-cyan-200">
+        <div class="bg-white rounded-lg shadow-sm p-4 bg-gradient-to-br from-cyan-50 to-cyan-100 border border-cyan-200">
           <p class="text-sm font-medium text-cyan-700 mb-1">Avg Order Value</p>
           <p class="text-3xl font-bold text-cyan-900">${{ formatCurrency(analytics.revenue?.avg_order_value || 0) }}</p>
         </div>

@@ -236,12 +236,25 @@ class OrderFileCategoryViewSet(viewsets.ModelViewSet):
         return [permissions.IsAdminUser()]
 
     def get_queryset(self):
-        """Filter categories by website if available."""
+        """
+        Return categories for a website:
+        - Universal categories (website=None) - available to all websites
+        - Website-specific categories (website=website_id) - only for that website
+        """
         queryset = super().get_queryset()
         website_id = self.request.query_params.get('website_id')
+        
         if website_id:
-            queryset = queryset.filter(website_id=website_id)
-        return queryset
+            # Return universal categories (website=None) + website-specific categories
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(website__isnull=True) | Q(website_id=website_id)
+            ).distinct()
+        else:
+            # If no website_id provided, return all categories (for admin management)
+            pass
+        
+        return queryset.order_by('website', 'name')  # Universal first, then by name
 
 
 class FileDownloadLogViewSet(viewsets.ReadOnlyModelViewSet):

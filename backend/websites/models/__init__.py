@@ -21,6 +21,7 @@ if _parent_models.exists():
         WebsiteStaticPage = getattr(models_main, 'WebsiteStaticPage', None)
         WebsiteSettings = getattr(models_main, 'WebsiteSettings', None)
         WebsiteTermsAcceptance = getattr(models_main, 'WebsiteTermsAcceptance', None)
+        ExternalReviewLink = getattr(models_main, 'ExternalReviewLink', None)
         GuestAccessToken = getattr(models_main, 'GuestAccessToken', None)
         User = getattr(models_main, 'User', None)  # User is an alias for AUTH_USER_MODEL
     else:
@@ -45,6 +46,7 @@ __all__ = [
     'WebsiteStaticPage',
     'WebsiteSettings',
     'WebsiteTermsAcceptance',
+    'ExternalReviewLink',
     'GuestAccessToken',
     'User',
     'TenantBranding',

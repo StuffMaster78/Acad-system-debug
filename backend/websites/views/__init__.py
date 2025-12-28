@@ -16,14 +16,17 @@ if _parent_views.exists():
         WebsiteViewSet = getattr(views_main, 'WebsiteViewSet', None)
         WebsiteActionLogViewSet = getattr(views_main, 'WebsiteActionLogViewSet', None)
         WebsiteStaticPageViewSet = getattr(views_main, 'WebsiteStaticPageViewSet', None)
+        WebsiteIntegrationConfigViewSet = getattr(views_main, 'WebsiteIntegrationConfigViewSet', None)
     else:
         WebsiteViewSet = None
         WebsiteActionLogViewSet = None
         WebsiteStaticPageViewSet = None
+        WebsiteIntegrationConfigViewSet = None
 else:
     WebsiteViewSet = None
     WebsiteActionLogViewSet = None
     WebsiteStaticPageViewSet = None
+    WebsiteIntegrationConfigViewSet = None
 
 # Import from this package
 try:
@@ -36,6 +39,7 @@ __all__ = [
     'WebsiteViewSet',
     'WebsiteActionLogViewSet',
     'WebsiteStaticPageViewSet',
+    'WebsiteIntegrationConfigViewSet',
     'TenantBrandingViewSet',
     'TenantFeatureToggleViewSet',
 ]

@@ -42,7 +42,7 @@
           <!-- Earnings Structure -->
           <div class="bg-white rounded-xl shadow-md p-5 border border-gray-200">
             <div class="flex items-center gap-3 mb-4">
-              <div class="w-12 h-12 bg-linear-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center text-white text-xl">
+              <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-lg flex items-center justify-center text-white text-xl">
                 💰
               </div>
               <h3 class="text-base font-semibold text-gray-900">Earnings Structure</h3>
@@ -85,7 +85,7 @@
           <!-- Urgency Adjustments -->
           <div class="bg-white rounded-xl shadow-md p-5 border border-gray-200">
             <div class="flex items-center gap-3 mb-4">
-              <div class="w-12 h-12 bg-linear-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center text-white text-xl">
+              <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center text-white text-xl">
                 ⚡
               </div>
               <h3 class="text-base font-semibold text-gray-900">Urgency Adjustments</h3>
@@ -112,7 +112,7 @@
           <!-- Technical Orders -->
           <div class="bg-white rounded-xl shadow-md p-5 border border-gray-200">
             <div class="flex items-center gap-3 mb-4">
-              <div class="w-12 h-12 bg-linear-to-br from-gray-400 to-gray-600 rounded-lg flex items-center justify-center text-white text-xl">
+              <div class="w-12 h-12 bg-gradient-to-br from-gray-400 to-gray-600 rounded-lg flex items-center justify-center text-white text-xl">
                 🔧
               </div>
               <h3 class="text-base font-semibold text-gray-900">Technical Orders</h3>
@@ -138,7 +138,7 @@
           <!-- Capacity & Limits -->
           <div class="bg-white rounded-xl shadow-md p-5 border border-gray-200">
             <div class="flex items-center gap-3 mb-4">
-              <div class="w-12 h-12 bg-linear-to-br from-amber-600 to-amber-800 rounded-lg flex items-center justify-center text-white text-xl">
+              <div class="w-12 h-12 bg-gradient-to-br from-amber-600 to-amber-800 rounded-lg flex items-center justify-center text-white text-xl">
                 📋
               </div>
               <h3 class="text-base font-semibold text-gray-900">Capacity & Limits</h3>
@@ -165,7 +165,7 @@
           <!-- Your Performance -->
           <div class="bg-white rounded-xl shadow-md p-5 border border-gray-200">
             <div class="flex items-center gap-3 mb-4">
-              <div class="w-12 h-12 bg-linear-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center text-white text-xl">
+              <div class="w-12 h-12 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-lg flex items-center justify-center text-white text-xl">
                 ⭐
               </div>
               <h3 class="text-base font-semibold text-gray-900">Your Performance</h3>
@@ -229,7 +229,7 @@
         </div>
 
         <!-- Requirements & Next Level Section -->
-        <div v-if="nextLevelInfo" class="bg-linear-to-br from-indigo-50 to-white border border-indigo-200 rounded-xl shadow-md p-6">
+        <div v-if="nextLevelInfo" class="bg-gradient-to-br from-indigo-50 to-white border border-indigo-200 rounded-xl shadow-md p-6">
           <h3 class="text-lg font-semibold text-indigo-900 mb-4 flex items-center gap-2">
             <span>🚀</span> Path to {{ nextLevelInfo.next_level.name }}
           </h3>

@@ -132,6 +132,42 @@ class Website(models.Model):
         max_length=255, blank=True, null=True,
         help_text="Bing Webmaster Tools verification meta tag"
     )
+    
+    # Communication Widgets & Live Chat
+    enable_live_chat = models.BooleanField(
+        default=False,
+        help_text="Enable live chat widget on the website"
+    )
+    tawkto_widget_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Tawk.to widget ID (found in Tawk.to dashboard under Administration > Property Settings)"
+    )
+    tawkto_property_id = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        help_text="Tawk.to property ID (optional, for multi-property setups)"
+    )
+    communication_widget_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('tawkto', 'Tawk.to'),
+            ('intercom', 'Intercom'),
+            ('zendesk', 'Zendesk Chat'),
+            ('custom', 'Custom Widget'),
+        ],
+        blank=True,
+        null=True,
+        help_text="Type of communication widget to use"
+    )
+    communication_widget_config = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional configuration for communication widgets (JSON format)"
+    )
+    
     # Email Campaign Management
     default_sender_name = models.CharField(
         max_length=100,
@@ -501,3 +537,62 @@ class WebsiteSettings(models.Model):
     
     def __str__(self):
         return self.sender_name
+
+
+class ExternalReviewLink(models.Model):
+    """
+    Stores external review site links (TrustPilot, Google Reviews, etc.) 
+    where clients can rate and review the website, orders, and writers.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='external_review_links',
+        help_text="Website this review link belongs to"
+    )
+    review_site_name = models.CharField(
+        max_length=100,
+        help_text="Name of the review site (e.g., TrustPilot, Google Reviews, Yelp)"
+    )
+    review_url = models.URLField(
+        help_text="URL to the review page/profile on the external site"
+    )
+    review_type = models.CharField(
+        max_length=50,
+        choices=[
+            ('website', 'Website Review'),
+            ('order', 'Order Review'),
+            ('writer', 'Writer Review'),
+            ('general', 'General Review'),
+        ],
+        default='general',
+        help_text="Type of review this link is for"
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Whether this review link is currently active and should be shown to clients"
+    )
+    display_order = models.PositiveIntegerField(
+        default=0,
+        help_text="Order in which to display this link (lower numbers first)"
+    )
+    description = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optional description or instructions for clients"
+    )
+    icon_url = models.URLField(
+        blank=True,
+        null=True,
+        help_text="Optional icon/logo URL for the review site"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ['display_order', 'review_site_name']
+        verbose_name = "External Review Link"
+        verbose_name_plural = "External Review Links"
+    
+    def __str__(self):
+        return f"{self.review_site_name} - {self.get_review_type_display()} ({self.website.name})"

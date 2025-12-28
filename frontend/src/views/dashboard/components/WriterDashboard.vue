@@ -208,7 +208,7 @@
 
       <div
         v-if="realtimeGoalProgress"
-        class="card bg-linear-to-br from-indigo-50 to-indigo-100 rounded-lg shadow-sm border border-indigo-200 p-6 flex flex-col gap-3"
+        class="card bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow-sm border border-indigo-200 p-6 flex flex-col gap-3"
       >
         <div class="flex items-center justify-between">
           <div>
@@ -381,7 +381,7 @@
           <div 
             v-for="badge in writerBadgesData.recent_badges.slice(0, 10)" 
             :key="badge.id"
-            class="flex flex-col items-center p-4 bg-linear-to-br from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200 hover:shadow-md transition-shadow"
+            class="flex flex-col items-center p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200 hover:shadow-md transition-shadow"
             :title="badge.name"
           >
             <div class="text-4xl mb-2">{{ badge.icon || '🏆' }}</div>
@@ -440,7 +440,7 @@
     <!-- Tips & Fines Summary -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <!-- Tips Summary -->
-      <div v-if="writerSummaryData?.tips" class="card bg-linear-to-br from-green-50 to-green-100 rounded-lg shadow-sm p-6 border border-green-200">
+      <div v-if="writerSummaryData?.tips" class="card bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-sm p-6 border border-green-200">
         <div class="flex items-center justify-between mb-4">
           <div>
             <h2 class="text-xl font-bold text-gray-900">💰 Tips</h2>
@@ -472,7 +472,7 @@
       </div>
 
       <!-- Fines Summary -->
-      <div v-if="writerSummaryData?.fines" class="card bg-linear-to-br from-red-50 to-red-100 rounded-lg shadow-sm p-6 border border-red-200">
+      <div v-if="writerSummaryData?.fines" class="card bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow-sm p-6 border border-red-200">
         <div class="flex items-center justify-between mb-4">
           <div>
             <h2 class="text-xl font-bold text-gray-900">⚖️ Fines</h2>
@@ -561,7 +561,7 @@
       </div>
 
       <!-- Level Progress -->
-      <div v-if="writerSummaryData?.level_progress || writerSummaryData?.current_level" class="card bg-linear-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
+      <div v-if="writerSummaryData?.level_progress || writerSummaryData?.current_level" class="card bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
         <div class="flex items-center justify-between mb-4">
           <div>
             <h2 class="text-xl font-bold text-gray-900">📊 Level Progress</h2>
@@ -582,7 +582,7 @@
             <!-- Progress Bar -->
             <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
               <div
-                class="h-4 rounded-full bg-linear-to-r from-blue-500 to-blue-600 flex items-center justify-center text-xs font-medium text-white transition-all"
+                class="h-4 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-xs font-medium text-white transition-all"
                 :style="{ width: `${Math.min(writerSummaryData.level_progress.progress_percentage, 100)}%` }"
               >
                 {{ writerSummaryData.level_progress.progress_percentage >= 10 ? `${Math.round(writerSummaryData.level_progress.progress_percentage)}%` : '' }}
@@ -621,7 +621,7 @@
     <!-- Writer Hierarchy & Level Info -->
     <div class="space-y-6">
       <!-- Hierarchy Overview Card -->
-      <div class="card bg-linear-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-lg shadow-sm p-6 border-2 border-indigo-200">
+      <div class="card bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-lg shadow-sm p-6 border-2 border-indigo-200">
         <!-- Loading State -->
         <div v-if="!writerLevelData && loading" class="text-center py-8">
           <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
@@ -698,7 +698,7 @@
         </div>
 
         <!-- Current Level - Detailed Card -->
-        <div v-if="writerLevelData" class="card bg-linear-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
+        <div v-if="writerLevelData" class="card bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h2 class="text-2xl font-bold text-gray-900">Level Details</h2>
@@ -893,7 +893,7 @@
       <div v-if="writerLevelData" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       
         <!-- Next Level Requirements -->
-        <div v-if="writerLevelData.next_level" class="card bg-linear-to-br from-purple-50 to-purple-100 rounded-lg shadow-sm p-6 border border-purple-200">
+        <div v-if="writerLevelData.next_level" class="card bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-sm p-6 border border-purple-200">
           <div class="flex items-center justify-between mb-4">
             <div>
               <h2 class="text-xl font-bold text-gray-900">Next Level</h2>
@@ -1053,7 +1053,7 @@
 
     <!-- My Order Requests -->
     <div v-if="writerQueueData && (writerQueueData.order_requests?.length > 0 || writerQueueData.writer_requests?.length > 0)" class="card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 mb-6">
-      <div class="bg-linear-to-r from-violet-50 to-purple-50 border-b-2 border-violet-200 px-6 py-4">
+      <div class="bg-gradient-to-r from-violet-50 to-purple-50 border-b-2 border-violet-200 px-6 py-4">
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
             <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1112,7 +1112,7 @@
 
     <!-- Recent Orders -->
     <div class="card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-      <div class="bg-linear-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-200 px-6 py-4">
+      <div class="bg-gradient-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-200 px-6 py-4">
         <div class="flex items-center justify-between">
           <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
             <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1155,7 +1155,7 @@
             <tr v-for="o in recentOrders.slice(0, 5)" :key="o.id" class="hover:bg-emerald-50/50 transition-all duration-150">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-full bg-linear-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xs font-bold">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xs font-bold">
                     #
                   </div>
                   <span class="text-sm font-semibold text-gray-900">#{{ o.id }}</span>
@@ -1345,7 +1345,7 @@ const nextDeadlineInfo = computed(() => {
       topic: props.writerSummaryData.next_deadline_topic || '',
     })
   }
-  ;(props.recentOrders || []).forEach(order => {
+  (props.recentOrders || []).forEach(order => {
     const deadline = order.writer_deadline || order.deadline || order.client_deadline
     if (deadline) {
       deadlines.push({

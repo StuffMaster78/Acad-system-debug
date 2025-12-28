@@ -8,7 +8,8 @@ AI/ML-based writer-order matching using:
 """
 from typing import List, Dict, Optional, Tuple
 from decimal import Decimal
-from django.db.models import Count, Avg, Q, F
+from django.db.models import Count, Avg, Q, F, FloatField
+from django.db.models.functions import Coalesce
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
@@ -43,13 +44,15 @@ class SmartMatchingService:
         User = get_user_model()
         
         # Get base writer queryset
+        # Filter writers with profiles that are available
+        # Note: We'll calculate avg_rating in Python to avoid Django ORM field lookup issues
         writers = User.objects.filter(
             role='writer',
             is_active=True,
+        ).filter(
             writer_profile__is_available_for_auto_assignments=True,
             writer_profile__is_deleted=False,
         ).annotate(
-            avg_rating=Avg('orders_as_writer__rating'),
             active_orders=Count(
                 'orders_as_writer',
                 filter=Q(
@@ -61,24 +64,131 @@ class SmartMatchingService:
                     orders_as_writer__is_deleted=False,
                 )
             ),
-        ).filter(
-            avg_rating__gte=min_rating,
         ).select_related('writer_profile', 'writer_profile__writer_level')
+        
+        # Calculate average rating for each writer in Python
+        # Ratings are stored in WriterRating model, not directly on Order
+        writer_ids = list(writers.values_list('id', flat=True))
+        if writer_ids:
+            from django.db.models import Avg
+            from writer_management.models.ratings import WriterRating
+            
+            # Get writer profiles for these users
+            writer_profiles = WriterProfile.objects.filter(user_id__in=writer_ids).select_related('user')
+            writer_profile_dict = {profile.user_id: profile.id for profile in writer_profiles}
+            writer_profile_ids = list(writer_profile_dict.values())
+            
+            if writer_profile_ids:
+                # Get average ratings from WriterRating model
+                # Group by writer profile, then map back to user_id
+                rating_data = WriterRating.objects.filter(
+                    writer_id__in=writer_profile_ids
+                ).values('writer_id').annotate(
+                    avg_rating=Avg('rating')
+                )
+                
+                # Create reverse mapping: profile_id -> user_id
+                profile_to_user = {v: k for k, v in writer_profile_dict.items()}
+                rating_dict = {
+                    profile_to_user[item['writer_id']]: float(item['avg_rating'])
+                    for item in rating_data
+                    if item['writer_id'] in profile_to_user
+                }
+            else:
+                rating_dict = {}
+        else:
+            rating_dict = {}
+        
+        # Add avg_rating as an attribute to each writer object
+        for writer in writers:
+            writer.avg_rating = rating_dict.get(writer.id, 0.0)
+        
+        # Filter by rating if specified
+        if min_rating > 0:
+            writers = [w for w in writers if w.avg_rating >= min_rating]
+        
+        # If no writers match rating filter, try without rating filter (but still prefer rated writers)
+        if not writers and min_rating > 0:
+            # Re-fetch without rating filter
+            writers = User.objects.filter(
+                role='writer',
+                is_active=True,
+            ).filter(
+                writer_profile__is_available_for_auto_assignments=True,
+                writer_profile__is_deleted=False,
+            ).annotate(
+                active_orders=Count(
+                    'orders_as_writer',
+                    filter=Q(
+                        orders_as_writer__status__in=[
+                            OrderStatus.IN_PROGRESS.value,
+                            OrderStatus.ON_HOLD.value,
+                            OrderStatus.REVISION_REQUESTED.value,
+                        ],
+                        orders_as_writer__is_deleted=False,
+                    )
+                ),
+            ).select_related('writer_profile', 'writer_profile__writer_level')
+            
+            # Recalculate ratings
+            writer_ids = list(writers.values_list('id', flat=True))
+            if writer_ids:
+                from django.db.models import Avg
+                from writer_management.models.ratings import WriterRating
+                
+                # Get writer profiles for these users
+                writer_profiles = WriterProfile.objects.filter(user_id__in=writer_ids).select_related('user')
+                writer_profile_dict = {profile.user_id: profile.id for profile in writer_profiles}
+                writer_profile_ids = list(writer_profile_dict.values())
+                
+                if writer_profile_ids:
+                    # Get average ratings from WriterRating model
+                    rating_data = WriterRating.objects.filter(
+                        writer_id__in=writer_profile_ids
+                    ).values('writer_id').annotate(
+                        avg_rating=Avg('rating')
+                    )
+                    
+                    # Create reverse mapping: profile_id -> user_id
+                    profile_to_user = {v: k for k, v in writer_profile_dict.items()}
+                    rating_dict = {
+                        profile_to_user[item['writer_id']]: float(item['avg_rating'])
+                        for item in rating_data
+                        if item['writer_id'] in profile_to_user
+                    }
+                else:
+                    rating_dict = {}
+            else:
+                rating_dict = {}
+            
+            for writer in writers:
+                writer.avg_rating = rating_dict.get(writer.id, 0.0)
+        
+        # Convert to list if it's a queryset
+        if hasattr(writers, '__iter__') and not isinstance(writers, (list, tuple)):
+            writers = list(writers)
         
         # Score each writer
         matches = []
         for writer in writers[:50]:  # Limit initial candidates
-            score, reasons = SmartMatchingService._calculate_match_score(order, writer)
-            
-            matches.append({
-                'writer': writer,
-                'writer_id': writer.id,
-                'writer_username': writer.username,
-                'score': score,
-                'reasons': reasons,
-                'rating': float(writer.avg_rating or 0),
-                'active_orders': writer.active_orders or 0,
-            })
+            try:
+                score, reasons = SmartMatchingService._calculate_match_score(order, writer)
+                
+                matches.append({
+                    'writer': writer,
+                    'writer_id': writer.id,
+                    'writer_username': writer.username,
+                    'score': score,
+                    'reasons': reasons,
+                    'rating': float(getattr(writer, 'avg_rating', 0) or 0),
+                    'active_orders': getattr(writer, 'active_orders', 0) or 0,
+                })
+            except Exception as e:
+                # Skip writers that cause errors during scoring
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Error scoring writer {writer.id} for order {order.id}: {str(e)}")
+                continue
         
         # Sort by score (descending)
         matches.sort(key=lambda x: x['score'], reverse=True)
@@ -167,13 +277,14 @@ class SmartMatchingService:
         portfolio_match = False
         try:
             from writer_management.models.portfolio import WriterPortfolio
-            portfolio = WriterPortfolio.objects.filter(
-                writer=writer,
-                is_enabled=True,
-                specialties=order.subject,
-            ).exists()
-            portfolio_match = portfolio
-        except:
+            if order.subject:
+                portfolio_match = WriterPortfolio.objects.filter(
+                    writer=writer,
+                    is_enabled=True,
+                    specialties=order.subject,
+                ).exists()
+        except (ImportError, AttributeError, Exception):
+            # Portfolio model might not exist or have different structure
             pass
         
         # Score: subject ratio (70%) + portfolio match (30%)
@@ -218,14 +329,39 @@ class SmartMatchingService:
             return 0.3  # Low score if no similar orders
         
         # Calculate average rating on similar orders
-        avg_rating = similar_orders.aggregate(
-            avg=Avg('rating')
-        )['avg'] or 0.0
+        # Ratings are stored in WriterRating model, not on Order
+        from writer_management.models.ratings import WriterRating
+        
+        similar_order_ids = list(similar_orders.values_list('id', flat=True))
+        if similar_order_ids:
+            avg_rating_result = WriterRating.objects.filter(
+                order_id__in=similar_order_ids
+            ).aggregate(avg=Avg('rating'))
+            avg_rating = float(avg_rating_result['avg'] or 0.0)
+        else:
+            avg_rating = 0.0
         
         # Calculate on-time delivery rate
-        on_time_count = similar_orders.filter(
-            completed_at__lte=F('client_deadline')
-        ).count()
+        # Check if orders were submitted on time (use submitted_at if available, otherwise check status transitions)
+        from orders.models import OrderTransitionLog
+        from django.utils import timezone
+        
+        on_time_count = 0
+        for similar_order in similar_orders:
+            # Check if order was submitted/completed before deadline
+            if similar_order.submitted_at and similar_order.client_deadline:
+                if similar_order.submitted_at <= similar_order.client_deadline:
+                    on_time_count += 1
+            elif similar_order.client_deadline:
+                # Check latest status transition to completed/approved
+                latest_transition = OrderTransitionLog.objects.filter(
+                    order=similar_order,
+                    new_status__in=[OrderStatus.COMPLETED.value, OrderStatus.APPROVED.value]
+                ).order_by('-timestamp').first()
+                
+                if latest_transition and latest_transition.timestamp <= similar_order.client_deadline:
+                    on_time_count += 1
+        
         on_time_rate = on_time_count / similar_count if similar_count > 0 else 0.0
         
         # Score: rating (60%) + on-time rate (40%)
@@ -276,10 +412,14 @@ class SmartMatchingService:
     def _calculate_workload_balance(writer) -> float:
         """Calculate workload balance score (0-1)."""
         max_orders = 5  # Default
-        if writer.writer_profile and writer.writer_profile.writer_level:
-            max_orders = writer.writer_profile.writer_level.max_orders or 5
+        try:
+            if hasattr(writer, 'writer_profile') and writer.writer_profile:
+                if hasattr(writer.writer_profile, 'writer_level') and writer.writer_profile.writer_level:
+                    max_orders = getattr(writer.writer_profile.writer_level, 'max_orders', 5) or 5
+        except (AttributeError, Exception):
+            pass  # Use default if profile doesn't exist
         
-        active = writer.active_orders or 0
+        active = getattr(writer, 'active_orders', 0) or 0
         
         if max_orders > 0:
             ratio = 1.0 - (active / max_orders)

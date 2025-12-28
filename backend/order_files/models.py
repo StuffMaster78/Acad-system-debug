@@ -55,19 +55,31 @@ class OrderFilesConfig(models.Model):
 class OrderFileCategory(models.Model):
     """
     Admin-defined file categories such as "Final Draft", "Order Instructions", "Plagiarism Report".
+    
+    - If website is None: Universal category (available to all websites)
+    - If website is set: Website-specific category (only for that website)
     """
     website = models.ForeignKey(
         Website,
         on_delete=models.CASCADE,
-        related_name='order_file_category'
+        related_name='order_file_category',
+        null=True,
+        blank=True,
+        help_text="Leave blank for universal categories (available to all websites), or select a website for website-specific categories"
     )
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     allowed_extensions = models.JSONField(default=list)  # ["pdf", "docx", "xlsx"]
     is_final_draft = models.BooleanField(default=False)  # True if category is Final Draft
     is_extra_service = models.BooleanField(default=False)  # True if for extra services
 
+    class Meta:
+        # Ensure name is unique per website (or globally if website is null)
+        unique_together = [['name', 'website']]
+        verbose_name_plural = "Order File Categories"
+
     def __str__(self):
-        return self.name
+        scope = "Universal" if self.website is None else f"{self.website.name}"
+        return f"{self.name} ({scope})"
 
 
 class OrderFile(models.Model):

@@ -3,7 +3,7 @@
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-30 w-72 bg-linear-to-b from-white to-gray-50 dark:from-[#0f0f0f] dark:to-[#1a1a1a] border-r border-gray-200/50 dark:border-gray-800/50 backdrop-blur-sm transform transition-all duration-300 ease-in-out shadow-xl',
+        'fixed inset-y-0 left-0 z-30 w-72 bg-gradient-to-b from-white to-gray-50 dark:from-[#0f0f0f] dark:to-[#1a1a1a] border-r border-gray-200/50 dark:border-gray-800/50 backdrop-blur-sm transform transition-all duration-300 ease-in-out shadow-xl',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         'lg:translate-x-0'
       ]"
@@ -11,7 +11,7 @@
       <div class="flex flex-col h-full">
         <!-- Logo -->
         <div class="flex items-center justify-between h-20 px-6 border-b border-gray-200/60 dark:border-gray-800/60 bg-white/80 dark:bg-[#0f0f0f]/80 backdrop-blur-md transition-colors duration-300">
-          <h1 class="text-lg font-bold tracking-tight bg-linear-to-r from-primary-600 to-primary-700 dark:from-primary-400 dark:to-primary-500 bg-clip-text text-transparent transition-colors duration-300 leading-tight">{{ appName }}</h1>
+          <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-400 dark:to-primary-500 bg-clip-text text-transparent transition-colors duration-300 leading-tight">{{ appName }}</h1>
           <button
             @click="sidebarOpen = false"
             class="lg:hidden p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
@@ -56,7 +56,7 @@
             :class="[
               'flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 mb-4 group relative overflow-hidden leading-relaxed',
               $route.name === 'Dashboard' || $route.path === '/dashboard'
-                ? 'bg-linear-to-r from-primary-500 via-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 scale-[1.02]'
+                ? 'bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 scale-[1.02]'
                 : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:shadow-lg hover:scale-[1.01] hover:-translate-y-0.5'
             ]"
           >
@@ -80,7 +80,7 @@
           <div v-if="authStore.isClient" class="mb-5">
             <router-link
               to="/orders/wizard"
-              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-linear-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed"
+              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed"
             >
               <svg class="w-4.5 h-4.5 mr-2.5 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -94,7 +94,7 @@
           <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="mb-5">
             <router-link
               to="/admin/orders/create"
-              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-linear-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed"
+              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed"
             >
               <svg class="w-4.5 h-4.5 mr-2.5 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -106,7 +106,7 @@
 
           <!-- Orders section - Simplified and at top -->
           <div v-if="authStore.isClient && shouldShowItem('Orders', 'All Orders Pending In Progress Completed Disputed Templates')" class="space-y-2 mb-5">
-            <div class="px-4 py-2 mb-2 bg-linear-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/60 dark:border-blue-800/60 backdrop-blur-sm">
+            <div class="px-4 py-2 mb-2 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/60 dark:border-blue-800/60 backdrop-blur-sm">
               <h3 class="text-[11px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-2 leading-tight">
                 <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
                 <span>Orders</span>
@@ -351,7 +351,7 @@
 
           <!-- Client Account section (Wallet, Referrals, Loyalty) -->
           <div v-if="authStore.isClient && shouldShowItem('Account', 'Wallet Referrals Loyalty Discounts')" class="space-y-1.5 mb-6 pb-4 border-b border-gray-200 dark:border-gray-700">
-            <div class="px-4 py-3 mb-3 bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+            <div class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
               <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
                 <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
                 <span>Account</span>
@@ -457,7 +457,7 @@
           <template v-if="authStore.isWriter">
             <!-- Orders Group -->
             <div v-if="shouldShowItem('Orders & Work', 'My Orders Queue Requests Revision Workload Calendar')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <h3 class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
                   <span>Orders & Work</span>
@@ -554,7 +554,7 @@
 
             <!-- Finances Group -->
             <div v-if="shouldShowItem('Finances', 'Payments Payment Requests Advance Payments Tips Fines')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
                 <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
                   <span>Finances</span>
@@ -595,7 +595,7 @@
 
             <!-- Reviews & Ratings Group -->
             <div v-if="shouldShowItem('Reviews & Performance', 'Reviews Performance Badges Level')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                 <h3 class="text-xs font-bold text-yellow-700 dark:text-yellow-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="star" size="sm" icon-class="text-yellow-600 dark:text-yellow-400" />
                   <span>Reviews & Performance</span>
@@ -636,7 +636,7 @@
 
             <!-- User Management Group -->
             <div v-if="shouldShowItem('Account Management', 'Profile Settings Pen Name Resources')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                 <h3 class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="user" size="sm" icon-class="text-purple-600 dark:text-purple-400" />
                   <span>Account Management</span>
@@ -669,7 +669,7 @@
 
             <!-- Activity Group -->
             <div v-if="shouldShowItem('Activity & Communication', 'Dashboard Summary Communications Tickets Activity Logs')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
                 <h3 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="table" size="sm" icon-class="text-gray-600 dark:text-gray-400" />
                   <span>Activity & Communication</span>
@@ -706,7 +706,7 @@
 
             <!-- Discipline Group -->
             <div v-if="shouldShowItem('Discipline & Appeals', 'Discipline Status History Appeal')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
                 <h3 class="text-xs font-bold text-red-700 dark:text-red-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="scale" size="sm" icon-class="text-red-600 dark:text-red-400" />
                   <span>Discipline & Appeals</span>
@@ -738,7 +738,7 @@
           <template v-if="authStore.isAdmin || authStore.isSuperAdmin">
             <!-- Core Operations Group -->
             <div v-if="shouldShowItem('Core Operations', 'Orders Special Orders Users Support Tickets')" class="mb-6">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
                 <h3 class="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="cog" size="sm" icon-class="text-primary-600 dark:text-primary-400" />
                   <span>Core Operations</span>
@@ -1038,7 +1038,7 @@
             
             <!-- Financial Management Group -->
             <div v-if="shouldShowItem('Financial Management', 'Payments Refunds Disputes Tips Fines Wallets Invoices')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
                 <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
                   <span>Financial Management</span>
@@ -1064,7 +1064,7 @@
                       to="/admin/payments/client-payments"
                       class="flex items-center px-4 py-3 text-sm rounded-xl transition-all duration-300 hover:scale-[1.02] group leading-relaxed border-2"
                       :class="isRouteActive({ to: '/admin/payments/client-payments' }) 
-                        ? 'bg-linear-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-bold shadow-lg border-blue-400' 
+                        ? 'bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 text-white font-bold shadow-lg border-blue-400' 
                         : 'bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 font-semibold shadow-sm'"
                     >
                       <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-3"
@@ -1091,7 +1091,7 @@
                       v-if="shouldShowItem('Payment Requests', 'Manage writer payment requests')"
                       to="/admin/payments/payment-requests"
                       class="flex items-center px-3 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 hover:bg-amber-50 hover:translate-x-1 group leading-relaxed shadow-sm"
-                      :class="isRouteActive({ to: '/admin/payments/payment-requests' }) ? 'bg-linear-to-r from-amber-500 to-amber-600 text-white font-bold shadow-md' : 'text-amber-700 hover:text-amber-800'"
+                      :class="isRouteActive({ to: '/admin/payments/payment-requests' }) ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white font-bold shadow-md' : 'text-amber-700 hover:text-amber-800'"
                     >
                       <div class="w-8 h-8 flex items-center justify-center rounded-lg mr-3 transition-colors"
                            :class="isRouteActive({ to: '/admin/payments/payment-requests' }) 
@@ -1267,7 +1267,7 @@
             
             <!-- Content & Services Group -->
             <div v-if="shouldShowItem('Content & Services', 'Reviews Class Management Express Classes Blog SEO Media')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
                 <h3 class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="newspaper" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
                   <span>Content & Services</span>
@@ -1443,7 +1443,7 @@
 
             <!-- Analytics & Reporting Group -->
             <div v-if="shouldShowItem('Analytics & Reporting', 'Advanced Enhanced Pricing Discount Writer Performance Referral Loyalty Campaign Refined')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
                 <h3 class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="chart-bar" size="sm" icon-class="text-purple-600 dark:text-purple-400" />
                   <span>Analytics & Reporting</span>
@@ -1636,7 +1636,7 @@
 
             <!-- System Management Group -->
             <div v-if="shouldShowItem('System Management', 'Configurations Screened Words Flagged Messages System Health Activity Logs Email Notification Duplicate')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
                 <h3 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-600 dark:text-gray-400" />
                   <span>System Management</span>
@@ -1773,7 +1773,7 @@
 
             <!-- Discipline & Appeals Group -->
             <div v-if="shouldShowItem('Discipline & Appeals', 'Writer Discipline Appeals Config Blacklist')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
                 <h3 class="text-xs font-bold text-red-700 dark:text-red-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="scale" size="sm" icon-class="text-red-600 dark:text-red-400" />
                   <span>Discipline & Appeals</span>
@@ -1840,7 +1840,7 @@
 
             <!-- Writer Management Group -->
             <div v-if="shouldShowItem('Writer Management', 'Writer Management Resources Samples Hierarchy')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-lg border border-indigo-200 dark:border-indigo-800">
                 <h3 class="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="pencil" size="sm" icon-class="text-indigo-600 dark:text-indigo-400" />
                   <span>Writer Management</span>
@@ -1893,7 +1893,7 @@
 
             <!-- Multi-Tenant Group -->
             <div v-if="shouldShowItem('Multi-Tenant', 'Websites')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-cyan-50 to-teal-50 dark:from-cyan-900/20 dark:to-teal-900/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-cyan-900/20 dark:to-teal-900/20 rounded-lg border border-cyan-200 dark:border-cyan-800">
                 <h3 class="text-xs font-bold text-cyan-700 dark:text-cyan-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="home" size="sm" icon-class="text-cyan-600 dark:text-cyan-400" />
                   <span>Multi-Tenant</span>
@@ -1918,7 +1918,7 @@
 
             <!-- Superadmin Only -->
             <div v-if="authStore.isSuperAdmin && shouldShowItem('Superadmin', 'Superadmin dashboard')" class="mb-8">
-              <div class="px-4 py-3 mb-3 bg-linear-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
                 <h3 class="text-xs font-bold text-yellow-700 dark:text-yellow-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="star" size="sm" icon-class="text-yellow-600 dark:text-yellow-400" />
                   <span>Superadmin</span>

@@ -7,22 +7,22 @@
     />
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-blue-700 truncate">Total Bi-Weekly</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight">${{ formatCurrency(summary.total_biweekly_amount || 0) }}</p>
         <p class="text-xs text-blue-600">{{ summary.total_biweekly_payments || 0 }} payments</p>
       </div>
-      <div class="bg-linear-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow border border-green-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-green-700 truncate">Total Monthly</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-green-900 break-all leading-tight">${{ formatCurrency(summary.total_monthly_amount || 0) }}</p>
         <p class="text-xs text-green-600">{{ summary.total_monthly_payments || 0 }} payments</p>
       </div>
-      <div class="bg-linear-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-purple-700 truncate">Total Amount</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">${{ formatCurrency((summary.total_biweekly_amount || 0) + (summary.total_monthly_amount || 0)) }}</p>
         <p class="text-xs text-purple-600">{{ (summary.total_biweekly_payments || 0) + (summary.total_monthly_payments || 0) }} total payments</p>
       </div>
-      <div class="bg-linear-to-br from-orange-50 to-orange-100 rounded-lg shadow border border-orange-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
+      <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow border border-orange-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-orange-700 truncate">Periods</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-orange-900 break-all leading-tight">{{ biweeklyPayments.length + monthlyPayments.length }}</p>
         <p class="text-xs text-orange-600">payment periods</p>
@@ -153,7 +153,7 @@
             :class="expandedPeriods[period.schedule_id] ? 'border-blue-300' : ''"
           >
             <div 
-              class="px-6 py-4 bg-linear-to-r from-blue-50 to-blue-100 border-b border-blue-200 cursor-pointer transition-colors hover:from-blue-100 hover:to-blue-150"
+              class="px-6 py-4 bg-gradient-to-r from-blue-50 to-blue-100 border-b border-blue-200 cursor-pointer transition-colors hover:from-blue-100 hover:to-blue-150"
               :class="expandedPeriods[period.schedule_id] ? 'from-blue-100 to-blue-150' : ''"
               @click="togglePeriod(period.schedule_id)"
             >
@@ -377,7 +377,7 @@
             :class="expandedPeriods[period.schedule_id] ? 'border-green-300' : ''"
           >
             <div 
-              class="px-6 py-4 bg-linear-to-r from-green-50 to-green-100 border-b border-green-200 cursor-pointer transition-colors hover:from-green-100 hover:to-green-150"
+              class="px-6 py-4 bg-gradient-to-r from-green-50 to-green-100 border-b border-green-200 cursor-pointer transition-colors hover:from-green-100 hover:to-green-150"
               :class="expandedPeriods[period.schedule_id] ? 'from-green-100 to-green-150' : ''"
               @click="togglePeriod(period.schedule_id)"
             >

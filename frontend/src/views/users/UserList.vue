@@ -118,7 +118,7 @@
             <tr v-for="user in users" :key="user.id" class="hover:bg-gray-50">
               <td class="px-4 py-3 whitespace-nowrap">
                 <div class="flex items-center">
-                  <div class="shrink-0 h-10 w-10 rounded-full bg-linear-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm mr-3">
+                  <div class="shrink-0 h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-sm mr-3">
                     {{ getUserInitials(user) }}
                   </div>
                   <div>

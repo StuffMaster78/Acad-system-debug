@@ -39,5 +39,12 @@ export default {
    */
   updateTerms: (websiteId, data) =>
     apiClient.post(`/websites/websites/${websiteId}/update_terms/`, data),
+  
+  // Integration Configurations
+  listIntegrations: (params) => apiClient.get('/websites/integrations/', { params }),
+  getIntegration: (id) => apiClient.get(`/websites/integrations/${id}/`),
+  createIntegration: (data) => apiClient.post('/websites/integrations/', data),
+  updateIntegration: (id, data) => apiClient.patch(`/websites/integrations/${id}/`, data),
+  deleteIntegration: (id) => apiClient.delete(`/websites/integrations/${id}/`),
 }
 

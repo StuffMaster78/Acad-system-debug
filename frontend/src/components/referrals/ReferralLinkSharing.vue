@@ -1,6 +1,6 @@
 <template>
   <div class="referral-link-sharing">
-    <div class="bg-linear-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white mb-6">
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white mb-6">
       <h3 class="text-xl font-bold mb-2">Share Your Referral Link</h3>
       <p class="text-primary-100">Earn rewards when your friends sign up and make their first order!</p>
     </div>

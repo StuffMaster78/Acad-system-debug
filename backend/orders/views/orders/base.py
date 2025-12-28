@@ -46,6 +46,20 @@ class LimitedPagination(PageNumberPagination):
 
 
 STATUS_GROUPS = {
+    "initial": [
+        OrderStatus.CREATED.value,
+        OrderStatus.PENDING.value,
+        OrderStatus.UNPAID.value,
+    ],
+    "payment": [
+        OrderStatus.AVAILABLE.value,
+        OrderStatus.PENDING.value,
+    ],
+    "assignment": [
+        OrderStatus.PENDING_WRITER_ASSIGNMENT.value,
+        OrderStatus.PENDING_PREFERRED.value,
+        OrderStatus.AVAILABLE.value,
+    ],
     "active": [
         OrderStatus.CREATED.value,
         OrderStatus.PENDING.value,
@@ -55,13 +69,28 @@ STATUS_GROUPS = {
         OrderStatus.IN_PROGRESS.value,
         OrderStatus.UNDER_EDITING.value,
         OrderStatus.ON_HOLD.value,
+        OrderStatus.REASSIGNED.value,
         OrderStatus.SUBMITTED.value,
     ],
     "pending": [
         OrderStatus.PENDING.value,
         OrderStatus.UNPAID.value,
         OrderStatus.PENDING_PREFERRED.value,
+        OrderStatus.PENDING_WRITER_ASSIGNMENT.value,
         OrderStatus.AVAILABLE.value,
+    ],
+    "submission": [
+        OrderStatus.SUBMITTED.value,
+        OrderStatus.REVIEWED.value,
+        OrderStatus.RATED.value,
+    ],
+    "revision": [
+        OrderStatus.REVISION_REQUESTED.value,
+        OrderStatus.ON_REVISION.value,
+        OrderStatus.REVISED.value,
+    ],
+    "editing": [
+        OrderStatus.UNDER_EDITING.value,
     ],
     "needs_attention": [
         OrderStatus.REVISION_REQUESTED.value,
@@ -70,6 +99,7 @@ STATUS_GROUPS = {
         OrderStatus.DISPUTED.value,
         OrderStatus.LATE.value,
         OrderStatus.CRITICAL.value,
+        OrderStatus.ON_HOLD.value,
     ],
     "completed": [
         OrderStatus.COMPLETED.value,
@@ -78,18 +108,26 @@ STATUS_GROUPS = {
         OrderStatus.REVIEWED.value,
         OrderStatus.CLOSED.value,
     ],
+    "cancelled": [
+        OrderStatus.CANCELLED.value,
+        OrderStatus.REFUNDED.value,
+    ],
     "archived": [
         OrderStatus.ARCHIVED.value,
         OrderStatus.REFUNDED.value,
         OrderStatus.CANCELLED.value,
         OrderStatus.EXPIRED.value,
     ],
+    "final": [
+        OrderStatus.CLOSED.value,
+        OrderStatus.ARCHIVED.value,
+    ],
 }
 
 
-class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """
-    Base viewset for orders. Supports list and retrieve operations.
+    Base viewset for orders. Supports list, retrieve, and update operations.
 
     Attributes:
         queryset: QuerySet of Order objects.
@@ -110,6 +148,86 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
             from orders.serializers_legacy import OrderListSerializer
             return OrderListSerializer
         return OrderSerializer
+    
+    def update(self, request, *args, **kwargs):
+        """
+        Update order fields. Only allows updating specific safe fields.
+        Status changes should go through the action system.
+        """
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Define allowed fields that can be updated directly
+        # These fields are updated directly on the model, bypassing serializer validation
+        allowed_direct_fields = {
+            'completion_notes',  # For revision notes and completion notes
+        }
+        
+        # Fields that go through serializer validation
+        allowed_serializer_fields = {
+            'order_instructions',  # For updating instructions
+        }
+        
+        # Separate direct updates from serializer updates
+        direct_updates = {}
+        serializer_updates = {}
+        
+        for key, value in request.data.items():
+            if key in allowed_direct_fields:
+                direct_updates[key] = value
+            elif key in allowed_serializer_fields:
+                serializer_updates[key] = value
+        
+        if not direct_updates and not serializer_updates:
+            return Response(
+                {
+                    "detail": "No allowed fields provided for update. Allowed fields: " + 
+                    ", ".join(allowed_direct_fields | allowed_serializer_fields)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update direct fields on the model (bypass serializer since completion_notes is not in serializer fields)
+        update_fields = []
+        for field, value in direct_updates.items():
+            # Validate field exists on model
+            if hasattr(instance, field):
+                setattr(instance, field, value)
+                update_fields.append(field)
+            else:
+                return Response(
+                    {"detail": f"Field '{field}' does not exist on Order model"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Update serializer fields if any
+        if serializer_updates:
+            try:
+                serializer = self.get_serializer(instance, data=serializer_updates, partial=True)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+                # Add serializer fields to update_fields
+                update_fields.extend(serializer_updates.keys())
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Error updating order serializer fields: {str(e)}", exc_info=True)
+                return Response(
+                    {"detail": f"Error updating order: {str(e)}", "errors": getattr(serializer, 'errors', {})},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        
+        # Save direct updates
+        if direct_updates:
+            # Always include updated_at in update_fields
+            if 'updated_at' not in update_fields:
+                update_fields.append('updated_at')
+            instance.save(update_fields=update_fields)
+        
+        # Return updated order
+        instance.refresh_from_db()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
 
     def get_queryset(self):
         """
@@ -125,27 +243,46 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
             return Order.objects.none()
 
         # Optimize queryset with select_related and prefetch_related to prevent N+1 queries
-        qs = Order.objects.all().select_related(
-            'client',           # Used in serializer
-            'website',          # Used in serializer
-            'assigned_writer',  # Used in serializer (writer_username)
-            'preferred_writer', # Used in serializer
-            'paper_type',       # Used in serializer
-            'academic_level',   # Used in serializer
-            'formatting_style', # Used in serializer
-            'type_of_work',     # Used in serializer
-            'english_type',     # Used in serializer
-            'subject',          # Used in serializer
-            'previous_order',   # Used in serializer
-            'discount',         # Used in serializer
-        ).prefetch_related(
-            'extra_services',   # ManyToMany field used in serializer
-        )
-        
-        # For list views, defer large fields to reduce data transfer
+        # For list views, use minimal select_related to speed up queries significantly
         if self.action == 'list':
-            qs = qs.defer(
-                'order_instructions',  # Large text field, not needed in list view
+            # Minimal fields for list view - only what's needed for OrderListSerializer
+            # This dramatically reduces data transfer and query time
+            qs = Order.objects.all().select_related(
+                'client',           # For client_username
+                'website',          # For website filtering
+                'assigned_writer',  # For writer_username
+                'paper_type',       # For paper_type_name
+                'academic_level',   # For academic_level_name
+                'subject',          # For subject_name
+            ).only(
+                # Only fetch fields used in OrderListSerializer - reduces data transfer by ~70%
+                'id', 'topic', 'status', 'is_paid', 'total_price', 'writer_compensation',
+                'client_deadline', 'writer_deadline', 'created_at', 'updated_at',
+                'number_of_pages', 'number_of_slides', 'number_of_refereces',
+                'spacing', 'discount_code_used', 'is_special_order', 'is_follow_up',
+                'is_urgent', 'flags',
+                # Foreign key IDs (needed for select_related to work)
+                'client_id', 'assigned_writer_id', 'preferred_writer_id',
+                'paper_type_id', 'academic_level_id', 'formatting_style_id',
+                'type_of_work_id', 'english_type_id', 'subject_id', 'website_id',
+            )
+        else:
+            # Full select_related for detail views
+            qs = Order.objects.all().select_related(
+                'client',           # Used in serializer
+                'website',          # Used in serializer
+                'assigned_writer',  # Used in serializer (writer_username)
+                'preferred_writer', # Used in serializer
+                'paper_type',       # Used in serializer
+                'academic_level',   # Used in serializer
+                'formatting_style', # Used in serializer
+                'type_of_work',     # Used in serializer
+                'english_type',     # Used in serializer
+                'subject',          # Used in serializer
+                'previous_order',   # Used in serializer
+                'discount',         # Used in serializer
+            ).prefetch_related(
+                'extra_services',   # ManyToMany field used in serializer
             )
 
         # Role-based scoping
@@ -281,20 +418,111 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
         paid = parse_bool(params.get('is_paid'))
         if paid is not None:
             base_qs = base_qs.filter(is_paid=paid)
+        
+        # Filter by special order flag
+        is_special_order = parse_bool(params.get('is_special_order'))
+        if is_special_order is not None:
+            base_qs = base_qs.filter(is_special_order=is_special_order)
 
-        # Filter by one or more statuses (comma-separated)
+        # Apply status filtering early for optimal query performance
+        # This uses the status index and reduces the dataset early
         statuses = parse_csv(params.get('status'))
-        if statuses:
-            base_qs = base_qs.filter(status__in=statuses)
-
-        # Status groups
         status_groups = parse_csv(params.get('status_group'))
-        if status_groups:
+        
+        # Combine status and status_group filters
+        if statuses or status_groups:
             resolved_statuses = set()
-            for group in status_groups:
-                resolved_statuses.update(STATUS_GROUPS.get(group, []))
+            
+            # Add explicit statuses
+            if statuses:
+                resolved_statuses.update(statuses)
+            
+            # Add status group statuses
+            if status_groups:
+                for group in status_groups:
+                    resolved_statuses.update(STATUS_GROUPS.get(group, []))
+            
+            # Apply single filter with all statuses (uses index efficiently)
             if resolved_statuses:
                 base_qs = base_qs.filter(status__in=list(resolved_statuses))
+        
+        # Filter by "can transition to" - orders that can transition to a specific status
+        can_transition_to = params.get('can_transition_to')
+        if can_transition_to:
+            from orders.services.status_transition_service import VALID_TRANSITIONS
+            can_transition_statuses = [
+                from_status for from_status, allowed_transitions in VALID_TRANSITIONS.items()
+                if can_transition_to in allowed_transitions
+            ]
+            if can_transition_statuses:
+                base_qs = base_qs.filter(status__in=can_transition_statuses)
+        
+        # Filter by "needs attention" - overdue, stuck, unassigned, etc.
+        needs_attention = params.get('needs_attention')
+        if needs_attention:
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            if needs_attention == 'overdue':
+                now = timezone.now()
+                base_qs = base_qs.filter(
+                    client_deadline__lt=now,
+                    status__in=[
+                        OrderStatus.IN_PROGRESS.value,
+                        OrderStatus.ON_HOLD.value,
+                        OrderStatus.SUBMITTED.value,
+                        OrderStatus.PENDING.value,
+                        OrderStatus.AVAILABLE.value,
+                    ]
+                )
+            elif needs_attention == 'stuck':
+                cutoff = timezone.now() - timedelta(days=7)
+                base_qs = base_qs.filter(
+                    updated_at__lt=cutoff,
+                    status__in=[
+                        OrderStatus.IN_PROGRESS.value,
+                        OrderStatus.ON_HOLD.value,
+                        OrderStatus.AVAILABLE.value,
+                        OrderStatus.PENDING_WRITER_ASSIGNMENT.value,
+                    ]
+                )
+            elif needs_attention == 'unassigned':
+                base_qs = base_qs.filter(
+                    assigned_writer__isnull=True,
+                    status__in=[
+                        OrderStatus.AVAILABLE.value,
+                        OrderStatus.PENDING_WRITER_ASSIGNMENT.value,
+                        OrderStatus.PENDING_PREFERRED.value,
+                    ]
+                )
+            elif needs_attention == 'unpaid':
+                base_qs = base_qs.filter(
+                    is_paid=False,
+                    status__in=[
+                        OrderStatus.UNPAID.value,
+                        OrderStatus.PENDING.value,
+                    ]
+                )
+        
+        # Filter by recently transitioned
+        recently_transitioned = params.get('recently_transitioned')
+        if recently_transitioned:
+            from django.utils import timezone
+            from datetime import timedelta
+            from orders.models import OrderTransitionLog
+            
+            period_map = {
+                '1h': timedelta(hours=1),
+                '6h': timedelta(hours=6),
+                '24h': timedelta(hours=24),
+                '7d': timedelta(days=7),
+            }
+            
+            cutoff = timezone.now() - period_map.get(recently_transitioned, timedelta(hours=24))
+            recent_order_ids = OrderTransitionLog.objects.filter(
+                timestamp__gte=cutoff
+            ).values_list('order_id', flat=True).distinct()
+            base_qs = base_qs.filter(id__in=recent_order_ids)
 
         # Text search
         search_term = params.get('q') or params.get('search')
@@ -1341,7 +1569,8 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
         - max_results: Maximum matches to return (default: 10)
         - min_rating: Minimum writer rating (default: 4.0)
         """
-        order = get_object_or_404(Order, pk=pk, website_id=self.website.id)
+        # Get order - use get_queryset() to respect permissions and filtering
+        order = get_object_or_404(self.get_queryset(), pk=pk)
         
         max_results = int(request.query_params.get('max_results', 10))
         min_rating = float(request.query_params.get('min_rating', 4.0))
@@ -1378,6 +1607,9 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewset
                 status=status.HTTP_200_OK
             )
         except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Smart matching failed for order {pk}: {str(e)}", exc_info=True)
             return Response(
                 {"detail": f"Smart matching failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR

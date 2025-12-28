@@ -381,6 +381,7 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+@reference "tailwindcss";
 .btn {
   @apply px-4 py-2 rounded-lg font-medium transition-colors;
 }

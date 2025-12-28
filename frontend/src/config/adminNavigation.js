@@ -12,9 +12,9 @@ export const adminNavigationGroups = [
       {
         name: 'OrderManagement',
         to: '/admin/orders',
-        label: 'Order Management',
+        label: 'Regular Orders',
         icon: '📋',
-        description: 'Manage all orders, assignments, and status',
+        description: 'Manage regular writing orders, assignments, and status',
       },
       {
         name: 'SpecialOrderManagement',
@@ -22,6 +22,13 @@ export const adminNavigationGroups = [
         label: 'Special Orders',
         icon: '⭐',
         description: 'Handle special and custom orders',
+      },
+      {
+        name: 'ClassOrderManagement',
+        to: '/admin/class-orders',
+        label: 'Class Orders',
+        icon: '🎓',
+        description: 'Manage class bundle orders and purchases',
       },
       {
         name: 'UserManagement',

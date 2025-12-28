@@ -500,7 +500,7 @@
           <!-- Website Header (Clickable to toggle) -->
           <div 
             @click="toggleWebsiteSection(websiteId)"
-            class="bg-linear-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200 cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-colors"
+            class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-200 cursor-pointer hover:from-blue-100 hover:to-indigo-100 transition-colors"
           >
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-4">
@@ -922,7 +922,7 @@
           </div>
           
           <div v-else-if="usageAnalyticsData" class="space-y-6">
-            <div class="bg-linear-to-r from-purple-50 to-blue-50 p-4 rounded-lg">
+            <div class="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg">
               <div class="grid grid-cols-4 gap-4 text-center">
                 <div>
                   <p class="text-2xl font-bold text-purple-700">{{ usageAnalyticsData.summary.total_configs }}</p>

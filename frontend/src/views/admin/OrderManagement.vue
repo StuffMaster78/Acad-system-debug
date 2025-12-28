@@ -1,9 +1,10 @@
 <template>
-  <div class="space-y-6 p-6" v-if="!componentError && !initialLoading">
-    <div class="flex items-center justify-between">
+      <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="space-y-5 sm:space-y-6 md:space-y-8 p-4 sm:p-5 md:p-6 lg:p-8" v-if="!componentError && !initialLoading">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Order Management</h1>
-        <p class="mt-2 text-gray-600">Manage orders, assignments, and status transitions</p>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Regular Orders Management</h1>
+        <p class="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 dark:text-gray-400">Manage regular writing orders, assignments, and status transitions</p>
       </div>
       <div class="flex gap-3">
         <router-link
@@ -18,71 +19,88 @@
       </div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-      <div class="card p-4 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
-        <p class="text-sm font-medium text-blue-700 mb-1">Total Orders</p>
-        <p class="text-3xl font-bold text-blue-900">{{ dashboardData?.summary?.total_orders || stats.total || 0 }}</p>
-      </div>
-      <div class="card p-4 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
-        <p class="text-sm font-medium text-yellow-700 mb-1">In Progress</p>
-        <p class="text-3xl font-bold text-yellow-900">{{ dashboardData?.summary?.in_progress_orders || stats.in_progress || 0 }}</p>
-      </div>
-      <div class="card p-4 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
-        <p class="text-sm font-medium text-green-700 mb-1">Completed</p>
-        <p class="text-3xl font-bold text-green-900">{{ dashboardData?.summary?.completed_orders || stats.completed || 0 }}</p>
-      </div>
-      <div class="card p-4 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200">
-        <p class="text-sm font-medium text-orange-700 mb-1">Needs Assignment</p>
-        <p class="text-3xl font-bold text-orange-900">{{ dashboardData?.summary?.needs_assignment || 0 }}</p>
-      </div>
-      <div class="card p-4 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
-        <p class="text-sm font-medium text-red-700 mb-1">Overdue</p>
-        <p class="text-3xl font-bold text-red-900">{{ dashboardData?.summary?.overdue_orders || 0 }}</p>
-      </div>
+    <!-- Stats Cards - 2 Columns, 3 Rows Layout -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <!-- Row 1 -->
+      <StatusCard
+        label="Total Orders"
+        :value="dashboardData?.summary?.total_orders || stats.total || 0"
+        icon-svg="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+        variant="primary"
+        @click="filterByStatus('')"
+      />
+      <StatusCard
+        label="In Progress"
+        :value="dashboardData?.summary?.in_progress_orders || stats.in_progress || 0"
+        icon-svg="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+        variant="warning"
+        @click="filterByStatus('in_progress')"
+      />
+      
+      <!-- Row 2 -->
+      <StatusCard
+        label="Completed"
+        :value="dashboardData?.summary?.completed_orders || stats.completed || 0"
+        icon-svg="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+        variant="success"
+        @click="filterByStatus('completed')"
+      />
+      <StatusCard
+        label="Total Revenue"
+        :value="dashboardData?.summary?.total_revenue || 0"
+        icon-svg="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        variant="info"
+        unit="$"
+        :format-value="(v) => formatCurrency(v)"
+        @click="filterByStatus('')"
+      />
+      
+      <!-- Row 3 -->
+      <StatusCard
+        label="Needs Assignment"
+        :value="dashboardData?.summary?.needs_assignment || 0"
+        icon-svg="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+        variant="warning"
+        :badge="dashboardData?.summary?.needs_assignment > 0 ? 'Action Required' : null"
+        @click="filterByNeedsAssignment"
+      />
+      <StatusCard
+        label="Overdue"
+        :value="dashboardData?.summary?.overdue_orders || 0"
+        icon-svg="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+        variant="danger"
+        :badge="dashboardData?.summary?.overdue_orders > 0 ? 'Urgent' : null"
+        @click="filterByOverdue"
+      />
     </div>
     
-    <!-- Additional Stats Row -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <div class="card p-4 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
-        <p class="text-sm font-medium text-purple-700 mb-1">Total Revenue</p>
-        <p class="text-3xl font-bold text-purple-900">${{ formatCurrency(dashboardData?.summary?.total_revenue || 0) }}</p>
-      </div>
-      <div class="card p-4 bg-linear-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
-        <p class="text-sm font-medium text-indigo-700 mb-1">Avg Order Value</p>
-        <p class="text-3xl font-bold text-indigo-900">${{ formatCurrency(dashboardData?.summary?.avg_order_value || 0) }}</p>
-      </div>
-      <div class="card p-4 bg-linear-to-br from-pink-50 to-pink-100 border border-pink-200">
-        <p class="text-sm font-medium text-pink-700 mb-1">Pending Orders</p>
-        <p class="text-3xl font-bold text-pink-900">{{ dashboardData?.summary?.pending_orders || 0 }}</p>
-      </div>
-    </div>
-    
-    <!-- Order Transition Counts -->
-    <div v-if="dashboardData?.summary || dashboardData?.transition_counts" class="card p-6 bg-white rounded-lg shadow-sm">
-      <h2 class="text-xl font-bold text-gray-900 mb-4">Orders by Available Transitions</h2>
-      <p class="text-sm text-gray-600 mb-4">Count of orders that can transition to each status</p>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <div
-          v-for="transition in orderTransitions"
-          :key="transition.key"
-          class="p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
-        >
-          <div class="text-xs font-medium text-gray-600 mb-1">{{ transition.label }}</div>
-          <div class="text-2xl font-bold" :class="transition.colorClass">
-            {{ transition.count }}
-          </div>
-        </div>
-      </div>
+    <!-- Additional Stats Row - 2 Columns -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <StatusCard
+        label="Avg Order Value"
+        :value="dashboardData?.summary?.avg_order_value || 0"
+        icon-svg="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+        variant="info"
+        unit="$"
+        :format-value="(v) => formatCurrency(v)"
+        @click="filterByStatus('')"
+      />
+      <StatusCard
+        label="Pending Orders"
+        :value="dashboardData?.summary?.pending_orders || 0"
+        icon-svg="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+        variant="info"
+        @click="filterByStatus('pending')"
+      />
     </div>
     
     <!-- Quick Action Tabs -->
-    <div class="border-b border-gray-200 mb-4">
-      <nav class="-mb-px flex space-x-8">
+    <div class="border-b border-gray-200 mb-3 sm:mb-4">
+      <nav class="-mb-px flex space-x-3 sm:space-x-4 md:space-x-6 lg:space-x-8 overflow-x-auto scrollbar-hide">
         <button
           @click="activeQuickTab = 'all'"
           :class="[
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+            'whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm shrink-0',
             activeQuickTab === 'all'
               ? 'border-blue-500 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -93,35 +111,35 @@
         <button
           @click="activeQuickTab = 'assignment'"
           :class="[
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+            'whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm shrink-0',
             activeQuickTab === 'assignment'
               ? 'border-blue-500 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
           Assignment Queue
-          <span v-if="dashboardData?.summary?.needs_assignment" class="ml-2 bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">
+          <span v-if="dashboardData?.summary?.needs_assignment" class="ml-1 sm:ml-2 bg-orange-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
             {{ dashboardData.summary.needs_assignment }}
           </span>
         </button>
         <button
           @click="activeQuickTab = 'overdue'"
           :class="[
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+            'whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm shrink-0',
             activeQuickTab === 'overdue'
               ? 'border-blue-500 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
           Overdue
-          <span v-if="dashboardData?.summary?.overdue_orders" class="ml-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+          <span v-if="dashboardData?.summary?.overdue_orders" class="ml-1 sm:ml-2 bg-red-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full">
             {{ dashboardData.summary.overdue_orders }}
           </span>
         </button>
         <button
           @click="activeQuickTab = 'stuck'"
           :class="[
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+            'whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm shrink-0',
             activeQuickTab === 'stuck'
               ? 'border-blue-500 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -132,7 +150,7 @@
         <button
           @click="activeQuickTab = 'writer-requests'"
           :class="[
-            'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm',
+            'whitespace-nowrap py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm shrink-0',
             activeQuickTab === 'writer-requests'
               ? 'border-blue-500 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -141,7 +159,7 @@
           Writer Requests
           <span
             v-if="writerRequests.length"
-            class="ml-2 bg-indigo-500 text-white text-xs px-2 py-0.5 rounded-full"
+            class="ml-1 sm:ml-2 bg-indigo-500 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 rounded-full"
           >
             {{ writerRequests.length }}
           </span>
@@ -281,7 +299,7 @@
     </div>
 
     <!-- Overdue Orders -->
-    <div v-if="activeQuickTab === 'overdue'" class="card p-4">
+    <div v-if="activeQuickTab === 'overdue'" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 sm:p-6">
       <h2 class="text-xl font-bold mb-4">Overdue Orders</h2>
       <div v-if="loadingOverdue" class="text-center py-8">Loading...</div>
       <div v-else-if="overdueOrders.length === 0" class="text-center py-8 text-gray-500">
@@ -313,7 +331,7 @@
     </div>
 
     <!-- Stuck Orders -->
-    <div v-if="activeQuickTab === 'stuck'" class="card p-4">
+    <div v-if="activeQuickTab === 'stuck'" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 sm:p-6">
       <h2 class="text-xl font-bold mb-4">Stuck Orders (No Progress)</h2>
       <div v-if="loadingStuck" class="text-center py-8">Loading...</div>
       <div v-else-if="stuckOrders.length === 0" class="text-center py-8 text-gray-500">
@@ -345,7 +363,7 @@
     </div>
 
     <!-- Writer Order Requests -->
-    <div v-if="activeQuickTab === 'writer-requests'" class="card p-4">
+    <div v-if="activeQuickTab === 'writer-requests'" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 sm:p-6">
       <h2 class="text-xl font-bold mb-4">Writer Order Requests</h2>
       <p class="text-sm text-gray-600 mb-4">
         Review and manage orders that writers have requested to work on.
@@ -406,7 +424,7 @@
     </div>
 
     <!-- Filters -->
-    <div class="card p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-5 sm:p-6 mb-6">
       <div class="space-y-4">
         <!-- First Row: Main Filters -->
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -540,7 +558,7 @@
     </div>
 
     <!-- Bulk Actions -->
-    <div v-if="selectedOrders.length > 0" class="card p-4 bg-yellow-50 border border-yellow-200">
+    <div v-if="selectedOrders.length > 0" class="bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border-2 border-yellow-300 dark:border-yellow-700 shadow-sm p-5 sm:p-6 mb-6">
       <div class="flex items-center justify-between">
         <span class="text-sm font-medium text-yellow-800">
           {{ selectedOrders.length }} order(s) selected
@@ -555,7 +573,7 @@
     </div>
 
     <!-- All Orders Table -->
-    <div v-if="activeQuickTab === 'all'" class="card overflow-hidden">
+    <div id="orders-list-section" v-if="activeQuickTab === 'all'" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
       <div v-if="loading" class="flex items-center justify-center py-12">
         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
@@ -661,69 +679,369 @@
       </div>
     </div>
 
-    <!-- Order Detail Modal -->
-    <div v-if="viewingOrder" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-white rounded-lg max-w-5xl w-full my-auto max-h-[90vh] overflow-y-auto">
+    <!-- Order Detail Modal - Removed: Now using page-based navigation -->
+    <!-- Modal removed - order details now open in a dedicated page at /admin/orders/:id -->
+    <div v-if="false" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div class="bg-white rounded-lg max-w-6xl w-full my-auto max-h-[95vh] overflow-y-auto shadow-2xl">
         <div class="p-6">
-          <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold">Order #{{ viewingOrder.id }}</h2>
-            <button @click="viewingOrder = null" class="text-gray-500 hover:text-gray-700 text-2xl">✕</button>
+          <!-- Header -->
+          <div class="flex items-center justify-between mb-6 pb-4 border-b">
+            <div>
+              <h2 class="text-3xl font-bold text-gray-900">Order #{{ viewingOrder.id }}</h2>
+              <p class="text-sm text-gray-600 mt-1 flex items-center gap-2">
+                <span>{{ viewingOrder.topic || 'Untitled Order' }}</span>
+                <EnhancedStatusBadge
+                  v-if="viewingOrder.status"
+                  :status="viewingOrder.status"
+                  :show-tooltip="true"
+                  :show-priority="true"
+                />
+                <span
+                  v-if="viewingOrder.is_paid !== undefined"
+                  :class="[
+                    'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
+                    viewingOrder.is_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  ]"
+                >
+                  {{ viewingOrder.is_paid ? 'Paid' : 'Unpaid' }}
+                </span>
+              </p>
+            </div>
+            <button @click="closeOrderModal" class="text-gray-500 hover:text-gray-700 text-2xl p-2 hover:bg-gray-100 rounded-lg transition-colors">✕</button>
           </div>
 
-          <div class="grid grid-cols-2 gap-6 mb-6">
-            <div class="space-y-4">
-              <h3 class="text-lg font-semibold border-b pb-2">Order Information</h3>
-              <div class="space-y-2 text-sm">
-                <div><span class="font-medium text-gray-600">Topic:</span> {{ viewingOrder.topic || 'N/A' }}</div>
-                <div><span class="font-medium text-gray-600">Status:</span> 
-                  <span :class="getStatusClass(viewingOrder.status)" class="px-2 py-1 rounded-full text-xs font-medium">
-                    {{ getStatusLabel(viewingOrder.status) }}
+          <!-- Tabs Navigation -->
+          <div class="border-b border-gray-200 mb-6">
+            <nav class="flex space-x-1 overflow-x-auto" aria-label="Tabs">
+              <button
+                v-for="tab in orderTabs"
+                :key="tab.id"
+                @click="handleTabChange(tab.id)"
+                :class="[
+                  'py-3 px-4 border-b-2 font-medium text-sm transition-all relative whitespace-nowrap',
+                  activeOrderTab === tab.id
+                    ? 'border-blue-500 text-blue-600 bg-blue-50'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ]"
+              >
+                <span class="flex items-center gap-2">
+                  <span>{{ tab.icon }}</span>
+                  <span>{{ tab.label }}</span>
                   </span>
+              </button>
+            </nav>
                 </div>
-                <div><span class="font-medium text-gray-600">Client:</span> {{ viewingOrder.client_username || viewingOrder.client?.username || 'N/A' }}</div>
-                <div><span class="font-medium text-gray-600">Writer:</span> 
-                  <span v-if="viewingOrder.writer_username || viewingOrder.assigned_writer">
-                    {{ viewingOrder.writer_username || viewingOrder.assigned_writer?.username || 'N/A' }}
-                  </span>
+
+          <!-- Overview Tab -->
+          <div v-if="activeOrderTab === 'overview'" class="space-y-6">
+            <!-- Order Details Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Left Column: Basic Information -->
+              <div class="space-y-6">
+                <!-- Order Identification -->
+                <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">Order Identification</h3>
+                  <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Order ID:</span>
+                      <span class="font-mono text-gray-900">#{{ viewingOrder.id }}</span>
+                </div>
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Status:</span>
+                      <EnhancedStatusBadge
+                        v-if="viewingOrder.status"
+                        :status="viewingOrder.status"
+                        :show-tooltip="true"
+                      />
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Date Posted:</span>
+                      <span class="text-gray-900">{{ formatDateTime(viewingOrder.created_at) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Client Information -->
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">Client Information</h3>
+                  <div class="space-y-3 text-sm">
+                    <div v-if="viewingOrder.is_unattributed" class="bg-orange-50 border border-orange-200 rounded-lg p-3 space-y-2">
+                      <div class="flex justify-between items-center">
+                        <span class="font-medium text-orange-700">Order Type:</span>
+                        <span class="text-orange-600 font-semibold">Unattributed</span>
+                      </div>
+                      <div v-if="viewingOrder.fake_client_id" class="flex justify-between items-center">
+                        <span class="font-medium text-gray-700">Client ID (shown to writer):</span>
+                        <span class="font-mono text-gray-600">{{ viewingOrder.fake_client_id }}</span>
+                      </div>
+                      <div v-if="viewingOrder.external_contact_name" class="flex justify-between items-center">
+                        <span class="font-medium text-gray-700">Contact Name:</span>
+                        <span class="text-gray-900">{{ viewingOrder.external_contact_name }}</span>
+                      </div>
+                      <div v-if="viewingOrder.external_contact_email" class="flex justify-between items-center">
+                        <span class="font-medium text-gray-700">Contact Email:</span>
+                        <span class="text-gray-900">{{ viewingOrder.external_contact_email }}</span>
+                      </div>
+                    </div>
+                    <div v-else class="space-y-3">
+                      <div class="flex items-center justify-between">
+                        <span class="font-medium text-gray-600">Client:</span>
+                        <div class="flex items-center gap-2">
+                          <UserDisplayName :user="(typeof viewingOrder.client === 'object' && viewingOrder.client !== null) ? viewingOrder.client : { id: viewingOrder.client_id || viewingOrder.client, role: 'client', registration_id: viewingOrder.client_registration_id }" />
+                          <OnlineStatusIndicator
+                            v-if="viewingOrder.client_id"
+                            :user-id="viewingOrder.client_id"
+                            :show-time-indicator="true"
+                          />
+                        </div>
+                      </div>
+                      <div v-if="viewingOrder.client" class="flex items-center justify-between">
+                        <span class="font-medium text-gray-600">Client Email:</span>
+                        <span class="text-gray-900">{{ viewingOrder.client.email || viewingOrder.client_email || 'N/A' }}</span>
+                      </div>
+                      <div v-if="viewingOrder.client" class="flex items-center justify-between">
+                        <span class="font-medium text-gray-600">Registration ID:</span>
+                        <span class="font-mono text-gray-900">{{ viewingOrder.client.registration_id || viewingOrder.client_registration_id || 'N/A' }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Writer Information -->
+                <div v-if="viewingOrder.writer_username || viewingOrder.writer || viewingOrder.assigned_writer" class="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">Writer Information</h3>
+                  <div class="space-y-3 text-sm">
+                    <div class="flex items-center justify-between">
+                      <span class="font-medium text-gray-600">Writer:</span>
+                      <div class="flex items-center gap-2">
+                        <UserDisplayName :user="(typeof (viewingOrder.writer || viewingOrder.assigned_writer) === 'object' && (viewingOrder.writer || viewingOrder.assigned_writer) !== null) ? (viewingOrder.writer || viewingOrder.assigned_writer) : { id: viewingOrder.writer_id || viewingOrder.writer || viewingOrder.assigned_writer, role: 'writer', pen_name: viewingOrder.writer_pen_name, registration_id: viewingOrder.writer_registration_id }" />
+                        <OnlineStatusIndicator
+                          v-if="viewingOrder.writer_id"
+                          :user-id="viewingOrder.writer_id"
+                          :show-time-indicator="true"
+                        />
+                      </div>
+                    </div>
+                    <div v-if="viewingOrder.writer" class="flex items-center justify-between">
+                      <span class="font-medium text-gray-600">Writer Email:</span>
+                      <span class="text-gray-900">{{ viewingOrder.writer.email || viewingOrder.writer_email || 'N/A' }}</span>
+                    </div>
+                    <div v-if="viewingOrder.writer" class="flex items-center justify-between">
+                      <span class="font-medium text-gray-600">Registration ID:</span>
+                      <span class="font-mono text-gray-900">{{ viewingOrder.writer.registration_id || viewingOrder.writer_registration_id || 'N/A' }}</span>
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">Writer Information</h3>
+                  <div class="text-sm">
                   <button 
-                    v-else-if="viewingOrder.is_paid" 
+                      v-if="viewingOrder.is_paid" 
                     @click="openAssignModal(viewingOrder)" 
-                    class="text-blue-600 hover:underline text-xs"
+                      class="text-blue-600 hover:underline font-medium"
                   >
                     Assign Writer
                   </button>
                   <button 
                     v-else 
-                    @click="showUnpaidWarningModal = true" 
-                    class="text-yellow-600 hover:underline text-xs font-semibold"
+                      @click="showUnpaidWarningModal = true; currentOrderForAction = viewingOrder" 
+                      class="text-yellow-600 hover:underline font-semibold"
                     title="Order must be paid before assigning writer"
                   >
-                    ⚠️ Assign Writer
+                      ⚠️ Assign Writer (Unpaid)
                   </button>
                 </div>
-                <div><span class="font-medium text-gray-600">Total Price:</span> ${{ parseFloat(viewingOrder.total_price || 0).toFixed(2) }}</div>
-                <div><span class="font-medium text-gray-600">Writer Compensation:</span> ${{ parseFloat(viewingOrder.writer_compensation || 0).toFixed(2) }}</div>
-                <div><span class="font-medium text-gray-600">Paid:</span> 
-                  <span :class="viewingOrder.is_paid ? 'text-green-600' : 'text-red-600'">
+                </div>
+
+                <!-- Order Specifications -->
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">Order Specifications</h3>
+                  <div class="space-y-3 text-sm">
+                    <div v-if="viewingOrder.website || viewingOrder.website_name" class="flex items-center justify-between">
+                      <span class="font-medium text-gray-600">Website:</span>
+                      <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full" :class="getWebsiteColorClass(viewingOrder.website || viewingOrder.website_name)"></div>
+                        <span class="text-gray-900">{{ getWebsiteName(viewingOrder) }}</span>
+                      </div>
+                    </div>
+                    <div v-if="viewingOrder.type_of_work" class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Type of Work:</span>
+                      <span class="text-gray-900">{{ viewingOrder.type_of_work?.name || viewingOrder.type_of_work_name || 'N/A' }}</span>
+                    </div>
+                    <div v-if="viewingOrder.academic_level" class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Academic Level:</span>
+                      <span class="text-gray-900">{{ viewingOrder.academic_level?.name || viewingOrder.academic_level_name || 'N/A' }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Number of Pages:</span>
+                      <span class="text-gray-900">{{ viewingOrder.number_of_pages || 0 }}</span>
+                    </div>
+                    <div v-if="viewingOrder.number_of_slides" class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Number of Slides:</span>
+                      <span class="text-gray-900">{{ viewingOrder.number_of_slides || 0 }}</span>
+                    </div>
+                    <div v-if="viewingOrder.number_of_refereces || viewingOrder.number_of_sources" class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Number of Sources:</span>
+                      <span class="text-gray-900">{{ viewingOrder.number_of_refereces || viewingOrder.number_of_sources || 0 }}</span>
+                    </div>
+                    <div v-if="viewingOrder.formatting_style" class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Formatting Style:</span>
+                      <span class="text-gray-900">{{ viewingOrder.formatting_style?.name || viewingOrder.formatting_style_name || 'N/A' }}</span>
+                    </div>
+                    <div v-if="viewingOrder.english_type" class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">English Type:</span>
+                      <span class="text-gray-900">{{ viewingOrder.english_type?.name || viewingOrder.english_type_name || 'N/A' }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Additional Services -->
+                <div v-if="viewingOrder.extra_services && viewingOrder.extra_services.length > 0" class="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">Additional Services</h3>
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      v-for="service in viewingOrder.extra_services"
+                      :key="service.id || service"
+                      class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-medium"
+                    >
+                      {{ service.name || service }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Right Column: Timeline, Financial, Deadlines -->
+              <div class="space-y-6">
+                <!-- Status Timeline -->
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                  <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Status Timeline</h3>
+                    <span class="text-xs font-medium text-gray-600 bg-gray-100 px-3 py-1.5 rounded-full">
+                      {{ statusTimeline.length }} {{ statusTimeline.length === 1 ? 'event' : 'events' }}
+                    </span>
+                  </div>
+                  <div v-if="statusTimeline.length === 0" class="text-sm text-gray-500 py-8 text-center">
+                    <p>No status updates recorded yet.</p>
+                  </div>
+                  <ol v-else class="relative border-l-2 border-gray-300 pl-8 space-y-6">
+                    <li
+                      v-for="(entry, index) in statusTimeline"
+                      :key="entry.key"
+                      class="relative group pb-2"
+                    >
+                      <span 
+                        class="absolute -left-[34px] top-0.5 w-8 h-8 rounded-full bg-blue-50 border-2 border-white shadow-md flex items-center justify-center text-lg transition-all duration-200 group-hover:scale-110 z-10"
+                        :class="{
+                          'ring-2 ring-blue-200': index === statusTimeline.length - 1
+                        }"
+                      >
+                        {{ entry.icon }}
+                      </span>
+                      <div class="w-full min-w-0 pr-4">
+                        <div class="text-sm font-semibold text-gray-900 mb-1">
+                          {{ entry.label }}
+                        </div>
+                        <div v-if="entry.description" class="text-xs text-gray-600 mb-1">
+                          {{ entry.description }}
+                        </div>
+                        <div class="text-xs text-gray-500">
+                          {{ entry.relativeTime }}
+                        </div>
+                      </div>
+                    </li>
+                  </ol>
+                </div>
+
+                <!-- Financial Information -->
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">Financial Information</h3>
+                  <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Total Price:</span>
+                      <span class="text-gray-900 font-semibold">${{ parseFloat(viewingOrder.total_price || 0).toFixed(2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Writer Compensation:</span>
+                      <span class="text-gray-900">${{ parseFloat(viewingOrder.writer_compensation || 0).toFixed(2) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Paid:</span>
+                      <span :class="viewingOrder.is_paid ? 'text-green-600 font-semibold' : 'text-yellow-600 font-semibold'">
                     {{ viewingOrder.is_paid ? 'Yes' : 'No' }}
                   </span>
                 </div>
               </div>
             </div>
-            <div class="space-y-4">
-              <h3 class="text-lg font-semibold border-b pb-2">Timeline</h3>
-              <div class="space-y-2 text-sm">
-                <div><span class="font-medium text-gray-600">Created:</span> {{ formatDateTime(viewingOrder.created_at) }}</div>
-                <div><span class="font-medium text-gray-600">Updated:</span> {{ formatDateTime(viewingOrder.updated_at) }}</div>
-                <div v-if="viewingOrder.client_deadline"><span class="font-medium text-gray-600">Client Deadline:</span> {{ formatDateTime(viewingOrder.client_deadline) }}</div>
-                <div v-if="viewingOrder.writer_deadline"><span class="font-medium text-gray-600">Writer Deadline:</span> {{ formatDateTime(viewingOrder.writer_deadline) }}</div>
+
+                <!-- Deadlines -->
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                  <h3 class="text-lg font-semibold mb-4 text-gray-900">Deadlines</h3>
+                  <div class="space-y-3 text-sm">
+                    <div v-if="viewingOrder.client_deadline" class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Client Deadline:</span>
+                      <span class="text-gray-900">{{ formatDateTime(viewingOrder.client_deadline) }}</span>
               </div>
+                    <div v-if="viewingOrder.writer_deadline" class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Writer Deadline:</span>
+                      <span class="text-gray-900">{{ formatDateTime(viewingOrder.writer_deadline) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Created:</span>
+                      <span class="text-gray-900">{{ formatDateTime(viewingOrder.created_at) }}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                      <span class="font-medium text-gray-600">Last Updated:</span>
+                      <span class="text-gray-900">{{ formatDateTime(viewingOrder.updated_at) }}</span>
+                    </div>
+                  </div>
+                </div>
             </div>
           </div>
 
-          <div v-if="viewingOrder.order_instructions || viewingOrder.instructions" class="mb-6">
-            <h3 class="text-lg font-semibold border-b pb-2 mb-2">Instructions</h3>
-            <p class="text-gray-700 whitespace-pre-wrap">{{ viewingOrder.order_instructions || viewingOrder.instructions }}</p>
+            <!-- Progress Bar -->
+            <div
+              v-if="viewingOrder.assigned_writer && (displayProgressPercentage > 0 || viewingOrder.status === 'in_progress' || viewingOrder.status === 'submitted')"
+              class="bg-white rounded-lg border border-gray-200 p-6"
+            >
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Order Progress</h3>
+                <button
+                  @click="loadLatestProgress"
+                  class="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5"
+                >
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </button>
+              </div>
+              <ProgressBar
+                :progress-percentage="displayProgressPercentage"
+                :last-update="latestProgressUpdate"
+              />
+            </div>
+
+            <!-- Instructions -->
+            <div
+              v-if="viewingOrder.instructions || viewingOrder.order_instructions"
+              class="bg-white rounded-lg border border-gray-200 p-6"
+            >
+              <h3 class="text-lg font-semibold mb-4 text-gray-900">Instructions</h3>
+              <div class="prose prose-sm max-w-none">
+                <SafeHtml 
+                  :content="viewingOrder.instructions || viewingOrder.order_instructions"
+                  container-class="text-gray-700 text-sm leading-relaxed"
+                />
+              </div>
+            </div>
+
+            <!-- Notes -->
+            <div
+              v-if="viewingOrder.completion_notes"
+              class="bg-white rounded-lg border border-gray-200 p-4"
+            >
+              <h3 class="text-lg font-semibold mb-3 text-gray-900">Notes</h3>
+              <div class="text-gray-700 text-sm whitespace-pre-wrap">{{ viewingOrder.completion_notes }}</div>
           </div>
 
           <!-- Actions -->
@@ -740,7 +1058,7 @@
             </button>
             <button 
               v-else-if="!viewingOrder.assigned_writer && !viewingOrder.is_paid"
-              @click="showUnpaidWarningModal = true"
+                @click="showUnpaidWarningModal = true; currentOrderForAction = viewingOrder"
               class="btn btn-secondary bg-yellow-600 hover:bg-yellow-700"
               title="Order must be paid before assigning writer"
             >
@@ -749,13 +1067,13 @@
             <button 
               v-else-if="viewingOrder.assigned_writer && viewingOrder.is_paid"
               @click="openActionModal(viewingOrder, 'reassign_order')" 
-              class="btn btn-primary bg-yellow-600 hover:bg-yellow-700"
+                class="btn btn-primary bg-orange-600 hover:bg-orange-700"
             >
               Reassign Writer
             </button>
             <button 
               v-else-if="viewingOrder.assigned_writer && !viewingOrder.is_paid"
-              @click="showUnpaidWarningModal = true"
+                @click="showUnpaidWarningModal = true; currentOrderForAction = viewingOrder"
               class="btn btn-secondary bg-yellow-600 hover:bg-yellow-700"
               title="Order must be paid before reassigning writer"
             >
@@ -770,6 +1088,397 @@
             <button @click="openEditModal(viewingOrder)" class="btn btn-secondary">Edit</button>
           </div>
         </div>
+
+          <!-- Files Tab -->
+          <div v-if="activeOrderTab === 'files'" class="space-y-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                  <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  Files
+                </h3>
+                <p class="text-sm text-gray-600">View and manage order files</p>
+              </div>
+              <button
+                @click="loadOrderFiles"
+                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium flex items-center gap-2"
+                :disabled="loadingOrderFiles"
+              >
+                <svg v-if="loadingOrderFiles" class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {{ loadingOrderFiles ? 'Loading...' : 'Refresh' }}
+              </button>
+            </div>
+
+            <div v-if="loadingOrderFiles" class="text-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p class="mt-4 text-gray-600">Loading files...</p>
+            </div>
+
+            <div v-else-if="orderFiles.length === 0" class="text-center py-12 text-gray-500">
+              <svg class="w-12 h-12 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              <p>No files found for this order</p>
+            </div>
+
+            <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">File Name</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Uploaded By</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-for="file in orderFiles" :key="file.id" class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {{ file.file_name || (file.file ? file.file.split('/').pop() : 'N/A') }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {{ file.category?.name || 'Uncategorized' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {{ file.uploaded_by_username || file.uploaded_by_email || 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span
+                        :class="file.is_downloadable ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'"
+                        class="px-2 py-1 rounded-full text-xs font-medium"
+                      >
+                        {{ file.is_downloadable ? '✓ Downloadable' : '🔒 Locked' }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {{ formatDateTime(file.created_at) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div class="flex items-center gap-2">
+                        <button
+                          @click="downloadOrderFile(file)"
+                          class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs flex items-center gap-1"
+                        >
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          Download
+                        </button>
+                        <button
+                          @click="toggleOrderFileDownload(file)"
+                          class="px-2 py-1.5 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-colors text-xs"
+                          :title="file.is_downloadable ? 'Lock file' : 'Unlock file'"
+                        >
+                          {{ file.is_downloadable ? '🔒' : '🔓' }}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Enhanced Status Tab -->
+          <div v-if="activeOrderTab === 'enhanced-status'" class="space-y-6">
+            <EnhancedOrderStatus :order-id="viewingOrder.id" />
+          </div>
+
+          <!-- Progress Tab -->
+          <div v-if="activeOrderTab === 'progress'" class="space-y-6">
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Order Progress
+              </h3>
+              <ProgressBar
+                v-if="viewingOrder.assigned_writer"
+                :progress-percentage="displayProgressPercentage"
+                :last-update="latestProgressUpdate"
+              />
+              <div v-else class="text-center py-8 text-gray-500">
+                <p>No writer assigned yet. Progress will be available once a writer is assigned.</p>
+              </div>
+              <div v-if="viewingOrder.assigned_writer" class="mt-6">
+                <ProgressHistory :order-id="viewingOrder.id" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Messages Tab -->
+          <div v-if="activeOrderTab === 'messages'" class="space-y-6">
+            <OrderMessagesTabbed 
+              :order-id="viewingOrder.id" 
+              :order-topic="viewingOrder.topic || 'Untitled Order'"
+            />
+          </div>
+
+          <!-- Draft Requests Tab -->
+          <div v-if="activeOrderTab === 'draft-requests'" class="space-y-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                  <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Draft Requests
+                </h3>
+                <p class="text-sm text-gray-600">View and manage draft requests for this order</p>
+              </div>
+              <button
+                @click="loadDraftRequests"
+                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium flex items-center gap-2"
+                :disabled="loadingDraftRequests"
+              >
+                <svg v-if="loadingDraftRequests" class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {{ loadingDraftRequests ? 'Loading...' : 'Refresh' }}
+              </button>
+            </div>
+
+            <div v-if="loadingDraftRequests" class="text-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            </div>
+
+            <div v-else-if="draftRequests.length === 0" class="text-center py-12 text-gray-500">
+              <p>No draft requests found for this order</p>
+            </div>
+
+            <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requested By</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Message</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Requested At</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fulfilled At</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-for="request in draftRequests" :key="request.id" class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">#{{ request.id }}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {{ request.requested_by_username || request.requested_by_email || 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span
+                        :class="{
+                          'bg-yellow-100 text-yellow-800': request.status === 'pending',
+                          'bg-blue-100 text-blue-800': request.status === 'in_progress',
+                          'bg-green-100 text-green-800': request.status === 'fulfilled',
+                          'bg-red-100 text-red-800': request.status === 'cancelled'
+                        }"
+                        class="px-2 py-1 rounded-full text-xs font-medium"
+                      >
+                        {{ request.status }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                      {{ request.message || 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {{ formatDateTime(request.requested_at) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {{ request.fulfilled_at ? formatDateTime(request.fulfilled_at) : 'N/A' }}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- External Links Tab -->
+          <div v-if="activeOrderTab === 'links'" class="space-y-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-xl font-bold text-gray-900 mb-1 flex items-center gap-2">
+                  <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  External Links
+                </h3>
+                <p class="text-sm text-gray-600">View and manage external file links for this order</p>
+              </div>
+              <button
+                @click="loadExternalLinks"
+                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium flex items-center gap-2"
+                :disabled="loadingExternalLinks"
+              >
+                <svg v-if="loadingExternalLinks" class="animate-spin w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                {{ loadingExternalLinks ? 'Loading...' : 'Refresh' }}
+              </button>
+            </div>
+
+            <div v-if="loadingExternalLinks" class="text-center py-12">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            </div>
+
+            <div v-else-if="externalLinks.length === 0" class="text-center py-12 text-gray-500">
+              <p>No external links found for this order</p>
+            </div>
+
+            <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+              <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">URL</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Created At</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                  <tr v-for="link in externalLinks" :key="link.id" class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm">
+                      <a :href="link.url" target="_blank" class="text-blue-600 hover:underline truncate block max-w-xs">
+                        {{ link.url }}
+                      </a>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                      {{ link.description || 'N/A' }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                      <span
+                        :class="{
+                          'bg-yellow-100 text-yellow-800': link.status === 'pending',
+                          'bg-green-100 text-green-800': link.status === 'approved',
+                          'bg-red-100 text-red-800': link.status === 'rejected'
+                        }"
+                        class="px-2 py-1 rounded-full text-xs font-medium"
+                      >
+                        {{ link.status || 'pending' }}
+                      </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {{ formatDateTime(link.created_at) }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                      <div class="flex items-center gap-2">
+                        <button
+                          v-if="link.status === 'pending'"
+                          @click="approveExternalLink(link)"
+                          class="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          v-if="link.status === 'pending'"
+                          @click="rejectExternalLink(link)"
+                          class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Actions Tab -->
+          <div v-if="activeOrderTab === 'actions'" class="space-y-6">
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Order Actions
+              </h3>
+              <div class="flex gap-2 flex-wrap">
+                <button @click="showOrderThreadsModal = true" class="btn btn-primary bg-blue-600 hover:bg-blue-700">
+                  💬 View Messages
+                </button>
+                <button 
+                  v-if="!viewingOrder.assigned_writer && viewingOrder.is_paid" 
+                  @click="openActionModal(viewingOrder, 'assign_order')" 
+                  class="btn btn-primary"
+                >
+                  Assign Writer
+                </button>
+                <button 
+                  v-else-if="!viewingOrder.assigned_writer && !viewingOrder.is_paid"
+                  @click="showUnpaidWarningModal = true; currentOrderForAction = viewingOrder"
+                  class="btn btn-secondary bg-yellow-600 hover:bg-yellow-700"
+                  title="Order must be paid before assigning writer"
+                >
+                  ⚠️ Assign Writer
+                </button>
+                <button 
+                  v-else-if="viewingOrder.assigned_writer && viewingOrder.is_paid"
+                  @click="openActionModal(viewingOrder, 'reassign_order')" 
+                  class="btn btn-primary bg-orange-600 hover:bg-orange-700"
+                >
+                  Reassign Writer
+                </button>
+                <button 
+                  v-else-if="viewingOrder.assigned_writer && !viewingOrder.is_paid"
+                  @click="showUnpaidWarningModal = true; currentOrderForAction = viewingOrder"
+                  class="btn btn-secondary bg-yellow-600 hover:bg-yellow-700"
+                  title="Order must be paid before reassigning writer"
+                >
+                  ⚠️ Reassign Writer
+                </button>
+                <button 
+                  @click="openActionModal(viewingOrder)" 
+                  class="btn btn-primary bg-purple-600 hover:bg-purple-700"
+                >
+                  More Actions
+                </button>
+                <button @click="openEditModal(viewingOrder)" class="btn btn-secondary">Edit</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- History Tab -->
+          <div v-if="activeOrderTab === 'history'" class="space-y-6">
+            <div class="bg-white rounded-lg border border-gray-200 p-6">
+              <h3 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Order History
+              </h3>
+              <div class="space-y-4">
+                <div v-if="statusTimeline.length === 0" class="text-center py-8 text-gray-500">
+                  <p>No history available</p>
+                </div>
+                <div v-else class="space-y-4">
+                  <div
+                    v-for="entry in statusTimeline"
+                    :key="entry.key"
+                    class="flex items-start gap-4 p-4 bg-gray-50 rounded-lg"
+                  >
+                    <div class="text-2xl">{{ entry.icon }}</div>
+                    <div class="flex-1">
+                      <div class="font-semibold text-gray-900">{{ entry.label }}</div>
+                      <div v-if="entry.description" class="text-sm text-gray-600 mt-1">{{ entry.description }}</div>
+                      <div class="text-xs text-gray-500 mt-2">{{ entry.relativeTime }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -778,7 +1487,7 @@
       <div v-if="showAssignModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="closeAssignModal">
         <div class="bg-white dark:bg-gray-800 rounded-2xl max-w-4xl w-full my-auto max-h-[90vh] overflow-hidden shadow-2xl flex flex-col">
           <!-- Header -->
-          <div class="bg-linear-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
+          <div class="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
             <div class="flex items-center justify-between">
               <div>
                 <h3 class="text-xl font-bold text-white">Assign Writer</h3>
@@ -867,7 +1576,7 @@
                 <div class="flex items-start justify-between">
                   <div class="flex-1">
                     <div class="flex items-center gap-2 mb-2">
-                      <div class="w-10 h-10 rounded-full bg-linear-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
+                      <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold">
                         {{ (writer.username || writer.email || 'W')[0].toUpperCase() }}
                       </div>
                       <div>
@@ -933,7 +1642,7 @@
             <button
               @click="confirmAssign"
               :disabled="!assignForm.writerId || assigning"
-              class="flex-1 px-4 py-2.5 bg-linear-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
+              class="flex-1 px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-xl"
             >
               <svg v-if="assigning" class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1053,7 +1762,8 @@
 
     <!-- Order Action Modal -->
     <OrderActionModal
-      v-model:visible="showActionModal"
+      :visible="showActionModal"
+      @update:visible="showActionModal = $event"
       :order="currentOrderForAction"
       :selected-action="selectedAction"
       :available-actions="availableActions"
@@ -1086,7 +1796,8 @@
   <!-- Confirmation Dialog - Only render when needed -->
     <ConfirmationDialog
       v-if="confirmShow"
-      v-model:show="confirmShow"
+      :show="confirmShow"
+      @update:show="confirmShow = $event"
       :title="unref(confirm.title)"
       :message="unref(confirm.message)"
       :details="unref(confirm.details)"
@@ -1097,11 +1808,12 @@
       @confirm="confirm.onConfirm"
       @cancel="confirm.onCancel"
     />
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch, unref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ordersAPI, usersAPI, adminOrdersAPI, writerOrderRequestsAPI, writerAssignmentAPI } from '@/api'
 import { formatWriterName } from '@/utils/formatDisplay'
 import OrderThreadsModal from '@/components/order/OrderThreadsModal.vue'
@@ -1110,8 +1822,22 @@ import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { useToast } from '@/composables/useToast'
+import UserDisplayName from '@/components/common/UserDisplayName.vue'
+import OnlineStatusIndicator from '@/components/common/OnlineStatusIndicator.vue'
+import ProgressBar from '@/components/orders/ProgressBar.vue'
+import EnhancedStatusBadge from '@/components/common/EnhancedStatusBadge.vue'
+import SafeHtml from '@/components/common/SafeHtml.vue'
+import progressAPI from '@/api/progress'
+import orderFilesAPI from '@/api/order-files'
+import EnhancedOrderStatus from '@/components/client/EnhancedOrderStatus.vue'
+import OrderMessagesTabbed from '@/components/order/OrderMessagesTabbed.vue'
+import ProgressHistory from '@/components/orders/ProgressHistory.vue'
+import draftRequestsAPI from '@/api/draft-requests'
+import { getStatusLabel, getStatusIcon } from '@/utils/orderStatus'
+import StatusCard from '@/components/common/StatusCard.vue'
 
 const route = useRoute()
+const router = useRouter()
 
 const confirm = useConfirmDialog()
 const confirmShow = ref(false)
@@ -1136,6 +1862,13 @@ const loading = ref(false)
 const orders = ref([])
 const selectedOrders = ref([])
 const viewingOrder = ref(null)
+const activeOrderTab = ref('overview')
+const orderFiles = ref([])
+const loadingOrderFiles = ref(false)
+const draftRequests = ref([])
+const loadingDraftRequests = ref(false)
+const externalLinks = ref([])
+const loadingExternalLinks = ref(false)
 const showAssignModal = ref(false)
 const showUnpaidWarningModal = ref(false)
 const showEditModal = ref(false)
@@ -1376,6 +2109,8 @@ const loadOrders = async () => {
       include_archived: filters.value.include_archived !== false,
       // Request more orders per page for admin views
       page_size: 500,
+      // Exclude special orders - they have their own page
+      is_special_order: false,
     }
     // Apply status filter - pass it even if empty string to clear previous filter
     if (filters.value.status !== undefined && filters.value.status !== null) {
@@ -1403,6 +2138,17 @@ const loadOrders = async () => {
     } else if (!filters.value.include_deleted) {
       // Exclude soft-deleted orders if not including them
       allOrders = allOrders.filter(o => !o.is_deleted)
+    }
+    
+    // Apply overdue filter if requested
+    if (route.query.overdue === 'true') {
+      const now = new Date()
+      allOrders = allOrders.filter(order => {
+        const deadline = order.client_deadline || order.deadline
+        if (!deadline) return false
+        return new Date(deadline) < now && 
+               !['completed', 'cancelled', 'archived'].includes(order.status?.toLowerCase())
+      })
     }
     
     orders.value = allOrders
@@ -1498,8 +2244,86 @@ const resetFilters = () => {
     writer: '',
     website: '',
     include_archived: true, // Admin/superadmin should see all orders by default
+    include_deleted: false,
+    only_deleted: false,
   }
   loadOrders()
+}
+
+// Filter functions for status cards
+const filterByStatus = (status) => {
+  try {
+    filters.value.status = status || ''
+    filters.value.search = '' // Clear search when filtering by status
+    // Update URL query params
+    const newQuery = { ...route.query }
+    if (status) {
+      newQuery.status = status
+    } else {
+      delete newQuery.status
+    }
+    delete newQuery.overdue // Clear overdue filter when filtering by status
+    router.push({ query: newQuery })
+    loadOrders()
+    // Scroll to orders list
+    setTimeout(() => {
+      const ordersSection = document.getElementById('orders-list-section')
+      if (ordersSection) {
+        ordersSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 100)
+  } catch (error) {
+    console.error('Error in filterByStatus:', error)
+    showErrorToast('Failed to apply filter')
+  }
+}
+
+const filterByNeedsAssignment = () => {
+  try {
+    // Filter for orders that need assignment (available status)
+    filters.value.status = 'available'
+    filters.value.search = '' // Clear search
+    // Update URL query params
+    const newQuery = { ...route.query }
+    newQuery.status = 'available'
+    delete newQuery.overdue // Clear overdue filter
+    router.push({ query: newQuery })
+    loadOrders()
+    // Scroll to orders list
+    setTimeout(() => {
+      const ordersSection = document.getElementById('orders-list-section')
+      if (ordersSection) {
+        ordersSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 100)
+  } catch (error) {
+    console.error('Error in filterByNeedsAssignment:', error)
+    showErrorToast('Failed to apply filter')
+  }
+}
+
+const filterByOverdue = () => {
+  try {
+    // Filter for overdue orders - clear status and let frontend filter by deadline
+    filters.value.status = ''
+    filters.value.search = '' // Clear search
+    // Update URL query params
+    const newQuery = { ...route.query }
+    delete newQuery.status // Clear status filter
+    newQuery.overdue = 'true'
+    router.push({ query: newQuery })
+    loadOrders()
+    // Scroll to orders list
+    setTimeout(() => {
+      const ordersSection = document.getElementById('orders-list-section')
+      if (ordersSection) {
+        ordersSection.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+    }, 100)
+  } catch (error) {
+    console.error('Error in filterByOverdue:', error)
+    showErrorToast('Failed to apply filter')
+  }
 }
 
 const toggleSelectAll = () => {
@@ -1510,15 +2334,307 @@ const toggleSelectAll = () => {
   }
 }
 
+const latestProgressPercentage = ref(0)
+const latestProgressUpdate = ref(null)
+
 const viewOrder = async (order) => {
-  try {
-    const res = await ordersAPI.get(order.id)
-    viewingOrder.value = res.data
-  } catch (error) {
-    console.error('Error loading order:', error)
-    showMessage('Failed to load order details: ' + (error.response?.data?.detail || error.message), false)
+  // Navigate to the order detail page instead of opening a modal
+  router.push({ name: 'AdminOrderDetail', params: { id: order.id } })
+}
+
+const closeOrderModal = () => {
+  viewingOrder.value = null
+  activeOrderTab.value = 'overview'
+  latestProgressPercentage.value = 0
+  latestProgressUpdate.value = null
+  orderFiles.value = []
+  draftRequests.value = []
+  externalLinks.value = []
+}
+
+const handleTabChange = (tabId) => {
+  activeOrderTab.value = tabId
+  if (tabId === 'files') {
+    loadOrderFiles()
+  } else if (tabId === 'draft-requests') {
+    loadDraftRequests()
+  } else if (tabId === 'links') {
+    loadExternalLinks()
   }
 }
+
+const orderTabs = computed(() => {
+  const baseTabs = [
+    { id: 'overview', label: 'Overview', icon: '📋' },
+    { id: 'enhanced-status', label: 'Enhanced Status', icon: '📈' },
+    { id: 'progress', label: 'Progress', icon: '📊' },
+    { id: 'messages', label: 'Messages', icon: '💬' },
+    { id: 'files', label: 'Files', icon: '📁' },
+    { id: 'draft-requests', label: 'Draft Requests', icon: '📝' },
+    { id: 'links', label: 'External Links', icon: '🔗' },
+    { id: 'actions', label: 'Actions', icon: '⚡' },
+  ]
+  // Add History tab for admin/superadmin/support
+  baseTabs.push({ id: 'history', label: 'History', icon: '🕒' })
+  return baseTabs
+})
+
+const loadOrderFiles = async () => {
+  if (!viewingOrder.value) return
+  loadingOrderFiles.value = true
+  try {
+    const res = await orderFilesAPI.list({ order: viewingOrder.value.id })
+    orderFiles.value = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
+  } catch (error) {
+    console.error('Failed to load order files:', error)
+    showMessage('Failed to load files: ' + (error.response?.data?.detail || error.message), false)
+    orderFiles.value = []
+  } finally {
+    loadingOrderFiles.value = false
+  }
+}
+
+const downloadOrderFile = async (file) => {
+  try {
+    const response = await orderFilesAPI.getSignedUrl(file.id)
+    if (response.data.signed_url) {
+      window.open(response.data.signed_url, '_blank')
+    } else {
+      showMessage('Failed to get download URL', false)
+    }
+  } catch (error) {
+    console.error('Failed to download file:', error)
+    showMessage('Failed to download file: ' + (error.response?.data?.detail || error.message), false)
+  }
+}
+
+const toggleOrderFileDownload = async (file) => {
+  try {
+    await orderFilesAPI.toggleDownload(file.id)
+    await loadOrderFiles()
+    showMessage('File download status updated', true)
+  } catch (error) {
+    console.error('Failed to toggle file download:', error)
+    showMessage('Failed to update file download status: ' + (error.response?.data?.detail || error.message), false)
+  }
+}
+
+const loadDraftRequests = async () => {
+  if (!viewingOrder.value) return
+  loadingDraftRequests.value = true
+  try {
+    const res = await draftRequestsAPI.listDraftRequests({ order: viewingOrder.value.id })
+    draftRequests.value = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
+  } catch (error) {
+    console.error('Failed to load draft requests:', error)
+    showMessage('Failed to load draft requests: ' + (error.response?.data?.detail || error.message), false)
+    draftRequests.value = []
+  } finally {
+    loadingDraftRequests.value = false
+  }
+}
+
+const loadExternalLinks = async () => {
+  if (!viewingOrder.value) return
+  loadingExternalLinks.value = true
+  try {
+    const res = await orderFilesAPI.listExternalLinks({ order: viewingOrder.value.id })
+    externalLinks.value = Array.isArray(res.data?.results) ? res.data.results : (Array.isArray(res.data) ? res.data : [])
+  } catch (error) {
+    console.error('Failed to load external links:', error)
+    showMessage('Failed to load external links: ' + (error.response?.data?.detail || error.message), false)
+    externalLinks.value = []
+  } finally {
+    loadingExternalLinks.value = false
+  }
+}
+
+const approveExternalLink = async (link) => {
+  try {
+    await orderFilesAPI.approveExternalLink(link.id)
+    await loadExternalLinks()
+    showMessage('External link approved', true)
+  } catch (error) {
+    console.error('Failed to approve external link:', error)
+    showMessage('Failed to approve link: ' + (error.response?.data?.detail || error.message), false)
+  }
+}
+
+const rejectExternalLink = async (link) => {
+  try {
+    await orderFilesAPI.rejectExternalLink(link.id)
+    await loadExternalLinks()
+    showMessage('External link rejected', true)
+  } catch (error) {
+    console.error('Failed to reject external link:', error)
+    showMessage('Failed to reject link: ' + (error.response?.data?.detail || error.message), false)
+  }
+}
+
+const loadLatestProgress = async () => {
+  if (!viewingOrder.value) return
+  
+  try {
+    const response = await progressAPI.getLatestProgress(viewingOrder.value.id)
+    if (response.data.latest_report) {
+      latestProgressPercentage.value = response.data.progress_percentage || 0
+      latestProgressUpdate.value = response.data.latest_report.timestamp
+    } else {
+      latestProgressPercentage.value = 0
+      latestProgressUpdate.value = null
+    }
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error('Failed to load latest progress:', error)
+    }
+    latestProgressPercentage.value = 0
+    latestProgressUpdate.value = null
+  }
+}
+
+const displayProgressPercentage = computed(() => {
+  if (!viewingOrder.value) return 0
+  
+  const status = viewingOrder.value.status?.toLowerCase()
+  
+  // Completed/approved/closed orders show 100%
+  if (['completed', 'approved', 'closed'].includes(status)) {
+    return 100
+  }
+  
+  // If order is in revision or returned to progress, show actual progress
+  if (['revision_requested', 'revision_in_progress', 'in_progress', 'assigned', 'draft', 'submitted', 'under_editing'].includes(status)) {
+    return latestProgressPercentage.value
+  }
+  
+  return latestProgressPercentage.value
+})
+
+const formatRelativeTime = (dateString) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
+  if (diffDays < 7) return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
+  return formatDateTime(dateString)
+}
+
+const formatStatusLabel = (status) => {
+  if (!status) return ''
+  return status.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+}
+
+const statusTimeline = computed(() => {
+  if (!viewingOrder.value) return []
+
+  const entries = []
+  const seenEntries = new Set()
+
+  const pushEntry = (key, status, timestamp, extra = {}) => {
+    if (!timestamp) return
+
+    const timestampDate = new Date(timestamp)
+    if (isNaN(timestampDate.getTime())) return
+
+    const normalizedStatus = status?.toLowerCase()?.trim()
+    if (!normalizedStatus) return
+
+    const timestampKey = Math.floor(timestampDate.getTime() / 1000)
+    const dedupeKey = `${normalizedStatus}|${timestampKey}`
+
+    if (seenEntries.has(dedupeKey)) return
+    seenEntries.add(dedupeKey)
+
+    entries.push({
+      key,
+      status: normalizedStatus,
+      label: extra.label || getStatusLabel(normalizedStatus) || formatStatusLabel(status),
+      timestamp: timestampDate.toISOString(),
+      relativeTime: formatRelativeTime(timestamp),
+      description: extra.description || null,
+      icon: extra.icon || getStatusIcon(normalizedStatus) || '•',
+    })
+  }
+
+  // Always include creation timestamp
+  if (viewingOrder.value.created_at) {
+    pushEntry('created', 'created', viewingOrder.value.created_at, {
+      description: 'Order placed',
+    })
+  }
+
+  // Process transition logs
+  const transitionLogs = Array.isArray(viewingOrder.value.transitions)
+    ? viewingOrder.value.transitions
+    : []
+  transitionLogs.forEach((log) => {
+    if (!log || !log.timestamp) return
+
+    const newStatus = (log.new_status || log.action || '').toLowerCase().trim()
+    if (!newStatus) return
+
+    const descriptionParts = []
+    if (log.action && log.action !== newStatus) {
+      descriptionParts.push(formatStatusLabel(log.action))
+    }
+    if (log.is_automatic) {
+      descriptionParts.push('Automatic transition')
+    }
+    if (log.user) {
+      const userName = log.user?.username || log.user?.full_name || log.user?.email || 'System'
+      descriptionParts.push(`by ${userName}`)
+    }
+    if (log.old_status && log.old_status.toLowerCase() !== newStatus) {
+      descriptionParts.push(`from ${formatStatusLabel(log.old_status)}`)
+    }
+
+    pushEntry(`transition-${log.id || Date.now()}`, newStatus, log.timestamp, {
+      description: descriptionParts.length > 0 ? descriptionParts.join(' • ') : null,
+    })
+  })
+
+  // Fallback to milestone timestamps
+  const milestoneTimestamps = [
+    { key: 'submitted_at', status: 'submitted', timestamp: viewingOrder.value.submitted_at, description: 'Writer submitted deliverables' },
+    { key: 'completed_at', status: 'completed', timestamp: viewingOrder.value.completed_at, description: 'Order marked as completed' },
+    { key: 'approved_at', status: 'approved', timestamp: viewingOrder.value.approved_at, description: 'Order approved' },
+    { key: 'closed_at', status: 'closed', timestamp: viewingOrder.value.closed_at, description: 'Order closed' },
+    { key: 'cancelled_at', status: 'cancelled', timestamp: viewingOrder.value.cancelled_at, description: 'Order cancelled' }
+  ]
+  
+  milestoneTimestamps.forEach(entry => {
+    if (entry.timestamp) {
+      pushEntry(entry.key, entry.status, entry.timestamp, { 
+        description: entry.description,
+      })
+    }
+  })
+
+  // Include current status if not already in timeline
+  const currentStatus = viewingOrder.value.status?.toLowerCase()?.trim()
+  if (currentStatus && currentStatus !== 'created') {
+    const hasCurrentStatus = entries.some(e => e.status === currentStatus)
+    if (!hasCurrentStatus && viewingOrder.value.updated_at) {
+      pushEntry('current_status', currentStatus, viewingOrder.value.updated_at, {
+        description: 'Current status',
+      })
+    }
+  }
+
+  // Sort by timestamp
+  return entries.sort((a, b) => {
+    const dateA = new Date(a.timestamp)
+    const dateB = new Date(b.timestamp)
+    return dateA.getTime() - dateB.getTime()
+  })
+})
 
 const openAssignModal = async (order) => {
   // Check if order is paid and available
@@ -2025,10 +3141,6 @@ const getStatusClass = (status) => {
   return classes[status] || 'bg-gray-100 text-gray-800'
 }
 
-const getStatusLabel = (status) => {
-  return status ? status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'N/A'
-}
-
 const getPriorityBadgeClass = (score) => {
   if (!score) return 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
   if (score >= 80) return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
@@ -2161,6 +3273,45 @@ onMounted(async () => {
 .modal-leave-to > div {
   transform: scale(0.95) translateY(-10px);
   opacity: 0;
+}
+
+/* Hide scrollbar for tabs on mobile/tablet */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Prevent overlapping and ensure proper spacing */
+.status-card {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Optimize for 13" laptops (1024px - 1440px) */
+@media (min-width: 1024px) and (max-width: 1440px) {
+  .status-card {
+    min-height: 180px;
+  }
+}
+
+/* Ensure cards don't overlap in grid */
+.grid > * {
+  position: relative;
+  z-index: 1;
+}
+
+.grid > *:hover {
+  z-index: 10;
+}
+
+/* Prevent text overflow in cards */
+.status-card h3 {
+  word-break: break-word;
+  hyphens: auto;
 }
 </style>
 

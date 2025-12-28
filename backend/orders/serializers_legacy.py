@@ -22,12 +22,13 @@ class OrderListSerializer(serializers.ModelSerializer):
     """
     Lightweight serializer for order list views.
     Excludes large fields like order_instructions and style_reference_files.
+    Optimized for fast list rendering in admin dashboard.
     """
-    client_username = serializers.CharField(source='client.username', read_only=True)
-    writer_username = serializers.CharField(source='assigned_writer.username', read_only=True)
-    paper_type_name = serializers.CharField(source='paper_type.name', read_only=True)
-    academic_level_name = serializers.CharField(source='academic_level.name', read_only=True)
-    subject_name = serializers.CharField(source='subject.name', read_only=True)
+    client_username = serializers.CharField(source='client.username', read_only=True, allow_null=True)
+    writer_username = serializers.CharField(source='assigned_writer.username', read_only=True, allow_null=True)
+    paper_type_name = serializers.CharField(source='paper_type.name', read_only=True, allow_null=True)
+    academic_level_name = serializers.CharField(source='academic_level.name', read_only=True, allow_null=True)
+    subject_name = serializers.CharField(source='subject.name', read_only=True, allow_null=True)
     
     class Meta:
         model = Order

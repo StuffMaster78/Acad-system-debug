@@ -8,7 +8,7 @@
     </div>
 
     <!-- Wallet Balance Card -->
-    <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
+    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
       <div class="flex items-center justify-between">
         <div>
           <p class="text-sm font-medium text-blue-700 mb-1">Available Balance</p>

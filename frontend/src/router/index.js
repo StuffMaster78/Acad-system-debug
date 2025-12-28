@@ -1427,6 +1427,56 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/orders/:id',
+          name: 'AdminOrderDetail',
+          component: () => import('@/views/admin/AdminOrderDetail.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Order Details',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/special-orders',
+          name: 'SpecialOrderManagement',
+          component: () => import('@/views/admin/SpecialOrderManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Special Orders Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/special-orders/:id',
+          name: 'AdminSpecialOrderDetail',
+          component: () => import('@/views/admin/AdminSpecialOrderDetail.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Special Order Details',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/class-orders',
+          name: 'ClassOrderManagement',
+          component: () => import('@/views/admin/ClassOrderManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Class Orders Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/class-orders/:id',
+          name: 'AdminClassOrderDetail',
+          component: () => import('@/views/admin/AdminClassOrderDetail.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Class Order Details',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/order-drafts',
           name: 'OrderDraftsManagement',
           component: () => import('@/views/admin/OrderDraftsManagement.vue'),
@@ -1457,12 +1507,32 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/class-management/:id',
+          name: 'AdminClassBundleDetail',
+          component: () => import('@/views/admin/AdminClassBundleDetail.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Class Bundle Details',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/express-classes',
           name: 'ExpressClassesManagement',
           component: () => import('@/views/admin/ExpressClassesManagement.vue'),
           meta: {
             requiresAuth: true,
             title: 'Express Classes Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/express-classes/:id',
+          name: 'AdminExpressClassDetail',
+          component: () => import('@/views/admin/AdminExpressClassDetail.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Express Class Details',
             roles: ['admin', 'superadmin'],
           },
         },

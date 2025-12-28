@@ -253,7 +253,7 @@
               </div>
               <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
                 <div
-                  class="bg-linear-to-r from-primary-500 to-primary-600 h-4 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-2"
+                  class="bg-gradient-to-r from-primary-500 to-primary-600 h-4 rounded-full transition-all duration-500 ease-out flex items-center justify-end pr-2"
                   :style="{ width: `${summary.level_progress.progress_percentage || 0}%` }"
                 >
                   <span
@@ -295,7 +295,7 @@
 
         <!-- Quick Stats Grid -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          <div class="bg-linear-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
@@ -312,7 +312,7 @@
               </div>
             </div>
           </div>
-          <div class="bg-linear-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
@@ -329,7 +329,7 @@
               </div>
             </div>
           </div>
-          <div class="bg-linear-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-2">
@@ -346,7 +346,7 @@
               </div>
             </div>
           </div>
-          <div class="bg-linear-to-br from-orange-50 to-orange-100 rounded-xl shadow-md p-6 border-l-4 border-orange-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl shadow-md p-6 border-l-4 border-orange-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-orange-700 uppercase tracking-wide mb-2">

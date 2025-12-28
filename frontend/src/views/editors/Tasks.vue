@@ -12,19 +12,19 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Active Tasks</p>
         <p class="text-3xl font-bold text-blue-900">{{ stats.active_tasks || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Pending</p>
         <p class="text-3xl font-bold text-yellow-900">{{ stats.pending_tasks || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
         <p class="text-sm font-medium text-orange-700 mb-1">In Review</p>
         <p class="text-3xl font-bold text-orange-900">{{ stats.in_review_tasks || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Completed</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.completed_tasks || 0 }}</p>
       </div>

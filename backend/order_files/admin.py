@@ -11,7 +11,24 @@ class OrderFilesConfigAdmin(admin.ModelAdmin):
 
 @admin.register(OrderFileCategory)
 class OrderFileCategoryAdmin(admin.ModelAdmin):
-    list_display = ["name", "is_final_draft", "is_extra_service"]
+    list_display = ["name", "website", "is_universal", "is_final_draft", "is_extra_service", "allowed_extensions"]
+    list_filter = ["website", "is_final_draft", "is_extra_service"]
+    search_fields = ["name"]
+    fieldsets = (
+        ("Basic Information", {
+            "fields": ("name", "website", "allowed_extensions")
+        }),
+        ("Category Type", {
+            "fields": ("is_final_draft", "is_extra_service"),
+            "description": "Mark if this is a Final Draft category or Extra Service category"
+        }),
+    )
+    
+    def is_universal(self, obj):
+        """Display if this is a universal category"""
+        return "Yes" if obj.website is None else "No"
+    is_universal.short_description = "Universal"
+    is_universal.boolean = True
 
 @admin.register(OrderFile)
 class OrderFileAdmin(admin.ModelAdmin):

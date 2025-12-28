@@ -7,7 +7,7 @@
     </div>
 
     <!-- Wallet Balance -->
-    <div class="bg-linear-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white shadow-lg">
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white shadow-lg">
       <div class="flex items-center justify-between">
         <div>
           <p class="text-primary-100 mb-1">Wallet Balance</p>

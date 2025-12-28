@@ -31,43 +31,43 @@
     <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8 gap-2 sm:gap-3">
       <router-link
         to="/admin/deletion-requests"
-        class="card p-3 bg-linear-to-br from-orange-50 to-orange-100 border border-orange-200 hover:shadow-md transition-shadow cursor-pointer"
+        class="card p-3 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 hover:shadow-md transition-shadow cursor-pointer"
       >
         <p class="text-xs font-medium text-orange-700 mb-0.5">Deletion Requests</p>
         <p class="text-xl sm:text-2xl font-bold text-orange-900">{{ pendingDeletionCount || 0 }}</p>
         <p class="text-xs text-orange-600 mt-0.5">Click to review</p>
       </router-link>
-      <div class="card p-3 bg-linear-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="card p-3 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-xs font-medium text-blue-700 mb-0.5">Total Users</p>
         <p class="text-xl sm:text-2xl font-bold text-blue-900">{{ userStats.total_users || 0 }}</p>
         <p class="text-xs text-blue-600 mt-0.5">All roles</p>
       </div>
-      <div class="card p-3 bg-linear-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="card p-3 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-xs font-medium text-green-700 mb-0.5">Active</p>
         <p class="text-xl sm:text-2xl font-bold text-green-900">{{ userStats.active_users || 0 }}</p>
         <p class="text-xs text-green-600 mt-0.5">{{ userStats.total_users ? ((userStats.active_users / userStats.total_users) * 100).toFixed(1) : 0 }}%</p>
       </div>
-      <div class="card p-3 bg-linear-to-br from-red-50 to-red-100 border border-red-200">
+      <div class="card p-3 bg-gradient-to-br from-red-50 to-red-100 border border-red-200">
         <p class="text-xs font-medium text-red-700 mb-0.5">Suspended</p>
         <p class="text-xl sm:text-2xl font-bold text-red-900">{{ userStats.suspended_users || 0 }}</p>
         <p class="text-xs text-red-600 mt-0.5">Attention</p>
       </div>
-      <div class="card p-3 bg-linear-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="card p-3 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-xs font-medium text-purple-700 mb-0.5">Clients</p>
         <p class="text-xl sm:text-2xl font-bold text-purple-900">{{ userStats.by_role?.client || 0 }}</p>
         <p class="text-xs text-purple-600 mt-0.5">Registered</p>
       </div>
-      <div class="card p-3 bg-linear-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
+      <div class="card p-3 bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200">
         <p class="text-xs font-medium text-indigo-700 mb-0.5">Writers</p>
         <p class="text-xl sm:text-2xl font-bold text-indigo-900">{{ userStats.by_role?.writer || 0 }}</p>
         <p class="text-xs text-indigo-600 mt-0.5">Active</p>
       </div>
-      <div class="card p-3 bg-linear-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="card p-3 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-xs font-medium text-yellow-700 mb-0.5">Probation</p>
         <p class="text-xl sm:text-2xl font-bold text-yellow-900">{{ userStats.on_probation || 0 }}</p>
         <p class="text-xs text-yellow-600 mt-0.5">Review</p>
       </div>
-      <div class="card p-3 bg-linear-to-br from-gray-50 to-gray-100 border border-gray-200">
+      <div class="card p-3 bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200">
         <p class="text-xs font-medium text-gray-700 mb-0.5">Blacklisted</p>
         <p class="text-xl sm:text-2xl font-bold text-gray-900">{{ userStats.blacklisted_users || 0 }}</p>
         <p class="text-xs text-gray-600 mt-0.5">Banned</p>
@@ -175,7 +175,7 @@
       
       <template #cell-user="{ item }">
         <div class="flex items-center gap-2">
-          <div class="shrink-0 h-7 w-7 rounded-full bg-linear-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold text-xs">
+          <div class="shrink-0 h-7 w-7 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold text-xs">
             {{ getUserInitials(item) }}
           </div>
           <div class="min-w-0 flex-1">
@@ -371,7 +371,7 @@
     <div v-if="showCreateModal || editingUser" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="closeModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-hidden flex flex-col">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-blue-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ editingUser ? 'Edit User' : 'Create User' }}</h2>
@@ -536,7 +536,7 @@
     <div v-if="showActionModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto" @click.self="closeActionModal">
       <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full my-auto overflow-hidden flex flex-col max-h-[90vh]">
         <!-- Header -->
-        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-linear-to-r from-orange-50 to-red-100 dark:from-gray-700 dark:to-gray-800">
+        <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-orange-50 to-red-100 dark:from-gray-700 dark:to-gray-800">
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ actionModalTitle }}</h3>
@@ -637,7 +637,7 @@
         <div class="p-6">
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-4">
-              <div class="h-16 w-16 rounded-full bg-linear-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-2xl">
+              <div class="h-16 w-16 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold text-2xl">
                 {{ getUserInitials(viewingUser) }}
               </div>
               <div>

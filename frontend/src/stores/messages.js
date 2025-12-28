@@ -56,16 +56,39 @@ const scheduleRealtimeReconnect = () => {
 }
 
 function connectRealtime() {
-  if (realtimeSource) return
+  if (realtimeSource) {
+    return // Already connected
+  }
 
   realtimeStatus.value = 'connecting'
 
   try {
     // EventSource can't send custom headers, so we pass the token as a query parameter
     const token = localStorage.getItem('access_token')
-    const url = token 
-      ? `/api/v1/order-communications/communication-threads-stream/?token=${encodeURIComponent(token)}`
-      : '/api/v1/order-communications/communication-threads-stream/'
+    
+    // Don't connect if no token (will fail with 401)
+    if (!token) {
+      realtimeStatus.value = 'disconnected'
+      return
+    }
+    
+    // Check if token is expired (basic check - JWT tokens have exp claim)
+    try {
+      const tokenParts = token.split('.')
+      if (tokenParts.length === 3) {
+        const payload = JSON.parse(atob(tokenParts[1]))
+        const exp = payload.exp * 1000 // Convert to milliseconds
+        if (Date.now() >= exp) {
+          // Token expired, don't connect
+          realtimeStatus.value = 'disconnected'
+          return
+        }
+      }
+    } catch (e) {
+      // If we can't parse token, try anyway
+    }
+    
+    const url = `/api/v1/order-communications/communication-threads-stream/?token=${encodeURIComponent(token)}`
     
     realtimeSource = new EventSource(url)
 
@@ -78,7 +101,10 @@ function connectRealtime() {
         realtimeRetryCount.value = 0
         lastRealtimeEventAt.value = new Date()
       } catch (error) {
-        console.error('Failed to parse threads_update payload', error)
+        // Silently handle parse errors - don't spam console
+        if (import.meta.env.DEV) {
+          console.error('Failed to parse threads_update payload', error)
+        }
       }
     })
 
@@ -87,16 +113,32 @@ function connectRealtime() {
       realtimeRetryCount.value = 0
     }
 
-    realtimeSource.onerror = () => {
+    realtimeSource.onerror = (error) => {
+      // Don't log 401 errors - they're expected when token expires
+      const isAuthError = realtimeSource?.readyState === EventSource.CLOSED
+      if (!isAuthError && import.meta.env.DEV) {
+        console.debug('SSE connection error (non-critical)', error)
+      }
       realtimeStatus.value = 'disconnected'
       cleanupRealtime()
-      scheduleRealtimeReconnect()
+      // Only reconnect if we have a valid token
+      const currentToken = localStorage.getItem('access_token')
+      if (currentToken) {
+        scheduleRealtimeReconnect()
+      }
     }
   } catch (error) {
-    console.error('Failed to open communications SSE stream', error)
+    // Silently handle connection errors - don't spam console
+    if (import.meta.env.DEV) {
+      console.error('Failed to open communications SSE stream', error)
+    }
     realtimeStatus.value = 'disconnected'
     cleanupRealtime()
-    scheduleRealtimeReconnect()
+    // Only reconnect if we have a valid token
+    const currentToken = localStorage.getItem('access_token')
+    if (currentToken) {
+      scheduleRealtimeReconnect()
+    }
   }
 }
 
@@ -143,11 +185,30 @@ export async function getThreads(forceRefresh = false) {
     
     return threads
   } catch (error) {
-    console.error('Failed to load threads:', error)
+    // Handle rate limiting (429) gracefully
+    if (error.response?.status === 429) {
+      // Return cached data if available, otherwise empty array
+      if (threadsCache.data.length > 0) {
+        return threadsCache.data
+      }
+      return []
+    }
+    
+    // Only log non-rate-limit errors in dev mode
+    if (import.meta.env.DEV && error.response?.status !== 429) {
+      console.error('Failed to load threads:', error)
+    }
+    
     // Return cached data on error if available
     if (threadsCache.data.length > 0) {
       return threadsCache.data
     }
+    
+    // Don't throw for expected errors (404, 403, 429)
+    if (error.response?.status === 404 || error.response?.status === 403 || error.response?.status === 429) {
+      return []
+    }
+    
     throw error
   } finally {
     threadsCache.fetching = false
