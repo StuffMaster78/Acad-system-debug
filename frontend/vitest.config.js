@@ -59,10 +59,10 @@ export default defineConfig({
         '**/App.vue'
       ],
       thresholds: {
-        lines: 0,
-        functions: 0,
-        branches: 0,
-        statements: 0
+        lines: 95,
+        functions: 95,
+        branches: 95,
+        statements: 95
       },
       reportsDirectory: './coverage'
     },

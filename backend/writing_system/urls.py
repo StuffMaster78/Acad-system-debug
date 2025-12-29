@@ -31,6 +31,7 @@ from drf_spectacular.views import (
 from django.conf import settings
 from django.conf.urls.static import static
 from core.api_root import api_root
+from core.views.health import health_check, health_ready, health_live
 
 def trigger_error(request):
     division_by_zero = 1 / 0
@@ -39,6 +40,11 @@ urlpatterns = [
     # Admin panel
     path('admin/', admin.site.urls, name='admin'),
     path('sentry-debug/', trigger_error),
+
+    # Health check endpoints (public, no authentication)
+    path('health/', health_check, name='health-check'),
+    path('health/ready/', health_ready, name='health-ready'),
+    path('health/live/', health_live, name='health-live'),
 
     # API root endpoint (public)
     path('api/v1/', api_root, name='api-root'),

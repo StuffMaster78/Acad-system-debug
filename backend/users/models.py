@@ -84,7 +84,8 @@ class User(AbstractUser, PermissionsMixin,
     def _auto_detect_country_and_timezone(self, request=None):  # noqa: D401
         try:
             # Best effort; safe if content detection fails or no request provided
-            self.auto_detect_country(request)
+            # Pass save=False to avoid recursive save when called from within save()
+            self.auto_detect_country(request, save=False)
         except Exception:
             # Never block user creation on geo-detection
             pass

@@ -172,6 +172,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'corsheaders.middleware.CorsMiddleware',  # CORS middleware (must be before CommonMiddleware)
+    'core.middleware.graceful_degradation.GracefulDegradationMiddleware',  # Graceful degradation - early in chain
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',

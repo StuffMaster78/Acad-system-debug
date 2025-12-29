@@ -13,11 +13,14 @@ help:
 	@echo "  make test           - Run all tests (backend + frontend)"
 	@echo "  make test-backend   - Run backend tests with pytest"
 	@echo "  make test-frontend  - Run frontend tests with Vitest"
-	@echo "  make test-coverage  - Run tests with coverage report"
+	@echo "  make test-coverage  - Run tests with 95% coverage requirement"
 	@echo "  make test-unit      - Run only unit tests"
 	@echo "  make test-integration - Run only integration tests"
 	@echo "  make test-setup     - Set up local Python test environment"
 	@echo "  make test-quick    - Quick test run (frontend only)"
+	@echo "  make test-coverage-backend - Backend tests with 95% coverage"
+	@echo "  make test-coverage-frontend - Frontend tests with 95% coverage"
+	@echo "  make coverage-gaps - Analyze coverage gaps"
 	@echo "  make check           - Run code quality checks (linting, formatting)"
 	@echo "  make migrations      - Create new database migrations"
 	@echo "  make migrate         - Apply pending database migrations"
@@ -84,16 +87,20 @@ test-frontend:
 	@echo "🧪 Running frontend tests..."
 	@cd frontend && npm run test:run
 
-# Run tests with coverage
+# Run tests with coverage (95% minimum required)
 test-coverage:
-	@echo "🧪 Running tests with coverage..."
-	@echo "Backend coverage..."
-	@cd backend && pytest --cov=. --cov-report=html --cov-report=term
-	@echo "Frontend coverage..."
-	@cd frontend && npm run test:coverage
-	@echo "✅ Coverage reports generated!"
-	@echo "Backend: backend/htmlcov/index.html"
-	@echo "Frontend: frontend/coverage/index.html"
+	@echo "🧪 Running tests with 95% coverage requirement..."
+	@./scripts/run_tests_with_coverage.sh
+
+# Run backend tests with 95% coverage requirement
+test-coverage-backend:
+	@echo "🧪 Running backend tests with 95% coverage..."
+	@./scripts/run_tests_with_coverage.sh --backend-only
+
+# Run frontend tests with 95% coverage requirement
+test-coverage-frontend:
+	@echo "🧪 Running frontend tests with 95% coverage..."
+	@./scripts/run_tests_with_coverage.sh --frontend-only
 
 # Run only unit tests
 test-unit:
@@ -115,6 +122,11 @@ test-setup:
 test-quick:
 	@echo "🧪 Running quick tests (frontend)..."
 	@./scripts/quick-test.sh
+
+# Analyze coverage gaps
+coverage-gaps:
+	@echo "🔍 Analyzing coverage gaps..."
+	@./scripts/check_coverage_gaps.sh
 
 # Run code quality checks
 check:

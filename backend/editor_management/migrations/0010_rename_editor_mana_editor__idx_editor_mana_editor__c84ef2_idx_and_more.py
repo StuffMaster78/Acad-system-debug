@@ -3,6 +3,112 @@
 from django.db import migrations
 
 
+def rename_indexes_if_needed(apps, schema_editor):
+    """Rename indexes only if old names exist (they may have been renamed in 0009)."""
+    db_alias = schema_editor.connection.alias
+    
+    with schema_editor.connection.cursor() as cursor:
+        # Check and rename indexes for editoractionlog
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename = 'editor_mana_editoractionlog' 
+            AND indexname = 'editor_mana_editor__idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_editor__idx RENAME TO editor_mana_editor__c84ef2_idx')
+        
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename = 'editor_mana_editoractionlog' 
+            AND indexname = 'editor_mana_action__idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_action__idx RENAME TO editor_mana_action__6efe8d_idx')
+        
+        # Check and rename indexes for editornotification
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename = 'editor_mana_editornotification' 
+            AND indexname = 'editor_mana_editor__idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_editor__idx RENAME TO editor_mana_editor__26de71_idx')
+        
+        # Check and rename indexes for editortaskassignment
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename = 'editor_mana_editortaskassignment' 
+            AND indexname = 'editor_mana_assigne_idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_assigne_idx RENAME TO editor_mana_assigne_4949c1_idx')
+        
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename = 'editor_mana_editortaskassignment' 
+            AND indexname = 'editor_mana_review__idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_review__idx RENAME TO editor_mana_review__d3ddda_idx')
+        
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE tablename = 'editor_mana_editortaskassignment' 
+            AND indexname = 'editor_mana_order_id_idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_order_id_idx RENAME TO editor_mana_order_i_ba317c_idx')
+
+
+def reverse_rename_indexes(apps, schema_editor):
+    """Reverse the index renames."""
+    db_alias = schema_editor.connection.alias
+    
+    with schema_editor.connection.cursor() as cursor:
+        # Reverse renames
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE indexname = 'editor_mana_editor__c84ef2_idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_editor__c84ef2_idx RENAME TO editor_mana_editor__idx')
+        
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE indexname = 'editor_mana_action__6efe8d_idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_action__6efe8d_idx RENAME TO editor_mana_action__idx')
+        
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE indexname = 'editor_mana_editor__26de71_idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_editor__26de71_idx RENAME TO editor_mana_editor__idx')
+        
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE indexname = 'editor_mana_assigne_4949c1_idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_assigne_4949c1_idx RENAME TO editor_mana_assigne_idx')
+        
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE indexname = 'editor_mana_review__d3ddda_idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_review__d3ddda_idx RENAME TO editor_mana_review__idx')
+        
+        cursor.execute("""
+            SELECT indexname FROM pg_indexes 
+            WHERE indexname = 'editor_mana_order_i_ba317c_idx'
+        """)
+        if cursor.fetchone():
+            cursor.execute('ALTER INDEX editor_mana_order_i_ba317c_idx RENAME TO editor_mana_order_id_idx')
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,34 +116,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameIndex(
-            model_name='editoractionlog',
-            new_name='editor_mana_editor__c84ef2_idx',
-            old_name='editor_mana_editor__idx',
-        ),
-        migrations.RenameIndex(
-            model_name='editoractionlog',
-            new_name='editor_mana_action__6efe8d_idx',
-            old_name='editor_mana_action__idx',
-        ),
-        migrations.RenameIndex(
-            model_name='editornotification',
-            new_name='editor_mana_editor__26de71_idx',
-            old_name='editor_mana_editor__idx',
-        ),
-        migrations.RenameIndex(
-            model_name='editortaskassignment',
-            new_name='editor_mana_assigne_4949c1_idx',
-            old_name='editor_mana_assigne_idx',
-        ),
-        migrations.RenameIndex(
-            model_name='editortaskassignment',
-            new_name='editor_mana_review__d3ddda_idx',
-            old_name='editor_mana_review__idx',
-        ),
-        migrations.RenameIndex(
-            model_name='editortaskassignment',
-            new_name='editor_mana_order_i_ba317c_idx',
-            old_name='editor_mana_order_id_idx',
-        ),
+        migrations.RunPython(rename_indexes_if_needed, reverse_rename_indexes),
     ]

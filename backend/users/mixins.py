@@ -420,7 +420,15 @@ class GeoDetectionMixin(models.Model):
     class Meta:
         abstract = True
 
-    def auto_detect_country(self, request):
+    def auto_detect_country(self, request, save=True):
+        """
+        Auto-detect country and timezone from IP address.
+        
+        Args:
+            request: HTTP request object (optional)
+            save: Whether to save the model after setting fields (default: True)
+                  Set to False when called from within save() to avoid recursive saves
+        """
         if self.detected_country and self.detected_timezone:
             return
         
@@ -434,10 +442,14 @@ class GeoDetectionMixin(models.Model):
             self.detected_country = data.get("country", "Unknown")
             self.detected_timezone = data.get("timezone", "Unknown")
             self.detected_ip = ip_address
-            self.save(update_fields=['detected_country', 'detected_timezone', 'detected_ip'])
+            if save and not self._state.adding:  # Only save if not in the middle of creation
+                self.save(update_fields=['detected_country', 'detected_timezone', 'detected_ip'])
         except requests.RequestException:
             self.detected_country = "Unknown"
             self.detected_timezone = "Unknown"
+            # Don't save on error when called from within save()
+            if save and not self._state.adding:
+                self.save(update_fields=['detected_country', 'detected_timezone'])
 
 
 class SessionTrackingMixin(models.Model):
