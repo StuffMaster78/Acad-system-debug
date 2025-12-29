@@ -1,76 +1,39 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
+# When to run this workflow
 on:
+  # Run on every push to main, develop, or any branch
   push:
-    branches: [ main, develop, 'feature/**', 'bugfix/**', 'hotfix/**' ]
+    branches: [main, develop, 'feature/**']
+  
+  # Run on every pull request
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+  
+  # Allow manual triggering from GitHub UI
+  workflow_dispatch:
 
+# Environment variables available to all jobs
 env:
   PYTHON_VERSION: '3.11'
   NODE_VERSION: '18'
 
 jobs:
-  # Backend Linting and Code Quality
-  backend-lint:
-    name: Backend Linting
+  # ============================================
+  # Job 1: Backend Tests
+  # ============================================
+  backend-tests:
+    name: Backend Tests (Django)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
     
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: 'pip'
-      
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 black isort mypy pylint
-          pip install -r requirements.txt
-      
-      - name: Run Black (code formatting check)
-        run: |
-          black --check --diff .
-        continue-on-error: true
-      
-      - name: Run isort (import sorting check)
-        run: |
-          isort --check-only --diff .
-        continue-on-error: true
-      
-      - name: Run Flake8 (linting)
-        run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-        continue-on-error: true
-      
-      - name: Run Pylint
-        run: |
-          pylint --disable=all --enable=errors **/*.py || true
-        continue-on-error: true
-
-  # Backend Tests
-  backend-test:
-    name: Backend Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./backend
-    
+    # Services needed for testing (PostgreSQL, Redis)
     services:
       postgres:
         image: postgres:15
         env:
-          POSTGRES_USER: test_user
-          POSTGRES_PASSWORD: test_password
-          POSTGRES_DB: test_db
+          POSTGRES_USER: ${{ secrets.TEST_DB_USER || 'ci_test_user' }}
+          POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD || 'ci_test_password' }}
+          POSTGRES_DB: ${{ secrets.TEST_DB_NAME || 'ci_test_db' }}
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -90,150 +53,238 @@ jobs:
           - 6379:6379
     
     steps:
+      # Step 1: Checkout code from repository
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up Python
+      # Step 2: Set up Python
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
       
-      - name: Install dependencies
+      # Step 3: Install system dependencies
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      
+      # Step 4: Install Python dependencies
+      - name: Install Python dependencies
+        working-directory: ./backend
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install pytest pytest-django pytest-cov pytest-xdist
       
-      - name: Run migrations
+      # Step 5: Set up environment variables for testing
+      - name: Set up test environment
+        working-directory: ./backend
         env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379/0
+          TEST_DB_USER: ${{ secrets.TEST_DB_USER || 'ci_test_user' }}
+          TEST_DB_PASSWORD: ${{ secrets.TEST_DB_PASSWORD || 'ci_test_password' }}
+          TEST_DB_NAME: ${{ secrets.TEST_DB_NAME || 'ci_test_db' }}
+          TEST_SECRET_KEY: ${{ secrets.TEST_SECRET_KEY || 'ci-test-secret-key-change-in-production' }}
+        run: |
+          cp env.template .env.test || true
+          echo "DEBUG=True" >> .env.test
+          echo "SECRET_KEY=${TEST_SECRET_KEY}" >> .env.test
+          echo "POSTGRES_DB_NAME=${TEST_DB_NAME}" >> .env.test
+          echo "POSTGRES_USER_NAME=${TEST_DB_USER}" >> .env.test
+          echo "POSTGRES_PASSWORD=${TEST_DB_PASSWORD}" >> .env.test
+          echo "DB_HOST=localhost" >> .env.test
+          echo "DB_PORT=5432" >> .env.test
+          echo "REDIS_HOST=localhost" >> .env.test
+          echo "REDIS_PORT=6379" >> .env.test
+          echo "ALLOWED_HOSTS=localhost,127.0.0.1" >> .env.test
+      
+      # Step 6: Run database migrations
+      - name: Run database migrations
+        working-directory: ./backend
+        env:
+          DJANGO_SETTINGS_MODULE: writing_system.settings
         run: |
           python manage.py migrate --noinput
       
-      - name: Run tests
+      # Step 7: Run backend tests with coverage
+      - name: Run backend tests
+        working-directory: ./backend
         env:
-          DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
-          REDIS_URL: redis://localhost:6379/0
-          SECRET_KEY: test-secret-key-for-ci
-          DEBUG: 'False'
+          DJANGO_SETTINGS_MODULE: writing_system.settings
+          DATABASE_URL: postgresql://${{ secrets.TEST_DB_USER || 'ci_test_user' }}:${{ secrets.TEST_DB_PASSWORD || 'ci_test_password' }}@localhost:5432/${{ secrets.TEST_DB_NAME || 'ci_test_db' }}
         run: |
-          pytest --cov=. --cov-report=xml --cov-report=html --cov-report=term
-        continue-on-error: true
+          pytest --cov=. --cov-report=xml --cov-report=html --cov-report=term-missing \
+                 --cov-fail-under=95 --junitxml=junit.xml -v
       
-      - name: Upload coverage reports
+      # Step 8: Upload test coverage reports
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           file: ./backend/coverage.xml
           flags: backend
           name: backend-coverage
-        continue-on-error: true
+      
+      # Step 9: Upload test results
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-test-results
+          path: |
+            backend/junit.xml
+            backend/htmlcov/
+          retention-days: 7
 
-  # Frontend Linting and Code Quality
-  frontend-lint:
-    name: Frontend Linting
+  # ============================================
+  # Job 2: Frontend Tests
+  # ============================================
+  frontend-tests:
+    name: Frontend Tests (Vue.js)
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./frontend
     
     steps:
+      # Step 1: Checkout code
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set up Node.js
+      # Step 2: Set up Node.js
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
       
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run ESLint
-        run: npm run lint
-        continue-on-error: true
-      
-      - name: Check code formatting
-        run: npm run format:check || true
-        continue-on-error: true
-
-  # Frontend Tests
-  frontend-test:
-    name: Frontend Tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
+      # Step 3: Install frontend dependencies
+      - name: Install frontend dependencies
         working-directory: ./frontend
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json
-      
-      - name: Install dependencies
         run: npm ci
       
-      - name: Run tests
-        run: npm run test:run
-        continue-on-error: true
+      # Step 4: Run frontend tests with coverage
+      - name: Run frontend tests
+        working-directory: ./frontend
+        run: |
+          npm run test:run -- --coverage --coverage.threshold.lines=95 \
+            --coverage.threshold.functions=95 --coverage.threshold.branches=95 \
+            --coverage.threshold.statements=95 --reporter=junit --outputFile=junit.xml
       
-      - name: Generate coverage report
-        run: npm run test:coverage
-        continue-on-error: true
-      
-      - name: Upload coverage reports
+      # Step 5: Upload coverage reports
+      - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
           file: ./frontend/coverage/coverage-final.json
           flags: frontend
           name: frontend-coverage
-        continue-on-error: true
+      
+      # Step 6: Upload test results
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-test-results
+          path: |
+            frontend/junit.xml
+            frontend/coverage/
+          retention-days: 7
 
-  # Build Verification
-  build-verification:
-    name: Build Verification
+  # ============================================
+  # Job 3: Code Quality Checks
+  # ============================================
+  code-quality:
+    name: Code Quality Checks
     runs-on: ubuntu-latest
-    needs: [backend-lint, frontend-lint]
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
       
+      # Backend code quality
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
       
+      - name: Install linting tools
+        working-directory: ./backend
+        run: |
+          pip install flake8 black isort
+      
+      - name: Check code formatting (Black)
+        working-directory: ./backend
+        run: |
+          black --check . || echo "⚠️ Code formatting issues found. Run 'black .' to fix."
+        continue-on-error: true
+      
+      - name: Check import sorting (isort)
+        working-directory: ./backend
+        run: |
+          isort --check-only . || echo "⚠️ Import sorting issues found. Run 'isort .' to fix."
+        continue-on-error: true
+      
+      - name: Lint with flake8
+        working-directory: ./backend
+        run: |
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        continue-on-error: true
+      
+      # Frontend code quality
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: ./frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
       
-      - name: Verify backend can start
-        working-directory: ./backend
-        run: |
-          pip install -r requirements.txt
-          python manage.py check --deploy
-        continue-on-error: true
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
       
-      - name: Build frontend
+      - name: Lint frontend code
         working-directory: ./frontend
         run: |
-          npm ci
-          npm run build
+          npm run lint || echo "⚠️ Linting issues found"
         continue-on-error: true
 
-  # Security Scanning
+  # ============================================
+  # Job 4: Build Docker Images
+  # ============================================
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests]  # Only build if tests pass
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: false
+          tags: writing-system-backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Build frontend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: false
+          tags: writing-system-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ============================================
+  # Job 5: Security Scanning (Optional but Recommended)
+  # ============================================
   security-scan:
     name: Security Scanning
     runs-on: ubuntu-latest
@@ -242,36 +293,103 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
+      # Scan Python dependencies
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-results.sarif'
+          python-version: ${{ env.PYTHON_VERSION }}
+      
+      - name: Install safety
+        run: pip install safety
+      
+      - name: Scan Python dependencies
+        working-directory: ./backend
+        run: |
+          safety check --file requirements.txt || echo "⚠️ Security vulnerabilities found"
         continue-on-error: true
       
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
+      # Scan Node.js dependencies
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          sarif_file: 'trivy-results.sarif'
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Install frontend dependencies
+        working-directory: ./frontend
+        run: npm ci
+      
+      - name: Run npm audit
+        working-directory: ./frontend
+        run: |
+          npm audit --audit-level=moderate || echo "⚠️ Security vulnerabilities found"
         continue-on-error: true
 
-  # CI Summary
-  ci-summary:
-    name: CI Summary
+  # ============================================
+  # Job 6: Deploy to Staging (Only on main branch)
+  # ============================================
+  deploy-staging:
+    name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: [backend-lint, backend-test, frontend-lint, frontend-test, build-verification]
-    if: always()
+    needs: [backend-tests, frontend-tests, build-docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: staging
+      # url: Set in GitHub environment settings
     
     steps:
-      - name: CI Status
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to staging
         run: |
-          echo "## CI Pipeline Status" >> $GITHUB_STEP_SUMMARY
-          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
-          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Backend Lint | ${{ needs.backend-lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Backend Tests | ${{ needs.backend-test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend Lint | ${{ needs.frontend-lint.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Frontend Tests | ${{ needs.frontend-test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Build Verification | ${{ needs.build-verification.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "🚀 Deploying to staging environment..."
+          # Configure deployment in GitHub Secrets:
+          # - STAGING_HOST: Your staging server hostname
+          # - STAGING_USER: SSH user for staging
+          # - STAGING_SSH_KEY: SSH private key for staging
+          # - STAGING_DEPLOY_PATH: Application path on server
+          #
+          # Example deployment (uncomment and configure):
+          # ssh -i ${{ secrets.STAGING_SSH_KEY }} \
+          #     ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} \
+          #     "cd ${{ secrets.STAGING_DEPLOY_PATH }} && \
+          #      git pull && \
+          #      docker-compose -f docker-compose.prod.yml up -d --build"
+        env:
+          # All sensitive data must come from GitHub Secrets
+          DEPLOY_ENV: staging
+
+  # ============================================
+  # Job 7: Deploy to Production (Manual approval)
+  # ============================================
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [backend-tests, frontend-tests, build-docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch'
+    environment:
+      name: production
+      # url: Set in GitHub environment settings
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Deploy to production
+        run: |
+          echo "🚀 Deploying to production environment..."
+          # Configure deployment in GitHub Secrets:
+          # - PRODUCTION_HOST: Your production server hostname
+          # - PRODUCTION_USER: SSH user for production
+          # - PRODUCTION_SSH_KEY: SSH private key for production
+          # - PRODUCTION_DEPLOY_PATH: Application path on server
+          #
+          # Example deployment (uncomment and configure):
+          # ssh -i ${{ secrets.PRODUCTION_SSH_KEY }} \
+          #     ${{ secrets.PRODUCTION_USER }}@${{ secrets.PRODUCTION_HOST }} \
+          #     "cd ${{ secrets.PRODUCTION_DEPLOY_PATH }} && \
+          #      git pull && \
+          #      docker-compose -f docker-compose.prod.yml up -d --build"
+        env:
+          # All sensitive data must come from GitHub Secrets
+          DEPLOY_ENV: production

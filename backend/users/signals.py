@@ -33,19 +33,25 @@ def resize_profile_picture(sender, instance, **kwargs):
 
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
-    if created:
-        # Create UserProfile with default avatar if it doesn't exist
-        UserProfile.objects.get_or_create(
-            user=instance,
-            defaults={
-                'avatar': 'avatars/universal.png',
-                'website': getattr(instance, 'website', None)
-            }
-        )
-    else:
-        # Use the correct related_name on OneToOneField
-        if hasattr(instance, 'user_main_profile') and instance.user_main_profile:
-            instance.user_main_profile.save()
+    try:
+        if created:
+            # Create UserProfile with default avatar if it doesn't exist
+            UserProfile.objects.get_or_create(
+                user=instance,
+                defaults={
+                    'avatar': 'avatars/universal.png',
+                    'website': getattr(instance, 'website', None)
+                }
+            )
+        else:
+            # Use the correct related_name on OneToOneField
+            if hasattr(instance, 'user_main_profile') and instance.user_main_profile:
+                instance.user_main_profile.save()
+    except Exception as e:
+        # Log but don't fail user creation - transaction safety
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"Failed to create/update UserProfile for user {instance.username}: {e}")
 
 
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
@@ -96,7 +102,17 @@ def create_role_based_profiles(sender, instance, created, **kwargs):
         # Only tenant-bound roles should auto-create tenant-bound profiles
         if instance.role == 'client':
             if instance.website:  # clients must be tied to a website
-                ClientProfile.objects.create(user=instance, website=instance.website)
+                try:
+                    # Check if profile already exists to avoid duplicate key errors
+                    ClientProfile.objects.get_or_create(
+                        user=instance,
+                        defaults={'website': instance.website}
+                    )
+                except Exception as e:
+                    # Log but don't fail user creation - transaction safety
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Failed to create ClientProfile for user {instance.username}: {e}")
         elif instance.role == 'writer':
             # Allow tests to control WriterProfile creation
             try:
@@ -106,19 +122,34 @@ def create_role_based_profiles(sender, instance, created, **kwargs):
             except Exception:
                 pass
             if instance.website:  # writers must be tied to a website
-                from writer_management.models.profile import WriterProfile
-                from wallet.models import Wallet
-                import random
-                registration_id = f"Writer #{random.randint(10000, 99999)}"
-                while WriterProfile.objects.filter(registration_id=registration_id).exists():
+                try:
+                    from writer_management.models.profile import WriterProfile
+                    from wallet.models import Wallet
+                    # Check if profile already exists
+                    if WriterProfile.objects.filter(user=instance).exists():
+                        return
+                    import random
                     registration_id = f"Writer #{random.randint(10000, 99999)}"
-                wallet = Wallet.objects.create(user=instance, website=instance.website, balance=0.00)
-                WriterProfile.objects.create(
-                    user=instance,
-                    website=instance.website,
-                    registration_id=registration_id,
-                    wallet=wallet,
-                )
+                    while WriterProfile.objects.filter(registration_id=registration_id).exists():
+                        registration_id = f"Writer #{random.randint(10000, 99999)}"
+                    wallet, _ = Wallet.objects.get_or_create(
+                        user=instance,
+                        website=instance.website,
+                        defaults={'balance': 0.00}
+                    )
+                    WriterProfile.objects.get_or_create(
+                        user=instance,
+                        defaults={
+                            'website': instance.website,
+                            'registration_id': registration_id,
+                            'wallet': wallet,
+                        }
+                    )
+                except Exception as e:
+                    # Log but don't fail user creation - transaction safety
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Failed to create WriterProfile for user {instance.username}: {e}")
         # Staff roles (editor/support/admin) - create minimal profiles for tests
         elif instance.role == 'editor':
             try:

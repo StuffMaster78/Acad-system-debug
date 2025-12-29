@@ -26,6 +26,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+      # Health check returns 200 even in degraded mode
+      # Only returns 503 if completely down
 
   db:
     image: postgres:15

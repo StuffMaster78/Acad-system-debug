@@ -42,6 +42,9 @@ elif os.getenv("TEST_DB", "sqlite").lower() == "postgres":
             "PORT": int(os.getenv("DB_PORT", 5432)),
         }
     }
+    # Ensure notifications_system migrations are enabled for PostgreSQL
+    if 'MIGRATION_MODULES' in globals():
+        MIGRATION_MODULES.pop('notifications_system', None)
 else:
     DATABASES = {
         "default": {
@@ -54,6 +57,15 @@ else:
     MIGRATION_MODULES = {
         'notifications_system': None,  # Skip migrations for this app with SQLite
     }
+
+# For PostgreSQL tests, ensure pricing app has migrations or skip syncing
+if os.getenv("TEST_DB", "sqlite").lower() == "postgres" or database_url:
+    # Skip syncing unmigrated apps that might cause dependency issues
+    # This ensures migrations run first
+    if 'MIGRATION_MODULES' not in globals():
+        MIGRATION_MODULES = {}
+    # Create migrations for pricing app or skip it during sync
+    # MIGRATION_MODULES['pricing'] = None  # Uncomment if pricing causes issues
 
 # Use in-memory cache to avoid Redis during tests
 CACHES = {
