@@ -1,0 +1,64 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #7c3aed; margin: 0 0 20px 0;">✨ New Feature Available!</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"We're excited to announce a new feature!"|linebreaks }}
+  </p>
+
+  {% if feature_name %}
+  <div style="background-color: #faf5ff; border: 2px solid #c084fc; padding: 25px; border-radius: 8px; margin: 30px 0; text-align: center;">
+    <p style="margin: 0 0 10px 0; color: #6b21a8; font-size: 14px;">New Feature</p>
+    <p style="margin: 0; color: #6b21a8; font-size: 32px; font-weight: bold;">{{ feature_name }}</p>
+  </div>
+  {% endif %}
+
+  {% if feature_description %}
+  <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 10px;">What's New:</h3>
+    <p style="margin: 0; color: #374151; line-height: 1.6; white-space: pre-wrap;">{{ feature_description|linebreaks }}</p>
+  </div>
+  {% endif %}
+
+  {% if feature_benefits %}
+  <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #166534; margin-top: 0; margin-bottom: 10px;">Benefits:</h3>
+    <ul style="color: #166534; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      {% for benefit in feature_benefits %}
+      <li>{{ benefit }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if feature_image_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <img src="{{ feature_image_url }}" alt="{{ feature_name }}" style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #7c3aed; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Try It Now" }}
+    </a>
+  </div>
+  {% endif %}
+
+  {% if availability_note %}
+  <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+      <strong>📌 Note:</strong> {{ availability_note }}
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

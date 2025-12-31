@@ -1,0 +1,54 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #f59e0b; margin: 0 0 20px 0;">Two-Factor Authentication Disabled</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Two-factor authentication has been disabled on your account."|linebreaks }}
+  </p>
+
+  {% if disabled_at %}
+  <div style="background-color: #fffbeb; border: 2px solid #fcd34d; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #92400e;"><strong>Disabled on:</strong></td>
+        <td style="padding: 5px 0; color: #92400e;">{{ disabled_at }}</td>
+      </tr>
+      {% if disabled_from %}
+      <tr>
+        <td style="padding: 5px 0; color: #92400e;"><strong>Disabled from:</strong></td>
+        <td style="padding: 5px 0; color: #92400e;">{{ disabled_from }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 30px 0;">
+    <p style="margin: 0; color: #991b1b; font-size: 14px; line-height: 1.6;">
+      <strong>⚠️ Security Warning:</strong> Your account is now less secure. We recommend re-enabling two-factor authentication for better protection.
+    </p>
+  </div>
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Re-enable 2FA" }}
+    </a>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 30px 0;">
+    <p style="margin: 0; color: #991b1b; font-size: 14px; line-height: 1.6;">
+      <strong>🔒 Security Notice:</strong> If you didn't disable two-factor authentication, please secure your account immediately and contact support.
+    </p>
+  </div>
+</div>
+{% endblock %}
+

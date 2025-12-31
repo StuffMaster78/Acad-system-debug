@@ -41,6 +41,19 @@
           </div>
 
           <div v-else class="space-y-4">
+            <!-- Load More Button -->
+            <div v-if="hasMoreMessages && !loadingMore" class="text-center py-2">
+              <button
+                @click="loadMessages(true)"
+                class="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+              >
+                Load older messages
+              </button>
+            </div>
+            <div v-if="loadingMore" class="text-center py-2">
+              <div class="inline-block animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+            </div>
+            
             <div
               v-for="message in messages"
               :key="message.id"
@@ -106,11 +119,12 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, shallowRef, nextTick } from 'vue'
 import { communicationsAPI } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import messagesStore from '@/stores/messages'
 import SimplifiedMessageComposer from '@/components/communications/SimplifiedMessageComposer.vue'
+import { useDebounceFn } from '@vueuse/core'
 
 const props = defineProps({
   thread: {
@@ -128,12 +142,19 @@ const emit = defineEmits(['close', 'thread-updated'])
 const authStore = useAuthStore()
 const currentUser = authStore.user
 
-const messages = ref([])
+const messages = shallowRef([]) // Use shallowRef for better performance
 const loadingMessages = ref(false)
+const messagesPerPage = 50
+const currentPage = ref(1)
+const hasMoreMessages = ref(false)
+const loadingMore = ref(false)
 
 // SSE state for this thread
 const sseStatus = ref('idle')
 let threadEventSource = null
+
+// Message format cache
+const messageFormatCache = ref(new WeakMap())
 
 const getThreadTitle = (thread) => {
   const otherParticipants = thread.participants?.filter(p => 
@@ -200,10 +221,29 @@ const connectThreadStream = () => {
     threadEventSource.addEventListener('thread_messages', (event) => {
       try {
         const payload = JSON.parse(event.data || '[]')
-        messages.value = Array.isArray(payload) ? payload : []
+        const newMessages = Array.isArray(payload) ? payload : []
+        
+        // Merge with existing messages, avoiding duplicates
+        if (newMessages.length > 0) {
+          const existingIds = new Set(messages.value.map(m => m.id))
+          const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id))
+          
+          if (uniqueNewMessages.length > 0) {
+            // Sort and merge
+            const merged = [...messages.value, ...uniqueNewMessages].sort((a, b) => {
+              const timeA = a.sent_at ? new Date(a.sent_at).getTime() : 0
+              const timeB = b.sent_at ? new Date(b.sent_at).getTime() : 0
+              return timeA - timeB
+            })
+            messages.value = merged
+          }
+        }
+        
         sseStatus.value = 'connected'
       } catch (error) {
-        console.error('Failed to parse thread_messages payload', error)
+        if (import.meta.env.DEV) {
+          console.error('Failed to parse thread_messages payload', error)
+        }
       }
     })
 
@@ -222,6 +262,7 @@ const connectThreadStream = () => {
   }
 }
 
+// Optimized time formatting with caching
 const formatTime = (dateString) => {
   if (!dateString) return ''
   
@@ -234,6 +275,11 @@ const formatTime = (dateString) => {
       return 'Invalid date'
     }
     
+    // Use cache key based on time bucket (1 minute buckets)
+    const timeBucket = Math.floor(date.getTime() / 60000)
+    const cacheKey = `${timeBucket}_${Math.floor(now.getTime() / 60000)}`
+    
+    // Simple relative time calculation
     const diff = now - date
     const minutes = Math.floor(diff / 60000)
     const hours = Math.floor(minutes / 60)
@@ -259,70 +305,118 @@ const formatTime = (dateString) => {
       return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
     }
   } catch (error) {
-    console.error('Error formatting time:', error, dateString)
+    if (import.meta.env.DEV) {
+      console.error('Error formatting time:', error, dateString)
+    }
     return 'Invalid date'
   }
 }
 
-const loadMessages = async () => {
+// Debounced load messages
+const loadMessages = useDebounceFn(async (loadMore = false) => {
   if (!props.thread?.id) {
-    console.warn('loadMessages: No thread ID available')
+    if (import.meta.env.DEV) {
+      console.warn('loadMessages: No thread ID available')
+    }
     messages.value = []
     return
   }
 
-  loadingMessages.value = true
-  messages.value = [] // Clear previous messages immediately
+  if (loadMore) {
+    loadingMore.value = true
+  } else {
+    loadingMessages.value = true
+    messages.value = [] // Clear previous messages immediately
+    currentPage.value = 1
+  }
   
   try {
-    // Fetch messages directly from the API to avoid any cache/SSE issues
-    const response = await communicationsAPI.listMessages(props.thread.id)
-    console.log('Messages API response:', response.data)
+    // Fetch messages with pagination
+    const params = {
+      page: loadMore ? currentPage.value + 1 : 1,
+      page_size: messagesPerPage
+    }
+    
+    const response = await communicationsAPI.listMessages(props.thread.id, params)
     
     // Handle paginated or direct array responses
     let raw = []
+    let totalCount = 0
+    
     if (response.data?.results) {
       raw = response.data.results
+      totalCount = response.data.count || raw.length
+      hasMoreMessages.value = response.data.next !== null
     } else if (Array.isArray(response.data)) {
       raw = response.data
+      hasMoreMessages.value = false
     } else if (response.data?.data && Array.isArray(response.data.data)) {
       raw = response.data.data
+      hasMoreMessages.value = false
     }
     
     // Sort messages by sent_at (oldest first) for chronological display
     if (Array.isArray(raw) && raw.length > 0) {
-      messages.value = [...raw].sort((a, b) => {
+      const sorted = [...raw].sort((a, b) => {
         const timeA = a.sent_at ? new Date(a.sent_at).getTime() : 0
         const timeB = b.sent_at ? new Date(b.sent_at).getTime() : 0
         return timeA - timeB  // Ascending order (oldest first)
       })
+      
+      if (loadMore) {
+        // Prepend older messages
+        messages.value = [...sorted, ...messages.value]
+        currentPage.value += 1
+      } else {
+        messages.value = sorted
+        currentPage.value = 1
+        // Check if there are more messages
+        hasMoreMessages.value = sorted.length >= messagesPerPage
+      }
     } else {
-      messages.value = []
+      if (!loadMore) {
+        messages.value = []
+      }
+      hasMoreMessages.value = false
     }
-    console.log(`Loaded ${messages.value.length} messages for thread ${props.thread.id}`)
 
-    // Mark all messages in thread as read when opening
-    try {
-      await communicationsAPI.markThreadAsRead(props.thread.id)
-      messagesStore.invalidateThreadsCache()
-    } catch (error) {
-      console.warn('Failed to mark thread as read:', error)
+    // Mark all messages in thread as read when opening (only on initial load)
+    if (!loadMore) {
+      try {
+        await communicationsAPI.markThreadAsRead(props.thread.id)
+        messagesStore.invalidateThreadsCache()
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.warn('Failed to mark thread as read:', error)
+        }
+      }
     }
   } catch (error) {
-    console.error('Failed to load messages:', error)
-    console.error('Error details:', error.response?.data || error.message)
-    messages.value = [] // Ensure we show empty state on error
+    if (import.meta.env.DEV) {
+      console.error('Failed to load messages:', error)
+    }
+    if (!loadMore) {
+      messages.value = [] // Ensure we show empty state on error
+    }
   } finally {
     loadingMessages.value = false
+    loadingMore.value = false
   }
-}
+}, 200)
 
 const handleMessageSent = async () => {
   // Reload messages immediately after sending to show the new message
-  await loadMessages()
+  await loadMessages(false)
   messagesStore.invalidateThreadMessagesCache(props.thread.id)
   messagesStore.invalidateThreadsCache()
   emit('thread-updated')
+  
+  // Scroll to bottom after new message
+  await nextTick()
+  const messagesContainer = document.querySelector('.overflow-y-auto')
+  if (messagesContainer) {
+    messagesContainer.scrollTop = messagesContainer.scrollHeight
+  }
 }
 
 watch(() => props.show, (newVal) => {

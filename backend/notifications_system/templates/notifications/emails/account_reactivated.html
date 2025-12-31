@@ -1,0 +1,58 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #10b981; margin: 0 0 20px 0;">Account Reactivated</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Great news! Your account has been reactivated and you now have full access again."|linebreaks }}
+  </p>
+
+  {% if reactivated_at %}
+  <div style="background-color: #f0fdf4; border: 2px solid #86efac; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Reactivated on:</strong></td>
+        <td style="padding: 5px 0; color: #166534; font-weight: bold;">{{ reactivated_at }}</td>
+      </tr>
+      {% if reactivated_by %}
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Reactivated by:</strong></td>
+        <td style="padding: 5px 0; color: #166534;">{{ reactivated_by }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #166534; margin-top: 0; margin-bottom: 10px;">✅ You can now:</h3>
+    <ul style="color: #166534; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      {% if restored_features %}
+        {% for feature in restored_features %}
+        <li>{{ feature }}</li>
+        {% endfor %}
+      {% else %}
+      <li>Access all your account features</li>
+      <li>Place new orders</li>
+      <li>Manage your profile</li>
+      <li>Use all platform services</li>
+      {% endif %}
+    </ul>
+  </div>
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Access Your Account" }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

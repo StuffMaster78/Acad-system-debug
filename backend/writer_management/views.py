@@ -636,7 +636,9 @@ class WriterOrderTakeViewSet(viewsets.ModelViewSet):
     """
     Writers can take orders directly if admin allows.
     """
-    queryset = WriterOrderTake.objects.all()
+    queryset = WriterOrderTake.objects.all().select_related(
+        'writer__user', 'order', 'website', 'order__client', 'order__assigned_writer'
+    )
     serializer_class = WriterOrderTakeSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -1081,7 +1083,9 @@ class WriterEarningsHistoryViewSet(viewsets.ModelViewSet):
     serializer_class = WriterEarningsHistorySerializer
 
 class WriterEarningsReviewRequestViewSet(viewsets.ModelViewSet):
-    queryset = WriterEarningsReviewRequest.objects.all()
+    queryset = WriterEarningsReviewRequest.objects.all().select_related(
+        'writer__user', 'order', 'website', 'reviewed_by', 'order__client'
+    )
     serializer_class = WriterEarningsReviewRequestSerializer
 
 class WriterRewardCriteriaViewSet(viewsets.ModelViewSet):
@@ -1135,7 +1139,9 @@ class WriterSuspensionViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(suspensions, many=True)
         return Response(serializer.data)
 class WriterActionLogViewSet(viewsets.ModelViewSet):
-    queryset = WriterActionLog.objects.all()
+    queryset = WriterActionLog.objects.all().select_related(
+        'writer__user', 'website'
+    )
     serializer_class = WriterActionLogSerializer
 
 
@@ -1149,16 +1155,22 @@ class WriterSupportTicketViewSet(viewsets.ModelViewSet):
     serializer_class = WriterSupportTicketSerializer
 
 class WriterDeadlineExtensionRequestViewSet(viewsets.ModelViewSet):
-    queryset = WriterDeadlineExtensionRequest.objects.all()
+    queryset = WriterDeadlineExtensionRequest.objects.all().select_related(
+        'writer__user', 'order', 'website', 'reviewed_by', 'order__client'
+    )
     serializer_class = WriterDeadlineExtensionRequestSerializer
 
 
 class WriterOrderHoldRequestViewSet(viewsets.ModelViewSet):
-    queryset = WriterOrderHoldRequest.objects.all()
+    queryset = WriterOrderHoldRequest.objects.all().select_related(
+        'writer__user', 'order', 'website', 'reviewed_by', 'order__client'
+    )
     serializer_class = WriterOrderHoldRequestSerializer
 
 class WriterOrderReopenRequestViewSet(viewsets.ModelViewSet):
-    queryset = WriterOrderReopenRequest.objects.all()
+    queryset = WriterOrderReopenRequest.objects.all().select_related(
+        'writer__user', 'order', 'website', 'reviewed_by', 'order__client'
+    )
     serializer_class = WriterOrderReopenRequestSerializer
 
 

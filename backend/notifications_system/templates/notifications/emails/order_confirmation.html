@@ -1,0 +1,60 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #059669; margin: 0 0 20px 0;">Order Confirmed!</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Thank you for your order! We've received your order and it's being processed."|linebreaks }}
+  </p>
+
+  {% if order_number %}
+  <div style="background-color: #f0fdf4; border: 2px solid #86efac; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <p style="margin: 0; color: #166534;">
+      <strong>Order Number:</strong> {{ order_number }}
+    </p>
+    {% if order_total %}
+    <p style="margin: 10px 0 0 0; color: #166534;">
+      <strong>Total:</strong> {{ order_total }}
+    </p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if order_items %}
+  <div style="margin: 30px 0;">
+    <h3 style="color: #1f2937; margin-bottom: 15px;">Order Details:</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background-color: #f9fafb;">
+          <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e5e7eb;">Item</th>
+          <th style="padding: 12px; text-align: right; border-bottom: 2px solid #e5e7eb;">Price</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in order_items %}
+        <tr>
+          <td style="padding: 12px; border-bottom: 1px solid #e5e7eb;">{{ item.name }}</td>
+          <td style="padding: 12px; text-align: right; border-bottom: 1px solid #e5e7eb;">{{ item.price }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #059669; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"View Order" }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

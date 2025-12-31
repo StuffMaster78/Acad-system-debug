@@ -1,0 +1,73 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #2563eb; margin: 0 0 20px 0;">{{ newsletter_title|default:"Newsletter" }}</h1>
+  {% if newsletter_date %}
+  <p style="color: #6b7280; font-size: 14px; margin: 0;">{{ newsletter_date }}</p>
+  {% endif %}
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Here's what's new this week!"|linebreaks }}
+  </p>
+
+  {% if featured_articles %}
+  <div style="margin: 30px 0;">
+    <h2 style="color: #1f2937; margin-bottom: 20px; font-size: 20px;">Featured Articles</h2>
+    {% for article in featured_articles %}
+    <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #3b82f6;">
+      <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 10px; font-size: 18px;">
+        {% if article.url %}
+        <a href="{{ article.url }}" style="color: #2563eb; text-decoration: none;">{{ article.title }}</a>
+        {% else %}
+        {{ article.title }}
+        {% endif %}
+      </h3>
+      {% if article.summary %}
+      <p style="color: #4b5563; margin: 0; line-height: 1.6; font-size: 14px;">{{ article.summary|linebreaks }}</p>
+      {% endif %}
+      {% if article.url %}
+      <a href="{{ article.url }}" style="display: inline-block; margin-top: 10px; color: #2563eb; text-decoration: none; font-weight: 600; font-size: 14px;">
+        Read more →
+      </a>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if announcements %}
+  <div style="background-color: #fffbeb; border: 2px solid #fcd34d; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <h3 style="color: #92400e; margin-top: 0; margin-bottom: 15px;">📢 Announcements</h3>
+    {% for announcement in announcements %}
+    <div style="margin-bottom: 15px;">
+      <h4 style="color: #92400e; margin: 0 0 5px 0; font-size: 16px;">{{ announcement.title }}</h4>
+      <p style="color: #78350f; margin: 0; line-height: 1.6; font-size: 14px;">{{ announcement.content|linebreaks }}</p>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Read More" }}
+    </a>
+  </div>
+  {% endif %}
+
+  <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; text-align: center;">
+    <p style="margin: 0; color: #6b7280; font-size: 12px;">
+      You're receiving this because you're subscribed to our newsletter.<br>
+      <a href="{{ unsubscribe_url }}" style="color: #2563eb; text-decoration: none;">Unsubscribe</a> | 
+      <a href="{{ preferences_url }}" style="color: #2563eb; text-decoration: none;">Manage Preferences</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+

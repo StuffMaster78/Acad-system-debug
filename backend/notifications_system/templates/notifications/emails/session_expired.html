@@ -1,0 +1,56 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #f59e0b; margin: 0 0 20px 0;">Session Expired</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Your session has expired for security reasons. Please sign in again to continue."|linebreaks }}
+  </p>
+
+  {% if session_details %}
+  <div style="background-color: #fffbeb; border: 2px solid #fcd34d; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      {% if expired_at %}
+      <tr>
+        <td style="padding: 5px 0; color: #92400e;"><strong>Expired at:</strong></td>
+        <td style="padding: 5px 0; color: #92400e;">{{ expired_at }}</td>
+      </tr>
+      {% endif %}
+      {% if session_duration %}
+      <tr>
+        <td style="padding: 5px 0; color: #92400e;"><strong>Session Duration:</strong></td>
+        <td style="padding: 5px 0; color: #92400e;">{{ session_duration }}</td>
+      </tr>
+      {% endif %}
+      {% if expiry_reason %}
+      <tr>
+        <td style="padding: 5px 0; color: #92400e;"><strong>Reason:</strong></td>
+        <td style="padding: 5px 0; color: #92400e;">{{ expiry_reason }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #1e40af; font-size: 14px; line-height: 1.6;">
+      <strong>💡 Tip:</strong> For security, sessions automatically expire after a period of inactivity. This helps protect your account.
+    </p>
+  </div>
+
+  {% if login_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ login_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Sign In Again" }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

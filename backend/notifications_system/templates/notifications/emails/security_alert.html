@@ -1,0 +1,86 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #dc2626; margin: 0 0 20px 0;">🔒 Security Alert</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"We detected a security event on your account."|linebreaks }}
+  </p>
+
+  {% if alert_type %}
+  <div style="background-color: #fef2f2; border: 2px solid #fca5a5; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #991b1b;"><strong>Alert Type:</strong></td>
+        <td style="padding: 5px 0; color: #991b1b; font-weight: bold;">{{ alert_type }}</td>
+      </tr>
+      {% if detected_at %}
+      <tr>
+        <td style="padding: 5px 0; color: #991b1b;"><strong>Detected:</strong></td>
+        <td style="padding: 5px 0; color: #991b1b;">{{ detected_at }}</td>
+      </tr>
+      {% endif %}
+      {% if location %}
+      <tr>
+        <td style="padding: 5px 0; color: #991b1b;"><strong>Location:</strong></td>
+        <td style="padding: 5px 0; color: #991b1b;">{{ location }}</td>
+      </tr>
+      {% endif %}
+      {% if device_info %}
+      <tr>
+        <td style="padding: 5px 0; color: #991b1b;"><strong>Device:</strong></td>
+        <td style="padding: 5px 0; color: #991b1b;">{{ device_info }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if alert_details %}
+  <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 10px;">Details:</h3>
+    <p style="margin: 0; color: #374151; line-height: 1.6; white-space: pre-wrap;">{{ alert_details|linebreaks }}</p>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 20px; margin: 30px 0;">
+    <h3 style="color: #991b1b; margin-top: 0; margin-bottom: 15px;">⚠️ Recommended Actions:</h3>
+    <ul style="color: #7f1d1d; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      {% if recommended_actions %}
+        {% for action in recommended_actions %}
+        <li>{{ action }}</li>
+        {% endfor %}
+      {% else %}
+      <li>Change your password immediately</li>
+      <li>Review your recent account activity</li>
+      <li>Enable two-factor authentication if not already enabled</li>
+      <li>Contact support if you didn't perform this action</li>
+      {% endif %}
+    </ul>
+  </div>
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #dc2626; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Secure My Account" }}
+    </a>
+  </div>
+  {% endif %}
+
+  {% if support_contact %}
+  <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <p style="margin: 0; color: #374151; font-size: 14px; line-height: 1.6;">
+      If you didn't perform this action, please contact our security team immediately:<br>
+      <a href="mailto:{{ support_contact }}" style="color: #2563eb; font-weight: 600;">{{ support_contact }}</a>
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

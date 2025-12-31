@@ -159,9 +159,10 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, shallowRef } from 'vue'
 import { communicationsAPI, usersAPI } from '@/api'
 import { useAuthStore } from '@/stores/auth'
+import { useDebounceFn } from '@vueuse/core'
 
 const props = defineProps({
   show: {
@@ -185,8 +186,8 @@ const currentUserRoleLabel = computed(() => {
 })
 
 const selectedRecipientType = ref(props.defaultRecipientType || null)
-const selectedRecipient = ref(null)
-const availableRecipients = ref([])
+const selectedRecipient = shallowRef(null) // Use shallowRef for better performance
+const availableRecipients = shallowRef([]) // Use shallowRef for large arrays
 const recipientSearch = ref('')
 const message = ref('')
 const sending = ref(false)
@@ -195,7 +196,7 @@ const loadingRecipients = ref(false)
 
 // Cache recipients by role to avoid repeated API calls
 const recipientsCache = ref(new Map())
-const cacheExpiry = 5 * 60 * 1000 // 5 minutes
+const cacheExpiry = 10 * 60 * 1000 // Increased to 10 minutes for better caching
 
 const recipientTabs = computed(() => {
   const role = currentUser?.role
@@ -232,22 +233,27 @@ const activeRecipientTab = computed(() => {
   return recipientTabs.value.find(t => t.id === selectedRecipientType.value) || null
 })
 
+// Optimized filtered recipients with memoization
 const filteredRecipients = computed(() => {
-  if (!recipientSearch.value) return availableRecipients.value
+  if (!recipientSearch.value.trim()) return availableRecipients.value
   
-  const search = recipientSearch.value.toLowerCase()
-  return availableRecipients.value.filter(recipient => {
+  const search = recipientSearch.value.toLowerCase().trim()
+  // Limit results to first 50 for performance
+  const filtered = availableRecipients.value.filter(recipient => {
     const name = (recipient.username || '').toLowerCase()
     const email = (recipient.email || '').toLowerCase()
     return name.includes(search) || email.includes(search)
   })
+  
+  return filtered.slice(0, 50) // Limit to 50 results for performance
 })
 
 const canSend = computed(() => {
   return selectedRecipient.value && message.value.trim().length > 0
 })
 
-const loadRecipients = async () => {
+// Debounced load recipients to prevent rapid API calls
+const loadRecipients = useDebounceFn(async () => {
   if (!selectedRecipientType.value) return
 
   // Map tab IDs to roles
@@ -281,7 +287,8 @@ const loadRecipients = async () => {
     // Fetch users with role filter if API supports it, otherwise filter on frontend
     const response = await usersAPI.list({
       is_active: true,
-      role: roles[0] // Try to filter by first role if API supports it
+      role: roles[0], // Try to filter by first role if API supports it
+      page_size: 100 // Limit to 100 for performance
     })
     
     const allUsers = response.data.results || response.data || []
@@ -303,12 +310,14 @@ const loadRecipients = async () => {
       selectedRecipient.value = filtered[0]
     }
   } catch (err) {
-    console.error('Failed to load recipients:', err)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load recipients:', err)
+    }
     error.value = 'Failed to load recipients. Please try again.'
   } finally {
     loadingRecipients.value = false
   }
-}
+}, 300)
 
 const selectRecipient = (recipient) => {
   selectedRecipient.value = recipient

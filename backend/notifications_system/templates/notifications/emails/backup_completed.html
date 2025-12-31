@@ -1,0 +1,81 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #10b981; margin: 0 0 20px 0;">Backup Completed Successfully</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Your data backup has been completed successfully."|linebreaks }}
+  </p>
+
+  {% if backup_details %}
+  <div style="background-color: #f0fdf4; border: 2px solid #86efac; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      {% if backup_name %}
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Backup Name:</strong></td>
+        <td style="padding: 5px 0; color: #166534; font-weight: bold;">{{ backup_name }}</td>
+      </tr>
+      {% endif %}
+      {% if backup_type %}
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Type:</strong></td>
+        <td style="padding: 5px 0; color: #166534;">{{ backup_type }}</td>
+      </tr>
+      {% endif %}
+      {% if file_size %}
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Size:</strong></td>
+        <td style="padding: 5px 0; color: #166534;">{{ file_size }}</td>
+      </tr>
+      {% endif %}
+      {% if completed_at %}
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Completed:</strong></td>
+        <td style="padding: 5px 0; color: #166534;">{{ completed_at }}</td>
+      </tr>
+      {% endif %}
+      {% if items_backed_up %}
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Items Backed Up:</strong></td>
+        <td style="padding: 5px 0; color: #166534;">{{ items_backed_up }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if backup_contents %}
+  <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 10px;">Backup Contents:</h3>
+    <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      {% for item in backup_contents %}
+      <li>{{ item }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if download_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ download_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Download Backup" }}
+    </a>
+  </div>
+  {% endif %}
+
+  {% if storage_location %}
+  <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #1e40af; font-size: 14px; line-height: 1.6;">
+      <strong>💾 Storage:</strong> Your backup is stored at {{ storage_location }} and will be retained for {{ retention_period|default:"30 days" }}.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

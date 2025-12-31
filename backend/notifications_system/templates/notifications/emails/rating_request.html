@@ -1,0 +1,69 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #2563eb; margin: 0 0 20px 0;">How Was Your Experience?</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"We'd love to hear about your experience!"|linebreaks }}
+  </p>
+
+  {% if order_number or service_name %}
+  <div style="background-color: #eff6ff; border: 2px solid #93c5fd; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      {% if order_number %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Order:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ order_number }}</td>
+      </tr>
+      {% endif %}
+      {% if service_name %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Service:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ service_name }}</td>
+      </tr>
+      {% endif %}
+      {% if completed_date %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Completed:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ completed_date }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.6;">
+      <strong>💬 Your feedback helps us improve!</strong> It only takes a minute to share your thoughts.
+    </p>
+  </div>
+
+  {% if rating_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ rating_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Leave a Rating" }}
+    </a>
+  </div>
+  {% endif %}
+
+  {% if quick_rating_url %}
+  <div style="text-align: center; margin: 20px 0;">
+    <p style="margin: 0 0 15px 0; color: #6b7280; font-size: 14px;">Or rate quickly:</p>
+    <div style="display: inline-flex; gap: 10px;">
+      {% for rating in quick_ratings %}
+      <a href="{{ rating.url }}" style="display: inline-block; padding: 10px 15px; background-color: #f3f4f6; color: #374151; text-decoration: none; border-radius: 6px; font-weight: 600; border: 2px solid #e5e7eb;">
+        {{ rating.label }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

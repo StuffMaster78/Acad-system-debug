@@ -8,7 +8,7 @@
 
     <!-- Profile Form -->
     <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-6">
-      <form @submit.prevent="saveProfile">
+      <div>
         <!-- Personal Information -->
         <div>
           <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Personal Information</h2>
@@ -38,7 +38,7 @@
           </div>
         </div>
 
-        <!-- Contact Information -->
+        <!-- Contact Information (Read-only) -->
         <div>
           <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Contact Information</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -46,35 +46,28 @@
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Phone Number
               </label>
-              <input
-                v-model="profile.phone"
-                type="tel"
-                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              />
+              <p class="text-gray-900 dark:text-white">{{ profile.phone || '—' }}</p>
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                 Timezone
               </label>
-              <select
-                v-model="profile.timezone"
-                class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-              >
-                <option v-for="tz in timezones" :key="tz" :value="tz">{{ tz }}</option>
-              </select>
+              <p class="text-gray-900 dark:text-white">{{ profile.timezone || '—' }}</p>
             </div>
           </div>
         </div>
 
-        <!-- Save Button -->
+        <!-- Edit Link -->
         <div class="flex justify-end pt-4 border-t border-gray-200 dark:border-gray-700">
-          <button
-            type="submit"
-            :disabled="saving"
-            class="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+          <router-link
+            to="/account/settings"
+            class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
           >
-            {{ saving ? 'Saving...' : 'Save Changes' }}
-          </button>
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit Profile in Settings
+          </router-link>
         </div>
       </form>
     </div>
@@ -93,6 +86,7 @@
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Member Since</p>
         <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ formatDate(authStore.user?.date_joined) }}</p>
       </div>
+      </div>
     </div>
   </div>
 </template>
@@ -105,7 +99,6 @@ import clientDashboardAPI from '@/api/client-dashboard'
 
 const authStore = useAuthStore()
 
-const saving = ref(false)
 const profile = ref({
   full_name: '',
   email: '',
@@ -113,17 +106,6 @@ const profile = ref({
   timezone: 'UTC'
 })
 const stats = ref({})
-const timezones = ref([
-  'UTC',
-  'America/New_York',
-  'America/Chicago',
-  'America/Denver',
-  'America/Los_Angeles',
-  'Europe/London',
-  'Europe/Paris',
-  'Asia/Tokyo',
-  'Australia/Sydney'
-])
 
 const fetchProfile = async () => {
   try {
@@ -132,7 +114,7 @@ const fetchProfile = async () => {
     profile.value = {
       full_name: user.full_name || '',
       email: user.email || '',
-      phone: user.phone || '',
+      phone: user.phone || user.phone_number || '',
       timezone: user.timezone || 'UTC'
     }
   } catch (err) {
@@ -146,20 +128,6 @@ const fetchStats = async () => {
     stats.value = response.data || {}
   } catch (err) {
     console.error('Failed to fetch stats:', err)
-  }
-}
-
-const saveProfile = async () => {
-  saving.value = true
-  try {
-    await usersAPI.updateProfile(profile.value)
-    await authStore.getProfile() // Refresh auth store
-    alert('Profile updated successfully!')
-  } catch (err) {
-    console.error('Failed to update profile:', err)
-    alert(err.response?.data?.detail || 'Failed to update profile')
-  } finally {
-    saving.value = false
   }
 }
 

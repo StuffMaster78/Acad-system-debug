@@ -1,0 +1,76 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #dc2626; margin: 0 0 20px 0;">Dispute Opened</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"A dispute has been opened regarding your order."|linebreaks }}
+  </p>
+
+  {% if order_number %}
+  <div style="background-color: #fef2f2; border: 2px solid #fca5a5; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #991b1b;"><strong>Order Number:</strong></td>
+        <td style="padding: 5px 0; color: #991b1b;">{{ order_number }}</td>
+      </tr>
+      {% if dispute_id %}
+      <tr>
+        <td style="padding: 5px 0; color: #991b1b;"><strong>Dispute ID:</strong></td>
+        <td style="padding: 5px 0; color: #991b1b;">{{ dispute_id }}</td>
+      </tr>
+      {% endif %}
+      {% if opened_by %}
+      <tr>
+        <td style="padding: 5px 0; color: #991b1b;"><strong>Opened by:</strong></td>
+        <td style="padding: 5px 0; color: #991b1b;">{{ opened_by }}</td>
+      </tr>
+      {% endif %}
+      {% if dispute_reason %}
+      <tr>
+        <td style="padding: 5px 0; color: #991b1b;"><strong>Reason:</strong></td>
+        <td style="padding: 5px 0; color: #991b1b;">{{ dispute_reason }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if dispute_description %}
+  <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc2626;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 10px;">Dispute Details:</h3>
+    <div style="color: #374151; line-height: 1.6; white-space: pre-wrap;">{{ dispute_description|linebreaks }}</div>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 30px 0;">
+    <p style="margin: 0; color: #991b1b; font-size: 14px; line-height: 1.6;">
+      <strong>⚠️ Important:</strong> Please review the dispute and respond promptly. Our support team will review all information and work to resolve this matter fairly.
+    </p>
+  </div>
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #dc2626; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"View Dispute" }}
+    </a>
+  </div>
+  {% endif %}
+
+  {% if support_contact %}
+  <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <p style="margin: 0; color: #374151; font-size: 14px; line-height: 1.6;">
+      Need help? Contact our support team:<br>
+      <a href="mailto:{{ support_contact }}" style="color: #2563eb;">{{ support_contact }}</a>
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

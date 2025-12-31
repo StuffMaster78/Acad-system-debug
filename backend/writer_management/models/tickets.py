@@ -56,6 +56,15 @@ class WriterSupportTicket(models.Model):
     def __str__(self):
         return f"Ticket {self.id} - {self.writer.user.username} ({self.status})"
 
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['writer', 'status', 'created_at']),
+            models.Index(fields=['website', 'status']),
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['writer', 'status']),
+        ]
+
     def save(self, *args, **kwargs):
         if not getattr(self, 'website_id', None) and getattr(self, 'writer', None):
             try:

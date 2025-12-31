@@ -145,8 +145,14 @@ const loadSessions = async () => {
     // Assuming there's an endpoint for fetching sessions
     // This would need to be implemented in the backend
     const response = await authAPI.getSessions()
+    // Handle different response structures
+    let sessionsData = response.data
+    if (sessionsData && !Array.isArray(sessionsData)) {
+      // If it's an object, try to get the array from common properties
+      sessionsData = sessionsData.results || sessionsData.sessions || sessionsData.data || []
+    }
     // Filter out any null or invalid sessions
-    sessions.value = (response.data || []).filter(session => session && session.id)
+    sessions.value = (Array.isArray(sessionsData) ? sessionsData : []).filter(session => session && session.id)
   } catch (error) {
     console.error('Failed to load sessions:', error)
     // For now, use empty array if API is not available

@@ -1,0 +1,79 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #10b981; margin: 0 0 20px 0;">Refund Processed</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Your refund has been successfully processed."|linebreaks }}
+  </p>
+
+  {% if refund_amount %}
+  <div style="background-color: #f0fdf4; border: 2px solid #86efac; padding: 25px; border-radius: 8px; margin: 30px 0; text-align: center;">
+    <p style="margin: 0 0 10px 0; color: #166534; font-size: 14px;">Refund Amount</p>
+    <p style="margin: 0; color: #166534; font-size: 36px; font-weight: bold;">{{ refund_amount }}</p>
+  </div>
+  {% endif %}
+
+  {% if refund_details %}
+  <div style="background-color: #eff6ff; border: 2px solid #93c5fd; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      {% if transaction_id %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Transaction ID:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ transaction_id }}</td>
+      </tr>
+      {% endif %}
+      {% if refund_method %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Refund Method:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ refund_method }}</td>
+      </tr>
+      {% endif %}
+      {% if processed_date %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Processed on:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ processed_date }}</td>
+      </tr>
+      {% endif %}
+      {% if order_number %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Related Order:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ order_number }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if refund_reason %}
+  <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <p style="margin: 0; color: #374151; font-size: 14px; line-height: 1.6;">
+      <strong>Reason:</strong> {{ refund_reason }}
+    </p>
+  </div>
+  {% endif %}
+
+  {% if expected_arrival %}
+  <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+      <strong>⏱️ Processing Time:</strong> The refund should appear in your account within {{ expected_arrival }}.
+    </p>
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"View Transaction" }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

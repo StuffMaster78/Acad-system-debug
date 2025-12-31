@@ -36,8 +36,24 @@
           </nav>
         </div>
 
-        <!-- New Message Button -->
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+        <!-- Search and New Message -->
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700 space-y-3">
+          <!-- Search Input -->
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="Search conversations..."
+              class="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+          
+          <!-- New Message Button -->
           <button
             @click="openNewMessageModal"
             class="w-full px-4 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2"
@@ -74,8 +90,9 @@
         </div>
 
         <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+          <!-- Paginated Threads -->
           <div
-            v-for="thread in filteredThreads"
+            v-for="thread in paginatedThreads"
             :key="thread.id"
             @click="openThread(thread)"
             class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
@@ -113,6 +130,32 @@
               </div>
             </div>
           </div>
+          
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" class="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div class="text-sm text-gray-600 dark:text-gray-400">
+              Showing {{ (currentPage - 1) * threadsPerPage + 1 }} - {{ Math.min(currentPage * threadsPerPage, filteredThreads.length) }} of {{ filteredThreads.length }}
+            </div>
+            <div class="flex items-center gap-2">
+              <button
+                @click="currentPage = Math.max(1, currentPage - 1)"
+                :disabled="currentPage === 1"
+                class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Previous
+              </button>
+              <span class="text-sm text-gray-600 dark:text-gray-400">
+                Page {{ currentPage }} of {{ totalPages }}
+              </span>
+              <button
+                @click="currentPage = Math.min(totalPages, currentPage + 1)"
+                :disabled="currentPage === totalPages"
+                class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -138,12 +181,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue'
 import { communicationsAPI } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import messagesStore from '@/stores/messages'
 import NewMessageModal from '@/components/messages/NewMessageModal.vue'
 import ThreadViewModal from '@/components/messages/ThreadViewModal.vue'
+import { useDebounceFn } from '@vueuse/core'
 
 const authStore = useAuthStore()
 const currentUser = authStore.user
@@ -194,11 +238,14 @@ const recipientTabs = computed(() => {
 })
 
 const activeTab = ref(recipientTabs.value[0]?.id || 'admin')
-const threads = ref([])
+const threads = shallowRef([]) // Use shallowRef for better performance with large arrays
 const loadingThreads = ref(false)
 const showNewMessageModal = ref(false)
-const selectedThread = ref(null)
+const selectedThread = shallowRef(null) // Use shallowRef to prevent deep reactivity
 const selectedThreadId = ref(null)
+const searchQuery = ref('')
+const threadsPerPage = 20
+const currentPage = ref(1)
 
 // Icon components (simple SVG components)
 const AdminIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>' }
@@ -207,11 +254,12 @@ const WriterIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="
 const EditorIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>' }
 const SupportIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>' }
 
+// Memoized filtered threads with search and pagination
 const filteredThreads = computed(() => {
   const activeTabData = recipientTabs.value.find(t => t.id === activeTab.value)
   if (!activeTabData) return []
 
-  return threads.value.filter(thread => {
+  let filtered = threads.value.filter(thread => {
     // Get other participants (excluding current user)
     const otherParticipants = thread.participants?.filter(p => {
       const participantId = typeof p === 'object' ? p.id : p
@@ -221,92 +269,214 @@ const filteredThreads = computed(() => {
     if (otherParticipants.length === 0) return false
 
     // Check if any participant matches the active tab's roles
-    return otherParticipants.some(participant => {
+    const matchesTab = otherParticipants.some(participant => {
       let participantRole = null
-      
       if (typeof participant === 'object') {
         participantRole = participant.role || null
       }
-      
       return participantRole && activeTabData.roles.includes(participantRole)
     })
-  }).sort((a, b) => {
-    // Sort by last message time or updated time
+
+    if (!matchesTab) return false
+
+    // Apply search filter if query exists
+    if (searchQuery.value.trim()) {
+      const query = searchQuery.value.toLowerCase()
+      const threadTitle = getThreadTitle(thread).toLowerCase()
+      const lastMessage = thread.last_message?.message?.toLowerCase() || ''
+      const participantNames = otherParticipants
+        .map(p => typeof p === 'object' ? (p.username || p.email || '').toLowerCase() : '')
+        .join(' ')
+      
+      if (!threadTitle.includes(query) && 
+          !lastMessage.includes(query) && 
+          !participantNames.includes(query)) {
+        return false
+      }
+    }
+
+    return true
+  })
+
+  // Sort by last message time or updated time
+  filtered = filtered.sort((a, b) => {
     const aTime = a.last_message?.sent_at || a.updated_at || a.created_at
     const bTime = b.last_message?.sent_at || b.updated_at || b.created_at
     return new Date(bTime) - new Date(aTime)
   })
+
+  return filtered
 })
 
-const loadThreads = async (forceRefresh = false) => {
+// Paginated threads for display
+const paginatedThreads = computed(() => {
+  const start = (currentPage.value - 1) * threadsPerPage
+  const end = start + threadsPerPage
+  return filteredThreads.value.slice(start, end)
+})
+
+// Total pages
+const totalPages = computed(() => {
+  return Math.ceil(filteredThreads.value.length / threadsPerPage)
+})
+
+// Debounced load threads to prevent rapid API calls
+const loadThreads = useDebounceFn(async (forceRefresh = false) => {
+  if (loadingThreads.value && !forceRefresh) return // Prevent concurrent loads
+  
   loadingThreads.value = true
   try {
     // Use shared cache store
-    threads.value = await messagesStore.getThreads(forceRefresh)
+    const fetchedThreads = await messagesStore.getThreads(forceRefresh)
+    // Use shallowRef assignment for better performance
+    threads.value = fetchedThreads
+    // Reset to first page when threads change
+    currentPage.value = 1
   } catch (error) {
-    console.error('Failed to load threads:', error)
+    if (import.meta.env.DEV) {
+      console.error('Failed to load threads:', error)
+    }
   } finally {
     loadingThreads.value = false
   }
-}
+}, 300)
+
+// Memoized unread counts per tab
+const unreadCountsCache = ref(new Map())
 
 const getUnreadCountForTab = (tabId) => {
-  const activeTabData = recipientTabs.value.find(t => t.id === tabId)
-  if (!activeTabData) return 0
+  // Return cached value if available
+  if (unreadCountsCache.value.has(tabId)) {
+    return unreadCountsCache.value.get(tabId)
+  }
 
-  return filteredThreads.value.reduce((sum, thread) => {
-    return sum + (thread.unread_count || 0)
-  }, 0)
+  const activeTabData = recipientTabs.value.find(t => t.id === tabId)
+  if (!activeTabData) {
+    unreadCountsCache.value.set(tabId, 0)
+    return 0
+  }
+
+  const count = threads.value
+    .filter(thread => {
+      const otherParticipants = thread.participants?.filter(p => {
+        const participantId = typeof p === 'object' ? p.id : p
+        return participantId !== currentUser?.id
+      }) || []
+      
+      return otherParticipants.some(participant => {
+        const participantRole = typeof participant === 'object' ? participant.role : null
+        return participantRole && activeTabData.roles.includes(participantRole)
+      })
+    })
+    .reduce((sum, thread) => sum + (thread.unread_count || 0), 0)
+
+  unreadCountsCache.value.set(tabId, count)
+  return count
 }
+
+// Memoized thread title computation
+const threadTitleCache = ref(new WeakMap())
 
 const getThreadTitle = (thread) => {
+  // Use WeakMap for memory-efficient caching
+  if (threadTitleCache.value.has(thread)) {
+    return threadTitleCache.value.get(thread)
+  }
+
   const otherParticipants = thread.participants?.filter(p => 
     (typeof p === 'object' ? p.id : p) !== currentUser?.id
   ) || []
 
-  if (otherParticipants.length === 0) return 'Conversation'
+  let title = 'Conversation'
   if (otherParticipants.length === 1) {
     const p = otherParticipants[0]
-    return typeof p === 'object' ? (p.username || p.email) : 'User'
+    title = typeof p === 'object' ? (p.username || p.email) : 'User'
+  } else if (otherParticipants.length > 1) {
+    title = `${otherParticipants.length} participants`
   }
-  return `${otherParticipants.length} participants`
+
+  threadTitleCache.value.set(thread, title)
+  return title
 }
 
+// Memoized thread subtitle computation
+const threadSubtitleCache = ref(new WeakMap())
+
 const getThreadSubtitle = (thread) => {
+  if (threadSubtitleCache.value.has(thread)) {
+    return threadSubtitleCache.value.get(thread)
+  }
+
   const otherParticipants = thread.participants?.filter(p => 
     (typeof p === 'object' ? p.id : p) !== currentUser?.id
   ) || []
 
-  if (otherParticipants.length === 0) return 'No other participants'
-  
-  const roles = otherParticipants.map(p => {
-    const role = typeof p === 'object' ? p.role : null
-    return role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
-  })
-  
-  return roles.join(', ')
+  let subtitle = 'No other participants'
+  if (otherParticipants.length > 0) {
+    const roles = otherParticipants.map(p => {
+      const role = typeof p === 'object' ? p.role : null
+      return role ? role.charAt(0).toUpperCase() + role.slice(1) : 'User'
+    })
+    subtitle = roles.join(', ')
+  }
+
+  threadSubtitleCache.value.set(thread, subtitle)
+  return subtitle
 }
 
+// Memoized thread initials computation
+const threadInitialsCache = ref(new WeakMap())
+
 const getThreadInitials = (thread) => {
+  if (threadInitialsCache.value.has(thread)) {
+    return threadInitialsCache.value.get(thread)
+  }
+
   const title = getThreadTitle(thread)
   const words = title.split(' ')
+  let initials = title.substring(0, 2).toUpperCase()
   if (words.length >= 2) {
-    return (words[0][0] + words[1][0]).toUpperCase()
+    initials = (words[0][0] + words[1][0]).toUpperCase()
   }
-  return title.substring(0, 2).toUpperCase()
+
+  threadInitialsCache.value.set(thread, initials)
+  return initials
 }
+
+// Optimized time formatting with caching
+const timeFormatCache = ref(new Map())
+const CACHE_DURATION = 60000 // 1 minute
 
 const formatTime = (dateString) => {
   if (!dateString) return ''
+  
+  // Check cache
+  const cacheKey = `${dateString}_${Math.floor(Date.now() / CACHE_DURATION)}`
+  if (timeFormatCache.value.has(cacheKey)) {
+    return timeFormatCache.value.get(cacheKey)
+  }
+
   const date = new Date(dateString)
   const now = new Date()
   const diff = now - date
   const minutes = Math.floor(diff / 60000)
   
-  if (minutes < 1) return 'Just now'
-  if (minutes < 60) return `${minutes}m ago`
-  if (minutes < 1440) return `${Math.floor(minutes / 60)}h ago`
-  return date.toLocaleDateString()
+  let formatted = ''
+  if (minutes < 1) formatted = 'Just now'
+  else if (minutes < 60) formatted = `${minutes}m ago`
+  else if (minutes < 1440) formatted = `${Math.floor(minutes / 60)}h ago`
+  else formatted = date.toLocaleDateString()
+
+  // Cache the result
+  timeFormatCache.value.set(cacheKey, formatted)
+  
+  // Clean old cache entries periodically
+  if (timeFormatCache.value.size > 100) {
+    const keysToDelete = Array.from(timeFormatCache.value.keys()).slice(0, 50)
+    keysToDelete.forEach(key => timeFormatCache.value.delete(key))
+  }
+
+  return formatted
 }
 
 const openNewMessageModal = () => {
@@ -325,12 +495,19 @@ const closeThread = () => {
 
 const handleMessageSent = () => {
   showNewMessageModal.value = false
+  // Clear caches
+  unreadCountsCache.value.clear()
+  threadTitleCache.value = new WeakMap()
+  threadSubtitleCache.value = new WeakMap()
+  threadInitialsCache.value = new WeakMap()
   // Invalidate cache and reload
   messagesStore.invalidateThreadsCache()
   loadThreads(true) // Force refresh
 }
 
 const handleThreadUpdated = () => {
+  // Clear caches
+  unreadCountsCache.value.clear()
   // Invalidate cache and reload
   messagesStore.invalidateThreadsCache()
   loadThreads(true) // Force refresh
@@ -339,19 +516,38 @@ const handleThreadUpdated = () => {
 watch(activeTab, () => {
   selectedThread.value = null
   selectedThreadId.value = null
+  currentPage.value = 1 // Reset to first page
+  // Clear unread counts cache when tab changes
+  unreadCountsCache.value.clear()
+})
+
+// Debounced search
+const debouncedSearch = useDebounceFn(() => {
+  currentPage.value = 1 // Reset to first page on search
+}, 300)
+
+watch(searchQuery, () => {
+  debouncedSearch()
 })
 
 onMounted(async () => {
   await loadThreads()
   // Use shared refresh system to prevent multiple intervals
+  // Increased interval to 45 seconds to reduce API calls
   messagesStore.startSharedRefresh(() => {
     loadThreads()
-  }, 30000)
+  }, 45000)
 })
 
 onUnmounted(() => {
   // Cleanup is handled by shared store
   messagesStore.stopAllRefreshes()
+  // Clear all caches
+  unreadCountsCache.value.clear()
+  timeFormatCache.value.clear()
+  threadTitleCache.value = new WeakMap()
+  threadSubtitleCache.value = new WeakMap()
+  threadInitialsCache.value = new WeakMap()
 })
 </script>
 

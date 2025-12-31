@@ -5,10 +5,11 @@
     :style="avatarStyle"
   >
     <img 
-      v-if="imageUrl && !imageError" 
-      :src="imageUrl" 
+      v-if="safeImageUrl && !imageError" 
+      :src="safeImageUrl" 
       :alt="alt || initials"
-      @error="imageError = true"
+      @error="handleImageError"
+      @load="handleImageLoad"
       class="avatar-image"
     />
     <div v-else class="avatar-initials">
@@ -67,6 +68,45 @@ const props = defineProps({
 
 const imageError = ref(false)
 
+// Validate image URL format - be more lenient to allow various URL formats
+const isValidImageUrl = computed(() => {
+  if (!props.imageUrl) return false
+  
+  // Check if it's a data URL (base64 image)
+  if (props.imageUrl.startsWith('data:image/')) {
+    return true
+  }
+  
+  // Check if it has image file extension
+  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg', '.bmp', '.ico']
+  const lowerUrl = props.imageUrl.toLowerCase()
+  const hasImageExtension = imageExtensions.some(ext => lowerUrl.includes(ext))
+  
+  // Also check for common image path patterns (be more lenient)
+  const imagePathPatterns = [
+    '/media/profile_pictures/', '/media/avatars/', '/static/images/', 
+    '/media/', '/static/', 'profile_picture', 'avatar', 'image', 'photo', 'picture'
+  ]
+  const hasImagePath = imagePathPatterns.some(pattern => lowerUrl.includes(pattern))
+  
+  // If it's an HTTP/HTTPS URL without extension but has image path, allow it
+  const isHttpUrl = props.imageUrl.startsWith('http://') || props.imageUrl.startsWith('https://') || props.imageUrl.startsWith('//')
+  
+  return hasImageExtension || hasImagePath || (isHttpUrl && hasImagePath)
+})
+
+// Computed image URL - only use if valid, otherwise show initials
+const safeImageUrl = computed(() => {
+  if (!props.imageUrl) return null
+  
+  // If URL doesn't look like an image, don't try to load it
+  if (!isValidImageUrl.value) {
+    return null
+  }
+  
+  return props.imageUrl
+})
+
 const sizeClass = computed(() => {
   const sizes = {
     xs: 'avatar-xs',
@@ -105,6 +145,28 @@ const initials = computed(() => {
   
   return text || '?'
 })
+
+const handleImageError = (event) => {
+  // Silently handle image errors - just show initials instead
+  imageError.value = true
+  // Don't log to console to avoid noise
+}
+
+const handleImageLoad = (event) => {
+  // Verify the loaded content is actually an image
+  const img = event.target
+  try {
+    if (img.naturalWidth === 0 || img.naturalHeight === 0) {
+      // Image has no dimensions, likely not a valid image
+      imageError.value = true
+    } else {
+      imageError.value = false
+    }
+  } catch (e) {
+    // If we can't check dimensions, assume it's valid
+    imageError.value = false
+  }
+}
 
 const avatarStyle = computed(() => {
   if (props.bgColor) {

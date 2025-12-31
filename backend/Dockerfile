@@ -19,6 +19,7 @@ RUN apt-get update -y --no-install-recommends \
        wget \
        gcc \
        libc6-dev \
+       libffi-dev \
        postgresql-client \
        pkg-config \
     && apt-get clean \

@@ -1,0 +1,55 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #6b7280; margin: 0 0 20px 0;">Account Deletion Request</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"We've received your request to delete your account."|linebreaks }}
+  </p>
+
+  {% if deletion_date %}
+  <div style="background-color: #f9fafb; border: 2px solid #d1d5db; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <p style="margin: 0; color: #374151; font-size: 14px; line-height: 1.6;">
+      <strong>Account will be deleted on:</strong><br>
+      <span style="font-size: 18px; font-weight: bold; color: #1f2937;">{{ deletion_date }}</span>
+    </p>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 20px; margin: 30px 0;">
+    <h3 style="color: #991b1b; margin-top: 0; margin-bottom: 15px;">⚠️ Important Information</h3>
+    <ul style="color: #7f1d1d; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      <li>All your data will be permanently deleted</li>
+      <li>This action cannot be undone</li>
+      <li>You will lose access to all your orders and history</li>
+      {% if pending_orders %}
+      <li style="color: #dc2626; font-weight: bold;">You have {{ pending_orders }} pending order{{ pending_orders|pluralize }} that will be cancelled</li>
+      {% endif %}
+    </ul>
+  </div>
+
+  {% if cancel_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cancel_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Cancel Deletion Request" }}
+    </a>
+  </div>
+  {% endif %}
+
+  {% if feedback_url %}
+  <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #1e40af; font-size: 14px; line-height: 1.6;">
+      We're sorry to see you go. If you'd like to share feedback about your experience, 
+      <a href="{{ feedback_url }}" style="color: #2563eb; font-weight: 600;">please let us know</a>.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

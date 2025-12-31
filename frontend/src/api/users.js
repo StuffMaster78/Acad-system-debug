@@ -4,7 +4,7 @@ export default {
   list: (params) => apiClient.get('/users/users/', { params }),
   get: (id) => apiClient.get(`/users/${id}/`),
   getProfile: () => apiClient.get('/users/users/profile/'),
-  updateProfile: (data) => apiClient.patch('/users/users/profile/', data),
+  updateProfile: (data) => apiClient.patch('/users/users/update_profile/', data),
   requestDeletion: (userId, reason) => apiClient.post(`/users/${userId}/request_deletion/`, { reason }),
   // Account deletion request (for current user)
   requestAccountDeletion: (reason) => apiClient.post('/users/account-deletion/request_deletion/', { reason }),
@@ -19,7 +19,7 @@ export default {
   rejectDeletionRequest: (requestId, reason) => apiClient.post(`/users/account-deletion/${requestId}/reject_deletion/`, { reason }),
   // Admin/Superadmin: Reinstate account
   reinstateAccount: (requestId) => apiClient.post(`/users/account-deletion/${requestId}/reinstate_account/`),
-  getUpdateRequests: () => apiClient.get('/users/users/profile-update-requests/'),
+  getUpdateRequests: () => apiClient.get('/users/account/profile-update-requests/'),
   update: (id, data) => apiClient.put(`/users/${id}/`, data),
   // Location info endpoint
   getLocationInfo: () => apiClient.get('/users/location-info/'),

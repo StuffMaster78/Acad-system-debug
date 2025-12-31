@@ -1,0 +1,79 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #2563eb; margin: 0 0 20px 0;">Subscription Renewal Reminder</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Your subscription will renew soon."|linebreaks }}
+  </p>
+
+  {% if subscription_plan %}
+  <div style="background-color: #eff6ff; border: 2px solid #93c5fd; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Current Plan:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af; font-size: 18px; font-weight: bold;">{{ subscription_plan }}</td>
+      </tr>
+      {% if renewal_date %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Renewal Date:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ renewal_date }}</td>
+      </tr>
+      {% endif %}
+      {% if renewal_amount %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Amount:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af; font-size: 20px; font-weight: bold;">{{ renewal_amount }}</td>
+      </tr>
+      {% endif %}
+      {% if billing_cycle %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Billing Cycle:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ billing_cycle }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if plan_benefits %}
+  <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #166534; margin-top: 0; margin-bottom: 10px;">Your Plan Benefits:</h3>
+    <ul style="color: #166534; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      {% for benefit in plan_benefits %}
+      <li>{{ benefit }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if payment_method %}
+  <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <p style="margin: 0; color: #374151; font-size: 14px; line-height: 1.6;">
+      <strong>Payment Method:</strong> {{ payment_method }}
+    </p>
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Manage Subscription" }}
+    </a>
+  </div>
+  {% endif %}
+
+  {% if cancel_url %}
+  <div style="text-align: center; margin: 20px 0;">
+    <a href="{{ cancel_url }}" style="color: #6b7280; text-decoration: none; font-size: 14px;">Cancel subscription</a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
