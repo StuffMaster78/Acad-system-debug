@@ -1,0 +1,79 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #2563eb; margin: 0 0 20px 0;">Support Ticket Update</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"You have received a response to your support ticket."|linebreaks }}
+  </p>
+
+  {% if ticket_number %}
+  <div style="background-color: #eff6ff; border: 2px solid #93c5fd; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Ticket Number:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ ticket_number }}</td>
+      </tr>
+      {% if ticket_subject %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Subject:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ ticket_subject }}</td>
+      </tr>
+      {% endif %}
+      {% if ticket_status %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Status:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">
+          <span style="background-color: 
+            {% if ticket_status == 'resolved' %}#10b981
+            {% elif ticket_status == 'in_progress' %}#3b82f6
+            {% elif ticket_status == 'open' %}#f59e0b
+            {% elif ticket_status == 'closed' %}#6b7280
+            {% else %}#2563eb{% endif %}; 
+            color: white; padding: 4px 12px; border-radius: 4px; font-size: 12px; text-transform: uppercase; display: inline-block;">
+            {{ ticket_status }}
+          </span>
+        </td>
+      </tr>
+      {% endif %}
+      {% if responded_by %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Responded by:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ responded_by }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if response_message %}
+  <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 10px;">Response:</h3>
+    <div style="color: #374151; line-height: 1.6; white-space: pre-wrap;">{{ response_message|linebreaks }}</div>
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"View Ticket" }}
+    </a>
+  </div>
+  {% endif %}
+
+  {% if ticket_status == 'resolved' %}
+  <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 30px 0;">
+    <p style="margin: 0; color: #166534; font-size: 14px;">
+      <strong>✅ Resolved:</strong> This ticket has been marked as resolved. If you need further assistance, please reply to this email or open a new ticket.
+    </p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

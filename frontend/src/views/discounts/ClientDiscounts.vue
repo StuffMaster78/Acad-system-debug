@@ -160,27 +160,39 @@ const debouncedSearch = () => {
 const loadDiscounts = async () => {
   loading.value = true
   try {
-    const params = {
-      is_active: true, // Only show active discounts for clients
-    }
-    if (filters.value.discount_type) {
-      params.discount_type = filters.value.discount_type
-    }
-    if (filters.value.search) {
-      params.search = filters.value.search
-    }
-
-    const res = await discountsAPI.list(params)
+    // Use my_discounts endpoint which is accessible to clients
+    const res = await discountsAPI.myDiscounts()
     let allDiscounts = res.data.results || res.data || []
+    
+    // Apply client-side filtering for search and discount type
+    if (filters.value.search) {
+      const searchLower = filters.value.search.toLowerCase()
+      allDiscounts = allDiscounts.filter(d => 
+        d.discount_code?.toLowerCase().includes(searchLower) ||
+        d.description?.toLowerCase().includes(searchLower)
+      )
+    }
+    
+    if (filters.value.discount_type) {
+      allDiscounts = allDiscounts.filter(d => d.discount_type === filters.value.discount_type)
+    }
     
     // Filter out expired discounts
     allDiscounts = allDiscounts.filter(d => !isExpired(d))
     
-    // Filter to show only general discounts or discounts assigned to current user
-    // Note: Backend should handle this, but we can add client-side filtering if needed
     discounts.value = allDiscounts
   } catch (error) {
-    showMessage('Failed to load discounts: ' + (error.response?.data?.detail || error.message), false)
+    // Handle 403 (Forbidden) gracefully - user doesn't have permission
+    if (error.response?.status === 403) {
+      discounts.value = []
+      // Don't show error message for permission issues - just show empty state
+      return
+    }
+    // Only show error for other types of errors
+    if (error.response?.status !== 404) {
+      showMessage('Failed to load discounts: ' + (error.response?.data?.detail || error.message), false)
+    }
+    discounts.value = []
   } finally {
     loading.value = false
   }

@@ -1,0 +1,54 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #7c3aed; margin: 0 0 20px 0;">Verify Your Action</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Please verify this action by clicking the link below."|linebreaks }}
+  </p>
+
+  {% if action_description %}
+  <div style="background-color: #faf5ff; border: 2px solid #c084fc; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <h3 style="color: #6b21a8; margin-top: 0; margin-bottom: 10px;">Action to Verify:</h3>
+    <p style="margin: 0; color: #6b21a8; line-height: 1.6; font-size: 18px; font-weight: bold;">{{ action_description }}</p>
+  </div>
+  {% endif %}
+
+  {% if verification_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ verification_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #7c3aed; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Verify Action" }}
+    </a>
+  </div>
+  {% endif %}
+
+  {% if verification_code %}
+  <div style="background-color: #faf5ff; border: 2px solid #c084fc; padding: 20px; border-radius: 8px; margin: 30px 0; text-align: center;">
+    <p style="margin: 0 0 10px 0; color: #6b21a8; font-size: 14px; font-weight: 600;">Or use this verification code:</p>
+    <p style="margin: 0; color: #6b21a8; font-size: 32px; font-weight: bold; letter-spacing: 4px; font-family: monospace;">
+      {{ verification_code }}
+    </p>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 30px 0;">
+    <p style="margin: 0; color: #991b1b; font-size: 14px; line-height: 1.6;">
+      <strong>⚠️ Important:</strong> This verification link will expire in {{ expiry_time|default:"1 hour" }}. If you didn't request this, please ignore this email.
+    </p>
+  </div>
+
+  {% if verification_url %}
+  <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
+    If the button doesn't work, copy and paste this link into your browser:<br>
+    <a href="{{ verification_url }}" style="color: #7c3aed; word-break: break-all;">{{ verification_url }}</a>
+  </p>
+  {% endif %}
+</div>
+{% endblock %}
+

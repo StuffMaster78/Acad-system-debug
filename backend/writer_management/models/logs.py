@@ -47,6 +47,14 @@ class WriterActionLog(models.Model):
     def __str__(self):
         return f"Action: {self.action} for {self.writer.user.username}"
 
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['writer', 'created_at']),
+            models.Index(fields=['website', 'action', 'created_at']),
+            models.Index(fields=['action', 'created_at']),
+        ]
+
 class WriterActivityLog(models.Model):
     """
     Tracks every action performed by a writer.

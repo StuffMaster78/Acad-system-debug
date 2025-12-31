@@ -3,18 +3,41 @@
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-30 w-72 bg-gradient-to-b from-white to-gray-50 dark:from-[#0f0f0f] dark:to-[#1a1a1a] border-r border-gray-200/50 dark:border-gray-800/50 backdrop-blur-sm transform transition-all duration-300 ease-in-out shadow-xl',
+        'fixed inset-y-0 left-0 z-30 bg-gradient-to-b from-white to-gray-50 dark:from-[#0f0f0f] dark:to-[#1a1a1a] border-r border-gray-200/50 dark:border-gray-800/50 backdrop-blur-sm transform transition-all duration-300 ease-in-out shadow-xl',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-        'lg:translate-x-0'
+        'lg:translate-x-0',
+        sidebarCollapsed ? 'w-20' : 'w-72'
       ]"
+      :aria-label="sidebarCollapsed ? 'Collapsed navigation sidebar' : 'Navigation sidebar'"
+      role="navigation"
     >
       <div class="flex flex-col h-full">
-        <!-- Logo -->
-        <div class="flex items-center justify-between h-20 px-6 border-b border-gray-200/60 dark:border-gray-800/60 bg-white/80 dark:bg-[#0f0f0f]/80 backdrop-blur-md transition-colors duration-300">
-          <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-400 dark:to-primary-500 bg-clip-text text-transparent transition-colors duration-300 leading-tight">{{ appName }}</h1>
+        <!-- Logo & Toggle -->
+        <div class="flex items-center justify-between h-20 px-4 border-b border-gray-200/60 dark:border-gray-800/60 bg-white/80 dark:bg-[#0f0f0f]/80 backdrop-blur-md transition-colors duration-300">
+          <div class="flex items-center gap-3 flex-1 min-w-0">
+            <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 dark:from-primary-500 dark:to-primary-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/20">
+              <span class="text-white font-bold text-lg">WS</span>
+            </div>
+            <h1 v-show="!sidebarCollapsed" class="text-lg font-bold tracking-tight bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-400 dark:to-primary-500 bg-clip-text text-transparent transition-all duration-300 leading-tight truncate">{{ appName }}</h1>
+          </div>
+          <button
+            @click="sidebarCollapsed = !sidebarCollapsed"
+            class="hidden lg:flex p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 shrink-0 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+            :aria-label="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+            :aria-expanded="!sidebarCollapsed"
+          >
+            <svg v-if="!sidebarCollapsed" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+            </svg>
+            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+          </button>
           <button
             @click="sidebarOpen = false"
-            class="lg:hidden p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
+            class="lg:hidden p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            aria-label="Close sidebar"
           >
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -23,14 +46,15 @@
         </div>
 
         <!-- Sidebar Search (All roles) -->
-        <div class="px-5 pt-5 pb-4 border-b border-gray-200/60 dark:border-gray-800/60">
+        <div v-show="!sidebarCollapsed" class="px-5 pt-5 pb-4 border-b border-gray-200/60 dark:border-gray-800/60 transition-all duration-300">
           <div class="relative">
             <input
               ref="sidebarSearchInput"
               v-model="sidebarSearchQuery"
               type="text"
               :placeholder="`Search menu... (${isMac ? '⌘' : 'Ctrl'}+K)`"
-              class="w-full px-4 py-2.5 pl-11 pr-20 text-sm font-normal leading-relaxed bg-white/60 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500 backdrop-blur-sm shadow-sm hover:shadow-md search-input"
+              class="w-full px-4 py-2.5 pl-11 pr-20 text-sm font-normal leading-relaxed bg-white/60 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 search-input"
+              aria-label="Search navigation menu"
             />
             <svg class="absolute left-3.5 top-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -47,85 +71,126 @@
             </button>
           </div>
         </div>
+        <!-- Collapsed Search Button -->
+        <div v-show="sidebarCollapsed" class="px-3 pt-5 pb-4 border-b border-gray-200/60 dark:border-gray-800/60">
+          <button
+            @click="sidebarCollapsed = false"
+            class="w-full p-2.5 rounded-xl text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            title="Search menu"
+            aria-label="Expand sidebar to search"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+        </div>
 
         <!-- Navigation -->
-        <nav class="flex-1 px-4 py-5 space-y-2 overflow-y-auto custom-scrollbar">
+        <nav class="flex-1 px-4 py-5 space-y-2 overflow-y-auto custom-scrollbar scroll-smooth" aria-label="Main navigation">
           <!-- Dashboard - Always at top -->
-          <router-link
-            to="/dashboard"
-            :class="[
-              'flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 mb-4 group relative overflow-hidden leading-relaxed',
-              $route.name === 'Dashboard' || $route.path === '/dashboard'
-                ? 'bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 scale-[1.02]'
-                : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:shadow-lg hover:scale-[1.01] hover:-translate-y-0.5'
-            ]"
-          >
+          <SidebarTooltip :text="'Dashboard'" :collapsed="sidebarCollapsed">
+            <router-link
+              to="/dashboard"
+              :class="[
+                'flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 mb-4 group relative overflow-hidden leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+                $route.name === 'Dashboard' || $route.path === '/dashboard'
+                  ? 'bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 scale-[1.02]'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:shadow-lg hover:scale-[1.01] hover:-translate-y-0.5',
+                sidebarCollapsed ? 'justify-center px-2' : ''
+              ]"
+              :aria-label="sidebarCollapsed ? 'Dashboard' : undefined"
+            >
             <div :class="[
-              'flex items-center justify-center transition-all duration-300',
+              'flex items-center justify-center transition-all duration-300 shrink-0',
               $route.name === 'Dashboard' || $route.path === '/dashboard' 
-                ? 'bg-white/20 p-2 rounded-lg mr-4 shadow-sm' 
-                : 'bg-gray-100 dark:bg-gray-800 p-2 rounded-lg mr-4 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20'
+                ? 'bg-white/20 p-2 rounded-lg shadow-sm' 
+                : 'bg-gray-100 dark:bg-gray-800 p-2 rounded-lg group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20',
+              sidebarCollapsed ? 'mr-0' : 'mr-4'
             ]">
               <svg class="w-5 h-5" :class="$route.name === 'Dashboard' || $route.path === '/dashboard' ? 'text-white' : 'text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
             </div>
-            <span :class="[
-              'font-semibold tracking-wide',
-              $route.name === 'Dashboard' || $route.path === '/dashboard' ? 'font-bold' : ''
-            ]">Dashboard</span>
-          </router-link>
+              <span v-show="!sidebarCollapsed" :class="[
+                'font-semibold tracking-wide transition-opacity duration-300',
+                $route.name === 'Dashboard' || $route.path === '/dashboard' ? 'font-bold' : ''
+              ]">Dashboard</span>
+            </router-link>
+          </SidebarTooltip>
 
           <!-- Place New Order Button - Prominent at top (Client) -->
           <div v-if="authStore.isClient" class="mb-5">
-            <router-link
-              to="/orders/wizard"
-              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed"
-            >
-              <svg class="w-4.5 h-4.5 mr-2.5 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <SidebarTooltip :text="'Place New Order'" :collapsed="sidebarCollapsed">
+              <router-link
+                to="/orders/wizard"
+                :class="[
+                  'flex items-center justify-center w-full py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+                  sidebarCollapsed ? 'px-2' : 'px-4'
+                ]"
+                :aria-label="sidebarCollapsed ? 'Place New Order' : undefined"
+              >
+              <svg class="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-110 shrink-0" :class="sidebarCollapsed ? '' : 'mr-2.5'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
-              <span>Place New Order</span>
-              <span class="ml-2 px-2 py-0.5 text-[10px] font-bold bg-yellow-400/90 text-yellow-900 rounded-full shadow-sm tracking-wide">NEW</span>
-            </router-link>
+                <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">Place New Order</span>
+                <span v-show="!sidebarCollapsed" class="ml-2 px-2 py-0.5 text-[10px] font-bold bg-yellow-400/90 text-yellow-900 rounded-full shadow-sm tracking-wide">NEW</span>
+              </router-link>
+            </SidebarTooltip>
           </div>
 
           <!-- Create Order Button - Prominent at top (Admin/SuperAdmin) -->
           <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="mb-5">
-            <router-link
-              to="/admin/orders/create"
-              class="flex items-center justify-center w-full px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed"
-            >
-              <svg class="w-4.5 h-4.5 mr-2.5 transition-transform duration-300 group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <SidebarTooltip :text="'Create Order'" :collapsed="sidebarCollapsed">
+              <router-link
+                to="/admin/orders/create"
+                :class="[
+                  'flex items-center justify-center w-full py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+                  sidebarCollapsed ? 'px-2' : 'px-4'
+                ]"
+                :aria-label="sidebarCollapsed ? 'Create Order' : undefined"
+              >
+              <svg class="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-110 shrink-0" :class="sidebarCollapsed ? '' : 'mr-2.5'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
-              <span>Create Order</span>
-              <span class="ml-2 px-2 py-0.5 text-[10px] font-bold bg-yellow-400/90 text-yellow-900 rounded-full shadow-sm tracking-wide">NEW</span>
-            </router-link>
+                <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">Create Order</span>
+                <span v-show="!sidebarCollapsed" class="ml-2 px-2 py-0.5 text-[10px] font-bold bg-yellow-400/90 text-yellow-900 rounded-full shadow-sm tracking-wide">NEW</span>
+              </router-link>
+            </SidebarTooltip>
           </div>
 
           <!-- Orders section - Simplified and at top -->
           <div v-if="authStore.isClient && shouldShowItem('Orders', 'All Orders Pending In Progress Completed Disputed Templates')" class="space-y-2 mb-5">
-            <div class="px-4 py-2 mb-2 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/60 dark:border-blue-800/60 backdrop-blur-sm">
+            <div v-show="!sidebarCollapsed" class="px-4 py-2 mb-2 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/60 dark:border-blue-800/60 backdrop-blur-sm transition-opacity duration-300">
               <h3 class="text-[11px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-2 leading-tight">
                 <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
                 <span>Orders</span>
               </h3>
             </div>
-            <button @click="ordersOpen = !ordersOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 text-gray-700 dark:text-gray-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] group leading-relaxed">
+            <SidebarTooltip :text="'Orders'" :collapsed="sidebarCollapsed">
+              <button 
+                @click="ordersOpen = !ordersOpen"
+                :aria-expanded="ordersOpen"
+                :aria-label="sidebarCollapsed ? 'Orders menu' : undefined"
+                :class="[
+                  'w-full flex items-center justify-between py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 text-gray-700 dark:text-gray-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] group leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+                  sidebarCollapsed ? 'px-2 justify-center' : 'px-4'
+                ]"
+              >
               <span class="flex items-center">
-                  <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-100/80 dark:bg-blue-900/30 mr-4 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors duration-300">
-                    <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                  <div :class="[
+                    'flex items-center justify-center rounded-lg bg-blue-100/80 dark:bg-blue-900/30 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors duration-300 shrink-0',
+                    sidebarCollapsed ? 'w-10 h-10' : 'w-10 h-10 mr-4'
+                  ]">
+                    <SidebarIcon icon-name="clipboard-list" size="md" icon-class="text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span class="font-semibold">Orders</span>
+                  <span v-show="!sidebarCollapsed" class="font-semibold transition-opacity duration-300">Orders</span>
               </span>
-              <ChevronIcon :is-open="ordersOpen" size="sm" class="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
-            </button>
-            <div v-if="ordersOpen" class="ml-4 space-y-1.5 animate-fade-in mt-3 pl-3 border-l-3 border-blue-300/60 dark:border-blue-700/60">
+                <ChevronIcon v-show="!sidebarCollapsed" :is-open="ordersOpen" size="sm" class="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors shrink-0" />
+              </button>
+            </SidebarTooltip>
+            <div v-if="ordersOpen && !sidebarCollapsed" class="ml-4 space-y-1.5 animate-fade-in mt-3 pl-3 border-l-3 border-blue-300/60 dark:border-blue-700/60">
               <!-- Quick Access -->
-              <router-link v-if="shouldShowItem('All Orders', 'View all your orders')" :to="authStore.isClient ? '/client/orders' : '/orders'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 hover:translate-x-1 hover:shadow-sm group leading-relaxed" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && !$route.query.status && !$route.query.is_paid ? 'bg-blue-50/90 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold shadow-sm border-l-2 border-blue-500' : 'text-gray-700 dark:text-gray-300'">
+              <router-link v-if="shouldShowItem('All Orders', 'View all your orders')" :to="authStore.isClient ? '/client/orders' : '/orders'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 hover:translate-x-1 hover:shadow-sm group leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && !$route.query.status && !$route.query.is_paid ? 'bg-blue-50/90 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold shadow-sm border-l-2 border-blue-500' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && !$route.query.status && !$route.query.is_paid ? 'bg-blue-100 dark:bg-blue-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30'">
                       <SidebarIcon icon-name="clipboard-list" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && !$route.query.status && !$route.query.is_paid ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'" tooltip="View all your orders" />
@@ -140,7 +205,7 @@
               <!-- Payment Status -->
               <div class="pt-3 mt-2 border-t border-gray-200/50 dark:border-gray-700/50">
                 <div class="px-3.5 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 leading-tight">Payment</div>
-                <router-link v-if="shouldShowItem('Unpaid', 'Orders awaiting payment')" :to="authStore.isClient ? '/client/orders?is_paid=false' : '/orders?is_paid=false'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-orange-50/80 dark:hover:bg-orange-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 leading-relaxed" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'false' ? 'bg-orange-50/90 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-semibold border-l-3 border-orange-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Unpaid', 'Orders awaiting payment')" :to="authStore.isClient ? '/client/orders?is_paid=false' : '/orders?is_paid=false'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-orange-50/80 dark:hover:bg-orange-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 leading-relaxed focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'false' ? 'bg-orange-50/90 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-semibold border-l-3 border-orange-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'false' ? 'bg-orange-100 dark:bg-orange-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30'">
                       <SidebarIcon icon-name="credit-card" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'false' ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-orange-600 dark:group-hover:text-orange-400'" tooltip="Orders awaiting payment" />
@@ -148,7 +213,7 @@
                     <span class="truncate">Unpaid <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.unpaid }})</span></span>
                   </div>
               </router-link>
-                <router-link v-if="shouldShowItem('Paid', 'Paid orders')" :to="authStore.isClient ? '/client/orders?is_paid=true' : '/orders?is_paid=true'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-green-50/80 dark:hover:bg-green-900/20 hover:translate-x-1 hover:shadow-sm group leading-relaxed" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'true' ? 'bg-green-50/90 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-semibold border-l-3 border-green-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Paid', 'Paid orders')" :to="authStore.isClient ? '/client/orders?is_paid=true' : '/orders?is_paid=true'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-green-50/80 dark:hover:bg-green-900/20 hover:translate-x-1 hover:shadow-sm group leading-relaxed focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'true' ? 'bg-green-50/90 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-semibold border-l-3 border-green-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'true' ? 'bg-green-100 dark:bg-green-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-green-100 dark:group-hover:bg-green-900/30'">
                       <SidebarIcon icon-name="check-circle" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.is_paid === 'true' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400'" tooltip="Paid orders" />
@@ -161,7 +226,7 @@
               <!-- Active Orders -->
               <div class="pt-3 mt-2 border-t border-gray-200/50 dark:border-gray-700/50">
                 <div class="px-3.5 py-1.5 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 leading-tight">Active</div>
-                <router-link v-if="shouldShowItem('Pending', 'Pending orders')" :to="authStore.isClient ? '/client/orders?status=pending' : '/orders?status=pending'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-yellow-50/80 dark:hover:bg-yellow-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 leading-relaxed" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'pending' ? 'bg-yellow-50/90 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 font-semibold border-l-3 border-yellow-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Pending', 'Pending orders')" :to="authStore.isClient ? '/client/orders?status=pending' : '/orders?status=pending'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-yellow-50/80 dark:hover:bg-yellow-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 leading-relaxed focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'pending' ? 'bg-yellow-50/90 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-300 font-semibold border-l-3 border-yellow-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'pending' ? 'bg-yellow-100 dark:bg-yellow-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-yellow-100 dark:group-hover:bg-yellow-900/30'">
                       <SidebarIcon icon-name="clock" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'pending' ? 'text-yellow-600 dark:text-yellow-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-yellow-600 dark:group-hover:text-yellow-400'" tooltip="Pending orders" />
@@ -169,7 +234,7 @@
                     <span class="truncate">Pending <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.pending }})</span></span>
                   </div>
               </router-link>
-                <router-link v-if="shouldShowItem('In Progress', 'Orders in progress')" :to="authStore.isClient ? '/client/orders?status=in_progress' : '/orders?status=in_progress'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 leading-relaxed" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'in_progress' ? 'bg-blue-50/90 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold border-l-3 border-blue-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('In Progress', 'Orders in progress')" :to="authStore.isClient ? '/client/orders?status=in_progress' : '/orders?status=in_progress'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium rounded-lg transition-all duration-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'in_progress' ? 'bg-blue-50/90 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-semibold border-l-3 border-blue-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'in_progress' ? 'bg-blue-100 dark:bg-blue-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/30'">
                       <SidebarIcon icon-name="cog" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'in_progress' ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400'" class="animate-spin-slow" tooltip="Orders in progress" />
@@ -177,7 +242,7 @@
                     <span class="truncate">In Progress <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.in_progress }})</span></span>
                   </div>
               </router-link>
-                <router-link v-if="shouldShowItem('Submitted', 'Submitted orders')" :to="authStore.isClient ? '/client/orders?status=submitted' : '/orders?status=submitted'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-indigo-50/80 dark:hover:bg-indigo-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'submitted' ? 'bg-indigo-50/90 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-semibold border-l-3 border-indigo-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Submitted', 'Submitted orders')" :to="authStore.isClient ? '/client/orders?status=submitted' : '/orders?status=submitted'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-indigo-50/80 dark:hover:bg-indigo-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'submitted' ? 'bg-indigo-50/90 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-semibold border-l-3 border-indigo-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'submitted' ? 'bg-indigo-100 dark:bg-indigo-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/30'">
                       <SidebarIcon icon-name="paper-airplane" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'submitted' ? 'text-indigo-600 dark:text-indigo-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400'" tooltip="Submitted orders" />
@@ -185,7 +250,7 @@
                     <span class="truncate">Submitted <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.submitted }})</span></span>
                   </div>
               </router-link>
-                <router-link v-if="shouldShowItem('Under Editing', 'Orders under editing')" :to="authStore.isClient ? '/client/orders?status=under_editing' : '/orders?status=under_editing'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-purple-50/80 dark:hover:bg-purple-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'under_editing' ? 'bg-purple-50/90 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-semibold border-l-3 border-purple-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Under Editing', 'Orders under editing')" :to="authStore.isClient ? '/client/orders?status=under_editing' : '/orders?status=under_editing'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-purple-50/80 dark:hover:bg-purple-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'under_editing' ? 'bg-purple-50/90 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 font-semibold border-l-3 border-purple-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'under_editing' ? 'bg-purple-100 dark:bg-purple-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-purple-100 dark:group-hover:bg-purple-900/30'">
                       <SidebarIcon icon-name="pencil" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'under_editing' ? 'text-purple-600 dark:text-purple-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-purple-600 dark:group-hover:text-purple-400'" tooltip="Orders under editing" />
@@ -193,7 +258,7 @@
                     <span class="truncate">Under Editing <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.under_editing }})</span></span>
                   </div>
               </router-link>
-                <router-link v-if="shouldShowItem('Available', 'Available orders')" :to="authStore.isClient ? '/client/orders?status=available' : '/orders?status=available'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-emerald-50/80 dark:hover:bg-emerald-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'available' ? 'bg-emerald-50/90 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-semibold border-l-3 border-emerald-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Available', 'Available orders')" :to="authStore.isClient ? '/client/orders?status=available' : '/orders?status=available'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-emerald-50/80 dark:hover:bg-emerald-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'available' ? 'bg-emerald-50/90 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-semibold border-l-3 border-emerald-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'available' ? 'bg-emerald-100 dark:bg-emerald-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/30'">
                       <SidebarIcon icon-name="clipboard" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'available' ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400'" tooltip="Available orders" />
@@ -201,7 +266,7 @@
                     <span class="truncate">Available <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.available }})</span></span>
                   </div>
               </router-link>
-                <router-link v-if="shouldShowItem('On Hold', 'Orders on hold')" :to="authStore.isClient ? '/client/orders?status=on_hold' : '/orders?status=on_hold'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-orange-50/80 dark:hover:bg-orange-900/20 hover:translate-x-1 hover:shadow-sm group" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'on_hold' ? 'bg-orange-50/90 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-semibold border-l-3 border-orange-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('On Hold', 'Orders on hold')" :to="authStore.isClient ? '/client/orders?status=on_hold' : '/orders?status=on_hold'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-orange-50/80 dark:hover:bg-orange-900/20 hover:translate-x-1 hover:shadow-sm group focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'on_hold' ? 'bg-orange-50/90 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 font-semibold border-l-3 border-orange-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'on_hold' ? 'bg-orange-100 dark:bg-orange-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-orange-100 dark:group-hover:bg-orange-900/30'">
                       <SidebarIcon icon-name="clock" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'on_hold' ? 'text-orange-600 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-orange-600 dark:group-hover:text-orange-400'" tooltip="Orders on hold" />
@@ -214,7 +279,7 @@
               <!-- Completed -->
               <div class="pt-3 mt-2 border-t border-gray-200/50 dark:border-gray-700/50">
                 <div class="px-3.5 py-2 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider leading-tight mb-2">Completed</div>
-                <router-link v-if="shouldShowItem('Completed', 'Completed orders')" :to="authStore.isClient ? '/client/orders?status=completed' : '/orders?status=completed'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-green-50/80 dark:hover:bg-green-900/20 hover:translate-x-1 hover:shadow-sm group" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'completed' ? 'bg-green-50/90 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-semibold border-l-3 border-green-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Completed', 'Completed orders')" :to="authStore.isClient ? '/client/orders?status=completed' : '/orders?status=completed'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-green-50/80 dark:hover:bg-green-900/20 hover:translate-x-1 hover:shadow-sm group focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'completed' ? 'bg-green-50/90 dark:bg-green-900/40 text-green-700 dark:text-green-300 font-semibold border-l-3 border-green-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'completed' ? 'bg-green-100 dark:bg-green-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-green-100 dark:group-hover:bg-green-900/30'">
                       <SidebarIcon icon-name="check-circle" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'completed' ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-green-600 dark:group-hover:text-green-400'" tooltip="Completed orders" />
@@ -227,7 +292,7 @@
               <!-- Issues -->
               <div class="pt-3 mt-2 border-t border-gray-200/50 dark:border-gray-700/50">
                 <div class="px-3.5 py-2 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider leading-tight mb-2">Issues</div>
-                <router-link v-if="shouldShowItem('Revision Requested', 'Orders requiring revision')" :to="authStore.isClient ? '/client/orders?status=revision_requested' : '/orders?status=revision_requested'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-amber-50/80 dark:hover:bg-amber-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'revision_requested' ? 'bg-amber-50/90 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-semibold border-l-3 border-amber-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Revision Requested', 'Orders requiring revision')" :to="authStore.isClient ? '/client/orders?status=revision_requested' : '/orders?status=revision_requested'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-amber-50/80 dark:hover:bg-amber-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'revision_requested' ? 'bg-amber-50/90 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-semibold border-l-3 border-amber-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'revision_requested' ? 'bg-amber-100 dark:bg-amber-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30'">
                       <SidebarIcon icon-name="arrow-left" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'revision_requested' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-amber-600 dark:group-hover:text-amber-400'" tooltip="Orders requiring revision" />
@@ -235,7 +300,7 @@
                     <span class="truncate">Revision Requested <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.revision_requested }})</span></span>
                   </div>
               </router-link>
-                <router-link v-if="shouldShowItem('Disputed', 'Disputed orders')" :to="authStore.isClient ? '/client/orders?status=disputed' : '/orders?status=disputed'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-red-50/80 dark:hover:bg-red-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'disputed' ? 'bg-red-50/90 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-semibold border-l-3 border-red-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Disputed', 'Disputed orders')" :to="authStore.isClient ? '/client/orders?status=disputed' : '/orders?status=disputed'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-red-50/80 dark:hover:bg-red-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'disputed' ? 'bg-red-50/90 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-semibold border-l-3 border-red-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'disputed' ? 'bg-red-100 dark:bg-red-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-red-100 dark:group-hover:bg-red-900/30'">
                       <SidebarIcon icon-name="exclamation-triangle" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'disputed' ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400'" tooltip="Disputed orders" />
@@ -243,7 +308,7 @@
                     <span class="truncate">Disputed <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.disputed }})</span></span>
                   </div>
               </router-link>
-                <router-link v-if="shouldShowItem('Cancelled', 'Cancelled orders')" to="/orders?status=cancelled" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:translate-x-1 hover:shadow-sm group" :class="$route.path === '/orders' && $route.query.status === 'cancelled' ? 'bg-gray-100/90 dark:bg-gray-800/90 text-gray-700 dark:text-gray-300 font-semibold border-l-3 border-gray-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Cancelled', 'Cancelled orders')" to="/orders?status=cancelled" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:translate-x-1 hover:shadow-sm group focus:outline-none focus:ring-2 focus:ring-gray-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="$route.path === '/orders' && $route.query.status === 'cancelled' ? 'bg-gray-100/90 dark:bg-gray-800/90 text-gray-700 dark:text-gray-300 font-semibold border-l-3 border-gray-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="$route.path === '/orders' && $route.query.status === 'cancelled' ? 'bg-gray-200 dark:bg-gray-700/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-gray-200 dark:group-hover:bg-gray-700/50'">
                       <SidebarIcon icon-name="ban" size="sm" :icon-class="$route.path === '/orders' && $route.query.status === 'cancelled' ? 'text-gray-600 dark:text-gray-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-400'" tooltip="Cancelled orders" />
@@ -427,52 +492,34 @@
               <SidebarIcon icon-name="discount" size="md" icon-class="text-gray-600 group-hover:text-primary-600" class="mr-3" tooltip="Available discounts and coupons" />
               Discounts
             </router-link>
-            <router-link
-              to="/account/privacy"
-              :class="[
-                'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
-                $route.name === 'PrivacySettings'
-                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
-              ]"
-            >
-              <SidebarIcon icon-name="shield" size="md" icon-class="text-gray-600 group-hover:text-primary-600" class="mr-3" tooltip="Privacy and security settings" />
-              Privacy & Security
-            </router-link>
-            <router-link
-              to="/account/security"
-              :class="[
-                'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 leading-relaxed group',
-                $route.name === 'SecurityActivity'
-                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
-              ]"
-            >
-              <SidebarIcon icon-name="shield" size="md" icon-class="text-gray-600 group-hover:text-primary-600" class="mr-3" tooltip="View security and activity logs" />
-              Security Activity
-            </router-link>
           </div>
 
           <!-- Writer Groups - Organized by category -->
           <template v-if="authStore.isWriter">
             <!-- Orders Group -->
             <div v-if="shouldShowItem('Orders & Work', 'My Orders Queue Requests Revision Workload Calendar')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+              <div v-show="!sidebarCollapsed" class="px-4 py-3 mb-3 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg border border-blue-200 dark:border-blue-800 transition-opacity duration-300">
                 <h3 class="text-xs font-bold text-blue-700 dark:text-blue-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
                   <span>Orders & Work</span>
                 </h3>
               </div>
-              <button @click="writerOrdersOpen = !writerOrdersOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:shadow-sm active:scale-[0.98]">
-                <span class="flex items-center">
-                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Orders
-                </span>
-                <ChevronIcon :is-open="writerOrdersOpen" size="sm" class="text-gray-400" />
-              </button>
-              <div v-if="writerOrdersOpen" class="ml-6 space-y-1 animate-fade-in">
+              <SidebarTooltip :text="'Orders & Work'" :collapsed="sidebarCollapsed">
+                <button 
+                  @click="writerOrdersOpen = !writerOrdersOpen" 
+                  :class="[
+                    'w-full flex items-center justify-between py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:shadow-sm active:scale-[0.98]',
+                    sidebarCollapsed ? 'px-2 justify-center' : 'px-4'
+                  ]"
+                >
+                  <span class="flex items-center">
+                    <SidebarIcon icon-name="clipboard-list" size="md" icon-class="text-gray-600" :class="sidebarCollapsed ? '' : 'mr-3.5'" />
+                    <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">Orders</span>
+                  </span>
+                  <ChevronIcon v-show="!sidebarCollapsed" :is-open="writerOrdersOpen" size="sm" class="text-gray-400 shrink-0" />
+                </button>
+              </SidebarTooltip>
+              <div v-if="writerOrdersOpen && !sidebarCollapsed" class="ml-6 space-y-1 animate-fade-in">
                 <router-link
                   v-if="shouldShowItem('My Orders', 'View all your orders')"
                   to="/writer/orders"
@@ -554,22 +601,28 @@
 
             <!-- Finances Group -->
             <div v-if="shouldShowItem('Finances', 'Payments Payment Requests Advance Payments Tips Fines')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800">
+              <div v-show="!sidebarCollapsed" class="px-4 py-3 mb-3 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg border border-green-200 dark:border-green-800 transition-opacity duration-300">
                 <h3 class="text-xs font-bold text-green-700 dark:text-green-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="wallet" size="sm" icon-class="text-green-600 dark:text-green-400" />
                   <span>Finances</span>
                 </h3>
               </div>
-              <button @click="writerFinancesOpen = !writerFinancesOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/20 hover:shadow-sm active:scale-[0.98]">
-                <span class="flex items-center">
-                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                  </svg>
-                  Finances
-                </span>
-                <ChevronIcon :is-open="writerFinancesOpen" size="sm" class="text-gray-400" />
-              </button>
-              <div v-if="writerFinancesOpen" class="ml-6 space-y-1 animate-fade-in">
+              <SidebarTooltip :text="'Finances'" :collapsed="sidebarCollapsed">
+                <button 
+                  @click="writerFinancesOpen = !writerFinancesOpen" 
+                  :class="[
+                    'w-full flex items-center justify-between py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-green-900/20 hover:shadow-sm active:scale-[0.98]',
+                    sidebarCollapsed ? 'px-2 justify-center' : 'px-4'
+                  ]"
+                >
+                  <span class="flex items-center">
+                    <SidebarIcon icon-name="wallet" size="md" icon-class="text-gray-600" :class="sidebarCollapsed ? '' : 'mr-3.5'" />
+                    <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">Finances</span>
+                  </span>
+                  <ChevronIcon v-show="!sidebarCollapsed" :is-open="writerFinancesOpen" size="sm" class="text-gray-400 shrink-0" />
+                </button>
+              </SidebarTooltip>
+              <div v-if="writerFinancesOpen && !sidebarCollapsed" class="ml-6 space-y-1 animate-fade-in">
                 <router-link v-if="shouldShowItem('Payments', 'View payment history')" to="/writer/payments" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/payments')}">
                   <SidebarIcon icon-name="credit-card" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View payment history" />
                   Payments
@@ -595,22 +648,28 @@
 
             <!-- Reviews & Ratings Group -->
             <div v-if="shouldShowItem('Reviews & Performance', 'Reviews Performance Badges Level')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <div v-show="!sidebarCollapsed" class="px-4 py-3 mb-3 bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-900/20 dark:to-amber-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800 transition-opacity duration-300">
                 <h3 class="text-xs font-bold text-yellow-700 dark:text-yellow-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="star" size="sm" icon-class="text-yellow-600 dark:text-yellow-400" />
                   <span>Reviews & Performance</span>
                 </h3>
               </div>
-              <button @click="writerReviewsOpen = !writerReviewsOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 hover:shadow-sm active:scale-[0.98]">
-                <span class="flex items-center">
-                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                  </svg>
-                  Reviews & Ratings
-                </span>
-                <ChevronIcon :is-open="writerReviewsOpen" size="sm" class="text-gray-400" />
-              </button>
-              <div v-if="writerReviewsOpen" class="ml-6 space-y-1 animate-fade-in">
+              <SidebarTooltip :text="'Reviews & Performance'" :collapsed="sidebarCollapsed">
+                <button 
+                  @click="writerReviewsOpen = !writerReviewsOpen" 
+                  :class="[
+                    'w-full flex items-center justify-between py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-yellow-50 dark:hover:bg-yellow-900/20 hover:shadow-sm active:scale-[0.98]',
+                    sidebarCollapsed ? 'px-2 justify-center' : 'px-4'
+                  ]"
+                >
+                  <span class="flex items-center">
+                    <SidebarIcon icon-name="star" size="md" icon-class="text-gray-600" :class="sidebarCollapsed ? '' : 'mr-3.5'" />
+                    <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">Reviews & Ratings</span>
+                  </span>
+                  <ChevronIcon v-show="!sidebarCollapsed" :is-open="writerReviewsOpen" size="sm" class="text-gray-400 shrink-0" />
+                </button>
+              </SidebarTooltip>
+              <div v-if="writerReviewsOpen && !sidebarCollapsed" class="ml-6 space-y-1 animate-fade-in">
                 <router-link v-if="shouldShowItem('My Reviews', 'View your reviews')" to="/writer/reviews" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/reviews')}">
                   <SidebarIcon icon-name="star" size="sm" icon-class="text-gray-500 group-hover:text-yellow-500 mr-3" tooltip="View your reviews" />
                   My Reviews
@@ -636,22 +695,28 @@
 
             <!-- User Management Group -->
             <div v-if="shouldShowItem('Account Management', 'Profile Settings Pen Name Resources')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+              <div v-show="!sidebarCollapsed" class="px-4 py-3 mb-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg border border-purple-200 dark:border-purple-800 transition-opacity duration-300">
                 <h3 class="text-xs font-bold text-purple-700 dark:text-purple-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="user" size="sm" icon-class="text-purple-600 dark:text-purple-400" />
                   <span>Account Management</span>
                 </h3>
               </div>
-              <button @click="writerUserManagementOpen = !writerUserManagementOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:shadow-sm active:scale-[0.98]">
-                <span class="flex items-center">
-                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  User Management
-                </span>
-                <ChevronIcon :is-open="writerUserManagementOpen" size="sm" class="text-gray-400" />
-              </button>
-              <div v-if="writerUserManagementOpen" class="ml-6 space-y-1 animate-fade-in">
+              <SidebarTooltip :text="'Account Management'" :collapsed="sidebarCollapsed">
+                <button 
+                  @click="writerUserManagementOpen = !writerUserManagementOpen" 
+                  :class="[
+                    'w-full flex items-center justify-between py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:shadow-sm active:scale-[0.98]',
+                    sidebarCollapsed ? 'px-2 justify-center' : 'px-4'
+                  ]"
+                >
+                  <span class="flex items-center">
+                    <SidebarIcon icon-name="user" size="md" icon-class="text-gray-600" :class="sidebarCollapsed ? '' : 'mr-3.5'" />
+                    <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">User Management</span>
+                  </span>
+                  <ChevronIcon v-show="!sidebarCollapsed" :is-open="writerUserManagementOpen" size="sm" class="text-gray-400 shrink-0" />
+                </button>
+              </SidebarTooltip>
+              <div v-if="writerUserManagementOpen && !sidebarCollapsed" class="ml-6 space-y-1 animate-fade-in">
                 <router-link v-if="shouldShowItem('Profile Settings', 'Manage profile settings')" to="/writer/profile-settings" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/profile-settings')}">
                   <SidebarIcon icon-name="cog" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage profile settings" />
                   Profile Settings
@@ -669,22 +734,28 @@
 
             <!-- Activity Group -->
             <div v-if="shouldShowItem('Activity & Communication', 'Dashboard Summary Communications Tickets Activity Logs')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700">
+              <div v-show="!sidebarCollapsed" class="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-900 rounded-lg border border-gray-200 dark:border-gray-700 transition-opacity duration-300">
                 <h3 class="text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="table" size="sm" icon-class="text-gray-600 dark:text-gray-400" />
                   <span>Activity & Communication</span>
                 </h3>
               </div>
-              <button @click="writerActivityOpen = !writerActivityOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-sm active:scale-[0.98]">
-                <span class="flex items-center">
-                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                  </svg>
-                  Activity
-                </span>
-                <ChevronIcon :is-open="writerActivityOpen" size="sm" class="text-gray-400" />
-              </button>
-              <div v-if="writerActivityOpen" class="ml-6 space-y-1 animate-fade-in">
+              <SidebarTooltip :text="'Activity & Communication'" :collapsed="sidebarCollapsed">
+                <button 
+                  @click="writerActivityOpen = !writerActivityOpen" 
+                  :class="[
+                    'w-full flex items-center justify-between py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-sm active:scale-[0.98]',
+                    sidebarCollapsed ? 'px-2 justify-center' : 'px-4'
+                  ]"
+                >
+                  <span class="flex items-center">
+                    <SidebarIcon icon-name="table" size="md" icon-class="text-gray-600" :class="sidebarCollapsed ? '' : 'mr-3.5'" />
+                    <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">Activity</span>
+                  </span>
+                  <ChevronIcon v-show="!sidebarCollapsed" :is-open="writerActivityOpen" size="sm" class="text-gray-400 shrink-0" />
+                </button>
+              </SidebarTooltip>
+              <div v-if="writerActivityOpen && !sidebarCollapsed" class="ml-6 space-y-1 animate-fade-in">
                 <router-link v-if="shouldShowItem('Dashboard Summary', 'Dashboard summary')" to="/writer/dashboard-summary" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/dashboard-summary')}">
                   <SidebarIcon icon-name="view-grid" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Dashboard summary" />
                       Dashboard Summary
@@ -706,22 +777,28 @@
 
             <!-- Discipline Group -->
             <div v-if="shouldShowItem('Discipline & Appeals', 'Discipline Status History Appeal')" class="space-y-1.5 mb-6">
-              <div class="px-4 py-3 mb-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800">
+              <div v-show="!sidebarCollapsed" class="px-4 py-3 mb-3 bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-lg border border-red-200 dark:border-red-800 transition-opacity duration-300">
                 <h3 class="text-xs font-bold text-red-700 dark:text-red-300 uppercase tracking-widest flex items-center gap-2">
                   <SidebarIcon icon-name="scale" size="sm" icon-class="text-red-600 dark:text-red-400" />
                   <span>Discipline & Appeals</span>
                 </h3>
               </div>
-              <button @click="writerDisciplineOpen = !writerDisciplineOpen" class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:shadow-sm active:scale-[0.98]">
-                <span class="flex items-center">
-                  <svg class="w-5 h-5 mr-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
-                  </svg>
-                  Discipline
-                </span>
-                <ChevronIcon :is-open="writerDisciplineOpen" size="sm" class="text-gray-400" />
-              </button>
-              <div v-if="writerDisciplineOpen" class="ml-6 space-y-1 animate-fade-in">
+              <SidebarTooltip :text="'Discipline & Appeals'" :collapsed="sidebarCollapsed">
+                <button 
+                  @click="writerDisciplineOpen = !writerDisciplineOpen" 
+                  :class="[
+                    'w-full flex items-center justify-between py-2.5 text-sm font-semibold rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:shadow-sm active:scale-[0.98]',
+                    sidebarCollapsed ? 'px-2 justify-center' : 'px-4'
+                  ]"
+                >
+                  <span class="flex items-center">
+                    <SidebarIcon icon-name="scale" size="md" icon-class="text-gray-600" :class="sidebarCollapsed ? '' : 'mr-3.5'" />
+                    <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">Discipline</span>
+                  </span>
+                  <ChevronIcon v-show="!sidebarCollapsed" :is-open="writerDisciplineOpen" size="sm" class="text-gray-400 shrink-0" />
+                </button>
+              </SidebarTooltip>
+              <div v-if="writerDisciplineOpen && !sidebarCollapsed" class="ml-6 space-y-1 animate-fade-in">
                 <router-link v-if="shouldShowItem('Status & History', 'Discipline status and history')" to="/writer/discipline-status" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/discipline-status')}">
                   <SidebarIcon icon-name="scroll" size="sm" icon-class="text-gray-500 group-hover:text-primary-600" class="mr-4" tooltip="Discipline status and history" />
                   Status & History
@@ -1943,7 +2020,7 @@
 
           <!-- Other navigation items (profile/settings/privacy/security for all, tickets/etc for non-admin) -->
           <template v-for="item in navigationItems">
-            <router-link
+            <SidebarTooltip 
               v-if="
                 shouldShowItem(item.label, item.description || '') &&
                 (
@@ -1956,66 +2033,101 @@
                 ||
                 (
                   // Profile & account links for all roles (including admin/superadmin)
+                  // PrivacySettings and SecurityActivity removed - accessible via Settings page
                   item.name === 'Profile' ||
-                  item.name === 'Settings' ||
-                  item.name === 'PrivacySettings' ||
-                  item.name === 'SecurityActivity'
+                  item.name === 'Settings'
                   )
                 )
               "
               :key="item.name"
-              :to="item.to"
-              :class="[
-                'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed',
-                isRouteActive(item)
-                  ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
-              ]"
+              :text="item.label"
+              :collapsed="sidebarCollapsed"
             >
-              <SidebarIcon 
-                :icon-name="getIconNameFromEmoji(item.icon)" 
-                size="md" 
-                :icon-class="isRouteActive(item) ? 'text-primary-600' : 'text-gray-600 group-hover:text-primary-600'" 
-                class="mr-3"
-                :tooltip="item.label"
-              />
-              {{ item.label }}
-            </router-link>
+              <router-link
+                :to="item.to"
+                :class="[
+                  'flex items-center py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+                  isRouteActive(item)
+                    ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1',
+                  sidebarCollapsed ? 'px-2 justify-center' : 'px-4'
+                ]"
+                :aria-label="sidebarCollapsed ? item.label : undefined"
+              >
+                <SidebarIcon 
+                  :icon-name="getIconNameFromEmoji(item.icon)" 
+                  size="md" 
+                  :icon-class="isRouteActive(item) ? 'text-primary-600' : 'text-gray-600 group-hover:text-primary-600'" 
+                  :class="sidebarCollapsed ? '' : 'mr-3'"
+                />
+                <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">{{ item.label }}</span>
+              </router-link>
+            </SidebarTooltip>
           </template>
         </nav>
 
         <!-- User section -->
-        <div class="p-4 border-t border-gray-200 dark:border-gray-700">
-          <div class="flex items-center justify-between mb-2">
-            <div class="flex items-center">
-              <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center">
-                <span class="text-primary-600 text-sm font-medium">
-                  {{ userInitials }}
-                </span>
-              </div>
-              <div class="ml-3">
-                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ authStore.user?.email }}</p>
+        <div :class="[
+          'border-t border-gray-200 dark:border-gray-700 transition-all duration-300',
+          sidebarCollapsed ? 'p-3' : 'p-4'
+        ]">
+          <div :class="[
+            'flex items-center justify-between mb-2',
+            sidebarCollapsed ? 'justify-center' : ''
+          ]">
+            <div :class="[
+              'flex items-center',
+              sidebarCollapsed ? 'justify-center' : ''
+            ]">
+              <SidebarTooltip :text="authStore.user?.email || 'User Profile'" :collapsed="sidebarCollapsed">
+                <button
+                  @click="toggleProfileDropdown"
+                  class="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center shrink-0 shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900 cursor-pointer"
+                  :aria-label="sidebarCollapsed ? 'User profile menu' : 'User profile menu'"
+                  :aria-expanded="showProfileDropdown"
+                >
+                  <span class="text-primary-600 dark:text-primary-400 text-sm font-semibold">
+                    {{ userInitials }}
+                  </span>
+                </button>
+              </SidebarTooltip>
+              <div v-show="!sidebarCollapsed" class="ml-3 min-w-0 flex-1">
+                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ authStore.user?.email }}</p>
                 <p class="text-xs text-gray-500 dark:text-gray-400 capitalize">{{ authStore.userRole }}</p>
               </div>
             </div>
           </div>
           
-          <div v-if="authStore.isImpersonating" class="mb-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+          <div v-if="authStore.isImpersonating && !sidebarCollapsed" class="mb-2 p-2 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded text-xs text-yellow-800 dark:text-yellow-200">
             Impersonating as {{ authStore.user?.email }}
           </div>
 
           <button
+            v-show="!sidebarCollapsed"
             @click="handleLogout"
-            class="w-full btn btn-secondary text-sm"
+            class="w-full btn btn-secondary text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+            aria-label="Sign out"
           >
             Sign Out
           </button>
+          <SidebarTooltip :text="'Sign Out'" :collapsed="sidebarCollapsed">
+            <button
+              v-show="sidebarCollapsed"
+              @click="handleLogout"
+              class="w-full p-2 rounded-lg text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+              aria-label="Sign out"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          </SidebarTooltip>
         </div>
       </div>
     </aside>
 
     <!-- Main content -->
-    <div class="lg:pl-72 h-screen overflow-hidden flex flex-col">
+    <div :class="['h-screen overflow-hidden flex flex-col transition-all duration-300', sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72']">
       <!-- Top bar -->
       <header class="sticky top-0 z-40 bg-white dark:bg-[#111111] border-b border-gray-200 dark:border-gray-800 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
         <div class="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
@@ -2344,6 +2456,7 @@ import GlobalSearch from '@/components/common/GlobalSearch.vue'
 import SessionTimeoutWarning from '@/components/common/SessionTimeoutWarning.vue'
 import ChevronIcon from '@/components/common/ChevronIcon.vue'
 import SidebarIcon from '@/components/common/SidebarIcon.vue'
+import SidebarTooltip from '@/components/common/SidebarTooltip.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
 import sessionManager from '@/services/sessionManager'
 import { useTheme } from '@/composables/useTheme'
@@ -2356,9 +2469,28 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 const sidebarOpen = ref(false)
+// Load sidebar collapsed state from localStorage with default to false
+const getInitialSidebarState = () => {
+  try {
+    const stored = localStorage.getItem('sidebarCollapsed')
+    return stored === 'true'
+  } catch {
+    return false
+  }
+}
+const sidebarCollapsed = ref(getInitialSidebarState())
 const sidebarSearchQuery = ref('')
 const ordersOpen = ref(true)
 const sidebarSearchInput = ref(null)
+
+// Persist sidebar collapsed state to localStorage
+watch(sidebarCollapsed, (newValue) => {
+  try {
+    localStorage.setItem('sidebarCollapsed', String(newValue))
+  } catch (error) {
+    console.warn('Failed to save sidebar state to localStorage:', error)
+  }
+})
 
 // Keyboard shortcuts
 const { register, isMac } = useKeyboardShortcuts()
@@ -3284,8 +3416,8 @@ const updateExpandedSections = (path) => {
       path.startsWith('/admin/media-library') || path.startsWith('/admin/files')) {
     adminGroups.value.contentManagement = true
   }
-  // Also expand orders section for client orders
-  if (path.startsWith('/orders') && authStore.isClient) {
+  // Also expand orders section for client orders (both /orders and /client/orders)
+  if ((path.startsWith('/orders') || path.startsWith('/client/orders')) && authStore.isClient) {
     ordersOpen.value = true
   }
   

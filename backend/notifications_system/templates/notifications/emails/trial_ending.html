@@ -1,0 +1,70 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #f59e0b; margin: 0 0 20px 0;">Trial Ending Soon</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Your free trial is ending soon. Don't lose access to your work!"|linebreaks }}
+  </p>
+
+  {% if trial_end_date %}
+  <div style="background-color: #fffbeb; border: 2px solid #fcd34d; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #92400e;"><strong>Trial Ends:</strong></td>
+        <td style="padding: 5px 0; color: #92400e; font-size: 20px; font-weight: bold;">{{ trial_end_date }}</td>
+      </tr>
+      {% if days_remaining %}
+      <tr>
+        <td style="padding: 5px 0; color: #92400e;"><strong>Days Remaining:</strong></td>
+        <td style="padding: 5px 0; color: #92400e; font-weight: bold;">{{ days_remaining }} day{{ days_remaining|pluralize }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if trial_features %}
+  <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0; margin-bottom: 10px;">What You'll Lose:</h3>
+    <ul style="color: #1e40af; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      {% for feature in trial_features %}
+      <li>{{ feature }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if subscription_plans %}
+  <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #166534; margin-top: 0; margin-bottom: 10px;">Choose a Plan:</h3>
+    <ul style="color: #166534; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      {% for plan in subscription_plans %}
+      <li>{{ plan }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Subscribe Now" }}
+    </a>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 30px 0;">
+    <p style="margin: 0; color: #991b1b; font-size: 14px; line-height: 1.6;">
+      <strong>⚠️ Important:</strong> After your trial ends, you'll lose access to premium features and your data may be archived.
+    </p>
+  </div>
+</div>
+{% endblock %}
+

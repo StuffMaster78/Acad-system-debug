@@ -10,22 +10,8 @@
       @mouseenter="showTooltip = true"
       @mouseleave="showTooltip = false"
     >
-      <component :is="iconComponent" v-if="iconComponent" />
-      <svg
-        v-else-if="iconName"
-        :class="['fill-none stroke-current', size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-6 h-6' : 'w-5 h-5']"
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          v-for="(path, index) in getIconPath(iconName)"
-          :key="index"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          :d="path"
-        />
-      </svg>
+      <component :is="iconComponent" v-if="iconComponent" :class="sizeClass" />
+      <component :is="heroIcon" v-else-if="iconName" :class="sizeClass" />
     </div>
     
     <!-- Tooltip -->
@@ -34,9 +20,9 @@
         v-if="tooltip && showTooltip"
         class="absolute left-full ml-2 top-1/2 -translate-y-1/2 z-50 pointer-events-none"
       >
-        <div class="bg-gray-900 text-white text-xs py-1.5 px-2.5 rounded-md shadow-lg whitespace-nowrap">
+        <div class="bg-gray-900 dark:bg-gray-800 text-white text-xs py-1.5 px-2.5 rounded-md shadow-lg whitespace-nowrap border border-gray-700">
           {{ tooltip }}
-          <div class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900"></div>
+          <div class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>
         </div>
       </div>
     </Transition>
@@ -44,7 +30,8 @@
 </template>
 
 <script setup>
-import { ref, computed, h } from 'vue'
+import { ref, computed } from 'vue'
+import * as HeroIcons from '@heroicons/vue/24/outline'
 
 const props = defineProps({
   iconName: {
@@ -70,192 +57,178 @@ const props = defineProps({
   },
   iconClass: {
     type: String,
-    default: 'text-gray-600'
+    default: 'text-gray-600 dark:text-gray-400'
   }
 })
 
 const showTooltip = ref(false)
 
-// Icon path mappings
-const iconPaths = {
+const sizeClass = computed(() => {
+  return props.size === 'sm' ? 'w-4 h-4' : props.size === 'lg' ? 'w-6 h-6' : 'w-5 h-5'
+})
+
+// Map icon names to Heroicons v2 components
+const iconMap = {
   // Orders & Documents
-  'document': ['M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
-  'clipboard': ['M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
-  'credit-card': ['M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'],
-  'check-circle': ['M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'exclamation-triangle': ['M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'],
-  'clock': ['M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'cog': ['M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z', 'M15 12a3 3 0 11-6 0 3 3 0 016 0z'],
-  'paper-airplane': ['M12 19l9 2-9-18-9 18 9-2zm0 0v-8'],
-  'arrow-right': ['M14 5l7 7m0 0l-7 7m7-7H3'],
-  'search': ['M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'],
+  'document': HeroIcons.DocumentTextIcon,
+  'clipboard': HeroIcons.ClipboardIcon,
+  'clipboard-list': HeroIcons.ClipboardDocumentListIcon,
+  'clipboard-check': HeroIcons.ClipboardDocumentCheckIcon,
+  'credit-card': HeroIcons.CreditCardIcon,
+  'check-circle': HeroIcons.CheckCircleIcon,
+  'exclamation-triangle': HeroIcons.ExclamationTriangleIcon,
+  'clock': HeroIcons.ClockIcon,
+  'cog': HeroIcons.Cog6ToothIcon,
+  'paper-airplane': HeroIcons.PaperAirplaneIcon,
+  'arrow-right': HeroIcons.ArrowRightIcon,
+  'arrow-left': HeroIcons.ArrowLeftIcon,
+  'search': HeroIcons.MagnifyingGlassIcon,
   
   // Users & People
-  'user': ['M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'],
-  'users': ['M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z'],
-  'user-circle': ['M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'briefcase': ['M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'],
-  'pencil': ['M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z'],
-  'headphones': ['M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3'],
-  'ticket': ['M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z'],
+  'user': HeroIcons.UserIcon,
+  'users': HeroIcons.UsersIcon,
+  'user-circle': HeroIcons.UserCircleIcon,
+  'user-group': HeroIcons.UserGroupIcon,
+  'briefcase': HeroIcons.BriefcaseIcon,
+  'pencil': HeroIcons.PencilIcon,
+  'headphones': HeroIcons.HeadphonesIcon,
+  'ticket': HeroIcons.TicketIcon,
   
   // Financial
-  'wallet': ['M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z'],
-  'gift': ['M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7'],
-  'star': ['M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z'],
-  'dollar-sign': ['M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'ban': ['M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636'],
-  'arrow-left': ['M10 19l-7-7m0 0l7-7m-7 7h18'],
+  'wallet': HeroIcons.WalletIcon,
+  'gift': HeroIcons.GiftIcon,
+  'star': HeroIcons.StarIcon,
+  'dollar-sign': HeroIcons.CurrencyDollarIcon,
+  'ban': HeroIcons.NoSymbolIcon,
   
   // Content & Media
-  'book': ['M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'],
-  'lightning': ['M13 10V3L4 14h7v7l9-11h-7z'],
-  'chart-bar': ['M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
-  'trophy': ['M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z'],
-  'trending-up': ['M13 7h8m0 0v8m0-8l-8 8-4-4-6 6'],
-  'academic-cap': ['M12 14l9-5-9-5-9 5 9 5z', 'M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z', 'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z'],
+  'book': HeroIcons.BookOpenIcon,
+  'lightning': HeroIcons.BoltIcon,
+  'chart-bar': HeroIcons.ChartBarIcon,
+  'trophy': HeroIcons.TrophyIcon,
+  'trending-up': HeroIcons.ArrowTrendingUpIcon,
+  'trending-down': HeroIcons.ArrowTrendingDownIcon,
+  'academic-cap': HeroIcons.AcademicCapIcon,
   
   // Activity & Status
-  'calendar': ['M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
-  'clock-alarm': ['M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'stop': ['M21 12a9 9 0 11-18 0 9 9 0 0118 0z', 'M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z'],
-  'scale': ['M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3'],
-  'scroll': ['M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
-  'chat': ['M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z'],
-  'shield': ['M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
-  'discount': ['M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'home': ['M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6'],
-  'plus': ['M12 4v16m8-8H4'],
-  'trending-down': ['M13 17h8m0 0V9m0 8l-8-8-4 4-6-6'],
+  'calendar': HeroIcons.CalendarIcon,
+  'calendar-days': HeroIcons.CalendarDaysIcon,
+  'stop': HeroIcons.StopCircleIcon,
+  'scale': HeroIcons.ScaleIcon,
+  'scroll': HeroIcons.DocumentTextIcon,
+  'chat': HeroIcons.ChatBubbleLeftRightIcon,
+  'shield': HeroIcons.ShieldCheckIcon,
+  'discount': HeroIcons.TagIcon,
+  'home': HeroIcons.HomeIcon,
+  'plus': HeroIcons.PlusIcon,
   
-  // Additional icons for better variety
-  'folder': ['M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z'],
-  'photograph': ['M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z'],
-  'collection': ['M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10'],
-  'newspaper': ['M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z'],
-  'puzzle': ['M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z'],
-  'cube': ['M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4'],
-  'beaker': ['M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z'],
-  'globe': ['M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 002 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'server': ['M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01'],
-  'database': ['M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4'],
-  'adjustments': ['M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4'],
-  'bell': ['M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'],
-  'mail': ['M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z'],
-  'inbox': ['M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4'],
-  'tag': ['M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'],
-  'hashtag': ['M7 20l4-16m2 16l4-16M6 9h14M4 15h14'],
-  'link': ['M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1'],
-  'fire': ['M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z', 'M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z'],
-  'sparkles': ['M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z'],
-  'presentation-chart': ['M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z'],
-  'calculator': ['M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z'],
-  'cash': ['M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
-  'receipt-tax': ['M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z'],
-  'currency-dollar': ['M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'library': ['M8 14v3m4-3v3m4-3v3M3 21h18M3 10h18M10.5 3L12 2l1.5 1M21 10l-1.5-1L18 10m-6 0L10.5 9 9 10'],
-  'film': ['M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z'],
-  'video-camera': ['M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'],
-  'microphone': ['M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z'],
-  'speakerphone': ['M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 01-3 3M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z'],
-  'rss': ['M6 5a7 7 0 017 7M6 5a7 7 0 017 7m-7 0a7 7 0 017 7M13 12a3 3 0 11-6 0 3 3 0 016 0z'],
-  'megaphone': ['M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 01-3 3M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z'],
-  'annotation': ['M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z'],
-  'document-text': ['M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
-  'document-duplicate': ['M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2'],
-  'folder-open': ['M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h12a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z'],
-  'archive': ['M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4'],
-  'cube-transparent': ['M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5'],
-  'view-grid': ['M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
-  'table': ['M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'],
-  'clipboard-list': ['M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01'],
-  'clipboard-check': ['M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4'],
-  'identification': ['M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2'],
-  'badge-check': ['M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z'],
-  'user-group': ['M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'],
-  'office-building': ['M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
-  'academic-cap-alt': ['M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253'],
-  'light-bulb': ['M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z'],
-  'puzzle-piece': ['M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z'],
-  'template': ['M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 5a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM14 13a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1v-7z'],
-  'code': ['M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4'],
-  'terminal': ['M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
-  'key': ['M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z'],
-  'lock-closed': ['M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'],
-  'eye': ['M15 12a3 3 0 11-6 0 3 3 0 016 0z', 'M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z'],
-  'eye-off': ['M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21'],
-  'finger-print': ['M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4'],
-  'shield-check': ['M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z'],
-  'shield-exclamation': ['M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'],
-  'x-circle': ['M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'check': ['M5 13l4 4L19 7'],
-  'x': ['M6 18L18 6M6 6l12 12'],
-  'plus-circle': ['M12 4v16m8-8H4', 'M12 4v16m8-8H4'],
-  'minus-circle': ['M15 12H9', 'M12 4v16m8-8H4'],
-  'information-circle': ['M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'question-mark-circle': ['M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'exclamation-circle': ['M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'clock': ['M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'calendar-days': ['M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z'],
-  'clock-fast': ['M13 10V3L4 14h7v7l9-11h-7z'],
-  'pause': ['M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'play': ['M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v7.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z', 'M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'stop': ['M21 12a9 9 0 11-18 0 9 9 0 0118 0z', 'M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z'],
-  'refresh': ['M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'],
-  'arrow-up': ['M5 10l7-7m0 0l7 7m-7-7v18'],
-  'arrow-down': ['M19 14l-7 7m0 0l-7-7m7 7V3'],
-  'arrow-up-right': ['M7 17L17 7m0 0H7m10 0v10'],
-  'arrow-down-right': ['M7 7l10 10m0 0V7m0 10H7'],
-  'arrow-down-left': ['M17 7L7 17m0 0v10m0-10h10'],
-  'arrow-up-left': ['M17 17L7 7m0 0v10m0-10h10'],
-  'chevron-up': ['M5 15l7-7 7 7'],
-  'chevron-down': ['M19 9l-7 7-7-7'],
-  'chevron-left': ['M15 19l-7-7 7-7'],
-  'chevron-right': ['M9 5l7 7-7 7'],
-  'dots-vertical': ['M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z'],
-  'dots-horizontal': ['M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z'],
-  'menu': ['M4 6h16M4 12h16M4 18h16'],
-  'menu-alt-1': ['M4 6h16M4 12h8M4 18h16'],
-  'menu-alt-2': ['M4 6h16M4 12h16M4 18h8'],
-  'menu-alt-3': ['M4 6h16M4 12h16M4 18h16'],
-  'menu-alt-4': ['M4 6h16M4 12h16M4 18h16'],
-  'x': ['M6 18L18 6M6 6l12 12'],
-  'filter': ['M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z'],
-  'sort-ascending': ['M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12'],
-  'sort-descending': ['M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4'],
-  'switch-vertical': ['M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4'],
-  'switch-horizontal': ['M8 7h12M8 12h12m-12 5h12M3 7l3-3m0 0l3 3m-3-3v12m0 0l-3 3m3-3l3 3'],
-  'view-list': ['M4 6h16M4 10h16M4 14h16M4 18h16'],
-  'view-grid-add': ['M17 14v6m-3-3h6M6 10h2a2 2 0 012 2v6a2 2 0 01-2 2H6a2 2 0 01-2-2v-6a2 2 0 012-2z', 'M20 20v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2z', 'M14 10V6a2 2 0 00-2-2H6a2 2 0 00-2 2v4a2 2 0 002 2h6a2 2 0 002-2z'],
-  'dots-circle-horizontal': ['M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'dots-circle': ['M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'dots': ['M5 12h.01M12 12h.01M19 12h.01'],
-  'dots-vertical': ['M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z'],
-  'dots-horizontal': ['M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z'],
-  'dots-grid': ['M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
-  'dots-square': ['M4 6h16M4 10h16M4 14h16M4 18h16'],
-  'dots-hexagon': ['M7 8h10M7 12h10m-7 4h4'],
-  'dots-diamond': ['M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
-  'dots-ellipsis': ['M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'dots-vertical-alt': ['M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z'],
-  'dots-horizontal-alt': ['M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z'],
-  'dots-grid-alt': ['M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
-  'dots-square-alt': ['M4 6h16M4 10h16M4 14h16M4 18h16'],
-  'dots-hexagon-alt': ['M7 8h10M7 12h10m-7 4h4'],
-  'dots-diamond-alt': ['M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
-  'dots-ellipsis-alt': ['M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z'],
-  'dots-vertical-alt-2': ['M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z'],
-  'dots-horizontal-alt-2': ['M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z'],
-  'dots-grid-alt-2': ['M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z'],
-  'dots-square-alt-2': ['M4 6h16M4 10h16M4 14h16M4 18h16'],
-  'dots-hexagon-alt-2': ['M7 8h10M7 12h10m-7 4h4'],
-  'dots-diamond-alt-2': ['M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2'],
-  'dots-ellipsis-alt-2': ['M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z']
+  // Additional icons
+  'folder': HeroIcons.FolderIcon,
+  'photograph': HeroIcons.PhotoIcon,
+  'collection': HeroIcons.RectangleStackIcon,
+  'newspaper': HeroIcons.NewspaperIcon,
+  'puzzle': HeroIcons.PuzzlePieceIcon,
+  'cube': HeroIcons.CubeIcon,
+  'beaker': HeroIcons.BeakerIcon,
+  'globe': HeroIcons.GlobeAltIcon,
+  'server': HeroIcons.ServerIcon,
+  'database': HeroIcons.CircleStackIcon,
+  'adjustments': HeroIcons.AdjustmentsHorizontalIcon,
+  'bell': HeroIcons.BellIcon,
+  'mail': HeroIcons.EnvelopeIcon,
+  'inbox': HeroIcons.InboxIcon,
+  'tag': HeroIcons.TagIcon,
+  'hashtag': HeroIcons.HashtagIcon,
+  'link': HeroIcons.LinkIcon,
+  'fire': HeroIcons.FireIcon,
+  'sparkles': HeroIcons.SparklesIcon,
+  'presentation-chart': HeroIcons.PresentationChartLineIcon,
+  'calculator': HeroIcons.CalculatorIcon,
+  'cash': HeroIcons.BanknotesIcon,
+  'receipt-tax': HeroIcons.ReceiptPercentIcon,
+  'currency-dollar': HeroIcons.CurrencyDollarIcon,
+  'library': HeroIcons.BuildingLibraryIcon,
+  'film': HeroIcons.FilmIcon,
+  'video-camera': HeroIcons.VideoCameraIcon,
+  'microphone': HeroIcons.MicrophoneIcon,
+  'speakerphone': HeroIcons.MegaphoneIcon,
+  'rss': HeroIcons.RssIcon,
+  'megaphone': HeroIcons.MegaphoneIcon,
+  'annotation': HeroIcons.ChatBubbleBottomCenterTextIcon,
+  'document-text': HeroIcons.DocumentTextIcon,
+  'document-duplicate': HeroIcons.DocumentDuplicateIcon,
+  'folder-open': HeroIcons.FolderOpenIcon,
+  'archive': HeroIcons.ArchiveBoxIcon,
+  'cube-transparent': HeroIcons.CubeTransparentIcon,
+  'view-grid': HeroIcons.Squares2X2Icon,
+  'table': HeroIcons.TableCellsIcon,
+  'identification': HeroIcons.IdentificationIcon,
+  'badge-check': HeroIcons.CheckBadgeIcon,
+  'office-building': HeroIcons.BuildingOfficeIcon,
+  'academic-cap-alt': HeroIcons.AcademicCapIcon,
+  'light-bulb': HeroIcons.LightBulbIcon,
+  'puzzle-piece': HeroIcons.PuzzlePieceIcon,
+  'template': HeroIcons.RectangleStackIcon,
+  'code': HeroIcons.CodeBracketIcon,
+  'terminal': HeroIcons.CommandLineIcon,
+  'key': HeroIcons.KeyIcon,
+  'lock-closed': HeroIcons.LockClosedIcon,
+  'eye': HeroIcons.EyeIcon,
+  'eye-off': HeroIcons.EyeSlashIcon,
+  'finger-print': HeroIcons.FingerPrintIcon,
+  'shield-check': HeroIcons.ShieldCheckIcon,
+  'shield-exclamation': HeroIcons.ShieldExclamationIcon,
+  'x-circle': HeroIcons.XCircleIcon,
+  'check': HeroIcons.CheckIcon,
+  'x': HeroIcons.XMarkIcon,
+  'plus-circle': HeroIcons.PlusCircleIcon,
+  'minus-circle': HeroIcons.MinusCircleIcon,
+  'information-circle': HeroIcons.InformationCircleIcon,
+  'question-mark-circle': HeroIcons.QuestionMarkCircleIcon,
+  'exclamation-circle': HeroIcons.ExclamationCircleIcon,
+  'clock-fast': HeroIcons.BoltIcon,
+  'pause': HeroIcons.PauseCircleIcon,
+  'play': HeroIcons.PlayCircleIcon,
+  'refresh': HeroIcons.ArrowPathIcon,
+  'arrow-up': HeroIcons.ArrowUpIcon,
+  'arrow-down': HeroIcons.ArrowDownIcon,
+  'arrow-up-right': HeroIcons.ArrowUpRightIcon,
+  'arrow-down-right': HeroIcons.ArrowDownRightIcon,
+  'arrow-down-left': HeroIcons.ArrowDownLeftIcon,
+  'arrow-up-left': HeroIcons.ArrowUpLeftIcon,
+  'chevron-up': HeroIcons.ChevronUpIcon,
+  'chevron-down': HeroIcons.ChevronDownIcon,
+  'chevron-left': HeroIcons.ChevronLeftIcon,
+  'chevron-right': HeroIcons.ChevronRightIcon,
+  'dots-vertical': HeroIcons.EllipsisVerticalIcon,
+  'dots-horizontal': HeroIcons.EllipsisHorizontalIcon,
+  'menu': HeroIcons.Bars3Icon,
+  'menu-alt-1': HeroIcons.Bars3BottomLeftIcon,
+  'menu-alt-2': HeroIcons.Bars3BottomRightIcon,
+  'menu-alt-3': HeroIcons.Bars3Icon,
+  'menu-alt-4': HeroIcons.Bars3Icon,
+  'filter': HeroIcons.FunnelIcon,
+  'sort-ascending': HeroIcons.ArrowUpIcon,
+  'sort-descending': HeroIcons.ArrowDownIcon,
+  'switch-vertical': HeroIcons.ArrowsUpDownIcon,
+  'switch-horizontal': HeroIcons.ArrowsRightLeftIcon,
+  'view-list': HeroIcons.ListBulletIcon,
+  'view-grid-add': HeroIcons.SquaresPlusIcon,
+  'dots-circle-horizontal': HeroIcons.EllipsisHorizontalCircleIcon,
+  'dots-circle': HeroIcons.EllipsisHorizontalCircleIcon,
+  'dots': HeroIcons.EllipsisHorizontalIcon,
+  'dots-grid': HeroIcons.Squares2X2Icon,
+  'dots-square': HeroIcons.Squares2X2Icon,
+  'dots-hexagon': HeroIcons.HexagonIcon,
+  'dots-diamond': HeroIcons.SparklesIcon,
+  'dots-ellipsis': HeroIcons.EllipsisHorizontalCircleIcon,
 }
 
-const getIconPath = (name) => {
-  return iconPaths[name] || []
-}
+const heroIcon = computed(() => {
+  if (!props.iconName) return null
+  const icon = iconMap[props.iconName]
+  return icon || HeroIcons.QuestionMarkCircleIcon // Fallback icon
+})
 </script>
 
 <style scoped>
@@ -276,4 +249,3 @@ const getIconPath = (name) => {
   transform: translateX(0);
 }
 </style>
-

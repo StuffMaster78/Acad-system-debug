@@ -21,7 +21,7 @@ import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import { stripHtml } from '@/utils/htmlUtils'
 
-console.log('RichTextEditor: Script setup executed')
+// RichTextEditor component initialized
 
 const props = defineProps({
   modelValue: {
@@ -147,31 +147,25 @@ const handleImageUpload = async (file) => {
 }
 
 const initializeEditor = () => {
-  console.log(`RichTextEditor: Attempting to initialize editor with ID: ${editorId.value}`)
   const container = document.getElementById(editorId.value)
   if (!container) {
-    console.warn(`RichTextEditor: Container not found for ID ${editorId.value}, retrying...`)
     // Retry after a short delay if element not found (common in modals)
     setTimeout(() => {
       const retryContainer = document.getElementById(editorId.value)
-      if (!retryContainer) {
-        console.error(`RichTextEditor: Container still not found after retry for ID ${editorId.value}`)
-        return
+      if (retryContainer) {
+        initializeQuill(retryContainer)
       }
-      console.log(`RichTextEditor: Container found on retry, initializing Quill...`)
-      initializeQuill(retryContainer)
     }, 100)
     return
   }
   
-  console.log(`RichTextEditor: Container found, initializing Quill...`)
   initializeQuill(container)
 }
 
 const initializeQuill = (container) => {
   // Don't reinitialize if already initialized
   if (quillInstance.value) {
-    console.log('RichTextEditor: Already initialized, skipping')
+    // Already initialized, skipping
     return
   }
 
@@ -293,7 +287,7 @@ const initializeQuill = (container) => {
       }
     })
     
-    console.log('RichTextEditor: Quill initialized successfully', editorId.value)
+    // Quill initialized successfully
   } catch (error) {
     console.error('RichTextEditor: Failed to initialize Quill', error)
   }
@@ -329,26 +323,32 @@ watch(() => props.disabled, (newValue) => {
 })
 
 onMounted(async () => {
-  console.log(`RichTextEditor: Component mounted, editorId: ${editorId.value}`)
   // Use nextTick to ensure DOM element is available (especially for modals)
   await nextTick()
-  // Retry initialization multiple times for modals
+  // Retry initialization multiple times for modals/tabs
   let retries = 0
   const maxRetries = 10
   const tryInit = () => {
     const container = document.getElementById(editorId.value)
-    const isVisible = container && container.offsetParent !== null
-    console.log(`RichTextEditor: Retry ${retries}/${maxRetries} - Container found: ${!!container}, Visible: ${isVisible}, Already initialized: ${!!quillInstance.value}`)
+    // Check if container exists and is visible (not hidden by display:none or in inactive tab)
+    const isVisible = container && (
+      container.offsetParent !== null || 
+      (container.offsetWidth > 0 && container.offsetHeight > 0) ||
+      window.getComputedStyle(container).display !== 'none'
+    )
     
     if (container && isVisible && !quillInstance.value) {
-      console.log(`RichTextEditor: Conditions met, calling initializeEditor()`)
       initializeEditor()
-    } else if (retries < maxRetries) {
+    } else if (retries < maxRetries && container) {
+      // Only retry if container exists (might be in inactive tab)
       retries++
       setTimeout(tryInit, 100)
-    } else {
-      console.error(`RichTextEditor: Failed to initialize after ${maxRetries} retries. Container: ${!!container}, Visible: ${isVisible}`)
+    } else if (!container && retries < maxRetries) {
+      // Container doesn't exist yet, keep retrying
+      retries++
+      setTimeout(tryInit, 100)
     }
+    // Silently fail if container doesn't exist after max retries (likely in inactive tab)
   }
   setTimeout(tryInit, 100)
 })

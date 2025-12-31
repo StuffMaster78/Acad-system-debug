@@ -1,0 +1,43 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #10b981; margin: 0 0 20px 0;">Application Approved! 🎉</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Congratulations! Your writer application has been approved. Welcome to our team!"|linebreaks }}
+  </p>
+
+  {% if next_steps %}
+  <div style="background-color: #f0fdf4; border: 2px solid #86efac; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <h3 style="color: #166534; margin-top: 0; margin-bottom: 15px;">Next Steps:</h3>
+    <ul style="color: #166534; margin: 0; padding-left: 20px; line-height: 1.8;">
+      {% for step in next_steps %}
+      <li>{{ step }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if writer_resources %}
+  <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0; margin-bottom: 10px;">Resources:</h3>
+    <p style="margin: 0; color: #1e40af; line-height: 1.6; font-size: 14px;">{{ writer_resources|linebreaks }}</p>
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Get Started" }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

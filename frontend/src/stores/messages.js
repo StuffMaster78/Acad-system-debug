@@ -12,7 +12,7 @@ const threadsCache = reactive({
   data: [],
   lastFetch: null,
   fetching: false,
-  cacheTime: 10000 // 10 seconds cache
+  cacheTime: 30000 // Increased to 30 seconds cache for better performance
 })
 
 // Shared cache for messages by thread ID
@@ -20,8 +20,12 @@ const messagesCache = reactive({
   data: {},
   lastFetch: {},
   fetching: {},
-  cacheTime: 5000 // 5 seconds cache
+  cacheTime: 15000 // Increased to 15 seconds cache
 })
+
+// Cache size limits to prevent memory issues
+const MAX_CACHED_THREADS = 200
+const MAX_CACHED_MESSAGES_PER_THREAD = 100
 
 // Active refresh intervals (to prevent multiple intervals)
 const activeIntervals = new Set()
@@ -177,13 +181,18 @@ export async function getThreads(forceRefresh = false) {
   threadsCache.fetching = true
   
   try {
-    const response = await communicationsAPI.listThreads({})
+    const response = await communicationsAPI.listThreads({
+      page_size: 100 // Limit initial load
+    })
     const threads = response.data.results || response.data || []
     
-    threadsCache.data = threads
+    // Limit cached threads to prevent memory issues
+    const limitedThreads = threads.slice(0, MAX_CACHED_THREADS)
+    
+    threadsCache.data = limitedThreads
     threadsCache.lastFetch = now
     
-    return threads
+    return limitedThreads
   } catch (error) {
     // Handle rate limiting (429) gracefully
     if (error.response?.status === 429) {
@@ -244,13 +253,18 @@ export async function getThreadMessages(threadId, forceRefresh = false) {
   messagesCache.fetching[threadId] = true
   
   try {
-    const response = await communicationsAPI.listMessages(threadId)
+    const response = await communicationsAPI.listMessages(threadId, {
+      page_size: MAX_CACHED_MESSAGES_PER_THREAD
+    })
     const messages = (response.data.results || response.data || []).reverse()
     
-    messagesCache.data[threadId] = messages
+    // Limit cached messages to prevent memory issues
+    const limitedMessages = messages.slice(0, MAX_CACHED_MESSAGES_PER_THREAD)
+    
+    messagesCache.data[threadId] = limitedMessages
     messagesCache.lastFetch[threadId] = now
     
-    return messages
+    return limitedMessages
   } catch (error) {
     console.error('Failed to load messages:', error)
     // Return cached data on error if available

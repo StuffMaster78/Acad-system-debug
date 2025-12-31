@@ -1,0 +1,67 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #7c3aed; margin: 0 0 20px 0;">New Order Assigned</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"A new order has been assigned to you!"|linebreaks }}
+  </p>
+
+  {% if order_number %}
+  <div style="background-color: #faf5ff; border: 2px solid #c084fc; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #6b21a8;"><strong>Order Number:</strong></td>
+        <td style="padding: 5px 0; color: #6b21a8;">{{ order_number }}</td>
+      </tr>
+      {% if order_title %}
+      <tr>
+        <td style="padding: 5px 0; color: #6b21a8;"><strong>Title:</strong></td>
+        <td style="padding: 5px 0; color: #6b21a8;">{{ order_title }}</td>
+      </tr>
+      {% endif %}
+      {% if order_type %}
+      <tr>
+        <td style="padding: 5px 0; color: #6b21a8;"><strong>Type:</strong></td>
+        <td style="padding: 5px 0; color: #6b21a8;">{{ order_type }}</td>
+      </tr>
+      {% endif %}
+      {% if deadline %}
+      <tr>
+        <td style="padding: 5px 0; color: #6b21a8;"><strong>Deadline:</strong></td>
+        <td style="padding: 5px 0; color: #6b21a8;">{{ deadline }}</td>
+      </tr>
+      {% endif %}
+      {% if payment_amount %}
+      <tr>
+        <td style="padding: 5px 0; color: #6b21a8;"><strong>Payment:</strong></td>
+        <td style="padding: 5px 0; color: #6b21a8; font-size: 18px; font-weight: bold;">{{ payment_amount }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if order_instructions %}
+  <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 10px;">Instructions:</h3>
+    <p style="margin: 0; color: #374151; line-height: 1.6; white-space: pre-wrap;">{{ order_instructions|linebreaks }}</p>
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #7c3aed; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"View Order" }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

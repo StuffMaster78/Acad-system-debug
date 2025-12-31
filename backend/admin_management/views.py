@@ -327,10 +327,6 @@ class AdminDashboardView(viewsets.ViewSet):
         last_7d = now - timedelta(days=7)
         
         system_health = {
-            "orders_last_24h": Order.objects.filter(created_at__gte=last_24h).count(),
-            "orders_last_7d": Order.objects.filter(created_at__gte=last_7d).count(),
-            "new_users_last_24h": User.objects.filter(date_joined__gte=last_24h).count(),
-            "new_users_last_7d": User.objects.filter(date_joined__gte=last_7d).count(),
             "overdue_orders": Order.objects.filter(
                 client_deadline__lt=now,
                 status__in=["in_progress", "pending", "available"]
@@ -899,17 +895,21 @@ class AdminDisputeManagementViewSet(viewsets.ViewSet):
             count=Count('id')
         )
         
-        # Pending disputes (open)
-        pending_disputes = all_disputes.filter(
-            dispute_status=DisputeStatusEnum.OPEN.value
-        ).count()
-        
-        # Resolved disputes (last 30 days)
+        # Combined aggregations - reduces from 5 queries to 1 query
         month_ago = timezone.now() - timedelta(days=30)
-        resolved_recent = all_disputes.filter(
-            dispute_status=DisputeStatusEnum.RESOLVED.value,
-            updated_at__gte=month_ago
-        ).count()
+        from django.db.models import Q
+        dispute_summary = all_disputes.aggregate(
+            total_disputes=Count('id'),
+            pending_disputes=Count('id', filter=Q(dispute_status=DisputeStatusEnum.OPEN.value)),
+            resolved_recent=Count('id', filter=Q(
+                dispute_status=DisputeStatusEnum.RESOLVED.value,
+                updated_at__gte=month_ago
+            )),
+            awaiting_response=Count('id', filter=Q(
+                dispute_status=DisputeStatusEnum.OPEN.value,
+                writer_responded=False
+            ))
+        )
         
         # Disputes by week
         from django.db.models.functions import TruncWeek
@@ -922,18 +922,12 @@ class AdminDisputeManagementViewSet(viewsets.ViewSet):
         # Recent disputes
         recent_disputes = all_disputes.order_by('-created_at')[:10]
         
-        # Disputes awaiting response (writer hasn't responded)
-        awaiting_response = all_disputes.filter(
-            dispute_status=DisputeStatusEnum.OPEN.value,
-            writer_responded=False
-        ).count()
-        
         return Response({
             'summary': {
-                'total_disputes': all_disputes.count(),
-                'pending_disputes': pending_disputes,
-                'resolved_recent': resolved_recent,
-                'awaiting_response': awaiting_response,
+                'total_disputes': dispute_summary['total_disputes'] or 0,
+                'pending_disputes': dispute_summary['pending_disputes'] or 0,
+                'resolved_recent': dispute_summary['resolved_recent'] or 0,
+                'awaiting_response': dispute_summary['awaiting_response'] or 0,
             },
             'status_breakdown': {
                 item['dispute_status']: item['count'] 
@@ -1071,22 +1065,22 @@ class AdminRefundManagementViewSet(viewsets.ViewSet):
             total_amount=Sum(F('wallet_amount') + F('external_amount'))
         )
         
-        # Pending refunds
-        pending_refunds = all_refunds.filter(status='pending').count()
-        pending_amount = all_refunds.filter(status='pending').aggregate(
-            total=Sum(F('wallet_amount') + F('external_amount'))
-        )['total'] or 0
-        
-        # Processed refunds (last 30 days)
+        # Combined aggregations - reduces from 5 queries to 2 queries
         month_ago = timezone.now() - timedelta(days=30)
-        processed_recent = all_refunds.filter(
-            status='processed',
-            processed_at__gte=month_ago
-        ).count()
-        processed_amount = all_refunds.filter(
-            status='processed',
-            processed_at__gte=month_ago
-        ).aggregate(total=Sum(F('wallet_amount') + F('external_amount')))['total'] or 0
+        from django.db.models import Q
+        refund_summary = all_refunds.aggregate(
+            total_refunds=Count('id'),
+            pending_refunds=Count('id', filter=Q(status='pending')),
+            pending_amount=Sum(F('wallet_amount') + F('external_amount'), filter=Q(status='pending')),
+            processed_recent=Count('id', filter=Q(
+                status='processed',
+                processed_at__gte=month_ago
+            )),
+            processed_amount=Sum(F('wallet_amount') + F('external_amount'), filter=Q(
+                status='processed',
+                processed_at__gte=month_ago
+            ))
+        )
         
         # Refunds by week
         from django.db.models.functions import TruncWeek
@@ -1102,11 +1096,11 @@ class AdminRefundManagementViewSet(viewsets.ViewSet):
         
         return Response({
             'summary': {
-                'total_refunds': all_refunds.count(),
-                'pending_refunds': pending_refunds,
-                'pending_amount': float(pending_amount),
-                'processed_recent': processed_recent,
-                'processed_amount': float(processed_amount),
+                'total_refunds': refund_summary['total_refunds'] or 0,
+                'pending_refunds': refund_summary['pending_refunds'] or 0,
+                'pending_amount': float(refund_summary['pending_amount'] or 0),
+                'processed_recent': refund_summary['processed_recent'] or 0,
+                'processed_amount': float(refund_summary['processed_amount'] or 0),
             },
             'status_breakdown': {
                 item['status']: {

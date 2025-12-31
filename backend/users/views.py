@@ -433,8 +433,25 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response({"message": "Account deletion request submitted successfully."}, status=status.HTTP_201_CREATED)
     @action(detail=False, methods=['get'])
     def profile(self, request):
-        """Retrieve the authenticated user's profile."""
+        """
+        Retrieve the authenticated user's profile with optimized queries.
+        Uses select_related and prefetch_related to minimize database hits.
+        """
+        from django.core.cache import cache
+        from django.utils.decorators import method_decorator
+        from django.views.decorators.cache import cache_page
+        from django.views.decorators.vary import vary_on_headers
+        
         user = request.user
+        
+        # Cache key based on user ID and role
+        cache_key = f"user_profile_{user.id}_{user.role}"
+        cached_data = cache.get(cache_key)
+        
+        # Return cached data if available (5 minute cache)
+        if cached_data:
+            return Response(cached_data)
+        
         profile_map = {
             "client": (ClientProfile, ClientProfileSerializer),
             "writer": (WriterProfile, WriterProfileSerializer),
@@ -446,12 +463,142 @@ class UserViewSet(viewsets.ModelViewSet):
 
         profile_model, serializer_class = profile_map.get(user.role, (None, None))
         if profile_model:
-            profile_instance = get_object_or_404(profile_model, user=user)
+            # Optimize queries based on role
+            try:
+                if user.role == "client":
+                    profile_instance = ClientProfile.objects.select_related(
+                        'user', 'user__user_main_profile', 'website'
+                    ).prefetch_related(
+                        'user__notification_profile'
+                    ).get(user=user)
+                elif user.role == "writer":
+                    profile_instance = WriterProfile.objects.select_related(
+                        'user', 'user__user_main_profile', 'website', 'writer_level'
+                    ).prefetch_related(
+                        'user__notification_profile',
+                        'expertise_subjects',
+                        'expertise_paper_types'
+                    ).get(user=user)
+                elif user.role == "editor":
+                    profile_instance = EditorProfile.objects.select_related(
+                        'user', 'user__user_main_profile', 'website'
+                    ).prefetch_related(
+                        'user__notification_profile',
+                        'expertise_subjects',
+                        'expertise_paper_types'
+                    ).get(user=user)
+                elif user.role == "support":
+                    profile_instance = SupportProfile.objects.select_related(
+                        'user', 'user__user_main_profile', 'website'
+                    ).prefetch_related(
+                        'user__notification_profile'
+                    ).get(user=user)
+                else:
+                    # Admin/Superadmin - no separate profile model
+                    profile_instance = user
+            except (ClientProfile.DoesNotExist, WriterProfile.DoesNotExist, 
+                    EditorProfile.DoesNotExist, SupportProfile.DoesNotExist):
+                raise PermissionDenied("Profile not found for this user.")
+            
             serializer = serializer_class(profile_instance)
-            return Response(serializer.data)
+            data = serializer.data
+            
+            # Cache the response for 5 minutes
+            cache.set(cache_key, data, 300)
+            
+            return Response(data)
 
         raise PermissionDenied("Invalid role or unauthorized access.")
 
+    @action(detail=False, methods=['patch', 'put'], permission_classes=[permissions.IsAuthenticated])
+    def update_profile(self, request):
+        """
+        Update the authenticated user's profile with cache invalidation.
+        Handles profile_picture uploads separately since it's on UserProfile, not the role-specific profile.
+        """
+        from django.core.cache import cache
+        from users.models import UserProfile
+        # User is already imported at the top of the file
+        
+        user = request.user
+        
+        # Invalidate cache
+        cache_key = f"user_profile_{user.id}_{user.role}"
+        cache.delete(cache_key)
+        
+        # Handle profile_picture upload separately (it's on UserProfile, not role-specific profile)
+        profile_picture = request.FILES.get('profile_picture')
+        if profile_picture:
+            # Get or create UserProfile
+            user_profile, created = UserProfile.objects.get_or_create(user=user)
+            # Update profile_picture
+            user_profile.profile_picture = profile_picture
+            user_profile.save(update_fields=['profile_picture'])
+            # Refresh from database to get the updated URL
+            user_profile.refresh_from_db()
+        
+        profile_map = {
+            "client": (ClientProfile, ClientProfileSerializer),
+            "writer": (WriterProfile, WriterProfileSerializer),
+            "editor": (EditorProfile, EditorProfileSerializer),
+            "support": (SupportProfile, SupportProfileSerializer),
+            "admin": (User, AdminProfileSerializer),
+            "superadmin": (User, AdminProfileSerializer),
+        }
+
+        profile_model, serializer_class = profile_map.get(user.role, (None, None))
+        if profile_model:
+            if user.role in ["admin", "superadmin"]:
+                profile_instance = user
+            else:
+                # Use select_related to ensure user_main_profile is loaded
+                profile_instance = get_object_or_404(
+                    profile_model.objects.select_related('user', 'user__user_main_profile'),
+                    user=user
+                )
+            
+            # Remove profile_picture from request.data if it was handled above
+            # (to avoid serializer errors)
+            # For multipart/form-data, request.data is a QueryDict which needs special handling
+            if profile_picture and 'profile_picture' in request.data:
+                # Create a mutable copy of request.data
+                from django.http import QueryDict
+                if isinstance(request.data, QueryDict):
+                    serializer_data = request.data.copy()
+                    serializer_data.pop('profile_picture', None)
+                else:
+                    serializer_data = dict(request.data)
+                    serializer_data.pop('profile_picture', None)
+            else:
+                serializer_data = request.data
+            
+            serializer = serializer_class(profile_instance, data=serializer_data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                
+                # Invalidate cache after update
+                cache.delete(cache_key)
+                
+                # Re-fetch the instance with related objects to ensure avatar_url is calculated correctly
+                if user.role in ["admin", "superadmin"]:
+                    # For admin/superadmin, refresh user with user_main_profile
+                    # User is already imported at the top of the file
+                    profile_instance = User.objects.select_related('user_main_profile').get(pk=user.pk)
+                else:
+                    # Re-fetch with select_related to ensure relationships are loaded
+                    profile_instance = profile_model.objects.select_related(
+                        'user', 'user__user_main_profile'
+                    ).get(pk=profile_instance.pk)
+                
+                # Re-serialize with fresh data to ensure avatar_url is included
+                updated_serializer = serializer_class(profile_instance)
+                
+                # Return updated serializer data
+                return Response(updated_serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        raise PermissionDenied("Invalid role or unauthorized access.")
+    
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def location_info(self, request):
         """

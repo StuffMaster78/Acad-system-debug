@@ -1,0 +1,81 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: {% if decision == 'approved' %}#10b981{% else %}#dc2626{% endif %}; margin: 0 0 20px 0;">
+    Request {{ decision|title }}
+  </h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Your request has been "|add:decision|add:"."|linebreaks }}
+  </p>
+
+  {% if request_title %}
+  <div style="background-color: {% if decision == 'approved' %}#f0fdf4{% else %}#fef2f2{% endif %}; border: 2px solid {% if decision == 'approved' %}#86efac{% else %}#fca5a5{% endif %}; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <h2 style="color: {% if decision == 'approved' %}#166534{% else %}#991b1b{% endif %}; margin: 0 0 15px 0; font-size: 20px;">{{ request_title }}</h2>
+    {% if request_description %}
+    <p style="margin: 0; color: {% if decision == 'approved' %}#166534{% else %}#991b1b{% endif %}; line-height: 1.6; white-space: pre-wrap;">{{ request_description|linebreaks }}</p>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% if decision_details %}
+  <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 15px;">Decision Details:</h3>
+    <table style="width: 100%;">
+      {% if decided_by %}
+      <tr>
+        <td style="padding: 5px 0; color: #374151;"><strong>Decided by:</strong></td>
+        <td style="padding: 5px 0; color: #374151;">{{ decided_by }}</td>
+      </tr>
+      {% endif %}
+      {% if decided_at %}
+      <tr>
+        <td style="padding: 5px 0; color: #374151;"><strong>Decided on:</strong></td>
+        <td style="padding: 5px 0; color: #374151;">{{ decided_at }}</td>
+      </tr>
+      {% endif %}
+      {% if decision_reason %}
+      <tr>
+        <td style="padding: 5px 0; color: #374151;"><strong>Reason:</strong></td>
+        <td style="padding: 5px 0; color: #374151;">{{ decision_reason }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if decision == 'approved' and next_steps %}
+  <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #166534; margin-top: 0; margin-bottom: 10px;">✅ Next Steps:</h3>
+    <ul style="color: #166534; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      {% for step in next_steps %}
+      <li>{{ step }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if decision == 'rejected' and appeal_info %}
+  <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #1e40af; font-size: 14px; line-height: 1.6;">
+      <strong>💡 Appeal:</strong> {{ appeal_info }}
+    </p>
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: {% if decision == 'approved' %}#10b981{% else %}#2563eb{% endif %}; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"View Details" }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

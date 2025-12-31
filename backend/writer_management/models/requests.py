@@ -311,6 +311,14 @@ class WriterDeadlineExtensionRequest(models.Model):
                 pass
         super().save(*args, **kwargs)
     
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['writer', 'approved', 'requested_at']),
+            models.Index(fields=['order', 'approved']),
+            models.Index(fields=['website', 'approved']),
+            models.Index(fields=['approved', 'requested_at']),
+        ]
 
 class WriterOrderHoldRequest(models.Model):
     """
@@ -353,6 +361,14 @@ class WriterOrderHoldRequest(models.Model):
                 pass
         super().save(*args, **kwargs)
     
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['writer', 'approved', 'requested_at']),
+            models.Index(fields=['order', 'approved']),
+            models.Index(fields=['website', 'approved']),
+            models.Index(fields=['approved', 'requested_at']),
+        ]
 
 class WriterReassignmentRequest(models.Model):
     """
@@ -436,6 +452,14 @@ class WriterOrderReopenRequest(models.Model):
                 pass
         super().save(*args, **kwargs)
     
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['writer', 'approved', 'requested_at']),
+            models.Index(fields=['order', 'approved']),
+            models.Index(fields=['website', 'approved']),
+            models.Index(fields=['approved', 'requested_at']),
+        ]
 
 class WriterDemotionRequest(models.Model):
     """
@@ -495,3 +519,12 @@ class WriterEarningsReviewRequest(models.Model):
 
     def __str__(self):
         return f"Earnings Review Request: {self.writer.user.username} (Approved: {self.approved})"
+    
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['writer', 'approved', 'requested_at']),
+            models.Index(fields=['order', 'approved']),
+            models.Index(fields=['website', 'approved']),
+            models.Index(fields=['approved', 'requested_at']),
+        ]

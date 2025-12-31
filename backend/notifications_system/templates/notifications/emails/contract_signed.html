@@ -1,0 +1,71 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #10b981; margin: 0 0 20px 0;">Contract Signed</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Your contract has been successfully signed by all parties."|linebreaks }}
+  </p>
+
+  {% if contract_name %}
+  <div style="background-color: #f0fdf4; border: 2px solid #86efac; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Contract:</strong></td>
+        <td style="padding: 5px 0; color: #166534; font-weight: bold;">{{ contract_name }}</td>
+      </tr>
+      {% if contract_id %}
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Contract ID:</strong></td>
+        <td style="padding: 5px 0; color: #166534;">{{ contract_id }}</td>
+      </tr>
+      {% endif %}
+      {% if signed_at %}
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Signed on:</strong></td>
+        <td style="padding: 5px 0; color: #166534;">{{ signed_at }}</td>
+      </tr>
+      {% endif %}
+      {% if signed_by %}
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Signed by:</strong></td>
+        <td style="padding: 5px 0; color: #166534;">{{ signed_by|join:", " }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if contract_terms %}
+  <div style="background-color: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 10px;">Key Terms:</h3>
+    <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      {% for term in contract_terms %}
+      <li>{{ term }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if download_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ download_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Download Contract" }}
+    </a>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #1e40af; font-size: 14px; line-height: 1.6;">
+      <strong>📄 Legal Notice:</strong> This contract is now legally binding. Please keep a copy for your records.
+    </p>
+  </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,63 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #f59e0b; margin: 0 0 20px 0;">Revision Requested</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"A revision has been requested for your order."|linebreaks }}
+  </p>
+
+  {% if order_number %}
+  <div style="background-color: #fffbeb; border: 2px solid #fcd34d; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #92400e;"><strong>Order Number:</strong></td>
+        <td style="padding: 5px 0; color: #92400e;">{{ order_number }}</td>
+      </tr>
+      {% if order_title %}
+      <tr>
+        <td style="padding: 5px 0; color: #92400e;"><strong>Title:</strong></td>
+        <td style="padding: 5px 0; color: #92400e;">{{ order_title }}</td>
+      </tr>
+      {% endif %}
+      {% if revision_deadline %}
+      <tr>
+        <td style="padding: 5px 0; color: #92400e;"><strong>Revision Deadline:</strong></td>
+        <td style="padding: 5px 0; color: #92400e; font-weight: bold;">{{ revision_deadline }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if revision_notes %}
+  <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #f59e0b;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 10px;">Revision Notes:</h3>
+    <div style="color: #374151; line-height: 1.6; white-space: pre-wrap;">{{ revision_notes|linebreaks }}</div>
+  </div>
+  {% endif %}
+
+  {% if revision_type %}
+  <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #92400e; font-size: 14px;">
+      <strong>Revision Type:</strong> {{ revision_type }}
+    </p>
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #f59e0b; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"View Revision Details" }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

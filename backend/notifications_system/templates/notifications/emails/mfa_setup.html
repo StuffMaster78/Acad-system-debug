@@ -1,0 +1,75 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #10b981; margin: 0 0 20px 0;">Two-Factor Authentication Setup</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Two-factor authentication has been enabled on your account for enhanced security."|linebreaks }}
+  </p>
+
+  {% if setup_method %}
+  <div style="background-color: #f0fdf4; border: 2px solid #86efac; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Method:</strong></td>
+        <td style="padding: 5px 0; color: #166534; font-weight: bold;">{{ setup_method }}</td>
+      </tr>
+      {% if setup_at %}
+      <tr>
+        <td style="padding: 5px 0; color: #166534;"><strong>Enabled on:</strong></td>
+        <td style="padding: 5px 0; color: #166534;">{{ setup_at }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if backup_codes %}
+  <div style="background-color: #fef2f2; border: 2px solid #fca5a5; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <h3 style="color: #991b1b; margin-top: 0; margin-bottom: 15px;">⚠️ Save These Backup Codes:</h3>
+    <div style="background-color: #1f2937; padding: 15px; border-radius: 6px; margin: 10px 0;">
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-family: monospace;">
+        {% for code in backup_codes %}
+        <div style="color: #10b981; font-size: 14px; padding: 8px; background-color: #374151; border-radius: 4px; text-align: center;">
+          {{ code }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    <p style="margin: 10px 0 0 0; color: #7f1d1d; font-size: 12px; line-height: 1.6;">
+      <strong>Important:</strong> Store these codes in a safe place. You'll need them if you lose access to your authenticator app.
+    </p>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #166534; margin-top: 0; margin-bottom: 10px;">✅ Benefits:</h3>
+    <ul style="color: #166534; margin: 0; padding-left: 20px; line-height: 1.8; font-size: 14px;">
+      <li>Enhanced account security</li>
+      <li>Protection against unauthorized access</li>
+      <li>Alerts for suspicious login attempts</li>
+    </ul>
+  </div>
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Manage 2FA Settings" }}
+    </a>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #fef2f2; border-left: 4px solid #dc2626; padding: 15px; margin: 30px 0;">
+    <p style="margin: 0; color: #991b1b; font-size: 14px; line-height: 1.6;">
+      <strong>🔒 Security Notice:</strong> If you didn't enable two-factor authentication, please secure your account immediately and contact support.
+    </p>
+  </div>
+</div>
+{% endblock %}
+

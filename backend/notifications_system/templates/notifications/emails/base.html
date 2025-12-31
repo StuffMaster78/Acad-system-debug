@@ -36,6 +36,7 @@
 </head>
 <body>
   <div class="email-container">
+    {% block content %}
     <h2>{{ subject }}</h2>
     <p>{{ message|linebreaks }}</p>
 
@@ -44,6 +45,7 @@
         <a href="{{ cta_url }}" class="btn">{{ cta_label|default:"View Details" }}</a>
       </p>
     {% endif %}
+    {% endblock %}
 
     <div class="footer">
       Sent by {{ website_name|default:"Our Platform" }}<br>

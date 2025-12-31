@@ -1,0 +1,82 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #10b981; margin: 0 0 20px 0;">Payment Processed</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"Your payment has been processed and sent to your account."|linebreaks }}
+  </p>
+
+  {% if payment_amount %}
+  <div style="background-color: #f0fdf4; border: 2px solid #86efac; padding: 25px; border-radius: 8px; margin: 30px 0; text-align: center;">
+    <p style="margin: 0 0 10px 0; color: #166534; font-size: 14px;">Payment Amount</p>
+    <p style="margin: 0; color: #166534; font-size: 36px; font-weight: bold;">{{ payment_amount }}</p>
+  </div>
+  {% endif %}
+
+  {% if payment_details %}
+  <div style="background-color: #eff6ff; border: 2px solid #93c5fd; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      {% if payment_method %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Payment Method:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ payment_method }}</td>
+      </tr>
+      {% endif %}
+      {% if payment_date %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Payment Date:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ payment_date }}</td>
+      </tr>
+      {% endif %}
+      {% if transaction_id %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Transaction ID:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af; font-family: monospace; font-size: 12px;">{{ transaction_id }}</td>
+      </tr>
+      {% endif %}
+      {% if payment_period %}
+      <tr>
+        <td style="padding: 5px 0; color: #1e40af;"><strong>Period:</strong></td>
+        <td style="padding: 5px 0; color: #1e40af;">{{ payment_period }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if completed_orders %}
+  <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 15px;">Completed Orders ({{ completed_orders|length }}):</h3>
+    <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.8;">
+      {% for order in completed_orders %}
+      <li>{{ order.title|default:order.number }} - {{ order.amount }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if tax_info %}
+  <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+    <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+      <strong>📄 Tax Information:</strong> {{ tax_info }}
+    </p>
+  </div>
+  {% endif %}
+
+  {% if cta_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ cta_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #10b981; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"View Payment Details" }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

@@ -1,0 +1,74 @@
+{% extends "notifications/emails/base.html" %}
+{% block content %}
+<div style="text-align: center; padding: 20px 0;">
+  <h1 style="color: #7c3aed; margin: 0 0 20px 0;">Scheduled Maintenance</h1>
+</div>
+
+<div style="padding: 20px 0;">
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    Hi {{ user.get_full_name|default:user.username }},
+  </p>
+  
+  <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+    {{ message|default:"We'll be performing scheduled maintenance on our system."|linebreaks }}
+  </p>
+
+  {% if maintenance_start or maintenance_end %}
+  <div style="background-color: #faf5ff; border: 2px solid #c084fc; padding: 20px; border-radius: 8px; margin: 30px 0;">
+    <table style="width: 100%;">
+      {% if maintenance_start %}
+      <tr>
+        <td style="padding: 5px 0; color: #6b21a8;"><strong>Start Time:</strong></td>
+        <td style="padding: 5px 0; color: #6b21a8; font-weight: bold;">{{ maintenance_start }}</td>
+      </tr>
+      {% endif %}
+      {% if maintenance_end %}
+      <tr>
+        <td style="padding: 5px 0; color: #6b21a8;"><strong>End Time:</strong></td>
+        <td style="padding: 5px 0; color: #6b21a8; font-weight: bold;">{{ maintenance_end }}</td>
+      </tr>
+      {% endif %}
+      {% if duration %}
+      <tr>
+        <td style="padding: 5px 0; color: #6b21a8;"><strong>Duration:</strong></td>
+        <td style="padding: 5px 0; color: #6b21a8;">{{ duration }}</td>
+      </tr>
+      {% endif %}
+    </table>
+  </div>
+  {% endif %}
+
+  {% if affected_services %}
+  <div style="background-color: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+    <h3 style="color: #1f2937; margin-top: 0; margin-bottom: 15px;">Affected Services:</h3>
+    <ul style="color: #374151; margin: 0; padding-left: 20px; line-height: 1.8;">
+      {% for service in affected_services %}
+      <li>{{ service }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% if maintenance_details %}
+  <div style="background-color: #eff6ff; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
+    <h3 style="color: #1e40af; margin-top: 0; margin-bottom: 10px;">What to Expect:</h3>
+    <p style="margin: 0; color: #1e40af; line-height: 1.6; white-space: pre-wrap;">{{ maintenance_details|linebreaks }}</p>
+  </div>
+  {% endif %}
+
+  <div style="background-color: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 30px 0;">
+    <p style="margin: 0; color: #92400e; font-size: 14px; line-height: 1.6;">
+      <strong>💡 Tip:</strong> Please save your work before the maintenance window begins. We apologize for any inconvenience.
+    </p>
+  </div>
+
+  {% if status_url %}
+  <div style="text-align: center; margin: 30px 0;">
+    <a href="{{ status_url }}" class="btn" style="display: inline-block; padding: 14px 28px; background-color: #7c3aed; color: white; text-decoration: none; border-radius: 8px; font-weight: 600;">
+      {{ cta_label|default:"Check Status" }}
+    </a>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+

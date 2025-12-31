@@ -128,7 +128,13 @@ const loadRequests = async () => {
     requests.value = Array.isArray(response.data) ? response.data : (response.data?.results || [])
   } catch (err) {
     console.error('Failed to load profile update requests:', err)
-    error.value = err?.response?.data?.error || err?.response?.data?.message || 'Failed to load update requests. Please try again.'
+    // Silently fail if endpoint doesn't exist (404) - feature might not be available
+    if (err?.response?.status === 404) {
+      requests.value = []
+      error.value = ''
+    } else {
+      error.value = err?.response?.data?.error || err?.response?.data?.message || 'Failed to load update requests. Please try again.'
+    }
   } finally {
     loading.value = false
   }
