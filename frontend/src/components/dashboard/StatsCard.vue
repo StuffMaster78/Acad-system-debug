@@ -13,15 +13,27 @@
           {{ Math.abs(change) }}% from last month
         </p>
       </div>
-      <div class="p-3 rounded-lg" :class="bgColor || 'bg-primary-100'">
-        <span class="text-2xl">{{ icon }}</span>
+      <div class="p-3 rounded-xl shadow-lg" :class="bgColor || 'bg-gradient-to-br from-primary-500 to-primary-600'">
+        <component v-if="iconComponent" :is="iconComponent" class="w-6 h-6 text-white" />
+        <span v-else class="text-2xl">{{ icon }}</span>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import {
+  CurrencyDollarIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  CreditCardIcon,
+  StarIcon,
+  PencilSquareIcon,
+  ChartBarIcon
+} from '@heroicons/vue/24/outline'
+
+const props = defineProps({
   name: {
     type: String,
     required: true
@@ -44,8 +56,23 @@ defineProps({
   },
   bgColor: {
     type: String,
-    default: 'bg-primary-100'
+    default: 'bg-gradient-to-br from-primary-500 to-primary-600'
   }
+})
+
+// Map emoji to icon components
+const iconMap = {
+  '💰': CurrencyDollarIcon,
+  '✅': CheckCircleIcon,
+  '⏰': ClockIcon,
+  '💳': CreditCardIcon,
+  '⭐': StarIcon,
+  '📝': PencilSquareIcon,
+  '📊': ChartBarIcon
+}
+
+const iconComponent = computed(() => {
+  return iconMap[props.icon] || null
 })
 </script>
 

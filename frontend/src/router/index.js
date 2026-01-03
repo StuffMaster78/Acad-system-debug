@@ -490,6 +490,26 @@ const router = createRouter({
           },
         },
         {
+          path: 'announcements',
+          name: 'Announcements',
+          component: () => import('@/views/announcements/Announcements.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Announcements',
+            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+          },
+        },
+        {
+          path: 'announcements/:id',
+          name: 'AnnouncementDetail',
+          component: () => import('@/views/announcements/AnnouncementDetail.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Announcement Details',
+            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+          },
+        },
+        {
           path: 'messages',
           name: 'Messages',
           component: () => import('@/views/messages/Messages.vue'),
@@ -976,6 +996,16 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Email Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/announcements',
+          name: 'AdminAnnouncements',
+          component: () => import('@/views/admin/AnnouncementsManagement.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Announcements Management',
             roles: ['admin', 'superadmin'],
           },
         },

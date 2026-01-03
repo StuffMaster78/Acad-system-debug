@@ -73,7 +73,9 @@
               {{ nextDeadlineInfo ? formatDate(nextDeadlineInfo.deadline) : 'No deadlines' }}
             </p>
           </div>
-          <span class="text-3xl">⏳</span>
+          <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
+            <ClockIcon class="w-6 h-6 text-white" />
+          </div>
         </div>
         <p class="text-sm text-gray-600">
           {{ nextDeadlineInfo ? (nextDeadlineInfo.topic || 'Assigned order') : 'Enjoy the calm before the next assignment.' }}
@@ -102,7 +104,9 @@
               {{ isAvailabilityOnline ? 'Available' : 'On Break' }}
             </p>
           </div>
-          <span class="text-3xl">{{ isAvailabilityOnline ? '🟢' : '🛌' }}</span>
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" :class="isAvailabilityOnline ? 'bg-gradient-to-br from-green-500 to-green-600' : 'bg-gradient-to-br from-gray-400 to-gray-500'">
+            <component :is="isAvailabilityOnline ? CheckCircleIcon : MoonIcon" class="w-6 h-6 text-white" />
+          </div>
         </div>
         <p class="text-sm text-gray-600">
           {{ isAvailabilityOnline ? 'You appear in the pool for instant assignments.' : 'You will not auto-receive urgent orders.' }}
@@ -140,7 +144,9 @@
             <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Auto Refresh</p>
             <p class="text-2xl font-bold text-gray-900">{{ autoRefreshEnabled ? 'Enabled' : 'Disabled' }}</p>
           </div>
-          <span class="text-3xl">{{ autoRefreshEnabled ? '🔁' : '⏱️' }}</span>
+          <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" :class="autoRefreshEnabled ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-gray-400 to-gray-500'">
+            <component :is="autoRefreshEnabled ? ArrowPathIcon : ClockIcon" class="w-6 h-6 text-white" :class="autoRefreshEnabled && 'animate-spin'" />
+          </div>
         </div>
         <p class="text-sm text-gray-600">
           {{ autoRefreshEnabled ? 'Queue refreshes every 30s so you never miss a drop.' : 'Turn on auto refresh to watch new orders appear in real-time.' }}
@@ -179,7 +185,9 @@
             <p class="text-xs font-semibold text-orange-500 uppercase tracking-wide">Orders Ready</p>
             <p class="text-2xl font-bold text-gray-900">{{ realtimeOrdersReady.count || 0 }}</p>
           </div>
-          <span class="text-3xl">🚀</span>
+          <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+            <RocketLaunchIcon class="w-6 h-6 text-white" />
+          </div>
         </div>
         <p class="text-sm text-gray-600">
           {{ realtimeOrdersReady.count ? 'Orders that are nearly ready to submit.' : 'All caught up!' }}
@@ -242,24 +250,28 @@
         :value="writerEarningsData?.total_earnings ? `$${writerEarningsData.total_earnings.toFixed(2)}` : '$0.00'"
         icon="💰"
         :subtitle="writerEarningsData?.this_month ? `$${writerEarningsData.this_month.toFixed(2)} this month` : ''"
+        bgColor="bg-gradient-to-br from-green-500 to-green-600"
       />
       <StatsCard
         name="Completed Orders"
         :value="writerPerformanceData?.completed_orders || 0"
         icon="✅"
         :subtitle="writerPerformanceData?.completion_rate ? `${writerPerformanceData.completion_rate.toFixed(1)}% completion rate` : 'No data'"
+        bgColor="bg-gradient-to-br from-blue-500 to-blue-600"
       />
       <StatsCard
         name="On-Time Rate"
         :value="writerPerformanceData?.on_time_rate ? `${writerPerformanceData.on_time_rate.toFixed(1)}%` : '0%'"
         icon="⏰"
         :subtitle="writerPerformanceData?.on_time_orders ? `${writerPerformanceData.on_time_orders}/${writerPerformanceData.completed_orders || 0} on time` : 'No data'"
+        bgColor="bg-gradient-to-br from-green-500 to-green-600"
       />
       <StatsCard
         name="Pending Payments"
         :value="writerEarningsData?.pending_payments ? `$${writerEarningsData.pending_payments.toFixed(2)}` : '$0.00'"
         icon="💳"
         subtitle="Awaiting payment"
+        bgColor="bg-gradient-to-br from-purple-500 to-purple-600"
       />
     </div>
 
@@ -280,28 +292,36 @@
               <div class="text-sm font-medium text-gray-600">This Week</div>
               <div class="text-2xl font-bold text-green-600">${{ writerEarningsData?.this_week?.toFixed(2) || '0.00' }}</div>
             </div>
-            <span class="text-3xl">📅</span>
+            <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-md">
+              <CalendarIcon class="w-5 h-5 text-white" />
+            </div>
           </div>
           <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
             <div>
               <div class="text-sm font-medium text-gray-600">This Month</div>
               <div class="text-2xl font-bold text-blue-600">${{ writerEarningsData?.this_month?.toFixed(2) || '0.00' }}</div>
             </div>
-            <span class="text-3xl">💰</span>
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
+              <CurrencyDollarIcon class="w-5 h-5 text-white" />
+            </div>
           </div>
           <div class="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
             <div>
               <div class="text-sm font-medium text-gray-600">This Year</div>
               <div class="text-2xl font-bold text-purple-600">${{ writerEarningsData?.this_year?.toFixed(2) || '0.00' }}</div>
             </div>
-            <span class="text-3xl">📊</span>
+            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
+              <ChartBarIcon class="w-5 h-5 text-white" />
+            </div>
           </div>
           <div class="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
             <div>
               <div class="text-sm font-medium text-gray-600">Avg per Order</div>
               <div class="text-2xl font-bold text-orange-600">${{ writerEarningsData?.avg_per_order?.toFixed(2) || '0.00' }}</div>
             </div>
-            <span class="text-3xl">📈</span>
+            <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center shadow-md">
+              <ArrowTrendingUpIcon class="w-5 h-5 text-white" />
+            </div>
           </div>
         </div>
       </div>
@@ -320,28 +340,28 @@
           :value="writerPerformanceData?.completion_rate ? `${writerPerformanceData.completion_rate.toFixed(1)}%` : '0.0%'"
           icon="✅"
           :subtitle="`${writerPerformanceData?.completed_orders || 0}/${writerPerformanceData?.total_orders || 0} orders`"
-          bgColor="bg-blue-100"
+          bgColor="bg-gradient-to-br from-blue-500 to-blue-600"
         />
         <StatsCard
           name="On-Time Rate"
           :value="writerPerformanceData?.on_time_rate ? `${writerPerformanceData.on_time_rate.toFixed(1)}%` : '0.0%'"
           icon="⏰"
           :subtitle="`${writerPerformanceData?.on_time_orders || 0} on time`"
-          bgColor="bg-green-100"
+          bgColor="bg-gradient-to-br from-green-500 to-green-600"
         />
         <StatsCard
           name="Average Rating"
           :value="writerPerformanceData?.avg_rating ? writerPerformanceData.avg_rating.toFixed(1) : 'N/A'"
           icon="⭐"
           subtitle="Client satisfaction"
-          bgColor="bg-yellow-100"
+          bgColor="bg-gradient-to-br from-amber-500 to-amber-600"
         />
         <StatsCard
           name="Revision Rate"
           :value="writerPerformanceData?.revision_rate ? `${writerPerformanceData.revision_rate.toFixed(1)}%` : '0.0%'"
           icon="📝"
           :subtitle="`${writerPerformanceData?.revised_orders || 0} revised`"
-          bgColor="bg-orange-100"
+          bgColor="bg-gradient-to-br from-orange-500 to-orange-600"
         />
       </div>
 
@@ -1194,6 +1214,19 @@
 
 <script setup>
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import {
+  ClockIcon,
+  CheckCircleIcon,
+  MoonIcon,
+  ArrowPathIcon,
+  RocketLaunchIcon,
+  // TargetIcon, // Replaced with Lucide Target
+  CalendarIcon,
+  CurrencyDollarIcon,
+  ChartBarIcon,
+  ArrowTrendingUpIcon
+} from '@heroicons/vue/24/outline'
+import { Target } from 'lucide-vue-next'
 import StatsCard from '@/components/dashboard/StatsCard.vue'
 import QuickActionCard from '@/components/dashboard/QuickActionCard.vue'
 import ChartWidget from '@/components/dashboard/ChartWidget.vue'

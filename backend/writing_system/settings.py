@@ -142,6 +142,7 @@ INSTALLED_APPS = [
     'notifications_system',
     'tickets',
     'mass_emails',
+    'announcements',  # Announcements Center
     'analytics',
     'holiday_management',  # Holiday and special day management
 
@@ -218,7 +219,7 @@ DATABASES = {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('POSTGRES_DB_NAME') or 'writingsondo',  #Database Name with fallback
         'USER': os.getenv('POSTGRES_USER_NAME') or 'awinorick',  #Database username with fallback
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD') or '',  #Database password
+        'PASSWORD': os.getenv('POSTGRES_PASSWORD') or 'Nyakach2030',  #Database password with fallback (matches docker-compose default)
         "HOST": os.getenv("DB_HOST", "db"),  # Hostname
         "PORT": os.getenv("DB_PORT", 5432),  # Port
     }

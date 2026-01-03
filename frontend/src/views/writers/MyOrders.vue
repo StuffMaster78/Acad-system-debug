@@ -15,79 +15,84 @@
           <button
             @click="loadOrders"
             :disabled="loading"
-            class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
           >
-            {{ loading ? 'Loading...' : 'Refresh' }}
+            <ArrowPathIcon :class="['w-5 h-5', loading && 'animate-spin']" />
+            <span>{{ loading ? 'Refreshing...' : 'Refresh' }}</span>
           </button>
         </div>
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
-          <div class="flex items-start justify-between">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-blue-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
+              <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">
                 In Progress
               </p>
-              <p class="text-3xl sm:text-4xl font-bold text-blue-900">
+              <p class="text-4xl font-extrabold text-blue-900">
                 {{ stats.in_progress || 0 }}
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span class="text-2xl">📝</span>
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                <PencilIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
-          <div class="flex items-start justify-between">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-amber-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
+              <p class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">
                 Due Soon
               </p>
-              <p class="text-3xl sm:text-4xl font-bold text-yellow-900">
+              <p class="text-4xl font-extrabold text-amber-900">
                 {{ stats.due_soon || 0 }}
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
-                <span class="text-2xl">⏰</span>
+              <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                <ClockIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
-          <div class="flex items-start justify-between">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-emerald-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
+              <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2">
                 Submitted
               </p>
-              <p class="text-3xl sm:text-4xl font-bold text-green-900">
+              <p class="text-4xl font-extrabold text-emerald-900">
                 {{ stats.submitted || 0 }}
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-                <span class="text-2xl">✅</span>
+              <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                <PaperAirplaneIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
-          <div class="flex items-start justify-between">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-indigo-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-2">
+              <p class="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">
                 Total Active
               </p>
-              <p class="text-3xl sm:text-4xl font-bold text-purple-900">
+              <p class="text-4xl font-extrabold text-indigo-900">
                 {{ stats.total_active || 0 }}
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-                <span class="text-2xl">📊</span>
+              <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                <ChartBarIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
@@ -95,25 +100,27 @@
       </div>
 
       <!-- Filters -->
-      <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+      <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          <h3 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <span class="text-2xl">🔍</span>
-            <span>Filters</span>
+          <h3 class="text-xl font-extrabold text-gray-900 flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-md">
+              <FunnelIcon class="w-5 h-5 text-white" />
+            </div>
+            <span>Filters & Search</span>
           </h3>
           <div class="flex items-center gap-3">
             <button
               @click="showAdvancedFilters = !showAdvancedFilters"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
+              class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all border-2 border-transparent hover:border-primary-200"
             >
-              <span>{{ showAdvancedFilters ? '▼' : '▶' }}</span>
+              <ChevronDownIcon :class="['w-4 h-4 transition-transform', showAdvancedFilters && 'rotate-180']" />
               <span>{{ showAdvancedFilters ? 'Hide' : 'Show' }} Advanced</span>
             </button>
             <button
               @click="resetFilters"
-              class="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+              class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-gray-600 hover:text-gray-700 hover:bg-gray-50 rounded-xl transition-all border-2 border-transparent hover:border-gray-200"
             >
-              <span>↻</span>
+              <ArrowPathIcon class="w-4 h-4" />
               <span>Reset All</span>
             </button>
           </div>
@@ -183,16 +190,22 @@
           </select>
         </div>
         <div class="flex-1 min-w-[200px]">
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Search
+          <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+            <MagnifyingGlassIcon class="w-4 h-4 text-gray-500" />
+            <span>Search</span>
           </label>
-          <input
-            v-model="searchQuery"
-            @input="debouncedSearch"
-            type="text"
-            placeholder="Search by topic or order ID..."
-            class="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          />
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon class="w-5 h-5 text-gray-400" />
+            </div>
+            <input
+              v-model="searchQuery"
+              @input="debouncedSearch"
+              type="text"
+              placeholder="Search by topic or order ID..."
+              class="w-full border-2 border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-sm font-medium focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+            />
+          </div>
         </div>
       </div>
       
@@ -658,6 +671,16 @@
 <script setup>
 import { ref, onMounted, computed, unref } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  ArrowPathIcon,
+  PencilIcon,
+  ClockIcon,
+  PaperAirplaneIcon,
+  ChartBarIcon,
+  FunnelIcon,
+  ChevronDownIcon,
+  MagnifyingGlassIcon
+} from '@heroicons/vue/24/outline'
 import ordersAPI from '@/api/orders'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import { debounce } from '@/utils/debounce'

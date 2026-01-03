@@ -1,144 +1,97 @@
 /**
- * Message Utilities
- * Helper functions for handling order messages and unread counts
+ * Utility functions for processing message content
  */
 
-import axios from 'axios'
-import { useAuthStore } from '@/stores/auth'
-
-// Rate limiting: prevent too many requests
-let lastUnreadCountRequest = 0
-let lastUnreadCountValue = 0
-const UNREAD_COUNT_CACHE_TIME = 5000 // 5 seconds
+import communicationsAPI from '@/api/communications'
 
 /**
- * Load unread message count for an order
- * @param {number} orderId - Order ID
- * @returns {Promise<number>} Unread message count
+ * Loads unread message count for a specific order
+ * @param {number} orderId - The order ID
+ * @returns {Promise<number>} The unread message count
  */
 export async function loadUnreadMessageCount(orderId) {
+  if (!orderId) return 0
+  
   try {
-    const authStore = useAuthStore()
-    
-    // Rate limiting: don't request more than once every 5 seconds
-    const now = Date.now()
-    if (now - lastUnreadCountRequest < UNREAD_COUNT_CACHE_TIME) {
-      return lastUnreadCountValue
-    }
-    
-    if (!authStore.token) {
-      // Silently return 0 if no auth token (expected when not logged in)
-      return 0
-    }
-    
-    const response = await axios.get(`/api/v1/order-communications/threads/?order=${orderId}`, {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
-    })
-    
-    // Calculate total unread count from threads
+    // Fetch threads for this order
+    const response = await communicationsAPI.listThreads({ order: orderId })
     const threads = response.data.results || response.data || []
+    
+    // Sum up unread counts from all threads
     const totalUnread = threads.reduce((sum, thread) => {
       return sum + (thread.unread_count || 0)
     }, 0)
     
-    lastUnreadCountRequest = now
-    lastUnreadCountValue = totalUnread
-    
     return totalUnread
   } catch (error) {
-    // Handle errors gracefully
-    if (error.response?.status === 401) {
-      console.warn('Unauthorized: Token may have expired')
-      // Try to refresh token or redirect to login
-      return 0
+    // Silently handle errors - return 0 on failure
+    if (import.meta.env.DEV) {
+      console.warn('Failed to load unread message count:', error)
     }
-    if (error.response?.status === 429) {
-      console.warn('Rate limited: Too many requests')
-      // Return cached value if available
-      return lastUnreadCountValue
-    }
-    console.error('Failed to load unread message count:', error)
     return 0
   }
 }
 
 /**
- * Load unread notification count
- * @returns {Promise<number>} Unread notification count
+ * Converts "place order" text patterns to clickable router-links
+ * @param {string} text - The message text
+ * @returns {Array} Array of text segments and link objects
  */
-export async function loadUnreadNotificationCount() {
-  try {
-    const authStore = useAuthStore()
-    
-    // Rate limiting
-    const now = Date.now()
-    if (now - lastUnreadCountRequest < UNREAD_COUNT_CACHE_TIME) {
-      return lastUnreadCountValue
+export function parseMessageLinks(text) {
+  if (!text) return []
+  
+  // Pattern to match "place order" variations (case insensitive)
+  const placeOrderPattern = /\b(place\s+(?:a\s+)?(?:new\s+)?order|place\s+order|order\s+wizard)\b/gi
+  
+  const segments = []
+  let lastIndex = 0
+  let match
+  
+  while ((match = placeOrderPattern.exec(text)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      segments.push({
+        type: 'text',
+        content: text.substring(lastIndex, match.index)
+      })
     }
     
-    if (!authStore.token) {
-      return 0
-    }
-    
-    const response = await axios.get('/api/v1/notifications_system/unread-count/', {
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`
-      }
+    // Add the link
+    segments.push({
+      type: 'link',
+      content: match[0],
+      to: '/orders/wizard'
     })
     
-    const count = response.data.unread_count || 0
-    lastUnreadCountRequest = now
-    lastUnreadCountValue = count
-    
-    return count
-  } catch (error) {
-    if (error.response?.status === 401) {
-      console.warn('Unauthorized: Token may have expired')
-      return 0
-    }
-    if (error.response?.status === 429) {
-      console.warn('Rate limited: Too many requests')
-      return lastUnreadCountValue
-    }
-    console.error('Failed to load unread count:', error)
-    return 0
+    lastIndex = match.index + match[0].length
   }
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    segments.push({
+      type: 'text',
+      content: text.substring(lastIndex)
+    })
+  }
+  
+  // If no matches, return the whole text as a single segment
+  if (segments.length === 0) {
+    segments.push({
+      type: 'text',
+      content: text
+    })
+  }
+  
+  return segments
 }
 
 /**
- * Debounce function to limit API calls
- * @param {Function} func - Function to debounce
- * @param {number} wait - Wait time in milliseconds
- * @returns {Function} Debounced function
+ * Checks if text contains "place order" patterns
+ * @param {string} text - The message text
+ * @returns {boolean} True if text contains place order patterns
  */
-export function debounce(func, wait) {
-  let timeout
-  return function executedFunction(...args) {
-    const later = () => {
-      clearTimeout(timeout)
-      func(...args)
-    }
-    clearTimeout(timeout)
-    timeout = setTimeout(later, wait)
-  }
+export function hasPlaceOrderLink(text) {
+  if (!text) return false
+  const pattern = /\b(place\s+(?:a\s+)?(?:new\s+)?order|place\s+order|order\s+wizard)\b/gi
+  return pattern.test(text)
 }
-
-/**
- * Throttle function to limit API calls
- * @param {Function} func - Function to throttle
- * @param {number} limit - Time limit in milliseconds
- * @returns {Function} Throttled function
- */
-export function throttle(func, limit) {
-  let inThrottle
-  return function(...args) {
-    if (!inThrottle) {
-      func.apply(this, args)
-      inThrottle = true
-      setTimeout(() => inThrottle = false, limit)
-    }
-  }
-}
-

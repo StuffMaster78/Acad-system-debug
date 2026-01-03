@@ -146,10 +146,30 @@ class OrderFile(models.Model):
     def check_download_access(self, user):
         """
         Ensures that Admins, Editors, and Support can access and download files.
+        Also allows writers to access files for orders they're assigned to or have requested.
         """
         # Admins, Editors, and Support can always download
         if user.is_staff or user.groups.filter(name__in=["Support", "Editor"]).exists():
             return True
+
+        # Writers can access files for orders they're assigned to or have requested
+        if hasattr(user, 'role') and user.role == 'writer':
+            # Check if writer is assigned to the order
+            if self.order.assigned_writer == user:
+                return self.is_downloadable
+            
+            # Check if writer has requested this order
+            from writer_management.models.requests import WriterOrderRequest
+            try:
+                writer_profile = user.writer_profile
+                has_requested = WriterOrderRequest.objects.filter(
+                    writer=writer_profile,
+                    order=self.order
+                ).exists()
+                if has_requested:
+                    return self.is_downloadable
+            except Exception:
+                pass
 
         # Clients can't download Final Drafts until payment is complete
         if self.category and self.category.is_final_draft:

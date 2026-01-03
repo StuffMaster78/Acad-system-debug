@@ -321,15 +321,23 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                     response='declined'
                 ).values_list('order_id', flat=True))
                 
+                # Get orders that the writer has requested (allows viewing requested orders)
+                from writer_management.models.requests import WriterOrderRequest
+                requested_order_ids = list(WriterOrderRequest.objects.filter(
+                    writer=writer_profile
+                ).values_list('order_id', flat=True))
+                
                 # Filter by website for available orders
                 # Writers see:
                 # 1. Orders assigned to them (always visible)
-                # 2. Available paid orders that are:
+                # 2. Orders they have requested (allows viewing requested orders)
+                # 3. Available paid orders that are:
                 #    - Not assigned to anyone
                 #    - In common pool (preferred_writer is None) OR preferred for this writer
                 #    - Not declined by this writer
                 base_qs = qs.filter(
                     models.Q(assigned_writer=user) |  # Orders assigned to them (always visible)
+                    models.Q(id__in=requested_order_ids) |  # Orders they have requested
                     models.Q(
                         # Available paid orders not assigned to anyone
                         status=OrderStatus.AVAILABLE.value,

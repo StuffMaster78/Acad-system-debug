@@ -200,7 +200,17 @@ const loadAllData = async () => {
 const loadAchievements = async () => {
   try {
     const response = await writerManagementAPI.getBadgeAchievements()
-    achievements.value = response.data.results || response.data || []
+    const data = response.data
+    // Handle both array and object responses
+    if (Array.isArray(data)) {
+      achievements.value = data
+    } else if (data && Array.isArray(data.results)) {
+      achievements.value = data.results
+    } else if (data && Array.isArray(data.achievements)) {
+      achievements.value = data.achievements
+    } else {
+      achievements.value = []
+    }
   } catch (error) {
     console.error('Failed to load achievements:', error)
     achievements.value = []
@@ -232,8 +242,17 @@ const loadPerformanceMilestones = async () => {
     // This might come from achievements or a separate endpoint
     // For now, we'll extract from achievements
     const response = await writerManagementAPI.getBadgeAchievements()
-    const data = response.data.results || response.data || []
-    performanceMilestones.value = data.filter(a => a.type === 'performance_milestone')
+    const data = response.data
+    // Handle both array and object responses
+    if (Array.isArray(data)) {
+      performanceMilestones.value = data.filter(a => a.type === 'performance_milestone')
+    } else if (data && Array.isArray(data.results)) {
+      performanceMilestones.value = data.results.filter(a => a.type === 'performance_milestone')
+    } else if (data && Array.isArray(data.achievements)) {
+      performanceMilestones.value = data.achievements.filter(a => a.type === 'performance_milestone')
+    } else {
+      performanceMilestones.value = []
+    }
   } catch (error) {
     console.error('Failed to load performance milestones:', error)
     performanceMilestones.value = []

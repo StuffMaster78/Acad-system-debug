@@ -98,6 +98,7 @@ urlpatterns = [
     path('api/v1/media/', include('media_management.urls')),  # Media assets (images, videos, documents)
     path('api/v1/seo-pages/', include('seo_pages.urls')),  # SEO landing pages
     path('api/v1/public/', include('seo_pages.urls')),  # Public SEO pages endpoint
+    path('api/v1/announcements/', include('announcements.urls')),  # Announcements Center
     path('api-auth/', include('rest_framework.urls')),  # Enables login/logout
     path('api/v1/analytics/', include('analytics.urls')),  # Analytics app
     path('api/v1/holidays/', include('holiday_management.urls')),  # Holiday Management app

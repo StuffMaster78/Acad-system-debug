@@ -3,7 +3,9 @@
     <div class="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100 shadow-sm">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <span class="text-4xl">📅</span>
+          <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+            <CalendarIcon class="w-6 h-6 text-white" />
+          </div>
           <span>Deadline Calendar</span>
         </h1>
         <p class="mt-2 text-gray-600">View your order deadlines in calendar format</p>
@@ -11,39 +13,40 @@
       <div class="flex items-center gap-2">
         <button 
           @click="previousMonth" 
-          class="btn btn-secondary text-sm hover:shadow-md transition-all duration-200 flex items-center gap-1"
+          class="btn btn-secondary text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl"
         >
-          <span>←</span>
+          <ChevronLeftIcon class="w-4 h-4" />
           <span>Previous</span>
         </button>
         <button 
           @click="nextMonth" 
-          class="btn btn-secondary text-sm hover:shadow-md transition-all duration-200 flex items-center gap-1"
+          class="btn btn-secondary text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl"
         >
           <span>Next</span>
-          <span>→</span>
+          <ChevronRightIcon class="w-4 h-4" />
         </button>
         <button 
           @click="goToToday" 
-          class="btn btn-primary text-sm hover:shadow-md transition-all duration-200"
+          class="btn btn-primary text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl"
         >
-          Today
+          <CalendarDaysIcon class="w-4 h-4" />
+          <span>Today</span>
         </button>
         <button 
           @click="loadCalendar" 
           :disabled="loading" 
-          class="btn btn-secondary hover:shadow-md transition-all duration-200 flex items-center gap-2"
+          class="btn btn-secondary hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl"
         >
-          <span v-if="loading" class="animate-spin">⟳</span>
+          <ArrowPathIcon :class="['w-4 h-4', loading && 'animate-spin']" />
           <span>{{ loading ? 'Loading...' : 'Refresh' }}</span>
         </button>
         <button 
           @click="exportToCalendar" 
           :disabled="loading || calendarData.total_orders === 0"
-          class="btn btn-primary hover:shadow-md transition-all duration-200 flex items-center gap-2"
+          class="btn btn-primary hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl"
           title="Export deadlines to your calendar (Google Calendar, Outlook, Apple Calendar)"
         >
-          <span>📥</span>
+          <ArrowDownTrayIcon class="w-4 h-4" />
           <span>Export to Calendar</span>
         </button>
       </div>
@@ -51,31 +54,46 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-blue-700 mb-1">Total Orders</p>
-            <p class="text-3xl font-bold text-blue-900">{{ calendarData.total_orders || 0 }}</p>
+      <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-blue-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative flex items-center justify-between">
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">Total Orders</p>
+            <p class="text-4xl font-extrabold text-blue-900">{{ calendarData.total_orders || 0 }}</p>
           </div>
-          <div class="text-4xl opacity-20">📋</div>
+          <div class="ml-4 shrink-0">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <ClipboardDocumentListIcon class="w-6 h-6 text-white" />
+            </div>
+          </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-red-50 to-red-100 border border-red-200 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-red-700 mb-1">Overdue</p>
-            <p class="text-3xl font-bold text-red-900">{{ calendarData.overdue_count || 0 }}</p>
+      <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-red-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative flex items-center justify-between">
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-red-600 uppercase tracking-wider mb-2">Overdue</p>
+            <p class="text-4xl font-extrabold text-red-900">{{ calendarData.overdue_count || 0 }}</p>
           </div>
-          <div class="text-4xl opacity-20">⚠️</div>
+          <div class="ml-4 shrink-0">
+            <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <ExclamationTriangleIcon class="w-6 h-6 text-white" />
+            </div>
+          </div>
         </div>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200 hover:shadow-md transition-all duration-200 transform hover:-translate-y-1">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-sm font-medium text-orange-700 mb-1">Urgent (24h)</p>
-            <p class="text-3xl font-bold text-orange-900">{{ calendarData.urgent_count || 0 }}</p>
+      <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-amber-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div class="relative flex items-center justify-between">
+          <div class="flex-1 min-w-0">
+            <p class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">Urgent (24h)</p>
+            <p class="text-4xl font-extrabold text-amber-900">{{ calendarData.urgent_count || 0 }}</p>
           </div>
-          <div class="text-4xl opacity-20">⏰</div>
+          <div class="ml-4 shrink-0">
+            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <ClockIcon class="w-6 h-6 text-white" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -181,9 +199,9 @@
             </div>
             <button
               @click="selectedDay = null"
-              class="text-white hover:text-gray-200 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-white hover:bg-opacity-20 transition-colors"
+              class="text-white hover:text-gray-200 w-10 h-10 flex items-center justify-center rounded-full hover:bg-white hover:bg-opacity-20 transition-colors"
             >
-              ✕
+              <XMarkIcon class="w-6 h-6" />
             </button>
           </div>
           <div class="mt-4 flex gap-4">
@@ -204,8 +222,10 @@
 
         <div class="p-6">
           <div v-if="selectedDay.orders.length === 0" class="text-center py-12">
-            <div class="text-6xl mb-4">📅</div>
-            <p class="text-gray-500 text-lg">No tasks due on this day</p>
+            <div class="w-20 h-20 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center shadow-lg">
+              <CalendarIcon class="w-10 h-10 text-gray-400" />
+            </div>
+            <p class="text-gray-500 text-lg font-medium">No tasks due on this day</p>
           </div>
 
           <div v-else class="space-y-4">
@@ -311,7 +331,9 @@
       <div class="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-lg font-semibold">Order #{{ selectedOrder.id }}</h3>
-          <button @click="selectedOrder = null" class="text-gray-400 hover:text-gray-600">✕</button>
+          <button @click="selectedOrder = null" class="text-gray-400 hover:text-gray-600 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors">
+            <XMarkIcon class="w-5 h-5" />
+          </button>
         </div>
         <div class="space-y-2 text-sm">
           <div><span class="font-medium">Topic:</span> {{ selectedOrder.topic }}</div>
@@ -337,6 +359,18 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  CalendarIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  CalendarDaysIcon,
+  ArrowPathIcon,
+  ArrowDownTrayIcon,
+  ClipboardDocumentListIcon,
+  ExclamationTriangleIcon,
+  ClockIcon,
+  XMarkIcon
+} from '@heroicons/vue/24/outline'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import { useToast } from '@/composables/useToast'
 import { getErrorMessage } from '@/utils/errorHandler'

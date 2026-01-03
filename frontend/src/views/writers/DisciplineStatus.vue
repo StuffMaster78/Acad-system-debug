@@ -537,10 +537,17 @@ const loadStatus = async () => {
       loadWarnings(writerId),
     ])
   } catch (error) {
-    // Only log unexpected errors (not 403s)
-    if (error?.response?.status !== 403) {
+    // Only log unexpected errors (not 403s or 500s that we handle gracefully)
+    const statusCode = error?.response?.status
+    if (statusCode && statusCode !== 403 && statusCode !== 500) {
       console.error('Failed to load discipline status:', error)
-      showError(getErrorMessage(error, 'Failed to load discipline status'))
+      const errorMsg = getErrorMessage(error, 'Failed to load discipline status')
+      if (errorMsg && !errorMsg.includes('Object')) {
+        showError(errorMsg)
+      }
+    } else {
+      // For 403/500, just log a warning - we've already set default safe status
+      console.warn('Discipline status API unavailable, using default safe status')
     }
   } finally {
     loading.value = false
@@ -548,37 +555,46 @@ const loadStatus = async () => {
 }
 
 const loadWriterStatus = async (writerId) => {
-  // Try /me/ endpoint first (designed for writers)
-  const meResponse = await safeApiCall(
-    () => writerManagementAPI.getMyWriterStatus(),
-    null
-  )
-  
-  if (meResponse?.data) {
-    status.value = meResponse.data
-    return
+  try {
+    // Try /me/ endpoint first (designed for writers)
+    const meResponse = await safeApiCall(
+      () => writerManagementAPI.getMyWriterStatus(),
+      null
+    )
+    
+    if (meResponse?.data) {
+      status.value = meResponse.data
+      return
+    }
+    
+    // Fallback to writer ID endpoint
+    const idResponse = await safeApiCall(
+      () => writerManagementAPI.getWriterStatus(writerId),
+      null
+    )
+    
+    if (idResponse?.data) {
+      status.value = idResponse.data
+      return
+    }
+  } catch (error) {
+    // Log but don't show error to user - we'll use default status
+    console.warn('Could not load discipline status from API:', error?.response?.status || error?.message)
   }
   
-  // Fallback to writer ID endpoint
-  const idResponse = await safeApiCall(
-    () => writerManagementAPI.getWriterStatus(writerId),
-    null
-  )
-  
-  if (idResponse?.data) {
-    status.value = idResponse.data
-    return
-  }
-  
-  // If both fail (likely 403s), create default safe status
-  // This is expected for writers with no discipline issues
+  // If both fail (likely 403s or 500s), create default safe status
+  // This is expected for writers with no discipline issues or when API is unavailable
   status.value = {
     is_active: true,
     is_suspended: false,
     is_blacklisted: false,
     is_on_probation: false,
     active_strikes: 0,
-    last_updated: new Date().toISOString(),
+    strikes: 0,
+    last_strike_at: null,
+    suspension_ends_at: null,
+    probation_ends_at: null,
+    updated_at: new Date().toISOString(),
   }
 }
 

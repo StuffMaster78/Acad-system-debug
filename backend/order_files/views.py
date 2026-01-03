@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.shortcuts import get_object_or_404
 from django.http import FileResponse, Http404
+from django.db.models import Q
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 
@@ -33,12 +34,46 @@ class OrderFileViewSet(viewsets.ModelViewSet):
         return Response({"error": "Download not allowed"}, status=403)
 
     def get_queryset(self):
-        """Filter files by current website if applicable."""
+        """Filter files by current website if applicable and user permissions."""
         queryset = super().get_queryset()
+        user = self.request.user
+        
         # Try to filter by website from request if available
         website_id = self.request.query_params.get('website_id')
         if website_id:
             queryset = queryset.filter(website_id=website_id)
+        
+        # Filter by order if specified
+        order_id = self.request.query_params.get('order')
+        if order_id:
+            queryset = queryset.filter(order_id=order_id)
+        
+        # Admins, editors, and support can see all files
+        if user.is_staff or user.groups.filter(name__in=["Support", "Editor"]).exists():
+            return queryset
+        
+        # Writers can see files for orders they're assigned to or have requested
+        if hasattr(user, 'role') and user.role == 'writer':
+            from writer_management.models.requests import WriterOrderRequest
+            try:
+                writer_profile = user.writer_profile
+                # Get orders the writer is assigned to or has requested
+                requested_orders = WriterOrderRequest.objects.filter(
+                    writer=writer_profile
+                ).values_list('order_id', flat=True)
+                
+                queryset = queryset.filter(
+                    Q(order__assigned_writer=user) |
+                    Q(order_id__in=requested_orders)
+                )
+            except Exception:
+                # Fallback to assigned orders only
+                queryset = queryset.filter(order__assigned_writer=user)
+        
+        # Clients can see files for their orders
+        if hasattr(user, 'role') and user.role == 'client':
+            queryset = queryset.filter(order__client=user)
+        
         return queryset
     
     def perform_create(self, serializer):
@@ -190,6 +225,44 @@ class ExtraServiceFileViewSet(viewsets.ModelViewSet):
     queryset = ExtraServiceFile.objects.all()
     serializer_class = ExtraServiceFileSerializer
     permission_classes = [permissions.IsAuthenticated, CanUploadFile]
+
+    def get_queryset(self):
+        """Filter extra service files based on user permissions."""
+        queryset = super().get_queryset()
+        user = self.request.user
+        
+        # Admins, editors, and support can see all
+        if user.is_staff or user.groups.filter(name__in=["Support", "Editor"]).exists():
+            return queryset
+        
+        # Filter by order if specified
+        order_id = self.request.query_params.get('order')
+        if order_id:
+            queryset = queryset.filter(order_id=order_id)
+        
+        # Writers can see extra service files for orders they're assigned to or have requested
+        if hasattr(user, 'role') and user.role == 'writer':
+            from writer_management.models.requests import WriterOrderRequest
+            try:
+                writer_profile = user.writer_profile
+                # Get orders the writer is assigned to or has requested
+                requested_orders = WriterOrderRequest.objects.filter(
+                    writer=writer_profile
+                ).values_list('order_id', flat=True)
+                
+                queryset = queryset.filter(
+                    Q(order__assigned_writer=user) |
+                    Q(order_id__in=requested_orders)
+                )
+            except Exception:
+                # Fallback to assigned orders only
+                queryset = queryset.filter(order__assigned_writer=user)
+        
+        # Clients can see extra service files for their orders
+        if hasattr(user, 'role') and user.role == 'client':
+            queryset = queryset.filter(order__client=user)
+        
+        return queryset
 
     def perform_create(self, serializer):
         """Allows writers to upload Extra Service files (e.g., Plagiarism Reports)."""

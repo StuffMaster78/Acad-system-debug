@@ -167,6 +167,33 @@ class BadgePerformanceViewSet(viewsets.ViewSet):
     """ViewSet for individual writer badge performance."""
     permission_classes = [IsAuthenticated]
     
+    def list(self, request):
+        """Get badge performance for the current user."""
+        try:
+            # Get current user's writer profile
+            try:
+                writer = WriterProfile.objects.get(user=request.user)
+            except WriterProfile.DoesNotExist:
+                return Response(
+                    {"error": "Writer profile not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            performance = BadgeAnalyticsService.get_writer_badge_performance(writer.id)
+            if not performance:
+                return Response(
+                    {"error": "Performance data not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            return Response(performance, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error getting writer badge performance: {e}")
+            return Response(
+                {"error": "Failed to get writer badge performance"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
     def retrieve(self, request, pk=None):
         """Get badge performance for a specific writer."""
         try:

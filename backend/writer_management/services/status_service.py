@@ -29,27 +29,73 @@ class WriterStatusService:
 
     @staticmethod
     def update(writer: WriterProfile) -> dict:
-        active_strikes = writer.strikes.filter(is_active=True).count()
-        is_suspended = writer.suspensions.filter(is_active=True).exists()
-        is_blacklisted = writer.blacklist_entries.filter(is_active=True).exists()
-        is_on_probation = writer.probation_records.filter(is_active=True).exists()
+        """
+        Update writer status by aggregating discipline data.
+        Avoids recursive calls by getting previous status from DB directly.
+        """
+        # Import models here to avoid circular imports
+        from writer_management.models.discipline import (
+            WriterStrike, WriterSuspension, WriterBlacklist, Probation, WriterWarning
+        )
+        
+        # Get previous status from database to avoid recursive call
+        try:
+            prev_status = WriterStatus.objects.get(writer=writer)
+            prev_active_strikes = prev_status.active_strikes
+        except WriterStatus.DoesNotExist:
+            prev_status = None
+            prev_active_strikes = 0
+        
+        # Count active strikes
+        active_strikes = WriterStrike.objects.filter(
+            writer=writer, is_active=True
+        ).count()
+        
+        # Check for active suspensions
+        is_suspended = WriterSuspension.objects.filter(
+            writer=writer, is_active=True
+        ).exists()
+        
+        # Check for active blacklist entries
+        is_blacklisted = WriterBlacklist.objects.filter(
+            writer=writer, is_active=True
+        ).exists()
+        
+        # Check for active probation records
+        is_on_probation = Probation.objects.filter(
+            writer=writer, is_active=True
+        ).exists()
 
-        last_strike_at = writer.strikes.filter(
-            is_active=True
+        # Get dates
+        last_strike_at = WriterStrike.objects.filter(
+            writer=writer, is_active=True
         ).order_by("-created_at").values_list("created_at", flat=True).first()
 
-        suspension_ends_at = writer.suspensions.filter(
-            is_active=True
+        suspension_ends_at = WriterSuspension.objects.filter(
+            writer=writer, is_active=True
         ).order_by("-ends_at").values_list("ends_at", flat=True).first()
 
-        probation_ends_at = writer.probation_records.filter(
-            is_active=True
+        probation_ends_at = Probation.objects.filter(
+            writer=writer, is_active=True
         ).order_by("-ends_at").values_list("ends_at", flat=True).first()
 
         is_active = not (is_suspended or is_blacklisted)
 
-        active_warnings = writer.warnings.filter(is_active=True).count()
-        config = EscalationConfigService.get_config(writer.website)
+        # Count active warnings
+        active_warnings = WriterWarning.objects.filter(
+            writer=writer, is_active=True
+        ).count()
+        
+        # Get escalation config
+        try:
+            config = EscalationConfigService.get_config(writer.website)
+        except Exception:
+            # If config doesn't exist, use defaults
+            config = type('Config', (), {
+                'auto_suspension_threshold': None,
+                'auto_probation_threshold': None,
+                'max_strikes': None
+            })()
 
         should_suspend = (
             config.auto_suspension_threshold and
@@ -59,13 +105,6 @@ class WriterStatusService:
             config.auto_probation_threshold and
             active_warnings >= config.auto_probation_threshold
         )
-
-        prev = WriterStatusService.get(writer)
-        prev_active_strikes = (
-            prev.get("active_strikes")
-            if isinstance(prev, dict)
-            else getattr(prev, "active_strikes", 0)
-        ) if prev else 0
 
         WriterStatus.objects.update_or_create(
             writer=writer,
@@ -99,16 +138,39 @@ class WriterStatusService:
 
         if (
             config.max_strikes
-            and prev
+            and prev_status
             and prev_active_strikes < config.max_strikes <= active_strikes
         ):
-            DisciplineNotificationService.notify_strike_threshold(
-                writer,
-                strikes=active_strikes,
-                threshold=config.max_strikes,
-            )
+            try:
+                DisciplineNotificationService.notify_strike_threshold(
+                    writer,
+                    strikes=active_strikes,
+                    threshold=config.max_strikes,
+                )
+            except Exception:
+                # Log but don't fail if notification fails
+                pass
 
-        WriterStatusService._notify_on_change(writer, prev, status)
+        # Convert prev_status to dict format for notification
+        prev_dict = {
+            "is_active": prev_status.is_active if prev_status else True,
+            "is_suspended": prev_status.is_suspended if prev_status else False,
+            "is_blacklisted": prev_status.is_blacklisted if prev_status else False,
+            "is_on_probation": prev_status.is_on_probation if prev_status else False,
+            "active_strikes": prev_active_strikes,
+        } if prev_status else {
+            "is_active": True,
+            "is_suspended": False,
+            "is_blacklisted": False,
+            "is_on_probation": False,
+            "active_strikes": 0,
+        }
+        
+        try:
+            WriterStatusService._notify_on_change(writer, prev_dict, status)
+        except Exception:
+            # Log but don't fail if notification fails
+            pass
         cache.set(f"writer_status:{writer.id}", status, timeout=300)
 
         AuditLogService.log(
