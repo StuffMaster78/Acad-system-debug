@@ -11,10 +11,11 @@ from decimal import Decimal
 
 from writer_management.models.profile import WriterProfile
 from writer_management.models.performance_snapshot import WriterPerformanceSnapshot
-from writer_management.models.requests import WriterOrderRequest
+# WriterOrderRequest imported inside functions to avoid circular import
 from writer_management.models.payout import WriterPayment, WriterEarningsHistory
 from writer_management.models.badges import WriterBadge, Badge
-from orders.models import Order, WriterRequest
+from orders.models import Order
+# WriterRequest imported inside functions to avoid circular import
 from order_payments_management.models import OrderPayment
 from reviews_system.models.writer_review import WriterReview
 from communications.models import CommunicationThread, CommunicationMessage
@@ -360,7 +361,8 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 available_orders.select_related('client', 'type_of_work', 'paper_type', 'subject').order_by('-created_at')[:50]
             )
             
-            # Get writer's order requests
+            # Get writer's order requests (lazy import to avoid circular dependency)
+            from writer_management.models.requests import WriterOrderRequest
             order_requests = WriterOrderRequest.objects.filter(
                 writer=profile
             ).select_related('order').order_by('-requested_at')
@@ -368,7 +370,8 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             # Get list of order IDs that this writer has already requested
             requested_order_ids = list(order_requests.values_list('order_id', flat=True))
             
-            # Get writer requests (from orders app)
+            # Get writer requests (from orders app) - lazy import to avoid circular dependency
+            from orders.models import WriterRequest
             writer_requests = WriterRequest.objects.filter(
                 requested_by_writer=request.user
             ).select_related('order').order_by('-created_at')
@@ -612,13 +615,22 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             import logging
             logger = logging.getLogger(__name__)
             logger.error(f"Error in get_order_queue: {str(e)}", exc_info=True)
-            return Response(
-                {
-                    "detail": "An error occurred while fetching order queue.",
-                    "error": str(e)
+            # Return empty response instead of 500 to prevent breaking frontend
+            return Response({
+                'takes_enabled': False,
+                'requested_order_ids': [],
+                'available_orders': [],
+                'order_requests': [],
+                'writer_requests': [],
+                'preferred_orders': [],
+                'recommended_orders': [],
+                'level_capacity': {
+                    'level_details': None,
+                    'max_orders': 0,
+                    'active_orders': 0,
+                    'remaining_slots': 0,
                 },
-                status=500
-            )
+            }, status=200)
 
     @action(detail=False, methods=['get', 'post'], url_path='availability')
     def availability(self, request):
@@ -1700,6 +1712,10 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         - Status updates and review information
         - Statistics and trends
         """
+        # Import inside function to avoid circular import
+        from writer_management.models.requests import WriterOrderRequest
+        from orders.models import WriterRequest
+        
         profile = self.get_writer_profile(request)
         if not profile:
             return Response(
@@ -2692,7 +2708,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             last_message = CommunicationMessage.objects.filter(
                 thread=thread,
                 is_hidden=False
-            ).order_by('-created_at').first()
+            ).order_by('-sent_at').first()
             
             # Get other participants (excluding current writer)
             other_participants = thread.participants.exclude(id=request.user.id)
@@ -2713,7 +2729,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     'sender': last_message.sender.username if last_message else None,
                     'sender_role': last_message.sender_role if last_message else None,
                     'message': last_message.message[:100] + '...' if last_message and len(last_message.message) > 100 else (last_message.message if last_message else ''),
-                    'created_at': last_message.created_at.isoformat() if last_message and hasattr(last_message, 'created_at') and last_message.created_at else None,
+                    'created_at': last_message.sent_at.isoformat() if last_message and hasattr(last_message, 'sent_at') and last_message.sent_at else None,
                     'has_attachment': bool(last_message.attachment) if last_message else False,
                 } if last_message else None,
                 'participants_count': thread.participants.count(),

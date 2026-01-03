@@ -15,8 +15,10 @@
           <button
             @click="loadSummary"
             :disabled="loading"
-            class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+            class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
           >
+            <ArrowPathIcon v-if="loading" class="w-5 h-5 animate-spin" />
+            <ArrowPathIcon v-else class="w-5 h-5" />
             {{ loading ? 'Loading...' : 'Refresh' }}
           </button>
         </div>
@@ -25,7 +27,9 @@
       <!-- Loading State -->
       <div v-if="loading" class="bg-white rounded-xl shadow-sm p-16">
         <div class="flex flex-col items-center justify-center gap-4">
-          <div class="animate-spin rounded-full h-12 w-12 border-4 border-primary-200 border-t-primary-600"></div>
+          <div class="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center shadow-lg">
+            <ArrowPathIcon class="w-8 h-8 text-primary-600 animate-spin" />
+          </div>
           <p class="text-sm font-medium text-gray-500">Loading dashboard...</p>
         </div>
       </div>
@@ -40,8 +44,8 @@
           <div class="p-6 sm:p-8">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                  <span class="text-xl">⚠️</span>
+                <div class="w-10 h-10 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <ExclamationTriangleIcon class="w-6 h-6 text-white" />
                 </div>
                 <span>
                   Revision Requests
@@ -55,7 +59,7 @@
                 class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
               >
                 <span>View All</span>
-                <span>→</span>
+                <ChevronRightIcon class="w-4 h-4" />
               </router-link>
             </div>
             <div class="space-y-4">
@@ -101,7 +105,10 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div class="bg-white rounded-lg shadow-sm p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <span>💰</span> Tips Summary
+            <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-md">
+              <CurrencyDollarIcon class="w-5 h-5 text-white" />
+            </div>
+            Tips Summary
           </h3>
           <div class="space-y-3">
             <div class="flex items-center justify-between">
@@ -128,15 +135,15 @@
               class="mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
             >
               <span>View All Tips</span>
-              <span>→</span>
+              <ChevronRightIcon class="w-4 h-4" />
             </router-link>
           </div>
 
           <!-- Fines Summary -->
           <div class="bg-white rounded-xl shadow-md p-6 sm:p-8">
             <div class="flex items-center gap-3 mb-6">
-              <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-                <span class="text-xl">⚠️</span>
+              <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-lg">
+                <ExclamationTriangleIcon class="w-6 h-6 text-white" />
               </div>
               <h3 class="text-xl font-bold text-gray-900">
                 Fines Summary
@@ -177,8 +184,8 @@
           class="bg-white rounded-xl shadow-md p-6 sm:p-8"
         >
           <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <span class="text-xl">⭐</span>
+            <div class="w-10 h-10 bg-gradient-to-br from-amber-500 to-amber-600 rounded-lg flex items-center justify-center shadow-lg">
+              <StarIcon class="w-6 h-6 text-white" />
             </div>
             <h3 class="text-xl font-bold text-gray-900">
               Reviews Summary
@@ -223,7 +230,7 @@
             class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
           >
             <span>View All Reviews</span>
-            <span>→</span>
+            <ChevronRightIcon class="w-4 h-4" />
           </router-link>
         </div>
 
@@ -233,8 +240,8 @@
           class="bg-white rounded-xl shadow-md p-6 sm:p-8"
         >
           <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-              <span class="text-xl">📊</span>
+            <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center shadow-lg">
+              <ChartBarIcon class="w-6 h-6 text-white" />
             </div>
             <h3 class="text-xl font-bold text-gray-900">
               Level Progress
@@ -289,7 +296,7 @@
             class="mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
           >
             <span>View Full Performance</span>
-            <span>→</span>
+            <ChevronRightIcon class="w-4 h-4" />
           </router-link>
         </div>
 
@@ -306,8 +313,8 @@
                 </p>
               </div>
               <div class="ml-4 shrink-0">
-                <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span class="text-2xl">📝</span>
+                <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <DocumentTextIcon class="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
@@ -323,8 +330,8 @@
                 </p>
               </div>
               <div class="ml-4 shrink-0">
-                <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-                  <span class="text-2xl">✅</span>
+                <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <CheckCircleIcon class="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
@@ -340,8 +347,8 @@
                 </p>
               </div>
               <div class="ml-4 shrink-0">
-                <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-                  <span class="text-2xl">💰</span>
+                <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <CurrencyDollarIcon class="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
@@ -357,8 +364,8 @@
                 </p>
               </div>
               <div class="ml-4 shrink-0">
-                <div class="w-12 h-12 bg-orange-600 rounded-lg flex items-center justify-center">
-                  <span class="text-2xl">⏳</span>
+                <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center shadow-lg">
+                  <ClockIcon class="w-6 h-6 text-white" />
                 </div>
               </div>
             </div>
@@ -373,8 +380,8 @@
       >
         <div class="flex items-start gap-4">
           <div class="shrink-0">
-            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
-              <span class="text-xl">❌</span>
+            <div class="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center shadow-lg">
+              <XCircleIcon class="w-6 h-6 text-white" />
             </div>
           </div>
           <div class="flex-1">
@@ -389,6 +396,18 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import {
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
+  ChevronRightIcon,
+  CurrencyDollarIcon,
+  StarIcon,
+  ChartBarIcon,
+  DocumentTextIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  XCircleIcon
+} from '@heroicons/vue/24/outline'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import { useToast } from '@/composables/useToast'
 import { getErrorMessage } from '@/utils/errorHandler'

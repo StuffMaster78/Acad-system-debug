@@ -207,28 +207,59 @@ export const useAuthStore = defineStore('auth', {
 
       try {
         // Call logout API if authenticated
-        if (this.isAuthenticated) {
-          await authApi.logout(logoutAll)
+        if (this.isAuthenticated && this.accessToken) {
+          try {
+            await authApi.logout(logoutAll)
+          } catch (error) {
+            // Log but don't throw - continue with local cleanup
+            console.warn('Logout API call failed, continuing with local cleanup:', error)
+          }
         }
       } catch (error) {
         console.error('Logout error:', error)
         // Continue with logout even if API call fails
       } finally {
+        // Stop any ongoing processes
+        try {
+          // Clear any intervals or timeouts
+          if (this._refreshInterval) {
+            clearInterval(this._refreshInterval)
+            this._refreshInterval = null
+          }
+        } catch (e) {
+          // Ignore cleanup errors
+        }
+        
         // Clear state
         this.user = null
         this.accessToken = null
         this.refreshToken = null
         
-        // Clear localStorage
+        // Clear localStorage completely
         localStorage.removeItem('access_token')
         localStorage.removeItem('refresh_token')
         localStorage.removeItem('user')
         localStorage.removeItem('website_id')
+        localStorage.removeItem('remember_me')
+        
+        // Clear sessionStorage as well
+        sessionStorage.clear()
         
         this.loading = false
         
-        // Redirect to login
-        router.push('/login')
+        // Force redirect to login (use replace to prevent back button issues)
+        // Use setTimeout to ensure state is cleared before redirect
+        setTimeout(() => {
+          if (router.currentRoute.value.path !== '/login') {
+            router.replace('/login').catch(() => {
+              // Fallback if router fails - force page reload
+              window.location.replace('/login')
+            })
+          } else {
+            // If already on login, force reload to clear any cached state
+            window.location.reload()
+          }
+        }, 100)
       }
     },
 

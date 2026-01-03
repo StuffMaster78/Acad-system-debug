@@ -44,7 +44,7 @@ export default {
           throw error
         }
       },
-      getWorkload: () => apiClient.get('/writer-management/dashboard/workload/'),
+      getWorkload: () => apiClient.get('/writer-management/dashboard/workload-capacity/'),
       getOrderRequests: () => 
         apiClient.get('/writer-management/dashboard/order-requests/'),
       getDashboardSummary: () => 

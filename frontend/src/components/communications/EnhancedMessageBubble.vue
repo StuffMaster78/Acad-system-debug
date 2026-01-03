@@ -86,7 +86,21 @@
           v-if="!hideContent && message.message"
           class="whitespace-pre-wrap wrap-break-word"
         >
-          {{ message.message }}
+          <template v-for="(segment, index) in parsedMessage" :key="index">
+            <span v-if="segment.type === 'text'">{{ segment.content }}</span>
+            <router-link
+              v-else-if="segment.type === 'link'"
+              :to="segment.to"
+              :class="[
+                'underline font-medium',
+                isOwnMessage
+                  ? 'text-primary-200 hover:text-primary-100'
+                  : 'text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300'
+              ]"
+            >
+              {{ segment.content }}
+            </router-link>
+          </template>
         </div>
 
         <!-- Attachment -->
@@ -176,6 +190,7 @@
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { communicationsAPI } from '@/api'
+import { parseMessageLinks } from '@/utils/messageUtils'
 
 const props = defineProps({
   message: {
@@ -261,6 +276,11 @@ const canSoftDelete = computed(() => {
 const senderInitials = computed(() => {
   const name = props.message.sender_display_name || props.message.sender?.username || 'U'
   return name.substring(0, 2).toUpperCase()
+})
+
+const parsedMessage = computed(() => {
+  if (!props.message.message) return []
+  return parseMessageLinks(props.message.message)
 })
 
 const formatTime = (dateString) => {

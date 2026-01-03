@@ -103,7 +103,23 @@
               </div>
 
               <!-- Message Content -->
-              <div class="text-sm whitespace-pre-wrap">{{ message.message }}</div>
+              <div class="text-sm whitespace-pre-wrap">
+                <template v-for="(segment, index) in parseMessage(message.message)" :key="index">
+                  <span v-if="segment.type === 'text'">{{ segment.content }}</span>
+                  <router-link
+                    v-else-if="segment.type === 'link'"
+                    :to="segment.to"
+                    :class="[
+                      'underline font-medium',
+                      isCurrentUser(message.sender)
+                        ? 'text-primary-200 hover:text-primary-100'
+                        : 'text-blue-600 hover:text-blue-800'
+                    ]"
+                  >
+                    {{ segment.content }}
+                  </router-link>
+                </template>
+              </div>
 
               <!-- Attachment -->
               <div v-if="message.attachment" class="mt-2">
@@ -177,6 +193,7 @@ import { communicationsAPI } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import SimplifiedMessageComposer from '@/components/communications/SimplifiedMessageComposer.vue'
 import { useToast } from '@/composables/useToast'
+import { parseMessageLinks } from '@/utils/messageUtils'
 
 const props = defineProps({
   orderId: {
@@ -357,6 +374,11 @@ const formatTime = (dateString) => {
 
 const getAttachmentUrl = (message) => {
   return `/api/v1/order-communications/communication-threads/${selectedThreadId.value}/communication-messages/${message.id}/download_attachment/`
+}
+
+const parseMessage = (text) => {
+  if (!text) return []
+  return parseMessageLinks(text)
 }
 
 onMounted(() => {

@@ -15,79 +15,84 @@
           <button
             @click="loadQueue"
             :disabled="loading"
-            class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
           >
-            {{ loading ? 'Loading...' : 'Refresh' }}
+            <ArrowPathIcon :class="['w-5 h-5', loading && 'animate-spin']" />
+            <span>{{ loading ? 'Refreshing...' : 'Refresh' }}</span>
           </button>
         </div>
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
-          <div class="flex items-start justify-between">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-blue-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
+              <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-2">
                 Available Orders
               </p>
-              <p class="text-3xl sm:text-4xl font-bold text-blue-900">
+              <p class="text-4xl font-extrabold text-blue-900">
                 {{ stats.available_count || 0 }}
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span class="text-2xl">📋</span>
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                <ClipboardDocumentListIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl shadow-md p-6 border-l-4 border-purple-600 hover:shadow-lg transition-shadow">
-          <div class="flex items-start justify-between">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-purple-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-2">
+              <p class="text-xs font-bold text-purple-600 uppercase tracking-wider mb-2">
                 Preferred Orders
               </p>
-              <p class="text-3xl sm:text-4xl font-bold text-purple-900">
+              <p class="text-4xl font-extrabold text-purple-900">
                 {{ stats.preferred_count || 0 }}
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center">
-                <span class="text-2xl">⭐</span>
+              <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                <StarIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
-          <div class="flex items-start justify-between">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-amber-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
+              <p class="text-xs font-bold text-amber-600 uppercase tracking-wider mb-2">
                 My Requests
               </p>
-              <p class="text-3xl sm:text-4xl font-bold text-yellow-900">
+              <p class="text-4xl font-extrabold text-amber-900">
                 {{ stats.requests_count || 0 }}
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
-                <span class="text-2xl">📝</span>
+              <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                <DocumentTextIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
-          <div class="flex items-start justify-between">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-emerald-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+          <div class="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
+              <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-2">
                 Approved
               </p>
-              <p class="text-3xl sm:text-4xl font-bold text-green-900">
+              <p class="text-4xl font-extrabold text-emerald-900">
                 {{ stats.approved_count || 0 }}
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
-                <span class="text-2xl">✅</span>
+              <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+                <CheckCircleIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
@@ -151,14 +156,14 @@
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div class="space-y-2">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span class="text-xl">🎯</span>
+              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <SparklesIcon class="w-6 h-6 text-white" />
               </div>
               <div>
-                <p class="text-xs font-bold text-blue-600 uppercase tracking-wide mb-1">
+                <p class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">
                   Smart Picks
                 </p>
-                <h2 class="text-2xl font-bold text-gray-900">
+                <h2 class="text-2xl font-extrabold text-gray-900">
                   Recommended For You
                 </h2>
               </div>
@@ -169,11 +174,11 @@
           </div>
           <button
             type="button"
-            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors whitespace-nowrap"
+            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all border-2 border-transparent hover:border-primary-200 whitespace-nowrap"
             @click="scrollToTabs"
           >
             <span>View full queue</span>
-            <span>→</span>
+            <ArrowRightIcon class="w-4 h-4" />
           </button>
         </div>
       <div class="mt-4 space-y-4">
@@ -194,8 +199,8 @@
                     <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold uppercase">
                       {{ order.service_type || order.subject || 'General' }}
                     </span>
-                    <span class="px-2 py-1 bg-yellow-100 text-yellow-700 rounded text-xs font-semibold uppercase flex items-center gap-1">
-                      <span>🎯</span>
+                    <span class="px-3 py-1.5 bg-gradient-to-r from-yellow-100 to-amber-100 text-amber-700 rounded-lg text-xs font-extrabold uppercase flex items-center gap-1.5 border border-amber-300 shadow-sm">
+                      <SparklesIcon class="w-3.5 h-3.5" />
                       <span>Recommended</span>
                     </span>
                     <span v-if="order.match_score" class="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-semibold uppercase">
@@ -258,7 +263,10 @@
                 }"
                 :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested(order) ? 'You have already requested this order' : 'Take this order immediately')"
               >
-                <span>{{ takingOrder === order.id ? '⏳' : '✅' }}</span>
+                <span v-if="takingOrder === order.id" class="animate-spin">
+                  <ArrowPathIcon class="w-4 h-4" />
+                </span>
+                <CheckCircleIcon v-else class="w-4 h-4" />
                 <span>{{ takingOrder === order.id ? 'Taking...' : 'Take Order' }}</span>
               </button>
               <button
@@ -271,7 +279,11 @@
                 }"
                 :title="isOrderRequested(order) ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
               >
-                <span>{{ requestingOrder === order.id ? '⏳' : (isOrderRequested(order) ? '✓' : '📋') }}</span>
+                <span v-if="requestingOrder === order.id" class="animate-spin">
+                  <ArrowPathIcon class="w-4 h-4" />
+                </span>
+                <CheckCircleIcon v-else-if="isOrderRequested(order)" class="w-4 h-4" />
+                <ClipboardDocumentListIcon v-else class="w-4 h-4" />
                 <span>{{ isOrderRequested(order) ? 'Requested' : (requestingOrder === order.id ? 'Requesting...' : 'Request') }}</span>
               </button>
             </div>
@@ -315,7 +327,18 @@
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
-            My Requests ({{ allRequests.length }})
+            Pending Requests ({{ pendingRequests.length }})
+          </button>
+          <button
+            @click="activeTab = 'accepted-requests'"
+            :class="[
+              'px-6 py-3 text-sm font-medium border-b-2 transition-colors',
+              activeTab === 'accepted-requests'
+                ? 'border-green-500 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            ]"
+          >
+            Accepted Requests ({{ acceptedRequests.length }})
           </button>
           <button
             @click="activeTab = 'pending-assignments'"
@@ -343,7 +366,13 @@
       </div>
 
         <!-- Filters -->
-        <div class="p-6 border-b-2 border-gray-200 bg-gray-50">
+        <div class="p-6 border-b-2 border-gray-200 bg-gradient-to-br from-gray-50 to-white">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-md">
+              <FunnelIcon class="w-5 h-5 text-white" />
+            </div>
+            <h3 class="text-lg font-extrabold text-gray-900">Filters & Sorting</h3>
+          </div>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
             <div>
               <label class="block text-xs font-bold text-gray-700 uppercase tracking-wide mb-2">
@@ -406,9 +435,10 @@
             <div class="flex items-end">
               <button
                 @click="resetFilters"
-                class="w-full inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all shadow-sm"
+                class="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm hover:shadow-md"
               >
-                Reset
+                <ArrowPathIcon class="w-4 h-4" />
+                <span>Reset</span>
               </button>
             </div>
           </div>
@@ -424,8 +454,8 @@
             v-else-if="filteredAvailableOrders.length === 0"
             class="text-center py-16"
           >
-            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gray-100 mb-6">
-              <span class="text-4xl">📭</span>
+            <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 mb-6 shadow-lg">
+              <InboxIcon class="w-10 h-10 text-gray-400" />
             </div>
             <p class="text-lg font-semibold text-gray-900 mb-2">
               No available orders found
@@ -643,40 +673,118 @@
         </div>
       </div>
 
-      <!-- My Requests Tab -->
+      <!-- Pending Requests Tab -->
       <div v-if="activeTab === 'requests'" class="p-6">
         <div v-if="loading" class="flex items-center justify-center py-12">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-600"></div>
         </div>
-        <div v-else-if="allRequests.length === 0" class="text-center py-12 text-gray-500">
-          <p>No requests found</p>
+        <div v-else-if="pendingRequests.length === 0" class="text-center py-12 text-gray-500">
+          <div class="flex flex-col items-center gap-3">
+            <InboxIcon class="w-16 h-16 text-gray-400" />
+            <div>
+              <p class="text-lg font-medium text-gray-900">No pending requests</p>
+              <p class="text-sm text-gray-500 mt-1">You don't have any requests waiting for approval</p>
+            </div>
+          </div>
         </div>
-        <table v-else class="min-w-full divide-y divide-gray-200">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Topic</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Requested</th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-for="request in allRequests" :key="request.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">#{{ request.order_id }}</td>
-              <td class="px-6 py-4 text-sm text-gray-900">{{ request.order_topic || 'N/A' }}</td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span :class="getRequestStatusBadgeClass(request)" class="px-2 py-1 text-xs font-semibold rounded-full">
-                  {{ getRequestStatus(request) }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ formatDate(request.created_at) }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button @click="viewOrder({ id: request.order_id })" class="text-blue-600 hover:text-blue-900">View Order</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div v-else class="space-y-4">
+          <div
+            v-for="request in pendingRequests"
+            :key="request.id"
+            class="bg-white border-2 border-yellow-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <h3 class="text-lg font-bold text-gray-900">Order #{{ request.order_id }}</h3>
+                  <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold uppercase">
+                    Pending Review
+                  </span>
+                </div>
+                <p class="text-sm text-gray-600 mb-2">
+                  <span class="font-medium">Topic:</span> {{ request.order_topic || 'N/A' }}
+                </p>
+                <p class="text-sm text-gray-600 mb-2">
+                  <span class="font-medium">Requested:</span> {{ formatDate(request.created_at) }}
+                </p>
+                <p v-if="request.reason" class="text-sm text-gray-700 mt-3 p-3 bg-gray-50 rounded-lg">
+                  <span class="font-medium">Your reason:</span> {{ request.reason }}
+                </p>
+              </div>
+              <div class="flex flex-col gap-2 ml-4">
+                <button
+                  @click="viewOrder({ id: request.order_id })"
+                  class="px-4 py-2 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  View Order
+                </button>
+                <button
+                  @click="cancelRequest(request)"
+                  class="px-4 py-2 text-sm font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  Cancel Request
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Accepted Requests Tab -->
+      <div v-if="activeTab === 'accepted-requests'" class="p-6">
+        <div v-if="loading" class="flex items-center justify-center py-12">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        </div>
+        <div v-else-if="acceptedRequests.length === 0" class="text-center py-12 text-gray-500">
+          <div class="flex flex-col items-center gap-3">
+            <CheckCircleIcon class="w-16 h-16 text-gray-400" />
+            <div>
+              <p class="text-lg font-medium text-gray-900">No accepted requests</p>
+              <p class="text-sm text-gray-500 mt-1">Accepted requests move to your "My Orders" page</p>
+            </div>
+          </div>
+        </div>
+        <div v-else class="space-y-4">
+          <div
+            v-for="request in acceptedRequests"
+            :key="request.id"
+            class="bg-white border-2 border-green-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow"
+          >
+            <div class="flex items-start justify-between mb-4">
+              <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                  <h3 class="text-lg font-bold text-gray-900">Order #{{ request.order_id }}</h3>
+                  <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold uppercase">
+                    Accepted
+                  </span>
+                </div>
+                <p class="text-sm text-gray-600 mb-2">
+                  <span class="font-medium">Topic:</span> {{ request.order_topic || 'N/A' }}
+                </p>
+                <p class="text-sm text-gray-600 mb-2">
+                  <span class="font-medium">Accepted:</span> {{ formatDate(request.updated_at || request.created_at) }}
+                </p>
+                <p class="text-sm text-emerald-600 font-semibold mt-3">
+                  ✓ This order has been accepted and should now appear in your "My Orders" page
+                </p>
+              </div>
+              <div class="flex flex-col gap-2 ml-4">
+                <button
+                  @click="viewOrder({ id: request.order_id })"
+                  class="px-4 py-2 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  View Order
+                </button>
+                <router-link
+                  :to="'/writer/orders'"
+                  class="px-4 py-2 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors text-center"
+                >
+                  Go to My Orders
+                </router-link>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Pending Assignments Tab -->
@@ -1074,6 +1182,17 @@
 <script setup>
 import { ref, onMounted, computed, watch, unref } from 'vue'
 import { useRouter } from 'vue-router'
+import {
+  ArrowPathIcon,
+  ClipboardDocumentListIcon,
+  StarIcon,
+  DocumentTextIcon,
+  CheckCircleIcon,
+  SparklesIcon,
+  ArrowRightIcon,
+  FunnelIcon,
+  InboxIcon
+} from '@heroicons/vue/24/outline'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import writerOrderRequestsAPI from '@/api/writer-order-requests'
 import writerManagementAPI from '@/api/writer-management'
@@ -1139,6 +1258,24 @@ const allRequests = computed(() => {
     const dateB = new Date(b.created_at || 0)
     return dateB - dateA
   })
+})
+
+// Separate pending and accepted requests
+const pendingRequests = computed(() => {
+  return allRequests.value.filter(r => 
+    r.status === 'pending' || 
+    (!r.status && !r.approved && !r.accepted) ||
+    (r.approved === null && r.accepted === null)
+  )
+})
+
+const acceptedRequests = computed(() => {
+  return allRequests.value.filter(r => 
+    r.status === 'accepted' || 
+    r.status === 'approved' ||
+    r.accepted === true ||
+    r.approved === true
+  )
 })
 
 const applyFilters = (orders) => {
@@ -1282,8 +1419,8 @@ const loadQueue = async () => {
     stats.value = {
       available_count: availableOrders.value.length,
       preferred_count: preferredOrders.value.length,
-      requests_count: allRequests.value.length,
-      approved_count: allRequests.value.filter(r => r.approved || r.status === 'accepted').length,
+      requests_count: pendingRequests.value.length,
+      approved_count: acceptedRequests.value.length,
     }
   } catch (error) {
     console.error('Failed to load order queue:', error)
@@ -1606,6 +1743,33 @@ const resetFilters = () => {
 
 const filterOrders = () => {
   // Filters are reactive, no action needed
+}
+
+const cancelRequest = async (request) => {
+  if (!request || !request.id) return
+  
+  const confirmed = await confirm.showDestructive(
+    `Are you sure you want to cancel your request for Order #${request.order_id}? This action cannot be undone.`,
+    'Cancel Order Request'
+  )
+  
+  if (!confirmed) return
+  
+  try {
+    // Try to cancel via writer order requests API
+    if (request.type === 'writer_request') {
+      await writerOrderRequestsAPI.delete(request.id)
+    } else {
+      // For regular order requests, try the same endpoint
+      await writerOrderRequestsAPI.delete(request.id)
+    }
+    
+    showSuccess('Order request cancelled successfully')
+    await loadQueue()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to cancel order request. Please try again.')
+    showError(errorMsg)
+  }
 }
 
 const getRequestStatus = (request) => {

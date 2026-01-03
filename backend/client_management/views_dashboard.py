@@ -615,13 +615,6 @@ class ClientDashboardViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='enhanced-order-status')
     def get_enhanced_order_status(self, request):
         """Get detailed order status with progress tracking, estimated completion, and quality metrics."""
-        profile = self.get_client_profile(request)
-        if not profile:
-            return Response(
-                {"detail": "Client profile not found."},
-                status=404
-            )
-        
         order_id = request.query_params.get('order_id')
         if not order_id:
             return Response(
@@ -629,22 +622,73 @@ class ClientDashboardViewSet(viewsets.ViewSet):
                 status=400
             )
         
-        try:
-            order = Order.objects.select_related(
-                'assigned_writer', 'type_of_work', 'paper_type', 'subject',
-                'completed_by'
-            ).prefetch_related(
-                'progress_logs', 'transitions', 'reassignment_logs',
-                'disputes', 'reviews'
-            ).get(
-                id=order_id,
-                client=request.user
-            )
-        except Order.DoesNotExist:
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        
+        # Build query based on user role
+        order_query = {'id': order_id}
+        
+        if user_role == 'client':
+            # Clients can only see their own orders
+            order_query['client'] = user
+        elif user_role == 'writer':
+            # Writers can see orders they're assigned to or have requested
+            from writer_management.models.requests import WriterOrderRequest
+            try:
+                writer_profile = user.writer_profile
+                requested_orders = WriterOrderRequest.objects.filter(
+                    writer=writer_profile
+                ).values_list('order_id', flat=True)
+                
+                # Use Q object to check if order is assigned to writer OR requested by writer
+                from django.db.models import Q
+                order = Order.objects.select_related(
+                    'assigned_writer', 'type_of_work', 'paper_type', 'subject',
+                    'completed_by', 'client'
+                ).prefetch_related(
+                    'progress_logs', 'transitions', 'reassignment_logs',
+                    'disputes', 'reviews'
+                ).filter(
+                    Q(id=order_id) & (
+                        Q(assigned_writer=user) |
+                        Q(id__in=requested_orders)
+                    )
+                ).first()
+                
+                if not order:
+                    return Response(
+                        {"detail": "Order not found or you don't have permission to view it."},
+                        status=404
+                    )
+            except Exception:
+                return Response(
+                    {"detail": "Order not found or you don't have permission to view it."},
+                    status=404
+                )
+        elif user_role in ['admin', 'superadmin', 'support', 'editor']:
+            # Admins, superadmins, support, and editors can see any order
+            order_query = {'id': order_id}
+        else:
             return Response(
-                {"detail": "Order not found."},
-                status=404
+                {"detail": "You don't have permission to access this endpoint."},
+                status=403
             )
+        
+        # For clients and admins, use the original query
+        if user_role != 'writer':
+            try:
+                order = Order.objects.select_related(
+                    'assigned_writer', 'type_of_work', 'paper_type', 'subject',
+                    'completed_by', 'client'
+                ).prefetch_related(
+                    'progress_logs', 'transitions', 'reassignment_logs',
+                    'disputes', 'reviews'
+                ).get(**order_query)
+            except Order.DoesNotExist:
+                return Response(
+                    {"detail": "Order not found."},
+                    status=404
+                )
         
         now = timezone.now()
         

@@ -17,8 +17,10 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="text-center py-12">
-      <div class="text-4xl mb-2">⏳</div>
-      <p class="text-gray-500">Loading performance data...</p>
+      <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center shadow-lg">
+        <ArrowPathIcon class="w-8 h-8 text-gray-400 animate-spin" />
+      </div>
+      <p class="text-gray-500 font-medium">Loading performance data...</p>
     </div>
 
     <!-- Performance Metrics Cards -->
@@ -34,8 +36,8 @@
               {{ performanceData?.completed_orders || 0 }}/{{ performanceData?.total_orders || 0 }} orders
             </p>
           </div>
-          <div class="p-3 bg-blue-100 rounded-lg">
-            <span class="text-2xl">✅</span>
+          <div class="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+            <CheckCircleIcon class="w-6 h-6 text-white" />
           </div>
         </div>
       </div>
@@ -51,8 +53,8 @@
               {{ performanceData?.on_time_orders || 0 }} on time
             </p>
           </div>
-          <div class="p-3 bg-green-100 rounded-lg">
-            <span class="text-2xl">⏰</span>
+          <div class="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
+            <ClockIcon class="w-6 h-6 text-white" />
           </div>
         </div>
       </div>
@@ -66,8 +68,8 @@
             </p>
             <p class="text-xs text-gray-500 mt-1">Client satisfaction</p>
           </div>
-          <div class="p-3 bg-yellow-100 rounded-lg">
-            <span class="text-2xl">⭐</span>
+          <div class="p-3 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl shadow-lg">
+            <StarIcon class="w-6 h-6 text-white" />
           </div>
         </div>
       </div>
@@ -83,8 +85,8 @@
               {{ performanceData?.revised_orders || 0 }} revised
             </p>
           </div>
-          <div class="p-3 bg-orange-100 rounded-lg">
-            <span class="text-2xl">📝</span>
+          <div class="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
+            <PencilSquareIcon class="w-6 h-6 text-white" />
           </div>
         </div>
       </div>
@@ -129,8 +131,10 @@
         ]"
       ></apexchart>
       <div v-else class="text-center py-12 text-gray-500">
-        <div class="text-4xl mb-2">📊</div>
-        <p>{{ performanceData ? 'No performance data available for this period' : 'Loading performance data...' }}</p>
+        <div class="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center shadow-lg">
+          <ChartBarIcon class="w-8 h-8 text-gray-400" />
+        </div>
+        <p class="font-medium">{{ performanceData ? 'No performance data available for this period' : 'Loading performance data...' }}</p>
       </div>
     </div>
 
@@ -208,6 +212,14 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import {
+  ArrowPathIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  StarIcon,
+  PencilSquareIcon,
+  ChartBarIcon
+} from '@heroicons/vue/24/outline'
 import { useAuthStore } from '@/stores/auth'
 import writerDashboardAPI from '@/api/writer-dashboard'
 

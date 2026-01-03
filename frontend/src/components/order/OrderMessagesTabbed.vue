@@ -163,8 +163,18 @@ const props = defineProps({
   }
 })
 
+const emit = defineEmits(['unread-count-update'])
+
 const authStore = useAuthStore()
 const currentUser = authStore.user
+
+// Initialize state variables first
+const activeTab = ref('admin')
+const threads = ref([])
+const loadingThreads = ref(false)
+const showNewMessageModal = ref(false)
+const selectedThread = ref(null)
+const selectedThreadId = ref(null)
 
 // Tabs configuration based on user role
 const recipientTabs = computed(() => {
@@ -211,12 +221,34 @@ const recipientTabs = computed(() => {
   return tabs
 })
 
-const activeTab = ref(recipientTabs.value[0]?.id || 'admin')
-const threads = ref([])
-const loadingThreads = ref(false)
-const showNewMessageModal = ref(false)
-const selectedThread = ref(null)
-const selectedThreadId = ref(null)
+// Set active tab after recipientTabs is computed
+watch(recipientTabs, (tabs) => {
+  if (tabs.length > 0 && !tabs.find(t => t.id === activeTab.value)) {
+    activeTab.value = tabs[0].id
+  }
+}, { immediate: true })
+
+// Computed property for total unread count across all tabs
+const totalUnreadCount = computed(() => {
+  if (!threads.value || !Array.isArray(threads.value)) {
+    return 0
+  }
+  const orderThreads = threads.value.filter(thread => {
+    const threadOrderId = thread.order || thread.order_id
+    return threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
+  })
+  
+  return orderThreads.reduce((sum, thread) => {
+    return sum + (thread.unread_count || 0)
+  }, 0)
+})
+
+// Watch for changes in total unread count and emit to parent
+watch(totalUnreadCount, (newCount) => {
+  if (threads.value !== undefined) {
+    emit('unread-count-update', newCount)
+  }
+}, { immediate: false })
 
 // Icon components
 const AdminIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>' }
@@ -318,8 +350,16 @@ const filteredThreads = computed(() => {
 const loadThreads = async (forceRefresh = false) => {
   loadingThreads.value = true
   try {
-    // Use shared cache store
-    const allThreads = await messagesStore.getThreads(forceRefresh)
+    // Try using shared cache store first
+    let allThreads = []
+    try {
+      allThreads = await messagesStore.getThreads(forceRefresh)
+    } catch (storeError) {
+      // Fallback to direct API call if store fails
+      console.warn('Messages store failed, using direct API call:', storeError)
+      const response = await communicationsAPI.listThreads({ order: props.orderId })
+      allThreads = response.data.results || response.data || []
+    }
     
     // Filter threads that belong to this order
     threads.value = allThreads.filter(thread => {
@@ -328,6 +368,10 @@ const loadThreads = async (forceRefresh = false) => {
     })
   } catch (error) {
     console.error('Failed to load threads:', error)
+    // Show user-friendly error message
+    const errorMsg = error.response?.data?.detail || error.message || 'Failed to load conversations'
+    showError(errorMsg)
+    threads.value = [] // Clear threads on error
   } finally {
     loadingThreads.value = false
   }
@@ -337,23 +381,36 @@ const getUnreadCountForTab = (tabId) => {
   const activeTabData = recipientTabs.value.find(t => t.id === tabId)
   if (!activeTabData) return 0
 
-  const orderThreads = threads.value.filter(thread => 
-    thread.order === props.orderId || thread.order_id === props.orderId
-  )
+  // Use the same filtering logic as filteredThreads to ensure count matches visible threads
+  const orderThreads = threads.value.filter(thread => {
+    const threadOrderId = thread.order || thread.order_id
+    return threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
+  })
 
   return orderThreads.reduce((sum, thread) => {
-    const otherParticipants = thread.participants?.filter(p => {
-      const participantId = typeof p === 'object' ? p.id : p
-      return participantId !== currentUser?.id
-    }) || []
-
-    const matchesTab = otherParticipants.some(participant => {
-      let participantRole = null
-      if (typeof participant === 'object') {
-        participantRole = participant.role || null
+    // Use the same logic as filteredThreads - prioritize recipient_role from last message
+    const otherRoles = getOtherParticipantRoles(thread)
+    
+    // Check if the thread matches the active tab using the same logic as filteredThreads
+    let matchesTab = false
+    if (otherRoles.length > 0) {
+      matchesTab = otherRoles.some(role => activeTabData.roles.includes(role))
+    } else {
+      // Fallback to participant roles if no recipient_role
+      const participants = thread.participants || []
+      const otherParticipants = participants.filter(p => {
+        const participantId = typeof p === 'object' ? p.id : p
+        return participantId !== currentUser?.id
+      })
+      
+      const participantRoles = otherParticipants
+        .map(p => typeof p === 'object' ? p.role : null)
+        .filter(Boolean)
+      
+      if (participantRoles.length > 0) {
+        matchesTab = participantRoles.some(role => activeTabData.roles.includes(role))
       }
-      return participantRole && activeTabData.roles.includes(participantRole)
-    })
+    }
 
     return matchesTab ? sum + (thread.unread_count || 0) : sum
   }, 0)
@@ -443,6 +500,11 @@ const openNewMessageModal = () => {
 }
 
 const openThread = (thread) => {
+  if (!thread || !thread.id) {
+    console.error('Invalid thread:', thread)
+    showError('Invalid conversation')
+    return
+  }
   selectedThread.value = thread
   selectedThreadId.value = thread.id
 }
@@ -489,6 +551,8 @@ watch(() => props.orderId, () => {
 onMounted(async () => {
   if (props.orderId) {
     await loadThreads()
+    // Emit initial count after threads are loaded
+    emit('unread-count-update', totalUnreadCount.value)
     // Prefer SSE-based updates over polling to reduce HTTP chatter
     messagesStore.connectRealtime()
   }

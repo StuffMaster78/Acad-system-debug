@@ -107,10 +107,24 @@ class WriterProgressViewSet(viewsets.ModelViewSet):
         user_role = getattr(user, 'role', None)
         
         if user_role == 'writer' and order.assigned_writer != user:
-            return Response(
-                {'error': 'You can only view progress for your assigned orders.'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+            # Check if writer has requested this order
+            from writer_management.models.requests import WriterOrderRequest
+            try:
+                writer_profile = user.writer_profile
+                has_requested = WriterOrderRequest.objects.filter(
+                    writer=writer_profile,
+                    order=order
+                ).exists()
+                if not has_requested:
+                    return Response(
+                        {'error': 'You can only view progress for your assigned orders or orders you have requested.'},
+                        status=status.HTTP_403_FORBIDDEN
+                    )
+            except Exception:
+                return Response(
+                    {'error': 'You can only view progress for your assigned orders.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
         elif user_role == 'client' and order.client != user:
             return Response(
                 {'error': 'You can only view progress for your orders.'},

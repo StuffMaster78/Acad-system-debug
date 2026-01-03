@@ -296,6 +296,8 @@ apiClient.interceptors.response.use(
           localStorage.removeItem('refresh_token')
           localStorage.removeItem('current_website')
           localStorage.removeItem('user')
+          localStorage.removeItem('website_id')
+          sessionStorage.clear()
           
           // Only redirect if not already on login page or guest route
           const isGuestRoute = window.location.pathname.startsWith('/guest-orders') ||
@@ -303,7 +305,7 @@ apiClient.interceptors.response.use(
                                 window.location.pathname.startsWith('/page') ||
                                 window.location.pathname === '/terms'
           if (window.location.pathname !== '/login' && !isGuestRoute) {
-            window.location.href = '/login'
+            window.location.replace('/login')
           }
         } else {
           // For network errors or other issues, just reject the original error

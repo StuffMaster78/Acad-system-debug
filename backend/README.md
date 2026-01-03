@@ -274,6 +274,8 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
 - **[Invoice System](./INVOICE_PAYMENT_SYSTEM_DESIGN.md)**: Complete invoice and payment workflow
 - **[Session Management](./SESSION_MANAGEMENT_COMPLETE.md)**: Idle timeout and session tracking
 - **[Email Templates](./EMAIL_TEMPLATES.md)**: Email template system and customization
+- **[Email System Documentation](./EMAIL_SYSTEM_DOCUMENTATION.md)**: Complete guide to Mass Emails, Broadcasts, and Transactional Notifications
+- **[Email System Quick Reference](./EMAIL_SYSTEM_QUICK_REFERENCE.md)**: Quick reference for common email operations
 - **[Geolocation Analysis](./GEOLOCATION_ANALYSIS.md)**: IP geolocation implementation and IP2Location LITE comparison
 - **[Dropdown Options API](./DROPDOWN_OPTIONS_API.md)**: Database-driven dropdown lists
 - **[Performance Optimizations](./PERFORMANCE_IMPROVEMENTS_COMPLETED.md)**: Query optimizations and caching

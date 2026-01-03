@@ -475,17 +475,13 @@ class UserViewSet(viewsets.ModelViewSet):
                     profile_instance = WriterProfile.objects.select_related(
                         'user', 'user__user_main_profile', 'website', 'writer_level'
                     ).prefetch_related(
-                        'user__notification_profile',
-                        'expertise_subjects',
-                        'expertise_paper_types'
+                        'user__notification_profile'
                     ).get(user=user)
                 elif user.role == "editor":
                     profile_instance = EditorProfile.objects.select_related(
                         'user', 'user__user_main_profile', 'website'
                     ).prefetch_related(
-                        'user__notification_profile',
-                        'expertise_subjects',
-                        'expertise_paper_types'
+                        'user__notification_profile'
                     ).get(user=user)
                 elif user.role == "support":
                     profile_instance = SupportProfile.objects.select_related(

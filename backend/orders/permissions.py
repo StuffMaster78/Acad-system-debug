@@ -222,12 +222,23 @@ class IsOrderOwnerOrSupport(BasePermission):
         
         # Writers can see available PAID orders from their website
         # (not assigned to anyone, or preferred for them unless they declined)
+        # OR orders they have requested (even if not assigned yet)
         if user_role == "writer":
             from orders.order_enums import OrderStatus
             from orders.models import PreferredWriterResponse
+            from writer_management.models.requests import WriterOrderRequest
             
             try:
                 writer_profile = request.user.writer_profile
+                
+                # Check if writer has requested this order (allows viewing requested orders)
+                has_requested = WriterOrderRequest.objects.filter(
+                    writer=writer_profile,
+                    order=obj
+                ).exists()
+                
+                if has_requested:
+                    return True
                 
                 # Check if order is available, paid, and from writer's website
                 if (obj.status == OrderStatus.AVAILABLE.value and 

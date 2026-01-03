@@ -2021,24 +2021,7 @@
           <!-- Other navigation items (profile/settings/privacy/security for all, tickets/etc for non-admin) -->
           <template v-for="item in navigationItems">
             <SidebarTooltip 
-              v-if="
-                shouldShowItem(item.label, item.description || '') &&
-                (
-                (
-                  // Tickets / notifications / general activity only for non-admin users
-                  !authStore.isAdmin &&
-                  !authStore.isSuperAdmin &&
-                  (item.name === 'Tickets' || item.name === 'Notifications' || item.name === 'ActivityLogsGeneral')
-                )
-                ||
-                (
-                  // Profile & account links for all roles (including admin/superadmin)
-                  // PrivacySettings and SecurityActivity removed - accessible via Settings page
-                  item.name === 'Profile' ||
-                  item.name === 'Settings'
-                  )
-                )
-              "
+              v-if="shouldShowItem(item.label, item.description || '')"
               :key="item.name"
               :text="item.label"
               :collapsed="sidebarCollapsed"
@@ -2054,13 +2037,23 @@
                 ]"
                 :aria-label="sidebarCollapsed ? item.label : undefined"
               >
-                <SidebarIcon 
-                  :icon-name="getIconNameFromEmoji(item.icon)" 
-                  size="md" 
-                  :icon-class="isRouteActive(item) ? 'text-primary-600' : 'text-gray-600 group-hover:text-primary-600'" 
-                  :class="sidebarCollapsed ? '' : 'mr-3'"
-                />
-                <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">{{ item.label }}</span>
+                <div class="relative flex items-center" :class="sidebarCollapsed ? '' : 'flex-1'">
+                  <SidebarIcon 
+                    :icon-name="getIconNameFromEmoji(item.icon)" 
+                    size="md" 
+                    :icon-class="isRouteActive(item) ? 'text-primary-600' : 'text-gray-600 group-hover:text-primary-600'" 
+                    :class="sidebarCollapsed ? '' : 'mr-3'"
+                  />
+                  <span v-show="!sidebarCollapsed" class="transition-opacity duration-300 flex-1">{{ item.label }}</span>
+                  <!-- Unread count badge for Announcements -->
+                  <span 
+                    v-if="item.name === 'Announcements' && unreadAnnouncementsCount > 0"
+                    class="ml-auto flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-600 dark:bg-red-500 rounded-full"
+                    :class="sidebarCollapsed ? 'absolute -top-1 -right-1' : ''"
+                  >
+                    {{ unreadAnnouncementsCount > 99 ? '99+' : unreadAnnouncementsCount }}
+                  </span>
+                </div>
               </router-link>
             </SidebarTooltip>
           </template>
@@ -2452,6 +2445,7 @@ import { useAuthStore } from '@/stores/auth'
 import { getAccessibleRoutes } from '@/utils/permissions'
 import notificationsAPI from '@/api/notifications'
 import activityAPI from '@/api/activity-logs'
+import announcementsAPI from '@/api/announcements'
 import GlobalSearch from '@/components/common/GlobalSearch.vue'
 import SessionTimeoutWarning from '@/components/common/SessionTimeoutWarning.vue'
 import ChevronIcon from '@/components/common/ChevronIcon.vue'
@@ -2842,6 +2836,10 @@ const notificationsLoading = ref(false)
 const markingAllRead = ref(false)
 const notificationsDropdownRef = ref(null)
 const profileDropdownRef = ref(null)
+
+// Announcements state
+const unreadAnnouncementsCount = ref(0)
+let announcementsCountInterval = null
 
 // Activities state
 const showActivitiesDropdown = ref(false)
@@ -3304,6 +3302,13 @@ const navigationItems = computed(() => {
       roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
     },
     {
+      name: 'Announcements',
+      to: '/announcements',
+      label: 'Announcements',
+      icon: '📢',
+      roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+    },
+    {
       name: 'ActivityLogsGeneral',
       to: '/activity',
       label: 'User Activity',
@@ -3515,6 +3520,23 @@ const loadUnreadCount = async () => {
     // Only log non-rate-limit errors
     if (error.response?.status !== 429) {
       console.error('Failed to load unread count:', error)
+    }
+  }
+}
+
+// Load unread announcements count
+const loadUnreadAnnouncementsCount = async () => {
+  if (!authStore.isAuthenticated) {
+    unreadAnnouncementsCount.value = 0
+    return
+  }
+  try {
+    const response = await announcementsAPI.getUnreadCount()
+    unreadAnnouncementsCount.value = response.data.unread_count || 0
+  } catch (error) {
+    // Silently handle errors - don't spam console
+    if (error.response?.status !== 429 && error.response?.status !== 401) {
+      console.error('Failed to load unread announcements count:', error)
     }
   }
 }
@@ -3832,9 +3854,9 @@ const getIconNameFromEmoji = (emoji) => {
     '🔍': 'search',
     '🌐': 'home',
     '👑': 'star',
-    '📧': 'chat',
-    '🔔': 'chat',
-    '📢': 'chat',
+    '📧': 'mail',
+    '🔔': 'bell',
+    '📢': 'megaphone',
     '🏥': 'shield',
     '🎛️': 'cog',
   }
@@ -3842,12 +3864,38 @@ const getIconNameFromEmoji = (emoji) => {
 }
 
 const handleLogout = async () => {
-  closeNotificationsDropdown()
-  closeActivitiesDropdown()
-  closeProfileDropdown()
-  sessionManager.stop() // Stop session monitoring
-  await authStore.logout()
-  router.push('/login')
+  try {
+    // Close all dropdowns
+    closeNotificationsDropdown()
+    closeActivitiesDropdown()
+    closeProfileDropdown()
+    
+    // Stop session monitoring
+    if (sessionManager) {
+      sessionManager.stop()
+    }
+    
+    // Clear intervals
+    if (unreadCountInterval) {
+      clearTimeout(unreadCountInterval)
+      unreadCountInterval = null
+    }
+    if (orderCountsInterval) {
+      clearInterval(orderCountsInterval)
+      orderCountsInterval = null
+    }
+    if (announcementsCountInterval) {
+      clearInterval(announcementsCountInterval)
+      announcementsCountInterval = null
+    }
+    
+    // Logout (this will handle redirect)
+    await authStore.logout()
+  } catch (error) {
+    console.error('Error during logout:', error)
+    // Force redirect even if logout fails
+    window.location.href = '/login'
+  }
 }
 
 // Session timeout handlers
@@ -3887,6 +3935,7 @@ onMounted(() => {
   
   // Load initial unread count
   loadUnreadCount()
+  loadUnreadAnnouncementsCount()
   
   // Load order status counts
   loadOrderStatusCounts()
@@ -3898,6 +3947,11 @@ onMounted(() => {
     if (authStore.isWriter) {
       loadWriterSidebarMetrics()
     }
+  }, 120000) // 2 minutes
+  
+  // Poll for unread announcements count (every 2 minutes)
+  announcementsCountInterval = setInterval(() => {
+    loadUnreadAnnouncementsCount()
   }, 120000) // 2 minutes
   
   // Poll for unread count with adaptive interval (starts at 60 seconds)
@@ -3916,9 +3970,10 @@ onMounted(() => {
   // Start adaptive polling
   scheduleNextPoll()
   
-  // Also reload when route changes (user might have read notifications)
+  // Also reload when route changes (user might have read notifications or announcements)
   router.afterEach(() => {
     loadUnreadCount()
+    loadUnreadAnnouncementsCount()
   })
   
   // Start session timeout monitoring
@@ -3935,6 +3990,10 @@ onUnmounted(() => {
   if (orderCountsInterval) {
     clearInterval(orderCountsInterval)
     orderCountsInterval = null
+  }
+  if (announcementsCountInterval) {
+    clearInterval(announcementsCountInterval)
+    announcementsCountInterval = null
   }
   document.removeEventListener('click', handleClickOutside)
   sessionManager.stop() // Stop session monitoring

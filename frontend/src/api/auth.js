@@ -43,8 +43,9 @@ export const authAPI = {
       })
   },
 
-  logout: () => {
-    return apiClient.post('/auth/auth/logout/')
+  logout: (logoutAll = false) => {
+    const params = logoutAll ? { logout_all: 'true' } : {}
+    return apiClient.post('/auth/auth/logout/', null, { params })
   },
 
   refreshToken: (refreshToken) => {

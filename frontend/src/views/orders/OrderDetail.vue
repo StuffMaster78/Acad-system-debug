@@ -1031,7 +1031,7 @@
                   </span>
                 </div>
                 <p class="text-xs text-gray-500">
-                  This is your agreed payout for this order. Tips and bonuses (if any) will appear in your wallet and earnings dashboards; client payment totals and installment plans remain private.
+                  This is your agreed payout for this order. Tips and bonuses (if any) will appear in your wallet and earnings dashboards.
                 </p>
               </div>
             </div>
@@ -1300,6 +1300,9 @@
             />
           </div>
         </div>
+        
+        <!-- Spacing before Order Actions -->
+        <div v-if="authStore.isWriter || authStore.isAdmin || authStore.isSuperAdmin" class="my-8"></div>
         
         <!-- Notes (if available) -->
         <div v-if="order.completion_notes || (authStore.isAdmin || authStore.isSuperAdmin)" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
@@ -1689,6 +1692,7 @@
         <OrderMessagesTabbed
           :order-id="order.id"
           :order-topic="order.topic"
+          @unread-count-update="handleUnreadCountUpdate"
         />
       </div>
       <!-- End Messages Tab -->
@@ -3043,39 +3047,8 @@
 
         <!-- Writer Actions -->
         <div v-if="authStore.isWriter" class="space-y-6">
-          <!-- Order Status Actions -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div class="flex items-center gap-3 mb-6">
-              <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                <span class="text-xl">📝</span>
-              </div>
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Work Status</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Update your progress on this order</p>
-              </div>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <button
-                v-if="order.status === 'pending_writer_assignment' || order.status === 'available'"
-                @click="handleStatusChange('in_progress')"
-                :disabled="processingAction"
-                class="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all font-medium disabled:opacity-50"
-              >
-                <span class="text-xl">▶️</span>
-                <span>Start Working</span>
-              </button>
-              <button
-                v-if="order.status === 'in_progress'"
-                @click="handleSubmitOrder"
-                :disabled="processingAction"
-                class="flex items-center gap-3 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all font-medium disabled:opacity-50"
-              >
-                <span class="text-xl">✅</span>
-                <span>Submit Order</span>
-              </button>
-            </div>
-          </div>
-
+          <!-- Note: Writers cannot manually change order status - this is handled through order actions (take, submit, etc.) -->
+          
           <!-- Communication -->
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex items-center gap-3 mb-6">
@@ -7394,6 +7367,11 @@ const deleteThread = async (threadId) => {
   } finally {
     deletingThread.value[threadId] = false
   }
+}
+
+// Handle unread count update from OrderMessagesTabbed component
+const handleUnreadCountUpdate = (count) => {
+  unreadMessageCount.value = count
 }
 
 // Cleanup polling on unmount

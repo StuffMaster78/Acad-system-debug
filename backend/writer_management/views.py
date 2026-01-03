@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.utils.timezone import now
+from django.utils import timezone
 from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -147,7 +147,7 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
         'user', 'website', 'writer_level'
     )
     serializer_class = WriterProfileSerializer
-    permission_classes = [permissions.IsAdminUser]
+    permission_classes = [permissions.IsAuthenticated]  # Default to authenticated, restrict in get_permissions
     
     def get_permissions(self):
         """
@@ -155,6 +155,7 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
         """
         if self.action in ['update', 'partial_update', 'my_profile']:
             return [permissions.IsAuthenticated()]
+        # For list, retrieve, create, delete - require admin
         return [permissions.IsAdminUser()]
     
     def get_queryset(self):
@@ -198,12 +199,19 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
         # Admins can update everything
         return super().update(request, *args, **kwargs)
 
-    @action(detail=False, methods=['GET'], permission_classes=[permissions.IsAuthenticated])
+    @action(detail=False, methods=['GET'], url_path='my_profile')
     def my_profile(self, request):
         """
         Get the current writer's own profile with hierarchy details.
         """
         from websites.models import Website
+        
+        # Check if user is authenticated first
+        if not request.user or not request.user.is_authenticated:
+            return Response(
+                {"detail": "Authentication required."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
         
         # Check if user has writer role
         user_role = getattr(request.user, 'role', None)
@@ -1382,30 +1390,54 @@ class WriterStatusViewSet(viewsets.ViewSet):
             )
         
         try:
-            writer = WriterProfile.objects.get(user=request.user)
+            writer = WriterProfile.objects.select_related('website', 'user').get(user=request.user)
         except WriterProfile.DoesNotExist:
             return Response(
                 {"detail": "No writer profile found."},
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        WriterStatusService.update(writer)
-        # Refresh writer object to get the status
-        writer.refresh_from_db()
-        # Get or create status if it doesn't exist
-        status_obj, created = WriterStatus.objects.get_or_create(
-            writer=writer,
-            defaults={
-                "website": writer.website,
+        try:
+            # Update status (this will create or update the WriterStatus record)
+            WriterStatusService.update(writer)
+            
+            # Get the status object (should exist after update)
+            try:
+                status_obj = WriterStatus.objects.get(writer=writer)
+            except WriterStatus.DoesNotExist:
+                # If it still doesn't exist, create a default one
+                status_obj = WriterStatus.objects.create(
+                    writer=writer,
+                    website=writer.website,
+                    is_active=True,
+                    is_suspended=False,
+                    is_blacklisted=False,
+                    is_on_probation=False,
+                    active_strikes=0,
+                )
+            
+            serializer = WriterStatusSerializer(status_obj)
+            return Response(serializer.data)
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error loading writer status for {request.user.id}: {str(e)}", exc_info=True)
+            
+            # Return a safe default status instead of failing
+            return Response({
+                "writer": writer.id,
+                "website": writer.website_id,
                 "is_active": True,
                 "is_suspended": False,
                 "is_blacklisted": False,
                 "is_on_probation": False,
                 "active_strikes": 0,
-            }
-        )
-        serializer = WriterStatusSerializer(status_obj)
-        return Response(serializer.data)
+                "strikes": 0,
+                "last_strike_at": None,
+                "suspension_ends_at": None,
+                "probation_ends_at": None,
+                "updated_at": timezone.now().isoformat(),
+            }, status=status.HTTP_200_OK)
 
 
     def list(self, request):

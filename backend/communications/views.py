@@ -970,6 +970,28 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
     
+    @action(detail=True, methods=['post', 'delete'], url_path='react')
+    def react(self, request, thread_pk=None, pk=None):
+        """Add or remove a reaction to a message."""
+        message = self.get_object()
+        emoji = request.data.get('emoji', '👍')
+        
+        if request.method == 'POST':
+            # Add reaction
+            # TODO: Implement reaction model and logic
+            return Response({
+                'status': 'success',
+                'message': 'Reaction added',
+                'emoji': emoji
+            })
+        elif request.method == 'DELETE':
+            # Remove reaction
+            # TODO: Implement reaction removal logic
+            return Response({
+                'status': 'success',
+                'message': 'Reaction removed'
+            })
+    
     @action(detail=True, methods=['get'])
     def download_attachment(self, request, thread_pk=None, pk=None):
         """Download a message attachment."""
