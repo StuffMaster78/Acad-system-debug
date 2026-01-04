@@ -1,5 +1,10 @@
 # Writing System Platform
 
+[![Backend Tests](https://github.com/awinooliyo/Order-Management-System/workflows/Comprehensive%20Test%20Suite/badge.svg)](https://github.com/awinooliyo/Order-Management-System/actions)
+[![Frontend Tests](https://github.com/awinooliyo/Order-Management-System/workflows/Comprehensive%20Test%20Suite/badge.svg)](https://github.com/awinooliyo/Order-Management-System/actions)
+[![Code Coverage](https://codecov.io/gh/awinooliyo/Order-Management-System/branch/main/graph/badge.svg)](https://codecov.io/gh/awinooliyo/Order-Management-System)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A comprehensive multi-tenant writing services platform with Django REST API backend and Vue.js frontend. This system manages orders, payments, invoices, users, writers, clients, and administrative functions across multiple websites.
 
 ## 🎯 Overview
@@ -412,10 +417,52 @@ lsof -i :8000
 - Check API URL in frontend `.env` file
 - Verify CORS settings in backend
 
+## 🧪 Testing
+
+### Running Tests
+
+```bash
+# Run all tests
+make test
+
+# Backend tests only
+make test-backend
+# or
+cd backend && pytest
+
+# Frontend tests only
+make test-frontend
+# or
+cd frontend && npm run test
+
+# With coverage
+make coverage
+```
+
+### Test Coverage
+
+- **Backend**: Minimum 95% coverage required
+- **Frontend**: Minimum 80% coverage required
+
+Coverage reports are generated in:
+- Backend: `backend/htmlcov/index.html`
+- Frontend: `frontend/coverage/index.html`
+
+### CI/CD
+
+Tests run automatically on:
+- Every push to main/develop branches
+- Pull requests
+- Daily schedule (2 AM UTC)
+- Manual trigger
+
+See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for comprehensive testing documentation.
+
 ## 📖 Additional Documentation
 
 - [Backend README](./backend/README.md) - Detailed backend documentation
 - [Frontend README](./frontend/README.md) - Detailed frontend documentation
+- [Testing Guide](./TESTING_GUIDE.md) - Comprehensive testing documentation
 - [Docker Setup Guide](./backend/DOCKER_README.md)
 - [API Documentation](./backend/COMPLETE_API_DOCUMENTATION.md)
 - [Deployment Checklist](./backend/DEPLOYMENT_CHECKLIST.md)
