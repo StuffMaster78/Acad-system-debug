@@ -612,6 +612,16 @@ const recentCommunicationsUnread = computed(() => {
   return props.recentCommunications?.reduce((sum, thread) => sum + (thread.unread_count || 0), 0) || 0
 })
 
+const formatTime = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleTimeString('en-US', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  })
+}
+
 const formatDate = (dateString) => {
   if (!dateString) return '—'
   return new Date(dateString).toLocaleDateString('en-US', {

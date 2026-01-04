@@ -1,45 +1,9 @@
 <template>
-  <div class="account-settings min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-    <!-- Background Pattern -->
-    <div class="fixed inset-0 opacity-5 dark:opacity-10 pointer-events-none">
-      <div class="absolute inset-0" style="background-image: radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0); background-size: 40px 40px;"></div>
-    </div>
-
-    <div class="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <!-- Header Section -->
-      <div class="mb-8">
-        <div class="flex items-center gap-4 mb-3">
-          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500/20 to-purple-500/20 flex items-center justify-center">
-            <svg class="w-7 h-7 text-primary-600 dark:text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          </div>
-          <div>
-            <h1 class="text-4xl font-extrabold text-gray-900 dark:text-white tracking-tight">Account Settings</h1>
-            <p class="text-gray-600 dark:text-gray-400 mt-1 text-lg">Manage your account preferences and security</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Modern Tabs -->
-      <div class="mb-8 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-2">
-        <div class="flex flex-wrap gap-2">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        @click="handleTabClick(tab)"
-            :class="[
-              'px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-200 relative',
-              activeTab === tab.id
-                ? 'bg-gradient-to-r from-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30'
-                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700/50'
-            ]"
-      >
-        {{ tab.label }}
-            <span v-if="activeTab === tab.id" class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-0.5 bg-white rounded-full"></span>
-      </button>
-        </div>
+  <div class="account-settings">
+    <!-- Header Section -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Account Settings</h1>
+      <p class="text-gray-600 dark:text-gray-400">Manage your account preferences and security settings</p>
     </div>
 
     <!-- Profile Tab -->
@@ -629,7 +593,7 @@
     <div v-if="activeTab === 'update-requests'" class="tab-content">
       <ProfileUpdateRequests />
     </div>
-    </div>
+  </div>
 
     <!-- Account Deletion Modal -->
     <div v-if="showDeletionModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click="showDeletionModal = false">
@@ -720,7 +684,6 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script>
@@ -758,9 +721,6 @@ export default {
       tabs: [
         { id: 'profile', label: 'Profile' },
         { id: 'security', label: 'Security' },
-        { id: 'privacy', label: 'Privacy Settings', route: '/account/privacy' },
-        { id: 'security-activity', label: 'Security Activity', route: '/account/security' },
-        { id: 'sessions', label: 'Sessions' },
         { id: 'update-requests', label: 'Update Requests' }
       ],
       loading: false,
@@ -1324,7 +1284,7 @@ export default {
 
 <style scoped>
 .account-settings {
-  animation: fadeIn 0.5s ease-in;
+  animation: fadeIn 0.3s ease-in;
 }
 
 @keyframes fadeIn {

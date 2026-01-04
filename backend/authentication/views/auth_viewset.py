@@ -7,7 +7,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.throttling import UserRateThrottle, AnonRateThrottle
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, PermissionDenied
 
 from authentication.services.auth_service import AuthenticationService
 from authentication.serializers import LoginSerializer, RegisterSerializer
@@ -84,6 +84,11 @@ class AuthenticationViewSet(viewsets.ViewSet):
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
+            )
+        except PermissionDenied as e:
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_403_FORBIDDEN
             )
         except Exception as e:
             import logging

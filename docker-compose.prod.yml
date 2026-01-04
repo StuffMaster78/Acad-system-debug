@@ -4,7 +4,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    command: gunicorn writing_system.wsgi:application --bind 0.0.0.0:8000 --workers=3 --timeout=120
+    command: gunicorn writing_system.wsgi:application --config gunicorn_config.py
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379

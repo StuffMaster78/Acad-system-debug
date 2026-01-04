@@ -385,6 +385,8 @@ const loadMessages = useDebounceFn(async (loadMore = false) => {
       try {
         await communicationsAPI.markThreadAsRead(props.thread.id)
         messagesStore.invalidateThreadsCache()
+        // Emit thread-updated event to parent to refresh unread count
+        emit('thread-updated', true)
       } catch (error) {
         if (import.meta.env.DEV) {
           console.warn('Failed to mark thread as read:', error)

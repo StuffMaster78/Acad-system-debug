@@ -454,16 +454,163 @@ export const useAuthStore = defineStore('auth', {
 
     /**
      * End impersonation and restore admin session
+     * If called from an impersonation tab, closes the tab and returns focus to parent
      */
     async endImpersonation() {
       this.loading = true
       this.error = null
 
+      // Check if this is an impersonation tab FIRST (before making API call)
+      const isImpersonationTab = localStorage.getItem('_is_impersonation_tab') === 'true'
+
       try {
         // Call API to end impersonation
         const response = await authApi.endImpersonation()
         
-        // Update tokens and user with admin's data
+        // Track impersonation end event (for auditing)
+        try {
+          if (typeof window !== 'undefined' && window.gtag) {
+            window.gtag('event', 'impersonation_end', {
+              event_category: 'admin',
+              event_label: isImpersonationTab ? 'tab_close' : 'manual_end'
+            })
+          }
+        } catch (analyticsError) {
+          // Analytics failure shouldn't block the flow
+          if (import.meta.env.DEV) {
+            console.warn('Analytics tracking failed:', analyticsError)
+          }
+        }
+        
+        // If this is an impersonation tab, we should close it WITHOUT updating tokens
+        // The parent tab (admin) should remain logged in with its own session
+        if (isImpersonationTab) {
+          // Get impersonator info BEFORE clearing it (to determine dashboard route)
+          let impersonatorRole = null
+          let impersonatorId = null
+          try {
+            const impersonatorStr = localStorage.getItem('impersonator')
+            if (impersonatorStr) {
+              const impersonator = JSON.parse(impersonatorStr)
+              impersonatorRole = impersonator?.role || null
+              impersonatorId = impersonator?.id || null
+            }
+          } catch (e) {
+            if (import.meta.env.DEV) {
+              console.warn('Could not parse impersonator from localStorage:', e)
+            }
+          }
+          
+          // Clear the flag immediately
+          localStorage.removeItem('_is_impersonation_tab')
+          
+          // Clear impersonation flags locally (but don't update tokens/user)
+          this.isImpersonating = false
+          this.impersonator = null
+          localStorage.removeItem('is_impersonating')
+          localStorage.removeItem('impersonator')
+          
+          // Determine dashboard route based on impersonator role
+          let dashboardRoute = '/dashboard' // Default dashboard
+          if (impersonatorRole === 'admin') {
+            dashboardRoute = '/admin/dashboard'
+          } else if (impersonatorRole === 'superadmin') {
+            dashboardRoute = '/admin/superadmin'
+          } else if (impersonatorRole === 'support') {
+            dashboardRoute = '/dashboard' // Support uses main dashboard
+          }
+          
+          // Try to close the tab and return focus to parent, redirecting to dashboard
+          let redirectSuccess = false
+          let closeSuccess = false
+          
+          if (window.opener && !window.opener.closed) {
+            try {
+              // Redirect parent window to appropriate dashboard
+              try {
+                window.opener.location.href = dashboardRoute
+                redirectSuccess = true
+              } catch (e) {
+                // If we can't set location directly, try using postMessage
+                if (import.meta.env.DEV) {
+                  console.warn('Could not redirect parent window directly, trying postMessage:', e)
+                }
+                window.opener.postMessage({ type: 'redirect', path: dashboardRoute }, window.location.origin)
+                redirectSuccess = true // Assume postMessage will work
+              }
+              
+              // Focus the parent window (admin tab) first
+              window.opener.focus()
+              
+              // Close this impersonation tab
+              // Use a small delay to ensure redirect and focus happen first
+              setTimeout(() => {
+                try {
+                  window.close()
+                  closeSuccess = true
+                } catch (closeError) {
+                  // Browser blocked window.close() - show user-friendly message
+                  if (import.meta.env.DEV) {
+                    console.warn('Browser blocked window.close():', closeError)
+                  }
+                  // Show notification that user should manually close the tab
+                  this.error = 'Impersonation ended. Please close this tab manually to return to your dashboard.'
+                  // Still try to redirect this window as fallback
+                  setTimeout(() => {
+                    router.push(dashboardRoute)
+                  }, 2000)
+                }
+              }, 300)
+            } catch (e) {
+              // Comprehensive error handling
+              const errorMessage = e?.message || 'Unknown error'
+              if (import.meta.env.DEV) {
+                console.error('Error during impersonation end:', errorMessage, e)
+              }
+              
+              // Still try to redirect even if we can't close
+              if (!redirectSuccess) {
+                try {
+                  window.opener.location.href = dashboardRoute
+                  redirectSuccess = true
+                } catch (redirectError) {
+                  // Last resort: use postMessage
+                  try {
+                    window.opener.postMessage({ type: 'redirect', path: dashboardRoute }, window.location.origin)
+                    redirectSuccess = true
+                  } catch (postMessageError) {
+                    this.error = 'Impersonation ended, but could not redirect. Please manually navigate to your dashboard.'
+                    // Fallback: redirect this window
+                    router.push(dashboardRoute)
+                  }
+                }
+              }
+              
+              // If redirect succeeded but close failed, inform user
+              if (redirectSuccess && !closeSuccess) {
+                this.error = 'Impersonation ended. Please close this tab manually.'
+              }
+            }
+          } else {
+            // No parent window - redirect this window to dashboard instead
+            if (import.meta.env.DEV) {
+              console.warn('No parent window found for impersonation tab, redirecting this window')
+            }
+            router.push(dashboardRoute)
+            redirectSuccess = true
+          }
+          
+          // Return early - don't update tokens/user state in impersonation tab
+          return { 
+            success: true, 
+            redirectSuccess,
+            closeSuccess,
+            message: redirectSuccess ? 'Impersonation ended successfully' : 'Impersonation ended, but redirect failed'
+          }
+        }
+        
+        // If NOT an impersonation tab (ending impersonation from admin tab itself),
+        // update tokens and user with admin's data
         if (response.data.access_token && response.data.refresh_token) {
           await this.setTokens({
             accessToken: response.data.access_token,
@@ -492,6 +639,11 @@ export const useAuthStore = defineStore('auth', {
         this.impersonator = null
         localStorage.removeItem('is_impersonating')
         localStorage.removeItem('impersonator')
+        
+        // Only clear tab flag if it was set
+        if (isImpersonationTab) {
+          localStorage.removeItem('_is_impersonation_tab')
+        }
         
         throw error
       } finally {

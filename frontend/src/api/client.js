@@ -1,7 +1,9 @@
 import axios from 'axios'
 import { normalizeApiError, isAuthError } from '@/utils/error'
-import { maskEndpoint } from '@/utils/endpoint-masker'
+import { maskEndpoint, getUserRole } from '@/utils/endpoint-masker'
 import { getCachedResponse, cacheResponse, invalidateCache } from '@/utils/requestCache'
+import { deduplicateRequest } from '@/utils/requestDeduplication'
+import { deduplicateRequest } from '@/utils/requestDeduplication'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || '/api/v1',
@@ -9,6 +11,30 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 30000, // 30 seconds
+})
+
+// Wrap axios methods to add request deduplication
+const originalRequest = apiClient.request.bind(apiClient)
+apiClient.request = function(config) {
+  // Skip deduplication if flag is set
+  if (config._skipDeduplication) {
+    return originalRequest(config)
+  }
+  return deduplicateRequest(originalRequest, config)
+}
+
+// Wrap all HTTP methods
+const methods = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options']
+methods.forEach(method => {
+  const originalMethod = apiClient[method].bind(apiClient)
+  apiClient[method] = function(url, data, config = {}) {
+    const fullConfig = { ...config, method, url, data }
+    // Skip deduplication if flag is set
+    if (fullConfig._skipDeduplication) {
+      return originalMethod(url, data, config)
+    }
+    return deduplicateRequest(() => originalMethod(url, data, config), fullConfig)
+  }
 })
 
 // Proactive token refresh - refresh token before it expires

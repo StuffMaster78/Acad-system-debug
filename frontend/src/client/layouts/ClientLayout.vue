@@ -7,10 +7,7 @@
           <!-- Logo -->
           <div class="flex items-center">
             <router-link to="/client" class="flex items-center space-x-3">
-              <div class="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span class="text-white font-bold text-lg">WS</span>
-              </div>
-              <span class="text-xl font-bold text-gray-900 dark:text-white">Writing System</span>
+              <Logo :size="'md'" :variant="'gradient'" :show-text="true" :collapsed="false" />
             </router-link>
           </div>
 
@@ -235,6 +232,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import Logo from '@/components/common/Logo.vue'
 import walletAPI from '@/api/wallet'
 import notificationsAPI from '@/api/notifications'
 

@@ -137,9 +137,6 @@ export default {
   compareConfigVersions: (version1Id, version2Id) => apiClient.get('/config-versioning/compare/', { params: { version1_id: version1Id, version2_id: version2Id } }),
   getAllPayments: (params) => apiClient.get('/admin-management/financial-overview/all-payments/', { params }),
   
-  // Advanced Analytics Dashboard
-  getAdvancedAnalytics: (params) => apiClient.get('/admin-management/advanced-analytics/', { params }),
-  
   // Unified Search
   unifiedSearch: (query, types, limit = 10) => {
     const params = { q: query, limit }

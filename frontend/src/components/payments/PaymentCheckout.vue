@@ -238,7 +238,7 @@
           Please transfer the amount to the following account:
         </p>
         <div class="text-sm space-y-1 font-mono">
-          <div><strong>Account Name:</strong> Writing System Inc.</div>
+          <div><strong>Account Name:</strong> WriteFlow Inc.</div>
           <div><strong>Account Number:</strong> 1234567890</div>
           <div><strong>Routing Number:</strong> 987654321</div>
           <div><strong>Bank:</strong> Example Bank</div>

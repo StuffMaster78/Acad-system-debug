@@ -115,6 +115,14 @@ class AdminDashboardView(viewsets.ViewSet):
                     # This is a limitation, but we clear the main summary cache which is most important
                 except Exception:
                     pass
+            # Clear the main dashboard cache
+            cache.delete(cache_key)
+        
+        # Try cache first (5 minute TTL)
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            from rest_framework.response import Response
+            return Response(cached_result)
         
         summary = DashboardMetricsService.get_summary(request.user)
         
@@ -176,8 +184,15 @@ class AdminDashboardView(viewsets.ViewSet):
                 total=Count('id'),
                 active=Count('id', filter=Q(is_active=True))
             )
-            sent_reminders_total = sent_reminders_qs.count()
-            recent_sent_reminders = sent_reminders_qs.order_by("-sent_at")[:5].count()
+            # Combined query for sent reminders stats
+            from datetime import timedelta
+            from django.utils import timezone
+            sent_reminders_stats = sent_reminders_qs.aggregate(
+                total=Count('id'),
+                recent=Count('id', filter=Q(sent_at__gte=timezone.now() - timedelta(days=7)))
+            )
+            sent_reminders_total = sent_reminders_stats['total'] or 0
+            recent_sent_reminders = sent_reminders_stats['recent'] or 0
             
             payment_reminder_stats = {
                 "total_reminder_configs": reminder_configs_stats['total'] or 0,
@@ -402,6 +417,9 @@ class AdminDashboardView(viewsets.ViewSet):
             },
         }
         
+        # Cache the result for 5 minutes
+        cache.set(cache_key, data, 300)
+        
         # Try to use serializer, but fallback to direct response if it fails
         try:
             return Response(DashboardSerializer(data).data)
@@ -414,11 +432,32 @@ class AdminDashboardView(viewsets.ViewSet):
     
     @action(detail=False, methods=['get'], url_path='analytics/enhanced')
     def get_enhanced_analytics(self, request):
-        """Get enhanced analytics and insights."""
+        """Get enhanced analytics and insights - with caching."""
         from .services.enhanced_analytics_service import EnhancedAnalyticsService
+        from django.core.cache import cache
+        import hashlib
+        import json
         
         days = int(request.query_params.get('days', 30))
+        
+        # Build cache key
+        cache_params = {
+            'user_id': request.user.id,
+            'user_role': getattr(request.user, 'role', None),
+            'website_id': getattr(request.user, 'website_id', None) if hasattr(request.user, 'website_id') else None,
+            'days': days,
+        }
+        cache_key = f"enhanced_analytics:{hashlib.md5(json.dumps(cache_params, sort_keys=True).encode()).hexdigest()}"
+        
+        # Try cache first (10 minute TTL for analytics)
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            return Response(cached_result)
+        
         analytics = EnhancedAnalyticsService.get_performance_insights(days)
+        
+        # Cache the result for 10 minutes
+        cache.set(cache_key, analytics, 600)
         
         return Response(analytics)
     
@@ -1511,26 +1550,50 @@ class AdminReviewModerationViewSet(viewsets.ViewSet):
             count=Count('id')
         )
         
+        # Combined aggregation queries - reduces from 12 queries to 3 queries
         # Pending reviews (not approved, shadowed, or flagged)
         pending_filter = Q(is_approved=False) | Q(is_shadowed=True) | Q(is_flagged=True)
-        pending_website = all_website_reviews.filter(pending_filter).count()
-        pending_writer = all_writer_reviews.filter(pending_filter).count()
-        pending_order = all_order_reviews.filter(pending_filter).count()
         
-        # Approved reviews
-        approved_website = all_website_reviews.filter(is_approved=True, is_shadowed=False).count()
-        approved_writer = all_writer_reviews.filter(is_approved=True, is_shadowed=False).count()
-        approved_order = all_order_reviews.filter(is_approved=True, is_shadowed=False).count()
+        # Website reviews stats - combined into single query
+        website_stats = all_website_reviews.aggregate(
+            pending=Count('id', filter=pending_filter),
+            approved=Count('id', filter=Q(is_approved=True, is_shadowed=False)),
+            flagged=Count('id', filter=Q(is_flagged=True)),
+            avg_rating=Avg('rating')
+        )
         
-        # Flagged reviews
-        flagged_website = all_website_reviews.filter(is_flagged=True).count()
-        flagged_writer = all_writer_reviews.filter(is_flagged=True).count()
-        flagged_order = all_order_reviews.filter(is_flagged=True).count()
+        # Writer reviews stats - combined into single query
+        writer_stats = all_writer_reviews.aggregate(
+            pending=Count('id', filter=pending_filter),
+            approved=Count('id', filter=Q(is_approved=True, is_shadowed=False)),
+            flagged=Count('id', filter=Q(is_flagged=True)),
+            avg_rating=Avg('rating')
+        )
         
-        # Average ratings
-        avg_rating_website = all_website_reviews.aggregate(avg=Avg('rating'))['avg'] or 0
-        avg_rating_writer = all_writer_reviews.aggregate(avg=Avg('rating'))['avg'] or 0
-        avg_rating_order = all_order_reviews.aggregate(avg=Avg('rating'))['avg'] or 0
+        # Order reviews stats - combined into single query
+        order_stats = all_order_reviews.aggregate(
+            pending=Count('id', filter=pending_filter),
+            approved=Count('id', filter=Q(is_approved=True, is_shadowed=False)),
+            flagged=Count('id', filter=Q(is_flagged=True)),
+            avg_rating=Avg('rating')
+        )
+        
+        # Extract values from aggregated stats
+        pending_website = website_stats['pending'] or 0
+        pending_writer = writer_stats['pending'] or 0
+        pending_order = order_stats['pending'] or 0
+        
+        approved_website = website_stats['approved'] or 0
+        approved_writer = writer_stats['approved'] or 0
+        approved_order = order_stats['approved'] or 0
+        
+        flagged_website = website_stats['flagged'] or 0
+        flagged_writer = writer_stats['flagged'] or 0
+        flagged_order = order_stats['flagged'] or 0
+        
+        avg_rating_website = website_stats['avg_rating'] or 0
+        avg_rating_writer = writer_stats['avg_rating'] or 0
+        avg_rating_order = order_stats['avg_rating'] or 0
         
         # Monthly trends (last 12 months)
         month_ago = timezone.now() - timedelta(days=365)
@@ -2873,7 +2936,7 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
         from class_management.models import ClassInstallment, ClassBundle
         from class_management.serializers import ClassInstallmentSerializer
         from django.utils import timezone
-        from django.db.models import Q, Sum
+        from django.db.models import Q, Sum, Count
         
         now = timezone.now().date()
         
@@ -2902,30 +2965,32 @@ class AdminClassBundlesManagementViewSet(viewsets.ViewSet):
         
         serializer = ClassInstallmentSerializer(installments, many=True)
         
-        # Calculate statistics
+        # Calculate statistics - combined into single query for better performance
         total_installments = ClassInstallment.objects.filter(
             class_bundle__status__in=['in_progress', 'completed']
         )
         if website:
             total_installments = total_installments.filter(class_bundle__website=website)
         
-        paid_count = total_installments.filter(is_paid=True).count()
-        unpaid_count = total_installments.filter(is_paid=False, due_date__gte=now).count()
-        overdue_count = total_installments.filter(is_paid=False, due_date__lt=now).count()
-        
-        total_due = total_installments.filter(is_paid=False).aggregate(
-            total=Sum('amount')
-        )['total'] or 0
+        # Combined aggregation query - reduces from 5 queries to 1 query
+        from django.db.models import Q, Count
+        stats = total_installments.aggregate(
+            total_installments=Count('id'),
+            paid_count=Count('id', filter=Q(is_paid=True)),
+            unpaid_count=Count('id', filter=Q(is_paid=False, due_date__gte=now)),
+            overdue_count=Count('id', filter=Q(is_paid=False, due_date__lt=now)),
+            total_due=Sum('amount', filter=Q(is_paid=False))
+        )
         
         return Response({
             'installments': serializer.data,
             'count': len(serializer.data),
             'statistics': {
-                'total_installments': total_installments.count(),
-                'paid': paid_count,
-                'unpaid': unpaid_count,
-                'overdue': overdue_count,
-                'total_due': float(total_due)
+                'total_installments': stats['total_installments'] or 0,
+                'paid': stats['paid_count'] or 0,
+                'unpaid': stats['unpaid_count'] or 0,
+                'overdue': stats['overdue_count'] or 0,
+                'total_due': float(stats['total_due'] or 0)
             }
         })
     

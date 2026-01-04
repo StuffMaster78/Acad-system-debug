@@ -1,221 +1,235 @@
 <template>
-  <div class="space-y-6 p-6">
-    <!-- Header with Back Button -->
-    <div class="flex items-center gap-4 mb-2">
-      <router-link
-        :to="getBackRoute()"
-        class="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-      >
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        <span class="text-sm font-medium">{{ getBackButtonText() }}</span>
-      </router-link>
-    </div>
-    
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Order Details</h1>
-        <p v-if="order" class="text-sm text-gray-500 dark:text-gray-400 mt-1 flex flex-wrap items-center gap-2">
-          <span>Order #{{ order.id }} • {{ order.topic || 'N/A' }}</span>
-          <EnhancedStatusBadge
-            v-if="order.status"
-            :status="order.status"
-            :show-tooltip="true"
-            :show-priority="true"
-          />
-          <span
-            v-if="order.is_paid !== undefined && (authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
-            :class="[
-              'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium',
-              order.is_paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-            ]"
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Clean Header -->
+    <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Back Navigation -->
+        <div class="py-3">
+          <router-link
+            :to="getBackRoute()"
+            class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
-            {{ order.is_paid ? 'Paid' : 'Unpaid' }}
-          </span>
-        </p>
-      </div>
-      <div v-if="order" class="flex gap-2">
-        <router-link
-          :to="`/orders/${order.id}/messages`"
-          class="relative px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 shadow-sm"
-        >
-          <span>💬</span>
-          <span>Messages</span>
-          <span
-            v-if="unreadMessageCount > 0"
-            class="absolute -top-2 -right-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-600 rounded-full ring-2 ring-white animate-pulse"
+            <ArrowLeft class="w-4 h-4" />
+            <span>{{ getBackButtonText() }}</span>
+          </router-link>
+        </div>
+        
+        <!-- Header Content -->
+        <div class="py-4 flex items-start justify-between gap-4">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-3 mb-2">
+              <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Order #{{ order?.id || '' }}</h1>
+              <EnhancedStatusBadge
+                v-if="order?.status"
+                :status="order.status"
+                :show-tooltip="true"
+                :show-priority="true"
+              />
+              <span
+                v-if="order?.is_paid !== undefined && (authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
+                :class="[
+                  'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium',
+                  order.is_paid ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400' : 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400'
+                ]"
+              >
+                {{ order.is_paid ? 'Paid' : 'Unpaid' }}
+              </span>
+            </div>
+            <p v-if="order" class="text-sm text-gray-600 dark:text-gray-400 truncate">
+              {{ order.topic || 'N/A' }}
+            </p>
+          </div>
+          
+          <!-- Messages Button -->
+          <router-link
+            v-if="order"
+            :to="`/orders/${order.id}/messages`"
+            class="relative inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm"
           >
-            {{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}
-          </span>
-        </router-link>
+            <MessageSquare class="w-4 h-4" />
+            <span>Messages</span>
+            <span
+              v-if="unreadMessageCount > 0"
+              class="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-xs font-semibold text-white bg-red-500 rounded-full ring-2 ring-white"
+            >
+              {{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}
+            </span>
+          </router-link>
+        </div>
       </div>
     </div>
 
     <!-- Tabs Navigation -->
-    <div v-if="order" class="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-t-lg">
-      <nav class="flex space-x-1 overflow-x-auto" aria-label="Tabs">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          @click="activeTab = tab.id"
-          :class="[
-            'py-3 px-4 border-b-2 font-medium text-sm transition-all relative whitespace-nowrap',
-            activeTab === tab.id
-              ? 'border-primary-500 text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20'
-              : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
-          ]"
-        >
-          <span class="flex items-center gap-2">
-            <span>{{ tab.icon }}</span>
+    <div v-if="order" class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-[73px] z-10">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav class="flex space-x-1 overflow-x-auto -mb-px" aria-label="Tabs">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            :class="[
+              'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
+              activeTab === tab.id
+                ? 'border-primary-600 text-primary-600 dark:text-primary-400'
+                : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+            ]"
+          >
+            <component :is="tab.icon" class="w-4 h-4" />
             <span>{{ tab.label }}</span>
             <span
               v-if="tab.id === 'messages' && unreadMessageCount > 0"
-              class="ml-2 px-2 py-0.5 text-xs font-bold text-white bg-red-600 rounded-full"
+              class="ml-1 px-1.5 py-0.5 text-xs font-semibold text-white bg-red-500 rounded-full"
             >
               {{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}
             </span>
-          </span>
-        </button>
-      </nav>
+          </button>
+        </nav>
+      </div>
     </div>
 
-    <template v-if="loading">
-      <div class="card p-12">
-        <div class="flex items-center justify-center">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <template v-if="loading">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12">
+          <div class="flex items-center justify-center">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+          </div>
         </div>
-      </div>
-    </template>
+      </template>
 
-    <template v-else-if="order">
-      <div class="space-y-6">
-        <!-- Soft Deleted Banner -->
-        <div v-if="order.is_deleted" class="bg-red-50 border-2 border-red-300 rounded-lg p-4">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <span class="text-2xl">🗑️</span>
-              <div>
-                <h3 class="text-lg font-semibold text-red-900">This order has been soft-deleted</h3>
-                <p class="text-sm text-red-700 mt-1">
-                  Deleted on {{ formatDateTime(order.deleted_at) }}
-                  <span v-if="order.deleted_by"> by {{ order.deleted_by?.username || order.deleted_by?.email || 'Unknown' }}</span>
-                  <span v-if="order.delete_reason"> - {{ order.delete_reason }}</span>
-                </p>
-                <p v-if="order.restored_at" class="text-sm text-green-700 mt-1">
-                  Restored on {{ formatDateTime(order.restored_at) }}
-                  <span v-if="order.restored_by"> by {{ order.restored_by?.username || order.restored_by?.email || 'Unknown' }}</span>
-                </p>
+      <template v-else-if="order">
+        <div>
+          <div class="space-y-6">
+            <!-- Soft Deleted Banner -->
+            <div v-if="order.is_deleted" class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-gray-800 rounded-lg p-4">
+              <div class="flex items-start justify-between gap-4">
+                <div class="flex items-start gap-3 flex-1">
+                  <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                    <Trash2 class="w-4 h-4 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <h3 class="text-sm font-semibold text-red-900 dark:text-red-100 mb-1">This order has been soft-deleted</h3>
+                    <p class="text-xs text-red-700 dark:text-red-300">
+                      Deleted on {{ formatDateTime(order.deleted_at) }}
+                      <span v-if="order.deleted_by"> by {{ order.deleted_by?.username || order.deleted_by?.email || 'Unknown' }}</span>
+                      <span v-if="order.delete_reason"> - {{ order.delete_reason }}</span>
+                    </p>
+                    <p v-if="order.restored_at" class="text-xs text-green-700 dark:text-green-300 mt-1">
+                      Restored on {{ formatDateTime(order.restored_at) }}
+                      <span v-if="order.restored_by"> by {{ order.restored_by?.username || order.restored_by?.email || 'Unknown' }}</span>
+                    </p>
+                  </div>
+                </div>
+                <button
+                  v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
+                  @click="restoreOrder"
+                  :disabled="processingAction"
+                  class="inline-flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                >
+                  <RotateCcw class="w-4 h-4" />
+                  <span>Restore</span>
+                </button>
               </div>
             </div>
-            <div v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport" class="flex gap-2">
-              <button
-                @click="restoreOrder"
-                :disabled="processingAction"
-                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
-              >
-                Restore
-              </button>
-            </div>
-          </div>
-        </div>
         
-        <!-- Action Center & Last Activity Banner (for completed/submitted/closed orders) -->
-        <div v-if="order.status === 'completed' || order.status === 'submitted' || order.status === 'approved' || order.status === 'closed'" class="bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg border-2 border-primary-200 p-6 shadow-sm">
-          <div class="flex items-start justify-between mb-4">
-            <div>
-              <h2 class="text-xl font-bold text-gray-900 mb-1">Order {{ order.status === 'completed' ? 'Completed' : order.status === 'submitted' ? 'Submitted' : order.status === 'closed' ? 'Closed' : 'Approved' }}!</h2>
-              <p class="text-sm text-gray-600">What would you like to do next?</p>
-            </div>
-            <span class="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-xs font-semibold uppercase">
-              {{ order.status }}
-            </span>
-          </div>
-          
-          <!-- Last Activity Indicator -->
-          <div v-if="lastActivity" class="mb-4 p-3 bg-white rounded-lg border border-gray-200">
-            <div class="flex items-center gap-3">
-              <div class="shrink-0">
-                <span class="text-2xl">{{ lastActivity.type === 'message' ? '💬' : lastActivity.type === 'file' ? '📁' : '📋' }}</span>
+          <!-- Action Center & Last Activity Banner (for completed/submitted/closed orders) -->
+          <div v-if="order.status === 'completed' || order.status === 'submitted' || order.status === 'approved' || order.status === 'closed'" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-5">
+            <div class="flex items-start justify-between mb-4">
+              <div>
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                  Order {{ order.status === 'completed' ? 'Completed' : order.status === 'submitted' ? 'Submitted' : order.status === 'closed' ? 'Closed' : 'Approved' }}!
+                </h2>
+                <p class="text-sm text-gray-600 dark:text-gray-400">What would you like to do next?</p>
               </div>
-              <div class="flex-1 min-w-0">
-                <div class="text-sm font-medium text-gray-900">
-                  {{ lastActivity.type === 'message' ? 'Latest Message' : lastActivity.type === 'file' ? 'Latest File Upload' : 'Latest Activity' }}
+              <span class="px-2.5 py-1 bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-400 rounded-md text-xs font-medium uppercase">
+                {{ order.status }}
+              </span>
+            </div>
+          
+            <!-- Last Activity Indicator -->
+            <div v-if="lastActivity" class="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600">
+              <div class="flex items-center gap-3">
+                <div class="shrink-0 w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
+                  <component 
+                    :is="lastActivity.type === 'message' ? MessageSquare : lastActivity.type === 'file' ? Folder : ClipboardList" 
+                    class="w-4 h-4 text-primary-600 dark:text-primary-400" 
+                  />
                 </div>
-                <div class="text-xs text-gray-500 mt-0.5">
-                  {{ lastActivity.description }} • {{ formatRelativeTime(lastActivity.timestamp) }}
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {{ lastActivity.type === 'message' ? 'Latest Message' : lastActivity.type === 'file' ? 'Latest File Upload' : 'Latest Activity' }}
+                  </div>
+                  <div class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                    {{ lastActivity.description }} • {{ formatRelativeTime(lastActivity.timestamp) }}
+                  </div>
+                </div>
+                <button
+                  v-if="lastActivity.type === 'message' || lastActivity.type === 'file'"
+                  @click="jumpToActivity(lastActivity)"
+                  class="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-xs font-medium transition-colors"
+                >
+                  View
+                </button>
+              </div>
+            </div>
+          
+            <!-- Revision Eligibility Banner -->
+            <div
+              v-if="(authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && revisionEligibility"
+              class="mb-4"
+            >
+              <div
+                v-if="revisionEligibility.is_within_free_window"
+                class="p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 rounded-lg flex items-start gap-3"
+              >
+                <div class="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <CheckCircle2 class="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <div class="text-sm text-emerald-900 dark:text-emerald-100 flex-1">
+                  <p class="font-semibold mb-1">
+                    Unlimited revisions available
+                  </p>
+                  <p v-if="revisionEligibility.free_revision_until" class="text-xs mb-1">
+                    Free revisions until
+                    <span class="font-medium">
+                      {{ formatDateTime(revisionEligibility.free_revision_until) }}
+                    </span>
+                    <span v-if="revisionEligibility.days_left && revisionEligibility.days_left > 0">
+                      ({{ revisionEligibility.days_left }} day<span v-if="revisionEligibility.days_left > 1">s</span> left)
+                    </span>
+                  </p>
+                  <p class="text-xs text-emerald-800 dark:text-emerald-200">
+                    If something doesn't feel right, you can still request changes at no extra cost.
+                  </p>
                 </div>
               </div>
-              <button
-                v-if="lastActivity.type === 'message'"
-                @click="jumpToActivity(lastActivity)"
-                class="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-xs font-medium transition-colors"
+              <div
+                v-else
+                class="p-3 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-3"
               >
-                View
-              </button>
-              <button
-                v-else-if="lastActivity.type === 'file'"
-                @click="jumpToActivity(lastActivity)"
-                class="px-3 py-1.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-xs font-medium transition-colors"
-              >
-                View
-              </button>
-            </div>
-          </div>
-          
-          <!-- Revision Eligibility Banner (client view, also visible to admin/support for full context) -->
-          <div
-            v-if="(authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && revisionEligibility"
-            class="mb-4"
-          >
-            <div
-              v-if="revisionEligibility.is_within_free_window"
-              class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start gap-3"
-            >
-              <span class="text-xl">✅</span>
-              <div class="text-sm text-emerald-900">
-                <p class="font-semibold">
-                  Unlimited revisions available
-                </p>
-                <p v-if="revisionEligibility.free_revision_until" class="mt-0.5">
-                  Free revisions until
-                  <span class="font-medium">
-                    {{ formatDateTime(revisionEligibility.free_revision_until) }}
-                  </span>
-                  <span v-if="revisionEligibility.days_left && revisionEligibility.days_left > 0">
-                    (about {{ revisionEligibility.days_left }} day<span v-if="revisionEligibility.days_left > 1">s</span> left)
-                  </span>
-                </p>
-                <p class="mt-0.5 text-xs text-emerald-800">
-                  If something doesn’t feel right, you can still request changes at no extra cost.
-                </p>
+                <div class="w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0 mt-0.5">
+                  <Info class="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div class="text-sm text-amber-900 dark:text-amber-100 flex-1">
+                  <p class="font-semibold mb-1">
+                    Free revision window has ended
+                  </p>
+                  <p class="text-xs">
+                    Revisions may be billed, but you can still
+                    <button
+                      type="button"
+                      class="underline font-medium"
+                      @click="activeTab = 'messages'"
+                    >
+                      ask a question about your order
+                    </button>.
+                  </p>
+                </div>
               </div>
             </div>
-            <div
-              v-else
-              class="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3"
-            >
-              <span class="text-xl">ℹ️</span>
-              <div class="text-sm text-amber-900">
-                <p class="font-semibold">
-                  Free revision window has ended
-                </p>
-                <p class="mt-0.5">
-                  Revisions may be billed, but you can still
-                  <button
-                    type="button"
-                    class="underline font-medium"
-                    @click="activeTab = 'messages'"
-                  >
-                    ask a question about your order
-                  </button>.
-                </p>
-              </div>
-            </div>
-          </div>
           
-          <!-- Action Buttons -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <!-- Action Buttons -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
             <!-- Request Revision -->
             <button
               v-if="canRequestRevision && order.status !== 'revision_requested'"
@@ -252,7 +266,7 @@
               @click="activeTab = 'messages'"
               class="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 hover:border-blue-400 transition-all font-medium shadow-sm relative"
             >
-              <span>💬</span>
+              <MessageSquare class="w-5 h-5" />
               <span>View Messages</span>
               <span
                 v-if="unreadMessageCount > 0"
@@ -268,17 +282,18 @@
               @click="showTipModal = true"
               class="flex items-center justify-center gap-2 px-4 py-3 bg-white border-2 border-purple-300 text-purple-700 rounded-lg hover:bg-purple-50 hover:border-purple-400 transition-all font-medium shadow-sm"
             >
-              <span>💰</span>
+              <DollarSign class="w-5 h-5" />
               <span>Tip Writer</span>
             </button>
+          </div>
           </div>
           
           <!-- Inline Revision Request Form -->
           <div v-if="showRevisionForm && canRequestRevision && order.status !== 'revision_requested'" class="mt-6 bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 rounded-xl border-2 border-orange-300 dark:border-orange-700 shadow-lg p-6">
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center text-xl">
-                  🔄
+                <div class="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
+                  <RefreshCw class="w-5 h-5 text-orange-600 dark:text-orange-400" />
                 </div>
                 <div>
                   <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Request Revision</h3>
@@ -296,7 +311,7 @@
               </button>
             </div>
             
-            <div class="space-y-4">
+            <div class="space-y-6">
               <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 text-sm text-blue-800 dark:text-blue-200">
                 <p><strong>Note:</strong> Please provide specific details about what needs to be revised. You can specify sections, issues, and what you'd like changed. This helps the writer make the necessary changes quickly.</p>
               </div>
@@ -501,8 +516,8 @@
           <div v-if="order.status === 'revision_requested'" class="mt-4 bg-gradient-to-r from-orange-50 to-amber-50 border-2 border-orange-300 rounded-xl p-6 shadow-lg">
             <div class="flex items-start justify-between mb-4">
               <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white text-xl font-bold">
-                  📝
+                <div class="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center">
+                  <FileText class="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <h3 class="text-lg font-bold text-gray-900">Revision Instructions</h3>
@@ -514,8 +529,8 @@
                 @click="startEditRevisionInstructions"
                 class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-semibold flex items-center gap-2"
               >
-                <span>{{ order.revision_instructions ? '✏️ Edit' : '➕ Add' }}</span>
-                <span>Instructions</span>
+                <component :is="order.revision_instructions ? Edit : Plus" class="w-4 h-4" />
+                <span>{{ order.revision_instructions ? 'Edit' : 'Add' }} Instructions</span>
               </button>
             </div>
 
@@ -585,52 +600,47 @@
               </div>
             </div>
           </div>
-        </div>
         
-        <div class="card p-6">
-      <!-- Overview Tab -->
-      <div v-if="activeTab === 'overview'" class="space-y-6">
-        <!-- Edit Mode Toggle Button (Admin/SuperAdmin/Support) -->
-        <div v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport" class="flex justify-end">
-          <button
-            @click="editingOrderDetails = !editingOrderDetails"
-            :class="[
-              'px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2',
-              editingOrderDetails
-                ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-            ]"
-          >
-            <svg v-if="!editingOrderDetails" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-            </svg>
-            <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            <span>{{ editingOrderDetails ? 'Cancel Edit' : 'Edit Order Details' }}</span>
-          </button>
-        </div>
+        <!-- Tab Content -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+            <!-- Overview Tab -->
+            <div v-if="activeTab === 'overview'" class="p-6 space-y-4">
+              <!-- Edit Mode Toggle Button (Admin/SuperAdmin/Support) -->
+              <div v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport" class="flex justify-end mb-4">
+                <button
+                  @click="editingOrderDetails = !editingOrderDetails"
+                  :class="[
+                    'px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2',
+                    editingOrderDetails
+                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+                      : 'bg-primary-600 text-white hover:bg-primary-700'
+                  ]"
+                >
+                  <component :is="editingOrderDetails ? X : Edit" class="w-4 h-4" />
+                  <span>{{ editingOrderDetails ? 'Cancel Edit' : 'Edit Order Details' }}</span>
+                </button>
+              </div>
 
-        <!-- Inline Edit Form (Admin/SuperAdmin/Support) -->
-        <div v-if="editingOrderDetails && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)" class="bg-white dark:bg-gray-800 rounded-xl border-2 border-blue-300 dark:border-blue-700 shadow-lg p-6">
-          <div class="flex items-center gap-3 mb-6">
-            <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-xl">
-              ✏️
-            </div>
-            <div>
-              <h3 class="text-xl font-bold text-gray-900 dark:text-white">Edit Order Details</h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Modify order information, deadlines, pricing, and instructions</p>
-            </div>
-          </div>
-          <EditOrderInline
-            :order="order"
-            @success="handleEditOrderSuccess"
-            @error="handleEditOrderError"
-          />
-        </div>
+              <!-- Inline Edit Form (Admin/SuperAdmin/Support) -->
+              <div v-if="editingOrderDetails && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-blue-200 dark:border-blue-800 p-4 mb-4">
+                <div class="flex items-center gap-3 mb-4">
+                  <div class="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                    <Edit class="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">Edit Order Details</h3>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">Modify order information, deadlines, pricing, and instructions</p>
+                  </div>
+                </div>
+                <EditOrderInline
+                  :order="order"
+                  @success="handleEditOrderSuccess"
+                  @error="handleEditOrderError"
+                />
+              </div>
 
-        <!-- Order Details Grid (Read-only view when not editing) -->
-        <div v-if="!editingOrderDetails" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <!-- Order Details Grid (Read-only view when not editing) -->
+              <div v-if="!editingOrderDetails" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <!-- Left Column: Basic Information -->
           <div class="space-y-6">
             <!-- Order Identification -->
@@ -654,16 +664,16 @@
               </div>
             </div>
 
-            <!-- Client Information -->
-            <div class="bg-white rounded-lg border border-gray-200 p-4">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-gray-900">Client Information</h3>
+                  <!-- Client Information -->
+                  <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
+                    <div class="flex items-center justify-between mb-3">
+                      <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100">Client Information</h3>
                 <router-link
                   v-if="authStore.isWriter && order.client_id && !order.is_unattributed"
                   :to="`/writers/client-orders/${order.client_id}`"
                   class="text-xs text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
                 >
-                  <span>📋</span>
+                  <ClipboardList class="w-4 h-4" />
                   <span>View All Orders</span>
                 </router-link>
               </div>
@@ -716,9 +726,9 @@
               </div>
             </div>
 
-            <!-- Writer Information -->
-            <div v-if="order.writer_username || order.writer || order.assigned_writer" class="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 class="text-lg font-semibold mb-4 text-gray-900">Writer Information</h3>
+                  <!-- Writer Information -->
+                  <div v-if="order.writer_username || order.writer || order.assigned_writer" class="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
+                    <h3 class="text-sm font-semibold mb-3 text-gray-900 dark:text-gray-100">Writer Information</h3>
               <div class="space-y-3 text-sm">
                 <div class="flex items-center justify-between">
               <span class="font-medium text-gray-600">Writer:</span>
@@ -734,17 +744,17 @@
               </div>
             </div>
 
-            <!-- Status Timeline -->
-            <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-6 w-full">
-              <div class="flex items-center justify-between mb-6">
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">Status Timeline</h3>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">Key checkpoints from creation to completion</p>
-                </div>
-                <span class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-3 py-1.5 rounded-full">
-                  {{ statusTimeline.length }} {{ statusTimeline.length === 1 ? 'event' : 'events' }}
-                </span>
-              </div>
+                  <!-- Status Timeline -->
+                  <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-600 p-4">
+                    <div class="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">Status Timeline</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Key checkpoints from creation to completion</p>
+                      </div>
+                      <span class="text-xs font-medium text-gray-600 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-md">
+                        {{ statusTimeline.length }} {{ statusTimeline.length === 1 ? 'event' : 'events' }}
+                      </span>
+                    </div>
               <div v-if="statusTimeline.length === 0" class="text-sm text-gray-500 dark:text-gray-400 py-12 text-center">
                 <div class="flex flex-col items-center gap-2">
                   <svg class="w-12 h-12 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1113,7 +1123,7 @@
               </button>
             </div>
             
-            <div class="space-y-4">
+            <div class="space-y-6">
               <div>
                 <RichTextEditor
                   v-model="reasonForm.reason"
@@ -1301,11 +1311,8 @@
           </div>
         </div>
         
-        <!-- Spacing before Order Actions -->
-        <div v-if="authStore.isWriter || authStore.isAdmin || authStore.isSuperAdmin" class="my-8"></div>
-        
         <!-- Notes (if available) -->
-        <div v-if="order.completion_notes || (authStore.isAdmin || authStore.isSuperAdmin)" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+        <div v-if="order.completion_notes || (authStore.isAdmin || authStore.isSuperAdmin)" class="mt-8 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
           <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Notes</h3>
           <div v-if="order.completion_notes" class="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap">{{ order.completion_notes }}</div>
           <div v-else class="text-gray-400 dark:text-gray-500 text-sm italic">No notes available</div>
@@ -1376,207 +1383,272 @@
       </div>
 
       <!-- Order Actions -->
-      <div class="border-t pt-4">
-        <h3 class="text-lg font-semibold mb-3 text-gray-900 dark:text-gray-100">Order Actions</h3>
-        <div class="flex flex-wrap gap-2">
+      <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <div class="mb-6 pl-4">
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Order Actions</h3>
+          <p class="text-sm text-gray-600 dark:text-gray-400">Manage and perform actions on this order</p>
+        </div>
+        
+        <div class="space-y-6">
           <!-- Writer Actions Section -->
-          <div v-if="authStore.isWriter" class="flex flex-wrap gap-2 w-full">
-            <!-- Take Order (for available orders - not yet assigned) -->
-            <button
-              v-if="canTakeOrder"
-              @click="takeOrder"
-              :disabled="takingOrder || requestingOrder || !canTakeOrders"
-              class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested ? 'You have already requested this order' : 'Take this order immediately')"
-            >
-              <span>✅</span>
-              <span>{{ takingOrder ? 'Taking...' : 'Take Order' }}</span>
-            </button>
+          <div v-if="authStore.isWriter" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6">
+            <div class="mb-4">
+              <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Writer Actions</h4>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Actions available for writers</p>
+            </div>
             
-            <!-- Request Order (for available orders - not yet assigned) -->
-            <button
-              v-if="canRequestOrder"
-              @click="openRequestModal"
-              :disabled="isOrderRequested || requestingOrder || takingOrder"
-              class="px-4 py-2 bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              :title="isOrderRequested ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
-            >
-              <span>📋</span>
-              <span>{{ isOrderRequested ? 'Requested' : (requestingOrder ? 'Requesting...' : 'Request Order') }}</span>
-            </button>
-            
-            <!-- Assigned Writer Actions (only for assigned writers) -->
-            <template v-if="order.writer_id === userId || order.assigned_writer_id === userId || order.assigned_writer?.id === userId">
-              <!-- Start Order (for available/reassigned orders - already assigned) -->
-              <button
-                v-if="canStartOrder"
-                @click="startOrder"
-                :disabled="processingAction"
-                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-              >
-                <span>🚀</span>
-                <span>{{ processingAction ? 'Processing...' : 'Start Order' }}</span>
-              </button>
-            
-            <!-- Submit Order (for in_progress/revision_in_progress orders) -->
-            <button
-              v-if="canSubmitOrder"
-              @click="submitOrder"
-              :disabled="processingAction"
-              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              <span>📤</span>
-              <span>{{ processingAction ? 'Processing...' : 'Submit Order' }}</span>
-            </button>
-            
-            <!-- Start Revision (for revision_requested orders) -->
-            <button
-              v-if="canStartRevision"
-              @click="startRevision"
-              :disabled="processingAction"
-              class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              <span>✏️</span>
-              <span>{{ processingAction ? 'Processing...' : 'Start Revision' }}</span>
-            </button>
-            
-            <!-- Resume Order (for on_hold orders) -->
-            <button
-              v-if="canResumeOrder"
-              @click="resumeOrder"
-              :disabled="processingAction"
-              class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              <span>▶️</span>
-              <span>{{ processingAction ? 'Processing...' : 'Resume Order' }}</span>
-            </button>
-            
-            <!-- Extend Deadline -->
-            <button
-              v-if="canRequestDeadlineExtension"
-              @click="showDeadlineExtensionModal = true"
-              class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-2"
-            >
-              <span>⏰</span>
-              <span>Extend Deadline</span>
-            </button>
-            
-            <!-- Put on Hold -->
-            <button
-              v-if="canRequestHold"
-              @click="showHoldRequestModal = true"
-              class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors flex items-center gap-2"
-            >
-              <span>🛑</span>
-              <span>Put on Hold</span>
-            </button>
-            </template>
+            <div class="space-y-6">
+              <!-- Available Order Actions -->
+              <div v-if="canTakeOrder || canRequestOrder" class="space-y-2">
+                <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Available Orders</p>
+                <div class="flex flex-wrap gap-3">
+                  <!-- Take Order (for available orders - not yet assigned) -->
+                  <button
+                    v-if="canTakeOrder"
+                    @click="takeOrder"
+                    :disabled="takingOrder || requestingOrder || !canTakeOrders"
+                    class="px-5 py-3 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+                    :title="!canTakeOrders ? 'You have reached your order limit' : (isOrderRequested ? 'You have already requested this order' : 'Take this order immediately')"
+                  >
+                    <span class="text-lg">✅</span>
+                    <span>{{ takingOrder ? 'Taking...' : 'Take Order' }}</span>
+                  </button>
+                  
+                  <!-- Request Order (for available orders - not yet assigned) -->
+                  <button
+                    v-if="canRequestOrder"
+                    @click="openRequestModal"
+                    :disabled="isOrderRequested || requestingOrder || takingOrder"
+                    class="px-5 py-3 bg-violet-600 text-white rounded-lg hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+                    :title="isOrderRequested ? 'You have already requested this order' : 'Request this order (requires admin approval)'"
+                  >
+                    <span class="text-lg">📋</span>
+                    <span>{{ isOrderRequested ? 'Requested' : (requestingOrder ? 'Requesting...' : 'Request Order') }}</span>
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Assigned Writer Actions (only for assigned writers) -->
+              <template v-if="order.writer_id === userId || order.assigned_writer_id === userId || order.assigned_writer?.id === userId">
+                <div class="space-y-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <!-- Primary Actions -->
+                  <div class="space-y-2">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Primary Actions</p>
+                    <div class="flex flex-wrap gap-3">
+                      <!-- Start Order (for available/reassigned orders - already assigned) -->
+                      <button
+                        v-if="canStartOrder"
+                        @click="startOrder"
+                        :disabled="processingAction"
+                        class="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+                      >
+                        <span class="text-lg">🚀</span>
+                        <span>{{ processingAction ? 'Processing...' : 'Start Order' }}</span>
+                      </button>
+                    
+                      <!-- Submit Order (for in_progress/revision_in_progress orders) -->
+                      <button
+                        v-if="canSubmitOrder"
+                        @click="submitOrder"
+                        :disabled="processingAction"
+                        class="px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+                      >
+                        <span class="text-lg">📤</span>
+                        <span>{{ processingAction ? 'Processing...' : 'Submit Order' }}</span>
+                      </button>
+                      
+                      <!-- Start Revision (for revision_requested orders) -->
+                      <button
+                        v-if="canStartRevision"
+                        @click="startRevision"
+                        :disabled="processingAction"
+                        class="px-5 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+                      >
+                        <span class="text-lg">✏️</span>
+                        <span>{{ processingAction ? 'Processing...' : 'Start Revision' }}</span>
+                      </button>
+                      
+                      <!-- Resume Order (for on_hold orders) -->
+                      <button
+                        v-if="canResumeOrder"
+                        @click="resumeOrder"
+                        :disabled="processingAction"
+                        class="px-5 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+                      >
+                        <span class="text-lg">▶️</span>
+                        <span>{{ processingAction ? 'Processing...' : 'Resume Order' }}</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Secondary Actions -->
+                  <div v-if="canRequestDeadlineExtension || canRequestHold" class="space-y-2 pt-2">
+                    <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Request Actions</p>
+                    <div class="flex flex-wrap gap-3">
+                      <!-- Extend Deadline -->
+                      <button
+                        v-if="canRequestDeadlineExtension"
+                        @click="showDeadlineExtensionModal = true"
+                        class="px-5 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+                      >
+                        <span class="text-lg">⏰</span>
+                        <span>Extend Deadline</span>
+                      </button>
+                      
+                      <!-- Put on Hold -->
+                      <button
+                        v-if="canRequestHold"
+                        @click="showHoldRequestModal = true"
+                        class="px-5 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+                      >
+                        <span class="text-lg">🛑</span>
+                        <span>Put on Hold</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </template>
+            </div>
           </div>
           
-          <!-- Admin/Superadmin/Support Actions - Use Modal -->
+          <!-- Admin/Superadmin/Support Actions -->
           <div
             v-if="(authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && order"
-            class="flex flex-wrap gap-2"
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6"
           >
-            <!-- Auto-Assign Button (primary) -->
-            <NaiveButton
-              v-if="canAutoAssign"
-              type="primary"
-              size="small"
-              :loading="autoAssigning"
-              @click="showAutoAssignModal = true"
-            >
-              <template #icon>
-                <span>🤖</span>
-              </template>
-              {{ autoAssigning ? 'Assigning…' : 'Auto-Assign' }}
-            </NaiveButton>
+            <div class="mb-4">
+              <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Admin Actions</h4>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Management actions for administrators</p>
+            </div>
+            
+            <div class="flex flex-wrap gap-3">
+              <!-- Auto-Assign Button (primary) -->
+              <NaiveButton
+                v-if="canAutoAssign"
+                type="primary"
+                size="medium"
+                :loading="autoAssigning"
+                @click="showAutoAssignModal = true"
+                class="shadow-sm hover:shadow-md"
+              >
+                <template #icon>
+                  <span class="text-lg">🤖</span>
+                </template>
+                {{ autoAssigning ? 'Assigning…' : 'Auto-Assign' }}
+              </NaiveButton>
 
-            <!-- Smart Match Button (secondary) -->
-            <NaiveButton
-              v-if="canAutoAssign"
-              type="info"
-              size="small"
-              :loading="loadingSmartMatches"
-              @click="loadSmartMatches"
-            >
-              <template #icon>
-                <span>🎯</span>
-              </template>
-              {{ loadingSmartMatches ? 'Loading…' : 'Smart Match' }}
-            </NaiveButton>
+              <!-- Smart Match Button (secondary) -->
+              <NaiveButton
+                v-if="canAutoAssign"
+                type="info"
+                size="medium"
+                :loading="loadingSmartMatches"
+                @click="loadSmartMatches"
+                class="shadow-sm hover:shadow-md"
+              >
+                <template #icon>
+                  <span class="text-lg">🎯</span>
+                </template>
+                {{ loadingSmartMatches ? 'Loading…' : 'Smart Match' }}
+              </NaiveButton>
 
-            <!-- Order Actions - Navigate to Actions Tab -->
-            <NaiveButton
-              type="default"
-              size="small"
-              @click="activeTab = 'actions'"
-            >
-              <template #icon>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
-                  />
-                </svg>
-              </template>
-              Order Actions
-            </NaiveButton>
+              <!-- Order Actions - Navigate to Actions Tab -->
+              <NaiveButton
+                type="default"
+                size="medium"
+                @click="activeTab = 'actions'"
+                class="shadow-sm hover:shadow-md"
+              >
+                <template #icon>
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"
+                    />
+                  </svg>
+                </template>
+                View All Actions
+              </NaiveButton>
+            </div>
           </div>
           
           <!-- Soft Delete / Restore Actions (Admin/Support only) -->
-          <div v-if="(authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && order" class="flex flex-wrap gap-2 w-full mt-2 pt-2 border-t border-gray-200">
-            <button
-              v-if="!order.is_deleted"
-              @click="softDeleteOrder"
-              :disabled="processingAction"
-              class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              <span>🗑️</span>
-              <span>{{ processingAction ? 'Processing...' : 'Soft Delete' }}</span>
-            </button>
+          <div 
+            v-if="(authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && order" 
+            class="bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-200 dark:border-red-800 shadow-sm p-6"
+          >
+            <div class="mb-4">
+              <h4 class="text-base font-semibold text-red-900 dark:text-red-100 mb-1">Danger Zone</h4>
+              <p class="text-xs text-red-700 dark:text-red-300">Irreversible or destructive actions</p>
+            </div>
             
-            <button
-              v-if="order.is_deleted"
-              @click="restoreOrder"
-              :disabled="processingAction"
-              class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              <span>♻️</span>
-              <span>{{ processingAction ? 'Processing...' : 'Restore Order' }}</span>
-            </button>
-            
-            <button
-              v-if="order.is_deleted && (authStore.isAdmin || authStore.isSuperAdmin)"
-              @click="hardDeleteOrder"
-              :disabled="processingAction"
-              class="px-4 py-2 bg-red-700 text-white rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-            >
-              <span>⚠️</span>
-              <span>{{ processingAction ? 'Processing...' : 'Permanently Delete' }}</span>
-            </button>
+            <div class="flex flex-wrap gap-3">
+              <button
+                v-if="!order.is_deleted"
+                @click="softDeleteOrder"
+                :disabled="processingAction"
+                class="px-5 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+              >
+                <span class="text-lg">🗑️</span>
+                <span>{{ processingAction ? 'Processing...' : 'Soft Delete' }}</span>
+              </button>
+              
+              <button
+                v-if="order.is_deleted"
+                @click="restoreOrder"
+                :disabled="processingAction"
+                class="px-5 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+              >
+                <span class="text-lg">♻️</span>
+                <span>{{ processingAction ? 'Processing...' : 'Restore Order' }}</span>
+              </button>
+              
+              <button
+                v-if="order.is_deleted && (authStore.isAdmin || authStore.isSuperAdmin)"
+                @click="hardDeleteOrder"
+                :disabled="processingAction"
+                class="px-5 py-3 bg-red-700 text-white rounded-lg hover:bg-red-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+              >
+                <span class="text-lg">⚠️</span>
+                <span>{{ processingAction ? 'Processing...' : 'Permanently Delete' }}</span>
+              </button>
+            </div>
           </div>
           
-          <!-- Client Actions (keep direct buttons for clients) -->
-          <button
-            v-if="canCompleteOrder && !authStore.isAdmin && !authStore.isSuperAdmin && !authStore.isSupport"
-            @click="completeOrder"
-            :disabled="processingAction"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          <!-- Client Actions -->
+          <div
+            v-if="(canCompleteOrder || canCancelOrder) && !authStore.isAdmin && !authStore.isSuperAdmin && !authStore.isSupport"
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6"
           >
-            {{ processingAction ? 'Processing...' : 'Mark as Complete' }}
-          </button>
-          
-          <button
-            v-if="canCancelOrder && !authStore.isAdmin && !authStore.isSuperAdmin && !authStore.isSupport"
-            @click="cancelOrder"
-            :disabled="processingAction"
-            class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {{ processingAction ? 'Processing...' : 'Cancel Order' }}
-          </button>
+            <div class="mb-4">
+              <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Client Actions</h4>
+              <p class="text-xs text-gray-500 dark:text-gray-400">Actions available for clients</p>
+            </div>
+            
+            <div class="flex flex-wrap gap-3">
+              <button
+                v-if="canCompleteOrder"
+                @click="completeOrder"
+                :disabled="processingAction"
+                class="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+              >
+                <span class="text-lg">✓</span>
+                <span>{{ processingAction ? 'Processing...' : 'Mark as Complete' }}</span>
+              </button>
+              
+              <button
+                v-if="canCancelOrder"
+                @click="cancelOrder"
+                :disabled="processingAction"
+                class="px-5 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
+              >
+                <span class="text-lg">✕</span>
+                <span>{{ processingAction ? 'Processing...' : 'Cancel Order' }}</span>
+              </button>
+            </div>
+          </div>
           
           <button
             v-if="canReopenOrder && !authStore.isAdmin && !authStore.isSuperAdmin && !authStore.isSupport"
@@ -1622,10 +1694,11 @@
       </div>
 
       </div>
-      <!-- End Overview Tab -->
+            </div>
+            <!-- End Overview Tab -->
 
-      <!-- Progress Tab -->
-      <div v-if="activeTab === 'progress'" class="space-y-6">
+            <!-- Progress Tab -->
+            <div v-if="activeTab === 'progress'" class="p-6 space-y-4">
         <!-- Progress Bar (for clients, also visible to admin/support) -->
         <div
           v-if="authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
@@ -1685,17 +1758,18 @@
           />
         </div>
       </div>
-      <!-- End Progress Tab -->
+            </div>
+            <!-- End Progress Tab -->
 
-      <!-- Messages Tab -->
-      <div v-if="activeTab === 'messages'" class="space-y-6">
-        <OrderMessagesTabbed
-          :order-id="order.id"
-          :order-topic="order.topic"
-          @unread-count-update="handleUnreadCountUpdate"
-        />
-      </div>
-      <!-- End Messages Tab -->
+            <!-- Messages Tab -->
+            <div v-if="activeTab === 'messages'" class="p-6">
+              <OrderMessagesTabbed
+                :order-id="order.id"
+                :order-topic="order.topic"
+                @unread-count-update="handleUnreadCountUpdate"
+              />
+            </div>
+            <!-- End Messages Tab -->
 
       <!-- Files Tab -->
       <div v-if="activeTab === 'files'" class="space-y-6">
@@ -1802,7 +1876,7 @@
             </svg>
             {{ authStore.isWriter ? 'Quick Upload' : 'Upload Files' }}
           </h4>
-          <div class="space-y-4">
+          <div class="space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-medium text-gray-700 mb-1">
@@ -1955,7 +2029,8 @@
                 <tbody class="bg-white divide-y divide-gray-200">
                   <tr
                     v-for="file in staffFiles"
-                :key="file.id"
+                    :key="file.id"
+                    :data-file-id="file.id"
                     class="hover:bg-gray-50 transition-colors"
                   >
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -1964,17 +2039,17 @@
                         <div class="min-w-0">
                           <div class="text-sm font-medium text-gray-900 truncate max-w-xs" :title="file.file_name">
                         {{ file.file_name || 'Unnamed File' }}
-                      </div>
+                          </div>
                           <div v-if="getCategoryById(file.category)?.is_final_draft" class="text-xs text-blue-600 mt-1">
                             Final Draft
-                      </div>
-                    </div>
+                          </div>
+                        </div>
                   </div>
                     </td>
                     <td class="px-6 py-4">
                       <div class="text-sm text-gray-600 max-w-xs truncate" :title="file.description || file.file_description">
                         {{ file.description || file.file_description || '—' }}
-                </div>
+                      </div>
                     </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                       <div class="text-sm text-gray-900">{{ formatDateTime(file.created_at) }}</div>
@@ -2082,6 +2157,7 @@
                   <tr
                     v-for="file in clientFiles"
                     :key="file.id"
+                    :data-file-id="file.id"
                     class="hover:bg-gray-50 transition-colors"
                   >
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -2208,6 +2284,7 @@
                   <tr
                     v-for="file in writerFiles"
                     :key="file.id"
+                    :data-file-id="file.id"
                     class="hover:bg-gray-50 transition-colors"
                   >
                     <td class="px-6 py-4 whitespace-nowrap">
@@ -2306,8 +2383,8 @@
             <div class="bg-gradient-to-r from-gray-50 to-slate-50 px-6 py-4 border-b border-gray-200">
               <div class="flex items-center gap-3">
                 <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                  <span class="text-gray-600 text-lg">📁</span>
-          </div>
+                  <Folder class="w-5 h-5 text-gray-600" />
+                </div>
                 <div>
                   <h4 class="text-lg font-semibold text-gray-900">Other Files</h4>
                   <p class="text-sm text-gray-600">Additional files</p>
@@ -2455,7 +2532,9 @@
             class="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
           >
             <div class="flex items-center gap-2 mb-2">
-              <div class="text-2xl">📊</div>
+              <div class="w-12 h-12 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                <BarChart3 class="w-6 h-6 text-blue-600 dark:text-blue-400" />
+              </div>
               <div class="flex-1 min-w-0">
                 <div class="text-sm font-medium text-gray-900 truncate">{{ file.file_name || 'Extra Service File' }}</div>
                 <div class="text-xs text-gray-500">{{ formatFileSize(file.file_size) }}</div>
@@ -2472,10 +2551,10 @@
           </div>
         </div>
       </div>
-      <!-- End Files Tab -->
+            <!-- End Files Tab -->
 
-      <!-- Draft Requests Tab -->
-      <div v-if="activeTab === 'draft-requests'" class="space-y-6">
+            <!-- Draft Requests Tab -->
+            <div v-if="activeTab === 'draft-requests'" class="p-6 space-y-4">
         <div class="flex items-center justify-between mb-6">
           <div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
@@ -2696,10 +2775,10 @@
           </div>
         </div>
       </div>
-      <!-- End Draft Requests Tab -->
+            <!-- End Draft Requests Tab -->
 
-      <!-- External Links Tab -->
-      <div v-if="activeTab === 'links'" class="space-y-6">
+            <!-- External Links Tab -->
+            <div v-if="activeTab === 'links'" class="p-6 space-y-4">
         <div class="flex items-center justify-between mb-6">
           <div>
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-1 flex items-center gap-2">
@@ -2853,24 +2932,23 @@
           </table>
         </div>
       </div>
-      <!-- End External Links Tab -->
-      </div>
+            <!-- End External Links Tab -->
 
-      <!-- Actions Tab -->
-      <div v-if="activeTab === 'actions'" class="space-y-6">
-        <div class="bg-gradient-to-br from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-xl border-2 border-primary-200 dark:border-primary-800 p-6 mb-6">
-          <div class="flex items-start gap-4">
-            <div class="flex-shrink-0 w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-2xl">
-              ⚡
-            </div>
-            <div class="flex-1">
-              <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Order Actions</h2>
-              <p class="text-sm text-gray-600 dark:text-gray-400">
-                Manage this order with inline actions. Expand any section to perform actions. All actions are logged and tracked.
-              </p>
-            </div>
-          </div>
-        </div>
+            <!-- Actions Tab -->
+            <div v-if="activeTab === 'actions'" class="p-6 space-y-4">
+              <div class="bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800 p-4 mb-4">
+                <div class="flex items-start gap-3">
+                  <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
+                    <Zap class="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                  </div>
+                  <div class="flex-1">
+                    <h2 class="text-sm font-semibold text-gray-900 dark:text-white mb-1">Order Actions</h2>
+                    <p class="text-xs text-gray-600 dark:text-gray-400">
+                      Manage this order with inline actions. Expand any section to perform actions. All actions are logged and tracked.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
         <!-- Inline Actions Component (Admin/SuperAdmin/Support) -->
         <div v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport">
@@ -2946,7 +3024,7 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400">Assign or reassign a writer to this order</p>
               </div>
             </div>
-            <div class="space-y-4">
+            <div class="space-y-6">
               <div v-if="order.assigned_writer || order.writer_id" class="p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
                 <div class="flex items-center justify-between">
                   <div>
@@ -3004,7 +3082,7 @@
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex items-center gap-3 mb-6">
               <div class="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
-                <span class="text-xl">⚡</span>
+                <Zap class="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
               </div>
               <div>
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Quick Actions</h3>
@@ -3016,14 +3094,14 @@
                 @click="activeTab = 'messages'"
                 class="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all font-medium"
               >
-                <span class="text-xl">💬</span>
+                <MessageSquare class="w-5 h-5" />
                 <span>View Messages</span>
               </button>
               <button
                 @click="activeTab = 'files'"
                 class="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all font-medium"
               >
-                <span class="text-xl">📁</span>
+                <Folder class="w-5 h-5" />
                 <span>Manage Files</span>
               </button>
               <button
@@ -3031,14 +3109,14 @@
                 @click="activeTab = 'history'"
                 class="flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all font-medium"
               >
-                <span class="text-xl">🕒</span>
+                <Clock class="w-5 h-5" />
                 <span>View Timeline</span>
               </button>
               <button
                 @click="showEditInstructions = true"
                 class="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all font-medium"
               >
-                <span class="text-xl">✏️</span>
+                <Edit class="w-5 h-5" />
                 <span>Edit Instructions</span>
               </button>
             </div>
@@ -3053,7 +3131,7 @@
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex items-center gap-3 mb-6">
               <div class="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
-                <span class="text-xl">💬</span>
+                <MessageSquare class="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <div>
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Communication</h3>
@@ -3065,14 +3143,14 @@
                 @click="activeTab = 'messages'"
                 class="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all font-medium"
               >
-                <span class="text-xl">💬</span>
+                <MessageSquare class="w-5 h-5" />
                 <span>View Messages</span>
               </button>
               <button
                 @click="activeTab = 'files'"
                 class="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-700 text-green-700 dark:text-green-300 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/30 transition-all font-medium"
               >
-                <span class="text-xl">📁</span>
+                <Folder class="w-5 h-5" />
                 <span>Upload Files</span>
               </button>
             </div>
@@ -3085,7 +3163,7 @@
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex items-center gap-3 mb-6">
               <div class="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
-                <span class="text-xl">📋</span>
+                <ClipboardList class="w-5 h-5 text-primary-600 dark:text-primary-400" />
               </div>
               <div>
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Order Management</h3>
@@ -3177,72 +3255,102 @@
             <p class="text-sm font-medium text-green-700 dark:text-green-300">{{ actionSuccess }}</p>
           </div>
         </div>
-      </div>
+            </div>
+            <!-- End Actions Tab -->
 
-      <!-- History Tab (Admin / Support) -->
-      <div
-        v-if="activeTab === 'history' && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
-        class="space-y-6"
-      >
-        <div class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
-          <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
-            <div>
-              <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 tracking-wide uppercase">
-                Order History
-              </h3>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                Timeline of status changes and key system actions for this order.
-              </p>
-            </div>
-          </div>
-          <div class="p-4">
+            <!-- History Tab (Admin / Support) -->
             <div
-              v-if="!statusTimeline.length"
-              class="text-center py-8 text-sm text-gray-500 dark:text-gray-400"
+              v-if="activeTab === 'history' && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
+              class="p-6 space-y-4"
             >
-              No history entries available.
-            </div>
-            <ol v-else class="relative border-l border-gray-200 dark:border-gray-700">
-              <li
-                v-for="item in statusTimeline"
-                :key="item.key"
-                class="mb-6 ml-6"
-              >
-                <span
-                  class="absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ring-4 ring-white dark:ring-gray-900 bg-primary-100 dark:bg-primary-900 text-xs"
-                >
-                  {{ item.icon }}
-                </span>
-                <h3 class="flex items-center text-sm font-medium text-gray-900 dark:text-gray-100">
-                  {{ item.label }}
-                  <span
-                    v-if="item.source === 'transition_log'"
-                    class="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+              <div class="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+                <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+                  <div>
+                    <h3 class="text-sm font-semibold text-gray-900 dark:text-gray-100 tracking-wide uppercase">
+                      Order History
+                    </h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Timeline of status changes and key system actions for this order.
+                    </p>
+                  </div>
+                </div>
+                <div class="p-4">
+                  <div
+                    v-if="!statusTimeline.length"
+                    class="text-center py-8 text-sm text-gray-500 dark:text-gray-400"
                   >
-                    Log
-                  </span>
-                </h3>
-                <time class="block mb-1 text-xs font-normal leading-none text-gray-400 dark:text-gray-500">
-                  {{ formatDateTime(item.timestamp) }} • {{ item.relativeTime }}
-                </time>
-                <p
-                  v-if="item.description"
-                  class="mb-2 text-xs font-normal text-gray-600 dark:text-gray-300"
+                    No history entries available.
+                  </div>
+                  <ol v-else class="relative border-l border-gray-200 dark:border-gray-700">
+                    <li
+                      v-for="item in statusTimeline"
+                      :key="item.key"
+                      class="mb-6 ml-6"
+                    >
+                      <span
+                        class="absolute flex items-center justify-center w-6 h-6 rounded-full -left-3 ring-4 ring-white dark:ring-gray-900 bg-primary-100 dark:bg-primary-900 text-xs"
+                      >
+                        {{ item.icon }}
+                      </span>
+                      <h3 class="flex items-center text-sm font-medium text-gray-900 dark:text-gray-100">
+                        {{ item.label }}
+                        <span
+                          v-if="item.source === 'transition_log'"
+                          class="ml-2 px-2 py-0.5 text-[10px] font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                        >
+                          Log
+                        </span>
+                      </h3>
+                      <time class="block mb-1 text-xs font-normal leading-none text-gray-400 dark:text-gray-500">
+                        {{ formatDateTime(item.timestamp) }} • {{ item.relativeTime }}
+                      </time>
+                      <p
+                        v-if="item.description"
+                        class="mb-2 text-xs font-normal text-gray-600 dark:text-gray-300"
+                      >
+                        {{ item.description }}
+                      </p>
+                    </li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+            <!-- End History Tab -->
+      </template>
+
+      <template v-else>
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12">
+          <div class="text-center">
+            <div v-if="error" class="space-y-4">
+              <div class="flex justify-center">
+                <AlertCircle class="w-12 h-12 text-red-500" />
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">Error Loading Order</h3>
+                <p class="text-gray-600 dark:text-gray-400 mb-4">{{ error }}</p>
+                <button
+                  @click="loadOrder()"
+                  class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
-                  {{ item.description }}
-                </p>
-              </li>
-            </ol>
+                  <RefreshCw class="w-4 h-4" />
+                  <span>Retry</span>
+                </button>
+              </div>
+            </div>
+            <div v-else class="text-gray-500 dark:text-gray-400">
+              <p>Order not found</p>
+            </div>
           </div>
         </div>
-      </div>
+      </template>
+    </div>
 
-      <!-- Start Chat Modal (WhatsApp-style) -->
-      <div
-        v-if="showSendMessageModal"
-        class="fixed inset-0 bg-gray-100 z-50 flex items-center justify-center"
-        @click.self="showSendMessageModal = false"
-      >
+    <!-- Start Chat Modal (WhatsApp-style) -->
+    <div
+      v-if="showSendMessageModal"
+      class="fixed inset-0 bg-gray-100 z-50 flex items-center justify-center"
+      @click.self="showSendMessageModal = false"
+    >
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full h-[90vh] max-h-[700px] overflow-hidden flex flex-col">
           <!-- Header -->
           <div class="bg-primary-600 text-white px-4 py-3 flex items-center justify-between">
@@ -3341,7 +3449,9 @@
           <!-- Message Input Area -->
           <div class="flex-1 overflow-y-auto bg-gray-50 px-4 py-6">
             <div class="text-center text-gray-500 mb-6">
-              <div class="text-4xl mb-2">💬</div>
+              <div class="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center mb-2">
+                <MessageSquare class="w-8 h-8 text-blue-600 dark:text-blue-400" />
+              </div>
               <p class="text-sm">Start a conversation</p>
               <p class="text-xs mt-1">Type a message to begin</p>
             </div>
@@ -3386,15 +3496,6 @@
           </div>
         </div>
       </div>
-    </template>
-
-    <template v-else>
-      <div class="card p-12">
-        <div class="text-center text-gray-500">
-          <p>Order not found</p>
-        </div>
-      </div>
-    </template>
 
     <!-- Order Action Modal - Disabled for Admin/Superadmin/Support (using inline actions instead) -->
     <!-- <OrderActionModal
@@ -3913,6 +4014,39 @@ import { useInputModal } from '@/composables/useInputModal'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import EnhancedStatusBadge from '@/components/common/EnhancedStatusBadge.vue'
 import { getStatusConfig, getStatusLabel, getStatusIcon } from '@/utils/orderStatus'
+import {
+  ClipboardList,
+  TrendingUp,
+  BarChart3,
+  MessageSquare,
+  Folder,
+  FileText,
+  Link as LinkIcon,
+  Zap,
+  Clock,
+  ArrowLeft,
+  Trash2,
+  RotateCcw,
+  CheckCircle2,
+  AlertCircle,
+  Info,
+  RefreshCw,
+  DollarSign,
+  Edit,
+  X,
+  Plus,
+  Send,
+  File,
+  History,
+  User,
+  Calendar,
+  CreditCard,
+  Package,
+  FileCheck,
+  AlertTriangle,
+  Download,
+  Star
+} from 'lucide-vue-next'
 import EnhancedOrderStatus from '@/components/client/EnhancedOrderStatus.vue'
 import InputModal from '@/components/common/InputModal.vue'
 import draftRequestsAPI from '@/api/draft-requests'
@@ -3973,6 +4107,7 @@ watch(inputModalShow, (newVal) => {
 
 const order = ref(null)
 const loading = ref(true)
+const error = ref(null)
 const activeTab = ref('overview')
 const unreadMessageCount = ref(0)
 let unreadMessageInterval = null
@@ -3980,19 +4115,19 @@ let unreadMessageInterval = null
 // Tabs configuration
 const tabs = computed(() => {
   const baseTabs = [
-    { id: 'overview', label: 'Overview', icon: '📋' },
-    { id: 'enhanced-status', label: 'Enhanced Status', icon: '📈' },
-    { id: 'progress', label: 'Progress', icon: '📊' },
-    { id: 'messages', label: 'Messages', icon: '💬' },
-    { id: 'files', label: 'Files', icon: '📁' },
-    { id: 'draft-requests', label: 'Draft Requests', icon: '📝' },
-    { id: 'links', label: 'External Links', icon: '🔗' },
-    { id: 'actions', label: 'Actions', icon: '⚡' }, // Actions tab for all users
+    { id: 'overview', label: 'Overview', icon: ClipboardList },
+    { id: 'enhanced-status', label: 'Enhanced Status', icon: TrendingUp },
+    { id: 'progress', label: 'Progress', icon: BarChart3 },
+    { id: 'messages', label: 'Messages', icon: MessageSquare },
+    { id: 'files', label: 'Files', icon: Folder },
+    { id: 'draft-requests', label: 'Draft Requests', icon: FileText },
+    { id: 'links', label: 'External Links', icon: LinkIcon },
+    { id: 'actions', label: 'Actions', icon: Zap }, // Actions tab for all users
   ]
 
   // Admins and support see an additional "History" tab
   if (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) {
-    baseTabs.push({ id: 'history', label: 'History', icon: '🕒' })
+    baseTabs.push({ id: 'history', label: 'History', icon: History })
   }
 
   return baseTabs
@@ -5714,17 +5849,35 @@ const handleEditOrderError = (error) => {
 
 const loadOrder = async () => {
   loading.value = true
+  error.value = null
   try {
     const orderId = route.params.id
     
+    if (!orderId) {
+      error.value = 'Invalid order ID'
+      loading.value = false
+      return
+    }
+    
     // Try to get from cache first
-    const { getCachedOrder, cacheOrder } = await import('@/utils/orderCache')
-    const cached = getCachedOrder(orderId)
+    let cached = null
+    let cacheOrderFn = null
+    try {
+      const cacheModule = await import('@/utils/orderCache')
+      cacheOrderFn = cacheModule.cacheOrder
+      cached = cacheModule.getCachedOrder(orderId)
+    } catch (cacheError) {
+      // If cache import fails, just continue without cache
+      if (import.meta.env.DEV) {
+        console.warn('Failed to load order cache utility:', cacheError)
+      }
+    }
     
     if (cached && cached.fromCache) {
       // Show cached data immediately
       order.value = cached.data
       paymentSummary.value = null
+      error.value = null // Clear any previous errors since we have data
       
       // Load related data (these may also fail, but we have the order cached)
       try {
@@ -5753,11 +5906,24 @@ const loadOrder = async () => {
     // Always try to fetch fresh data
     try {
       const res = await ordersAPI.get(orderId)
+      if (!res || !res.data) {
+        throw new Error('Invalid response from server: order data is missing')
+      }
       order.value = res.data
       paymentSummary.value = null
+      error.value = null // Clear any previous errors
       
-      // Cache the order
-      cacheOrder(orderId, res.data)
+      // Cache the order (if cache utility is available)
+      if (cacheOrderFn) {
+        try {
+          cacheOrderFn(orderId, res.data)
+        } catch (cacheError) {
+          // Silently fail if caching fails
+          if (import.meta.env.DEV) {
+            console.warn('Failed to cache order:', cacheError)
+          }
+        }
+      }
       
       // Load files, links, categories, wallet balance, and review after order is loaded
       await Promise.all([
@@ -5772,6 +5938,9 @@ const loadOrder = async () => {
     } catch (apiError) {
       // If API call fails and we don't have cached data, show error
       if (!cached || !cached.fromCache) {
+        const errorMsg = getErrorMessage(apiError, 'Failed to load order', `Unable to load order #${orderId}. Please try again or contact support if the issue persists.`)
+        error.value = errorMsg
+        showErrorToast(errorMsg)
         throw apiError
       }
       // Otherwise, we already have cached data displayed, just log the error
@@ -5804,9 +5973,19 @@ const loadOrder = async () => {
         unreadMessageCount.value = 0
       }
     }
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to load order:', error)
+  } catch (err) {
+    // Only set error if we don't have cached data to show
+    if (!order.value) {
+      const errorMsg = getErrorMessage(err, 'Failed to load order', `Unable to load order. Please try again or contact support if the issue persists.`)
+      error.value = errorMsg
+      if (import.meta.env.DEV) {
+        console.error('Failed to load order:', err)
+        console.error('Error message:', errorMsg)
+      }
+    } else {
+      if (import.meta.env.DEV) {
+        console.warn('Order load failed but cached data is available:', err)
+      }
     }
   } finally {
     loading.value = false
@@ -7016,23 +7195,60 @@ const toggleThreadExpanded = async (threadId) => {
 }
 
 const jumpToActivity = async (activity) => {
-  if (!activity) return
+  if (!activity) {
+    console.warn('jumpToActivity: No activity provided')
+    return
+  }
   
-  if (activity.type === 'message') {
-    activeTab.value = 'messages'
-    await nextTick()
-    const threadId = activity.meta?.threadId
-    if (threadId) {
-      if (!expandedThreads.value[threadId]) {
-        await toggleThreadExpanded(threadId)
-      } else {
-        await loadThreadMessages(threadId)
-      }
+  try {
+    if (activity.type === 'message') {
+      activeTab.value = 'messages'
       await nextTick()
-      scrollThreadToBottom(threadId)
+      
+      // Ensure threads are loaded
+      if (!threads.value || threads.value.length === 0) {
+        await loadThreads()
+        await nextTick()
+      }
+      
+      const threadId = activity.meta?.threadId
+      if (threadId) {
+        // Find the thread to ensure it exists
+        const thread = threads.value.find(t => t.id === threadId)
+        if (thread) {
+          if (!expandedThreads.value[threadId]) {
+            await toggleThreadExpanded(threadId)
+          } else {
+            await loadThreadMessages(threadId)
+          }
+          await nextTick()
+          scrollThreadToBottom(threadId)
+        } else {
+          console.warn('jumpToActivity: Thread not found', threadId)
+        }
+      } else {
+        console.warn('jumpToActivity: No threadId in activity meta', activity)
+      }
+    } else if (activity.type === 'file') {
+      activeTab.value = 'files'
+      await nextTick()
+      
+      // Scroll to the specific file if we have the file ID
+      if (activity.id) {
+        const fileElement = document.querySelector(`[data-file-id="${activity.id}"]`)
+        if (fileElement) {
+          fileElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }
     }
-  } else if (activity.type === 'file') {
-    activeTab.value = 'files'
+  } catch (error) {
+    console.error('jumpToActivity error:', error)
+    // Still switch to the tab even if there's an error
+    if (activity.type === 'message') {
+      activeTab.value = 'messages'
+    } else if (activity.type === 'file') {
+      activeTab.value = 'files'
+    }
   }
 }
 
@@ -7370,8 +7586,23 @@ const deleteThread = async (threadId) => {
 }
 
 // Handle unread count update from OrderMessagesTabbed component
-const handleUnreadCountUpdate = (count) => {
+const handleUnreadCountUpdate = async (count) => {
   unreadMessageCount.value = count
+  // Also refresh from API to ensure accuracy (in case of race conditions)
+  if (order.value) {
+    try {
+      const apiCount = await loadUnreadMessageCount(order.value.id)
+      // Use the API count if it's different (more reliable)
+      if (apiCount !== count) {
+        unreadMessageCount.value = apiCount
+      }
+    } catch (error) {
+      // Silently handle errors - use the count from the component
+      if (import.meta.env.DEV) {
+        console.warn('Failed to refresh unread count from API:', error)
+      }
+    }
+  }
 }
 
 // Cleanup polling on unmount
@@ -7792,18 +8023,81 @@ const takeOrder = async () => {
 }
 
 onMounted(async () => {
-  await loadOrder()
-  await loadOrderReview()
-  await loadLatestProgress()
-  // Load threads after order is loaded (if needed for unread count)
-  if (order.value) {
-    await loadThreads()
-    await loadDraftRequests()
-    if (authStore.isClient) {
-      await checkDraftEligibility(false) // Silent check on mount
+  try {
+    await loadOrder()
+    // Only load related data if order was successfully loaded
+    if (order.value) {
+      try {
+        await loadOrderReview()
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn('Failed to load order review:', err)
+        }
+      }
+      try {
+        await loadLatestProgress()
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn('Failed to load latest progress:', err)
+        }
+      }
+      // Load threads after order is loaded (if needed for unread count)
+      try {
+        await loadThreads()
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn('Failed to load threads:', err)
+        }
+      }
+      try {
+        await loadDraftRequests()
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          console.warn('Failed to load draft requests:', err)
+        }
+      }
+      if (authStore.isClient) {
+        try {
+          await checkDraftEligibility(false) // Silent check on mount
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.warn('Failed to check draft eligibility:', err)
+          }
+        }
+      }
+      if (authStore.isWriter && order.value.status === 'available') {
+        try {
+          await loadWriterContext()
+        } catch (err) {
+          if (import.meta.env.DEV) {
+            console.warn('Failed to load writer context:', err)
+          }
+        }
+      }
     }
-    if (authStore.isWriter && order.value.status === 'available') {
-      await loadWriterContext()
+  } catch (err) {
+    // Error should already be handled in loadOrder, but catch any unexpected errors
+    if (import.meta.env.DEV) {
+      console.error('Error in onMounted:', err)
+    }
+  }
+})
+
+// Watch for route changes to reload order when navigating to different order
+watch(() => route.params.id, async (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    await loadOrder()
+    await loadOrderReview()
+    await loadLatestProgress()
+    if (order.value) {
+      await loadThreads()
+      await loadDraftRequests()
+      if (authStore.isClient) {
+        await checkDraftEligibility(false)
+      }
+      if (authStore.isWriter && order.value.status === 'available') {
+        await loadWriterContext()
+      }
     }
   }
 })

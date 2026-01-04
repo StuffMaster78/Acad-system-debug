@@ -398,6 +398,164 @@ export const ORDER_STATUS_CONFIG = {
 }
 
 /**
+ * Assignment and Reassignment Validation Utilities
+ * Based on order status and workflow requirements
+ */
+
+// Statuses that allow initial assignment (no writer currently assigned)
+const ASSIGNABLE_STATUSES = [
+  'available',
+  'paid',
+  'on_hold',
+  'reassigned',
+  'pending_writer_assignment' // Can reassign if current writer rejects
+]
+
+// Statuses that allow reassignment (writer already assigned)
+const REASSIGNABLE_STATUSES = [
+  'in_progress',
+  'on_hold',
+  'reassigned',
+  'submitted',
+  'under_editing',
+  'revision_requested',
+  'revision_in_progress',
+  'pending_writer_assignment' // Can reassign if current writer hasn't accepted
+]
+
+// Statuses that require payment before assignment/reassignment
+const PAYMENT_REQUIRED_STATUSES = [
+  'available',
+  'pending_writer_assignment',
+  'pending_preferred',
+  'in_progress',
+  'submitted'
+]
+
+// Statuses that block assignment/reassignment (final states)
+const BLOCKED_STATUSES = [
+  'completed',
+  'cancelled',
+  'closed',
+  'archived',
+  'refunded',
+  'deleted',
+  'rejected'
+]
+
+/**
+ * Check if an order can be assigned (initial assignment)
+ * @param {Object} order - Order object with status and is_paid properties
+ * @returns {Object} { allowed: boolean, reason?: string }
+ */
+export function canAssignOrder(order) {
+  if (!order) {
+    return { allowed: false, reason: 'Order not found' }
+  }
+
+  const status = order.status?.toLowerCase()
+
+  // Check if order is in a blocked state
+  if (BLOCKED_STATUSES.includes(status)) {
+    return { 
+      allowed: false, 
+      reason: `Cannot assign order in '${status}' status. Order is in a final state.` 
+    }
+  }
+
+  // Check if order already has an assigned writer
+  if (order.assigned_writer && status !== 'pending_writer_assignment' && status !== 'reassigned') {
+    return { 
+      allowed: false, 
+      reason: 'Order already has an assigned writer. Use reassignment instead.' 
+    }
+  }
+
+  // Check if status allows assignment
+  if (!ASSIGNABLE_STATUSES.includes(status)) {
+    return { 
+      allowed: false, 
+      reason: `Cannot assign order in '${status}' status. Order must be in 'available', 'paid', 'on_hold', or 'reassigned' status.` 
+    }
+  }
+
+  // Check payment requirement
+  if (PAYMENT_REQUIRED_STATUSES.includes(status) && !order.is_paid) {
+    return { 
+      allowed: false, 
+      reason: 'Order must be paid before assignment. Please mark the order as paid first.' 
+    }
+  }
+
+  return { allowed: true }
+}
+
+/**
+ * Check if an order can be reassigned (change existing writer)
+ * @param {Object} order - Order object with status, is_paid, and assigned_writer properties
+ * @returns {Object} { allowed: boolean, reason?: string }
+ */
+export function canReassignOrder(order) {
+  if (!order) {
+    return { allowed: false, reason: 'Order not found' }
+  }
+
+  const status = order.status?.toLowerCase()
+
+  // Check if order is in a blocked state
+  if (BLOCKED_STATUSES.includes(status)) {
+    return { 
+      allowed: false, 
+      reason: `Cannot reassign order in '${status}' status. Order is in a final state.` 
+    }
+  }
+
+  // Check if order has an assigned writer
+  if (!order.assigned_writer && status !== 'reassigned') {
+    return { 
+      allowed: false, 
+      reason: 'Order does not have an assigned writer. Use assignment instead.' 
+    }
+  }
+
+  // Check if status allows reassignment
+  if (!REASSIGNABLE_STATUSES.includes(status)) {
+    return { 
+      allowed: false, 
+      reason: `Cannot reassign order in '${status}' status. Order must be in 'in_progress', 'on_hold', 'reassigned', 'submitted', 'under_editing', or revision states.` 
+    }
+  }
+
+  // Check payment requirement
+  if (PAYMENT_REQUIRED_STATUSES.includes(status) && !order.is_paid) {
+    return { 
+      allowed: false, 
+      reason: 'Order must be paid before reassignment. Please mark the order as paid first.' 
+    }
+  }
+
+  return { allowed: true }
+}
+
+/**
+ * Get user-friendly message for assignment/reassignment eligibility
+ * @param {Object} order - Order object
+ * @param {boolean} isReassign - Whether this is a reassignment
+ * @returns {string} User-friendly message
+ */
+export function getAssignmentEligibilityMessage(order, isReassign = false) {
+  const check = isReassign ? canReassignOrder(order) : canAssignOrder(order)
+  
+  if (check.allowed) {
+    return isReassign 
+      ? 'Order can be reassigned to a new writer.'
+      : 'Order is ready for writer assignment.'
+  }
+  
+  return check.reason || 'Assignment is not allowed for this order.'
+}
+
+/**
  * Get status configuration
  */
 export function getStatusConfig(status) {

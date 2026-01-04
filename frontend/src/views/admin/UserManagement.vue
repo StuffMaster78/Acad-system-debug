@@ -749,9 +749,22 @@
             <button
               v-if="authStore.isImpersonating"
               @click="endImpersonation"
-              class="btn btn-secondary"
+              :disabled="endingImpersonation"
+              class="btn btn-secondary inline-flex items-center gap-2"
+              :aria-label="endingImpersonation ? 'Ending impersonation...' : 'End impersonation'"
+              :aria-busy="endingImpersonation"
             >
-              End Impersonation
+              <svg 
+                v-if="endingImpersonation"
+                class="animate-spin h-4 w-4" 
+                fill="none" 
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>{{ endingImpersonation ? 'Ending...' : 'End Impersonation' }}</span>
             </button>
           </div>
         </div>
@@ -771,7 +784,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import adminManagementAPI from '@/api/admin-management'
 import apiClient from '@/api/client'
@@ -786,6 +799,7 @@ import { getErrorMessage } from '@/utils/errorHandler'
 import { formatWebsiteName } from '@/utils/formatDisplay'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const { success: showSuccess, error: showError } = useToast()
 const confirm = useConfirmDialog()
@@ -1020,14 +1034,8 @@ const viewUser = (user) => {
   showCreateModal.value = true
 }
 
-const viewUserDetail = async (user) => {
-  try {
-    const res = await adminManagementAPI.getUser(user.id)
-    viewingUser.value = res.data
-  } catch (e) {
-    message.value = 'Failed to load user details: ' + (e.response?.data?.detail || e.message)
-    messageSuccess.value = false
-  }
+const viewUserDetail = (user) => {
+  router.push(`/admin/users/${user.id}/view`)
 }
 
 const closeUserDetail = () => {
@@ -1170,19 +1178,7 @@ const viewUserActivity = (user) => {
 }
 
 const editUser = (user) => {
-  editingUser.value = user
-  userForm.value = {
-    username: user.username,
-    email: user.email,
-    first_name: user.first_name || '',
-    last_name: user.last_name || '',
-    role: user.role,
-    phone_number: user.phone_number || '',
-    website: user.website?.id || null,
-    password: '',
-    is_active: user.is_active,
-  }
-  showCreateModal.value = true
+  router.push(`/admin/users/${user.id}/edit`)
 }
 
 const closeModal = () => {
@@ -1664,7 +1660,10 @@ const impersonateUser = async (user) => {
   }
 }
 
+const endingImpersonation = ref(false)
+
 const endImpersonation = async () => {
+  endingImpersonation.value = true
   try {
     message.value = ''
     const res = await authStore.endImpersonation()
@@ -1672,16 +1671,32 @@ const endImpersonation = async () => {
       message.value = res.error || 'Failed to end impersonation'
       messageSuccess.value = false
     } else {
-      message.value = 'Impersonation ended. Admin session restored.'
-      messageSuccess.value = true
+      // Show success message if not an impersonation tab
+      const isImpersonationTab = localStorage.getItem('_is_impersonation_tab') === 'true'
+      if (!isImpersonationTab) {
+        message.value = res?.message || 'Impersonation ended. Admin session restored.'
+        messageSuccess.value = true
+      }
       
       // Note: This function is called from the admin tab (parent window)
       // The impersonation tab should handle closing itself when ending impersonation
       // The admin tab remains logged in with its own session - no redirect needed
     }
+    
+    // If there's an error message from the store, display it
+    if (authStore.error) {
+      message.value = authStore.error
+      messageSuccess.value = false
+    }
   } catch (e) {
-    message.value = e?.message || 'Failed to end impersonation'
+    const errorMessage = e?.response?.data?.error || 
+                        e?.response?.data?.detail || 
+                        e?.message || 
+                        'Failed to end impersonation. Please try again.'
+    message.value = errorMessage
     messageSuccess.value = false
+  } finally {
+    endingImpersonation.value = false
   }
 }
 
