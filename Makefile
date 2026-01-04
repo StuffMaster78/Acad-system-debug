@@ -1,185 +1,165 @@
-.PHONY: help setup run run-frontend run-celery run-celery-beat test test-backend test-frontend test-coverage test-unit test-integration test-setup test-quick check migrations migrate shell restart logs clean nuke-db
+.PHONY: help test test-backend test-frontend test-all coverage coverage-backend coverage-frontend lint lint-backend lint-frontend install install-backend install-frontend clean
 
-# Default target
-help:
-	@echo "Writing System Platform - Development Commands"
-	@echo ""
-	@echo "Available commands:"
-	@echo "  make setup           - Complete one-time setup (env files, migrations, superuser)"
-	@echo "  make run             - Start Django development server"
-	@echo "  make run-frontend   - Start Vue.js development server"
-	@echo "  make run-celery     - Start Celery worker"
-	@echo "  make run-celery-beat - Start Celery beat scheduler"
-	@echo "  make test           - Run all tests (backend + frontend)"
-	@echo "  make test-backend   - Run backend tests with pytest"
-	@echo "  make test-frontend  - Run frontend tests with Vitest"
-	@echo "  make test-coverage  - Run tests with 95% coverage requirement"
-	@echo "  make test-unit      - Run only unit tests"
-	@echo "  make test-integration - Run only integration tests"
-	@echo "  make test-setup     - Set up local Python test environment"
-	@echo "  make test-quick    - Quick test run (frontend only)"
-	@echo "  make test-coverage-backend - Backend tests with 95% coverage"
-	@echo "  make test-coverage-frontend - Frontend tests with 95% coverage"
-	@echo "  make coverage-gaps - Analyze coverage gaps"
-	@echo "  make check           - Run code quality checks (linting, formatting)"
-	@echo "  make migrations      - Create new database migrations"
-	@echo "  make migrate         - Apply pending database migrations"
-	@echo "  make shell           - Open Django shell"
-	@echo "  make restart         - Restart all Docker services"
-	@echo "  make logs            - View logs from all services"
-	@echo "  make clean           - Stop and remove containers, volumes"
-	@echo "  make nuke-db         - Delete database and all migration files (USE WITH CAUTION)"
-	@echo ""
+help: ## Show this help message
+	@echo 'Usage: make [target]'
+	@echo ''
+	@echo 'Available targets:'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-# Complete setup
-setup:
-	@echo "🚀 Setting up Writing System Platform..."
-	@if [ ! -f backend/.env ]; then \
-		echo "📝 Creating backend/.env from template..."; \
-		cp backend/env.template backend/.env; \
-		echo "⚠️  Please edit backend/.env with your configuration"; \
-	fi
-	@echo "🐳 Starting Docker services..."
+# ============================================
+# Installation
+# ============================================
+install: install-backend install-frontend ## Install all dependencies
+
+install-backend: ## Install backend dependencies
+	cd backend && pip install -r requirements.txt
+
+install-frontend: ## Install frontend dependencies
+	cd frontend && npm ci
+
+# ============================================
+# Testing
+# ============================================
+test: test-backend test-frontend ## Run all tests
+
+test-backend: ## Run backend tests
+	cd backend && pytest -v --tb=short
+
+test-backend-unit: ## Run backend unit tests only
+	cd backend && pytest -m "not integration and not e2e and not slow" -v
+
+test-backend-integration: ## Run backend integration tests only
+	cd backend && pytest -m integration -v
+
+test-backend-e2e: ## Run backend E2E tests only
+	cd backend && pytest -m e2e -v
+
+test-frontend: ## Run frontend tests
+	cd frontend && npm run test:run
+
+test-frontend-unit: ## Run frontend unit tests only
+	cd frontend && npm run test:unit
+
+test-frontend-components: ## Run frontend component tests only
+	cd frontend && npm run test:components
+
+test-all: test-backend test-frontend ## Run all tests (backend + frontend)
+
+# ============================================
+# Coverage
+# ============================================
+coverage: coverage-backend coverage-frontend ## Generate coverage reports for all
+
+coverage-backend: ## Generate backend coverage report
+	cd backend && pytest --cov=. --cov-report=html --cov-report=term-missing --cov-report=xml
+	@echo "Backend coverage report: backend/htmlcov/index.html"
+
+coverage-frontend: ## Generate frontend coverage report
+	cd frontend && npm run test:coverage
+	@echo "Frontend coverage report: frontend/coverage/index.html"
+
+# ============================================
+# Linting
+# ============================================
+lint: lint-backend lint-frontend ## Run all linters
+
+lint-backend: ## Lint backend code
+	cd backend && flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+	cd backend && black --check . || echo "⚠️ Run 'black .' to fix formatting"
+	cd backend && isort --check-only . || echo "⚠️ Run 'isort .' to fix imports"
+
+lint-frontend: ## Lint frontend code
+	cd frontend && npm run lint
+
+lint-fix-backend: ## Fix backend linting issues
+	cd backend && black .
+	cd backend && isort .
+
+lint-fix-frontend: ## Fix frontend linting issues
+	cd frontend && npm run lint
+
+# ============================================
+# Database
+# ============================================
+migrate: ## Run database migrations
+	cd backend && python manage.py migrate
+
+migrate-test: ## Run migrations for test database
+	cd backend && DJANGO_SETTINGS_MODULE=writing_system.settings_test python manage.py migrate
+
+makemigrations: ## Create new migrations
+	cd backend && python manage.py makemigrations
+
+# ============================================
+# Docker
+# ============================================
+docker-up: ## Start Docker containers
 	docker-compose up -d
-	@echo "⏳ Waiting for services to be ready..."
-	sleep 5
-	@echo "📦 Running database migrations..."
-	docker-compose exec -T web python manage.py migrate || true
-	@echo "✅ Setup complete!"
-	@echo ""
-	@echo "Next steps:"
-	@echo "  1. Edit backend/.env with your configuration"
-	@echo "  2. Create a superuser: make shell (then: python manage.py createsuperuser)"
-	@echo "  3. Start the server: make run"
-	@echo ""
 
-# Start Django development server
-run:
-	@echo "🚀 Starting Django development server..."
-	docker-compose up web
+docker-down: ## Stop Docker containers
+	docker-compose down
 
-# Start frontend development server
-run-frontend:
-	@echo "🚀 Starting Vue.js development server..."
-	cd frontend && npm run dev
-
-# Start Celery worker
-run-celery:
-	@echo "🚀 Starting Celery worker..."
-	docker-compose up celery
-
-# Start Celery beat scheduler
-run-celery-beat:
-	@echo "🚀 Starting Celery beat scheduler..."
-	docker-compose up beat
-
-# Run all tests
-test: test-backend test-frontend
-	@echo "✅ All tests completed!"
-
-# Run backend tests
-test-backend:
-	@echo "🧪 Running backend tests..."
-	@cd backend && pytest -v --tb=short
-
-# Run frontend tests
-test-frontend:
-	@echo "🧪 Running frontend tests..."
-	@cd frontend && npm run test:run
-
-# Run tests with coverage (95% minimum required)
-test-coverage:
-	@echo "🧪 Running tests with 95% coverage requirement..."
-	@./scripts/run_tests_with_coverage.sh
-
-# Run backend tests with 95% coverage requirement
-test-coverage-backend:
-	@echo "🧪 Running backend tests with 95% coverage..."
-	@./scripts/run_tests_with_coverage.sh --backend-only
-
-# Run frontend tests with 95% coverage requirement
-test-coverage-frontend:
-	@echo "🧪 Running frontend tests with 95% coverage..."
-	@./scripts/run_tests_with_coverage.sh --frontend-only
-
-# Run only unit tests
-test-unit:
-	@echo "🧪 Running unit tests..."
-	@cd backend && pytest -m unit -v
-	@cd frontend && npm run test:run -- --grep "unit"
-
-# Run only integration tests
-test-integration:
-	@echo "🧪 Running integration tests..."
-	@cd backend && pytest -m integration -v
-
-# Set up local Python test environment
-test-setup:
-	@echo "🔧 Setting up local Python test environment..."
-	@./scripts/setup-test-environment.sh
-
-# Quick test (frontend only, always works)
-test-quick:
-	@echo "🧪 Running quick tests (frontend)..."
-	@./scripts/quick-test.sh
-
-# Analyze coverage gaps
-coverage-gaps:
-	@echo "🔍 Analyzing coverage gaps..."
-	@./scripts/check_coverage_gaps.sh
-
-# Run code quality checks
-check:
-	@echo "🔍 Running code quality checks..."
-	@echo "Backend checks (if configured)..."
-	@# docker-compose exec -T web flake8 . || true
-	@# docker-compose exec -T web black --check . || true
-	@echo "Frontend checks..."
-	@cd frontend && npm run lint || true
-
-# Create migrations
-migrations:
-	@echo "📝 Creating database migrations..."
-	docker-compose exec web python manage.py makemigrations
-
-# Apply migrations
-migrate:
-	@echo "📦 Applying database migrations..."
-	docker-compose exec web python manage.py migrate
-
-# Open Django shell
-shell:
-	@echo "🐚 Opening Django shell..."
-	docker-compose exec web python manage.py shell
-
-# Restart all services
-restart:
-	@echo "🔄 Restarting all services..."
-	docker-compose restart
-
-# View logs
-logs:
-	@echo "📋 Viewing logs from all services..."
+docker-logs: ## View Docker logs
 	docker-compose logs -f
 
-# Clean up (stop and remove containers, volumes)
-clean:
-	@echo "🧹 Cleaning up Docker resources..."
-	docker-compose down -v
-	@echo "✅ Cleanup complete!"
+docker-test-backend: ## Run backend tests in Docker
+	docker-compose exec web pytest -v
 
-# Nuclear option: delete database and migrations (USE WITH CAUTION)
-nuke-db:
-	@echo "⚠️  WARNING: This will delete the database and all migration files!"
-	@echo "Press Ctrl+C to cancel, or Enter to continue..."
-	@read
-	@echo "🗑️  Stopping services..."
-	docker-compose down
-	@echo "🗑️  Removing database volume..."
-	docker volume rm writing_project_postgres_data || true
-	@echo "🗑️  Removing migration files..."
-	find backend -path "*/migrations/*.py" -not -name "__init__.py" -delete
-	find backend -path "*/migrations/*.pyc" -delete
-	@echo "✅ Database and migrations deleted!"
-	@echo "Run 'make setup' to recreate everything."
+docker-test-frontend: ## Run frontend tests in Docker
+	docker-compose exec frontend npm run test:run
 
+# ============================================
+# Cleanup
+# ============================================
+clean: clean-backend clean-frontend ## Clean all generated files
+
+clean-backend: ## Clean backend generated files
+	find backend -type d -name "__pycache__" -exec rm -r {} + 2>/dev/null || true
+	find backend -type f -name "*.pyc" -delete
+	find backend -type d -name "*.egg-info" -exec rm -r {} + 2>/dev/null || true
+	rm -rf backend/.pytest_cache
+	rm -rf backend/htmlcov
+	rm -rf backend/.coverage
+	rm -rf backend/coverage.xml
+	rm -rf backend/junit.xml
+	rm -rf backend/*.log
+
+clean-frontend: ## Clean frontend generated files
+	cd frontend && rm -rf node_modules/.vite
+	cd frontend && rm -rf dist
+	cd frontend && rm -rf coverage
+	cd frontend && rm -f junit.xml
+
+clean-all: clean ## Clean everything including dependencies
+	rm -rf backend/venv
+	rm -rf backend/.venv
+	rm -rf frontend/node_modules
+
+# ============================================
+# Development
+# ============================================
+dev-backend: ## Start backend development server
+	cd backend && python manage.py runserver
+
+dev-frontend: ## Start frontend development server
+	cd frontend && npm run dev
+
+dev: ## Start both backend and frontend (requires two terminals)
+	@echo "Starting backend and frontend..."
+	@echo "Backend: make dev-backend"
+	@echo "Frontend: make dev-frontend"
+
+# ============================================
+# CI/CD Helpers
+# ============================================
+ci-test: ## Run tests as CI would
+	$(MAKE) test-backend
+	$(MAKE) test-frontend
+
+ci-coverage: ## Generate coverage as CI would
+	$(MAKE) coverage-backend
+	$(MAKE) coverage-frontend
+
+ci-lint: ## Run linters as CI would
+	$(MAKE) lint-backend
+	$(MAKE) lint-frontend

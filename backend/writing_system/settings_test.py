@@ -32,14 +32,27 @@ if database_url:
         }
     }
 elif os.getenv("TEST_DB", "sqlite").lower() == "postgres":
+    # Use credentials from .env file (already loaded by settings.py via load_dotenv)
+    # Use same fallbacks as main settings.py
+    _db_name = os.getenv("POSTGRES_DB_NAME") or "writingsondo"
+    _db_user = os.getenv("POSTGRES_USER_NAME") or "awinorick"
+    _db_password = os.getenv("POSTGRES_PASSWORD") or "Nyakach2030"
+    _db_host = os.getenv("DB_HOST", "db")
+    _db_port = int(os.getenv("DB_PORT", 5432))
+    
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.getenv("POSTGRES_DB_NAME", "penman_db"),
-            "USER": os.getenv("POSTGRES_USER_NAME", "postgres"),
-            "PASSWORD": os.getenv("POSTGRES_PASSWORD", "postgres"),
-            "HOST": os.getenv("DB_HOST", "db"),
-            "PORT": int(os.getenv("DB_PORT", 5432)),
+            "NAME": _db_name,
+            "USER": _db_user,
+            "PASSWORD": _db_password,
+            "HOST": _db_host,
+            "PORT": _db_port,
+            # Configure test database to be separate from production
+            "TEST": {
+                "NAME": f"test_{_db_name}",
+                "CREATE_DB": True,
+            }
         }
     }
     # Ensure notifications_system migrations are enabled for PostgreSQL
@@ -49,7 +62,7 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "test_db.sqlite3",
+            "NAME": ":memory:",  # Use in-memory database for faster tests
         }
     }
     # For SQLite, temporarily exclude notifications_system from migrations
@@ -66,6 +79,27 @@ if os.getenv("TEST_DB", "sqlite").lower() == "postgres" or database_url:
         MIGRATION_MODULES = {}
     # Create migrations for pricing app or skip it during sync
     # MIGRATION_MODULES['pricing'] = None  # Uncomment if pricing causes issues
+    
+    # Fix corrupted content types after migrations using post_migrate signal
+    from django.db.models.signals import post_migrate
+    from django.db import connection
+    
+    def fix_content_types_after_migration(sender, **kwargs):
+        """Fix corrupted content types immediately after migrations."""
+        try:
+            with connection.cursor() as cursor:
+                # Delete corrupted content types
+                cursor.execute("""
+                    DELETE FROM django_content_type 
+                    WHERE name IS NULL 
+                    OR name = ''
+                    OR (app_label = 'migrations' AND model = 'migration')
+                """)
+        except Exception:
+            pass
+    
+    # Connect to post_migrate signal to clean up after each app migration
+    post_migrate.connect(fix_content_types_after_migration, weak=False)
 
 # Use in-memory cache to avoid Redis during tests
 CACHES = {
@@ -140,10 +174,8 @@ DISABLE_NOTIFICATION_SIGNALS = True
 DISABLE_SUPPORT_SIGNALS = True
 DISABLE_REFERRAL_SIGNALS = True
 
-# Fresh test database name to avoid interactive prompts and contamination
-if os.getenv("TEST_DB", "sqlite").lower() == "postgres":
-    _name = DATABASES["default"]["NAME"]
-    DATABASES["default"]["TEST"] = {"NAME": f"test_{_name}_ci"}
+# Test database configuration is set above in the DATABASES dict
+# No need to set it again here
 
 # Disable price recalculation during tests to avoid dependency on pricing services
 DISABLE_PRICE_RECALC_DURING_TESTS = True

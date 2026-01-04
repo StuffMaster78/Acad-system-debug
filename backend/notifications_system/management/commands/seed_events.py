@@ -32,7 +32,7 @@ class Command(BaseCommand):
             ("system.monthly_summary", "Monthly Summary", "Sends a summary of monthly activities to users."),
             ("system.alert", "System Alert", "Sends critical alerts to users."),
             ("system.notification", "General Notification", "Sends general notifications to users."),
-            ("system.custom_event", "Custom Event", "Allows for custom events to be defined and triggered.")
+            ("system.custom_event", "Custom Event", "Allows for custom events to be defined and triggered."),
             ("ticket.created", "Ticket Created", "Notifies when a support ticket is created."),
             ("ticket.updated", "Ticket Updated", "Notifies when a support ticket is updated."),
             ("ticket.closed", "Ticket Closed", "Notifies when a support ticket is closed."),
@@ -50,7 +50,7 @@ class Command(BaseCommand):
             ("ticket.satisfaction_survey", "Satisfaction Survey", "Notifies when a satisfaction survey is sent after ticket resolution."),
             ("ticket.knowledge_base_article", "Knowledge Base Article", "Notifies when a knowledge base article is linked to a support ticket."),
             ("ticket.solution_provided", "Solution Provided", "Notifies when a solution is provided for a support ticket."),
-            ("ticket.urgent_ticket", "Urgent Ticket", "Notifies when a support ticket is marked as urgent.")
+            ("ticket.urgent_ticket", "Urgent Ticket", "Notifies when a support ticket is marked as urgent."),
             ("ticket.bulk_action", "Bulk Action Performed", "Notifies when a bulk action is performed on support tickets."),
             ("ticket.auto_response", "Auto Response Sent", "Notifies when an auto response is sent for a support ticket."),
             ("ticket.agent_assigned", "Agent Assigned", "Notifies when an agent is assigned to a support ticket."),
@@ -59,7 +59,7 @@ class Command(BaseCommand):
             ("ticket.internal_note_added", "Internal Note Added", "Notifies when an internal note is added to a support ticket."),
             ("ticket.external_note_added", "External Note Added", "Notifies when an external note is added to a support ticket."),
             ("ticket.ticket_linked", "Ticket Linked", "Notifies when a support ticket is linked to another ticket."),
-            ("ticket.ticket_unlinked", "Ticket Unlinked", "Notifies when a support ticket is unlinked from another ticket.")
+            ("ticket.ticket_unlinked", "Ticket Unlinked", "Notifies when a support ticket is unlinked from another ticket."),
             ("payment.success", "Payment Success", "Notifies when a payment is successful."),
             ("payment.failure", "Payment Failure", "Notifies when a payment fails."),
             ("payment.refund", "Payment Refund", "Notifies when a payment is refunded."),
@@ -72,24 +72,24 @@ class Command(BaseCommand):
             ("payment.subscription_renewed", "Subscription Renewed", "Notifies when a subscription is renewed."),
             ("payment.subscription_cancelled", "Subscription Cancelled", "Notifies when a subscription is cancelled."),
             ("payment.subscription_expired", "Subscription Expired", "Notifies when a subscription expires."),
-            ("payment.subscription_payment_failed", "Subscription Payment Failed", "Notifies when a subscription payment fails.")
+            ("payment.subscription_payment_failed", "Subscription Payment Failed", "Notifies when a subscription payment fails."),
             ("payment.subscription_payment_success", "Subscription Payment Success", "Notifies when a subscription payment is successful."),
             ("payment.subscription_trial_ended", "Subscription Trial Ended", "Notifies when a subscription trial period ends."),
             ("payment.subscription_trial_started", "Subscription Trial Started", "Notifies when a subscription trial period starts."),
             ("payment.payment_method_added", "Payment Method Added", "Notifies when a new payment method is added."),
             ("payment.payment_method_removed", "Payment Method Removed", "Notifies when a payment method is removed."),
-            ("payment.payment_method_updated", "Payment Method Updated", "Notifies when a payment method is updated.")
+            ("payment.payment_method_updated", "Payment Method Updated", "Notifies when a payment method is updated."),
             ("payment.payment_method_default", "Payment Method Set as Default", "Notifies when a payment method is set as default."),
             ("payment.payment_method_failed", "Payment Method Failed", "Notifies when a payment method fails."),
             ("payment.payment_method_success", "Payment Method Success", "Notifies when a payment method is successful."),
             ("payment.payment_method_expired", "Payment Method Expired", "Notifies when a payment method expires."),
-            ("payment.payment_method_reactivated", "Payment Method Reactivated", "Notifies when a payment method is reactivated.")
+            ("payment.payment_method_reactivated", "Payment Method Reactivated", "Notifies when a payment method is reactivated."),
             ("payment.payment_method_deactivated", "Payment Method Deactivated", "Notifies when a payment method is deactivated."),
             ("payment.payment_method_verified", "Payment Method Verified", "Notifies when a payment method is verified."),
             ("payment.payment_method_unverified", "Payment Method Unverified", "Notifies when a payment method is unverified."),
             ("payment.payment_method_pending", "Payment Method Pending", "Notifies when a payment method is pending verification."),
             ("payment.payment_method_failed_verification", "Payment Method Failed Verification", "Notifies when a payment method fails verification."),
-            ("payment.payment_method_successful_verification", "Payment Method Successful Verification", "Notifies when a payment method is successfully verified.")
+            ("payment.payment_method_successful_verification", "Payment Method Successful Verification", "Notifies when a payment method is successfully verified."),
             ("payment.payment_method_verification_required", "Payment Method Verification Required", "Notifies when a payment method requires verification."),
             ("payment.payment_method_verification_completed", "Payment Method Verification Completed", "Notifies when a payment method verification is completed."),
             ("payment.payment_method_verification_failed", "Payment Method Verification Failed", "Notifies when a payment method verification fails."),
@@ -112,7 +112,7 @@ class Command(BaseCommand):
             ("badge.challenge_reminder", "Badge Challenge Reminder", "Reminds users about ongoing badge challenges."),
             ("badge.challenge_expired", "Badge Challenge Expired", "Notifies when a badge challenge expires."),
             ("badge.challenge_rewarded", "Badge Challenge Rewarded", "Notifies when a user is rewarded for completing a badge challenge."),
-            ("badge.challenge_unrewarded", "Badge Challenge Unrewarded", "Notifies when a user is not rewarded for a badge challenge.")
+            ("badge.challenge_unrewarded", "Badge Challenge Unrewarded", "Notifies when a user is not rewarded for a badge challenge."),
             ("badge.challenge_reactivated", "Badge Challenge Reactivated", "Notifies when a badge challenge is reactivated."),
             ("badge.challenge_deactivated", "Badge Challenge Deactivated", "Notifies when a badge challenge is deactivated."),
             ("badge.challenge_activated", "Badge Challenge Activated", "Notifies when a badge challenge is activated."),
@@ -135,7 +135,7 @@ class Command(BaseCommand):
             ("dispute.reminder_set", "Dispute Reminder Set", "Notifies when a reminder is set for a dispute."),
             ("dispute.feedback_requested", "Feedback Requested on Dispute", "Notifies when feedback is requested on a dispute."),
             ("dispute.knowledge_base_article_linked", "Knowledge Base Article Linked to Dispute", "Notifies when a knowledge base article is linked to a dispute."),
-            ("dispute.solution_provided", "Solution Provided for Dispute", "Notifies when a solution is provided for a dispute.")
+            ("dispute.solution_provided", "Solution Provided for Dispute", "Notifies when a solution is provided for a dispute."),
             ("writer.assigned", "Writer Assigned", "Notifies when a writer is assigned to a task."),
             ("writer.completed", "Writer Completed", "Notifies when a writer completes a task."),
             ("writer.revision_requested", "Revision Requested from Writer", "Notifies when a revision is requested from a writer."),
@@ -159,7 +159,7 @@ class Command(BaseCommand):
             ("editor.task_rejected", "Editor Task Rejected", "Notifies when a task assigned to an editor is rejected."),
             ("editor.task_reminder", "Editor Task Reminder", "Reminds editors about pending tasks."),
             ("editor.task_due_soon", "Editor Task Due Soon", "Notifies editors about tasks that are due soon."),
-            ("editor.performance_review", "Editor Performance Review", "Notifies editors about their performance reviews.")
+            ("editor.performance_review", "Editor Performance Review", "Notifies editors about their performance reviews."),
             ("support.assigned", "Support Assigned", "Notifies when a support agent is assigned to a ticket."),
             ("support.completed", "Support Completed", "Notifies when a support agent completes a ticket."),
             ("support.revision_requested", "Revision Requested from Support", "Notifies when a revision is requested from a support agent."),
@@ -171,7 +171,7 @@ class Command(BaseCommand):
             ("support.ticket_rejected", "Support Ticket Rejected", "Notifies when a support ticket is rejected."),
             ("support.ticket_reminder", "Support Ticket Reminder", "Reminds support agents about pending tickets."),
             ("support.ticket_due_soon", "Support Ticket Due Soon", "Notifies support agents about tickets that are due soon."),
-            ("support.performance_review", "Support Performance Review", "Notifies support agents about their performance reviews.")
+            ("support.performance_review", "Support Performance Review", "Notifies support agents about their performance reviews."),
         ]
         for code, name, desc in events:
             NotificationEvent.objects.get_or_create(event=code, defaults={"name": name, "description": desc})

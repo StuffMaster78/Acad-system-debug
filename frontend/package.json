@@ -19,7 +19,12 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest --watch"
+    "test:watch": "vitest --watch",
+    "test:unit": "vitest run tests/unit",
+    "test:components": "vitest run tests/components",
+    "test:composables": "vitest run tests/composables",
+    "test:api": "vitest run tests/api",
+    "test:ci": "vitest run --coverage --reporter=junit --outputFile=junit.xml"
   },
   "dependencies": {
     "@phosphor-icons/vue": "^2.2.1",
