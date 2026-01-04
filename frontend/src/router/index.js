@@ -850,6 +850,26 @@ const router = createRouter({
           },
         },
         {
+          path: 'admin/users/:id/view',
+          name: 'UserView',
+          component: () => import('@/views/admin/users/UserView.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'View User',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/users/:id/edit',
+          name: 'UserEdit',
+          component: () => import('@/views/admin/users/UserEdit.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Edit User',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
           path: 'admin/writer-discipline',
           name: 'WriterDisciplineManagement',
           component: () => import('@/views/admin/WriterDisciplineManagement.vue'),
@@ -1472,7 +1492,7 @@ const router = createRouter({
         {
           path: 'admin/orders/:id',
           name: 'AdminOrderDetail',
-          component: () => import('@/views/admin/AdminOrderDetail.vue'),
+          component: () => import('@/views/orders/OrderDetail.vue'),
           meta: {
             requiresAuth: true,
             title: 'Order Details',
@@ -2249,51 +2269,97 @@ const router = createRouter({
             roles: ['admin', 'superadmin'],
           },
         },
-        // Profile & Account
+        // Profile & Account - Using ProfileLayout
         {
           path: 'profile',
-          name: 'Profile',
-          redirect: { name: 'AccountSettings' },
-        },
-        {
-          path: 'account/password-change',
-          name: 'PasswordChange',
-          component: () => import('@/views/auth/PasswordChange.vue'),
-          meta: { 
-            requiresAuth: true, 
-            title: 'Change Password',
+          component: () => import('@/layouts/ProfileLayout.vue'),
+          meta: {
+            requiresAuth: true,
             roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
           },
+          children: [
+            {
+              path: '',
+              name: 'Profile',
+              component: () => import('@/views/profile/Profile.vue'),
+              meta: {
+                requiresAuth: true,
+                title: 'Profile',
+                roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+              },
+            },
+            {
+              path: 'settings',
+              name: 'AccountSettings',
+              component: () => import('@/views/account/Settings.vue'),
+              meta: {
+                requiresAuth: true,
+                title: 'Account Settings',
+                roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+              },
+            },
+            {
+              path: 'password-change',
+              name: 'PasswordChange',
+              component: () => import('@/views/auth/PasswordChange.vue'),
+              meta: { 
+                requiresAuth: true, 
+                title: 'Change Password',
+                roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+              },
+            },
+            {
+              path: 'security',
+              name: 'SecurityActivity',
+              component: () => import('@/views/account/SecurityActivity.vue'),
+              meta: {
+                requiresAuth: true,
+                title: 'Security Activity',
+                roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+              },
+            },
+            {
+              path: 'privacy-security',
+              name: 'PrivacySecurity',
+              component: () => import('@/views/account/PrivacySecurity.vue'),
+              meta: {
+                requiresAuth: true,
+                title: 'Privacy & Security',
+                roles: ['client', 'writer', 'admin', 'superadmin'],
+              },
+            },
+            {
+              path: 'sessions',
+              name: 'Sessions',
+              component: () => import('@/views/account/Sessions.vue'),
+              meta: {
+                requiresAuth: true,
+                title: 'Active Sessions',
+                roles: ['client', 'writer', 'editor', 'support'],
+              },
+            },
+          ],
+        },
+        // Legacy account routes (redirect to profile routes)
+        {
+          path: 'account/password-change',
+          redirect: { name: 'PasswordChange' },
         },
         {
           path: 'account/settings',
-          name: 'AccountSettings',
-          component: () => import('@/views/account/Settings.vue'),
-          meta: {
-            requiresAuth: true,
-            title: 'Account Settings',
-            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
-          },
+          redirect: { name: 'AccountSettings' },
         },
         {
           path: 'account/privacy',
-          name: 'PrivacySettings',
-          component: () => import('@/views/account/PrivacySettings.vue'),
-          meta: {
-            requiresAuth: true,
-            title: 'Privacy & Security',
-            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
-          },
+          redirect: { name: 'PrivacySecurity' },
         },
         {
           path: 'account/security',
-          name: 'SecurityActivity',
-          component: () => import('@/views/account/SecurityActivity.vue'),
-          meta: {
-            requiresAuth: true,
-            title: 'Security Activity',
-            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
-          },
+          redirect: { name: 'SecurityActivity' },
+        },
+        {
+          path: 'account/privacy-security',
+          redirect: { name: 'PrivacySecurity' },
         },
         {
           path: 'account/subscriptions',
@@ -2303,16 +2369,6 @@ const router = createRouter({
             requiresAuth: true,
             title: 'Communication Preferences',
             roles: ['client', 'customer'],
-          },
-        },
-        {
-          path: 'account/privacy-security',
-          name: 'PrivacySecurity',
-          component: () => import('@/views/account/PrivacySecurity.vue'),
-          meta: {
-            requiresAuth: true,
-            title: 'Privacy & Security',
-            roles: ['client', 'writer', 'admin', 'superadmin'],
           },
         },
       ],
@@ -2332,7 +2388,7 @@ router.beforeEach(async (to, from, next) => {
   // Explicitly allow public routes (no auth required) - must be first check
   if (to.meta.requiresAuth === false) {
     // Set page title
-    const appName = import.meta.env.VITE_APP_NAME || 'Writing System'
+    const appName = import.meta.env.VITE_APP_NAME || 'WriteFlow'
     document.title = to.meta.title 
       ? `${to.meta.title} - ${appName}`
       : appName
@@ -2347,7 +2403,7 @@ router.beforeEach(async (to, from, next) => {
   }
 
   // Set page title
-  const appName = import.meta.env.VITE_APP_NAME || 'Writing System'
+  const appName = import.meta.env.VITE_APP_NAME || 'WriteFlow'
   document.title = to.meta.title 
     ? `${to.meta.title} - ${appName}`
     : appName

@@ -166,7 +166,7 @@ import { authAPI } from '@/api/auth'
 
 const router = useRouter()
 
-const appName = import.meta.env.VITE_APP_NAME || 'Writing System'
+const appName = import.meta.env.VITE_APP_NAME || 'WriteFlow'
 
 const formData = reactive({
   username: '',

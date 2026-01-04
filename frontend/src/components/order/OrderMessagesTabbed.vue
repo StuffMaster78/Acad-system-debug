@@ -1,20 +1,18 @@
 <template>
   <div class="order-messages-tabbed">
-    <!-- Header with Order Context -->
-    <div class="mb-6 p-5 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl border-2 border-blue-200 dark:border-blue-700 shadow-sm">
+
+    <!-- Header with New Message Button -->
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
       <div class="flex items-center justify-between">
         <div class="flex-1">
-          <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-1">Order Messages</h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">
-            Order #{{ orderId }} • {{ orderTopic || 'N/A' }}
-          </p>
-          <p v-if="authStore.isWriter" class="text-xs text-blue-700 dark:text-blue-300 font-medium">
-            💬 You can message the client, admin, support, or editor about this order
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Conversations</h2>
+          <p v-if="authStore.isWriter" class="text-sm text-gray-600 dark:text-gray-400">
+            Message the client, admin, support, or editor about this order
           </p>
         </div>
         <button
           @click="openNewMessageModal"
-          class="ml-4 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2 shrink-0"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
         >
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -25,54 +23,67 @@
     </div>
 
     <!-- Recipient Type Tabs -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-      <div class="border-b border-gray-200 dark:border-gray-700">
-        <nav class="flex overflow-x-auto" aria-label="Tabs">
-          <button
-            v-for="tab in recipientTabs"
-            :key="tab.id"
-            @click="activeTab = tab.id"
-            :class="[
-              'px-6 py-4 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
-              activeTab === tab.id
-                ? 'border-blue-600 text-blue-600 dark:text-blue-400'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
-            ]"
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+      <nav class="flex border-b border-gray-200 dark:border-gray-700" aria-label="Tabs">
+        <button
+          v-for="tab in recipientTabs"
+          :key="tab.id"
+          @click="activeTab = tab.id"
+          :class="[
+            'flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors relative',
+            activeTab === tab.id
+              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+              : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700/50'
+          ]"
+        >
+          <component :is="tab.icon" class="w-5 h-5" />
+          <span>{{ tab.label }}</span>
+          <span
+            v-if="getUnreadCountForTab(tab.id) > 0"
+            class="ml-1 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold"
           >
-            <span class="flex items-center gap-2">
-              <component :is="tab.icon" class="w-5 h-5" />
-              {{ tab.label }}
-              <span
-                v-if="getUnreadCountForTab(tab.id) > 0"
-                class="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full"
-              >
-                {{ getUnreadCountForTab(tab.id) }}
-              </span>
-            </span>
-          </button>
-        </nav>
-      </div>
+            {{ getUnreadCountForTab(tab.id) }}
+          </span>
+          <span
+            v-if="activeTab === tab.id"
+            class="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-blue-400"
+          ></span>
+        </button>
+      </nav>
     </div>
 
     <!-- Threads List -->
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-      <div v-if="loadingThreads" class="p-12 text-center">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-        <p class="mt-4 text-gray-600 dark:text-gray-400">Loading conversations...</p>
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div v-if="loadingThreads" class="p-16 text-center">
+        <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p class="text-gray-600 dark:text-gray-400 font-medium">Loading conversations...</p>
       </div>
 
-      <div v-else-if="filteredThreads.length === 0" class="p-12 text-center">
-        <svg class="w-16 h-16 mx-auto mb-4 text-gray-300 dark:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-        </svg>
-        <p class="text-lg font-medium text-gray-900 dark:text-white mb-2">No conversations yet</p>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Start a new conversation by clicking "New Message" above
+      <div v-else-if="filteredThreads.length === 0" class="p-16 text-center">
+        <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+          <svg class="w-10 h-10 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+        </div>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          {{ threads.length === 0 ? 'No conversations yet' : 'No conversations in this tab' }}
+        </h3>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
+          <span v-if="threads.length === 0">
+            Start a new conversation by clicking "New Message" above to communicate about this order.
+          </span>
+          <span v-else>
+            There are {{ threads.length }} conversation(s) for this order, but none match the "{{ recipientTabs.find(t => t.id === activeTab)?.label || activeTab }}" tab. Try switching to another tab.
+          </span>
         </p>
         <button
+          v-if="threads.length === 0"
           @click="openNewMessageModal"
-          class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm hover:shadow-md"
         >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          </svg>
           Start Conversation
         </button>
       </div>
@@ -82,37 +93,42 @@
           v-for="thread in filteredThreads"
           :key="thread.id"
           @click="openThread(thread)"
-          class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
-          :class="{ 'bg-blue-50 dark:bg-blue-900/20': selectedThreadId === thread.id }"
+          class="p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-all"
+          :class="{ 
+            'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-l-blue-600 dark:border-l-blue-400': selectedThreadId === thread.id,
+            'border-l-4 border-l-transparent': selectedThreadId !== thread.id
+          }"
         >
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-3 mb-2">
-                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold shrink-0">
+              <div class="flex items-center gap-4 mb-3">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
                   {{ getThreadInitials(thread) }}
                 </div>
                 <div class="flex-1 min-w-0">
-                  <h3 class="font-semibold text-gray-900 dark:text-white truncate">
-                    {{ getThreadTitle(thread) }}
-                  </h3>
+                  <div class="flex items-center gap-2 mb-1">
+                    <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
+                      {{ getThreadTitle(thread) }}
+                    </h3>
+                    <span
+                      v-if="thread.unread_count > 0"
+                      class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0"
+                    >
+                      {{ thread.unread_count }}
+                    </span>
+                  </div>
                   <p class="text-sm text-gray-500 dark:text-gray-400">
                     {{ getThreadSubtitle(thread) }}
                   </p>
                 </div>
               </div>
-              <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 truncate ml-13">
+              <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
                 {{ thread.last_message.message || '📎 File attachment' }}
               </p>
             </div>
             <div class="flex flex-col items-end gap-2 shrink-0">
-              <span class="text-xs text-gray-500 dark:text-gray-400">
+              <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
                 {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
-              </span>
-              <span
-                v-if="thread.unread_count > 0"
-                class="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-medium"
-              >
-                {{ thread.unread_count }}
               </span>
             </div>
           </div>
@@ -169,7 +185,14 @@ const authStore = useAuthStore()
 const currentUser = authStore.user
 
 // Initialize state variables first
-const activeTab = ref('admin')
+// Admin/support default to "all" tab to see all messages
+const getInitialTab = () => {
+  if (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) {
+    return 'all'
+  }
+  return 'admin'
+}
+const activeTab = ref(getInitialTab())
 const threads = ref([])
 const loadingThreads = ref(false)
 const showNewMessageModal = ref(false)
@@ -196,14 +219,18 @@ const recipientTabs = computed(() => {
       { id: 'editor', label: 'To Editor', icon: 'EditorIcon', roles: ['editor'] }
     )
   } else if (role === 'admin' || role === 'superadmin') {
+    // Admin/support see all tabs and can view all conversations
     tabs.push(
+      { id: 'all', label: 'All Messages', icon: 'AllIcon', roles: ['client', 'writer', 'admin', 'superadmin', 'support', 'editor'] },
       { id: 'client', label: 'To Client', icon: 'ClientIcon', roles: ['client'] },
       { id: 'writer', label: 'To Writer', icon: 'WriterIcon', roles: ['writer'] },
       { id: 'editor', label: 'To Editor', icon: 'EditorIcon', roles: ['editor'] },
       { id: 'support', label: 'To Support', icon: 'SupportIcon', roles: ['support'] }
     )
   } else if (role === 'support') {
+    // Support sees all tabs and can view all conversations
     tabs.push(
+      { id: 'all', label: 'All Messages', icon: 'AllIcon', roles: ['client', 'writer', 'admin', 'superadmin', 'support', 'editor'] },
       { id: 'client', label: 'To Client', icon: 'ClientIcon', roles: ['client'] },
       { id: 'writer', label: 'To Writer', icon: 'WriterIcon', roles: ['writer'] },
       { id: 'admin', label: 'To Admin', icon: 'AdminIcon', roles: ['admin', 'superadmin'] },
@@ -248,7 +275,7 @@ watch(totalUnreadCount, (newCount) => {
   if (threads.value !== undefined) {
     emit('unread-count-update', newCount)
   }
-}, { immediate: false })
+}, { immediate: true }) // Changed to immediate: true to emit initial count
 
 // Icon components
 const AdminIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>' }
@@ -256,6 +283,7 @@ const ClientIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="
 const WriterIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>' }
 const EditorIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>' }
 const SupportIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192l-3.536 3.536M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-5 0a4 4 0 11-8 0 4 4 0 018 0z" /></svg>' }
+const AllIcon = { template: '<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>' }
 
 // Helper: derive the "other participant" role for this thread relative to the current user.
 // We prioritize the recipient_role from the last message to determine which tab to show it under.
@@ -311,6 +339,15 @@ const filteredThreads = computed(() => {
     return threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
   })
 
+  // If "All Messages" tab is selected (for admin/support), show all threads
+  if (activeTab.value === 'all' && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)) {
+    return orderThreads.sort((a, b) => {
+      const aTime = a.last_message?.sent_at || a.updated_at || a.created_at
+      const bTime = b.last_message?.sent_at || b.updated_at || b.created_at
+      return new Date(bTime) - new Date(aTime)
+    })
+  }
+
   // Filter threads based on the recipient role of the last message
   // This ensures threads appear under the correct tab (only ONE tab)
   return orderThreads.filter(thread => {
@@ -350,28 +387,41 @@ const filteredThreads = computed(() => {
 const loadThreads = async (forceRefresh = false) => {
   loadingThreads.value = true
   try {
-    // Try using shared cache store first
-    let allThreads = []
-    try {
-      allThreads = await messagesStore.getThreads(forceRefresh)
-    } catch (storeError) {
-      // Fallback to direct API call if store fails
-      console.warn('Messages store failed, using direct API call:', storeError)
-      const response = await communicationsAPI.listThreads({ order: props.orderId })
-      allThreads = response.data.results || response.data || []
-    }
+    // Always use direct API call with order filter for order-specific messages
+    // This ensures we get all threads for this specific order
+    const response = await communicationsAPI.listThreads({ order: props.orderId })
+    const allThreads = response.data?.results || response.data || []
     
-    // Filter threads that belong to this order
+    // Filter threads that belong to this order (double-check)
     threads.value = allThreads.filter(thread => {
       const threadOrderId = thread.order || thread.order_id
-      return threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
+      const matches = threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
+      return matches
     })
+    
+    // Debug logging for admin/support
+    if (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) {
+      console.log(`[OrderMessagesTabbed] Loaded ${threads.value.length} threads for order ${props.orderId}`, {
+        totalFromAPI: allThreads.length,
+        filtered: threads.value.length,
+        threads: threads.value.map(t => ({ id: t.id, order: t.order || t.order_id, unread: t.unread_count }))
+      })
+    }
   } catch (error) {
     console.error('Failed to load threads:', error)
     // Show user-friendly error message
     const errorMsg = error.response?.data?.detail || error.message || 'Failed to load conversations'
     showError(errorMsg)
     threads.value = [] // Clear threads on error
+    
+    // For admin/support, show more detailed error
+    if (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) {
+      console.error('[OrderMessagesTabbed] Error details:', {
+        orderId: props.orderId,
+        error: error.response?.data || error.message,
+        status: error.response?.status
+      })
+    }
   } finally {
     loadingThreads.value = false
   }
@@ -386,6 +436,11 @@ const getUnreadCountForTab = (tabId) => {
     const threadOrderId = thread.order || thread.order_id
     return threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
   })
+
+  // If "all" tab, return total unread count
+  if (tabId === 'all') {
+    return orderThreads.reduce((sum, thread) => sum + (thread.unread_count || 0), 0)
+  }
 
   return orderThreads.reduce((sum, thread) => {
     // Use the same logic as filteredThreads - prioritize recipient_role from last message
@@ -526,14 +581,26 @@ const handleMessageSent = (success = true) => {
   }
 }
 
-const handleThreadUpdated = (success = true) => {
+const handleThreadUpdated = async (success = true) => {
   if (success) {
-    showSuccess('Message sent successfully!')
-    // Invalidate cache and reload
+    // Invalidate cache and reload threads to get updated unread_count values
     messagesStore.invalidateThreadsCache()
-    loadThreads(true) // Force refresh
+    await loadThreads(true) // Force refresh - this will update totalUnreadCount computed
+    
+    // Also directly fetch unread count from API to ensure accuracy
+    // This handles cases where the backend might have stale unread_count in thread data
+    try {
+      const apiCount = await loadUnreadMessageCount(props.orderId)
+      // Emit the API count directly to ensure parent has accurate count
+      emit('unread-count-update', apiCount)
+    } catch (error) {
+      // If API call fails, rely on computed totalUnreadCount
+      if (import.meta.env.DEV) {
+        console.warn('Failed to refresh unread count from API:', error)
+      }
+    }
   } else {
-    showError('Failed to send message. Please try again.')
+    showError('Failed to update thread. Please try again.')
   }
 }
 

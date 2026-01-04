@@ -237,11 +237,23 @@ class AuthenticationService:
             })
         
         # Check for impersonation (prevent impersonating while impersonating)
+        # Only block if the user is actually authenticated and impersonating
+        # If user is not authenticated (fresh login), clear stale impersonation session
         if hasattr(request, 'session') and request.session.get('_impersonator_id'):
-            raise PermissionDenied(
-                "Cannot login while impersonating another user. "
-                "End impersonation first."
-            )
+            # If user is not authenticated, this is a stale session - clear it
+            if not request.user.is_authenticated:
+                request.session.pop('_impersonator_id', None)
+                request.session.pop('_impersonator_email', None)
+                request.session.pop('_impersonator_role', None)
+                request.session.pop('_impersonation_started_at', None)
+                request.session.save()
+                logger.info("Cleared stale impersonation session during login")
+            else:
+                # User is authenticated and impersonating - block login
+                raise PermissionDenied(
+                    "Cannot login while impersonating another user. "
+                    "End impersonation first."
+                )
         
         # Ensure user profile exists
         if not hasattr(user, 'user_main_profile') or user.user_main_profile is None:

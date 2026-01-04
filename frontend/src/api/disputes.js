@@ -71,26 +71,6 @@ export const disputesAPI = {
   },
 
   /**
-   * Resolve dispute (orders endpoint)
-   * @param {number} id - Dispute ID
-   * @param {Object} data - Resolution data
-   */
-  resolveDispute(id, data) {
-    return api.post(`/orders/disputes/${id}/resolve_dispute/`, data)
-  },
-
-  /**
-   * Get dispute (orders endpoint)
-   * @param {number} id - Dispute ID
-   */
-  get(id) {
-    // Try orders endpoint first, fallback to support-management
-    return api.get(`/orders/disputes/${id}/`).catch(() => {
-      return api.get(`/support-management/disputes/${id}/`)
-    })
-  },
-
-  /**
    * Close dispute
    * @param {number} id - Dispute ID
    */

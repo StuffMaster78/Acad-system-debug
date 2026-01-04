@@ -102,21 +102,49 @@
     </div>
 
     <!-- Impersonation banner -->
-    <div v-if="authStore.isImpersonating" class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+    <div 
+      v-if="authStore.isImpersonating" 
+      class="bg-yellow-50 dark:bg-yellow-900/20 border-l-4 border-yellow-400 dark:border-yellow-600 p-4 rounded-lg shadow-sm"
+      role="alert"
+      aria-live="polite"
+    >
       <div class="flex items-center justify-between">
-        <div class="flex items-center">
-          <svg class="w-5 h-5 text-yellow-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+        <div class="flex items-center flex-1">
+          <svg 
+            class="w-5 h-5 text-yellow-400 dark:text-yellow-500 mr-2 shrink-0" 
+            fill="currentColor" 
+            viewBox="0 0 20 20"
+            aria-hidden="true"
+          >
             <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
           </svg>
-          <p class="text-sm text-yellow-800">
-            You are impersonating <strong>{{ authStore.user?.email }}</strong>
-          </p>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm text-yellow-800 dark:text-yellow-200">
+              You are impersonating <strong>{{ authStore.user?.email }}</strong>
+            </p>
+            <p v-if="impersonationError" class="text-xs text-red-600 dark:text-red-400 mt-1">
+              {{ impersonationError }}
+            </p>
+          </div>
         </div>
         <button
           @click="handleEndImpersonation"
-          class="btn btn-secondary text-sm"
+          :disabled="endingImpersonation"
+          class="ml-4 inline-flex items-center gap-2 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 disabled:bg-yellow-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2"
+          :aria-label="endingImpersonation ? 'Ending impersonation...' : 'End impersonation'"
+          :aria-busy="endingImpersonation"
         >
-          End Impersonation
+          <svg 
+            v-if="endingImpersonation"
+            class="animate-spin h-4 w-4" 
+            fill="none" 
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+          >
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <span>{{ endingImpersonation ? 'Ending...' : 'End Impersonation' }}</span>
         </button>
       </div>
     </div>
@@ -678,9 +706,11 @@ import GitHubStyleHeatmap from '@/components/dashboard/GitHubStyleHeatmap.vue'
 import { useReliableOrders } from '@/composables/useReliableOrders'
 import { useConnectionStatus } from '@/composables/useConnectionStatus'
 import { retryApiCall } from '@/utils/retry'
+import { useToast } from '@/composables/useToast'
 // ApexCharts is globally registered via VueApexCharts plugin
 
 const authStore = useAuthStore()
+const { error: showErrorToast } = useToast()
 
 // Connection status monitoring
 const { isOnline } = useConnectionStatus()
@@ -1955,46 +1985,44 @@ const getTicketPriorityClass = (priority) => {
 }
 
 // Event handlers
+const endingImpersonation = ref(false)
+const impersonationError = ref(null)
+
 const handleEndImpersonation = async () => {
+  endingImpersonation.value = true
+  impersonationError.value = null
+  
   try {
-    const res = await authStore.endImpersonation()
-    if (res?.success !== false) {
-      // Check if this is an impersonation tab (opened from admin panel)
-      const isImpersonationTab = localStorage.getItem('_is_impersonation_tab') === 'true'
-      
-      if (isImpersonationTab) {
-        // Clear the flag
-        localStorage.removeItem('_is_impersonation_tab')
-        
-        // Try to close the tab and return focus to parent
-        if (window.opener && !window.opener.closed) {
-          try {
-            // Focus the parent window (admin tab)
-            window.opener.focus()
-            // Close this impersonation tab
-            setTimeout(() => {
-              window.close()
-            }, 100)
-          } catch (e) {
-            // If browser blocks window.close() (some browsers do), redirect as fallback
-            if (import.meta.env.DEV) {
-              console.warn('Could not close impersonation tab, redirecting:', e)
-            }
-            window.location.href = '/admin/dashboard'
-          }
-        } else {
-          // No parent window or parent was closed - redirect as fallback
-          window.location.href = '/admin/dashboard'
-        }
-      } else {
-        // Not an impersonation tab (shouldn't happen, but fallback)
-        window.location.href = '/admin/dashboard'
+    // The auth store will handle closing the tab and returning to parent
+    // if this is an impersonation tab
+    const result = await authStore.endImpersonation()
+    
+    // Show success message if not an impersonation tab
+    if (result && !result.redirectSuccess && !result.closeSuccess) {
+      // This means we're in the parent tab, show success message
+      if (import.meta.env.DEV) {
+        console.log('Impersonation ended:', result.message)
       }
     }
+    
+    // If there's an error message from the store, display it
+    if (authStore.error) {
+      impersonationError.value = authStore.error
+      showErrorToast(authStore.error)
+    }
   } catch (error) {
+    const errorMessage = error?.response?.data?.error || 
+                        error?.response?.data?.detail || 
+                        error?.message || 
+                        'Failed to end impersonation. Please try again.'
+    impersonationError.value = errorMessage
+    showErrorToast(errorMessage)
+    
     if (import.meta.env.DEV) {
       console.error('Failed to end impersonation:', error)
     }
+  } finally {
+    endingImpersonation.value = false
   }
 }
 

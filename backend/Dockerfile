@@ -63,7 +63,7 @@ RUN apt-get update -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/python3.11 /usr/local/lib/python3.11
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Copy application code
+# Copy application code (includes gunicorn_config.py from builder stage)
 COPY --from=builder /app /app
 
 # Create non-root user for security

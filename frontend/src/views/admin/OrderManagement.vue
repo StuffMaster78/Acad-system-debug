@@ -1833,7 +1833,7 @@ import EnhancedOrderStatus from '@/components/client/EnhancedOrderStatus.vue'
 import OrderMessagesTabbed from '@/components/order/OrderMessagesTabbed.vue'
 import ProgressHistory from '@/components/orders/ProgressHistory.vue'
 import draftRequestsAPI from '@/api/draft-requests'
-import { getStatusLabel, getStatusIcon } from '@/utils/orderStatus'
+import { getStatusLabel, getStatusIcon, canAssignOrder, canReassignOrder } from '@/utils/orderStatus'
 import StatusCard from '@/components/common/StatusCard.vue'
 
 const route = useRoute()

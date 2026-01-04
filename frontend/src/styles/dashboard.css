@@ -49,12 +49,12 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Stats Grid - Responsive card layout */
+/* Stats Grid - Responsive card layout - Compact */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 20px;
-  margin-bottom: 32px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
   /* Ensure grid items don't overflow */
   min-width: 0;
 }
@@ -63,19 +63,19 @@
   min-width: 0; /* Critical for preventing overflow in grid */
 }
 
-/* Dashboard Card Base Styles */
+/* Dashboard Card Base Styles - Compact */
 .dashboard-card {
   background: white;
-  padding: 24px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05), 0 1px 1px rgba(0, 0, 0, 0.03);
   transition: all 0.2s ease;
-  border-left: 4px solid transparent;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  min-height: 160px;
+  min-height: 120px;
   /* Prevent content overflow */
   min-width: 0;
   width: 100%;
@@ -83,8 +83,8 @@
 }
 
 .dashboard-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .dashboard-card::before {
@@ -154,8 +154,8 @@
 }
 
 .dashboard-card .card-label {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--gray-600);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -167,11 +167,11 @@
 
 .dashboard-card .card-value {
   /* Use smaller font for very long numbers to prevent overflow */
-  font-size: clamp(18px, 2.2vw, 26px);
-  font-weight: 700;
+  font-size: clamp(20px, 2vw, 24px);
+  font-weight: 600;
   color: var(--gray-900);
-  margin: 0 0 16px 0;
-  line-height: 1.2;
+  margin: 0 0 8px 0;
+  line-height: 1.3;
   word-break: break-word;
   overflow-wrap: break-word;
   max-width: 100%;
@@ -179,7 +179,7 @@
   text-overflow: ellipsis;
   display: block;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
   /* Prevent overflow */
   min-width: 0;
   width: 100%;
@@ -191,16 +191,16 @@
   align-items: center;
   justify-content: space-between;
   margin-top: auto;
-  padding-top: 12px;
+  padding-top: 8px;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .dashboard-card .card-badge {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--gray-500);
   background: rgba(255, 255, 255, 0.6);
-  padding: 4px 8px;
+  padding: 3px 6px;
   border-radius: 4px;
   text-transform: none;
   letter-spacing: 0;
@@ -289,12 +289,12 @@
   }
 
   .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
   }
 
   .dashboard-card {
-    padding: 20px;
+    padding: 14px;
   }
 }
 
@@ -304,25 +304,26 @@
   }
 
   .stats-grid {
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
   }
 
   .dashboard-card {
-    padding: 16px;
-    border-radius: 10px;
+    padding: 12px;
+    border-radius: 8px;
+    min-height: 100px;
   }
 
   .dashboard-card .card-value {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .stat-item {
-    padding: 14px;
+    padding: 12px;
   }
 
   .stat-item .stat-value {
-    font-size: 18px;
+    font-size: 16px;
   }
 }
 
@@ -362,25 +363,25 @@
   overflow-wrap: anywhere;
 }
 
-/* Section Headers */
+/* Section Headers - More subtle */
 .dashboard-section {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .dashboard-section h2 {
-  font-size: clamp(20px, 3vw, 24px);
+  font-size: 18px;
   font-weight: 600;
   color: var(--gray-900);
-  margin: 0 0 20px 0;
+  margin: 0 0 16px 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   letter-spacing: -0.01em;
 }
 
 .dashboard-section h3 {
-  font-size: clamp(18px, 2.5vw, 20px);
+  font-size: 16px;
   font-weight: 600;
   color: var(--gray-800);
-  margin: 0 0 16px 0;
+  margin: 0 0 12px 0;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
@@ -436,6 +437,361 @@
 .text-small {
   font-size: 13px;
   font-weight: 500;
+}
+
+/* ============================================
+   UI/UX Alignment Utilities
+   ============================================ */
+
+/* Consistent spacing system (8px grid) */
+.space-y-aligned > * + * {
+  margin-top: 1rem; /* 16px */
+}
+
+.space-x-aligned > * + * {
+  margin-left: 1rem; /* 16px */
+}
+
+/* Form field alignment */
+.form-field-aligned {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem; /* 8px */
+}
+
+.form-field-aligned label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem; /* 4px */
+  font-weight: 500;
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.5;
+  color: rgb(55, 65, 81); /* gray-700 */
+}
+
+.dark .form-field-aligned label {
+  color: rgb(209, 213, 219); /* gray-300 */
+}
+
+.form-field-aligned input,
+.form-field-aligned textarea,
+.form-field-aligned select {
+  padding: 0.625rem 0.75rem; /* 10px 12px */
+  border-radius: 0.5rem; /* 8px */
+  border: 1px solid rgb(209, 213, 219); /* gray-300 */
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.5;
+  transition: all 0.2s ease;
+}
+
+.form-field-aligned input:focus,
+.form-field-aligned textarea:focus,
+.form-field-aligned select:focus {
+  outline: none;
+  border-color: rgb(59, 130, 246); /* blue-500 */
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-field-aligned .error-message {
+  margin-top: 0.25rem; /* 4px */
+  font-size: 0.75rem; /* 12px */
+  color: rgb(220, 38, 38); /* red-600 */
+  display: flex;
+  align-items: center;
+  gap: 0.25rem; /* 4px */
+}
+
+.form-field-aligned .hint-text {
+  margin-top: 0.25rem; /* 4px */
+  font-size: 0.75rem; /* 12px */
+  color: rgb(107, 114, 128); /* gray-500 */
+}
+
+/* Button alignment */
+.btn-aligned {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem; /* 8px */
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border-radius: 0.5rem; /* 8px */
+}
+
+.btn-aligned svg,
+.btn-aligned .icon {
+  width: 1rem; /* 16px */
+  height: 1rem; /* 16px */
+  flex-shrink: 0;
+}
+
+/* Button group alignment */
+.btn-group-aligned {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* 12px */
+  flex-wrap: wrap;
+}
+
+.btn-group-aligned.justify-end {
+  justify-content: flex-end;
+}
+
+.btn-group-aligned.justify-start {
+  justify-content: flex-start;
+}
+
+.btn-group-aligned.justify-center {
+  justify-content: center;
+}
+
+.btn-group-aligned.justify-between {
+  justify-content: space-between;
+}
+
+/* Icon/text alignment */
+.icon-text-aligned {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem; /* 8px */
+  vertical-align: middle;
+}
+
+.icon-text-aligned svg,
+.icon-text-aligned .icon {
+  flex-shrink: 0;
+  width: 1rem; /* 16px */
+  height: 1rem; /* 16px */
+}
+
+.icon-text-aligned.large svg,
+.icon-text-aligned.large .icon {
+  width: 1.25rem; /* 20px */
+  height: 1.25rem; /* 20px */
+}
+
+.icon-text-aligned.small svg,
+.icon-text-aligned.small .icon {
+  width: 0.875rem; /* 14px */
+  height: 0.875rem; /* 14px */
+}
+
+/* Card content alignment */
+.card-content-aligned {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem; /* 16px */
+}
+
+.card-header-aligned {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem; /* 16px */
+  padding-bottom: 1rem; /* 16px */
+  border-bottom: 1px solid rgb(229, 231, 235); /* gray-200 */
+}
+
+.dark .card-header-aligned {
+  border-bottom-color: rgb(55, 65, 81); /* gray-700 */
+}
+
+.card-footer-aligned {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem; /* 12px */
+  padding-top: 1rem; /* 16px */
+  border-top: 1px solid rgb(229, 231, 235); /* gray-200 */
+  margin-top: auto;
+}
+
+.dark .card-footer-aligned {
+  border-top-color: rgb(55, 65, 81); /* gray-700 */
+}
+
+/* Tab alignment */
+.tab-nav-aligned {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem; /* 4px */
+  border-bottom: 2px solid rgb(229, 231, 235); /* gray-200 */
+  overflow-x: auto;
+  /* Smooth scrolling on iOS Safari */
+  scroll-behavior: smooth;
+}
+
+.dark .tab-nav-aligned {
+  border-bottom-color: rgb(55, 65, 81); /* gray-700 */
+}
+
+.tab-button-aligned {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem; /* 8px */
+  padding: 0.75rem 1rem; /* 12px 16px */
+  font-size: 0.875rem; /* 14px */
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.tab-button-aligned svg,
+.tab-button-aligned .icon {
+  width: 1rem; /* 16px */
+  height: 1rem; /* 16px */
+  flex-shrink: 0;
+}
+
+.tab-button-aligned.active {
+  border-bottom-color: rgb(59, 130, 246); /* blue-500 */
+  color: rgb(59, 130, 246); /* blue-500 */
+}
+
+/* Badge alignment */
+.badge-aligned {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem; /* 4px */
+  padding: 0.25rem 0.5rem; /* 4px 8px */
+  border-radius: 9999px; /* full rounded */
+  font-size: 0.75rem; /* 12px */
+  font-weight: 600;
+  line-height: 1;
+  min-width: 1.25rem; /* 20px */
+  height: 1.25rem; /* 20px */
+}
+
+/* Modal footer alignment */
+.modal-footer-aligned {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem; /* 12px */
+  padding: 1rem 1.5rem; /* 16px 24px */
+  border-top: 1px solid rgb(229, 231, 235); /* gray-200 */
+  background-color: rgb(249, 250, 251); /* gray-50 */
+}
+
+.dark .modal-footer-aligned {
+  border-top-color: rgb(55, 65, 81); /* gray-700 */
+  background-color: rgb(31, 41, 55); /* gray-800 */
+}
+
+.modal-footer-aligned.justify-start {
+  justify-content: flex-start;
+}
+
+.modal-footer-aligned.justify-between {
+  justify-content: space-between;
+}
+
+/* List item alignment */
+.list-item-aligned {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* 12px */
+  padding: 0.75rem 1rem; /* 12px 16px */
+  transition: background-color 0.2s ease;
+}
+
+.list-item-aligned:hover {
+  background-color: rgb(249, 250, 251); /* gray-50 */
+}
+
+.dark .list-item-aligned:hover {
+  background-color: rgb(31, 41, 55); /* gray-800 */
+}
+
+/* Grid alignment */
+.grid-aligned {
+  display: grid;
+  gap: 1rem; /* 16px */
+}
+
+.grid-aligned.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-aligned.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 768px) {
+  .grid-aligned.cols-2,
+  .grid-aligned.cols-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Flex alignment utilities */
+.flex-aligned {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* 12px */
+}
+
+.flex-aligned.column {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.flex-aligned.justify-between {
+  justify-content: space-between;
+}
+
+.flex-aligned.justify-end {
+  justify-content: flex-end;
+}
+
+.flex-aligned.justify-center {
+  justify-content: center;
+}
+
+/* Text alignment */
+.text-aligned {
+  line-height: 1.5;
+}
+
+.text-aligned.center {
+  text-align: center;
+}
+
+.text-aligned.right {
+  text-align: right;
+}
+
+/* Spacing utilities */
+.gap-aligned {
+  gap: 1rem; /* 16px */
+}
+
+.gap-aligned-sm {
+  gap: 0.5rem; /* 8px */
+}
+
+.gap-aligned-lg {
+  gap: 1.5rem; /* 24px */
+}
+
+/* Vertical alignment fix for inline elements */
+.align-middle {
+  vertical-align: middle;
+}
+
+.align-baseline {
+  vertical-align: baseline;
+}
+
+.align-top {
+  vertical-align: top;
+}
+
+.align-bottom {
+  vertical-align: bottom;
 }
 
 

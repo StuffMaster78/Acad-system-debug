@@ -584,7 +584,7 @@ const loadSettings = async () => {
   try {
     const response = await privacyAPI.getSettings()
     if (response.data) {
-    settings.value = {
+      settings.value = {
         profile_visibility: response.data.profile_visibility || settings.value.profile_visibility,
         data_sharing: response.data.data_sharing || settings.value.data_sharing,
         notifications: response.data.notifications || settings.value.notifications
@@ -593,6 +593,16 @@ const loadSettings = async () => {
     }
   } catch (error) {
     console.error('Failed to load privacy settings:', error)
+    // Handle 404 gracefully - API endpoint might not exist yet
+    if (error.response?.status === 404) {
+      // Use default settings - component will still render
+      console.log('Privacy API endpoint not found, using default settings')
+    } else {
+      // For other errors, show a non-intrusive message
+      if (import.meta.env.DEV) {
+        console.warn('Privacy settings API error:', error.message)
+      }
+    }
     // Don't show error to user - use defaults
   } finally {
     loading.value = false
@@ -605,7 +615,15 @@ const loadAccessLog = async () => {
     const response = await privacyAPI.getAccessLog({ limit: 20, days: 30 })
     accessLog.value = response.data?.logs || []
   } catch (error) {
-    console.error('Failed to load access log:', error)
+    // Handle 404 gracefully - API endpoint might not exist yet
+    if (error.response?.status === 404) {
+      console.log('Access log API endpoint not found, using empty log')
+    } else {
+      console.error('Failed to load access log:', error)
+    if (import.meta.env.DEV) {
+        console.warn('Access log API error:', error.message)
+      }
+    }
     accessLog.value = []
   } finally {
     loadingAccessLog.value = false
@@ -621,7 +639,12 @@ const updateVisibility = async () => {
     }
   } catch (error) {
     console.error('Failed to update visibility:', error)
-    showError('Failed to update visibility settings')
+    // Handle 404 gracefully
+    if (error.response?.status === 404) {
+      showError('Privacy settings API not available. Please contact support.')
+    } else {
+      showError(error.response?.data?.detail || 'Failed to update visibility settings')
+    }
   }
 }
 
@@ -634,7 +657,12 @@ const updateDataSharing = async () => {
     }
   } catch (error) {
     console.error('Failed to update data sharing:', error)
-    showError('Failed to update data sharing preferences')
+    // Handle 404 gracefully
+    if (error.response?.status === 404) {
+      showError('Privacy settings API not available. Please contact support.')
+    } else {
+      showError(error.response?.data?.detail || 'Failed to update data sharing preferences')
+    }
   }
 }
 
@@ -662,7 +690,12 @@ const exportData = async () => {
     showSuccess('Data export downloaded')
   } catch (error) {
     console.error('Failed to export data:', error)
-    showError('Failed to export data. Please try again.')
+    // Handle 404 gracefully
+    if (error.response?.status === 404) {
+      showError('Data export API not available. Please contact support.')
+    } else {
+      showError(error.response?.data?.detail || 'Failed to export data. Please try again.')
+    }
   } finally {
     exporting.value = false
   }

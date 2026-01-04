@@ -597,13 +597,13 @@ const copyToClipboard = async (text) => {
 }
 
 const shareEmail = () => {
-  const subject = encodeURIComponent('Join me on Writing System!')
-  const body = encodeURIComponent(`Check out Writing System! Use my referral code: ${stats.value.referral_code}\n\nOr sign up here: ${stats.value.referral_link || `${window.location.origin}/signup?ref=${stats.value.referral_code}`}`)
+  const subject = encodeURIComponent('Join me on WriteFlow!')
+  const body = encodeURIComponent(`Check out WriteFlow! Use my referral code: ${stats.value.referral_code}\n\nOr sign up here: ${stats.value.referral_link || `${window.location.origin}/signup?ref=${stats.value.referral_code}`}`)
   window.location.href = `mailto:?subject=${subject}&body=${body}`
 }
 
 const shareWhatsApp = () => {
-  const text = encodeURIComponent(`Check out Writing System! Use my referral code: ${stats.value.referral_code}\n\nSign up here: ${stats.value.referral_link || `${window.location.origin}/signup?ref=${stats.value.referral_code}`}`)
+  const text = encodeURIComponent(`Check out WriteFlow! Use my referral code: ${stats.value.referral_code}\n\nSign up here: ${stats.value.referral_link || `${window.location.origin}/signup?ref=${stats.value.referral_code}`}`)
   window.open(`https://wa.me/?text=${text}`, '_blank')
 }
 
@@ -613,7 +613,7 @@ const shareFacebook = () => {
 }
 
 const shareTwitter = () => {
-  const text = encodeURIComponent(`Check out Writing System! Use my referral code: ${stats.value.referral_code}`)
+  const text = encodeURIComponent(`Check out WriteFlow! Use my referral code: ${stats.value.referral_code}`)
   const url = encodeURIComponent(stats.value.referral_link || `${window.location.origin}/signup?ref=${stats.value.referral_code}`)
   window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=600,height=400')
 }

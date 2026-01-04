@@ -28,5 +28,25 @@ export default {
   // Get all privacy & security information
   getAll: () => 
     apiClient.get('/users/privacy-security/all/'),
+
+  // Admin: Create or update privacy policy
+  createOrUpdatePrivacyPolicy: (data) =>
+    apiClient.post('/admin/privacy-security/privacy-policy/', data),
+  
+  // Admin: Create or update security practices
+  createOrUpdateSecurityPractices: (data) =>
+    apiClient.post('/admin/privacy-security/security-practices/', data),
+  
+  // Admin: Create or update data rights
+  createOrUpdateDataRights: (data) =>
+    apiClient.post('/admin/privacy-security/data-rights/', data),
+  
+  // Admin: Create or update cookie policy
+  createOrUpdateCookiePolicy: (data) =>
+    apiClient.post('/admin/privacy-security/cookie-policy/', data),
+  
+  // Admin: Create or update terms of service
+  createOrUpdateTermsOfService: (data) =>
+    apiClient.post('/admin/privacy-security/terms-of-service/', data),
 }
 

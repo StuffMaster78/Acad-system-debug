@@ -13,6 +13,7 @@ from pathlib import Path
 from dotenv import load_dotenv # type: ignore
 import os
 from datetime import timedelta
+from django.core.exceptions import ImproperlyConfigured
 try:
     from celery.schedules import crontab # type: ignore
 except ImportError:
@@ -65,6 +66,37 @@ if not SECRET_KEY:
         raise ImproperlyConfigured("The SECRET_KEY setting must not be empty.")
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+
+# Environment Variable Validation Helper
+def get_required_env(key, default=None, allow_empty=False):
+    """Get required environment variable or raise error."""
+    value = os.getenv(key, default)
+    if value is None or (value == '' and not allow_empty):
+        if default is not None:
+            return default
+        raise ImproperlyConfigured(f"Required environment variable {key} is not set")
+    return value
+
+# Validate critical environment variables on startup (only in production)
+if not DEBUG:
+    REQUIRED_ENV_VARS = [
+        'SECRET_KEY',
+        'POSTGRES_DB_NAME',
+        'POSTGRES_USER_NAME',
+        'POSTGRES_PASSWORD',
+    ]
+    
+    missing_vars = []
+    for var in REQUIRED_ENV_VARS:
+        value = os.getenv(var)
+        if not value or value == '':
+            missing_vars.append(var)
+    
+    if missing_vars:
+        raise ImproperlyConfigured(
+            f"Missing required environment variables: {', '.join(missing_vars)}. "
+            "Please set these in your .env file or environment."
+        )
 
 # Frontend URL for email links (activation, password reset)
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
@@ -222,6 +254,15 @@ DATABASES = {
         'PASSWORD': os.getenv('POSTGRES_PASSWORD') or 'Nyakach2030',  #Database password with fallback (matches docker-compose default)
         "HOST": os.getenv("DB_HOST", "db"),  # Hostname
         "PORT": os.getenv("DB_PORT", 5432),  # Port
+        'OPTIONS': {
+            'connect_timeout': 10,  # Connection timeout in seconds
+            'options': '-c statement_timeout=30000',  # 30 second query timeout (in milliseconds)
+        },
+        # Connection pooling: reuse connections for 10 minutes (600 seconds)
+        # This significantly reduces connection overhead and improves performance
+        'CONN_MAX_AGE': int(os.getenv('DB_CONN_MAX_AGE', 600)),
+        # Don't wrap every request in a transaction (better for connection pooling)
+        'ATOMIC_REQUESTS': False,
     }
 }
 
@@ -448,7 +489,7 @@ CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
 # CACHES["default"]["LOCATION"] = _redis_url(1)
 
-# Redis (if used for caching)
+# Redis (if used for caching) with connection pooling
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
@@ -459,9 +500,22 @@ CACHES = {
             **({"PASSWORD": REDIS_PASSWORD} if REDIS_PASSWORD else {}),
             "SOCKET_CONNECT_TIMEOUT": 5,  # Fail fast if Redis is unreachable
             "SOCKET_TIMEOUT": 5,
-            # Optional SSL setup if using TLS
-            # "CONNECTION_POOL_KWARGS": {"ssl": bool(os.getenv("REDIS_SSL", False))}
-        }
+            # Connection pooling configuration
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 50,  # Maximum connections in pool
+                "retry_on_timeout": True,  # Retry on timeout errors
+                "socket_keepalive": True,  # Keep connections alive
+                "socket_keepalive_options": {
+                    1: 1,  # TCP_KEEPIDLE
+                    3: 5,  # TCP_KEEPINTVL
+                    4: 5,  # TCP_KEEPCNT
+                },
+            },
+            "COMPRESSOR": "django_redis.compressors.zlib.ZlibCompressor",  # Compress large values
+            "IGNORE_EXCEPTIONS": True,  # Don't crash if Redis is down (graceful degradation)
+        },
+        "KEY_PREFIX": "writing_system",  # Prefix all cache keys
+        "TIMEOUT": 300,  # Default cache timeout (5 minutes)
     }
 }
 
@@ -478,6 +532,12 @@ CACHES = {
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+# Celery task timeout configuration
+CELERY_TASK_TIME_LIMIT = int(os.getenv('CELERY_TASK_TIME_LIMIT', 30 * 60))  # 30 minutes default
+CELERY_TASK_SOFT_TIME_LIMIT = int(os.getenv('CELERY_TASK_SOFT_TIME_LIMIT', 25 * 60))  # 25 minutes soft limit
+CELERY_TASK_TRACK_STARTED = True  # Track when tasks start
+CELERY_WORKER_PREFETCH_MULTIPLIER = 4  # Prefetch multiplier for better performance
+CELERY_TASK_ACKS_LATE = True  # Acknowledge tasks after completion (better for reliability)
 RQ_QUEUES = {
     'default': {
         'USE_REDIS_CACHE': 'default',  # Use Redis as the backend
@@ -884,3 +944,23 @@ WEBHOOK_DEFAULT_TIMEOUT = 5
 WEBHOOK_HMAC_HEADER = "X-Notif-Signature"
 WEBHOOK_HMAC_ALGO = "sha256"
 # WEBHOOK_SECRET = ...
+
+# Structured Logging Configuration
+# Import logging config (with fallback if file doesn't exist)
+try:
+    from .logging_config import LOGGING
+except ImportError:
+    # Fallback to basic logging if logging_config.py doesn't exist
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+            },
+        },
+        'root': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    }

@@ -178,6 +178,26 @@ class CommunicationThread(models.Model):
         if self.order:
             return f"Standard Order #{self.order.id} Thread"
         return f"Thread #{self.id}"
+    
+    class Meta:
+        ordering = ['-updated_at', '-created_at']
+        indexes = [
+            # Fast retrieval of threads by order
+            models.Index(fields=['order', '-updated_at']),
+            # Website filtering
+            models.Index(fields=['website', '-updated_at']),
+            # Thread type filtering
+            models.Index(fields=['thread_type', '-updated_at']),
+            # Active/inactive filtering
+            models.Index(fields=['is_active', '-updated_at']),
+            # Composite indexes for common query patterns
+            models.Index(fields=['website', 'order', '-updated_at']),
+            models.Index(fields=['website', 'thread_type', '-updated_at']),
+            models.Index(fields=['order', 'is_active']),
+            # Soft delete indexes
+            models.Index(fields=['is_active', 'updated_at']),
+        ]
+
 class CommunicationMessage(models.Model):
     """
     Represents a single message in an order conversation.

@@ -177,13 +177,13 @@ const copyCode = async () => {
 }
 
 const shareEmail = () => {
-  const subject = encodeURIComponent('Join me on Writing System!')
-  const body = encodeURIComponent(`Check out Writing System! Use my referral code: ${props.referralCode}\n\nOr sign up here: ${referralLink.value}`)
+  const subject = encodeURIComponent('Join me on WriteFlow!')
+  const body = encodeURIComponent(`Check out WriteFlow! Use my referral code: ${props.referralCode}\n\nOr sign up here: ${referralLink.value}`)
   window.location.href = `mailto:?subject=${subject}&body=${body}`
 }
 
 const shareWhatsApp = () => {
-  const text = encodeURIComponent(`Check out Writing System! Use my referral code: ${props.referralCode}\n\nSign up here: ${referralLink.value}`)
+  const text = encodeURIComponent(`Check out WriteFlow! Use my referral code: ${props.referralCode}\n\nSign up here: ${referralLink.value}`)
   window.open(`https://wa.me/?text=${text}`, '_blank')
 }
 
@@ -193,7 +193,7 @@ const shareFacebook = () => {
 }
 
 const shareTwitter = () => {
-  const text = encodeURIComponent(`Check out Writing System! Use my referral code: ${props.referralCode}`)
+  const text = encodeURIComponent(`Check out WriteFlow! Use my referral code: ${props.referralCode}`)
   const url = encodeURIComponent(referralLink.value)
   window.open(`https://twitter.com/intent/tweet?text=${text}&url=${url}`, '_blank', 'width=600,height=400')
 }

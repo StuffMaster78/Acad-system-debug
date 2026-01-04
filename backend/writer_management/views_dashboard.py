@@ -8,6 +8,7 @@ from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
+from core.utils.cache_helpers import cache_view_result
 
 from writer_management.models.profile import WriterProfile
 from writer_management.models.performance_snapshot import WriterPerformanceSnapshot
@@ -63,9 +64,10 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         return getattr(order, 'updated_at', None) or getattr(order, 'created_at', None)
 
     @action(detail=False, methods=['get'], url_path='payment-info')
+    @cache_view_result(timeout=300, key_prefix='writer_dashboard')  # 5 minute cache
     def get_payment_info(self, request):
         """
-        Get writer's payment information based on their level.
+        Get writer's payment information based on their level - with caching.
         Shows only level-based payment rates (per page, per slide, per class).
         Excludes installments and internal payment details.
         """
@@ -136,8 +138,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         return Response(data)
     
     @action(detail=False, methods=['get'], url_path='earnings')
+    @cache_view_result(timeout=300, key_prefix='writer_dashboard')  # 5 minute cache
     def get_earnings(self, request):
-        """Get earnings breakdown and trends."""
+        """Get earnings breakdown and trends - with caching."""
         profile = self.get_writer_profile(request)
         if not profile:
             return Response(
@@ -235,6 +238,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         })
     
     @action(detail=False, methods=['get'], url_path='performance')
+    @cache_view_result(timeout=300, key_prefix='writer_dashboard')  # 5 minute cache
     def get_performance(self, request):
         """Get performance analytics."""
         profile = self.get_writer_profile(request)
@@ -313,8 +317,9 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         })
     
     @action(detail=False, methods=['get'], url_path='queue')
+    @cache_view_result(timeout=120, key_prefix='writer_dashboard')  # 2 minute cache (orders change frequently)
     def get_order_queue(self, request):
-        """Get available orders and order requests."""
+        """Get available orders and order requests - with caching."""
         try:
             from writer_management.models.configs import WriterConfig
             

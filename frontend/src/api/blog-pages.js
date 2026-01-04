@@ -158,12 +158,6 @@ export default {
   getOrCreatePublishingTarget: (params) => apiClient.get('/blog_pages_management/publishing-targets/get_or_create/', { params }),
   getMonthlyStats: (params) => apiClient.get('/blog_pages_management/publishing-targets/monthly_stats/', { params }),
   
-  // Content Freshness Reminders
-  getContentFreshnessReminders: (params) => apiClient.get('/blog_pages_management/content-freshness-reminders/', { params }),
-  getStaleContent: (params) => apiClient.get('/blog_pages_management/content-freshness-reminders/stale_content/', { params }),
-  acknowledgeFreshnessReminder: (id) => apiClient.post(`/blog_pages_management/content-freshness-reminders/${id}/acknowledge/`),
-  refreshFreshnessReminders: (data) => apiClient.post('/blog_pages_management/content-freshness-reminders/refresh_reminders/', data),
-  
   // Content Calendar
   getContentCalendar: (params) => apiClient.get('/blog_pages_management/content-calendar/calendar_data/', { params }),
   getMonthlySummary: (params) => apiClient.get('/blog_pages_management/content-calendar/monthly_summary/', { params }),
@@ -246,9 +240,6 @@ export default {
   getScheduled: (params) => apiClient.get('/blog_pages_management/blogs/', { params: { ...params, scheduled: true } }),
   getStalePublished: (params) => apiClient.get('/blog_pages_management/blogs/', { params: { ...params, stale_published: true } }),
   
-  // Revision Diff
-  getRevisionDiff: (id, params) => apiClient.get(`/blog_pages_management/blogs/${id}/revision_diff/`, { params }),
-  
   // Internal Linking & Recommendations
   suggestInternalLinks: (data) => apiClient.post('/blog_pages_management/blogs/suggest-internal-links/', data),
   getRelatedContent: (id, params) => apiClient.get(`/blog_pages_management/blogs/${id}/related_content/`, { params }),
@@ -274,18 +265,6 @@ export default {
   listBlogConversions: (params) => apiClient.get('/blog_pages_management/conversions/', { params }),
   getBlogConversion: (id) => apiClient.get(`/blog_pages_management/conversions/${id}/`),
   createBlogConversion: (data) => apiClient.post('/blog_pages_management/conversions/', data),
-  
-  // Blog Shares
-  listBlogShares: (params) => apiClient.get('/blog_pages_management/blog-shares/', { params }),
-  getBlogShare: (id) => apiClient.get(`/blog_pages_management/blog-shares/${id}/`),
-  createBlogShare: (data) => apiClient.post('/blog_pages_management/blog-shares/', data),
-  
-  // Social Platforms
-  listSocialPlatforms: (params) => apiClient.get('/blog_pages_management/social-platforms/', { params }),
-  getSocialPlatform: (id) => apiClient.get(`/blog_pages_management/social-platforms/${id}/`),
-  createSocialPlatform: (data) => apiClient.post('/blog_pages_management/social-platforms/', data),
-  updateSocialPlatform: (id, data) => apiClient.put(`/blog_pages_management/social-platforms/${id}/`, data),
-  deleteSocialPlatform: (id) => apiClient.delete(`/blog_pages_management/social-platforms/${id}/`),
   
   // AB Tests
   listABTests: (params) => apiClient.get('/blog_pages_management/ab-tests/', { params }),
@@ -339,8 +318,7 @@ export default {
   updatePDFSampleSection: (id, data) => apiClient.put(`/blog_pages_management/pdf-sample-sections/${id}/`, data),
   deletePDFSampleSection: (id) => apiClient.delete(`/blog_pages_management/pdf-sample-sections/${id}/`),
   
-  // Content Audit
-  getContentAuditOverview: (params) => apiClient.get('/blog_pages_management/content-audit/audit_overview/', { params }),
+  // Content Audit (getContentAuditOverview already defined at line 150)
   getContentAuditDetails: (params) => apiClient.get('/blog_pages_management/content-audit/audit_details/', { params }),
   runContentAudit: (data) => apiClient.post('/blog_pages_management/content-audit/run_audit/', data),
 }

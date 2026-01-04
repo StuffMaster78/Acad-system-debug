@@ -22,21 +22,23 @@
       </div>
     </div>
 
-    <!-- Payment Warning -->
-    <div v-if="!order?.is_paid" class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+    <!-- Status/Payment Warning -->
+    <div v-if="!eligibilityCheck.allowed" class="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
       <div class="flex items-start gap-3">
         <span class="text-xl">⚠️</span>
         <div>
-          <p class="font-semibold text-yellow-800 dark:text-yellow-200">Order Not Paid</p>
+          <p class="font-semibold text-yellow-800 dark:text-yellow-200">
+            {{ isReassign ? 'Cannot Reassign Order' : 'Cannot Assign Order' }}
+          </p>
           <p class="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-            This order must be marked as paid before assigning a writer.
+            {{ eligibilityCheck.reason || 'This order cannot be assigned at this time.' }}
           </p>
         </div>
       </div>
     </div>
 
     <!-- Writer Search -->
-    <div v-else>
+    <div v-else-if="eligibilityCheck.allowed">
       <div class="mb-4">
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Search Writers
@@ -156,10 +158,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ordersAPI, usersAPI } from '@/api'
 import { formatWriterName } from '@/utils/formatDisplay'
 import { useToast } from '@/composables/useToast'
+import { canAssignOrder, canReassignOrder, getAssignmentEligibilityMessage } from '@/utils/orderStatus'
 
 const props = defineProps({
   order: {
@@ -185,6 +188,16 @@ const writerSearch = ref('')
 const writers = ref([])
 const loadingWriters = ref(false)
 const assigning = ref(false)
+
+// Check eligibility based on order status
+const eligibilityCheck = computed(() => {
+  if (!props.order) {
+    return { allowed: false, reason: 'Order not found' }
+  }
+  return props.isReassign 
+    ? canReassignOrder(props.order)
+    : canAssignOrder(props.order)
+})
 
 const filteredWriters = computed(() => {
   if (!writerSearch.value) return writers.value
@@ -236,6 +249,12 @@ const selectWriter = (writerId) => {
 const handleSubmit = async () => {
   if (!form.value.writerId) return
   
+  // Double-check eligibility before submitting
+  if (!eligibilityCheck.value.allowed) {
+    showErrorToast(eligibilityCheck.value.reason || 'Assignment is not allowed for this order.')
+    return
+  }
+  
   assigning.value = true
   try {
     const writer = writers.value.find(w => w.id === form.value.writerId)
@@ -270,9 +289,16 @@ const handleCancel = () => {
 }
 
 onMounted(() => {
-  if (props.order?.is_paid) {
+  if (eligibilityCheck.value.allowed) {
     loadWriters()
   }
 })
+
+// Watch for order changes and reload writers if eligibility changes
+watch(() => props.order, (newOrder) => {
+  if (newOrder && eligibilityCheck.value.allowed && writers.value.length === 0) {
+    loadWriters()
+  }
+}, { deep: true })
 </script>
 

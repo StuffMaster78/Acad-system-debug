@@ -84,10 +84,8 @@
             </div>
 
             <!-- Footer -->
-            <div v-if="$slots.footer" class="bg-gray-50 dark:bg-gray-700 px-4 py-3 sm:px-6 border-t border-gray-200 dark:border-gray-600">
-              <div class="flex flex-col sm:flex-row sm:flex-row-reverse gap-2 sm:gap-3">
-                <slot name="footer"></slot>
-              </div>
+            <div v-if="$slots.footer" class="modal-footer-aligned">
+              <slot name="footer"></slot>
             </div>
           </div>
         </Transition>

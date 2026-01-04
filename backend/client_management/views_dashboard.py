@@ -7,6 +7,7 @@ from django.db.models.functions import TruncDate, TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 from decimal import Decimal
+from core.utils.cache_helpers import cache_view_result
 
 from client_management.models import ClientProfile
 from orders.models import Order, WriterProgress, OrderTransitionLog, WriterReassignmentLog
@@ -33,8 +34,9 @@ class ClientDashboardViewSet(viewsets.ViewSet):
             return None
 
     @action(detail=False, methods=['get'], url_path='stats')
+    @cache_view_result(timeout=300, key_prefix='client_dashboard')  # 5 minute cache
     def get_stats(self, request):
-        """Get comprehensive client dashboard statistics."""
+        """Get comprehensive client dashboard statistics - with caching."""
         profile = self.get_client_profile(request)
         if not profile:
             return Response(
@@ -150,8 +152,9 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         })
     
     @action(detail=False, methods=['get'], url_path='loyalty')
+    @cache_view_result(timeout=300, key_prefix='client_dashboard')  # 5 minute cache
     def get_loyalty(self, request):
-        """Get loyalty points summary and tier information."""
+        """Get loyalty points summary and tier information - with caching."""
         profile = self.get_client_profile(request)
         if not profile:
             return Response(
@@ -225,8 +228,9 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         })
     
     @action(detail=False, methods=['get'], url_path='analytics')
+    @cache_view_result(timeout=300, key_prefix='client_dashboard')  # 5 minute cache
     def get_analytics(self, request):
-        """Get order and spending analytics."""
+        """Get order and spending analytics - with caching."""
         profile = self.get_client_profile(request)
         if not profile:
             return Response(

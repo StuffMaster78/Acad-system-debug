@@ -6,14 +6,14 @@
     @click="handleClick"
     v-bind="$attrs"
   >
-    <span v-if="loading" class="inline-flex items-center">
-      <svg class="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+    <span v-if="loading" class="icon-text-aligned">
+      <svg class="animate-spin" fill="none" viewBox="0 0 24 24">
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
       </svg>
     </span>
-    <span v-if="icon && !loading" class="inline-flex items-center mr-2">
-      <component :is="icon" v-if="typeof icon === 'object'" class="w-4 h-4" />
+    <span v-if="icon && !loading" class="icon-text-aligned">
+      <component :is="icon" v-if="typeof icon === 'object'" />
       <span v-else>{{ icon }}</span>
     </span>
     <slot>{{ label }}</slot>
@@ -73,7 +73,7 @@ const handleClick = (event) => {
 }
 
 const buttonClasses = computed(() => {
-  const base = 'inline-flex items-center justify-center font-semibold transition-all duration-200 transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
+  const base = 'btn-aligned font-semibold transition-all duration-200 transform active:scale-95 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
   
   const sizeClasses = {
     small: 'px-3 py-1.5 text-xs',

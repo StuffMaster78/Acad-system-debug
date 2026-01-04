@@ -59,7 +59,7 @@
       </div>
       
       <div v-else class="welcome-card">
-        <h2>Welcome to Writing System</h2>
+        <h2>Welcome to WriteFlow</h2>
         <p>You are logged in as: <strong>{{ authStore.userRole }}</strong></p>
         
         <div class="account-links">

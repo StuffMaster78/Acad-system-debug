@@ -207,31 +207,31 @@
     <div v-if="summary || activeTab === 'writers'" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow border border-blue-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-blue-700 truncate">Client Total Balance</p>
-        <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight" :title="`$${summary.total_balance.toFixed(2)}`">
-          ${{ formatCurrency(summary.total_balance) }}
+        <p class="text-base sm:text-lg lg:text-xl font-bold text-blue-900 break-all leading-tight" :title="`$${clientTotalBalance.toFixed(2)} (from visible list)`">
+          ${{ formatCurrency(clientTotalBalance) }}
         </p>
-        <p class="text-xs text-blue-600">{{ summary.total_wallets || 0 }} wallets</p>
+        <p class="text-xs text-blue-600">{{ clientWallets.length }} wallets (visible)</p>
       </div>
       <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow border border-indigo-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-indigo-700 truncate">Client Wallets</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-indigo-900 break-all leading-tight">
-          {{ summary.total_wallets || 0 }}
+          {{ clientWallets.length }}
         </p>
-        <p class="text-xs text-indigo-600">active wallets</p>
+        <p class="text-xs text-indigo-600">{{ pagination?.count ? `of ${pagination.count} total` : 'visible wallets' }}</p>
       </div>
       <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow border border-purple-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-purple-700 truncate">Loyalty Points</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-purple-900 break-all leading-tight">
-          {{ summary.total_loyalty_points.toLocaleString() }}
+          {{ clientTotalLoyaltyPoints.toLocaleString() }}
         </p>
-        <p class="text-xs text-purple-600">total points</p>
+        <p class="text-xs text-purple-600">from visible wallets</p>
       </div>
       <div v-if="activeTab === 'clients' && summary" class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg shadow border border-orange-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-orange-700 truncate">Avg Balance</p>
         <p class="text-base sm:text-lg lg:text-xl font-bold text-orange-900 break-all leading-tight">
-          ${{ formatCurrency(summary.total_wallets ? (summary.total_balance / summary.total_wallets) : 0) }}
+          ${{ formatCurrency(clientWallets.length ? (clientTotalBalance / clientWallets.length) : 0) }}
         </p>
-        <p class="text-xs text-orange-600">per wallet</p>
+        <p class="text-xs text-orange-600">per visible wallet</p>
       </div>
       <div v-if="activeTab === 'writers'" class="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg shadow border border-emerald-200 p-4 min-w-0 overflow-hidden h-24 flex flex-col justify-between">
         <p class="text-xs font-medium text-emerald-700 truncate">Writer Total Balance</p>
@@ -911,6 +911,16 @@ const adjustForm = ref({
 })
 
 const websites = ref([])
+
+// Client total balance from visible list (matches the displayed wallets)
+const clientTotalBalance = computed(() => {
+  return clientWallets.value.reduce((sum, w) => sum + parseFloat(w.balance || 0), 0)
+})
+
+// Client total loyalty points from visible list
+const clientTotalLoyaltyPoints = computed(() => {
+  return clientWallets.value.reduce((sum, w) => sum + parseFloat(w.loyalty_points || 0), 0)
+})
 
 const writerTotalBalance = computed(() => {
   return writerWallets.value.reduce((sum, w) => sum + parseFloat(w.balance || 0), 0)

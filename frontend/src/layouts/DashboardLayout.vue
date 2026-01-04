@@ -12,14 +12,14 @@
       role="navigation"
     >
       <div class="flex flex-col h-full">
-        <!-- Logo & Toggle -->
-        <div class="flex items-center justify-between h-20 px-4 border-b border-gray-200/60 dark:border-gray-800/60 bg-white/80 dark:bg-[#0f0f0f]/80 backdrop-blur-md transition-colors duration-300">
-          <div class="flex items-center gap-3 flex-1 min-w-0">
-            <div class="w-10 h-10 bg-gradient-to-br from-primary-600 to-primary-700 dark:from-primary-500 dark:to-primary-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/20">
-              <span class="text-white font-bold text-lg">WS</span>
-            </div>
-            <h1 v-show="!sidebarCollapsed" class="text-lg font-bold tracking-tight bg-gradient-to-r from-primary-600 to-primary-700 dark:from-primary-400 dark:to-primary-500 bg-clip-text text-transparent transition-all duration-300 leading-tight truncate">{{ appName }}</h1>
-          </div>
+        <!-- Logo & Toggle - Compact -->
+        <div class="flex items-center justify-between h-16 px-3 border-b border-gray-200/60 dark:border-gray-800/60 bg-white/80 dark:bg-[#0f0f0f]/80 backdrop-blur-md transition-colors duration-300">
+          <Logo 
+            :size="'md'"
+            :variant="'gradient'"
+            :show-text="true"
+            :collapsed="sidebarCollapsed"
+          />
           <button
             @click="sidebarCollapsed = !sidebarCollapsed"
             class="hidden lg:flex p-2 rounded-lg text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 shrink-0 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
@@ -45,18 +45,18 @@
           </button>
         </div>
 
-        <!-- Sidebar Search (All roles) -->
-        <div v-show="!sidebarCollapsed" class="px-5 pt-5 pb-4 border-b border-gray-200/60 dark:border-gray-800/60 transition-all duration-300">
+        <!-- Sidebar Search (All roles) - Compact -->
+        <div v-show="!sidebarCollapsed" class="px-3 pt-3 pb-2 border-b border-gray-200/60 dark:border-gray-800/60 transition-all duration-300">
           <div class="relative">
             <input
               ref="sidebarSearchInput"
               v-model="sidebarSearchQuery"
               type="text"
               :placeholder="`Search menu... (${isMac ? '⌘' : 'Ctrl'}+K)`"
-              class="w-full px-4 py-2.5 pl-11 pr-20 text-sm font-normal leading-relaxed bg-white/60 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 search-input"
+              class="w-full px-3 py-2 pl-9 pr-3 text-[13px] font-normal leading-normal bg-white/60 dark:bg-gray-900/60 border border-gray-200/80 dark:border-gray-700/80 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500/50 transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500 backdrop-blur-sm shadow-sm hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 search-input"
               aria-label="Search navigation menu"
             />
-            <svg class="absolute left-3.5 top-3 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <button
@@ -85,55 +85,55 @@
           </button>
         </div>
 
-        <!-- Navigation -->
-        <nav class="flex-1 px-4 py-5 space-y-2 overflow-y-auto custom-scrollbar scroll-smooth" aria-label="Main navigation">
+        <!-- Navigation - Compact -->
+        <nav class="flex-1 px-3 py-3 space-y-1 overflow-y-auto custom-scrollbar scroll-smooth" aria-label="Main navigation">
           <!-- Dashboard - Always at top -->
           <SidebarTooltip :text="'Dashboard'" :collapsed="sidebarCollapsed">
             <router-link
               to="/dashboard"
               :class="[
-                'flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300 mb-4 group relative overflow-hidden leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+                'flex items-center rounded-lg transition-all duration-200 mb-3 group relative overflow-hidden leading-tight focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-1 dark:focus:ring-offset-gray-900',
                 $route.name === 'Dashboard' || $route.path === '/dashboard'
-                  ? 'bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 text-white shadow-lg shadow-primary-500/30 scale-[1.02]'
-                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:shadow-lg hover:scale-[1.01] hover:-translate-y-0.5',
-                sidebarCollapsed ? 'justify-center px-2' : ''
+                  ? 'bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 text-white shadow-md shadow-primary-500/20'
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:shadow-sm',
+                sidebarCollapsed ? 'px-2 py-2 justify-center' : 'px-3 py-2'
               ]"
               :aria-label="sidebarCollapsed ? 'Dashboard' : undefined"
             >
             <div :class="[
-              'flex items-center justify-center transition-all duration-300 shrink-0',
+              'flex items-center justify-center transition-all duration-300 shrink-0 rounded-md',
               $route.name === 'Dashboard' || $route.path === '/dashboard' 
-                ? 'bg-white/20 p-2 rounded-lg shadow-sm' 
-                : 'bg-gray-100 dark:bg-gray-800 p-2 rounded-lg group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20',
-              sidebarCollapsed ? 'mr-0' : 'mr-4'
+                ? 'bg-white/20' 
+                : 'bg-gray-100 dark:bg-gray-800 group-hover:bg-primary-50 dark:group-hover:bg-primary-900/20',
+              sidebarCollapsed ? 'mr-0 w-8 h-8' : 'mr-2.5 w-8 h-8'
             ]">
-              <svg class="w-5 h-5" :class="$route.name === 'Dashboard' || $route.path === '/dashboard' ? 'text-white' : 'text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4" :class="$route.name === 'Dashboard' || $route.path === '/dashboard' ? 'text-white' : 'text-gray-600 dark:text-gray-400 group-hover:text-primary-600 dark:group-hover:text-primary-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
             </div>
               <span v-show="!sidebarCollapsed" :class="[
-                'font-semibold tracking-wide transition-opacity duration-300',
-                $route.name === 'Dashboard' || $route.path === '/dashboard' ? 'font-bold' : ''
+                'text-[13px] font-medium transition-opacity duration-300',
+                $route.name === 'Dashboard' || $route.path === '/dashboard' ? 'font-semibold' : ''
               ]">Dashboard</span>
             </router-link>
           </SidebarTooltip>
 
-          <!-- Place New Order Button - Prominent at top (Client) -->
-          <div v-if="authStore.isClient" class="mb-5">
+          <!-- Place New Order Button - Prominent at top (Client) - Compact -->
+          <div v-if="authStore.isClient" class="mb-3">
             <SidebarTooltip :text="'Place New Order'" :collapsed="sidebarCollapsed">
               <router-link
                 to="/orders/wizard"
                 :class="[
-                  'flex items-center justify-center w-full py-3 text-sm font-semibold rounded-xl transition-all duration-300 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-primary-500/25 group leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
-                  sidebarCollapsed ? 'px-2' : 'px-4'
+                  'flex items-center justify-center w-full py-2 text-[13px] font-medium rounded-lg transition-all duration-200 bg-gradient-to-r from-primary-600 to-primary-700 text-white hover:from-primary-700 hover:to-primary-800 hover:shadow-md active:scale-[0.98] shadow-md shadow-primary-500/20 group leading-tight focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-1 dark:focus:ring-offset-gray-900',
+                  sidebarCollapsed ? 'px-2' : 'px-3'
                 ]"
                 :aria-label="sidebarCollapsed ? 'Place New Order' : undefined"
               >
-              <svg class="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-110 shrink-0" :class="sidebarCollapsed ? '' : 'mr-2.5'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-4 h-4 transition-transform duration-300 group-hover:scale-110 shrink-0" :class="sidebarCollapsed ? '' : 'mr-2'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
               </svg>
                 <span v-show="!sidebarCollapsed" class="transition-opacity duration-300">Place New Order</span>
-                <span v-show="!sidebarCollapsed" class="ml-2 px-2 py-0.5 text-[10px] font-bold bg-yellow-400/90 text-yellow-900 rounded-full shadow-sm tracking-wide">NEW</span>
+                <span v-show="!sidebarCollapsed" class="ml-1.5 px-1.5 py-0.5 text-[9px] font-semibold bg-yellow-400/90 text-yellow-900 rounded-full shadow-sm tracking-wide">NEW</span>
               </router-link>
             </SidebarTooltip>
           </div>
@@ -158,12 +158,11 @@
             </SidebarTooltip>
           </div>
 
-          <!-- Orders section - Simplified and at top -->
-          <div v-if="authStore.isClient && shouldShowItem('Orders', 'All Orders Pending In Progress Completed Disputed Templates')" class="space-y-2 mb-5">
-            <div v-show="!sidebarCollapsed" class="px-4 py-2 mb-2 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-xl border border-blue-200/60 dark:border-blue-800/60 backdrop-blur-sm transition-opacity duration-300">
-              <h3 class="text-[11px] font-bold text-blue-700 dark:text-blue-300 uppercase tracking-wider flex items-center gap-2 leading-tight">
-                <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
-                <span>Orders</span>
+          <!-- Orders section - Simplified and at top - Compact -->
+          <div v-if="authStore.isClient && shouldShowItem('Orders', 'All Orders Pending In Progress Completed Disputed Templates')" class="space-y-1 mb-3">
+            <div v-show="!sidebarCollapsed" class="px-3 py-1.5 mb-1">
+              <h3 class="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider leading-tight">
+                Orders
               </h3>
             </div>
             <SidebarTooltip :text="'Orders'" :collapsed="sidebarCollapsed">
@@ -172,18 +171,18 @@
                 :aria-expanded="ordersOpen"
                 :aria-label="sidebarCollapsed ? 'Orders menu' : undefined"
                 :class="[
-                  'w-full flex items-center justify-between py-2.5 text-sm font-semibold rounded-xl transition-all duration-300 text-gray-700 dark:text-gray-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 hover:shadow-md hover:scale-[1.01] active:scale-[0.99] group leading-relaxed focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
-                  sidebarCollapsed ? 'px-2 justify-center' : 'px-4'
+                  'w-full flex items-center justify-between rounded-lg transition-all duration-200 text-gray-700 dark:text-gray-300 hover:bg-blue-50/80 dark:hover:bg-blue-900/20 active:scale-[0.99] group leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-1 dark:focus:ring-offset-gray-900',
+                  sidebarCollapsed ? 'px-2 py-2 justify-center' : 'px-3 py-2'
                 ]"
               >
               <span class="flex items-center">
                   <div :class="[
-                    'flex items-center justify-center rounded-lg bg-blue-100/80 dark:bg-blue-900/30 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors duration-300 shrink-0',
-                    sidebarCollapsed ? 'w-10 h-10' : 'w-10 h-10 mr-4'
+                    'flex items-center justify-center rounded-md bg-blue-100/80 dark:bg-blue-900/30 group-hover:bg-blue-200 dark:group-hover:bg-blue-800/50 transition-colors duration-300 shrink-0',
+                    sidebarCollapsed ? 'w-8 h-8' : 'w-8 h-8 mr-2.5'
                   ]">
-                    <SidebarIcon icon-name="clipboard-list" size="md" icon-class="text-blue-600 dark:text-blue-400" />
+                    <SidebarIcon icon-name="clipboard-list" size="sm" icon-class="text-blue-600 dark:text-blue-400" />
                   </div>
-                  <span v-show="!sidebarCollapsed" class="font-semibold transition-opacity duration-300">Orders</span>
+                  <span v-show="!sidebarCollapsed" class="text-[13px] font-medium transition-opacity duration-300">Orders</span>
               </span>
                 <ChevronIcon v-show="!sidebarCollapsed" :is-open="ordersOpen" size="sm" class="text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors shrink-0" />
               </button>
@@ -2027,42 +2026,48 @@
               :collapsed="sidebarCollapsed"
             >
               <router-link
-                :to="item.to"
+                :to="item.name && !item.to?.includes('?') ? { name: item.name } : item.to"
                 :class="[
-                  'flex items-center py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900',
+                  'flex items-center rounded-lg transition-all duration-200 group leading-tight focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-1 dark:focus:ring-offset-gray-900',
                   isRouteActive(item)
-                    ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1',
-                  sidebarCollapsed ? 'px-2 justify-center' : 'px-4'
+                    ? 'bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50',
+                  sidebarCollapsed ? 'px-2 py-2 justify-center' : 'px-3 py-2'
                 ]"
                 :aria-label="sidebarCollapsed ? item.label : undefined"
               >
-                <div class="relative flex items-center" :class="sidebarCollapsed ? '' : 'flex-1'">
+                <div :class="[
+                  'flex items-center justify-center shrink-0 rounded-md transition-colors',
+                  'w-8 h-8',
+                  isRouteActive(item)
+                    ? 'bg-primary-100 dark:bg-primary-900/40'
+                    : 'bg-gray-100 dark:bg-gray-800/50 group-hover:bg-gray-200 dark:group-hover:bg-gray-700',
+                  sidebarCollapsed ? 'mr-0' : 'mr-2.5'
+                ]">
                   <SidebarIcon 
                     :icon-name="getIconNameFromEmoji(item.icon)" 
-                    size="md" 
-                    :icon-class="isRouteActive(item) ? 'text-primary-600' : 'text-gray-600 group-hover:text-primary-600'" 
-                    :class="sidebarCollapsed ? '' : 'mr-3'"
+                    size="sm" 
+                    :icon-class="isRouteActive(item) ? 'text-primary-600 dark:text-primary-400' : 'text-gray-600 dark:text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-300'" 
                   />
-                  <span v-show="!sidebarCollapsed" class="transition-opacity duration-300 flex-1">{{ item.label }}</span>
-                  <!-- Unread count badge for Announcements -->
-                  <span 
-                    v-if="item.name === 'Announcements' && unreadAnnouncementsCount > 0"
-                    class="ml-auto flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-bold text-white bg-red-600 dark:bg-red-500 rounded-full"
-                    :class="sidebarCollapsed ? 'absolute -top-1 -right-1' : ''"
-                  >
-                    {{ unreadAnnouncementsCount > 99 ? '99+' : unreadAnnouncementsCount }}
-                  </span>
                 </div>
+                <span v-show="!sidebarCollapsed" class="text-[13px] font-medium transition-opacity duration-300 flex-1">{{ item.label }}</span>
+                <!-- Unread count badge for Announcements -->
+                <span 
+                  v-if="item.name === 'Announcements' && unreadAnnouncementsCount > 0"
+                  class="ml-auto flex items-center justify-center min-w-[18px] h-4.5 px-1.5 text-[10px] font-semibold text-white bg-red-600 dark:bg-red-500 rounded-full"
+                  :class="sidebarCollapsed ? 'absolute -top-1 -right-1' : ''"
+                >
+                  {{ unreadAnnouncementsCount > 99 ? '99+' : unreadAnnouncementsCount }}
+                </span>
               </router-link>
             </SidebarTooltip>
           </template>
         </nav>
 
-        <!-- User section -->
+        <!-- User section - Compact -->
         <div :class="[
           'border-t border-gray-200 dark:border-gray-700 transition-all duration-300',
-          sidebarCollapsed ? 'p-3' : 'p-4'
+          sidebarCollapsed ? 'p-2' : 'p-3'
         ]">
           <div :class="[
             'flex items-center justify-between mb-2',
@@ -2372,7 +2377,7 @@
                     @click="closeProfileDropdown"
                     class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
-                    Profile Settings
+                    Profile
                   </router-link>
                   <router-link
                     to="/notifications"
@@ -2385,21 +2390,21 @@
                     </span>
                   </router-link>
                   <router-link
-                    to="/account/settings"
+                    to="/profile/settings"
                     @click="closeProfileDropdown"
                     class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
                     Settings
                   </router-link>
                   <router-link
-                    to="/account/privacy"
+                    to="/profile/privacy-security"
                     @click="closeProfileDropdown"
                     class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
                     Privacy & Security
                   </router-link>
                   <router-link
-                    to="/account/security"
+                    to="/profile/security"
                     @click="closeProfileDropdown"
                     class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
@@ -2447,6 +2452,7 @@ import notificationsAPI from '@/api/notifications'
 import activityAPI from '@/api/activity-logs'
 import announcementsAPI from '@/api/announcements'
 import GlobalSearch from '@/components/common/GlobalSearch.vue'
+import Logo from '@/components/common/Logo.vue'
 import SessionTimeoutWarning from '@/components/common/SessionTimeoutWarning.vue'
 import ChevronIcon from '@/components/common/ChevronIcon.vue'
 import SidebarIcon from '@/components/common/SidebarIcon.vue'
@@ -2856,7 +2862,7 @@ const MAX_BACKOFF_DELAY = 300000 // Max 5 minutes
 const BACKOFF_MULTIPLIER = 2
 let orderCountsInterval = null
 
-const appName = import.meta.env.VITE_APP_NAME || 'Writing System'
+const appName = import.meta.env.VITE_APP_NAME || 'WriteFlow'
 
 const hasTransitionCounts = computed(() => {
   if (!authStore.isAdmin && !authStore.isSuperAdmin) return false
@@ -3061,7 +3067,7 @@ const navigationItems = computed(() => {
       roles: ['admin', 'superadmin'],
     },
     {
-      name: 'WriterManagement',
+      name: 'UserManagement', // Use the actual route name, query params will be handled by the path
       to: '/admin/users?role=writer',
       label: 'Writer Management',
       icon: '✍️',
@@ -3253,18 +3259,18 @@ const navigationItems = computed(() => {
       name: 'Profile',
       to: '/profile',
       label: 'Profile',
-      icon: '⚙️',
+      icon: '👤',
     },
     {
       name: 'Settings',
-      to: '/account/settings',
+      to: '/profile/settings',
       label: 'Settings',
       icon: '🔧',
       roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
     },
     {
-      name: 'PrivacySettings',
-      to: '/account/privacy',
+      name: 'PrivacySecurity',
+      to: '/profile/privacy-security',
       label: 'Privacy & Security',
       icon: '🔒',
       roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
@@ -3933,6 +3939,22 @@ onMounted(() => {
   document.addEventListener('click', handleSidebarClickOutside)
   document.addEventListener('click', handleClickOutside)
   
+  // Listen for postMessage redirects from impersonation tabs
+  const handlePostMessage = (event) => {
+    // Verify origin for security
+    if (event.origin !== window.location.origin) {
+      return
+    }
+    
+    if (event.data && event.data.type === 'redirect' && event.data.path) {
+      router.push(event.data.path)
+    }
+  }
+  window.addEventListener('message', handlePostMessage)
+  
+  // Store handler for cleanup
+  window._impersonationRedirectHandler = handlePostMessage
+  
   // Load initial unread count
   loadUnreadCount()
   loadUnreadAnnouncementsCount()
@@ -3996,6 +4018,13 @@ onUnmounted(() => {
     announcementsCountInterval = null
   }
   document.removeEventListener('click', handleClickOutside)
+  
+  // Clean up postMessage listener
+  if (window._impersonationRedirectHandler) {
+    window.removeEventListener('message', window._impersonationRedirectHandler)
+    delete window._impersonationRedirectHandler
+  }
+  
   sessionManager.stop() // Stop session monitoring
 })
 </script>

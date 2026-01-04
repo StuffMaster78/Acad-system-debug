@@ -1,9 +1,8 @@
 <template>
-  <div class="form-field" :class="containerClass">
+  <div class="form-field-aligned" :class="containerClass">
     <label 
       v-if="label" 
       :for="fieldId"
-      class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
       :class="labelClass"
     >
       {{ label }}
@@ -11,10 +10,10 @@
     </label>
     <div class="relative">
       <slot :id="fieldId" :name="name" :hasError="hasError" />
-      <div v-if="hasError && errorMessage" class="mt-1 text-sm text-red-600 dark:text-red-400">
+      <div v-if="hasError && errorMessage" class="error-message">
         {{ errorMessage }}
       </div>
-      <div v-if="hint && !hasError" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      <div v-if="hint && !hasError" class="hint-text">
         {{ hint }}
       </div>
     </div>
