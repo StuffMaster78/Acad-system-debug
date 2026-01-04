@@ -21,14 +21,20 @@ if database_url:
     # Parse DATABASE_URL (format: postgresql://user:password@host:port/dbname)
     from urllib.parse import urlparse
     parsed = urlparse(database_url)
+    db_name = parsed.path[1:] if parsed.path.startswith('/') else parsed.path  # Remove leading /
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": parsed.path[1:] if parsed.path.startswith('/') else parsed.path,  # Remove leading /
+            "NAME": db_name,
             "USER": parsed.username,
             "PASSWORD": parsed.password,
             "HOST": parsed.hostname,
             "PORT": parsed.port or 5432,
+            # Configure test database for CI/CD
+            "TEST": {
+                "NAME": f"test_{db_name}",
+                "CREATE_DB": True,
+            }
         }
     }
 elif os.getenv("TEST_DB", "sqlite").lower() == "postgres":
