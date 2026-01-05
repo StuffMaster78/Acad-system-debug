@@ -16,26 +16,30 @@ describe('Request Deduplication Integration', () => {
 
   it('should deduplicate identical GET requests', async () => {
     // Create a mock request function that tracks calls
-    // The deduplicateRequest function calls requestFn with config, so we need to accept it
+    // Use a delayed promise to ensure the first call stores the promise before the second checks
+    let resolveFirstRequest
+    const firstRequestPromise = new Promise((resolve) => {
+      resolveFirstRequest = resolve
+    })
+    
     const requestFn = vi.fn((config) => {
-      return Promise.resolve({ data: { test: 'data' } })
+      return firstRequestPromise.then(() => ({ data: { test: 'data' } }))
     })
     
     // Make two identical requests using the deduplication utility
     const config = { method: 'get', url: '/api/test' }
     
     // Call deduplicateRequest with the same config - should deduplicate
-    // Store the first promise before calling the second time
     const promise1 = deduplicateRequest(requestFn, config)
     
-    // Use Promise.resolve() to yield to the event loop, ensuring the first promise is stored
-    await Promise.resolve()
-    
-    // Second call should return the same promise (deduplicated)
+    // Second call should return the same promise (deduplicated) - happens synchronously
     const promise2 = deduplicateRequest(requestFn, config)
     
     // Both should be the same promise (deduplicated)
     expect(promise1).toBe(promise2)
+    
+    // Now resolve the request
+    resolveFirstRequest()
     
     // Wait for both to resolve
     const [result1, result2] = await Promise.all([promise1, promise2])
