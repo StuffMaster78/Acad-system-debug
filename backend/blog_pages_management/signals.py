@@ -52,7 +52,7 @@ def log_blog_deletion(sender, instance, **kwargs):
     Logs admin actions for soft-deleted blogs.
     Triggers an admin notification before permanent deletion.
     """
-    if instance.is_deleted and instance.deleted_at:
+    if instance.is_deleted and instance.deleted_at and instance.last_edited_by:
         AdminNotification.objects.create(
             user=instance.last_edited_by,
             message=f"Blog '{instance.title}' is scheduled for permanent deletion."

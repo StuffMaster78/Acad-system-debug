@@ -155,7 +155,7 @@ def update_freshness_scores():
 
         new_freshness_score = max(0, 100 - (days_since_update * 2) - engagement_decay)
 
-        if new_freshness_score < 40:
+        if new_freshness_score < 40 and blog.last_edited_by:
             AdminNotification.objects.create(
                 user=blog.last_edited_by,
                 message=f"Blog '{blog.title}' needs an update. Freshness Score: {new_freshness_score}"

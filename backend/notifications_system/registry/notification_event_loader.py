@@ -336,7 +336,8 @@ def load_event_configs() -> None:
 
     NOTIFICATION_REGISTRY.clear()
     NOTIFICATION_REGISTRY.update(new_registry)
-    logger.info(
+    # Changed to DEBUG - this happens on every reload and is not critical info
+    logger.debug(
         "Loaded %d notification events from %d sources",
         len(new_registry), len(sources)
     )

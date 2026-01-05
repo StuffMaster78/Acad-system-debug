@@ -27,8 +27,8 @@ def cleanup_soft_deleted_models():
         try:
             model = apps.get_model(model_path)
         except LookupError:
-            # Skip models that don't exist
-            logger.warning(f"Model {model_path} not found, skipping...")
+            # Skip models that don't exist - this is expected in some deployments
+            logger.debug(f"Model {model_path} not found, skipping...")
             continue
         
         expired = model.objects.filter(

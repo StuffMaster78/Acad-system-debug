@@ -504,10 +504,10 @@ class BlogPost(models.Model):
                 self.validate_internal_links()
             except ValidationError as e:
                 # Allow saving even if links aren't perfect (for drafts)
-                # But log the validation error
+                # Changed to DEBUG - validation warnings are expected for drafts/old content
                 import logging
                 logger = logging.getLogger(__name__)
-                logger.warning(f"Internal links validation failed for blog {self.id}: {str(e)}")
+                logger.debug(f"Internal links validation failed for blog {self.id}: {str(e)}")
         
         self.generate_toc()
 
