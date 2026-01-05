@@ -3,7 +3,6 @@ import { normalizeApiError, isAuthError } from '@/utils/error'
 import { maskEndpoint, getUserRole } from '@/utils/endpoint-masker'
 import { getCachedResponse, cacheResponse, invalidateCache } from '@/utils/requestCache'
 import { deduplicateRequest } from '@/utils/requestDeduplication'
-import { deduplicateRequest } from '@/utils/requestDeduplication'
 
 const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || '/api/v1',
