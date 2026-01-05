@@ -63,6 +63,8 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci
           DEBUG: 'True'
           REDIS_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: writing_system.settings_test
+          TEST_DB: postgres
         run: |
           python manage.py migrate --noinput
       
@@ -208,6 +210,8 @@ jobs:
           SECRET_KEY: test-secret-key-for-ci
           DEBUG: 'True'
           REDIS_URL: redis://localhost:6379/0
+          DJANGO_SETTINGS_MODULE: writing_system.settings_test
+          TEST_DB: postgres
         run: |
           python manage.py migrate --noinput
       
