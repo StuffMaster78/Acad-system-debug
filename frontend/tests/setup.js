@@ -40,6 +40,17 @@ global.ResizeObserver = class ResizeObserver {
   unobserve() {}
 }
 
+// Mock Element.setAttribute for Vue scoped CSS in test environment
+// Vue tries to set scoped IDs on elements, but test elements might not have setAttribute
+const originalCreateElement = document.createElement
+document.createElement = function(tagName, options) {
+  const element = originalCreateElement.call(document, tagName, options)
+  if (!element.setAttribute) {
+    element.setAttribute = vi.fn()
+  }
+  return element
+}
+
 // Mock fetch if needed
 global.fetch = vi.fn()
 
