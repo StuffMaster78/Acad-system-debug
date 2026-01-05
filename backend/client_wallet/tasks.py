@@ -26,7 +26,7 @@ def expire_referral_bonus():
     try:
         # ReferralBonus model doesn't have expires_at field
         # This task is a placeholder for future implementation
-        logger.info("expire_referral_bonus task called (no-op: ReferralBonus has no expires_at field)")
+        logger.debug("expire_referral_bonus task called (no-op: ReferralBonus has no expires_at field)")
         return 0
     except Exception as exc:
         logger.error("Error in expire_referral_bonus task: %s", exc)
@@ -41,7 +41,7 @@ def adjust_wallet_balance_for_referrals():
 
     Currently a no-op that just logs; safe to extend later.
     """
-    logger.info("Running adjust_wallet_balance_for_referrals (no-op placeholder).")
+    logger.debug("Running adjust_wallet_balance_for_referrals (no-op placeholder).")
     return "ok"
 
 
@@ -52,7 +52,7 @@ def check_and_update_loyalty_points():
 
     Currently a no-op that just logs; safe to extend later.
     """
-    logger.info("Running check_and_update_loyalty_points (no-op placeholder).")
+    logger.debug("Running check_and_update_loyalty_points (no-op placeholder).")
     return "ok"
 
 

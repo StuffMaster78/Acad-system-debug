@@ -128,6 +128,16 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'django.utils.autoreload': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Suppress autoreload INFO messages
+            'propagate': False,
+        },
+        'django_celery_beat': {
+            'handlers': ['console'],
+            'level': 'WARNING',  # Suppress DatabaseScheduler schedule changed messages
+            'propagate': False,
+        },
     },
 }
 

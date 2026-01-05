@@ -33,7 +33,8 @@ def async_log_activity(
 
     website = Website.objects.filter(id=website_id).first()
     if not website or not action_type or not description:
-        logger.warning(
+        # Changed to DEBUG - this can happen during error handling and is expected
+        logger.debug(
             "async_log_activity skipped due to missing core parameters. "
             f"website_id={website_id}, action_type={action_type}, "
             f"description={description}"
