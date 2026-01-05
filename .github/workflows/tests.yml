@@ -92,8 +92,16 @@ jobs:
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          POSTGRES_DB_NAME: test_db
+          POSTGRES_USER_NAME: test_user
+          POSTGRES_PASSWORD: test_password
+          DB_HOST: localhost
+          DB_PORT: 5432
           SECRET_KEY: test-secret-key-for-ci
+          DEBUG: 'False'
+          REDIS_URL: redis://localhost:6379/0
           DJANGO_SETTINGS_MODULE: writing_system.settings_test
+          TEST_DB: postgres
         run: |
           python manage.py migrate --noinput --verbosity=0
       
@@ -205,8 +213,16 @@ jobs:
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          POSTGRES_DB_NAME: test_db
+          POSTGRES_USER_NAME: test_user
+          POSTGRES_PASSWORD: test_password
+          DB_HOST: localhost
+          DB_PORT: 5432
           SECRET_KEY: test-secret-key-for-ci
+          DEBUG: 'False'
+          REDIS_URL: redis://localhost:6379/0
           DJANGO_SETTINGS_MODULE: writing_system.settings_test
+          TEST_DB: postgres
         run: |
           python manage.py migrate --noinput --verbosity=0
       
@@ -400,11 +416,19 @@ jobs:
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+          POSTGRES_DB_NAME: test_db
+          POSTGRES_USER_NAME: test_user
+          POSTGRES_PASSWORD: test_password
+          DB_HOST: localhost
+          DB_PORT: 5432
           SECRET_KEY: test-secret-key-for-ci
+          DEBUG: 'False'
+          REDIS_URL: redis://localhost:6379/0
           DJANGO_SETTINGS_MODULE: writing_system.settings_test
+          TEST_DB: postgres
         run: |
           python manage.py migrate --noinput --verbosity=0
-      
+
       - name: Run E2E tests
         working-directory: ./backend
         env:
