@@ -10,9 +10,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RenameIndex(
-            model_name='contentfreshnessreminder',
-            new_name='blog_pages__blog_po_b9cee6_idx',
-            old_name='blog_pages__blog_post_ack_idx',
+        # Index may have already been renamed in 0011, 0012, or 0013, so use RunSQL with IF EXISTS
+        # This migration is idempotent - it will only rename if the old name exists
+        migrations.RunSQL(
+            sql="DO $$ BEGIN IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'blog_pages__blog_post_ack_idx' AND tablename = 'blog_pages_management_contentfreshnessreminder') THEN ALTER INDEX blog_pages__blog_post_ack_idx RENAME TO blog_pages__blog_po_b9cee6_idx; END IF; END $$;",
+            reverse_sql="DO $$ BEGIN IF EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'blog_pages__blog_po_b9cee6_idx' AND tablename = 'blog_pages_management_contentfreshnessreminder') THEN ALTER INDEX blog_pages__blog_po_b9cee6_idx RENAME TO blog_pages__blog_post_ack_idx; END IF; END $$;",
         ),
     ]
