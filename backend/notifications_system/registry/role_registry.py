@@ -65,7 +65,8 @@ def register_role(
                 role,
             )
             return
-        logger.info(
+        # Changed to DEBUG - this is expected behavior when apps override common roles
+        logger.debug(
             "[notifications] Role '%s' already registered; overwriting.",
             role,
         )
