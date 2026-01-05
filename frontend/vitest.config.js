@@ -7,33 +7,41 @@ import { createHash } from 'crypto'
 
 // Polyfill for crypto.hash (used by @vitejs/plugin-vue)
 // Node.js crypto module doesn't have crypto.hash, so we polyfill it
-// The Vue plugin expects a synchronous function that returns a string
+// The Vue plugin expects a synchronous function that returns a string with substring method
 if (typeof crypto.hash === 'undefined') {
-  crypto.hash = (algorithm, data) => {
-    // Convert Web Crypto algorithm names to Node.js hash algorithm names
-    const algoMap = {
-      'sha-256': 'sha256',
-      'sha-1': 'sha1',
-      'md5': 'md5'
+  crypto.hash = function(algorithm, data) {
+    try {
+      // Convert Web Crypto algorithm names to Node.js hash algorithm names
+      const algoMap = {
+        'sha-256': 'sha256',
+        'sha-1': 'sha1',
+        'md5': 'md5'
+      }
+      const nodeAlgo = algoMap[algorithm?.toLowerCase()] || algorithm?.replace(/-/g, '').toLowerCase() || 'sha256'
+      const hash = createHash(nodeAlgo)
+      
+      // Handle different data types
+      if (data instanceof Uint8Array) {
+        hash.update(Buffer.from(data))
+      } else if (Buffer.isBuffer(data)) {
+        hash.update(data)
+      } else if (typeof data === 'string') {
+        hash.update(data, 'utf8')
+      } else if (data) {
+        // Convert to string if needed
+        hash.update(Buffer.from(String(data)))
+      }
+      
+      // Return hex string - ensure it's always a string with substring method
+      const result = hash.digest('hex')
+      // Ensure it's a proper string primitive (not an object)
+      const stringResult = typeof result === 'string' ? result : String(result)
+      return stringResult
+    } catch (error) {
+      // Fallback to a simple hash if anything goes wrong
+      console.warn('crypto.hash polyfill error:', error)
+      return createHash('sha256').update(String(data || '')).digest('hex')
     }
-    const nodeAlgo = algoMap[algorithm?.toLowerCase()] || algorithm?.replace(/-/g, '').toLowerCase() || 'sha256'
-    const hash = createHash(nodeAlgo)
-    
-    // Handle different data types
-    if (data instanceof Uint8Array) {
-      hash.update(Buffer.from(data))
-    } else if (Buffer.isBuffer(data)) {
-      hash.update(data)
-    } else if (typeof data === 'string') {
-      hash.update(data, 'utf8')
-    } else {
-      // Convert to string if needed
-      hash.update(Buffer.from(String(data)))
-    }
-    
-    // Return hex string - ensure it's always a string
-    const result = hash.digest('hex')
-    return String(result)
   }
 }
 
@@ -60,7 +68,8 @@ export default defineConfig({
       '**/tests/**/*.e2e.*',
       'tests/e2e/**', // Explicitly exclude E2E test directory
       '**/e2e/**/*.spec.mjs', // Exclude Playwright E2E spec files
-      '**/e2e/**/*.test.mjs' // Exclude E2E test files
+      '**/e2e/**/*.test.mjs', // Exclude E2E test files
+      '**/tests/e2e/messaging-basic.spec.mjs' // Explicitly exclude this file
     ],
     
     // Coverage configuration

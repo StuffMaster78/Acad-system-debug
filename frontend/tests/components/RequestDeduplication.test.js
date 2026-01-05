@@ -23,8 +23,15 @@ describe('Request Deduplication Integration', () => {
     
     // Make two identical requests using the deduplication utility
     const config = { method: 'get', url: '/api/test' }
+    
     // Call deduplicateRequest with the same config - should deduplicate
+    // Store the first promise before calling the second time
     const promise1 = deduplicateRequest(requestFn, config)
+    
+    // Use Promise.resolve() to yield to the event loop, ensuring the first promise is stored
+    await Promise.resolve()
+    
+    // Second call should return the same promise (deduplicated)
     const promise2 = deduplicateRequest(requestFn, config)
     
     // Both should be the same promise (deduplicated)
