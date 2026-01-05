@@ -104,6 +104,13 @@ jobs:
         working-directory: ./backend
         env:
           DJANGO_SETTINGS_MODULE: writing_system.settings
+          POSTGRES_DB_NAME: ${{ secrets.TEST_DB_NAME || 'ci_test_db' }}
+          POSTGRES_USER_NAME: ${{ secrets.TEST_DB_USER || 'ci_test_user' }}
+          POSTGRES_PASSWORD: ${{ secrets.TEST_DB_PASSWORD || 'ci_test_password' }}
+          DB_HOST: localhost
+          DB_PORT: 5432
+          SECRET_KEY: ${{ secrets.TEST_SECRET_KEY || 'ci-test-secret-key-change-in-production' }}
+          DEBUG: 'True'
         run: |
           python manage.py migrate --noinput
       

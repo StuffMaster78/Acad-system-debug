@@ -7,8 +7,9 @@ import { createHash } from 'crypto'
 
 // Polyfill for crypto.hash (used by @vitejs/plugin-vue)
 // Node.js crypto module doesn't have crypto.hash, so we polyfill it
+// The Vue plugin expects a synchronous function that returns a string
 if (typeof crypto.hash === 'undefined') {
-  crypto.hash = async (algorithm, data) => {
+  crypto.hash = (algorithm, data) => {
     // Convert Web Crypto algorithm names to Node.js hash algorithm names
     const algoMap = {
       'sha-256': 'sha256',
@@ -17,15 +18,22 @@ if (typeof crypto.hash === 'undefined') {
     }
     const nodeAlgo = algoMap[algorithm?.toLowerCase()] || algorithm?.replace(/-/g, '').toLowerCase() || 'sha256'
     const hash = createHash(nodeAlgo)
-    // Handle both Buffer and Uint8Array
+    
+    // Handle different data types
     if (data instanceof Uint8Array) {
       hash.update(Buffer.from(data))
     } else if (Buffer.isBuffer(data)) {
       hash.update(data)
+    } else if (typeof data === 'string') {
+      hash.update(data, 'utf8')
     } else {
-      hash.update(Buffer.from(data))
+      // Convert to string if needed
+      hash.update(Buffer.from(String(data)))
     }
-    return hash.digest()
+    
+    // Return hex string - ensure it's always a string
+    const result = hash.digest('hex')
+    return String(result)
   }
 }
 
@@ -40,7 +48,20 @@ export default defineConfig({
     
     // Test file patterns
     include: ['**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
-    exclude: ['node_modules', 'dist', '.idea', '.git', '.cache'],
+    exclude: [
+      'node_modules',
+      'dist',
+      '.idea',
+      '.git',
+      '.cache',
+      '**/e2e/**',
+      '**/*.e2e.*',
+      '**/tests/e2e/**',
+      '**/tests/**/*.e2e.*',
+      'tests/e2e/**', // Explicitly exclude E2E test directory
+      '**/e2e/**/*.spec.mjs', // Exclude Playwright E2E spec files
+      '**/e2e/**/*.test.mjs' // Exclude E2E test files
+    ],
     
     // Coverage configuration
     coverage: {
