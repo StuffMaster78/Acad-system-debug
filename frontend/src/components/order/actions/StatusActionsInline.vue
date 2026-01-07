@@ -1,25 +1,34 @@
 <template>
   <div class="space-y-4">
-    <div v-if="availableActions.length === 0" class="text-center py-8 text-gray-500">
+    <!-- Filter to only show available and valid actions -->
+    <div v-if="filteredActions.length === 0" class="text-center py-8 text-gray-500">
       <p>No status actions available for this order</p>
+      <p v-if="order?.status" class="text-xs mt-2">Current status: {{ order.status }}</p>
     </div>
     <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-3">
       <button
-        v-for="action in availableActions"
+        v-for="action in filteredActions"
         :key="action.action"
         @click="executeAction(action)"
-        :disabled="processing"
+        :disabled="processing || !action.can_transition"
         :class="[
           'p-4 border-2 rounded-lg text-left transition-all',
           getActionClass(action.action),
-          processing ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md cursor-pointer'
+          (processing || !action.can_transition) ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-md cursor-pointer',
+          action.restricted ? 'border-yellow-300 bg-yellow-50 dark:bg-yellow-900/20' : ''
         ]"
       >
         <div class="flex items-center justify-between">
-          <div>
+          <div class="flex-1">
             <h4 class="font-semibold">{{ action.label }}</h4>
             <p v-if="action.description" class="text-sm text-gray-600 dark:text-gray-400 mt-1">
               {{ action.description }}
+            </p>
+            <p v-if="action.reason" class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+              ⚠️ {{ action.reason }}
+            </p>
+            <p v-if="action.restricted" class="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+              ⚠️ Restricted action
             </p>
           </div>
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -64,7 +73,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { ordersAPI } from '@/api'
 import { useToast } from '@/composables/useToast'
 
@@ -86,6 +95,27 @@ const { success: showSuccessToast, error: showErrorToast } = useToast()
 const selectedAction = ref(null)
 const actionReason = ref('')
 const processing = ref(false)
+
+// Filter actions to only show those that are available and can transition
+const filteredActions = computed(() => {
+  if (!props.availableActions || props.availableActions.length === 0) {
+    return []
+  }
+  
+  return props.availableActions.filter(action => {
+    // Only show actions that are available and can transition
+    if (!action.available || !action.can_transition) {
+      return false
+    }
+    
+    // Exclude assign/reassign/edit actions (handled in separate sections)
+    if (['assign_order', 'reassign_order', 'edit_order', 'update_order'].includes(action.action)) {
+      return false
+    }
+    
+    return true
+  })
+})
 
 const getActionClass = (action) => {
   const critical = ['cancel_order', 'refund_order', 'archive_order']

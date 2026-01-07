@@ -375,6 +375,7 @@ class WriterBonus(models.Model):
             ('performance', 'Outstanding Performance'),
             ('order_completion', 'Order Completion'),
             ('client_tip', 'Client Tip'),
+            ('class_payment', 'Class Payment'),
             ('other', 'Other'),
         ],
         default='client_tip'

@@ -499,6 +499,38 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = serializer_class(profile_instance)
             data = serializer.data
             
+            # Recursively convert PhoneNumber objects to strings for JSON serialization
+            # This is needed because the cache stores the data before it's fully serialized
+            def convert_phonenumber_to_string(obj):
+                """Recursively convert PhoneNumber objects to strings."""
+                try:
+                    from phonenumber_field.phonenumber import PhoneNumber
+                except ImportError:
+                    # Try alternative import path
+                    try:
+                        from phonenumbers import PhoneNumber
+                    except ImportError:
+                        # If we can't import, just check by class name
+                        PhoneNumber = None
+                
+                # Check if it's a PhoneNumber object (by class name or isinstance)
+                if PhoneNumber and isinstance(obj, PhoneNumber):
+                    return str(obj)
+                elif hasattr(obj, '__class__') and 'PhoneNumber' in obj.__class__.__name__:
+                    # Fallback: check by class name
+                    return str(obj)
+                elif isinstance(obj, dict):
+                    return {key: convert_phonenumber_to_string(value) for key, value in obj.items()}
+                elif isinstance(obj, (list, tuple)):
+                    return type(obj)(convert_phonenumber_to_string(item) for item in obj)
+                elif isinstance(obj, set):
+                    return {convert_phonenumber_to_string(item) for item in obj}
+                else:
+                    return obj
+            
+            # Convert any PhoneNumber objects in the data
+            data = convert_phonenumber_to_string(data)
+            
             # Cache the response for 5 minutes
             cache.set(cache_key, data, 300)
             
@@ -511,9 +543,11 @@ class UserViewSet(viewsets.ModelViewSet):
         """
         Update the authenticated user's profile with cache invalidation.
         Handles profile_picture uploads separately since it's on UserProfile, not the role-specific profile.
+        Also handles User and UserProfile fields directly since serializers use SerializerMethodField (read-only).
         """
         from django.core.cache import cache
         from users.models import UserProfile
+        from django.http import QueryDict
         # User is already imported at the top of the file
         
         user = request.user
@@ -522,16 +556,124 @@ class UserViewSet(viewsets.ModelViewSet):
         cache_key = f"user_profile_{user.id}_{user.role}"
         cache.delete(cache_key)
         
+        # Get or create UserProfile for fields that live there
+        user_profile, created = UserProfile.objects.get_or_create(user=user)
+        
         # Handle profile_picture upload separately (it's on UserProfile, not role-specific profile)
         profile_picture = request.FILES.get('profile_picture')
         if profile_picture:
-            # Get or create UserProfile
-            user_profile, created = UserProfile.objects.get_or_create(user=user)
             # Update profile_picture
             user_profile.profile_picture = profile_picture
             user_profile.save(update_fields=['profile_picture'])
             # Refresh from database to get the updated URL
             user_profile.refresh_from_db()
+        
+        # Fields that are on the User model
+        user_fields = ['username', 'first_name', 'last_name']
+        # Fields that are on the UserProfile model
+        user_profile_fields = ['phone_number', 'bio', 'country', 'state', 'timezone']
+        
+        # Create a mutable copy of request.data for manipulation
+        if isinstance(request.data, QueryDict):
+            data_dict = request.data.copy()
+        else:
+            data_dict = dict(request.data)
+        
+        # Update User model fields directly
+        user_updated = False
+        for field in user_fields:
+            if field in data_dict:
+                value = data_dict[field]
+                # Allow empty strings to clear the field
+                if value == '':
+                    setattr(user, field, None)
+                else:
+                    setattr(user, field, value)
+                user_updated = True
+                # Remove from serializer data since we handle it directly
+                data_dict.pop(field, None)
+        
+        if user_updated:
+            user.save()
+        
+        # Update UserProfile model fields directly
+        user_profile_updated = False
+        for field in user_profile_fields:
+            if field in data_dict:
+                value = data_dict[field]
+                # Allow empty strings to clear the field
+                if value == '':
+                    setattr(user_profile, field, None)
+                    user_profile_updated = True
+                elif field == 'country':
+                    # Country field expects a 2-character ISO code (e.g., "US", "GB")
+                    # But we accept both codes and full country names for better UX
+                    if isinstance(value, str):
+                        value_stripped = value.strip()
+                        if not value_stripped:
+                            setattr(user_profile, field, None)
+                            user_profile_updated = True
+                        else:
+                            try:
+                                from django_countries import countries
+                                country_code = None
+                                
+                                # First, check if it's already a 2-character ISO code
+                                value_upper = value_stripped.upper()
+                                if len(value_upper) == 2:
+                                    try:
+                                        # Try to get the country name - if it works, it's a valid code
+                                        country_name = countries.name(value_upper)
+                                        if country_name:
+                                            country_code = value_upper
+                                    except (KeyError, AttributeError):
+                                        pass
+                                
+                                # If not a valid code, try to find by country name
+                                if not country_code:
+                                    # Search for country by name (case-insensitive)
+                                    value_lower = value_stripped.lower()
+                                    exact_match = None
+                                    partial_match = None
+                                    
+                                    for code, name in countries:
+                                        name_lower = name.lower()
+                                        # Prefer exact matches
+                                        if name_lower == value_lower:
+                                            exact_match = code
+                                            break
+                                        # Fallback to partial match (starts with)
+                                        elif not partial_match and name_lower.startswith(value_lower):
+                                            partial_match = code
+                                    
+                                    # Use exact match if found, otherwise use partial match
+                                    country_code = exact_match or partial_match
+                                
+                                # If we found a valid country code, save it
+                                if country_code:
+                                    setattr(user_profile, field, country_code)
+                                    user_profile_updated = True
+                                else:
+                                    logger.warning(f"Could not find country code for '{value_stripped}'. Skipping country update.")
+                            except Exception as e:
+                                logger.warning(f"Error processing country value '{value_stripped}': {e}. Skipping country update.")
+                    elif value is None:
+                        setattr(user_profile, field, None)
+                        user_profile_updated = True
+                    else:
+                        logger.warning(f"Country value must be a string or None. Got {type(value)}. Skipping country update.")
+                else:
+                    setattr(user_profile, field, value)
+                    user_profile_updated = True
+                # Remove from serializer data since we handle it directly
+                data_dict.pop(field, None)
+        
+        if user_profile_updated:
+            user_profile.save()
+        
+        # Remove profile_picture from serializer data if it was handled above
+        if profile_picture and 'profile_picture' in data_dict:
+            data_dict.pop('profile_picture', None)
         
         profile_map = {
             "client": (ClientProfile, ClientProfileSerializer),
@@ -553,45 +695,35 @@ class UserViewSet(viewsets.ModelViewSet):
                     user=user
                 )
             
-            # Remove profile_picture from request.data if it was handled above
-            # (to avoid serializer errors)
-            # For multipart/form-data, request.data is a QueryDict which needs special handling
-            if profile_picture and 'profile_picture' in request.data:
-                # Create a mutable copy of request.data
-                from django.http import QueryDict
-                if isinstance(request.data, QueryDict):
-                    serializer_data = request.data.copy()
-                    serializer_data.pop('profile_picture', None)
+            # Only use serializer if there's remaining data to update (role-specific fields)
+            if data_dict:
+                serializer = serializer_class(profile_instance, data=data_dict, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
                 else:
-                    serializer_data = dict(request.data)
-                    serializer_data.pop('profile_picture', None)
-            else:
-                serializer_data = request.data
+                    # If serializer has errors, return them but don't fail the whole request
+                    # since we've already updated User and UserProfile fields
+                    logger.warning(f"Serializer errors (non-critical): {serializer.errors}")
             
-            serializer = serializer_class(profile_instance, data=serializer_data, partial=True)
-            if serializer.is_valid():
-                serializer.save()
-                
-                # Invalidate cache after update
-                cache.delete(cache_key)
-                
-                # Re-fetch the instance with related objects to ensure avatar_url is calculated correctly
-                if user.role in ["admin", "superadmin"]:
-                    # For admin/superadmin, refresh user with user_main_profile
-                    # User is already imported at the top of the file
-                    profile_instance = User.objects.select_related('user_main_profile').get(pk=user.pk)
-                else:
-                    # Re-fetch with select_related to ensure relationships are loaded
-                    profile_instance = profile_model.objects.select_related(
-                        'user', 'user__user_main_profile'
-                    ).get(pk=profile_instance.pk)
-                
-                # Re-serialize with fresh data to ensure avatar_url is included
-                updated_serializer = serializer_class(profile_instance)
-                
-                # Return updated serializer data
-                return Response(updated_serializer.data)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            # Invalidate cache after update
+            cache.delete(cache_key)
+            
+            # Re-fetch the instance with related objects to ensure avatar_url is calculated correctly
+            if user.role in ["admin", "superadmin"]:
+                # For admin/superadmin, refresh user with user_main_profile
+                # User is already imported at the top of the file
+                profile_instance = User.objects.select_related('user_main_profile').get(pk=user.pk)
+            else:
+                # Re-fetch with select_related to ensure relationships are loaded
+                profile_instance = profile_model.objects.select_related(
+                    'user', 'user__user_main_profile'
+                ).get(pk=profile_instance.pk)
+            
+            # Re-serialize with fresh data to ensure avatar_url is included
+            updated_serializer = serializer_class(profile_instance)
+            
+            # Return updated serializer data
+            return Response(updated_serializer.data)
 
         raise PermissionDenied("Invalid role or unauthorized access.")
     

@@ -15,23 +15,31 @@ STATUS_ACTIONS_MAP: Dict[str, List[Dict[str, any]]] = {
         {"action": "mark_paid", "label": "Mark as Paid", "target_status": "paid", "roles": ["admin", "superadmin", "support"]},
         {"action": "assign_order", "label": "Assign Writer", "target_status": "pending_writer_assignment", "roles": ["admin", "superadmin", "support"]},
         {"action": "cancel_order", "label": "Cancel Order", "target_status": "cancelled", "roles": ["admin", "superadmin", "client"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "unpaid": [
         {"action": "mark_paid", "label": "Mark as Paid", "target_status": "paid", "roles": ["admin", "superadmin", "support", "client"]},
         {"action": "cancel_order", "label": "Cancel Order", "target_status": "cancelled", "roles": ["admin", "superadmin", "client"]},
         {"action": "hold_order", "label": "Put on Hold", "target_status": "on_hold", "roles": ["admin", "superadmin", "support"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "paid": [
         {"action": "assign_order", "label": "Assign Writer", "target_status": "available", "roles": ["admin", "superadmin", "support"]},
         {"action": "make_available", "label": "Make Available", "target_status": "available", "roles": ["admin", "superadmin", "support"]},
         {"action": "cancel_order", "label": "Cancel Order", "target_status": "cancelled", "roles": ["admin", "superadmin"]},
         {"action": "hold_order", "label": "Put on Hold", "target_status": "on_hold", "roles": ["admin", "superadmin", "support"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "available": [
         {"action": "assign_order", "label": "Assign Writer", "target_status": None, "roles": ["admin", "superadmin", "support", "writer"]},
         {"action": "start_order", "label": "Start Order", "target_status": "in_progress", "roles": ["writer"]},
         {"action": "cancel_order", "label": "Cancel Order", "target_status": "cancelled", "roles": ["admin", "superadmin"]},
         {"action": "hold_order", "label": "Put on Hold", "target_status": "on_hold", "roles": ["admin", "superadmin", "support"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "in_progress": [
         {"action": "submit_order", "label": "Submit Order", "target_status": "submitted", "roles": ["writer"]},
@@ -39,6 +47,8 @@ STATUS_ACTIONS_MAP: Dict[str, List[Dict[str, any]]] = {
         {"action": "reassign_order", "label": "Reassign Order", "target_status": "reassigned", "roles": ["admin", "superadmin", "support"]},
         {"action": "move_to_editing", "label": "Move to Editing", "target_status": "under_editing", "roles": ["admin", "superadmin", "editor"]},
         {"action": "cancel_order", "label": "Cancel Order", "target_status": "cancelled", "roles": ["admin", "superadmin"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "submitted": [
         {"action": "review_order", "label": "Review Order", "target_status": "reviewed", "roles": ["admin", "superadmin", "support", "editor"]},
@@ -47,11 +57,15 @@ STATUS_ACTIONS_MAP: Dict[str, List[Dict[str, any]]] = {
         {"action": "move_to_editing", "label": "Move to Editing", "target_status": "under_editing", "roles": ["admin", "superadmin", "editor"]},
         {"action": "dispute_order", "label": "Dispute Order", "target_status": "disputed", "roles": ["client", "admin", "superadmin"]},
         {"action": "cancel_order", "label": "Cancel Order", "target_status": "cancelled", "roles": ["admin", "superadmin"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "under_editing": [
         {"action": "submit_order", "label": "Submit After Editing", "target_status": "submitted", "roles": ["editor", "admin", "superadmin"]},
         {"action": "return_to_writer", "label": "Return to Writer", "target_status": "in_progress", "roles": ["editor", "admin", "superadmin"]},
         {"action": "hold_order", "label": "Put on Hold", "target_status": "on_hold", "roles": ["admin", "superadmin", "support"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "reviewed": [
         {"action": "rate_order", "label": "Rate Order", "target_status": "rated", "roles": ["admin", "superadmin"]},
@@ -72,12 +86,17 @@ STATUS_ACTIONS_MAP: Dict[str, List[Dict[str, any]]] = {
         {"action": "archive_order", "label": "Archive Order", "target_status": "archived", "roles": ["admin", "superadmin"]},
         {"action": "close_order", "label": "Close Order", "target_status": "closed", "roles": ["admin", "superadmin"]},
         {"action": "request_revision", "label": "Request Revision", "target_status": "revision_requested", "roles": ["admin", "superadmin", "client", "support"]},
+        # Note: reassign_order is NOT available for completed orders
+        # Note: edit_order is available for completed orders (for admin corrections)
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "revision_requested": [
         {"action": "start_revision", "label": "Start Revision", "target_status": "revision_in_progress", "roles": ["writer", "admin", "superadmin"]},
         {"action": "reassign_order", "label": "Reassign Order", "target_status": "reassigned", "roles": ["admin", "superadmin", "support"]},
         {"action": "hold_order", "label": "Put on Hold", "target_status": "on_hold", "roles": ["admin", "superadmin", "support"]},
         {"action": "cancel_order", "label": "Cancel Order", "target_status": "cancelled", "roles": ["admin", "superadmin"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "revision_in_progress": [
         {"action": "submit_revision", "label": "Submit Revision", "target_status": "revised", "roles": ["writer"]},
@@ -85,6 +104,8 @@ STATUS_ACTIONS_MAP: Dict[str, List[Dict[str, any]]] = {
         {"action": "reassign_order", "label": "Reassign Order", "target_status": "reassigned", "roles": ["admin", "superadmin", "support"]},
         {"action": "hold_order", "label": "Put on Hold", "target_status": "on_hold", "roles": ["admin", "superadmin", "support"]},
         {"action": "cancel_order", "label": "Cancel Order", "target_status": "cancelled", "roles": ["admin", "superadmin"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "revised": [
         {"action": "review_order", "label": "Review Revision", "target_status": "reviewed", "roles": ["admin", "superadmin", "support", "editor"]},
@@ -93,10 +114,14 @@ STATUS_ACTIONS_MAP: Dict[str, List[Dict[str, any]]] = {
         {"action": "request_revision", "label": "Request Another Revision", "target_status": "revision_requested", "roles": ["admin", "superadmin", "client"]},
         {"action": "move_to_editing", "label": "Move to Editing", "target_status": "under_editing", "roles": ["admin", "superadmin", "editor"]},
         {"action": "close_order", "label": "Close Order", "target_status": "closed", "roles": ["admin", "superadmin"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "on_hold": [
         {"action": "resume_order", "label": "Resume Order", "target_status": None, "roles": ["admin", "superadmin", "support", "writer"]},
         {"action": "cancel_order", "label": "Cancel Order", "target_status": "cancelled", "roles": ["admin", "superadmin"]},
+        {"action": "edit_order", "label": "Edit Order Details", "target_status": None, "roles": ["admin", "superadmin", "support"]},
+        {"action": "update_order", "label": "Update Order", "target_status": None, "roles": ["admin", "superadmin", "support"]},
     ],
     "reassigned": [
         {"action": "start_order", "label": "Start Order", "target_status": "in_progress", "roles": ["writer"]},
@@ -132,6 +157,7 @@ class OrderActionService:
     def get_available_actions(self, order: Order) -> List[Dict]:
         """
         Get list of available actions for an order based on its current state.
+        Includes business logic validation to ensure actions are appropriate.
         
         Args:
             order: The order instance
@@ -154,8 +180,35 @@ class OrderActionService:
         else:
             available = all_actions
         
-        # Add additional context
+        # Apply business logic filters
+        filtered_actions = []
         for action in available:
+            action_name = action.get("action")
+            
+            # Business rule: Completed orders cannot be reassigned
+            if action_name == "reassign_order" and current_status in ["completed", "closed", "archived"]:
+                continue  # Skip this action
+            
+            # Business rule: Closed/archived orders have limited edit capabilities
+            if action_name in ["edit_order", "update_order"] and current_status in ["closed", "archived"]:
+                # Allow edit for closed/archived but mark as restricted
+                action["restricted"] = True
+                action["reason"] = "Order is in final state - edits are for corrections only"
+            
+            # Business rule: Cancelled orders can only be reopened or refunded
+            if current_status == "cancelled" and action_name not in ["reopen_order", "refund_order", "edit_order"]:
+                if action_name != "update_order":  # Allow update for corrections
+                    continue
+            
+            # Business rule: Refunded orders can only be closed
+            if current_status == "refunded" and action_name not in ["close_order", "edit_order"]:
+                if action_name != "update_order":  # Allow update for corrections
+                    continue
+            
+            filtered_actions.append(action)
+        
+        # Add additional context
+        for action in filtered_actions:
             action["available"] = True
             action["current_status"] = current_status
             
@@ -163,7 +216,6 @@ class OrderActionService:
             target_status = action.get("target_status")
             if target_status:
                 # Check if transition is in valid transitions
-                current_status = order.status
                 allowed_transitions = VALID_TRANSITIONS.get(current_status, [])
                 action["can_transition"] = target_status in allowed_transitions
                 if not action["can_transition"]:
@@ -171,7 +223,7 @@ class OrderActionService:
             else:
                 action["can_transition"] = True
         
-        return available
+        return filtered_actions
     
     def execute_action(
         self,
@@ -222,6 +274,15 @@ class OrderActionService:
         # Execute the action via dispatcher
         from orders.dispatcher import OrderActionDispatcher
         try:
+            # For mark_paid action, extract reference_id and payment_method
+            if action_name == "mark_paid":
+                reference_id = params.pop("reference_id", None)
+                payment_method = params.pop("payment_method", None)
+                if reference_id:
+                    params["reference_id"] = reference_id
+                if payment_method:
+                    params["payment_method"] = payment_method
+            
             updated_order = OrderActionDispatcher.dispatch(
                 action_name=action_name,
                 order_id=order.id,

@@ -13,11 +13,11 @@
       <div
         v-if="show && collapsed"
         ref="tooltipRef"
-        class="absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[100] pointer-events-none whitespace-nowrap"
+        class="absolute left-full ml-3 top-1/2 -translate-y-1/2 z-[9999] pointer-events-none whitespace-nowrap"
         role="tooltip"
         :aria-label="text"
       >
-        <div class="bg-gray-900 dark:bg-gray-800 text-white text-xs font-medium py-2 px-3 rounded-lg shadow-xl border border-gray-700 dark:border-gray-600 backdrop-blur-sm">
+        <div class="relative bg-gray-900 dark:bg-gray-800 text-white text-xs font-medium py-2 px-3 rounded-lg shadow-xl border border-gray-700 dark:border-gray-600 backdrop-blur-sm">
           {{ text }}
           <!-- Arrow -->
           <div class="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900 dark:border-r-gray-800"></div>

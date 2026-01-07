@@ -645,7 +645,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'id', 'reference_id', 'client', 'client_id', '_client_id', 'recipient_email', 'recipient_email_display',
             'recipient_name', 'recipient_name_display', 'website', 'website_id', '_website_id', 'website_name',
             'issued_by', 'issued_by_username', 'title', 'purpose', 'description', 'order_number',
-            'amount', 'due_date', 'is_paid', 'payment', 'payment_token', 'token_expires_at',
+            'amount', 'due_date', 'payment_method', 'is_paid', 'payment', 'payment_token', 'token_expires_at',
             'email_sent', 'email_sent_at', 'email_sent_count', 'order', 'order_id', '_order_id',
             'special_order', 'special_order_id', '_special_order_id', 'class_purchase', 'class_purchase_id', '_class_purchase_id',
             'created_at', 'paid_at', 'updated_at', 'payment_link', 'is_overdue', 'is_token_valid'
@@ -764,13 +764,26 @@ class InvoiceCreateSerializer(serializers.ModelSerializer):
         allow_null=True
     )
     send_email = serializers.BooleanField(write_only=True, default=True, required=False)
+    payment_method = serializers.ChoiceField(
+        choices=[
+            ('wallet', 'Wallet Balance'),
+            ('stripe', 'Credit/Debit Card (Stripe)'),
+            ('paypal', 'PayPal'),
+            ('bank_transfer', 'Bank Transfer'),
+            ('manual', 'Manual Payment'),
+        ],
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        help_text="Preferred payment method for this invoice"
+    )
 
     class Meta:
         model = Invoice
         fields = [
             'recipient_email', 'recipient_name', 'website_id', 'client_id',
             'title', 'purpose', 'description', 'order_number', 'amount', 'due_date',
-            'order', 'special_order', 'class_purchase', 'send_email'
+            'payment_method', 'order', 'special_order', 'class_purchase', 'send_email'
         ]
     
     def __init__(self, *args, **kwargs):

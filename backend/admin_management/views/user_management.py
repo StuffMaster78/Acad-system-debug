@@ -698,6 +698,7 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
             users = users.exclude(role='superadmin')
         
         activated_count = 0
+        activity_logs = []
         with transaction.atomic():
             for user in users:
                 if not user.is_active:
@@ -705,11 +706,17 @@ class ComprehensiveUserManagementViewSet(viewsets.ModelViewSet):
                     user.save()
                     activated_count += 1
                     
-                    AdminActivityLog.objects.create(
-                        admin=request.user,
-                        action=f"Activated user {user.username}",
-                        details=f"Bulk activated user: {user.email}"
+                    # Collect logs for bulk insert instead of individual creates
+                    activity_logs.append(
+                        AdminActivityLog(
+                            admin=request.user,
+                            action=f"Activated user {user.username} (Bulk: {user.email})"
+                        )
                     )
+        
+        # Bulk create all activity logs at once (much faster than individual creates)
+        if activity_logs:
+            AdminActivityLog.objects.bulk_create(activity_logs, batch_size=100)
         
         return Response({
             "message": f"Activated {activated_count} user(s).",

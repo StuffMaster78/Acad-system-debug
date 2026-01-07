@@ -104,30 +104,55 @@ const expandedActions = ref({})
 const actionGroups = computed(() => {
   const groups = []
 
-  // Assign/Reassign Writer
-  if (props.order && (!props.order.assigned_writer || props.order.assigned_writer)) {
+  // Check if assign/reassign actions are available
+  const hasAssignAction = props.availableActions?.some(
+    action => action.action === 'assign_order' && action.available && action.can_transition
+  )
+  const hasReassignAction = props.availableActions?.some(
+    action => action.action === 'reassign_order' && action.available && action.can_transition
+  )
+
+  // Assign/Reassign Writer - only show if action is available
+  if (props.order && (hasAssignAction || hasReassignAction)) {
+    const canReassign = props.order.assigned_writer && hasReassignAction
+    const canAssign = !props.order.assigned_writer && hasAssignAction
+    
+    if (canReassign || canAssign) {
+      groups.push({
+        id: 'assign-writer',
+        title: canReassign ? 'Reassign Writer' : 'Assign Writer',
+        description: canReassign 
+          ? 'Change the writer assigned to this order'
+          : 'Assign a writer to work on this order',
+        icon: '👤',
+        iconBg: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+      })
+    }
+  }
+
+  // Edit Order - only show if edit_order or update_order action is available
+  const hasEditAction = props.availableActions?.some(
+    action => (action.action === 'edit_order' || action.action === 'update_order') 
+      && action.available && action.can_transition
+  )
+  
+  if (hasEditAction) {
     groups.push({
-      id: 'assign-writer',
-      title: props.order.assigned_writer ? 'Reassign Writer' : 'Assign Writer',
-      description: props.order.assigned_writer 
-        ? 'Change the writer assigned to this order'
-        : 'Assign a writer to work on this order',
-      icon: '👤',
-      iconBg: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+      id: 'edit-order',
+      title: 'Edit Order Details',
+      description: 'Modify order information, deadlines, and instructions',
+      icon: '✏️',
+      iconBg: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
     })
   }
 
-  // Edit Order
-  groups.push({
-    id: 'edit-order',
-    title: 'Edit Order Details',
-    description: 'Modify order information, deadlines, and instructions',
-    icon: '✏️',
-    iconBg: 'bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400'
-  })
-
-  // Status Actions
-  if (props.availableActions && props.availableActions.length > 0) {
+  // Status Actions - filter to only show available and valid actions
+  const validStatusActions = props.availableActions?.filter(
+    action => action.available && action.can_transition 
+      && !['assign_order', 'reassign_order', 'edit_order', 'update_order'].includes(action.action)
+  ) || []
+  
+  if (validStatusActions.length > 0) {
     groups.push({
       id: 'status-actions',
       title: 'Status & Workflow Actions',

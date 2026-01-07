@@ -1,1242 +1,518 @@
 <template>
   <div class="space-y-6">
-    <!-- Quick Actions -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <QuickActionCard
-        to="/orders"
-        icon="📝"
-        title="My Orders"
-        description="View assigned orders"
-      />
-      <QuickActionCard
-        to="/writer/queue"
-        icon="🎯"
-        title="Available Orders"
-        description="Take new orders"
-      />
-      <QuickActionCard
+    <!-- Earnings Summary Bar - Always Visible -->
+    <div class="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 rounded-2xl shadow-xl p-6 text-white">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <!-- Pending Earnings - Most Important -->
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-5 border border-white/30">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-semibold text-white/90 uppercase tracking-wide">Pending Earnings</p>
+            <span class="text-2xl">💰</span>
+    </div>
+          <p class="text-4xl font-bold mb-1">
+            {{ writerEarningsData?.pending_payments ? `$${writerEarningsData.pending_payments.toFixed(2)}` : '$0.00' }}
+          </p>
+          <p class="text-xs text-white/80">Awaiting payment</p>
+          <router-link
         to="/writer/payments"
-        icon="💰"
-        title="Payments"
-        description="View payment history"
-      />
-      <QuickActionCard
-        to="/writer/advance-payments"
-        icon="💳"
-        title="Advance Payments"
-        description="Request advance payments"
-      />
-      <QuickActionCard
-        to="/writer/performance"
-        icon="⭐"
-        title="Badges & Performance"
-        description="View achievements"
-      />
-    </div>
+            class="mt-3 inline-block text-sm font-semibold text-white hover:text-white/80 underline"
+          >
+            View Payments →
+          </router-link>
+      </div>
 
-    <!-- Additional Quick Actions -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      <QuickActionCard
-        to="/writer/calendar"
-        icon="📅"
-        title="Deadline Calendar"
-        description="View order deadlines"
-      />
-      <QuickActionCard
-        to="/writer/workload"
-        icon="⚖️"
-        title="Workload & Capacity"
-        description="Track your capacity"
-      />
-      <QuickActionCard
-        to="/writer/order-requests"
-        icon="📋"
-        title="Order Requests"
-        description="Track request status"
-      />
-      <QuickActionCard
-        to="/writer/communications"
-        icon="💬"
-        title="Communications"
-        description="Client messages"
-      />
-    </div>
-
-    <!-- Real-time Focus Widgets -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <!-- Next Deadline -->
-      <div class="card bg-white rounded-lg shadow-sm border border-gray-100 p-6 flex flex-col gap-3">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Next Deadline</p>
-            <p class="text-2xl font-bold text-gray-900 mt-1">
-              {{ nextDeadlineInfo ? formatDate(nextDeadlineInfo.deadline) : 'No deadlines' }}
-            </p>
+        <!-- Total Earnings -->
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-5 border border-white/30">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-semibold text-white/90 uppercase tracking-wide">Total Earnings</p>
+            <span class="text-2xl">💵</span>
           </div>
-          <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg">
-            <ClockIcon class="w-6 h-6 text-white" />
+          <p class="text-4xl font-bold mb-1">
+            {{ writerEarningsData?.total_earnings ? `$${writerEarningsData.total_earnings.toFixed(2)}` : '$0.00' }}
+          </p>
+          <p class="text-xs text-white/80">{{ writerEarningsData?.this_month ? `$${writerEarningsData.this_month.toFixed(2)} this month` : 'No earnings yet' }}</p>
+      </div>
+
+        <!-- Active Orders Count -->
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-5 border border-white/30">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-semibold text-white/90 uppercase tracking-wide">Active Orders</p>
+            <span class="text-2xl">📝</span>
+          </div>
+          <p class="text-4xl font-bold mb-1">{{ activeOrdersCount }}</p>
+          <p class="text-xs text-white/80">{{ inProgressCount }} in progress</p>
+          </div>
+
+        <!-- Completion Rate -->
+        <div class="bg-white/20 backdrop-blur-sm rounded-xl p-5 border border-white/30">
+          <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-semibold text-white/90 uppercase tracking-wide">Completion Rate</p>
+            <span class="text-2xl">✅</span>
+        </div>
+          <p class="text-4xl font-bold mb-1">
+            {{ writerPerformanceData?.completion_rate ? `${writerPerformanceData.completion_rate.toFixed(0)}%` : '0%' }}
+        </p>
+          <p class="text-xs text-white/80">{{ writerPerformanceData?.completed_orders || 0 }} completed</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Orders Section - Main Focus -->
+    <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+      <!-- Orders Header with Tabs -->
+      <div class="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-6 py-4">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              My Orders
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">Manage and track all your assigned orders</p>
+          </div>
+          <div class="flex items-center gap-3">
+              <router-link
+              to="/writer/queue" 
+              class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-semibold flex items-center gap-2 shadow-sm"
+              >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+              </svg>
+              Browse Orders
+              </router-link>
+        </div>
+      </div>
+
+        <!-- Status Tabs -->
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 px-1">
+          <button
+            v-for="tab in orderTabs"
+            :key="tab.id"
+            @click="activeTab = tab.id"
+            :class="[
+              'px-4 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-2',
+              activeTab === tab.id
+                ? `${tab.bgColor} ${tab.textColor} shadow-md border-2 ${tab.borderColor}`
+                : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+            ]"
+          >
+            <!-- Colored Number Circle -->
+            <span 
+              :class="[
+                'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white',
+                tab.color
+              ]"
+            >
+              {{ tab.count }}
+            </span>
+            {{ tab.label }}
+          </button>
+      </div>
+    </div>
+
+      <!-- Orders Content -->
+      <div class="p-6">
+        <!-- Loading State -->
+        <div v-if="ordersLoading || (activeTab === 'available' && availableOrdersLoading) || (activeTab === 'order_requests' && orderRequestsLoading)" class="flex items-center justify-center py-16">
+          <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4"></div>
+            <p class="text-gray-600">Loading orders...</p>
+      </div>
+    </div>
+
+        <!-- Empty State -->
+        <div v-else-if="filteredOrders.length === 0" class="text-center py-16">
+          <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+      </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">No {{ getActiveTabLabel() }} orders</h3>
+          <p class="text-gray-600 mb-4">{{ getEmptyStateMessage() }}</p>
+              <router-link
+            v-if="activeTab !== 'completed'"
+            to="/writer/queue" 
+            class="inline-flex items-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-semibold"
+              >
+            Browse Available Orders
+              </router-link>
+      </div>
+
+        <!-- Orders Table -->
+        <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">#</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Title</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Pages</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Earnings</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Deadline</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Client</th>
+                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
+                </tr>
+              </thead>
+              <tbody class="bg-white divide-y divide-gray-200">
+                <tr
+                  v-for="order in filteredOrders"
+                  :key="order.id"
+                  class="hover:bg-gray-50 transition-colors cursor-pointer"
+                  :class="{
+                    'bg-orange-50 hover:bg-orange-100': order.status === 'revision_requested',
+                    'bg-red-50 hover:bg-red-100 border-l-4 border-red-500': isOverdue(order) && isInProgress(order),
+                    'bg-amber-50 hover:bg-amber-100 border-l-4 border-amber-500': !isOverdue(order) && isDueSoon(order) && isInProgress(order)
+                  }"
+                  @click="$router.push(`/orders/${order.id}`)"
+                >
+                  <!-- Order ID -->
+                  <td class="px-4 py-4 whitespace-nowrap">
+        <div class="flex items-center gap-2">
+                      <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-500 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
+                        #{{ order.id }}
+        </div>
+      </div>
+                  </td>
+                  
+                  <!-- Title -->
+                  <td class="px-4 py-4 max-w-xs sm:max-w-sm">
+                    <div class="flex flex-col">
+                      <span class="text-sm font-semibold text-gray-900 truncate">
+                        {{ getShortTitle(order) }}
+                      </span>
+                      <span
+                        v-if="order.subject?.name || order.subject"
+                        class="text-xs text-gray-500 mt-0.5 truncate"
+                      >
+                        {{ order.subject?.name || order.subject }}
+                      </span>
+        </div>
+                  </td>
+                  
+                  <!-- Status -->
+                  <td class="px-4 py-4 whitespace-nowrap">
+                    <OrderStatusTooltip :status="order.status" position="bottom">
+                      <span
+                        class="px-3 py-1 rounded-full text-xs font-semibold"
+                        :class="getOrderStatusClass(order.status)"
+                      >
+                        {{ formatStatus(order.status) }}
+                      </span>
+                    </OrderStatusTooltip>
+                  </td>
+                  
+                  <!-- Date -->
+                  <td class="px-4 py-4 whitespace-nowrap">
+                    <span class="text-sm text-gray-600">
+                      {{ formatDate(order.created_at) }}
+                    </span>
+                  </td>
+                  
+                  <!-- Pages -->
+                  <td class="px-4 py-4 whitespace-nowrap">
+                    <span class="text-sm font-medium text-gray-900">
+                      {{ order.number_of_pages || order.pages || 0 }}
+                    </span>
+                  </td>
+                  
+                  <!-- Earnings -->
+                  <td class="px-4 py-4 whitespace-nowrap">
+                    <span class="text-sm font-bold text-emerald-600">
+                      ${{ (Number(order.writer_compensation) || 0).toFixed(2) }}
+                    </span>
+                  </td>
+                  
+                  <!-- Deadline -->
+                  <td class="px-4 py-4 whitespace-nowrap">
+                    <span
+                      class="text-sm font-semibold"
+                      :class="isOverdue(order) ? 'text-red-600' : isDueSoon(order) ? 'text-orange-600' : 'text-gray-900'"
+                    >
+                      {{ formatDeadline(order) }}
+                    </span>
+                  </td>
+                  
+                  <!-- Client -->
+                  <td class="px-4 py-4 whitespace-nowrap">
+                    <span class="text-sm text-gray-600">
+                      {{ order.client_username || order.client?.username || order.client?.email || 'N/A' }}
+                    </span>
+                  </td>
+                  
+                  <!-- Action -->
+                  <td class="px-4 py-4 whitespace-nowrap" @click.stop>
+                    <button
+                      v-if="activeTab !== 'available'"
+                      @click="$router.push(`/orders/${order.id}`)"
+                      class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-semibold shadow-sm"
+                    >
+                      {{ getActionButtonText(order.status) }}
+                    </button>
+                    <div v-else class="flex gap-2">
+                      <button
+                        @click="$router.push(`/orders/${order.id}`)"
+                        class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-semibold"
+              >
+                View
+                      </button>
+                      <button
+                        @click="$router.push(`/writer/queue?order=${order.id}`)"
+                        class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-xs font-semibold"
+                      >
+                        Request
+                      </button>
+            </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+        </div>
+      </div>
+
+        <!-- Load More / Pagination -->
+        <div v-if="filteredOrders.length > 0 && (hasMoreOrders || currentPage > 1)" class="mt-6 text-center space-y-2">
+          <p v-if="filteredOrders.length > 0" class="text-sm text-gray-600 mb-2">
+            Showing {{ filteredOrders.length }} {{ filteredOrders.length === 1 ? 'order' : 'orders' }}
+            <span v-if="hasMoreOrders">(more available)</span>
+          </p>
+          <button
+            v-if="hasMoreOrders"
+            @click="loadMoreOrders"
+            :disabled="ordersLoading"
+            class="px-6 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-semibold disabled:opacity-50 flex items-center gap-2 mx-auto"
+          >
+            <ArrowPathIcon class="w-4 h-4" :class="{ 'animate-spin': ordersLoading }" />
+            Load More Orders
+          </button>
+              </div>
+              </div>
+            </div>
+            
+    <!-- Writer Performance Metrics -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <!-- Late Orders Card -->
+      <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-gray-600 mb-1 uppercase tracking-wide">Late Orders</p>
+            <div class="flex items-baseline gap-2">
+              <p class="text-4xl font-bold text-red-600">{{ lateOrdersCount }}</p>
+              <p class="text-xs text-gray-500">orders</p>
           </div>
         </div>
-        <p class="text-sm text-gray-600">
-          {{ nextDeadlineInfo ? (nextDeadlineInfo.topic || 'Assigned order') : 'Enjoy the calm before the next assignment.' }}
-        </p>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs text-gray-500 uppercase tracking-wide">Time Remaining</p>
-            <p class="text-xl font-semibold text-primary-600">{{ deadlineCountdown }}</p>
+          <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+            <span class="text-3xl font-bold text-red-600">{{ lateOrdersCount }}</span>
           </div>
+            </div>
+        <p class="text-xs text-gray-600 mt-2">Orders past deadline</p>
+        <router-link
+          v-if="lateOrdersCount > 0"
+          to="/writer/orders?status=late"
+          class="mt-3 inline-block text-sm font-semibold text-red-600 hover:text-red-700 underline"
+        >
+          View Late Orders →
+        </router-link>
+          </div>
+          
+      <!-- Overall Rating Card -->
+      <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all">
+          <div class="flex items-center justify-between mb-4">
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-gray-600 mb-1 uppercase tracking-wide">Overall Rating</p>
+            <div class="flex items-baseline gap-2">
+              <p class="text-4xl font-bold text-yellow-600">
+                {{ overallRating || 'N/A' }}
+              </p>
+              <p v-if="overallRating" class="text-xs text-gray-500">/ 5.0</p>
+                </div>
+                </div>
+          <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
+            <span v-if="overallRating" class="text-2xl font-bold text-yellow-600">{{ overallRating }}</span>
+            <span v-else class="text-2xl">⭐</span>
+              </div>
+                </div>
+        <p class="text-xs text-gray-600 mt-2">
+          {{ totalReviews > 0 ? `From ${totalReviews} reviews` : 'No reviews yet' }}
+        </p>
+              <router-link
+          v-if="totalReviews > 0"
+          to="/writer/performance"
+          class="mt-3 inline-block text-sm font-semibold text-yellow-600 hover:text-yellow-700 underline"
+        >
+          View Performance →
+              </router-link>
+          </div>
+
+      <!-- Escalations Card -->
+      <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all">
+          <div class="flex items-center justify-between mb-4">
+          <div class="flex-1">
+            <p class="text-sm font-semibold text-gray-600 mb-1 uppercase tracking-wide">Escalations</p>
+            <div class="flex items-baseline gap-2">
+              <p class="text-4xl font-bold text-orange-600">{{ escalationsCount }}</p>
+              <p class="text-xs text-gray-500">issues</p>
+            </div>
+          </div>
+          <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center">
+            <span class="text-3xl font-bold text-orange-600">{{ escalationsCount }}</span>
+              </div>
+                    </div>
+        <p class="text-xs text-gray-600 mt-2">Orders requiring attention</p>
+        <router-link
+          v-if="escalationsCount > 0"
+          to="/writer/orders?status=escalated"
+          class="mt-3 inline-block text-sm font-semibold text-orange-600 hover:text-orange-700 underline"
+        >
+          View Escalations →
+        </router-link>
+        </div>
+      </div>
+        
+    <!-- Quick Stats Sidebar (Collapsible) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Next Deadline Widget -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-gray-900">Next Deadline</h3>
+          <ClockIcon class="w-6 h-6 text-amber-500" />
+        </div>
+        <div v-if="nextDeadlineInfo">
+          <p class="text-2xl font-bold text-gray-900 mb-1">
+            {{ formatDate(nextDeadlineInfo.deadline) }}
+          </p>
+          <p class="text-sm text-gray-600 mb-2">{{ nextDeadlineInfo.topic || 'Assigned order' }}</p>
+          <p class="text-xs font-semibold text-amber-600 mb-3">{{ deadlineCountdown }}</p>
           <router-link
             v-if="nextDeadlineOrderLink"
             :to="nextDeadlineOrderLink"
-            class="px-3 py-1.5 text-sm font-medium text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
+            class="block w-full text-center px-4 py-2 bg-amber-50 text-amber-700 rounded-lg hover:bg-amber-100 transition-colors text-sm font-semibold"
           >
-            Open Order
+            Open Order →
           </router-link>
         </div>
-      </div>
-
-      <!-- Availability -->
-      <div class="card bg-white rounded-lg shadow-sm border border-gray-100 p-6 flex flex-col gap-3">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Availability</p>
-            <p class="text-2xl font-bold" :class="isAvailabilityOnline ? 'text-green-600' : 'text-gray-600'">
-              {{ isAvailabilityOnline ? 'Available' : 'On Break' }}
-            </p>
-          </div>
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" :class="isAvailabilityOnline ? 'bg-gradient-to-br from-green-500 to-green-600' : 'bg-gradient-to-br from-gray-400 to-gray-500'">
-            <component :is="isAvailabilityOnline ? CheckCircleIcon : MoonIcon" class="w-6 h-6 text-white" />
-          </div>
-        </div>
-        <p class="text-sm text-gray-600">
-          {{ isAvailabilityOnline ? 'You appear in the pool for instant assignments.' : 'You will not auto-receive urgent orders.' }}
-        </p>
-        <p v-if="availabilityMessage" class="text-xs text-gray-500 italic">
-          "{{ availabilityMessage }}"
-        </p>
-        <div class="flex items-center gap-2">
-          <button
-            @click="toggleAvailability"
-            :disabled="availabilityLoading"
-            class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-            :class="isAvailabilityOnline ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'"
-          >
-            {{ isAvailabilityOnline ? 'Mark as On Break' : 'Mark as Available' }}
-          </button>
-          <button
-            @click="pingAvailability"
-            :disabled="availabilityLoading"
-            class="px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            title="Ping the system to refresh your live status"
-          >
-            Ping
-          </button>
-        </div>
-        <p class="text-xs text-gray-500">
-          Last ping: {{ lastAvailabilityPing ? new Date(lastAvailabilityPing).toLocaleTimeString() : 'Never' }}
-        </p>
-      </div>
-
-      <!-- Queue Auto Refresh -->
-      <div class="card bg-white rounded-lg shadow-sm border border-gray-100 p-6 flex flex-col gap-3">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Auto Refresh</p>
-            <p class="text-2xl font-bold text-gray-900">{{ autoRefreshEnabled ? 'Enabled' : 'Disabled' }}</p>
-          </div>
-          <div class="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg" :class="autoRefreshEnabled ? 'bg-gradient-to-br from-blue-500 to-blue-600' : 'bg-gradient-to-br from-gray-400 to-gray-500'">
-            <component :is="autoRefreshEnabled ? ArrowPathIcon : ClockIcon" class="w-6 h-6 text-white" :class="autoRefreshEnabled && 'animate-spin'" />
-          </div>
-        </div>
-        <p class="text-sm text-gray-600">
-          {{ autoRefreshEnabled ? 'Queue refreshes every 30s so you never miss a drop.' : 'Turn on auto refresh to watch new orders appear in real-time.' }}
-        </p>
-        <div class="flex items-center gap-2">
-          <button
-            @click="toggleAutoRefresh"
-            class="flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-colors"
-            :class="autoRefreshEnabled ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-          >
-            {{ autoRefreshEnabled ? 'Disable Auto Refresh' : 'Enable Auto Refresh' }}
-          </button>
-          <button
-            @click="requestQueueRefresh"
-            class="px-3 py-2 text-sm text-primary-600 border border-primary-200 rounded-lg hover:bg-primary-50 transition-colors"
-          >
-            Refresh Now
-          </button>
-        </div>
-        <div class="text-xs text-gray-500">
-          <p>Available orders: <span class="font-semibold text-gray-800">{{ queueStats.available }}</span></p>
-          <p>Preferred orders: <span class="font-semibold text-gray-800">{{ queueStats.preferred }}</span></p>
-          <p>Last refresh: {{ lastQueueRefreshLabel }}</p>
-        </div>
+        <div v-else class="text-center py-4 text-gray-500">
+          <p class="text-sm">No upcoming deadlines</p>
       </div>
     </div>
 
-    <!-- Additional Real-time Widgets -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div
-        v-if="realtimeOrdersReady"
-        class="card bg-white rounded-lg shadow-sm border border-orange-100 p-6 flex flex-col gap-3"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-semibold text-orange-500 uppercase tracking-wide">Orders Ready</p>
-            <p class="text-2xl font-bold text-gray-900">{{ realtimeOrdersReady.count || 0 }}</p>
-          </div>
-          <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
-            <RocketLaunchIcon class="w-6 h-6 text-white" />
-          </div>
-        </div>
-        <p class="text-sm text-gray-600">
-          {{ realtimeOrdersReady.count ? 'Orders that are nearly ready to submit.' : 'All caught up!' }}
-        </p>
-        <div v-if="realtimeOrdersReady.orders?.length" class="space-y-3">
-          <div
-            v-for="order in realtimeOrdersReady.orders"
-            :key="`ready-${order.id}`"
-            class="p-3 border border-orange-200 rounded-lg bg-orange-50"
-          >
-            <div class="flex items-center justify-between gap-2">
-              <router-link
-                :to="`/orders/${order.id}`"
-                class="font-semibold text-gray-900 hover:text-primary-600"
-              >
-                #{{ order.id }} • {{ order.topic || 'Untitled' }}
-              </router-link>
-              <span class="text-xs font-medium text-orange-700 capitalize">{{ order.status || 'ready' }}</span>
-            </div>
-            <p class="text-xs text-gray-500 mt-1">
-              Due {{ order.deadline ? formatDate(order.deadline) : 'TBD' }} • {{ order.pages || 0 }} pages
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div
-        v-if="realtimeGoalProgress"
-        class="card bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg shadow-sm border border-indigo-200 p-6 flex flex-col gap-3"
-      >
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs font-semibold text-indigo-600 uppercase tracking-wide">Goal Progress</p>
-            <p class="text-xl font-bold text-gray-900">
-              {{ realtimeGoalProgress.next_level_name || 'Next level' }}
-            </p>
-          </div>
-          <span class="text-3xl">🎯</span>
-        </div>
-        <div class="w-full bg-white rounded-full h-3 border border-indigo-200">
-          <div
-            class="h-3 rounded-full bg-indigo-500 transition-all"
-            :style="{ width: `${Math.min(100, realtimeGoalProgress.progress_percentage || 0)}%` }"
-          ></div>
-        </div>
-        <div class="flex items-center justify-between text-sm text-gray-600">
-          <span>{{ formatScore(realtimeGoalProgress.current_score) }} pts</span>
-          <span>{{ formatScore(realtimeGoalProgress.required_score) }} required</span>
-        </div>
-        <p class="text-xs text-gray-500">
-          {{ realtimeGoalProgress.points_needed > 0 ? `${realtimeGoalProgress.points_needed} pts to go` : 'Ready for promotion!' }}
-        </p>
-      </div>
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-      <StatsCard
-        name="Total Earnings"
-        :value="writerEarningsData?.total_earnings ? `$${writerEarningsData.total_earnings.toFixed(2)}` : '$0.00'"
-        icon="💰"
-        :subtitle="writerEarningsData?.this_month ? `$${writerEarningsData.this_month.toFixed(2)} this month` : ''"
-        bgColor="bg-gradient-to-br from-green-500 to-green-600"
-      />
-      <StatsCard
-        name="Completed Orders"
-        :value="writerPerformanceData?.completed_orders || 0"
-        icon="✅"
-        :subtitle="writerPerformanceData?.completion_rate ? `${writerPerformanceData.completion_rate.toFixed(1)}% completion rate` : 'No data'"
-        bgColor="bg-gradient-to-br from-blue-500 to-blue-600"
-      />
-      <StatsCard
-        name="On-Time Rate"
-        :value="writerPerformanceData?.on_time_rate ? `${writerPerformanceData.on_time_rate.toFixed(1)}%` : '0%'"
-        icon="⏰"
-        :subtitle="writerPerformanceData?.on_time_orders ? `${writerPerformanceData.on_time_orders}/${writerPerformanceData.completed_orders || 0} on time` : 'No data'"
-        bgColor="bg-gradient-to-br from-green-500 to-green-600"
-      />
-      <StatsCard
-        name="Pending Payments"
-        :value="writerEarningsData?.pending_payments ? `$${writerEarningsData.pending_payments.toFixed(2)}` : '$0.00'"
-        icon="💳"
-        subtitle="Awaiting payment"
-        bgColor="bg-gradient-to-br from-purple-500 to-purple-600"
-      />
-    </div>
-
-    <!-- Earnings Dashboard -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <ChartWidget
-        title="Earnings Trends (Last 30 Days)"
-        type="area"
-        :series="earningsTrendSeries"
-        :options="earningsTrendOptions"
-        :loading="loading"
-      />
-      <div class="card bg-white rounded-lg shadow-sm p-6">
-        <h2 class="text-xl font-bold text-gray-900 mb-4">Earnings Breakdown</h2>
-        <div class="space-y-4">
-          <div class="flex items-center justify-between p-4 bg-green-50 rounded-lg">
-            <div>
-              <div class="text-sm font-medium text-gray-600">This Week</div>
-              <div class="text-2xl font-bold text-green-600">${{ writerEarningsData?.this_week?.toFixed(2) || '0.00' }}</div>
-            </div>
-            <div class="w-10 h-10 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center shadow-md">
-              <CalendarIcon class="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <div class="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-            <div>
-              <div class="text-sm font-medium text-gray-600">This Month</div>
-              <div class="text-2xl font-bold text-blue-600">${{ writerEarningsData?.this_month?.toFixed(2) || '0.00' }}</div>
-            </div>
-            <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-md">
-              <CurrencyDollarIcon class="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <div class="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
-            <div>
-              <div class="text-sm font-medium text-gray-600">This Year</div>
-              <div class="text-2xl font-bold text-purple-600">${{ writerEarningsData?.this_year?.toFixed(2) || '0.00' }}</div>
-            </div>
-            <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-md">
-              <ChartBarIcon class="w-5 h-5 text-white" />
-            </div>
-          </div>
-          <div class="flex items-center justify-between p-4 bg-orange-50 rounded-lg">
-            <div>
-              <div class="text-sm font-medium text-gray-600">Avg per Order</div>
-              <div class="text-2xl font-bold text-orange-600">${{ writerEarningsData?.avg_per_order?.toFixed(2) || '0.00' }}</div>
-            </div>
-            <div class="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center shadow-md">
-              <ArrowTrendingUpIcon class="w-5 h-5 text-white" />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Performance Analytics -->
-    <div class="space-y-6">
-      <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-bold text-gray-900">Performance Analytics</h2>
-        <router-link to="/writer/performance" class="text-primary-600 text-sm hover:underline">View detailed analytics →</router-link>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatsCard
-          name="Completion Rate"
-          :value="writerPerformanceData?.completion_rate ? `${writerPerformanceData.completion_rate.toFixed(1)}%` : '0.0%'"
-          icon="✅"
-          :subtitle="`${writerPerformanceData?.completed_orders || 0}/${writerPerformanceData?.total_orders || 0} orders`"
-          bgColor="bg-gradient-to-br from-blue-500 to-blue-600"
-        />
-        <StatsCard
-          name="On-Time Rate"
-          :value="writerPerformanceData?.on_time_rate ? `${writerPerformanceData.on_time_rate.toFixed(1)}%` : '0.0%'"
-          icon="⏰"
-          :subtitle="`${writerPerformanceData?.on_time_orders || 0} on time`"
-          bgColor="bg-gradient-to-br from-green-500 to-green-600"
-        />
-        <StatsCard
-          name="Average Rating"
-          :value="writerPerformanceData?.avg_rating ? writerPerformanceData.avg_rating.toFixed(1) : 'N/A'"
-          icon="⭐"
-          subtitle="Client satisfaction"
-          bgColor="bg-gradient-to-br from-amber-500 to-amber-600"
-        />
-        <StatsCard
-          name="Revision Rate"
-          :value="writerPerformanceData?.revision_rate ? `${writerPerformanceData.revision_rate.toFixed(1)}%` : '0.0%'"
-          icon="📝"
-          :subtitle="`${writerPerformanceData?.revised_orders || 0} revised`"
-          bgColor="bg-gradient-to-br from-orange-500 to-orange-600"
-        />
-      </div>
-
-      <ChartWidget
-        title="Performance Trends (Last 30 Days)"
-        type="line"
-        :series="performanceTrendSeries"
-        :options="performanceTrendOptions"
-        :loading="loading"
-      />
-    </div>
-
-    <!-- Badges & Level -->
-    <div v-if="writerBadgesData" class="card bg-white rounded-lg shadow-sm p-6">
+      <!-- Availability Toggle -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-gray-900">Badges & Achievements</h2>
-        <div class="flex items-center gap-2">
-          <span class="text-sm text-gray-600">Total: {{ writerBadgesData?.total_badges || 0 }}</span>
-          <router-link to="/writer/badges" class="text-primary-600 text-sm">Manage badges</router-link>
-        </div>
+          <h3 class="text-lg font-bold text-gray-900">Availability</h3>
+          <component 
+            :is="isAvailabilityOnline ? CheckCircleIcon : MoonIcon" 
+            class="w-6 h-6"
+            :class="isAvailabilityOnline ? 'text-green-500' : 'text-gray-400'"
+          />
       </div>
-      
-      <div v-if="writerBadgesData.badge_counts_by_type && Object.keys(writerBadgesData.badge_counts_by_type).length" class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <div 
-          v-for="(count, type) in writerBadgesData.badge_counts_by_type" 
-          :key="type"
-          class="text-center p-3 bg-gray-50 rounded-lg"
+        <p class="text-2xl font-bold mb-2" :class="isAvailabilityOnline ? 'text-green-600' : 'text-gray-600'">
+          {{ isAvailabilityOnline ? 'Available' : 'On Break' }}
+        </p>
+        <p class="text-sm text-gray-600 mb-4">
+          {{ isAvailabilityOnline ? 'You appear in the pool for instant assignments' : 'You will not auto-receive urgent orders' }}
+        </p>
+          <button 
+          @click="toggleAvailability"
+          :disabled="availabilityLoading"
+          class="w-full px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
+          :class="isAvailabilityOnline ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'"
         >
-          <div class="text-2xl font-bold text-primary-600">{{ count }}</div>
-          <div class="text-xs text-gray-600 capitalize">{{ type }}</div>
-        </div>
-      </div>
-      
-      <div v-if="writerBadgesData.recent_badges && writerBadgesData.recent_badges.length" class="space-y-3">
-        <h3 class="text-lg font-semibold text-gray-900 mb-3">Recent Badges</h3>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          <div 
-            v-for="badge in writerBadgesData.recent_badges.slice(0, 10)" 
-            :key="badge.id"
-            class="flex flex-col items-center p-4 bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg border border-yellow-200 hover:shadow-md transition-shadow"
-            :title="badge.name"
-          >
-            <div class="text-4xl mb-2">{{ badge.icon || '🏆' }}</div>
-            <div class="text-sm font-medium text-center text-gray-900">{{ badge.name }}</div>
-            <div class="text-xs text-gray-500 mt-1">{{ badge.issued_at ? new Date(badge.issued_at).toLocaleDateString() : '' }}</div>
-            <div class="text-xs text-gray-400 mt-1 capitalize">{{ badge.type }}</div>
-          </div>
-        </div>
-      </div>
-      <div v-else class="text-center py-8 text-gray-500">
-        <div class="text-4xl mb-2">🏆</div>
-        <div>No badges earned yet</div>
-        <div class="text-sm text-gray-400 mt-2">Complete orders to earn badges!</div>
-      </div>
+          {{ isAvailabilityOnline ? 'Mark as On Break' : 'Mark as Available' }}
+          </button>
     </div>
 
-    <!-- Revision Requests Widget -->
-    <div v-if="writerSummaryData?.revision_requests?.count > 0" class="card bg-white rounded-lg shadow-sm p-6 border-l-4 border-orange-500">
-      <div class="flex items-center justify-between mb-4">
-        <div>
-          <h2 class="text-xl font-bold text-gray-900">⚠️ Revision Requests</h2>
-          <p class="text-sm text-gray-600 mt-1">{{ writerSummaryData.revision_requests.count }} order(s) need revision</p>
-        </div>
-        <router-link to="/writer/orders?status=revision_requested" class="text-primary-600 text-sm hover:underline font-medium">
-          View All →
-        </router-link>
-      </div>
-      <div class="space-y-3">
-        <div
-          v-for="order in writerSummaryData.revision_requests.orders.slice(0, 3)"
-          :key="order.id"
-          class="flex items-center justify-between p-3 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition-colors"
-        >
-          <div class="flex-1">
-            <router-link
-              :to="`/orders/${order.id}`"
-              class="font-medium text-gray-900 hover:text-primary-600"
-            >
-              Order #{{ order.id }}
-            </router-link>
-            <p class="text-sm text-gray-600 mt-1">{{ order.topic }}</p>
-            <p class="text-xs text-gray-500 mt-1">
-              {{ order.pages }} pages • Updated: {{ formatDate(order.updated_at) }}
-            </p>
-          </div>
+      <!-- Quick Actions -->
+      <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Quick Actions</h3>
+        <div class="space-y-2">
           <router-link
-            :to="`/orders/${order.id}`"
-            class="btn btn-warning text-sm whitespace-nowrap ml-4"
+            to="/writer/queue"
+            class="flex items-center gap-3 p-3 bg-emerald-50 hover:bg-emerald-100 rounded-lg transition-colors group"
           >
-            Review
-          </router-link>
-        </div>
-      </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shadow-sm">
+              <CursorArrowRaysIcon class="w-5 h-5" />
     </div>
-
-    <!-- Tips & Fines Summary -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Tips Summary -->
-      <div v-if="writerSummaryData?.tips" class="card bg-gradient-to-br from-green-50 to-green-100 rounded-lg shadow-sm p-6 border border-green-200">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-xl font-bold text-gray-900">💰 Tips</h2>
-            <p class="text-sm text-gray-600 mt-1">Total tips received</p>
-          </div>
-          <router-link to="/writer/tips" class="text-green-700 text-sm hover:underline font-medium">
-            View All →
-          </router-link>
-        </div>
-        <div class="space-y-3">
-          <div class="flex items-center justify-between p-4 bg-white rounded-lg border border-green-200">
-            <div>
-              <p class="text-sm font-medium text-gray-600">Total Tips</p>
-              <p class="text-3xl font-bold text-green-600">${{ formatCurrency(writerSummaryData.tips.total) }}</p>
+            <div class="flex-1">
+              <p class="font-semibold text-gray-900 group-hover:text-emerald-700">Browse Orders</p>
+              <p class="text-xs text-gray-600">Find new assignments</p>
             </div>
-            <span class="text-4xl">🎁</span>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="p-3 bg-white rounded-lg border border-green-200">
-              <p class="text-xs text-gray-600">This Month</p>
-              <p class="text-lg font-bold text-green-700">${{ formatCurrency(writerSummaryData.tips.this_month) }}</p>
-            </div>
-            <div class="p-3 bg-white rounded-lg border border-green-200">
-              <p class="text-xs text-gray-600">Count</p>
-              <p class="text-lg font-bold text-green-700">{{ writerSummaryData.tips.count }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Fines Summary -->
-      <div v-if="writerSummaryData?.fines" class="card bg-gradient-to-br from-red-50 to-red-100 rounded-lg shadow-sm p-6 border border-red-200">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-xl font-bold text-gray-900">⚖️ Fines</h2>
-            <p class="text-sm text-gray-600 mt-1">Fines incurred</p>
-          </div>
-          <span class="text-sm text-gray-600">{{ writerSummaryData.fines.count }} fine(s)</span>
-        </div>
-        <div class="space-y-3">
-          <div class="flex items-center justify-between p-4 bg-white rounded-lg border border-red-200">
-            <div>
-              <p class="text-sm font-medium text-gray-600">Total Fines</p>
-              <p class="text-3xl font-bold text-red-600">${{ formatCurrency(writerSummaryData.fines.total) }}</p>
-            </div>
-            <span class="text-4xl">⚠️</span>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="p-3 bg-white rounded-lg border border-red-200">
-              <p class="text-xs text-gray-600">This Month</p>
-              <p class="text-lg font-bold text-red-700">${{ formatCurrency(writerSummaryData.fines.this_month) }}</p>
-            </div>
-            <div class="p-3 bg-white rounded-lg border border-red-200">
-              <p class="text-xs text-gray-600">Unpaid</p>
-              <p class="text-lg font-bold text-red-700">${{ formatCurrency(writerSummaryData.fines.unpaid) }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Recent Reviews & Level Progress -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <!-- Recent Reviews -->
-      <div v-if="writerSummaryData?.reviews" class="card bg-white rounded-lg shadow-sm p-6">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-xl font-bold text-gray-900">⭐ Recent Reviews</h2>
-            <p class="text-sm text-gray-600 mt-1">
-              Average: {{ writerSummaryData.reviews.average_rating ? writerSummaryData.reviews.average_rating.toFixed(1) : 'N/A' }} 
-              ({{ writerSummaryData.reviews.total_count }} total)
-            </p>
-          </div>
-          <router-link to="/writer/reviews" class="text-primary-600 text-sm hover:underline font-medium">
-            View All →
-          </router-link>
-        </div>
-        <div v-if="writerSummaryData.reviews.recent.length === 0" class="text-center py-8 text-gray-500">
-          <div class="text-4xl mb-2">⭐</div>
-          <div>No reviews yet</div>
-        </div>
-        <div v-else class="space-y-3">
-          <div
-            v-for="review in writerSummaryData.reviews.recent"
-            :key="review.id"
-            class="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <div class="flex items-center gap-2 mb-2">
-                  <div class="flex">
-                    <span
-                      v-for="i in 5"
-                      :key="i"
-                      :class="i <= (review.rating || 0) ? 'text-yellow-400' : 'text-gray-300'"
-                      class="text-lg"
-                    >
-                      ★
-                    </span>
-                  </div>
-                  <span class="text-sm text-gray-600">{{ review.client_name }}</span>
-                </div>
-                <p v-if="review.comment" class="text-sm text-gray-700 mt-2 line-clamp-2">{{ review.comment }}</p>
-                <p class="text-xs text-gray-500 mt-2">
-                  Order #{{ review.order_id }} • {{ formatDate(review.created_at) }}
-                </p>
-              </div>
-              <router-link
-                v-if="review.order_id"
-                :to="`/orders/${review.order_id}`"
-                class="text-primary-600 text-sm hover:underline ml-4"
-              >
-                View
-              </router-link>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Level Progress -->
-      <div v-if="writerSummaryData?.level_progress || writerSummaryData?.current_level" class="card bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-xl font-bold text-gray-900">📊 Level Progress</h2>
-            <p class="text-sm text-gray-600 mt-1">
-              Current: <span class="font-medium">{{ writerSummaryData.current_level?.name || 'None' }}</span>
-            </p>
-          </div>
-          <span class="text-3xl">🎯</span>
-        </div>
-        
-        <div v-if="writerSummaryData.level_progress" class="space-y-4">
-          <div>
-            <div class="flex items-center justify-between mb-2">
-              <span class="text-sm font-medium text-gray-700">Progress to {{ writerSummaryData.level_progress.next_level_name }}</span>
-              <span class="text-sm font-bold text-blue-700">{{ writerSummaryData.level_progress.progress_percentage }}%</span>
-            </div>
-            
-            <!-- Progress Bar -->
-            <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
-              <div
-                class="h-4 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center text-xs font-medium text-white transition-all"
-                :style="{ width: `${Math.min(writerSummaryData.level_progress.progress_percentage, 100)}%` }"
-              >
-                {{ writerSummaryData.level_progress.progress_percentage >= 10 ? `${Math.round(writerSummaryData.level_progress.progress_percentage)}%` : '' }}
-              </div>
-            </div>
-            
-            <div class="grid grid-cols-2 gap-3 mt-4">
-              <div class="p-3 bg-white rounded-lg border border-blue-200">
-                <p class="text-xs text-gray-600">Current Score</p>
-                <p class="text-lg font-bold text-blue-700">{{ writerSummaryData.level_progress.current_score.toFixed(1) }}</p>
-              </div>
-              <div class="p-3 bg-white rounded-lg border border-blue-200">
-                <p class="text-xs text-gray-600">Required Score</p>
-                <p class="text-lg font-bold text-blue-700">{{ writerSummaryData.level_progress.required_score.toFixed(1) }}</p>
-              </div>
-            </div>
-            
-            <div v-if="writerSummaryData.level_progress.ready_for_promotion" class="mt-4 p-3 bg-green-100 border border-green-300 rounded-lg">
-              <p class="text-sm font-medium text-green-800">
-                ✅ Ready for promotion to {{ writerSummaryData.level_progress.next_level_name }}!
-              </p>
-            </div>
-            <div v-else-if="writerSummaryData.level_progress.points_needed > 0" class="mt-4 p-3 bg-blue-100 border border-blue-300 rounded-lg">
-              <p class="text-sm font-medium text-blue-800">
-                {{ writerSummaryData.level_progress.points_needed.toFixed(1) }} points needed for next level
-              </p>
-            </div>
-          </div>
-        </div>
-        <div v-else class="text-center py-8 text-gray-500">
-          <div class="text-sm">Level progress data not available</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Writer Hierarchy & Level Info -->
-    <div class="space-y-6">
-      <!-- Hierarchy Overview Card -->
-      <div class="card bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-50 rounded-lg shadow-sm p-6 border-2 border-indigo-200">
-        <!-- Loading State -->
-        <div v-if="!writerLevelData && loading" class="text-center py-8">
-          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p class="text-sm text-gray-600">Loading hierarchy information...</p>
-        </div>
-        
-        <!-- Empty State -->
-        <div v-else-if="!writerLevelData" class="text-center py-8">
-          <span class="text-4xl mb-4 block">📊</span>
-          <h2 class="text-2xl font-bold text-gray-900 mb-2">Writer Hierarchy</h2>
-          <p class="text-sm text-gray-600 mb-4">Your level information is being set up</p>
-          <p class="text-xs text-gray-500">Please contact admin to assign your writer level</p>
-        </div>
-        
-        <!-- Hierarchy Content -->
-        <div v-else>
-        <div class="flex items-center justify-between mb-4">
-          <div>
-            <h2 class="text-2xl font-bold text-gray-900">Writer Hierarchy</h2>
-            <p class="text-sm text-gray-600 mt-1">Your current level and earning structure</p>
-          </div>
-          <span class="text-4xl">📊</span>
-        </div>
-        
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <!-- Current Level Badge -->
-          <div class="bg-white rounded-lg p-4 border-2 border-indigo-300 text-center">
-            <p class="text-xs text-gray-600 mb-1">Current Level</p>
-            <p class="text-2xl font-bold text-indigo-700">{{ writerLevelData?.current_level?.name || 'Not Assigned' }}</p>
-            <p v-if="writerLevelData?.current_level?.description" class="text-xs text-gray-500 mt-2 line-clamp-2">
-              {{ writerLevelData?.current_level?.description }}
-            </p>
-          </div>
-          
-          <!-- Earning Summary -->
-          <div class="bg-white rounded-lg p-4 border-2 border-green-300 text-center">
-            <p class="text-xs text-gray-600 mb-1">Earning Rate</p>
-            <div v-if="writerLevelData?.current_level?.earning_mode === 'fixed_per_page'">
-              <p class="text-xl font-bold text-green-700">${{ parseFloat(writerLevelData?.current_level?.base_pay_per_page || 0).toFixed(2) }}/page</p>
-              <p v-if="writerLevelData?.current_level?.base_pay_per_slide > 0" class="text-xs text-gray-600 mt-1">
-                ${{ parseFloat(writerLevelData?.current_level?.base_pay_per_slide || 0).toFixed(2) }}/slide
-              </p>
-            </div>
-            <div v-else-if="writerLevelData?.current_level?.earning_mode === 'percentage_of_order_cost'">
-              <p class="text-xl font-bold text-green-700">{{ parseFloat(writerLevelData?.current_level?.earnings_percentage_of_cost || 0).toFixed(1) }}%</p>
-              <p class="text-xs text-gray-600 mt-1">of order cost</p>
-            </div>
-            <div v-else-if="writerLevelData?.current_level?.earning_mode === 'percentage_of_order_total'">
-              <p class="text-xl font-bold text-green-700">{{ parseFloat(writerLevelData?.current_level?.earnings_percentage_of_total || 0).toFixed(1) }}%</p>
-              <p class="text-xs text-gray-600 mt-1">of order total</p>
-            </div>
-            <p v-else class="text-sm text-gray-500">Not configured</p>
-          </div>
-          
-          <!-- Capacity Status -->
-          <div class="bg-white rounded-lg p-4 border-2 border-purple-300 text-center">
-            <p class="text-xs text-gray-600 mb-1">Order Capacity</p>
-            <p class="text-xl font-bold text-purple-700">
-              {{ writerLevelData?.current_stats?.total_takes || 0 }} / {{ writerLevelData?.current_level?.max_orders || 0 }}
-            </p>
-            <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
-              <div 
-                class="h-2 rounded-full transition-all"
-                :class="{
-                  'bg-green-500': (writerLevelData?.current_stats?.total_takes || 0) < (writerLevelData?.current_level?.max_orders || 1) * 0.7,
-                  'bg-yellow-500': (writerLevelData?.current_stats?.total_takes || 0) >= (writerLevelData?.current_level?.max_orders || 1) * 0.7 && (writerLevelData?.current_stats?.total_takes || 0) < (writerLevelData?.current_level?.max_orders || 1) * 0.9,
-                  'bg-red-500': (writerLevelData?.current_stats?.total_takes || 0) >= (writerLevelData?.current_level?.max_orders || 1) * 0.9
-                }"
-                :style="{ width: `${Math.min(((writerLevelData?.current_stats?.total_takes || 0) / (writerLevelData?.current_level?.max_orders || 1)) * 100, 100)}%` }"
-              ></div>
-            </div>
-            <p class="text-xs text-gray-500 mt-1">Current takes / Max allowed</p>
-          </div>
-        </div>
-
-        <!-- Current Level - Detailed Card -->
-        <div v-if="writerLevelData" class="card bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="text-2xl font-bold text-gray-900">Level Details</h2>
-              <p class="text-sm text-gray-600 mt-1">{{ writerLevelData?.current_level?.name || 'Not Assigned' }}</p>
-            </div>
-            <span class="text-4xl">📊</span>
-          </div>
-          
-          <p v-if="writerLevelData?.current_level?.description" class="text-sm text-gray-700 mb-4 p-3 bg-white rounded-lg border border-blue-200">
-            {{ writerLevelData?.current_level?.description }}
-          </p>
-
-          <!-- Detailed Level Information Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <!-- Earnings Structure -->
-            <div class="bg-white rounded-lg p-4 border border-blue-200">
-              <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-                <span class="mr-2">💰</span>
-                Earnings Structure
-              </h3>
-              <div v-if="writerLevelData?.current_level?.earning_mode === 'fixed_per_page'" class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-600">Per Page:</span>
-                  <span class="text-lg font-bold text-green-700">${{ parseFloat(writerLevelData?.current_level?.base_pay_per_page || 0).toFixed(2) }}</span>
-                </div>
-                <div v-if="writerLevelData?.current_level?.base_pay_per_slide > 0" class="flex items-center justify-between">
-                  <span class="text-xs text-gray-600">Per Slide:</span>
-                  <span class="text-lg font-bold text-green-700">${{ parseFloat(writerLevelData?.current_level?.base_pay_per_slide || 0).toFixed(2) }}</span>
-                </div>
-              </div>
-              <div v-else-if="writerLevelData?.current_level?.earning_mode === 'percentage_of_order_cost'" class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-600">Percentage:</span>
-                  <span class="text-lg font-bold text-green-700">{{ parseFloat(writerLevelData?.current_level?.earnings_percentage_of_cost || 0).toFixed(1) }}%</span>
-                </div>
-                <p class="text-xs text-gray-500">of order cost (before discounts)</p>
-              </div>
-              <div v-else-if="writerLevelData?.current_level?.earning_mode === 'percentage_of_order_total'" class="space-y-2">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-gray-600">Percentage:</span>
-                  <span class="text-lg font-bold text-green-700">{{ parseFloat(writerLevelData?.current_level?.earnings_percentage_of_total || 0).toFixed(1) }}%</span>
-                </div>
-                <p class="text-xs text-gray-500">of order total (after discounts)</p>
-              </div>
-            </div>
-
-          <!-- Urgency Adjustments -->
-          <div class="bg-white rounded-lg p-4 border border-yellow-200">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-              <span class="mr-2">⚡</span>
-              Urgency Adjustments
-            </h3>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Urgency Hours:</span>
-                <span class="text-sm font-bold text-yellow-700">{{ writerLevelData.current_level?.urgent_order_deadline_hours || 0 }}h</span>
-              </div>
-              <div v-if="writerLevelData?.current_level?.urgency_percentage_increase > 0" class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">% Increase:</span>
-                <span class="text-sm font-bold text-yellow-700">+{{ parseFloat(writerLevelData?.current_level?.urgency_percentage_increase || 0).toFixed(1) }}%</span>
-              </div>
-              <div v-if="writerLevelData?.current_level?.urgency_additional_per_page > 0" class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Extra Per Page:</span>
-                <span class="text-sm font-bold text-yellow-700">+${{ parseFloat(writerLevelData?.current_level?.urgency_additional_per_page || 0).toFixed(2) }}</span>
-              </div>
-              <p class="text-xs text-gray-500 mt-2">Orders within {{ writerLevelData?.current_level?.urgent_order_deadline_hours || 0 }} hours get urgency bonuses</p>
-            </div>
-          </div>
-
-          <!-- Technical Adjustments -->
-          <div class="bg-white rounded-lg p-4 border border-purple-200">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-              <span class="mr-2">🔧</span>
-              Technical Orders
-            </h3>
-            <div class="space-y-2">
-              <div v-if="writerLevelData?.current_level?.technical_order_adjustment_per_page > 0" class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Extra Per Page:</span>
-                <span class="text-sm font-bold text-purple-700">+${{ parseFloat(writerLevelData?.current_level?.technical_order_adjustment_per_page || 0).toFixed(2) }}</span>
-              </div>
-              <div v-if="writerLevelData?.current_level?.technical_order_adjustment_per_slide > 0" class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Extra Per Slide:</span>
-                <span class="text-sm font-bold text-purple-700">+${{ parseFloat(writerLevelData?.current_level?.technical_order_adjustment_per_slide || 0).toFixed(2) }}</span>
-              </div>
-              <p v-if="!writerLevelData?.current_level?.technical_order_adjustment_per_page && !writerLevelData?.current_level?.technical_order_adjustment_per_slide" class="text-xs text-gray-500">No technical adjustments</p>
-            </div>
-          </div>
-
-          <!-- Capacity & Limits -->
-          <div class="bg-white rounded-lg p-4 border border-indigo-200">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-              <span class="mr-2">📋</span>
-              Capacity & Limits
-            </h3>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Max Orders:</span>
-                <span class="text-sm font-bold text-indigo-700">{{ writerLevelData.current_level?.max_orders || 0 }}</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Current Takes:</span>
-                <span class="text-sm font-bold text-indigo-700">{{ writerLevelData.current_stats?.total_takes || 0 }}</span>
-              </div>
-              <p class="text-xs text-gray-500 mt-2">
-                Your maximum concurrent orders and current takes are shown here. Detailed deadline allocation is managed by admins.
-              </p>
-            </div>
-          </div>
-
-          <!-- Performance Stats -->
-          <div class="bg-white rounded-lg p-4 border border-green-200">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-              <span class="mr-2">⭐</span>
-              Your Performance
-            </h3>
-            <div class="space-y-2">
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Average Rating:</span>
-                <span class="text-sm font-bold text-green-700">
-                  {{ writerLevelData.current_stats?.avg_rating ? writerLevelData.current_stats.avg_rating.toFixed(1) : 'N/A' }}
-                  <span v-if="writerLevelData.current_stats?.avg_rating" class="text-yellow-500 ml-1">★</span>
-                </span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Completed Orders:</span>
-                <span class="text-sm font-bold text-green-700">{{ writerLevelData.current_stats?.total_completed_orders || 0 }}</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Completion Rate:</span>
-                <span class="text-sm font-bold text-green-700">{{ writerLevelData.current_stats?.completion_rate ? `${writerLevelData.current_stats.completion_rate.toFixed(1)}%` : 'N/A' }}</span>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Revision Rate:</span>
-                <span class="text-sm font-bold" :class="writerLevelData.current_stats?.revision_rate > 20 ? 'text-red-700' : 'text-green-700'">
-                  {{ writerLevelData.current_stats?.revision_rate ? `${writerLevelData.current_stats.revision_rate.toFixed(1)}%` : 'N/A' }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bonuses -->
-          <div v-if="writerLevelData?.current_level?.bonus_per_order_completed > 0 || writerLevelData?.current_level?.bonus_per_rating_above_threshold > 0" class="bg-white rounded-lg p-4 border border-orange-200">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
-              <span class="mr-2">🎁</span>
-              Available Bonuses
-            </h3>
-            <div class="space-y-2">
-              <div v-if="writerLevelData?.current_level?.bonus_per_order_completed > 0" class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Per Order:</span>
-                <span class="text-sm font-bold text-orange-700">+${{ parseFloat(writerLevelData?.current_level?.bonus_per_order_completed || 0).toFixed(2) }}</span>
-              </div>
-              <div v-if="writerLevelData?.current_level?.bonus_per_rating_above_threshold > 0" class="flex items-center justify-between">
-                <span class="text-xs text-gray-600">Rating ≥{{ writerLevelData?.current_level?.rating_threshold_for_bonus }}:</span>
-                <span class="text-sm font-bold text-orange-700">+${{ parseFloat(writerLevelData?.current_level?.bonus_per_rating_above_threshold || 0).toFixed(2) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-          <!-- Quick Reference Summary -->
-          <div class="mt-6 p-4 bg-white rounded-lg border border-blue-200">
-            <h3 class="text-sm font-semibold text-gray-700 mb-3">Quick Reference</h3>
-            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
-              <div>
-                <p class="text-gray-600">Urgency Threshold:</p>
-                <p class="font-bold text-gray-900">{{ writerLevelData?.current_level?.urgent_order_deadline_hours || 0 }} hours</p>
-              </div>
-              <div>
-                <p class="text-gray-600">Urgency Bonus:</p>
-                <p class="font-bold text-gray-900" v-if="writerLevelData?.current_level?.urgency_percentage_increase > 0">
-                  +{{ parseFloat(writerLevelData?.current_level?.urgency_percentage_increase || 0).toFixed(1) }}%
-                  <span v-if="writerLevelData?.current_level?.urgency_additional_per_page > 0">
-                    +${{ parseFloat(writerLevelData?.current_level?.urgency_additional_per_page || 0).toFixed(2) }}/page
-                  </span>
-                </p>
-                <p v-else class="font-bold text-gray-500">None</p>
-              </div>
-              <div>
-                <p class="text-gray-600">Technical Bonus:</p>
-                <p class="font-bold text-gray-900" v-if="writerLevelData?.current_level?.technical_order_adjustment_per_page > 0">
-                  +${{ parseFloat(writerLevelData?.current_level?.technical_order_adjustment_per_page || 0).toFixed(2) }}/page
-                </p>
-                <p v-else class="font-bold text-gray-500">None</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        </div>
-      </div>
-
-      <!-- Next Level & Ranking Row -->
-      <div v-if="writerLevelData" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      
-        <!-- Next Level Requirements -->
-        <div v-if="writerLevelData.next_level" class="card bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg shadow-sm p-6 border border-purple-200">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h2 class="text-xl font-bold text-gray-900">Next Level</h2>
-              <p class="text-sm text-gray-600 mt-1">Progress to advance</p>
-            </div>
-            <span class="text-3xl">🎯</span>
-          </div>
-          <div class="space-y-3">
-            <div>
-              <p class="text-lg font-bold text-purple-700 mb-2">{{ writerLevelData?.next_level?.next_level?.name || 'N/A' }}</p>
-              <div v-if="writerLevelData?.next_level?.is_eligible" class="p-3 bg-green-100 border border-green-300 rounded-lg">
-                <p class="text-sm font-medium text-green-800">✅ You're eligible for this level!</p>
-                <p class="text-xs text-green-700 mt-1">Contact admin to be promoted</p>
-              </div>
-              <div v-else class="space-y-3">
-                <p class="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">Requirements to Unlock:</p>
-                <div class="space-y-2">
-                  <div v-if="writerLevelData?.current_stats?.total_completed_orders < writerLevelData?.next_level?.requirements?.min_orders" class="p-2 bg-white rounded border border-purple-200">
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-xs text-gray-600">Completed Orders:</span>
-                      <span class="text-xs font-bold" :class="(writerLevelData?.current_stats?.total_completed_orders || 0) >= (writerLevelData?.next_level?.requirements?.min_orders || 0) ? 'text-green-700' : 'text-purple-700'">
-                        {{ writerLevelData?.current_stats?.total_completed_orders || 0 }}/{{ writerLevelData?.next_level?.requirements?.min_orders || 0 }}
-                      </span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-1.5">
-                      <div 
-                        class="h-1.5 rounded-full transition-all"
-                        :class="(writerLevelData?.current_stats?.total_completed_orders || 0) >= (writerLevelData?.next_level?.requirements?.min_orders || 0) ? 'bg-green-500' : 'bg-purple-500'"
-                        :style="{ width: `${Math.min(((writerLevelData?.current_stats?.total_completed_orders || 0) / (writerLevelData?.next_level?.requirements?.min_orders || 1)) * 100, 100)}%` }"
-                      ></div>
-                    </div>
-                  </div>
-                  <div v-if="(writerLevelData?.current_stats?.avg_rating || 0) < (writerLevelData?.next_level?.requirements?.min_rating || 0)" class="p-2 bg-white rounded border border-purple-200">
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-xs text-gray-600">Average Rating:</span>
-                      <span class="text-xs font-bold" :class="(writerLevelData?.current_stats?.avg_rating || 0) >= (writerLevelData?.next_level?.requirements?.min_rating || 0) ? 'text-green-700' : 'text-purple-700'">
-                        {{ (writerLevelData?.current_stats?.avg_rating || 0).toFixed(1) }}/{{ (writerLevelData?.next_level?.requirements?.min_rating || 0).toFixed(1) }}
-                        <span class="text-yellow-500 ml-1">★</span>
-                      </span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-1.5">
-                      <div 
-                        class="h-1.5 rounded-full transition-all"
-                        :class="(writerLevelData?.current_stats?.avg_rating || 0) >= (writerLevelData?.next_level?.requirements?.min_rating || 0) ? 'bg-green-500' : 'bg-purple-500'"
-                        :style="{ width: `${Math.min(((writerLevelData?.current_stats?.avg_rating || 0) / (writerLevelData?.next_level?.requirements?.min_rating || 1)) * 100, 100)}%` }"
-                      ></div>
-                    </div>
-                  </div>
-                  <div v-if="(writerLevelData?.current_stats?.completion_rate || 0) < (writerLevelData?.next_level?.requirements?.min_completion_rate || 0)" class="p-2 bg-white rounded border border-purple-200">
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-xs text-gray-600">Completion Rate:</span>
-                      <span class="text-xs font-bold" :class="(writerLevelData?.current_stats?.completion_rate || 0) >= (writerLevelData?.next_level?.requirements?.min_completion_rate || 0) ? 'text-green-700' : 'text-purple-700'">
-                        {{ (writerLevelData?.current_stats?.completion_rate || 0).toFixed(1) }}%/{{ (writerLevelData?.next_level?.requirements?.min_completion_rate || 0).toFixed(1) }}%
-                      </span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-1.5">
-                      <div 
-                        class="h-1.5 rounded-full transition-all"
-                        :class="(writerLevelData?.current_stats?.completion_rate || 0) >= (writerLevelData?.next_level?.requirements?.min_completion_rate || 0) ? 'bg-green-500' : 'bg-purple-500'"
-                        :style="{ width: `${Math.min(((writerLevelData?.current_stats?.completion_rate || 0) / (writerLevelData?.next_level?.requirements?.min_completion_rate || 1)) * 100, 100)}%` }"
-                      ></div>
-                    </div>
-                  </div>
-                  <div v-if="(writerLevelData?.next_level?.requirements?.min_takes || 0) > 0 && (writerLevelData?.current_stats?.total_takes || 0) < (writerLevelData?.next_level?.requirements?.min_takes || 0)" class="p-2 bg-white rounded border border-purple-200">
-                    <div class="flex items-center justify-between mb-1">
-                      <span class="text-xs text-gray-600">Successful Takes:</span>
-                      <span class="text-xs font-bold" :class="(writerLevelData?.current_stats?.total_takes || 0) >= (writerLevelData?.next_level?.requirements?.min_takes || 0) ? 'text-green-700' : 'text-purple-700'">
-                        {{ writerLevelData?.current_stats?.total_takes || 0 }}/{{ writerLevelData?.next_level?.requirements?.min_takes || 0 }}
-                      </span>
-                    </div>
-                    <div class="w-full bg-gray-200 rounded-full h-1.5">
-                      <div 
-                        class="h-1.5 rounded-full transition-all"
-                        :class="(writerLevelData?.current_stats?.total_takes || 0) >= (writerLevelData?.next_level?.requirements?.min_takes || 0) ? 'bg-green-500' : 'bg-purple-500'"
-                        :style="{ width: `${Math.min(((writerLevelData?.current_stats?.total_takes || 0) / (writerLevelData?.next_level?.requirements?.min_takes || 1)) * 100, 100)}%` }"
-                      ></div>
-                    </div>
-                  </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-        
-        <!-- Ranking -->
-      <div class="card bg-white rounded-lg shadow-sm p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-bold text-gray-900">Ranking</h2>
-          <span class="text-3xl">🏆</span>
-        </div>
-        <div v-if="writerLevelData?.ranking_position" class="text-center py-8">
-          <div class="text-5xl font-bold text-primary-600 mb-2">#{{ writerLevelData?.ranking_position }}</div>
-          <div class="text-sm text-gray-600">Your ranking position</div>
-        </div>
-        <div v-else class="text-center py-8 text-gray-500">
-          <div class="text-sm">Ranking data not available</div>
-        </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Order Queue -->
-    <div class="card bg-white rounded-lg shadow-sm p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-xl font-bold text-gray-900">Available Orders</h2>
-        <router-link to="/writer/queue" class="text-primary-600 text-sm">View all</router-link>
-      </div>
-      <div v-if="writerQueueData && writerQueueData.available_orders && writerQueueData.available_orders.length" class="space-y-3">
-        <div 
-          v-for="order in writerQueueData.available_orders.slice(0, 5)" 
-          :key="order.id"
-          class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <div class="flex-1">
-            <div class="font-medium">#{{ order.id }} · {{ order.topic }}</div>
-            <div class="text-sm text-gray-500 mt-1">
-              {{ order.service_type }} · {{ (order.pages || order.number_of_pages || 0) }} pages · 
-              Deadline: {{ order.deadline ? new Date(order.deadline).toLocaleDateString() : 'N/A' }}
-            </div>
-          </div>
-          <div class="text-right mr-4">
-            <div class="text-lg font-bold text-green-600">${{ (order.price || 0).toFixed(2) }}</div>
-          </div>
-          <button 
-            v-if="!order.is_requested"
-            @click="openRequestModal(order)"
-            :disabled="requestingOrder === order.id"
-            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm transition-colors"
-          >
-            {{ requestingOrder === order.id ? 'Requesting...' : 'Request' }}
-          </button>
-          <button 
-            v-else
-            disabled
-            class="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed text-sm flex items-center gap-1"
-            title="You have already requested this order. Waiting for admin review."
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Already Requested
-          </button>
-        </div>
-      </div>
-      <div v-else class="text-center py-8 text-gray-500">
-        {{ writerQueueData ? 'No available orders' : 'Loading order queue...' }}
-      </div>
-    </div>
-
-    <!-- Payment Status Widget -->
-    <div v-if="writerPaymentStatus" class="mt-6">
-      <PaymentStatusWidget
-        :payment-status="writerPaymentStatus"
-        :loading="loading"
-      />
-    </div>
-
-    <!-- My Order Requests -->
-    <div v-if="writerQueueData && (writerQueueData.order_requests?.length > 0 || writerQueueData.writer_requests?.length > 0)" class="card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200 mb-6">
-      <div class="bg-gradient-to-r from-violet-50 to-purple-50 border-b-2 border-violet-200 px-6 py-4">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <svg class="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            My Order Requests
-          </h2>
-          <router-link to="/writer/order-requests" class="text-violet-600 hover:text-violet-800 text-sm font-semibold flex items-center gap-1 transition-colors">
-            View all
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-gray-400 group-hover:text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </router-link>
-        </div>
-      </div>
-      <div class="p-4 space-y-3">
-        <div
-          v-for="request in [...(writerQueueData.order_requests || []), ...(writerQueueData.writer_requests || [])].slice(0, 5)"
-          :key="`${request.type || 'request'}-${request.id}`"
-          class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          <div class="flex-1">
-            <div class="font-medium text-gray-900">
-              Order #{{ request.order_id || request.order?.id }}
-              <span v-if="request.order_topic || request.order?.topic" class="text-gray-600">· {{ request.order_topic || request.order?.topic }}</span>
-            </div>
-            <div class="text-sm text-gray-500 mt-1">
-              <span v-if="request.status" class="capitalize">{{ request.status }}</span>
-              <span v-if="request.requested_at || request.created_at" class="ml-2">
-                Requested: {{ formatDate(request.requested_at || request.created_at) }}
-              </span>
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <span
-              :class="{
-                'bg-yellow-100 text-yellow-800': request.status === 'pending' || request.status === 'under_review',
-                'bg-green-100 text-green-800': request.status === 'approved' || request.status === 'accepted',
-                'bg-red-100 text-red-800': request.status === 'rejected' || request.status === 'denied',
-                'bg-gray-100 text-gray-800': !request.status
-              }"
-              class="px-2 py-1 text-xs font-semibold rounded-full"
-            >
-              {{ request.status ? request.status.replace('_', ' ').toUpperCase() : 'PENDING' }}
-            </span>
             <router-link
-              :to="`/orders/${request.order_id || request.order?.id}`"
-              class="px-3 py-1.5 bg-violet-600 text-white rounded-lg hover:bg-violet-700 text-xs font-semibold transition-colors"
+            to="/writer/payments"
+            class="flex items-center gap-3 p-3 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors group"
             >
-              View
-            </router-link>
+            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center shadow-sm">
+              <BanknotesIcon class="w-5 h-5" />
           </div>
+            <div class="flex-1">
+              <p class="font-semibold text-gray-900 group-hover:text-purple-700">View Payments</p>
+              <p class="text-xs text-gray-600">Payment history</p>
         </div>
-      </div>
-    </div>
-
-    <!-- Recent Orders -->
-    <div class="card bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-      <div class="bg-gradient-to-r from-emerald-50 to-green-50 border-b-2 border-emerald-200 px-6 py-4">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            My Orders
-          </h2>
-          <router-link to="/orders" class="text-emerald-600 hover:text-emerald-800 text-sm font-semibold flex items-center gap-1 transition-colors">
-            View all
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-gray-400 group-hover:text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
           </router-link>
+          <router-link
+            to="/writer/performance"
+            class="flex items-center gap-3 p-3 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors group"
+          >
+            <div class="w-10 h-10 rounded-xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-sm">
+              <ChartBarSquareIcon class="w-5 h-5" />
         </div>
+            <div class="flex-1">
+              <p class="font-semibold text-gray-900 group-hover:text-blue-700">Performance</p>
+              <p class="text-xs text-gray-600">View analytics</p>
       </div>
-      <div v-if="recentOrdersLoading" class="flex items-center justify-center py-12">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
-      </div>
-      <div v-else-if="!recentOrders.length" class="text-center py-12 text-gray-500">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg class="w-5 h-5 text-gray-400 group-hover:text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
         </svg>
-        <p class="mt-2 text-sm font-medium">No orders assigned yet</p>
-        <router-link to="/writer/queue" class="mt-2 inline-block text-emerald-600 hover:text-emerald-800 text-sm font-medium">
-          Browse available orders →
         </router-link>
       </div>
-      <div v-else class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200" style="min-width: 1000px;">
-          <thead class="bg-gray-50">
-            <tr>
-              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Order ID</th>
-              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Topic</th>
-              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Status</th>
-              <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Deadline</th>
-              <th class="px-6 py-3 text-center text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap">Actions</th>
-            </tr>
-          </thead>
-          <tbody class="bg-white divide-y divide-gray-100">
-            <tr v-for="o in recentOrders.slice(0, 5)" :key="o.id" class="hover:bg-emerald-50/50 transition-all duration-150">
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white text-xs font-bold">
-                    #
                   </div>
-                  <span class="text-sm font-semibold text-gray-900">#{{ o.id }}</span>
                 </div>
-              </td>
-              <td class="px-6 py-4">
-                <div class="text-sm font-medium text-gray-900 max-w-md truncate" :title="o.topic">
-                  {{ o.topic || 'N/A' }}
                 </div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-sm"
-                      :class="getOrderStatusClass(o.status)">
-                  {{ o.status }}
-                </span>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{{ o.deadline ? formatDate(o.deadline) : 'N/A' }}</div>
-                <div v-if="o.deadline" class="text-xs text-gray-500">{{ formatTime(o.deadline) }}</div>
-              </td>
-              <td class="px-6 py-4 whitespace-nowrap text-center">
-                <router-link 
-                  :to="`/orders/${o.id}`" 
-                  class="inline-flex items-center px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-xs font-semibold shadow-sm"
-                >
-                  View Order
-                </router-link>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+
+  <!-- Availability Confirmation Dialog -->
+  <ConfirmationDialog
+    v-if="confirm.show.value"
+    v-model:show="confirm.show"
+    :title="unref(confirm.title)"
+    :message="unref(confirm.message)"
+    :details="unref(confirm.details)"
+    :variant="unref(confirm.variant)"
+    :icon="unref(confirm.icon)"
+    :confirm-text="unref(confirm.confirmText)"
+    :cancel-text="unref(confirm.cancelText)"
+    @confirm="confirm.onConfirm"
+    @cancel="confirm.onCancel"
+  />
 </template>
 
 <script setup>
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, onMounted, unref } from 'vue'
 import {
   ClockIcon,
   CheckCircleIcon,
   MoonIcon,
   ArrowPathIcon,
-  RocketLaunchIcon,
-  // TargetIcon, // Replaced with Lucide Target
-  CalendarIcon,
-  CurrencyDollarIcon,
-  ChartBarIcon,
-  ArrowTrendingUpIcon
+  CursorArrowRaysIcon,
+  BanknotesIcon,
+  ChartBarSquareIcon,
 } from '@heroicons/vue/24/outline'
-import { Target } from 'lucide-vue-next'
-import StatsCard from '@/components/dashboard/StatsCard.vue'
-import QuickActionCard from '@/components/dashboard/QuickActionCard.vue'
-import ChartWidget from '@/components/dashboard/ChartWidget.vue'
-import Modal from '@/components/common/Modal.vue'
-import PaymentStatusWidget from '@/components/writer/PaymentStatusWidget.vue'
-import writerOrderRequestsAPI from '@/api/writer-order-requests'
+import ordersAPI from '@/api/orders'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import { useToast } from '@/composables/useToast'
-import { getErrorMessage } from '@/utils/errorHandler'
 import onlineStatusAPI from '@/api/online-status'
+import { useAuthStore } from '@/stores/auth'
+import OrderStatusTooltip from '@/components/common/OrderStatusTooltip.vue'
+import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 
 const props = defineProps({
   writerEarningsData: Object,
@@ -1255,69 +531,544 @@ const props = defineProps({
 
 const emit = defineEmits(['order-requested', 'refresh-requested', 'availability-updated'])
 
-const earningsTrendSeries = computed(() => {
-  if (!props.writerEarningsData?.earnings_trend?.length) return []
-  return [{
-    name: 'Earnings',
-    data: props.writerEarningsData.earnings_trend.map(t => t.total)
-  }]
-})
+const authStore = useAuthStore()
+const confirm = useConfirmDialog()
 
-const earningsTrendOptions = computed(() => ({
-  chart: { type: 'area', toolbar: { show: false } },
-  xaxis: { 
-    categories: props.writerEarningsData?.earnings_trend?.map(t => new Date(t.date).toLocaleDateString()) || [],
-    labels: { rotate: -45 }
-  },
-  yaxis: { title: { text: 'Earnings ($)' } },
-  stroke: { curve: 'smooth' },
-  colors: ['#10B981'],
-}))
+// Orders state
+const activeTab = ref('in_progress') // Default to In Progress tab
+const ordersLoading = ref(props.recentOrdersLoading)
+const allOrders = ref([...props.recentOrders])
+const availableOrders = ref([])
+const availableOrdersLoading = ref(false)
+const orderRequests = ref([])
+const orderRequestsLoading = ref(false)
+const currentPage = ref(1)
+const hasMoreOrders = ref(false)
 
-const performanceTrendSeries = computed(() => {
-  if (!props.writerPerformanceData?.performance_trend?.length) return []
-  return [
-    { name: 'Completed Orders', data: props.writerPerformanceData.performance_trend.map(t => t.completed) },
-    { name: 'Total Orders', data: props.writerPerformanceData.performance_trend.map(t => t.total) }
-  ]
-})
+// Availability state
+const availabilityLoading = ref(false)
+const lastAvailabilityPing = ref(null)
 
-const performanceTrendOptions = computed(() => ({
-  chart: { 
-    type: 'line', 
-    toolbar: { show: false },
-    zoom: { enabled: false }
-  },
-  xaxis: { 
-    categories: props.writerPerformanceData?.performance_trend?.map(t => new Date(t.date).toLocaleDateString()) || [],
-    labels: { rotate: -45, style: { fontSize: '12px' } }
-  },
-  yaxis: { 
-    title: { text: 'Number of Orders' },
-    min: 0
-  },
-  stroke: { curve: 'smooth', width: 2 },
-  colors: ['#3B82F6', '#10B981'],
-  legend: {
-    position: 'top',
-    horizontalAlign: 'right'
-  },
-  grid: {
-    borderColor: '#e5e7eb',
-    strokeDashArray: 4
+// Fetch all orders by status
+const fetchOrdersByStatus = async (statuses = null, page = 1, includeArchived = false) => {
+  ordersLoading.value = true
+  try {
+    const params = {
+      assigned_writer: true,
+      page_size: 50,
+      ordering: '-created_at',
+      page
+    }
+    
+    // Include archived orders if requested
+    if (includeArchived) {
+      params.include_archived = true
+    }
+    
+    if (statuses && statuses.length > 0) {
+      // Backend parses status as CSV, so we can pass comma-separated values
+      params.status = statuses.join(',')
+    }
+    
+    const response = await ordersAPI.list(params)
+    const orders = Array.isArray(response.data?.results) 
+      ? response.data.results 
+      : (Array.isArray(response.data) ? response.data : [])
+    
+    if (page === 1) {
+      // For page 1, replace orders for this status
+      // But keep orders from other statuses that might be in allOrders
+      if (statuses && statuses.length > 0) {
+        // Remove orders with these statuses first (but keep archived if we're not fetching archived)
+        if (!includeArchived) {
+          allOrders.value = allOrders.value.filter(o => !statuses.includes(o.status) || o.is_archived)
+        } else {
+          allOrders.value = allOrders.value.filter(o => !statuses.includes(o.status))
+        }
+        // Then add new orders
+        allOrders.value = [...allOrders.value, ...orders]
+      } else if (includeArchived) {
+        // For archived orders, replace all archived orders
+        allOrders.value = allOrders.value.filter(o => !o.is_archived)
+        allOrders.value = [...allOrders.value, ...orders]
+      } else {
+        // For "all orders" (non-archived), replace everything
+        allOrders.value = orders.filter(o => !o.is_archived)
+      }
+    } else {
+      // For subsequent pages, append new orders (avoiding duplicates)
+      const existingIds = new Set(allOrders.value.map(o => o.id))
+      const newOrders = orders.filter(o => !existingIds.has(o.id))
+      allOrders.value = [...allOrders.value, ...newOrders]
+    }
+    
+    hasMoreOrders.value = response.data?.next ? true : false
+  } catch (err) {
+    console.error('Failed to fetch orders:', err)
+    if (page === 1) {
+      // Only clear on first page error
+      if (!statuses || statuses.length === 0) {
+        allOrders.value = []
+      }
+    }
+  } finally {
+    ordersLoading.value = false
   }
-}))
-
-const formatCurrency = (amount) => {
-  if (!amount) return '0.00'
-  return parseFloat(amount).toFixed(2)
 }
 
-const formatScore = (value) => {
-  if (value === null || value === undefined || value === '') return '0.0'
-  return Number(value).toFixed(1)
+// Fetch available orders (orders writer can request/take)
+// Only shows unassigned, paid orders that haven't been assigned to any writer
+const fetchAvailableOrders = async () => {
+  availableOrdersLoading.value = true
+  try {
+    // Get available orders from queue data (these are already filtered to be unassigned and paid)
+    if (props.writerQueueData?.available_orders) {
+      // Filter to ensure only unassigned orders
+      availableOrders.value = props.writerQueueData.available_orders.filter(
+        order => !order.assigned_writer && order.is_paid && order.status === 'available'
+      )
+    } else {
+      // Fallback: fetch orders with status 'available', unassigned, and paid
+      const params = {
+        status: 'available',
+        assigned_writer: false, // Explicitly unassigned
+        is_paid: true,
+        page_size: 100,
+        ordering: '-created_at'
+      }
+      const response = await ordersAPI.list(params)
+      const orders = Array.isArray(response.data?.results) 
+        ? response.data.results 
+        : (Array.isArray(response.data) ? response.data : [])
+      // Double-check they're unassigned
+      availableOrders.value = orders.filter(
+        order => !order.assigned_writer && order.is_paid
+      )
+    }
+  } catch (err) {
+    console.error('Failed to fetch available orders:', err)
+    availableOrders.value = []
+  } finally {
+    availableOrdersLoading.value = false
+  }
 }
 
+// Fetch order requests (orders the writer has requested)
+const fetchOrderRequests = async () => {
+  orderRequestsLoading.value = true
+  try {
+    const response = await writerDashboardAPI.getOrderRequests()
+    if (response?.data) {
+      // Get orders from requests, filter out those assigned to other writers
+      const requests = response.data.requests || response.data.order_requests || []
+      const requestOrders = requests
+        .map(req => {
+          // Handle both direct order objects and request objects with order property
+          const order = req.order || req
+          return {
+            ...order,
+            request_status: req.approved ? 'approved' : (req.status || 'pending'),
+            request_id: req.id,
+            requested_at: req.requested_at || req.created_at
+          }
+        })
+        .filter(order => {
+          // Remove requests where order is assigned to another writer
+          if (order.assigned_writer) {
+            const assignedWriterId = typeof order.assigned_writer === 'object' 
+              ? order.assigned_writer.id 
+              : order.assigned_writer
+            const currentUserId = authStore.user?.id
+            
+            // If assigned to another writer, remove from requests
+            if (assignedWriterId !== currentUserId) {
+              return false
+            }
+            // If assigned to current writer and approved, it should move to In Progress
+            // Keep it here if request is still pending
+            if (order.request_status === 'approved' && assignedWriterId === currentUserId) {
+              // This will be handled in In Progress tab
+              return false
+            }
+          }
+          return true
+        })
+      orderRequests.value = requestOrders
+    } else {
+      orderRequests.value = []
+    }
+  } catch (err) {
+    console.error('Failed to fetch order requests:', err)
+    orderRequests.value = []
+  } finally {
+    orderRequestsLoading.value = false
+  }
+}
+
+// Order tabs configuration with colors
+const orderTabs = computed(() => {
+  // Define status groups
+  const assignedStatuses = ['assigned', 'pending_writer_assignment'] // Can still reject/accept
+  const inProgressStatuses = ['in_progress', 'under_editing', 'submitted'] // Actively working
+  const revisionStatuses = ['revision_requested', 'on_revision']
+  const completedStatuses = ['completed']
+  const cancelledStatuses = ['cancelled']
+  const closedStatuses = ['closed'] // Deadline passed, not rated
+  
+  const tabs = [
+    {
+      id: 'available',
+      label: 'Available',
+      statuses: null, // Special case - uses availableOrders (unassigned, paid)
+      count: availableOrders.value.length,
+      color: 'bg-blue-500',
+      textColor: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-200',
+      description: 'Paid orders you can request or take'
+    },
+    {
+      id: 'assigned',
+      label: 'Assigned',
+      statuses: assignedStatuses,
+      count: allOrders.value.filter(o => 
+        assignedStatuses.includes(o.status) && 
+        o.assigned_writer && 
+        !inProgressStatuses.includes(o.status)
+      ).length,
+      color: 'bg-indigo-500',
+      textColor: 'text-indigo-600',
+      bgColor: 'bg-indigo-50',
+      borderColor: 'border-indigo-200',
+      description: 'Orders assigned to you (can accept/reject)'
+    },
+    {
+      id: 'order_requests',
+      label: 'Order Requests',
+      statuses: null, // Special case - uses orderRequests
+      count: orderRequests.value.length,
+      color: 'bg-cyan-500',
+      textColor: 'text-cyan-600',
+      bgColor: 'bg-cyan-50',
+      borderColor: 'border-cyan-200',
+      description: 'Orders you have requested'
+    },
+    {
+      id: 'in_progress',
+      label: 'In Progress',
+      statuses: inProgressStatuses,
+      count: allOrders.value.filter(o => 
+        inProgressStatuses.includes(o.status) && 
+        o.assigned_writer
+      ).length,
+      color: 'bg-emerald-500',
+      textColor: 'text-emerald-600',
+      bgColor: 'bg-emerald-50',
+      borderColor: 'border-emerald-200',
+      description: 'Orders you are actively working on'
+    },
+    {
+      id: 'revision_requests',
+      label: 'Revision Requests',
+      statuses: revisionStatuses,
+      count: allOrders.value.filter(o => revisionStatuses.includes(o.status)).length,
+      color: 'bg-orange-500',
+      textColor: 'text-orange-600',
+      bgColor: 'bg-orange-50',
+      borderColor: 'border-orange-200',
+      description: 'Orders requiring revision'
+    },
+    {
+      id: 'completed',
+      label: 'Completed',
+      statuses: completedStatuses,
+      count: allOrders.value.filter(o => completedStatuses.includes(o.status)).length,
+      color: 'bg-green-500',
+      textColor: 'text-green-600',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-200',
+      description: 'Orders you have submitted'
+    },
+    {
+      id: 'disputed',
+      label: 'Disputed',
+      statuses: ['disputed'],
+      count: allOrders.value.filter(o => o.status === 'disputed').length,
+      color: 'bg-red-500',
+      textColor: 'text-red-600',
+      bgColor: 'bg-red-50',
+      borderColor: 'border-red-200',
+      description: 'Orders under dispute'
+    },
+    {
+      id: 'on_hold',
+      label: 'On Hold',
+      statuses: ['on_hold'],
+      count: allOrders.value.filter(o => o.status === 'on_hold').length,
+      color: 'bg-amber-500',
+      textColor: 'text-amber-600',
+      bgColor: 'bg-amber-50',
+      borderColor: 'border-amber-200',
+      description: 'Orders on hold'
+    },
+    {
+      id: 'cancelled',
+      label: 'Cancelled',
+      statuses: cancelledStatuses,
+      count: allOrders.value.filter(o => cancelledStatuses.includes(o.status)).length,
+      color: 'bg-gray-500',
+      textColor: 'text-gray-600',
+      bgColor: 'bg-gray-50',
+      borderColor: 'border-gray-200',
+      description: 'Cancelled orders'
+    },
+    {
+      id: 'closed',
+      label: 'Closed',
+      statuses: closedStatuses,
+      count: allOrders.value.filter(o => closedStatuses.includes(o.status)).length,
+      color: 'bg-slate-500',
+      textColor: 'text-slate-600',
+      bgColor: 'bg-slate-50',
+      borderColor: 'border-slate-200',
+      description: 'Deadline passed, not rated (candidates for archiving)'
+    },
+    {
+      id: 'archived',
+      label: 'Archived',
+      statuses: null, // Special case - uses is_archived flag
+      count: allOrders.value.filter(o => o.is_archived === true).length,
+      color: 'bg-slate-600',
+      textColor: 'text-slate-700',
+      bgColor: 'bg-slate-100',
+      borderColor: 'border-slate-300',
+      description: 'Archived orders (view only, locked)'
+    },
+    {
+      id: 'all',
+      label: 'All Orders',
+      statuses: null,
+      count: allOrders.value.length,
+      color: 'bg-gray-600',
+      textColor: 'text-gray-700',
+      bgColor: 'bg-gray-100',
+      borderColor: 'border-gray-300'
+    }
+  ]
+  
+  return tabs
+})
+
+// Filtered orders based on active tab
+const filteredOrders = computed(() => {
+  const tab = orderTabs.value.find(t => t.id === activeTab.value)
+  if (!tab) return []
+  
+  const currentUserId = authStore.user?.id
+  
+  // Special case for available orders (unassigned, paid orders)
+  if (tab.id === 'available') {
+    return availableOrders.value.filter(o => 
+      !o.assigned_writer && 
+      o.is_paid && 
+      o.status === 'available' &&
+      !o.is_archived
+    )
+  }
+  
+  // Special case for assigned orders (can still reject/accept)
+  if (tab.id === 'assigned') {
+    const assignedStatuses = ['assigned', 'pending_writer_assignment']
+    return allOrders.value.filter(o => {
+      if (o.is_archived) return false
+      if (!assignedStatuses.includes(o.status)) return false
+      // Must be assigned to current writer
+      const assignedWriterId = typeof o.assigned_writer === 'object' ? o.assigned_writer.id : o.assigned_writer
+      if (assignedWriterId !== currentUserId) return false
+      // Exclude if already in progress
+      if (['in_progress', 'under_editing', 'submitted'].includes(o.status)) return false
+      return true
+    })
+  }
+  
+  // Special case for order requests
+  if (tab.id === 'order_requests') {
+    return orderRequests.value.filter(o => !o.is_archived)
+  }
+  
+  // Special case for in progress (actively working)
+  if (tab.id === 'in_progress') {
+    const inProgressStatuses = ['in_progress', 'under_editing', 'submitted']
+    return allOrders.value.filter(o => {
+      if (o.is_archived) return false
+      if (!inProgressStatuses.includes(o.status)) return false
+      // Must be assigned to current writer
+      const assignedWriterId = typeof o.assigned_writer === 'object' ? o.assigned_writer.id : o.assigned_writer
+      return assignedWriterId === currentUserId
+    })
+  }
+  
+  // Special case for revision requests
+  if (tab.id === 'revision_requests') {
+    const revisionStatuses = ['revision_requested', 'on_revision']
+    return allOrders.value.filter(o => {
+      if (o.is_archived) return false
+      if (!revisionStatuses.includes(o.status)) return false
+      // Must be assigned to current writer
+      const assignedWriterId = typeof o.assigned_writer === 'object' ? o.assigned_writer.id : o.assigned_writer
+      return assignedWriterId === currentUserId
+    })
+  }
+  
+  // Special case for archived orders
+  if (tab.id === 'archived') {
+    return allOrders.value.filter(o => o.is_archived === true)
+  }
+  
+  // Filter by status for other tabs
+  if (tab.statuses) {
+    return allOrders.value.filter(o => {
+      if (o.is_archived && tab.id !== 'archived') return false
+      if (!tab.statuses.includes(o.status)) return false
+      // For assigned orders, ensure they belong to current writer
+      if (tab.id === 'completed' || tab.id === 'disputed' || tab.id === 'on_hold' || tab.id === 'cancelled' || tab.id === 'closed') {
+        const assignedWriterId = typeof o.assigned_writer === 'object' ? o.assigned_writer.id : o.assigned_writer
+        return assignedWriterId === currentUserId
+      }
+      return true
+    })
+  }
+  
+  // All orders (excluding archived unless it's the all tab)
+  if (tab.id === 'all') {
+    return allOrders.value
+  }
+  
+  return []
+})
+
+// Order counts
+const activeOrdersCount = computed(() => {
+  return allOrders.value.filter(o => 
+    ['in_progress', 'under_editing', 'on_hold', 'submitted', 'revision_requested', 'on_revision'].includes(o.status)
+  ).length
+})
+
+const inProgressCount = computed(() => {
+  return allOrders.value.filter(o => o.status === 'in_progress').length
+})
+
+// Late Orders Count (orders past deadline)
+const lateOrdersCount = computed(() => {
+  const now = new Date()
+  return allOrders.value.filter(order => {
+    const deadline = order.writer_deadline || order.client_deadline || order.deadline
+    if (!deadline) return false
+    const deadlineDate = new Date(deadline)
+    // Only count active orders that are past deadline
+    const isActive = ['in_progress', 'under_editing', 'on_revision', 'revision_requested', 'submitted'].includes(order.status)
+    return isActive && deadlineDate < now
+  }).length
+})
+
+// Overall Rating
+const overallRating = computed(() => {
+  const rating = props.writerPerformanceData?.avg_rating
+  if (!rating || rating === 0) return null
+  return rating.toFixed(1)
+})
+
+// Total Reviews
+const totalReviews = computed(() => {
+  return props.writerPerformanceData?.total_reviews || 0
+})
+
+// Escalations Count (disputed orders + orders with escalation flags)
+const escalationsCount = computed(() => {
+  // Count disputed orders
+  const disputed = allOrders.value.filter(o => o.status === 'disputed').length
+  // Could also check for escalation flags if they exist in the order data
+  // For now, we'll use disputed orders as escalations
+  return disputed
+})
+
+// Watch active tab and fetch orders
+watch(activeTab, async (newTab) => {
+  const tab = orderTabs.value.find(t => t.id === newTab)
+  if (tab) {
+    currentPage.value = 1
+    if (tab.id === 'available') {
+      await fetchAvailableOrders()
+    } else if (tab.id === 'order_requests') {
+      await fetchOrderRequests()
+    } else if (tab.id === 'archived') {
+      // For archived orders, fetch with include_archived flag
+      await fetchOrdersByStatus(null, 1, true)
+    } else if (tab.id === 'all') {
+      // For "all orders", fetch without status filter (excluding archived by default)
+      await fetchOrdersByStatus(null, 1, false)
+    } else if (tab.statuses) {
+      // Fetch orders for specific statuses (excluding archived)
+      await fetchOrdersByStatus(tab.statuses, 1, false)
+    }
+  }
+}, { immediate: false })
+
+// Watch for changes in recentOrders prop
+watch(() => props.recentOrders, (newOrders) => {
+  if (newOrders && newOrders.length > 0) {
+    // Merge with existing orders, avoiding duplicates
+    const existingIds = new Set(allOrders.value.map(o => o.id))
+    const newUniqueOrders = newOrders.filter(o => !existingIds.has(o.id))
+    allOrders.value = [...allOrders.value, ...newUniqueOrders]
+  }
+}, { deep: true })
+
+watch(() => props.recentOrdersLoading, (loading) => {
+  ordersLoading.value = loading
+})
+
+// Load more orders
+const loadMoreOrders = async () => {
+  const tab = orderTabs.value.find(t => t.id === activeTab.value)
+  if (tab && hasMoreOrders.value) {
+    currentPage.value++
+    if (tab.id === 'available' || tab.id === 'order_requests') {
+      // For available orders and requests, we might need to fetch more from queue
+      // For now, these are usually limited, so we'll skip pagination
+      hasMoreOrders.value = false
+    } else if (tab.id === 'archived') {
+      await fetchOrdersByStatus(null, currentPage.value, true)
+    } else if (tab.id === 'all') {
+      await fetchOrdersByStatus(null, currentPage.value, false)
+    } else if (tab.statuses) {
+      await fetchOrdersByStatus(tab.statuses, currentPage.value, false)
+    }
+  }
+}
+
+// Refresh orders
+const refreshOrders = async () => {
+  const tab = orderTabs.value.find(t => t.id === activeTab.value)
+  if (tab) {
+    currentPage.value = 1
+    if (tab.id === 'available') {
+      await fetchAvailableOrders()
+    } else if (tab.id === 'order_requests') {
+      await fetchOrderRequests()
+    } else if (tab.id === 'archived') {
+      await fetchOrdersByStatus(null, 1, true)
+    } else if (tab.id === 'all') {
+      await fetchOrdersByStatus(null, 1, false)
+    } else if (tab.statuses) {
+      await fetchOrdersByStatus(tab.statuses, 1, false)
+    }
+  }
+  // Also emit to parent to refresh
+  emit('refresh-requested', { scope: 'orders' })
+}
+
+// Format functions
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
@@ -1335,52 +1086,122 @@ const formatDate = (dateString) => {
   return date.toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
-    year: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
   })
 }
 
-const formatTime = (dateString) => {
-  if (!dateString) return ''
-  return new Date(dateString).toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
+const formatDeadline = (order) => {
+  const deadline = order.writer_deadline || order.client_deadline || order.deadline
+  if (!deadline) return 'No deadline'
+  
+  const deadlineDate = new Date(deadline)
+  const now = new Date()
+  const diffMs = deadlineDate - now
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  
+  if (diffHours < 0) return 'Overdue'
+  if (diffHours < 24) return `${diffHours}h remaining`
+  if (diffDays < 7) return `${diffDays}d remaining`
+  
+  return deadlineDate.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
   })
+}
+
+const isOverdue = (order) => {
+  const deadline = order.writer_deadline || order.client_deadline || order.deadline
+  if (!deadline) return false
+  return new Date(deadline) < new Date()
+}
+
+const isDueSoon = (order) => {
+  const deadline = order.writer_deadline || order.client_deadline || order.deadline
+  if (!deadline) return false
+  const hours = (new Date(deadline) - new Date()) / 3600000
+  // Consider "due soon" if deadline is within 48 hours (2 days)
+  return hours > 0 && hours <= 48
+}
+
+const isInProgress = (order) => {
+  // Treat only truly active states as “in progress” for overdue highlighting.
+  // Submitted / approved / closed should NOT be marked as overdue.
+  const inProgressStatuses = ['in_progress', 'under_editing', 'on_revision', 'revision_requested', 'assigned']
+  return inProgressStatuses.includes(order.status)
+}
+
+const getShortTitle = (order) => {
+  const base = order.topic || 'Untitled Order'
+  const maxLength = 50
+  if (base.length <= maxLength) return base
+  return base.slice(0, maxLength) + '…'
+}
+
+const formatStatus = (status) => {
+  if (!status) return 'Unknown'
+  return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
 }
 
 const getOrderStatusClass = (status) => {
   const statusMap = {
-    'pending': 'bg-yellow-100 text-yellow-800',
     'in_progress': 'bg-blue-100 text-blue-800',
+    'under_editing': 'bg-indigo-100 text-indigo-800',
+    'submitted': 'bg-purple-100 text-purple-800',
+    'revision_requested': 'bg-orange-100 text-orange-800',
     'on_revision': 'bg-orange-100 text-orange-800',
     'completed': 'bg-green-100 text-green-800',
+    'approved': 'bg-green-100 text-green-800',
+    'pending': 'bg-yellow-100 text-yellow-800',
+    'on_hold': 'bg-gray-100 text-gray-800',
+    'disputed': 'bg-red-100 text-red-800',
     'cancelled': 'bg-red-100 text-red-800',
-    'disputed': 'bg-purple-100 text-purple-800',
   }
   return statusMap[status?.toLowerCase()] || 'bg-gray-100 text-gray-800'
 }
 
-// Real-time widgets ----------------------------------------------------------
-const nextDeadlineInfo = computed(() => {
-  const realtime = props.realtimeWidgetData?.next_deadline
-  if (realtime?.deadline) {
-    return {
-      deadline: realtime.deadline,
-      orderId: realtime.order_id || realtime.orderId || null,
-      topic: realtime.topic || '',
-    }
+const getActionButtonText = (status) => {
+  const statusMap = {
+    'in_progress': 'Continue Working',
+    'under_editing': 'View Order',
+    'submitted': 'View Order',
+    'revision_requested': 'Start Revision',
+    'on_revision': 'Continue Revision',
+    'completed': 'View Order',
+    'pending': 'Start Working',
   }
+  return statusMap[status?.toLowerCase()] || 'View Order'
+}
 
-  const deadlines = []
-  if (props.writerSummaryData?.next_deadline) {
-    deadlines.push({
-      deadline: props.writerSummaryData.next_deadline,
-      orderId: props.writerSummaryData.next_deadline_order_id || null,
-      topic: props.writerSummaryData.next_deadline_topic || '',
-    })
+const getActiveTabLabel = () => {
+  const tab = orderTabs.value.find(t => t.id === activeTab.value)
+  return tab?.label.toLowerCase() || 'orders'
+}
+
+const getEmptyStateMessage = () => {
+  const messages = {
+    'available': 'No available orders at the moment. Check back soon!',
+    'assigned': 'No orders assigned to you at the moment.',
+    'order_requests': 'You haven\'t requested any orders yet. Browse available orders to get started!',
+    'in_progress': 'You have no orders in progress. Browse available orders to get started!',
+    'revision_requests': 'Great! No revision requests at the moment.',
+    'completed': 'You haven\'t completed any orders yet.',
+    'disputed': 'Great! No disputed orders.',
+    'on_hold': 'No orders on hold.',
+    'cancelled': 'No cancelled orders.',
+    'closed': 'No closed orders.',
+    'archived': 'No archived orders.',
+    'all': 'You don\'t have any orders yet. Browse available orders to get started!'
   }
-  (props.recentOrders || []).forEach(order => {
+  return messages[activeTab.value] || 'No orders found.'
+}
+
+// Next deadline info
+const nextDeadlineInfo = computed(() => {
+  const deadlines = []
+  allOrders.value.forEach(order => {
     const deadline = order.writer_deadline || order.deadline || order.client_deadline
-    if (deadline) {
+    if (deadline && !['completed', 'approved', 'closed', 'cancelled'].includes(order.status)) {
       deadlines.push({
         deadline,
         orderId: order.id,
@@ -1392,271 +1213,170 @@ const nextDeadlineInfo = computed(() => {
   return deadlines.sort((a, b) => new Date(a.deadline) - new Date(b.deadline))[0]
 })
 
-const nextDeadlineOrderLink = computed(() =>
-  nextDeadlineInfo.value?.orderId ? `/orders/${nextDeadlineInfo.value.orderId}` : null
-)
-
-const deadlineCountdown = ref('No deadlines')
-let countdownTimer = null
-
-const updateDeadlineCountdown = () => {
-  const info = nextDeadlineInfo.value
-  if (!info) {
-    deadlineCountdown.value = 'No deadlines'
-    return
-  }
-  const diff = new Date(info.deadline) - new Date()
-  if (diff <= 0) {
-    deadlineCountdown.value = 'Due now'
-    return
-  }
-  const days = Math.floor(diff / 86400000)
-  const hours = Math.floor((diff % 86400000) / 3600000)
-  const minutes = Math.floor((diff % 3600000) / 60000)
-  const seconds = Math.floor((diff % 60000) / 1000)
-  if (days > 0) {
-    deadlineCountdown.value = `${days}d ${hours}h`
-  } else if (hours > 0) {
-    deadlineCountdown.value = `${hours}h ${minutes}m`
-  } else if (minutes > 0) {
-    deadlineCountdown.value = `${minutes}m ${seconds}s`
-  } else {
-    deadlineCountdown.value = `${seconds}s`
-  }
-}
-
-const startCountdown = () => {
-  stopCountdown()
-  updateDeadlineCountdown()
-  countdownTimer = setInterval(updateDeadlineCountdown, 1000)
-}
-
-const stopCountdown = () => {
-  if (countdownTimer) {
-    clearInterval(countdownTimer)
-    countdownTimer = null
-  }
-}
-
-watch(nextDeadlineInfo, () => {
-  startCountdown()
+const nextDeadlineOrderLink = computed(() => {
+  return nextDeadlineInfo.value ? `/orders/${nextDeadlineInfo.value.orderId}` : null
 })
 
-watch(
-  () => props.availabilityStatus,
-  (status) => {
-    if (!status) return
-    if (typeof status.is_available === 'boolean') {
-      isAvailabilityOnline.value = status.is_available
-    }
-    if (status.last_changed) {
-      lastAvailabilityPing.value = new Date(status.last_changed)
-    }
-  },
-  { immediate: true }
-)
+const deadlineCountdown = computed(() => {
+  if (!nextDeadlineInfo.value) return 'No deadlines'
+  const deadline = new Date(nextDeadlineInfo.value.deadline)
+  const now = new Date()
+  const diffMs = deadline - now
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  
+  if (diffMs < 0) return 'Overdue!'
+  if (diffHours < 24) return `${diffHours}h remaining`
+  if (diffDays < 7) return `${diffDays}d remaining`
+  return deadline.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+})
 
-watch(
-  () => props.realtimeWidgetData?.availability,
-  (availability) => {
-    if (!availability) return
-    if (typeof availability.is_available === 'boolean') {
-      isAvailabilityOnline.value = availability.is_available
-    }
-    const reference = availability.last_active || availability.last_changed
-    if (reference) {
-      lastAvailabilityPing.value = new Date(reference)
-    }
-  }
-)
+// Availability
+const isAvailabilityOnline = computed(() => {
+  return props.availabilityStatus?.is_online ?? false
+})
 
-const isAvailabilityOnline = ref(true)
-const availabilityLoading = ref(false)
-const lastAvailabilityPing = ref(null)
-
-const pingAvailability = async (skipLoader = false) => {
-  if (!skipLoader) {
-    availabilityLoading.value = true
-  }
-  try {
-    await onlineStatusAPI.updateStatus()
-    lastAvailabilityPing.value = new Date()
-  } catch (error) {
-    console.error('Failed to ping availability:', error)
-    showError(getErrorMessage(error, 'Unable to update availability'))
-  } finally {
-    if (!skipLoader) {
-      availabilityLoading.value = false
-    }
-  }
-}
+const availabilityMessage = computed(() => {
+  return props.availabilityStatus?.message || null
+})
 
 const toggleAvailability = async () => {
-  const nextValue = !isAvailabilityOnline.value
-  availabilityLoading.value = true
-  try {
-    const response = await writerDashboardAPI.updateAvailability({
-      is_available: nextValue,
-    })
-    isAvailabilityOnline.value = nextValue
-    emit('availability-updated', response?.data || null)
-    if (nextValue) {
-      await pingAvailability(true)
-    }
-  } catch (error) {
-    showError(getErrorMessage(error, 'Unable to update availability'))
-  } finally {
-    availabilityLoading.value = false
-  }
-}
+  const newStatus = !isAvailabilityOnline.value
 
-const queueStats = computed(() => {
-  if (props.realtimeWidgetData?.queue) {
-    return {
-      available: props.realtimeWidgetData.queue.available || 0,
-      preferred: props.realtimeWidgetData.queue.preferred || 0,
-      requests: props.realtimeWidgetData.queue.requests || 0,
+  // When going online, require an explicit confirmation so writers
+  // understand the consequences of being marked as available.
+  if (newStatus) {
+    const confirmed = await confirm.showWarning(
+      'When you mark yourself as available, you may start receiving urgent or instant assignments. Make sure you are ready to accept and complete new orders on time.',
+      'Mark yourself as available?',
+      {
+        details:
+          '• You will appear in the pool for instant assignments.\n' +
+          '• New orders can be routed to you automatically while you are online.\n' +
+          '• Only stay available when you actively intend to take and complete orders.\n' +
+          '• Switch back to “On Break” to stop automatic assignments.',
+        confirmText: "Yes, I'm available",
+        cancelText: 'Cancel',
+        icon: '⚡',
+      }
+    )
+
+    if (!confirmed) {
+      return
     }
   }
-  return {
-    available: props.writerQueueData?.available_orders?.length || 0,
-    preferred: props.writerQueueData?.preferred_orders?.length || 0,
-    requests:
-      (props.writerQueueData?.writer_requests?.length || 0) +
-      (props.writerQueueData?.order_requests?.length || 0),
-  }
-})
 
-const realtimeOrdersReady = computed(() => props.realtimeWidgetData?.orders_ready || null)
-const realtimeGoalProgress = computed(() => props.realtimeWidgetData?.goal_progress || null)
-const availabilityMessage = computed(() =>
-  props.availabilityStatus?.message ||
-  props.realtimeWidgetData?.availability?.message ||
-  ''
-)
-
-const lastQueueRefresh = ref(props.writerQueueData ? new Date() : null)
-const lastQueueRefreshLabel = computed(() => {
-  if (!lastQueueRefresh.value) return 'Never'
-  return lastQueueRefresh.value.toLocaleTimeString()
-})
-
-watch(
-  () => props.writerQueueData,
-  () => {
-    lastQueueRefresh.value = new Date()
-  }
-)
-
-const autoRefreshEnabled = ref(
-  localStorage.getItem('writerQueueAutoRefresh') === 'true'
-)
-let autoRefreshTimer = null
-
-const requestQueueRefresh = () => {
-  emit('refresh-requested', { scope: 'queue' })
-}
-
-const startAutoRefresh = () => {
-  stopAutoRefresh()
-  requestQueueRefresh()
-  autoRefreshTimer = setInterval(requestQueueRefresh, 30000)
-}
-
-const stopAutoRefresh = () => {
-  if (autoRefreshTimer) {
-    clearInterval(autoRefreshTimer)
-    autoRefreshTimer = null
-  }
-}
-
-const toggleAutoRefresh = () => {
-  autoRefreshEnabled.value = !autoRefreshEnabled.value
-  localStorage.setItem('writerQueueAutoRefresh', autoRefreshEnabled.value)
-  if (autoRefreshEnabled.value) {
-    startAutoRefresh()
-  } else {
-    stopAutoRefresh()
-  }
-}
-
-onMounted(() => {
-  startCountdown()
-  if (isAvailabilityOnline.value) {
-    pingAvailability()
-  }
-  if (autoRefreshEnabled.value) {
-    startAutoRefresh()
-  }
-})
-
-onUnmounted(() => {
-  stopCountdown()
-  stopAutoRefresh()
-})
-
-// ---------------------------------------------------------------------------
-
-// Order request functionality
-const { success: showSuccess, error: showError } = useToast()
-const requestingOrder = ref(null)
-const showRequestModal = ref(false)
-const selectedOrderForRequest = ref(null)
-const requestReason = ref('')
-
-const openRequestModal = (order) => {
-  if (!order || !order.id) return
-  selectedOrderForRequest.value = order
-  requestReason.value = ''
-  showRequestModal.value = true
-}
-
-const closeRequestModal = () => {
-  showRequestModal.value = false
-  selectedOrderForRequest.value = null
-  requestReason.value = ''
-}
-
-const requestOrder = async () => {
-  const order = selectedOrderForRequest.value
-  if (!order || !order.id) return
-  
-  // Validate reason
-  if (!requestReason.value || !requestReason.value.trim()) {
-    showError('Please provide a reason for requesting this order.')
-    return
-  }
-  
-  requestingOrder.value = order.id
+    availabilityLoading.value = true
   try {
-    await writerOrderRequestsAPI.create({
-      order_id: order.id,
-      reason: requestReason.value.trim(),
+    await onlineStatusAPI.updateAvailability({
+      is_online: newStatus,
     })
-    showSuccess('Order request submitted successfully! Your request is pending admin review.')
-    
-    // Emit event to parent to refresh queue data
-    emit('order-requested', { orderId: order.id })
-    
-    // Close modal
-    closeRequestModal()
-  } catch (error) {
-    console.error('Failed to request order:', error)
-    const errorMsg = getErrorMessage(error, 'Failed to request order. Please try again.')
-    showError(errorMsg)
+    emit('availability-updated', { is_online: newStatus })
+    lastAvailabilityPing.value = new Date()
+  } catch (err) {
+    console.error('Failed to toggle availability:', err)
   } finally {
-    requestingOrder.value = null
+      availabilityLoading.value = false
   }
 }
+
+// Fetch all orders for the writer (for counting and filtering)
+const fetchAllWriterOrders = async () => {
+  try {
+    // Fetch non-archived orders
+    const params = {
+      assigned_writer: true,
+      page_size: 100, // Get more orders for accurate counts
+      ordering: '-created_at',
+      include_archived: false
+    }
+    
+    const response = await ordersAPI.list(params)
+    const orders = Array.isArray(response.data?.results) 
+      ? response.data.results 
+      : (Array.isArray(response.data) ? response.data : [])
+    
+    // Merge with existing orders, avoiding duplicates
+    const existingIds = new Set(allOrders.value.map(o => o.id))
+    const newOrders = orders.filter(o => !existingIds.has(o.id))
+    allOrders.value = [...allOrders.value, ...newOrders]
+    
+    // If there are more pages, fetch them too (for accurate counts)
+    if (response.data?.next) {
+      let nextPage = 2
+      while (nextPage <= 5) { // Limit to 5 pages to avoid too many requests
+        try {
+          const nextResponse = await ordersAPI.list({ ...params, page: nextPage })
+          const nextOrders = Array.isArray(nextResponse.data?.results) 
+            ? nextResponse.data.results 
+            : (Array.isArray(nextResponse.data) ? nextResponse.data : [])
+          
+          if (nextOrders.length === 0) break
+          
+          const newNextOrders = nextOrders.filter(o => !existingIds.has(o.id))
+          allOrders.value = [...allOrders.value, ...newNextOrders]
+          nextOrders.forEach(o => existingIds.add(o.id))
+          
+          if (!nextResponse.data?.next) break
+          nextPage++
+        } catch (err) {
+          console.error(`Failed to fetch page ${nextPage}:`, err)
+          break
+        }
+      }
+    }
+    
+    // Also fetch archived orders separately for the archived tab count
+    try {
+      const archivedParams = {
+        assigned_writer: true,
+        page_size: 100,
+        ordering: '-created_at',
+        include_archived: true
+      }
+      const archivedResponse = await ordersAPI.list(archivedParams)
+      const archivedOrders = Array.isArray(archivedResponse.data?.results) 
+        ? archivedResponse.data.results.filter(o => o.is_archived === true)
+        : (Array.isArray(archivedResponse.data) ? archivedResponse.data.filter(o => o.is_archived === true) : [])
+      
+      // Merge archived orders
+      const newArchivedOrders = archivedOrders.filter(o => !existingIds.has(o.id))
+      allOrders.value = [...allOrders.value, ...newArchivedOrders]
+    } catch (err) {
+      console.error('Failed to fetch archived orders:', err)
+    }
+  } catch (err) {
+    console.error('Failed to fetch all writer orders:', err)
+  }
+}
+
+// Initialize
+onMounted(async () => {
+  // Fetch all orders first for accurate counts
+  await fetchAllWriterOrders()
+  
+  // If we already have orders from props, merge them
+  if (props.recentOrders && props.recentOrders.length > 0) {
+    const existingIds = new Set(allOrders.value.map(o => o.id))
+    const newOrders = props.recentOrders.filter(o => !existingIds.has(o.id))
+    allOrders.value = [...allOrders.value, ...newOrders]
+  }
+  
+  // Load in progress orders by default
+  const inProgressStatuses = ['in_progress', 'under_editing', 'submitted']
+  await fetchOrdersByStatus(inProgressStatuses, 1)
+  
+  // Fetch available orders
+  await fetchAvailableOrders()
+  
+  // Fetch order requests
+  await fetchOrderRequests()
+})
+
+// Watch for queue data changes to update available orders
+watch(() => props.writerQueueData, (newQueueData) => {
+  if (newQueueData?.available_orders) {
+    availableOrders.value = newQueueData.available_orders
+  }
+}, { deep: true, immediate: true })
 </script>
-
-<style scoped>
-.card {
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  padding: 1.5rem;
-  border: 1px solid #e5e7eb;
-}
-</style>
-

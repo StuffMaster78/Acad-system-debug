@@ -32,7 +32,11 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ["-timestamp"]  # Default ordering by timestamp descending
 
     def get_queryset(self):
-        """Filter queryset based on user role permissions."""
+        """Filter queryset based on user role permissions.
+        
+        For writers, clients, editors, and support: Only show actions they performed.
+        This means filtering by user=user OR triggered_by=user (actions they did).
+        """
         qs = super().get_queryset()
         user = self.request.user
         user_role = getattr(user, 'role', None)
@@ -42,22 +46,19 @@ class ActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
             # No filtering - show all activities
             pass
         
-        # Support can see activities for writers, editors, clients, and themselves
-        elif user_role == 'support':
+        # Support, Writers, Clients, Editors: Only see actions they performed
+        # Filter by user=user OR triggered_by=user (actions they did themselves)
+        elif user_role in ['support', 'writer', 'client', 'editor']:
             qs = qs.filter(
-                models.Q(user=user) |  # Their own activities
-                models.Q(user__role='writer') |  # Writers
-                models.Q(user__role='editor') |  # Editors
-                models.Q(user__role='client')  # Clients
+                models.Q(user=user) |  # Actions where they are the user
+                models.Q(triggered_by=user)  # Actions they triggered/performed
             )
-        
-        # Writers, clients, editors: default to their own technical logs only
-        elif user_role in ['writer', 'client', 'editor']:
-            qs = qs.filter(user=user)
         
         # Default: users can only see their own activities
         else:
-            qs = qs.filter(user=user)
+            qs = qs.filter(
+                models.Q(user=user) | models.Q(triggered_by=user)
+            )
 
         # Optional filters
         website_id = self.request.query_params.get("website_id")
@@ -113,6 +114,12 @@ class UserActivityFeedViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
+        """
+        User-facing activity feed showing only actions the user performed.
+        
+        For writers, clients, editors, and support: Only show "You did X" actions.
+        This means filtering by user=user OR triggered_by=user (actions they performed).
+        """
         qs = ActivityLog.objects.select_related(
             "user", "triggered_by", "website"
         ).order_by("-timestamp")
@@ -124,36 +131,19 @@ class UserActivityFeedViewSet(viewsets.ReadOnlyModelViewSet):
         if user_role in ["admin", "superadmin"]:
             pass
 
-        # Support: see their own actions + all client/writer/editor activity
-        elif user_role == "support":
+        # Support, Writers, Clients, Editors: Only see actions they performed
+        # Filter by user=user OR triggered_by=user (actions they did themselves)
+        elif user_role in ["support", "writer", "client", "editor"]:
             qs = qs.filter(
-                models.Q(user=user)
-                | models.Q(user__role__in=["writer", "editor", "client"])
+                models.Q(user=user) |  # Actions where they are the user
+                models.Q(triggered_by=user)  # Actions they triggered/performed
             )
 
-        # Writer: own actions + actions attached to orders assigned to them
-        elif user_role == "writer":
-            writer_order_ids = list(
-                Order.objects.filter(assigned_writer=user).values_list("id", flat=True)
-            )
-            qs = qs.filter(
-                models.Q(user=user)
-                | models.Q(metadata__order_id__in=writer_order_ids)
-            )
-
-        # Client: own actions + actions attached to their orders
-        elif user_role == "client":
-            client_order_ids = list(
-                Order.objects.filter(client=user).values_list("id", flat=True)
-            )
-            qs = qs.filter(
-                models.Q(user=user)
-                | models.Q(metadata__order_id__in=client_order_ids)
-            )
-
-        # Editors or any other role: only own events by default
+        # Default: only own events (actions they performed)
         else:
-            qs = qs.filter(user=user)
+            qs = qs.filter(
+                models.Q(user=user) | models.Q(triggered_by=user)
+            )
 
         limit = self.request.query_params.get("limit")
         if limit:

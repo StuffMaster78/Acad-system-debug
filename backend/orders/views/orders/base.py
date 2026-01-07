@@ -140,6 +140,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
     permission_classes = [IsAuthenticated, IsOrderOwnerOrSupport]
     pagination_class = LimitedPagination  # Paginated with safety limits
     
+    
     def get_serializer_class(self):
         """
         Use lightweight serializer for list views to reduce data transfer.
@@ -242,30 +243,47 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         if not user or not user.is_authenticated:
             return Order.objects.none()
 
+        # Check if this is a simple count/check query (page_size=1, minimal params)
+        # Store this as an attribute so list() method can access it
+        params = self.request.query_params
+        self._is_simple_query = (
+            self.action == 'list' and
+            params.get('page_size', '10') in ['1', '0'] and
+            len([k for k in params.keys() if k not in ['page', 'page_size', 'ordering']]) <= 2
+        )
+
         # Optimize queryset with select_related and prefetch_related to prevent N+1 queries
         # For list views, use minimal select_related to speed up queries significantly
         if self.action == 'list':
-            # Minimal fields for list view - only what's needed for OrderListSerializer
-            # This dramatically reduces data transfer and query time
-            qs = Order.objects.all().select_related(
-                'client',           # For client_username
-                'website',          # For website filtering
-                'assigned_writer',  # For writer_username
-                'paper_type',       # For paper_type_name
-                'academic_level',   # For academic_level_name
-                'subject',          # For subject_name
-            ).only(
-                # Only fetch fields used in OrderListSerializer - reduces data transfer by ~70%
-                'id', 'topic', 'status', 'is_paid', 'total_price', 'writer_compensation',
-                'client_deadline', 'writer_deadline', 'created_at', 'updated_at',
-                'number_of_pages', 'number_of_slides', 'number_of_refereces',
-                'spacing', 'discount_code_used', 'is_special_order', 'is_follow_up',
-                'is_urgent', 'flags',
-                # Foreign key IDs (needed for select_related to work)
-                'client_id', 'assigned_writer_id', 'preferred_writer_id',
-                'paper_type_id', 'academic_level_id', 'formatting_style_id',
-                'type_of_work_id', 'english_type_id', 'subject_id', 'website_id',
-            )
+            if self._is_simple_query:
+                # Ultra-minimal queryset for simple count/check queries
+                # Only fetch what's absolutely necessary - no select_related overhead
+                qs = Order.objects.all().only(
+                    'id', 'status', 'is_paid', 'client_id', 'assigned_writer_id',
+                    'website_id', 'preferred_writer_id', 'created_at'
+                )
+            else:
+                # Minimal fields for list view - only what's needed for OrderListSerializer
+                # This dramatically reduces data transfer and query time
+                qs = Order.objects.all().select_related(
+                    'client',           # For client_username
+                    'website',          # For website filtering
+                    'assigned_writer',  # For writer_username
+                    'paper_type',       # For paper_type_name
+                    'academic_level',   # For academic_level_name
+                    'subject',          # For subject_name
+                ).only(
+                    # Only fetch fields used in OrderListSerializer - reduces data transfer by ~70%
+                    'id', 'topic', 'status', 'is_paid', 'total_price', 'writer_compensation',
+                    'client_deadline', 'writer_deadline', 'created_at', 'updated_at',
+                    'number_of_pages', 'number_of_slides', 'number_of_refereces',
+                    'spacing', 'discount_code_used', 'is_special_order', 'is_follow_up',
+                    'is_urgent', 'flags',
+                    # Foreign key IDs (needed for select_related to work)
+                    'client_id', 'assigned_writer_id', 'preferred_writer_id',
+                    'paper_type_id', 'academic_level_id', 'formatting_style_id',
+                    'type_of_work_id', 'english_type_id', 'subject_id', 'website_id',
+                )
         else:
             # Full select_related for detail views
             qs = Order.objects.all().select_related(
@@ -291,7 +309,9 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         if user.is_superuser or user_role == 'superadmin':
             base_qs = qs
         elif user_role == 'client':
-            base_qs = qs.filter(client=user)
+            # For clients, use indexed client_id filter for better performance
+            # Add explicit ordering to use created_at index
+            base_qs = qs.filter(client_id=user.id).order_by('-created_at')
         elif user_role == 'writer':
             # Writers see:
             # 1. Orders assigned to them (always visible, regardless of payment status)
@@ -301,61 +321,122 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             from orders.models import PreferredWriterResponse
             
             # Get writer's website from their profile - use select_related to avoid N+1
-            writer_website = None
-            try:
-                # Use get() instead of hasattr to ensure we get the profile
-                writer_profile = WriterProfile.objects.select_related('website').get(user=user)
-                writer_website = writer_profile.website
-            except WriterProfile.DoesNotExist:
-                pass
-            except Exception as e:
-                # Log error but continue with fallback
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Error getting writer profile for user {user.id}: {str(e)}")
+            # Cache writer profile lookup to avoid repeated queries
+            from django.core.cache import cache
+            cache_key = f'writer_profile_website_{user.id}'
+            writer_website = cache.get(cache_key)
+            writer_profile = None
+            
+            if writer_website is None:
+                try:
+                    # Use get() instead of hasattr to ensure we get the profile
+                    writer_profile = WriterProfile.objects.select_related('website').only('website_id', 'user_id').get(user=user)
+                    writer_website = writer_profile.website
+                    # Cache for 5 minutes (website rarely changes)
+                    cache.set(cache_key, writer_website, 300)
+                except WriterProfile.DoesNotExist:
+                    writer_website = None
+                    # Cache None for 5 minutes to avoid repeated lookups
+                    cache.set(cache_key, None, 300)
+                except Exception as e:
+                    # Log error but continue with fallback
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Error getting writer profile for user {user.id}: {str(e)}")
+                    writer_website = None
             
             if writer_website:
-                # Get orders where writer has declined (to exclude them)
-                declined_order_ids = list(PreferredWriterResponse.objects.filter(
-                    writer=user,
-                    response='declined'
-                ).values_list('order_id', flat=True))
+                # Cache declined and requested order IDs to avoid repeated queries
+                # Use longer cache TTLs and batch queries to reduce database load
+                declined_cache_key = f'writer_declined_orders_{user.id}'
+                requested_cache_key = f'writer_requested_orders_{user.id}'
                 
-                # Get orders that the writer has requested (allows viewing requested orders)
-                from writer_management.models.requests import WriterOrderRequest
-                requested_order_ids = list(WriterOrderRequest.objects.filter(
-                    writer=writer_profile
-                ).values_list('order_id', flat=True))
+                declined_order_ids = cache.get(declined_cache_key)
+                if declined_order_ids is None:
+                    # Use select_related to optimize the query
+                    declined_order_ids = list(PreferredWriterResponse.objects.filter(
+                        writer=user,
+                        response='declined'
+                    ).only('order_id').values_list('order_id', flat=True))
+                    # Cache for 5 minutes (declines don't change often)
+                    cache.set(declined_cache_key, declined_order_ids, 300)
+                
+                requested_order_ids = cache.get(requested_cache_key)
+                if requested_order_ids is None:
+                    # Get orders that the writer has requested (allows viewing requested orders)
+                    # BUT only if they are paid
+                    from writer_management.models.requests import WriterOrderRequest
+                    # Get writer_profile if not already available
+                    if writer_profile is None:
+                        try:
+                            writer_profile = WriterProfile.objects.only('id', 'user_id').get(user=user)
+                        except WriterProfile.DoesNotExist:
+                            writer_profile = None
+                    
+                    if writer_profile:
+                        # Use select_related and only() to optimize
+                        requested_order_ids = list(WriterOrderRequest.objects.filter(
+                            writer=writer_profile,
+                            order__is_paid=True  # Only include paid requested orders
+                        ).select_related('order').only('order_id').values_list('order_id', flat=True))
+                    else:
+                        requested_order_ids = []
+                    # Cache for 60 seconds (requests can change more frequently)
+                    cache.set(requested_cache_key, requested_order_ids, 60)
                 
                 # Filter by website for available orders
-                # Writers see:
-                # 1. Orders assigned to them (always visible)
-                # 2. Orders they have requested (allows viewing requested orders)
+                # Writers see ONLY PAID orders:
+                # 1. Orders assigned to them (only if paid)
+                # 2. Orders they have requested (only if paid)
                 # 3. Available paid orders that are:
                 #    - Not assigned to anyone
                 #    - In common pool (preferred_writer is None) OR preferred for this writer
                 #    - Not declined by this writer
-                base_qs = qs.filter(
-                    models.Q(assigned_writer=user) |  # Orders assigned to them (always visible)
-                    models.Q(id__in=requested_order_ids) |  # Orders they have requested
-                    models.Q(
-                        # Available paid orders not assigned to anyone
-                        status=OrderStatus.AVAILABLE.value,
-                        assigned_writer__isnull=True,
-                        is_paid=True,  # Only paid orders
-                        website=writer_website,
-                    ) & (
-                        # Either in common pool or preferred for this writer
-                        models.Q(preferred_writer__isnull=True) | models.Q(preferred_writer=user)
-                    )
+                
+                # Build query conditions more efficiently
+                # Start with the most selective filters first to use indexes better
+                conditions = []
+                
+                # 1. Assigned orders (most selective - uses assigned_writer index)
+                conditions.append(
+                    models.Q(assigned_writer=user, is_paid=True)
                 )
+                
+                # 2. Requested orders (if any)
+                if requested_order_ids:
+                    conditions.append(
+                        models.Q(id__in=requested_order_ids, is_paid=True)
+                    )
+                
+                # 3. Available orders (use website and status indexes)
+                available_condition = models.Q(
+                    status=OrderStatus.AVAILABLE.value,
+                    assigned_writer__isnull=True,
+                    is_paid=True,
+                    website=writer_website,
+                ) & (
+                    models.Q(preferred_writer__isnull=True) | models.Q(preferred_writer=user)
+                )
+                conditions.append(available_condition)
+                
+                # Combine all conditions with OR
+                if len(conditions) == 1:
+                    base_qs = qs.filter(conditions[0])
+                else:
+                    combined_q = conditions[0]
+                    for condition in conditions[1:]:
+                        combined_q |= condition
+                    base_qs = qs.filter(combined_q)
                 
                 # Only exclude declined orders if there are any
                 if declined_order_ids:
                     base_qs = base_qs.exclude(id__in=declined_order_ids)
+                
+                # Use distinct() to avoid duplicates from OR conditions
+                base_qs = base_qs.distinct()
             else:
-                # Fallback: only show assigned orders if no website
-                base_qs = qs.filter(assigned_writer=user)
+                # Fallback: only show assigned paid orders if no website
+                base_qs = qs.filter(assigned_writer=user, is_paid=True)
         elif user_role in ['admin', 'support', 'editor']:
             # Admins, support, and editors see all orders (no website filtering)
             base_qs = qs
@@ -677,6 +758,13 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         else:
             base_qs = base_qs.order_by('-created_at', '-id')
         
+        # Apply ordering - use created_at index for better performance
+        # The Order model has ordering = ['-created_at'] in Meta, but we ensure it here
+        # for list views, use the index efficiently
+        if self.action == 'list':
+            # For list views, ensure we're using the created_at index
+            base_qs = base_qs.order_by('-created_at')
+        
         return base_qs
     
     def list(self, request, *args, **kwargs):
@@ -685,9 +773,49 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         DRF doesn't filter list results by object permissions by default,
         but we want to make sure our queryset filtering works correctly.
         Also includes phone reminder info for clients.
+        Adds caching for simple queries to improve performance.
         """
+        from django.core.cache import cache
+        import hashlib
+        import json
+        
+        # Only cache simple, frequently-used queries (status, is_paid filters)
+        params = request.query_params
+        has_simple_filters = (
+            len(params) <= 3 and  # Only 1-3 query params
+            all(key in ['status', 'is_paid', 'page', 'page_size', 'ordering'] for key in params.keys())
+        )
+        
+        # For very simple queries (page_size=1), use longer cache
+        is_simple_count_query = (
+            params.get('page_size', '10') in ['1', '0'] and
+            len([k for k in params.keys() if k not in ['page', 'page_size', 'ordering']]) <= 2
+        )
+        cache_ttl = 120 if is_simple_count_query else 30  # 2 minutes for count queries, 30s for others
+        
+        if has_simple_filters and request.user.is_authenticated:
+            # Build cache key
+            cache_key_parts = [
+                'orders_list',
+                str(request.user.id),
+                str(request.user.role),
+                json.dumps(dict(sorted(params.items())), sort_keys=True)
+            ]
+            cache_key_data = ':'.join(cache_key_parts)
+            cache_key = f"orders_list:{hashlib.md5(cache_key_data.encode()).hexdigest()}"
+            
+            # Try cache
+            cached_result = cache.get(cache_key)
+            if cached_result is not None:
+                from rest_framework.response import Response
+                return Response(cached_result)
+        
         try:
             queryset = self.filter_queryset(self.get_queryset())
+            
+            # Ensure distinct() is applied for complex OR queries
+            if hasattr(queryset.query, 'where') and queryset.query.where:
+                queryset = queryset.distinct()
             
             page = self.paginate_queryset(queryset)
             if page is not None:
@@ -697,8 +825,14 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 serializer = self.get_serializer(queryset, many=True)
                 response = Response(serializer.data)
             
-            # Add phone reminder info for clients
-            if request.user.role in ['client', 'customer']:
+            # Cache simple queries
+            if has_simple_filters and request.user.is_authenticated:
+                if hasattr(response, 'data'):
+                    cache.set(cache_key, response.data, cache_ttl)
+            
+            # Add phone reminder info for clients (skip for simple count queries)
+            is_simple = getattr(self, '_is_simple_query', False)
+            if (request.user.role in ['client', 'customer'] and not is_simple):
                 from users.services.phone_reminder_service import PhoneReminderService
                 phone_service = PhoneReminderService(request.user)
                 
@@ -726,6 +860,46 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 'results': [],
                 'total_pages': 0,
             })
+    
+    def get_object(self):
+        """
+        Override get_object to check permissions first, then fetch the order.
+        This ensures that even if the queryset filters out an order (e.g., unpaid orders for writers),
+        we can still check object-level permissions and provide better error messages.
+        """
+        from rest_framework.exceptions import NotFound, PermissionDenied
+        
+        # Get the order ID from the URL kwargs
+        # DRF uses 'pk' as the default lookup_field
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+        order_id = self.kwargs[lookup_url_kwarg]
+        
+        # Fetch the order directly from the database (bypass queryset filtering)
+        # This allows us to check permissions even if the queryset would exclude it
+        try:
+            order = Order.objects.select_related(
+                'client', 'assigned_writer', 'website', 'preferred_writer'
+            ).get(id=order_id)
+        except Order.DoesNotExist:
+            raise NotFound("No Order matches the given query.")
+        
+        # Check object-level permissions
+        # This will check if the user has permission to view this specific order
+        permission_classes = self.get_permissions()
+        for permission in permission_classes:
+            if hasattr(permission, 'has_object_permission'):
+                if not permission.has_object_permission(self.request, self, order):
+                    # Provide a more helpful error message
+                    if self.request.user.role == 'writer' and not order.is_paid:
+                        raise PermissionDenied(
+                            "You cannot view this order because it has not been paid yet. "
+                            "Only paid orders are visible to writers."
+                        )
+                    raise PermissionDenied(
+                        "You do not have permission to view this order."
+                    )
+        
+        return order
     
     def retrieve(self, request, *args, **kwargs):
         """
@@ -1210,6 +1384,308 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
             logger.error(traceback.format_exc())
             return Response(
                 {"detail": "An error occurred while processing the payment. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @decorators.action(detail=True, methods=["post"], url_path="add-pages-slides")
+    def add_pages_slides(self, request, pk=None):
+        """
+        Allow clients to directly add pages or slides to their order.
+        This creates a payment requirement that must be fulfilled.
+        
+        Expected payload:
+        {
+            "additional_pages": int (optional),
+            "additional_slides": int (optional),
+            "payment_method": "wallet" | "stripe" | "smart" (optional, defaults to redirect to payment)
+        }
+        """
+        order = get_object_or_404(Order, pk=pk)
+        user = request.user
+        
+        # Authorization check
+        if not (user.is_superuser or user.role in ["admin", "support"] or order.client_id == user.id):
+            return Response({"detail": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
+        
+        additional_pages = request.data.get("additional_pages", 0) or 0
+        additional_slides = request.data.get("additional_slides", 0) or 0
+        
+        if additional_pages <= 0 and additional_slides <= 0:
+            return Response(
+                {"detail": "At least one of additional_pages or additional_slides must be greater than 0."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            with transaction.atomic():
+                # Calculate the cost for additional pages/slides
+                from orders.services.pricing_calculator import PricingCalculatorService
+                calculator = PricingCalculatorService(order)
+                
+                # Get pricing config
+                config = calculator.get_pricing_config_for_website(order.website.id)
+                
+                # Calculate additional cost
+                pages_cost = Decimal(str(additional_pages)) * config.base_price_per_page if additional_pages > 0 else Decimal('0.00')
+                slides_cost = Decimal(str(additional_slides)) * config.base_price_per_slide if additional_slides > 0 else Decimal('0.00')
+                additional_cost = pages_cost + slides_cost
+                
+                # Apply discount if order has one
+                if order.discount:
+                    from discounts.services.discount_engine import DiscountEngine
+                    discount_engine = DiscountEngine(
+                        discount_codes=[order.discount.code],
+                        user=order.client,
+                        order=order,
+                        website=order.website,
+                        custom_cost_context={
+                            "additional_pages": additional_pages,
+                            "additional_slides": additional_slides,
+                        },
+                    )
+                    discount_engine.apply_discounts()
+                    additional_cost = discount_engine.discounted_total
+                
+                # Update order immediately (pages/slides added)
+                order.number_of_pages += additional_pages
+                order.number_of_slides += additional_slides
+                
+                # Recalculate total order price
+                order.total_price = calculator.calculate_total_price()
+                order.save(update_fields=["number_of_pages", "number_of_slides", "total_price", "updated_at"])
+                
+                # If payment method is provided and it's wallet, process immediately
+                payment_method = request.data.get("payment_method")
+                if payment_method == "wallet" and additional_cost > 0:
+                    from wallet.models import Wallet
+                    from wallet.services.wallet_transaction_service import WalletTransactionService
+                    from wallet.exceptions import InsufficientWalletBalance
+                    
+                    wallet = WalletTransactionService.get_wallet(order.client, order.website)
+                    wallet = Wallet.objects.select_for_update().get(id=wallet.id)
+                    
+                    if wallet.balance < additional_cost:
+                        # Rollback order changes
+                        order.number_of_pages -= additional_pages
+                        order.number_of_slides -= additional_slides
+                        order.total_price = calculator.calculate_total_price()
+                        order.save(update_fields=["number_of_pages", "number_of_slides", "total_price", "updated_at"])
+                        
+                        return Response(
+                            {
+                                "detail": "Insufficient wallet balance.",
+                                "required": float(additional_cost),
+                                "available": float(wallet.balance),
+                                "shortfall": float(additional_cost - wallet.balance)
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    
+                    # Create payment for additional pages/slides
+                    payment = UnifiedPaymentService.create_payment(
+                        payment_type='standard',
+                        client=order.client,
+                        website=order.website,
+                        amount=additional_cost,
+                        payment_method='wallet',
+                        order=order,
+                        original_amount=additional_cost
+                    )
+                    
+                    # Process wallet payment
+                    from order_payments_management.services.payment_service import OrderPaymentService
+                    payment = OrderPaymentService.process_wallet_payment(payment)
+                    
+                    return Response({
+                        "detail": "Pages/slides added and paid successfully.",
+                        "order": OrderSerializer(order, context={"request": request}).data,
+                        "payment": {
+                            "id": payment.id,
+                            "amount": float(additional_cost),
+                            "status": payment.status,
+                            "method": "wallet"
+                        },
+                        "additional_pages": additional_pages,
+                        "additional_slides": additional_slides,
+                        "cost": float(additional_cost)
+                    }, status=status.HTTP_200_OK)
+                else:
+                    # Return payment info for client to complete payment
+                    return Response({
+                        "detail": "Pages/slides added. Payment required.",
+                        "order": OrderSerializer(order, context={"request": request}).data,
+                        "requires_payment": True,
+                        "amount": float(additional_cost),
+                        "additional_pages": additional_pages,
+                        "additional_slides": additional_slides,
+                        "payment_url": f"/orders/{order.id}/pay"
+                    }, status=status.HTTP_200_OK)
+                    
+        except Exception as e:
+            import logging
+            import traceback
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error adding pages/slides to order {order.id}: {e}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {"detail": f"An error occurred: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @decorators.action(detail=True, methods=["post"], url_path="add-extra-services")
+    def add_extra_services(self, request, pk=None):
+        """
+        Allow clients to add additional services to their order.
+        This creates a payment requirement that must be fulfilled.
+        
+        Expected payload:
+        {
+            "service_ids": [int, int, ...],
+            "payment_method": "wallet" | "stripe" | "smart" (optional, defaults to redirect to payment)
+        }
+        """
+        order = get_object_or_404(Order, pk=pk)
+        user = request.user
+        
+        # Authorization check
+        if not (user.is_superuser or user.role in ["admin", "support"] or order.client_id == user.id):
+            return Response({"detail": "Forbidden."}, status=status.HTTP_403_FORBIDDEN)
+        
+        service_ids = request.data.get("service_ids", [])
+        
+        if not service_ids or not isinstance(service_ids, list):
+            return Response(
+                {"detail": "service_ids must be a non-empty list of service IDs."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        try:
+            with transaction.atomic():
+                from pricing_configs.models import AdditionalService
+                from orders.services.pricing_calculator import PricingCalculatorService
+                
+                # Get the services
+                services = AdditionalService.objects.filter(
+                    id__in=service_ids,
+                    is_active=True,
+                    website=order.website
+                )
+                
+                if services.count() != len(service_ids):
+                    return Response(
+                        {"detail": "One or more services not found or inactive."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Check if services are already added
+                existing_service_ids = set(order.extra_services.values_list('id', flat=True))
+                new_service_ids = set(service_ids)
+                already_added = existing_service_ids.intersection(new_service_ids)
+                
+                if already_added:
+                    return Response(
+                        {"detail": f"Services with IDs {list(already_added)} are already added to this order."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Calculate additional cost
+                additional_cost = sum(Decimal(str(service.cost)) for service in services)
+                
+                # Apply discount if order has one
+                if order.discount and additional_cost > 0:
+                    from discounts.services.discount_engine import DiscountEngine
+                    discount_engine = DiscountEngine(
+                        discount_codes=[order.discount.code],
+                        user=order.client,
+                        order=order,
+                        website=order.website,
+                        custom_cost_context={
+                            "extra_services": list(service_ids),
+                        },
+                    )
+                    discount_engine.apply_discounts()
+                    additional_cost = discount_engine.discounted_total
+                
+                # Add services to order
+                order.extra_services.add(*services)
+                
+                # Recalculate total order price
+                calculator = PricingCalculatorService(order)
+                order.total_price = calculator.calculate_total_price()
+                order.save(update_fields=["total_price", "updated_at"])
+                
+                # If payment method is provided and it's wallet, process immediately
+                payment_method = request.data.get("payment_method")
+                if payment_method == "wallet" and additional_cost > 0:
+                    from wallet.models import Wallet
+                    from wallet.services.wallet_transaction_service import WalletTransactionService
+                    from wallet.exceptions import InsufficientWalletBalance
+                    
+                    wallet = WalletTransactionService.get_wallet(order.client, order.website)
+                    wallet = Wallet.objects.select_for_update().get(id=wallet.id)
+                    
+                    if wallet.balance < additional_cost:
+                        # Rollback service addition
+                        order.extra_services.remove(*services)
+                        order.total_price = calculator.calculate_total_price()
+                        order.save(update_fields=["total_price", "updated_at"])
+                        
+                        return Response(
+                            {
+                                "detail": "Insufficient wallet balance.",
+                                "required": float(additional_cost),
+                                "available": float(wallet.balance),
+                                "shortfall": float(additional_cost - wallet.balance)
+                            },
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    
+                    # Create payment for additional services
+                    payment = UnifiedPaymentService.create_payment(
+                        payment_type='standard',
+                        client=order.client,
+                        website=order.website,
+                        amount=additional_cost,
+                        payment_method='wallet',
+                        order=order,
+                        original_amount=additional_cost
+                    )
+                    
+                    # Process wallet payment
+                    from order_payments_management.services.payment_service import OrderPaymentService
+                    payment = OrderPaymentService.process_wallet_payment(payment)
+                    
+                    return Response({
+                        "detail": "Services added and paid successfully.",
+                        "order": OrderSerializer(order, context={"request": request}).data,
+                        "payment": {
+                            "id": payment.id,
+                            "amount": float(additional_cost),
+                            "status": payment.status,
+                            "method": "wallet"
+                        },
+                        "services_added": [{"id": s.id, "name": s.service_name, "cost": float(s.cost)} for s in services],
+                        "total_cost": float(additional_cost)
+                    }, status=status.HTTP_200_OK)
+                else:
+                    # Return payment info for client to complete payment
+                    return Response({
+                        "detail": "Services added. Payment required.",
+                        "order": OrderSerializer(order, context={"request": request}).data,
+                        "requires_payment": True,
+                        "amount": float(additional_cost),
+                        "services_added": [{"id": s.id, "name": s.service_name, "cost": float(s.cost)} for s in services],
+                        "payment_url": f"/orders/{order.id}/pay"
+                    }, status=status.HTTP_200_OK)
+                    
+        except Exception as e:
+            import logging
+            import traceback
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error adding extra services to order {order.id}: {e}")
+            logger.error(traceback.format_exc())
+            return Response(
+                {"detail": f"An error occurred: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 

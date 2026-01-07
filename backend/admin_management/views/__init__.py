@@ -54,6 +54,7 @@ from .dashboard_endpoints import (
     AdminClassManagementDashboardViewSet,
     AdminFinesManagementDashboardViewSet,
     AdminAdvancedAnalyticsDashboardViewSet,
+    AdminAdvancePaymentsDashboardViewSet,
 )
 
 __all__ = [
@@ -88,5 +89,6 @@ __all__ = [
     'AdminClassManagementDashboardViewSet',
     'AdminFinesManagementDashboardViewSet',
     'AdminAdvancedAnalyticsDashboardViewSet',
+    'AdminAdvancePaymentsDashboardViewSet',
 ]
 

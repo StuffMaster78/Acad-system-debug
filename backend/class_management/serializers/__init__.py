@@ -329,3 +329,4 @@ class ClassBundleAssignWriterSerializer(serializers.Serializer):
         help_text="Optional payment amount for the bundle (paid as bonus). If not provided, will be calculated based on bundle pricing."
     )
     admin_notes = serializers.CharField(required=False, allow_blank=True)
+

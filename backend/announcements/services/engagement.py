@@ -117,7 +117,7 @@ class EngagementTrackingService:
         # Cache key based on user and website
         cache_key = f'announcement_unread_count_{user.id}_{website.id if website else "all"}'
         
-        # Try to get from cache (5 minute TTL)
+        # Try to get from cache (30 second TTL for faster updates, but still reduces DB load)
         cached_count = cache.get(cache_key)
         if cached_count is not None:
             return cached_count
@@ -159,12 +159,13 @@ class EngagementTrackingService:
         ).only('id')
         
         # Count unread (announcements that don't have a view for this user)
+        # Use .count() with optimized query - this is already efficient
         unread_count = queryset.exclude(
             Exists(viewed_subquery)
         ).count()
 
-        # Cache the result for 5 minutes
-        cache.set(cache_key, unread_count, 300)
+        # Cache the result for 30 seconds (faster updates, but still reduces DB load significantly)
+        cache.set(cache_key, unread_count, 30)
 
         return unread_count
 

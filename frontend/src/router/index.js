@@ -520,6 +520,26 @@ const router = createRouter({
           },
         },
         {
+          path: 'messages/thread/:id',
+          name: 'ThreadDetail',
+          component: () => import('@/views/messages/ThreadDetail.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Thread Detail',
+            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+          },
+        },
+        {
+          path: 'help',
+          name: 'SystemGuide',
+          component: () => import('@/views/help/SystemGuide.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'System Guide',
+            roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
+          },
+        },
+        {
           path: 'activity',
           name: 'ActivityLogsGeneral',
           component: () => import('@/views/activity/ActivityLogs.vue'),

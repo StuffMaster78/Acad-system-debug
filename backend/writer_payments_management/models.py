@@ -80,7 +80,19 @@ class WriterPayment(models.Model):
     )
     processed_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    transaction_reference = models.CharField(max_length=255, null=True, blank=True)
+    transaction_reference = models.CharField(
+        max_length=255, 
+        null=True, 
+        blank=True,
+        help_text="External payment reference (MPESA message, PayPal transaction ID, etc.)"
+    )
+    payment_reference_id = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+        help_text="Payment system reference ID (MPESA, PayPal, Stripe, bank transfer, etc.)"
+    )
+    
     def process_payment(self):
         """
         Calculates the final payment, applies bonuses, fines, updates wallet, 
@@ -221,14 +233,25 @@ class WriterPayment(models.Model):
         self.save()
 
 
-    def mark_as_paid(self, admin_user):
+    def mark_as_paid(self, admin_user, payment_reference_id: str = None):
         """
         Manually sets a payment as 'Paid'.
         Updates the writer's wallet and logs the transaction.
+        
+        Args:
+            admin_user: Admin user marking the payment as paid
+            payment_reference_id (str, optional): External payment reference (MPESA, PayPal, etc.)
         """
         if self.status in ["Pending", "Delayed"]:
             self.status = "Paid"
             self.processed_at = now()
+            
+            # Store payment reference if provided
+            if payment_reference_id:
+                self.payment_reference_id = payment_reference_id
+                if not self.transaction_reference:
+                    self.transaction_reference = payment_reference_id
+            
             self.save()
 
             # Update Wallet
@@ -237,11 +260,21 @@ class WriterPayment(models.Model):
             wallet.save()
 
             # Log transaction
+            description = f"Writer payment manually approved by {admin_user.username}."
+            if payment_reference_id:
+                description += f" Payment Reference: {payment_reference_id}"
+            
             WalletTransaction.objects.create(
                 wallet=wallet,
                 transaction_type="payment",
                 amount=self.amount,
-                description=f"Writer payment manually approved by {admin_user.username}."
+                description=description,
+                metadata={
+                    "payment_reference_id": payment_reference_id,
+                    "approved_by": admin_user.username
+                } if payment_reference_id else {
+                    "approved_by": admin_user.username
+                }
             )
 
             # Notify writer

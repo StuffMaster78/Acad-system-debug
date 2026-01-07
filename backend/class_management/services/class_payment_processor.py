@@ -208,6 +208,10 @@ class ClassPaymentProcessor:
         if payment.status == 'completed':
             installment.mark_paid(payment_record=payment, paid_by=client)
             
+            # Record payment in streamlined system
+            from class_management.services.class_payment_service import ClassPaymentService
+            ClassPaymentService.record_installment_payment(installment, payment)
+            
             # Check if all installments are paid
             ClassPaymentProcessor._check_all_installments_paid(bundle)
             

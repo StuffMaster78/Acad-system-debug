@@ -640,6 +640,7 @@ class Order(models.Model):
             models.Index(fields=['client']),
             models.Index(fields=['assigned_writer']),
             models.Index(fields=['website']),
+            models.Index(fields=['preferred_writer']),
             # Composite indexes for common query patterns
             models.Index(fields=['status', 'is_paid']),
             models.Index(fields=['client', 'status']),
@@ -647,6 +648,12 @@ class Order(models.Model):
             models.Index(fields=['website', 'status']),
             models.Index(fields=['status', 'created_at']),
             models.Index(fields=['is_paid', 'created_at']),
+            # Writer dashboard specific indexes
+            models.Index(fields=['assigned_writer', 'status', 'created_at']),
+            models.Index(fields=['assigned_writer', 'created_at']),
+            models.Index(fields=['website', 'status', 'is_paid', 'assigned_writer']),
+            models.Index(fields=['website', 'status', 'is_paid', 'preferred_writer']),
+            models.Index(fields=['status', 'assigned_writer', 'is_deleted']),
             # Soft delete indexes
             models.Index(fields=['is_deleted']),
             models.Index(fields=['is_deleted', 'deleted_at']),
@@ -1590,8 +1597,9 @@ class WriterReassignmentLog(models.Model):
 
 class DraftRequest(models.Model):
     """
-    Tracks client requests for drafts to see order progress.
-    Only available if client has paid for Progressive Delivery extra service.
+    Tracks requests for drafts to see order progress.
+    Clients can request if they've paid for Progressive Delivery extra service.
+    Admins can request drafts for any order.
     """
     REQUEST_STATUS_CHOICES = [
         ('pending', 'Pending'),
@@ -1614,7 +1622,7 @@ class DraftRequest(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='draft_requests_made',
-        help_text="Client who requested the draft"
+        help_text="User who requested the draft (client or admin)"
     )
     status = models.CharField(
         max_length=20,
@@ -1654,6 +1662,41 @@ class DraftRequest(models.Model):
             models.Index(fields=['requested_by', 'status']),
         ]
 
+    def can_request(self):
+        """
+        Check if a draft can be requested for this order.
+        Returns (can_request: bool, reason: str or None)
+        Admins can always request drafts.
+        """
+        # Admins can always request drafts
+        if hasattr(self.requested_by, 'role') and self.requested_by.role in ['admin', 'superadmin', 'support']:
+            return True, None
+        
+        # Check if order is in a valid status
+        if self.order.status not in ['in_progress', 'under_editing', 'on_hold']:
+            return False, f"Order status '{self.order.status}' does not allow draft requests"
+        
+        # Check if Progressive Delivery extra service is purchased
+        # Check if the order has the Progressive Delivery extra service
+        from django.db.models import Q
+        has_progressive_delivery = self.order.extra_services.filter(
+            Q(service_name__icontains='progressive') |
+            Q(service_name__icontains='draft') |
+            Q(slug__iexact='progressive-delivery')
+        ).exists()
+        
+        if not has_progressive_delivery:
+            return False, "Progressive Delivery extra service is required to request drafts"
+        
+        return True, None
+    
+    def fulfill(self, fulfilled_by):
+        """Mark the draft request as fulfilled."""
+        from django.utils import timezone
+        self.status = 'fulfilled'
+        self.fulfilled_at = timezone.now()
+        self.save()
+    
     def __str__(self):
         return f"Draft Request #{self.id} - Order #{self.order.id} - {self.status}"
 

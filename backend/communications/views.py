@@ -839,23 +839,32 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         thread_id = self.kwargs.get("thread_pk")
         try:
-            thread = CommunicationThread.objects.get(pk=thread_id)
+            # Optimize thread lookup with select_related
+            thread = CommunicationThread.objects.select_related(
+                'order', 'order__client', 'order__assigned_writer'
+            ).get(pk=thread_id)
         except CommunicationThread.DoesNotExist:
             return CommunicationMessage.objects.none()
         
         user = self.request.user
         user_role = getattr(user, "role", None)
         
-        # Admin/superadmin can see ALL messages in ANY thread, even if not a participant
-        if user_role in {"admin", "superadmin"}:
-            return thread.messages.filter(is_deleted=False).order_by("sent_at")
-        
-        # Editors can see all messages in threads they have access to
-        if user_role == "editor":
-            return thread.messages.filter(is_deleted=False).order_by("sent_at")  # Oldest first for chronological display
-        
-        # Get visible messages and order by sent_at (oldest first)
+        # Use MessageService.get_visible_messages for consistent visibility rules
+        # This ensures all roles (admin, superadmin, support, editor, client, writer) 
+        # get messages filtered according to the matchmaking platform rules
         messages = MessageService.get_visible_messages(user, thread)
+        
+        # Optimize message queryset with select_related and only() for list views
+        if self.action == 'list':
+            messages = messages.select_related(
+                'sender', 'recipient', 'reply_to', 'thread'
+            ).only(
+                'id', 'thread_id', 'sender_id', 'recipient_id', 'sender_role',
+                'message', 'message_type', 'sent_at', 'is_read', 'is_deleted',
+                'is_archived', 'reply_to_id', 'attachment', 'contains_link',
+                'is_link_approved', 'link_url', 'link_preview_text'
+            )
+        
         return messages.order_by("sent_at")  # Oldest first for chronological display
 
     def get_serializer_context(self):
@@ -863,13 +872,19 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         if self.action == 'create':
             thread_id = self.kwargs.get("thread_pk")
-            thread = CommunicationThread.objects.get(pk=thread_id)
+            # Optimize thread lookup with select_related
+            thread = CommunicationThread.objects.select_related(
+                'order', 'order__client', 'order__assigned_writer'
+            ).get(pk=thread_id)
             context['thread'] = thread
         return context
 
     def perform_create(self, serializer):
         thread_id = self.kwargs.get("thread_pk")
-        thread = CommunicationThread.objects.get(pk=thread_id)
+        # Optimize thread lookup with select_related and prefetch participants once
+        thread = CommunicationThread.objects.select_related(
+            'order', 'order__client', 'order__assigned_writer'
+        ).prefetch_related('participants').get(pk=thread_id)
         sender = self.request.user
         recipient = serializer.validated_data.get("recipient")
         message = serializer.validated_data["message"]
@@ -885,15 +900,17 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import ValidationError
             raise ValidationError("Recipient is required. Please select a recipient before sending the message.")
 
-        # Validate recipient has access to the order
+        # Validate recipient has access to the order (use cached order from select_related)
         if thread.order:
-            order = thread.order
+            order = thread.order  # Already loaded via select_related
             role = getattr(recipient, "role", None)
+            # Use prefetched participants to avoid extra query
+            participants_list = list(thread.participants.all())
             has_access = (
-                order.client == recipient or
-                order.assigned_writer == recipient or
+                order.client_id == recipient.id or
+                order.assigned_writer_id == recipient.id or
                 role in {"admin", "superadmin", "editor", "support"} or
-                recipient in thread.participants.all()
+                recipient.id in [p.id for p in participants_list]
             )
             if not has_access:
                 from rest_framework.exceptions import ValidationError
@@ -909,6 +926,7 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
             reply_to=reply_to,
             message_type=message_type
         )
+        # Optimize response serialization
         return Response(
             CommunicationMessageSerializer(msg, context={'request': self.request}).data,
             status=status.HTTP_201_CREATED
@@ -1156,6 +1174,39 @@ class OrderMessageNotificationViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         """Return only notifications for the logged-in user."""
         return CommunicationNotification.objects.filter(recipient=self.request.user)
+    
+    @action(detail=True, methods=['post'])
+    def mark_as_read(self, request, pk=None):
+        """Mark a communication notification as read."""
+        notification = self.get_object()
+        if not notification.is_read:
+            from django.utils import timezone
+            notification.is_read = True
+            notification.read_at = timezone.now()
+            notification.save(update_fields=['is_read', 'read_at'])
+        return Response({"status": "marked as read"})
+    
+    @action(detail=False, methods=['post'])
+    def mark_all_as_read(self, request):
+        """Mark all communication notifications as read for the current user."""
+        from django.utils import timezone
+        count = CommunicationNotification.objects.filter(
+            recipient=request.user,
+            is_read=False
+        ).update(is_read=True, read_at=timezone.now())
+        return Response({
+            "status": "all marked as read",
+            "updated": count
+        })
+    
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request):
+        """Get unread communication notification count."""
+        count = CommunicationNotification.objects.filter(
+            recipient=request.user,
+            is_read=False
+        ).count()
+        return Response({"unread_count": count})
 
 
 class ScreenedWordViewSet(viewsets.ModelViewSet):

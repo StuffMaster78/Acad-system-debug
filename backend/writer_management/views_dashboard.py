@@ -2,7 +2,7 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Count, Sum, Avg, Q, F
+from django.db.models import Count, Sum, Avg, Q, F, Case, When, IntegerField, DecimalField
 from django.db import models
 from django.db.models.functions import TruncDate, TruncWeek, TruncMonth
 from django.utils import timezone
@@ -151,39 +151,54 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
         
-        # Get writer's payments (excluding installments)
+        # Get writer's payments (excluding installments) - optimized with select_related
         payments = WriterPayment.objects.filter(
             writer=profile,
             payment_date__gte=date_from
         ).exclude(
             # Exclude payments related to installments
             description__icontains='installment'
-        )
+        ).select_related('writer', 'website').only('amount', 'payment_date', 'description')
         
-        # Earnings breakdown
+        # Earnings breakdown - single aggregation
         total_earnings = payments.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
         # Note: WriterPayment doesn't have a status field, so all payments are considered completed
         pending_payments = Decimal('0.00')
         
-        # Earnings by period
+        # Earnings by period - optimized with single query using conditional aggregation
         week_start = timezone.now() - timedelta(days=7)
         month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         year_start = timezone.now().replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
         
-        week_earnings = WriterPayment.objects.filter(
-            writer=profile,
-            payment_date__gte=week_start
-        ).exclude(description__icontains='installment').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-        
-        month_earnings = WriterPayment.objects.filter(
-            writer=profile,
-            payment_date__gte=month_start
-        ).exclude(description__icontains='installment').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
-        
-        year_earnings = WriterPayment.objects.filter(
-            writer=profile,
-            payment_date__gte=year_start
-        ).exclude(description__icontains='installment').aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        # Use conditional aggregation to get all period totals in one query
+        period_totals = WriterPayment.objects.filter(
+            writer=profile
+        ).exclude(description__icontains='installment').aggregate(
+            week_total=Sum(
+                Case(
+                    When(payment_date__gte=week_start, then='amount'),
+                    default=0,
+                    output_field=DecimalField()
+                )
+            ),
+            month_total=Sum(
+                Case(
+                    When(payment_date__gte=month_start, then='amount'),
+                    default=0,
+                    output_field=DecimalField()
+                )
+            ),
+            year_total=Sum(
+                Case(
+                    When(payment_date__gte=year_start, then='amount'),
+                    default=0,
+                    output_field=DecimalField()
+                )
+            )
+        )
+        week_earnings = period_totals['week_total'] or Decimal('0.00')
+        month_earnings = period_totals['month_total'] or Decimal('0.00')
+        year_earnings = period_totals['year_total'] or Decimal('0.00')
         
         # Earnings trends (daily)
         earnings_trend = payments.annotate(
@@ -193,21 +208,23 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             count=Count('id')
         ).order_by('date')
         
-        # Earnings by order type
+        # Earnings by order type - optimized with prefetch_related
         # Note: OrderPayment uses 'payments' as related_name, and status field is 'payment_status' or 'status'
         orders_with_payments = Order.objects.filter(
             assigned_writer=request.user,
             payments__status='completed'
-        ).annotate(
+        ).select_related('client', 'website').prefetch_related('payments').annotate(
             writer_payment=Sum('payments__amount', filter=Q(payments__status='completed'))
         )
         
         # Average earnings per order
         avg_earnings_per_order = payments.aggregate(Avg('amount'))['amount__avg'] or Decimal('0.00')
         
-        # Payment history
+        # Payment history - optimized with select_related
         payment_history = WriterPayment.objects.filter(
             writer=profile
+        ).select_related('writer', 'website').only(
+            'id', 'amount', 'payment_date', 'description'
         ).order_by('-payment_date')[:20]
         
         return Response({
@@ -251,41 +268,66 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
         
-        # Get writer's orders
+        # Get writer's orders - optimized with select_related to prevent N+1
         orders = Order.objects.filter(
             assigned_writer=request.user,
             created_at__gte=date_from
+        ).select_related('client', 'website').only(
+            'id', 'status', 'created_at', 'submitted_at', 'client_deadline', 
+            'writer_deadline', 'completed_at', 'updated_at'
         )
         
-        # Performance metrics
-        total_orders = orders.count()
-        completed_orders = orders.filter(status='completed').count()
+        # Performance metrics - use single aggregation query
+        status_breakdown = orders.aggregate(
+            total=Count('id'),
+            completed=Count('id', filter=Q(status='completed')),
+            revised=Count('id', filter=Q(status='on_revision'))
+        )
+        total_orders = status_breakdown['total']
+        completed_orders = status_breakdown['completed']
+        revised_orders = status_breakdown['revised']
         
-        # Check for on-time/late orders (check if completed_at field exists)
-        completed_orders_qs = orders.filter(status='completed')
-        on_time_orders = 0
-        late_orders = 0
-        for order in completed_orders_qs:
-            completed_at = getattr(order, 'completed_at', None)
-            deadline = getattr(order, 'client_deadline', None) or getattr(order, 'writer_deadline', None) or getattr(order, 'deadline', None)
-            if completed_at and deadline:
-                if completed_at <= deadline:
-                    on_time_orders += 1
-                else:
-                    late_orders += 1
-        
-        revised_orders = orders.filter(status='on_revision').count()
+        # Check for on-time/late orders - optimized with annotation
+        completed_orders_qs = orders.filter(status='completed').annotate(
+            has_deadline=Case(
+                When(client_deadline__isnull=False, then=1),
+                When(writer_deadline__isnull=False, then=1),
+                default=0,
+                output_field=IntegerField()
+            ),
+            is_on_time=Case(
+                When(
+                    completed_at__isnull=False,
+                    client_deadline__isnull=False,
+                    completed_at__lte=F('client_deadline'),
+                    then=1
+                ),
+                When(
+                    completed_at__isnull=False,
+                    client_deadline__isnull=True,
+                    writer_deadline__isnull=False,
+                    completed_at__lte=F('writer_deadline'),
+                    then=1
+                ),
+                default=0,
+                output_field=IntegerField()
+            )
+        )
+        on_time_orders = completed_orders_qs.aggregate(
+            on_time=Count('id', filter=Q(is_on_time=1))
+        )['on_time'] or 0
+        late_orders = completed_orders - on_time_orders
         
         # Calculate rates
         completion_rate = (completed_orders / total_orders * 100) if total_orders > 0 else 0
         on_time_rate = (on_time_orders / completed_orders * 100) if completed_orders > 0 else 0
         revision_rate = (revised_orders / total_orders * 100) if total_orders > 0 else 0
         
-        # Quality scores
+        # Quality scores - optimized with select_related
         reviews = WriterReview.objects.filter(
             writer=request.user,
             submitted_at__gte=date_from
-        )
+        ).select_related('order', 'writer').only('rating', 'submitted_at')
         avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
         
         # Performance trends
@@ -362,14 +404,20 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             if declined_order_ids:
                 available_orders = available_orders.exclude(id__in=declined_order_ids)
             
+            # Optimized with select_related and prefetch_related
             available_orders = list(
-                available_orders.select_related('client', 'type_of_work', 'paper_type', 'subject').order_by('-created_at')[:50]
+                available_orders.select_related(
+                    'client', 'type_of_work', 'paper_type', 'subject', 
+                    'academic_level', 'formatting_style', 'website'
+                ).prefetch_related('extra_services').order_by('-created_at')[:50]
             )
             
             # Get writer's order requests (lazy import to avoid circular dependency)
+            # Only show requests for paid orders
             from writer_management.models.requests import WriterOrderRequest
             order_requests = WriterOrderRequest.objects.filter(
-                writer=profile
+                writer=profile,
+                order__is_paid=True  # Only show requests for paid orders
             ).select_related('order').order_by('-requested_at')
             
             # Get list of order IDs that this writer has already requested
@@ -378,7 +426,8 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             # Get writer requests (from orders app) - lazy import to avoid circular dependency
             from orders.models import WriterRequest
             writer_requests = WriterRequest.objects.filter(
-                requested_by_writer=request.user
+                requested_by_writer=request.user,
+                order__is_paid=True  # Only show requests for paid orders
             ).select_related('order').order_by('-created_at')
             
             # Add writer request order IDs to requested list
@@ -400,8 +449,12 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             if declined_order_ids:
                 preferred_orders = preferred_orders.exclude(id__in=declined_order_ids)
             
+            # Optimized with select_related and prefetch_related
             preferred_orders = list(
-                preferred_orders.select_related('client', 'type_of_work', 'paper_type', 'subject').order_by('-created_at')[:20]
+                preferred_orders.select_related(
+                    'client', 'type_of_work', 'paper_type', 'subject',
+                    'academic_level', 'formatting_style', 'website'
+                ).prefetch_related('extra_services').order_by('-created_at')[:20]
             )
 
             # ------------------------------------------------------------------
@@ -1717,6 +1770,8 @@ class WriterDashboardViewSet(viewsets.ViewSet):
         - Status updates and review information
         - Statistics and trends
         """
+        from django.core.cache import cache
+        
         # Import inside function to avoid circular import
         from writer_management.models.requests import WriterOrderRequest
         from orders.models import WriterRequest
@@ -1728,7 +1783,14 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 status=404
             )
         
-        # Get all order requests for this writer
+        # Cache key for this writer's requests (30 second TTL)
+        cache_key = f'writer_order_requests_{request.user.id}'
+        cached_response = cache.get(cache_key)
+        if cached_response is not None:
+            return Response(cached_response)
+        
+        # Limit to recent requests only (last 50) to reduce processing time
+        # Get all order requests for this writer - limit to recent ones
         order_requests = (
             WriterOrderRequest.objects.filter(
                 writer=profile
@@ -1739,16 +1801,28 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'reviewed_by',
                 'website'
             )
-            .order_by('-requested_at')
+            .only(
+                'id', 'approved', 'requested_at', 'reason',
+                'order__id', 'order__topic', 'order__status', 'order__total_price',
+                'order__number_of_pages', 'order__number_of_slides',
+                'reviewed_by__username'
+            )
+            .order_by('-requested_at')[:50]  # Limit to 50 most recent
         )
         
-        # Also get WriterRequest (from orders app)
+        # Also get WriterRequest (from orders app) - limit to recent
         writer_requests = (
             WriterRequest.objects.filter(
                 requested_by_writer=request.user
             )
             .select_related('order')
-            .order_by('-created_at')
+            .only(
+                'id', 'status', 'created_at', 'updated_at', 'reason',
+                'additional_pages', 'additional_slides', 'has_counter_offer',
+                'order__id', 'order__topic', 'order__status', 'order__total_price',
+                'order__number_of_pages', 'order__number_of_slides'
+            )
+            .order_by('-created_at')[:50]  # Limit to 50 most recent
         )
         
         # Combine and format requests
@@ -1853,7 +1927,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             r['requested_at'] >= week_ago.isoformat()
         ]
         
-        return Response({
+        response_data = {
             'requests': requests_list,
             'statistics': {
                 'total': total_requests,
@@ -1863,7 +1937,12 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                 'recent_7_days': len(recent_requests),
             },
             'last_updated': timezone.now().isoformat(),
-        })
+        }
+        
+        # Cache the response for 30 seconds
+        cache.set(cache_key, response_data, 30)
+        
+        return Response(response_data)
     
     @action(detail=False, methods=['get'], url_path='summary')
     def get_dashboard_summary(self, request):

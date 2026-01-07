@@ -49,9 +49,9 @@ class WriterProfileAdmin(admin.ModelAdmin):
     list_display = (
         'user', 'registration_id', 'writer_level',
         'completed_orders', 'total_earnings',
-        'verification_status'
+        'verification_status', 'can_take_orders', 'is_available_for_auto_assignments'
     )
-    list_filter = ('writer_level', 'verification_status', 'location_verified')
+    list_filter = ('writer_level', 'verification_status', 'location_verified', 'can_take_orders', 'is_available_for_auto_assignments')
     search_fields = ('user__username', 'registration_id', 'email')
     readonly_fields = ('joined_at', 'last_logged_in', 'wallet_balance', 'average_rating')
     

@@ -58,11 +58,15 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
         return queryset
     
     def perform_create(self, serializer):
-        """Create a draft request."""
+        """Create a draft request (can be created by client or admin)."""
         order = serializer.validated_data['order']
+        user = self.request.user
+        
+        # Admins can create draft requests for any order
+        # Clients can only create for their own orders (validated in serializer)
         serializer.save(
             website=order.website,
-            requested_by=self.request.user,
+            requested_by=user,
             status='pending'
         )
     
@@ -213,12 +217,14 @@ class DraftRequestViewSet(viewsets.ModelViewSet):
         )
         can_request, reason = draft_request.can_request()
         
-        # Check if there's already a pending request
-        has_pending = DraftRequest.objects.filter(
-            order=order,
-            requested_by=request.user,
-            status__in=['pending', 'in_progress']
-        ).exists()
+        # Check if there's already a pending request (admins can create multiple)
+        has_pending = False
+        if request.user.role not in ['admin', 'superadmin', 'support']:
+            has_pending = DraftRequest.objects.filter(
+                order=order,
+                requested_by=request.user,
+                status__in=['pending', 'in_progress']
+            ).exists()
         
         return Response({
             'can_request': can_request and not has_pending,

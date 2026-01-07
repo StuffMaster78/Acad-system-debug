@@ -212,14 +212,14 @@ const fetchRecentOrders = async () => {
   recentOrdersLoading.value = true
   try {
     const response = await ordersAPI.list({ 
-      page_size: 5, 
+      assigned_writer: true,
+      page_size: 50, 
       ordering: '-created_at',
-      writer: authStore.user?.id 
     })
     const orders = Array.isArray(response.data?.results) 
       ? response.data.results 
       : (Array.isArray(response.data) ? response.data : [])
-    recentOrders.value = orders.slice(0, 5)
+    recentOrders.value = orders
   } catch (err) {
     console.error('Failed to fetch recent orders:', err)
     recentOrders.value = []
@@ -263,13 +263,36 @@ const handleWidgetRefresh = async ({ scope }) => {
     case 'earnings':
       await fetchWriterEarnings()
       break
+    case 'orders':
+      await fetchRecentOrders()
+      break
     default:
       break
   }
 }
 
 const handleWidgetOrderRequest = async () => {
-  await Promise.all([fetchWriterQueue(), fetchWriterSummary()])
+  await fetchWriterQueue()
+}
+
+const handleWidgetRefresh = async ({ scope }) => {
+  switch (scope) {
+    case 'queue':
+      await fetchWriterQueue()
+      break
+    case 'summary':
+      await fetchWriterSummary()
+      break
+    case 'earnings':
+      await fetchWriterEarnings()
+      break
+    case 'orders':
+      await fetchRecentOrders()
+      break
+    default:
+      break
+  }
+}await Promise.all([fetchWriterQueue(), fetchWriterSummary()])
 }
 
 const refreshDashboard = async () => {

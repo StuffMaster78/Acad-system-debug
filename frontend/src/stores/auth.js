@@ -464,8 +464,8 @@ export const useAuthStore = defineStore('auth', {
       const isImpersonationTab = localStorage.getItem('_is_impersonation_tab') === 'true'
 
       try {
-        // Call API to end impersonation
-        const response = await authApi.endImpersonation()
+        // Call API to end impersonation with close_tab flag
+        const response = await authApi.endImpersonation({ close_tab: isImpersonationTab })
         
         // Track impersonation end event (for auditing)
         try {
@@ -611,15 +611,18 @@ export const useAuthStore = defineStore('auth', {
         
         // If NOT an impersonation tab (ending impersonation from admin tab itself),
         // update tokens and user with admin's data
-        if (response.data.access_token && response.data.refresh_token) {
-          await this.setTokens({
-            accessToken: response.data.access_token,
-            refreshToken: response.data.refresh_token
-          })
-        }
-        
-        if (response.data.user) {
-          await this.setUser(response.data.user)
+        // Only update if close_tab is false (same-tab ending)
+        if (!response.data.close_tab) {
+          if (response.data.access_token && response.data.refresh_token) {
+            await this.setTokens({
+              accessToken: response.data.access_token,
+              refreshToken: response.data.refresh_token
+            })
+          }
+          
+          if (response.data.user) {
+            await this.setUser(response.data.user)
+          }
         }
         
         // Clear impersonation flags

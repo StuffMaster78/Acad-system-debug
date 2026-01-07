@@ -12,7 +12,14 @@
             <span class="text-xs font-medium text-red-600">Offline</span>
           </div>
         </div>
-        <p class="mt-2 text-gray-600 dark:text-gray-400">Welcome back, {{ authStore.user?.email }}</p>
+        <p class="mt-2 text-gray-600 dark:text-gray-400 flex items-center flex-wrap gap-2">
+          <span>Welcome back, {{ displayName }}</span>
+          <CopyableIdChip
+            v-if="displayId"
+            :label="displayIdLabel"
+            :value="displayId"
+          />
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <!-- Time Period Selector (Admin/Superadmin) -->
@@ -170,74 +177,6 @@
       :recent-notifications-loading="recentNotificationsLoading"
         :loading="false"
       />
-    </div>
-
-    <!-- Writer Summary Stats -->
-    <div v-if="authStore.isWriter" class="space-y-6">
-      <!-- Enhanced Summary Stats Grid -->
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div
-          v-for="stat in enhancedWriterStats"
-          :key="stat.name"
-          class="card bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 border border-gray-100 transform hover:scale-[1.02]"
-          :class="stat.gradientBg"
-        >
-          <div class="flex items-center justify-between mb-4">
-            <div class="flex-1">
-              <p class="text-sm font-semibold text-gray-600 mb-1 uppercase tracking-wide">{{ stat.name }}</p>
-              <p class="text-3xl font-bold mb-1" :class="stat.valueColor">{{ stat.value }}</p>
-              <p v-if="stat.subtitle" class="text-xs font-medium mt-1" :class="stat.subtitleColor">{{ stat.subtitle }}</p>
-              <div v-if="stat.trend !== null && stat.trend !== undefined" class="mt-2 flex items-center gap-1">
-                <span :class="[
-                  'text-xs font-semibold flex items-center gap-1',
-                  stat.trend > 0 ? 'text-green-600' : stat.trend < 0 ? 'text-red-600' : 'text-gray-500'
-                ]">
-                  <svg v-if="stat.trend > 0" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clip-rule="evenodd" />
-                  </svg>
-                  <svg v-else-if="stat.trend < 0" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clip-rule="evenodd" />
-                  </svg>
-                  <span>{{ Math.abs(stat.trend) }}%</span>
-                </span>
-                <span class="text-xs text-gray-500">vs last month</span>
-              </div>
-            </div>
-            <div class="p-4 rounded-xl shadow-md" :class="stat.iconBg">
-              <span class="text-3xl">{{ stat.icon }}</span>
-            </div>
-          </div>
-          <div v-if="stat.progress !== null && stat.progress !== undefined" class="mt-4">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-gray-600">Progress</span>
-              <span class="text-xs font-semibold" :class="stat.valueColor">{{ stat.progress }}%</span>
-            </div>
-            <div class="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-              <div 
-                class="h-2 rounded-full transition-all duration-500"
-                :class="stat.progressColor"
-                :style="{ width: `${Math.min(stat.progress, 100)}%` }"
-              ></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Additional Writer Metrics -->
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <div
-          v-for="metric in writerQuickMetrics"
-          :key="metric.name"
-          class="card bg-gradient-to-br from-white to-gray-50 rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition-all"
-        >
-          <div class="flex items-center justify-between mb-2">
-            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">{{ metric.name }}</p>
-            <span class="text-xl">{{ metric.icon }}</span>
-          </div>
-          <p class="text-2xl font-bold text-gray-900">{{ metric.value }}</p>
-          <p v-if="metric.description" class="text-xs text-gray-500 mt-1">{{ metric.description }}</p>
-        </div>
-      </div>
     </div>
 
     <WriterDashboard
@@ -653,7 +592,7 @@
         <div v-else-if="topClients && topClients.length > 0" class="space-y-3">
           <div
             v-for="(client, index) in topClients.slice(0, 5)"
-            :key="client.id || index"
+            :key="client.id ? client.id : index"
             class="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors duration-200"
           >
             <div class="flex items-center gap-4 flex-1 min-w-0">
@@ -661,8 +600,8 @@
                 {{ index + 1 }}
               </div>
               <div class="flex-1 min-w-0">
-                <p class="font-semibold text-gray-900 truncate">{{ client.name || client.email || 'Unknown Client' }}</p>
-                <p class="text-xs text-gray-500 truncate">{{ client.email || 'No email' }}</p>
+                <p class="font-semibold text-gray-900 truncate">{{ client.name ? client.name : (client.email ? client.email : 'Unknown Client') }}</p>
+                <p class="text-xs text-gray-500 truncate">{{ client.email ? client.email : 'No email' }}</p>
               </div>
             </div>
             <div class="flex items-center gap-6 ml-4">
@@ -703,8 +642,10 @@ import EditorDashboard from './components/EditorDashboard.vue'
 // ContentRemindersWidget moved to ContentMetricsReport page
 import SupportDashboard from './components/SupportDashboard.vue'
 import GitHubStyleHeatmap from '@/components/dashboard/GitHubStyleHeatmap.vue'
+import CopyableIdChip from '@/components/common/CopyableIdChip.vue'
 import { useReliableOrders } from '@/composables/useReliableOrders'
 import { useConnectionStatus } from '@/composables/useConnectionStatus'
+import { useMultipleLoadingStates } from '@/composables/useLoadingState'
 import { retryApiCall } from '@/utils/retry'
 import { useToast } from '@/composables/useToast'
 // ApexCharts is globally registered via VueApexCharts plugin
@@ -749,14 +690,18 @@ const error = ref(null)
 const timePeriod = ref('30') // Default to 30 days
 const previousPeriodData = ref(null) // Store previous period data for comparison
 
-const loading = ref({
-  summary: false,
-  yearlyOrders: false,
-  yearlyEarnings: false,
-  monthlyOrders: false,
-  serviceRevenue: false,
-  paymentStatus: false,
-})
+// Use loading state composable with minimum delay to prevent flickering
+const { loadingStates, isLoading, withLoading: withLoadingState } = useMultipleLoadingStates({ minDelay: 200 })
+
+// Create computed properties for backward compatibility
+const loading = computed(() => ({
+  summary: isLoading('summary'),
+  yearlyOrders: isLoading('yearlyOrders'),
+  yearlyEarnings: isLoading('yearlyEarnings'),
+  monthlyOrders: isLoading('monthlyOrders'),
+  serviceRevenue: isLoading('serviceRevenue'),
+  paymentStatus: isLoading('paymentStatus'),
+}))
 const topClients = ref([])
 const topClientsLoading = ref(false)
 const refreshing = ref(false)
@@ -767,6 +712,37 @@ const walletLoading = ref(false)
 const recentNotifications = ref([])
 const recentNotificationsLoading = ref(false)
 const recentActivityLoading = ref(false)
+
+const displayName = computed(() => {
+  const user = authStore.user
+  if (!user) return 'User'
+  if (user.role === 'writer') {
+    return user.writer_profile?.pen_name || user.full_name || user.username || user.email
+  }
+  if (user.role === 'client') {
+    return user.full_name || user.username || user.email
+  }
+  return user.full_name || user.username || user.email
+})
+
+const displayIdLabel = computed(() => {
+  const role = authStore.userRole
+  if (role === 'writer') return 'Writer ID'
+  if (role === 'client') return 'Client ID'
+  if (role === 'editor') return 'Editor ID'
+  if (role === 'support') return 'Support ID'
+  if (role === 'admin' || role === 'superadmin') return 'Admin ID'
+  return 'User ID'
+})
+
+const displayId = computed(() => {
+  const user = authStore.user
+  if (!user) return null
+  if (user.role === 'writer') {
+    return user.writer_profile?.registration_id || user.id
+  }
+  return user.id
+})
 
 // Role-specific dashboard data
 const editorDashboardData = ref(null)
@@ -1044,28 +1020,11 @@ const summaryStats = computed(() => {
   const ordersOnRevision = Number(data.orders_on_revision) || 0
   const disputedOrders = Number(data.disputed_orders) || 0
   const amountPaidToday = parseFloat(data.amount_paid_today) || 0
-  const income2Weeks = parseFloat(data.income_2weeks) || 0
-  const incomeMonthly = parseFloat(data.income_monthly) || 0
   
-  // Calculate percentages safely
-  const paymentRate = totalOrders > 0 ? ((paidOrders / totalOrders) * 100).toFixed(1) : '0.0'
-  const unpaidPercentage = totalOrders > 0 ? ((unpaidOrders / totalOrders) * 100).toFixed(1) : '0.0'
-  
-  // Format currency with proper formatting
-  const formatCurrency = (amount) => {
-    return amount.toLocaleString('en-US', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    })
-  }
-  
-  const formatCompactCurrency = (amount) => {
-    if (amount >= 1000000) {
-      return `$${(amount / 1000000).toFixed(2)}M`
-    } else if (amount >= 1000) {
-      return `$${(amount / 1000).toFixed(2)}K`
-    }
-    return `$${formatCurrency(amount)}`
+  // Format currency with proper formatting (local helper for this computed)
+  const formatCurrencyLocal = (amount) => {
+    const options = { minimumFractionDigits: 2, maximumFractionDigits: 2 }
+    return amount.toLocaleString('en-US', options)
   }
   
   // Format currency for large display (handles overflow better)
@@ -1079,7 +1038,17 @@ const summaryStats = computed(() => {
       return `$${(amount / 1000).toFixed(2)}K`
     }
     // For smaller amounts, use full formatting with commas
-    return `$${formatCurrency(amount)}`
+    return `$${formatCurrencyLocal(amount)}`
+  }
+  
+  // Format amount paid today helper
+  const formatAmountPaidToday = (amount) => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(2)}M`
+    } else if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(2)}K`
+    }
+    return `$${formatCurrencyLocal(amount)}`
   }
   
   // Calculate percentage changes (mock for now - can be enhanced with previous period data)
@@ -1100,7 +1069,7 @@ const summaryStats = computed(() => {
       value: totalOrders.toLocaleString(),
       icon: '📝',
       change: calculateChange(totalOrders, prevTotalOrders),
-      subtitle: recentOrders > 0 ? `${recentOrders} in last 7 days` : 'No orders in last 7 days',
+      subtitle: recentOrders > 0 ? (recentOrders + ' in last 7 days') : 'No orders in last 7 days',
       bgColor: 'bg-blue-100',
       size: 'normal',
     },
@@ -1109,7 +1078,7 @@ const summaryStats = computed(() => {
       value: formatLargeCurrency(totalRevenue),
       icon: '💰',
       change: calculateChange(totalRevenue, prevTotalRevenue),
-      subtitle: paidOrders > 0 ? `From ${paidOrders.toLocaleString()} paid order${paidOrders !== 1 ? 's' : ''}` : 'No paid orders yet',
+      subtitle: paidOrders > 0 ? ('From ' + paidOrders.toLocaleString() + ' paid order' + (paidOrders !== 1 ? 's' : '')) : 'No paid orders yet',
       bgColor: 'bg-gradient-to-br from-green-100 to-emerald-100',
       size: 'large',
     },
@@ -1124,7 +1093,7 @@ const summaryStats = computed(() => {
     },
     {
       name: 'Amount Paid Today',
-      value: formatCompactCurrency(amountPaidToday),
+      value: formatAmountPaidToday(amountPaidToday),
       icon: '💵',
       change: calculateChange(amountPaidToday, prevAmountPaidToday),
       subtitle: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
@@ -1616,229 +1585,223 @@ const serviceRevenueSeries = computed(() => {
 })
 
 // Computed loading states
-const yearlyOrdersLoading = computed(() => loading.value.yearlyOrders)
-const yearlyEarningsLoading = computed(() => loading.value.yearlyEarnings)
-const monthlyOrdersLoading = computed(() => loading.value.monthlyOrders)
-const serviceRevenueLoading = computed(() => loading.value.serviceRevenue)
-const paymentStatusLoading = computed(() => loading.value.paymentStatus)
+const yearlyOrdersLoading = computed(() => loading.yearlyOrders)
+const yearlyEarningsLoading = computed(() => loading.yearlyEarnings)
+const monthlyOrdersLoading = computed(() => loading.monthlyOrders)
+const serviceRevenueLoading = computed(() => loading.serviceRevenue)
+const paymentStatusLoading = computed(() => loading.paymentStatus)
 
 // Fetch functions
 const fetchSummary = async (forceRefresh = false) => {
-  loading.value.summary = true
-  try {
-    // Fetch full dashboard data which includes all stats
-    // Add refresh parameter to clear cache if needed
-    const params = forceRefresh ? { refresh: 'true' } : {}
-    const response = await dashboardAPI.getDashboard(params)
-    const dashboardData = response.data
-    
-    // Handle both nested (stats) and flat response structures
-    const stats = dashboardData.stats || dashboardData
-    const flatData = dashboardData
-    
-    // Debug: Log the actual data structure to understand what we're receiving
-    if (import.meta.env.DEV) {
-      console.debug('Dashboard API response structure:', {
-        hasStats: !!dashboardData.stats,
-        hasFlatData: !!dashboardData,
-        statsKeys: dashboardData.stats ? Object.keys(dashboardData.stats) : [],
-        flatDataKeys: Object.keys(dashboardData).slice(0, 20), // First 20 keys
-        statsPaid: dashboardData.stats?.paid_orders_count,
-        statsUnpaid: dashboardData.stats?.unpaid_orders_count,
-        flatPaid: dashboardData.paid_orders_count,
-        flatUnpaid: dashboardData.unpaid_orders_count,
-      })
-    }
-    
-    // Map the dashboard data to summaryData format with proper type conversion
-    // Ensure all numeric values are properly converted
-    summaryData.value = {
-      total_orders: Number(stats.total_orders ?? flatData.total_orders ?? 0),
-      orders_by_status: stats.orders_by_status ?? flatData.orders_by_status ?? {},
-      total_revenue: parseFloat(stats.total_revenue ?? flatData.total_revenue ?? 0) || 0,
-      paid_orders_count: Number(stats.paid_orders_count ?? flatData.paid_orders_count ?? 0),
-      unpaid_orders_count: Number(stats.unpaid_orders_count ?? flatData.unpaid_orders_count ?? 0),
-      recent_orders_count: Number(stats.recent_orders_count ?? flatData.recent_orders_count ?? 0), // Last 7 days
-      total_tickets: Number(stats.open_tickets ?? flatData.total_tickets ?? 0),
-      open_tickets_count: Number(stats.open_tickets ?? flatData.open_tickets_count ?? 0),
-      closed_tickets_count: Number(stats.closed_tickets ?? flatData.closed_tickets_count ?? 0),
-      // New comprehensive metrics
-      orders_in_progress: Number(flatData.orders_in_progress ?? 0),
-      orders_on_revision: Number(flatData.orders_on_revision ?? 0),
-      disputed_orders: Number(flatData.disputed_orders ?? 0),
-      amount_paid_today: parseFloat(flatData.amount_paid_today ?? 0) || 0,
-      income_this_week: parseFloat(flatData.income_this_week ?? 0) || 0,
-      income_2weeks: parseFloat(flatData.income_2weeks ?? 0) || 0,
-      income_monthly: parseFloat(flatData.income_monthly ?? 0) || 0,
-      // User statistics - check both nested and flat structure, ensure numbers
-      total_writers: Number(flatData.total_writers ?? 0),
-      total_editors: Number(flatData.total_editors ?? 0),
-      total_support: Number(flatData.total_support ?? 0),
-      total_clients: Number(flatData.total_clients ?? 0),
-      suspended_users: Number(stats.suspended_users ?? flatData.suspended_users ?? 0),
-    }
-    
-    // Validate data consistency (backend should ensure total_orders = paid + unpaid)
-    const totalOrders = summaryData.value.total_orders
-    const paidOrders = summaryData.value.paid_orders_count
-    const unpaidOrders = summaryData.value.unpaid_orders_count
-    const calculatedTotal = paidOrders + unpaidOrders
-    
-    // If there's a significant mismatch (> 5 orders difference), log it for debugging
-    // This helps catch data issues but allows for minor rounding/calculation differences
-    if (totalOrders > 0 && Math.abs(totalOrders - calculatedTotal) > 5) {
-      // Data inconsistency detected (backend should ensure consistency)
+  return withLoadingState('summary', async () => {
+    try {
+      // Fetch full dashboard data which includes all stats
+      // Add refresh parameter to clear cache if needed
+      const params = forceRefresh ? { refresh: 'true' } : {}
+      const response = await dashboardAPI.getDashboard(params)
+      const dashboardData = response.data
+      
+      // Handle both nested (stats) and flat response structures
+      const stats = dashboardData.stats || dashboardData
+      const flatData = dashboardData
+      
+      // Debug: Log the actual data structure to understand what we're receiving
       if (import.meta.env.DEV) {
-        console.warn('Data inconsistency detected (backend should ensure consistency):', {
-          total_orders: totalOrders,
-          paid: paidOrders,
-          unpaid: unpaidOrders,
-          calculated: calculatedTotal,
-          difference: Math.abs(totalOrders - calculatedTotal)
+        console.debug('Dashboard API response structure:', {
+          hasStats: !!dashboardData.stats,
+          hasFlatData: !!dashboardData,
+          statsKeys: dashboardData.stats ? Object.keys(dashboardData.stats) : [],
+          flatDataKeys: Object.keys(dashboardData).slice(0, 20), // First 20 keys
+          statsPaid: dashboardData.stats?.paid_orders_count,
+          statsUnpaid: dashboardData.stats?.unpaid_orders_count,
+          flatPaid: dashboardData.paid_orders_count,
+          flatUnpaid: dashboardData.unpaid_orders_count,
         })
       }
-    }
-    
-    // Store recent logs for activity section
-    const activities = dashboardData.recent_activities || dashboardData.recent_logs || []
-    if (activities && activities.length > 0) {
-      recentActivity.value = activities.map(log => ({
-        action: typeof log === 'string' ? log : (log.action || log.message || JSON.stringify(log)),
-        timestamp: log.timestamp || log.created_at || null,
-      }))
-    }
-    
-    // Extract payment reminder stats
-    paymentReminderStats.value = dashboardData.payment_reminder_stats || {
-      total_reminder_configs: 0,
-      active_reminder_configs: 0,
-      total_deletion_messages: 0,
-      active_deletion_messages: 0,
-      total_sent_reminders: 0,
-      recent_sent_reminders: 0,
-    }
-    
-    // Validate and log data for debugging (only in development)
-    if (import.meta.env.DEV) {
-      console.debug('Dashboard data received:', {
-        hasStats: !!dashboardData.stats,
-        hasFlatData: !!flatData.total_writers,
-        summaryData: summaryData.value,
-        userCounts: {
-          writers: summaryData.value.total_writers,
-          editors: summaryData.value.total_editors,
-          support: summaryData.value.total_support,
-          clients: summaryData.value.total_clients,
-        }
-      })
-    }
-  } catch (err) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to fetch dashboard summary:', err)
-    }
-    const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to load dashboard data'
-    
-    // Fallback: try individual summary endpoint
-    try {
-      const summaryResponse = await dashboardAPI.getSummary()
-      summaryData.value = summaryResponse.data
-      error.value = null // Clear error on successful fallback
-    } catch (e) {
-      if (import.meta.env.DEV) {
-        console.error('Failed to fetch summary fallback:', e)
-      }
-      error.value = errorMessage
-      // Set default values to prevent UI breakage
+      
+      // Map the dashboard data to summaryData format with proper type conversion
+      // Ensure all numeric values are properly converted
       summaryData.value = {
-        total_orders: 0,
-        orders_by_status: {},
-        total_revenue: 0,
-        paid_orders_count: 0,
-        unpaid_orders_count: 0,
-        recent_orders_count: 0,
-        total_tickets: 0,
-        open_tickets_count: 0,
-        closed_tickets_count: 0,
-        total_writers: 0,
-        total_editors: 0,
-        total_support: 0,
-        total_clients: 0,
-        suspended_users: 0,
+        total_orders: Number(stats.total_orders ?? flatData.total_orders ?? 0),
+        orders_by_status: stats.orders_by_status ?? flatData.orders_by_status ?? {},
+        total_revenue: parseFloat(stats.total_revenue ?? flatData.total_revenue ?? 0) || 0,
+        paid_orders_count: Number(stats.paid_orders_count ?? flatData.paid_orders_count ?? 0),
+        unpaid_orders_count: Number(stats.unpaid_orders_count ?? flatData.unpaid_orders_count ?? 0),
+        recent_orders_count: Number(stats.recent_orders_count ?? flatData.recent_orders_count ?? 0), // Last 7 days
+        total_tickets: Number(stats.open_tickets ?? flatData.total_tickets ?? 0),
+        open_tickets_count: Number(stats.open_tickets ?? flatData.open_tickets_count ?? 0),
+        closed_tickets_count: Number(stats.closed_tickets ?? flatData.closed_tickets_count ?? 0),
+        // New comprehensive metrics
+        orders_in_progress: Number(flatData.orders_in_progress ?? 0),
+        orders_on_revision: Number(flatData.orders_on_revision ?? 0),
+        disputed_orders: Number(flatData.disputed_orders ?? 0),
+        amount_paid_today: parseFloat(flatData.amount_paid_today ?? 0) || 0,
+        income_this_week: parseFloat(flatData.income_this_week ?? 0) || 0,
+        income_2weeks: parseFloat(flatData.income_2weeks ?? 0) || 0,
+        income_monthly: parseFloat(flatData.income_monthly ?? 0) || 0,
+        // User statistics - check both nested and flat structure, ensure numbers
+        total_writers: Number(flatData.total_writers ?? 0),
+        total_editors: Number(flatData.total_editors ?? 0),
+        total_support: Number(flatData.total_support ?? 0),
+        total_clients: Number(flatData.total_clients ?? 0),
+        suspended_users: Number(stats.suspended_users ?? flatData.suspended_users ?? 0),
+      }
+      
+      // Validate data consistency (backend should ensure total_orders = paid + unpaid)
+      const totalOrders = summaryData.value.total_orders
+      const paidOrders = summaryData.value.paid_orders_count
+      const unpaidOrders = summaryData.value.unpaid_orders_count
+      const calculatedTotal = paidOrders + unpaidOrders
+      
+      // If there's a significant mismatch (> 5 orders difference), log it for debugging
+      // This helps catch data issues but allows for minor rounding/calculation differences
+      if (totalOrders > 0 && Math.abs(totalOrders - calculatedTotal) > 5) {
+        // Data inconsistency detected (backend should ensure consistency)
+        if (import.meta.env.DEV) {
+          console.warn('Data inconsistency detected (backend should ensure consistency):', {
+            total_orders: totalOrders,
+            paid: paidOrders,
+            unpaid: unpaidOrders,
+            calculated: calculatedTotal,
+            difference: Math.abs(totalOrders - calculatedTotal)
+          })
+        }
+      }
+      
+      // Store recent logs for activity section
+      const activities = dashboardData.recent_activities || dashboardData.recent_logs || []
+      if (activities && activities.length > 0) {
+        recentActivity.value = activities.map(log => ({
+          action: typeof log === 'string' ? log : (log.action || log.message || JSON.stringify(log)),
+          timestamp: log.timestamp || log.created_at || null,
+        }))
+      }
+      
+      // Extract payment reminder stats
+      paymentReminderStats.value = dashboardData.payment_reminder_stats || {
+        total_reminder_configs: 0,
+        active_reminder_configs: 0,
+        total_deletion_messages: 0,
+        active_deletion_messages: 0,
+        total_sent_reminders: 0,
+        recent_sent_reminders: 0,
+      }
+      
+      // Validate and log data for debugging (only in development)
+      if (import.meta.env.DEV) {
+        console.debug('Dashboard data received:', {
+          hasStats: !!dashboardData.stats,
+          hasFlatData: !!flatData.total_writers,
+          summaryData: summaryData.value,
+          userCounts: {
+            writers: summaryData.value.total_writers,
+            editors: summaryData.value.total_editors,
+            support: summaryData.value.total_support,
+            clients: summaryData.value.total_clients,
+          }
+        })
+      }
+    } catch (err) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch dashboard summary:', err)
+      }
+      const errorMessage = err?.response?.data?.detail || err?.response?.data?.message || err?.message || 'Failed to load dashboard data'
+      
+      // Fallback: try individual summary endpoint
+      try {
+        const summaryResponse = await dashboardAPI.getSummary()
+        summaryData.value = summaryResponse.data
+        error.value = null // Clear error on successful fallback
+      } catch (e) {
+        if (import.meta.env.DEV) {
+          console.error('Failed to fetch summary fallback:', e)
+        }
+        error.value = errorMessage
+        // Set default values to prevent UI breakage
+        summaryData.value = {
+          total_orders: 0,
+          orders_by_status: {},
+          total_revenue: 0,
+          paid_orders_count: 0,
+          unpaid_orders_count: 0,
+          recent_orders_count: 0,
+          total_tickets: 0,
+          open_tickets_count: 0,
+          closed_tickets_count: 0,
+          total_writers: 0,
+          total_editors: 0,
+          total_support: 0,
+          total_clients: 0,
+          suspended_users: 0,
+        }
       }
     }
-  } finally {
-    loading.value.summary = false
-  }
+  })
 }
 
 const fetchYearlyOrders = async () => {
-  loading.value.yearlyOrders = true
-  try {
-    const response = await dashboardAPI.getYearlyOrders(currentYear)
-    yearlyOrdersData.value = response.data || []
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to fetch yearly orders:', error)
+  return withLoadingState('yearlyOrders', async () => {
+    try {
+      const response = await dashboardAPI.getYearlyOrders(currentYear)
+      yearlyOrdersData.value = response.data || []
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch yearly orders:', error)
+      }
     }
-  } finally {
-    loading.value.yearlyOrders = false
-  }
+  })
 }
 
 const fetchYearlyEarnings = async () => {
-  loading.value.yearlyEarnings = true
-  try {
-    const response = await dashboardAPI.getYearlyEarnings(currentYear)
-    yearlyEarningsData.value = response.data || []
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to fetch yearly earnings:', error)
+  return withLoadingState('yearlyEarnings', async () => {
+    try {
+      const response = await dashboardAPI.getYearlyEarnings(currentYear)
+      yearlyEarningsData.value = response.data || []
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch yearly earnings:', error)
+      }
     }
-  } finally {
-    loading.value.yearlyEarnings = false
-  }
+  })
 }
 
 const fetchMonthlyOrders = async () => {
-  loading.value.monthlyOrders = true
-  try {
-    const response = await dashboardAPI.getMonthlyOrders(currentYear, selectedMonth.value)
-    monthlyOrdersData.value = response.data || []
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to fetch monthly orders:', error)
+  return withLoadingState('monthlyOrders', async () => {
+    try {
+      const response = await dashboardAPI.getMonthlyOrders(currentYear, selectedMonth.value)
+      monthlyOrdersData.value = response.data || []
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch monthly orders:', error)
+      }
     }
-  } finally {
-    loading.value.monthlyOrders = false
-  }
+  })
 }
 
 const fetchServiceRevenue = async () => {
-  loading.value.serviceRevenue = true
-  try {
-    const response = await dashboardAPI.getServiceRevenue(30)
-    serviceRevenueData.value = response.data
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to fetch service revenue:', error)
+  return withLoadingState('serviceRevenue', async () => {
+    try {
+      const response = await dashboardAPI.getServiceRevenue(30)
+      serviceRevenueData.value = response.data
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch service revenue:', error)
+      }
     }
-  } finally {
-    loading.value.serviceRevenue = false
-  }
+  })
 }
 
 const fetchPaymentStatus = async () => {
-  loading.value.paymentStatus = true
-  try {
-    const response = await dashboardAPI.getPaymentStatus()
-    paymentStatusData.value = response.data
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to fetch payment status:', error)
+  return withLoadingState('paymentStatus', async () => {
+    try {
+      const response = await dashboardAPI.getPaymentStatus()
+      paymentStatusData.value = response.data
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch payment status:', error)
+      }
     }
-  } finally {
-    loading.value.paymentStatus = false
-  }
+  })
 }
 
 const fetchTopClients = async () => {
@@ -2413,18 +2376,17 @@ const fetchSuperadminDashboard = async () => {
 // Client dashboard fetch functions
 const fetchClientDashboard = async () => {
   if (!authStore.isClient) return
-  loading.value.summary = true
-  try {
-    const response = await clientDashboardAPI.getStats(30)
-    clientDashboardData.value = response.data || {}
-  } catch (error) {
-    if (import.meta.env.DEV) {
-      console.error('Failed to fetch client dashboard stats:', error)
+  return withLoadingState('summary', async () => {
+    try {
+      const response = await clientDashboardAPI.getStats(30)
+      clientDashboardData.value = response.data || {}
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to fetch client dashboard stats:', error)
+      }
+      clientDashboardData.value = {}
     }
-    clientDashboardData.value = {}
-  } finally {
-    loading.value.summary = false
-  }
+  })
 }
 
 const fetchClientLoyalty = async () => {

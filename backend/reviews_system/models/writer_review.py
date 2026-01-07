@@ -19,6 +19,11 @@ class WriterReview(ReviewBase):
 
     class Meta:
         ordering = ["-submitted_at"]
+        indexes = [
+            models.Index(fields=['writer', 'submitted_at']),
+            models.Index(fields=['website', 'submitted_at']),
+            models.Index(fields=['writer', 'website', 'submitted_at']),
+        ]
 
 
 # class WriterRatingCooldown(models.Model):

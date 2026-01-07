@@ -1096,6 +1096,14 @@ class Invoice(models.Model):
     amount = models.DecimalField(max_digits=12, decimal_places=2)
     due_date = models.DateField()
     
+    # Payment method preference (can be changed when processing payment)
+    payment_method = models.CharField(
+        max_length=50,
+        blank=True,
+        null=True,
+        help_text="Preferred payment method: wallet, stripe, paypal, bank_transfer, etc."
+    )
+    
     # Payment status
     is_paid = models.BooleanField(default=False)
     payment = models.OneToOneField(

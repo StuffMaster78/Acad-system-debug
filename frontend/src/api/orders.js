@@ -13,6 +13,8 @@ export default {
   payWithWallet: (id) => apiClient.post(`/orders/orders/${id}/pay/wallet/`),
   getPreferredWriters: () => apiClient.get('/orders/orders/preferred-writers/'),
   getPaymentSummary: (id) => apiClient.get(`/orders/orders/${id}/payment-summary/`),
+  addPagesSlides: (id, data) => apiClient.post(`/orders/orders/${id}/add-pages-slides/`, data),
+  addExtraServices: (id, data) => apiClient.post(`/orders/orders/${id}/add-extra-services/`, data),
   
   // Order Actions
   getAvailableActions: (id) => apiClient.get(`/orders/orders/${id}/action/`),

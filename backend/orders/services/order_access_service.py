@@ -32,6 +32,20 @@ class OrderAccessService:
 
     @staticmethod
     def can_take(writer, order) -> bool:
+        """
+        Check if writer can take an order.
+        Requires both level check and can_take_orders flag.
+        """
+        # Check if writer is allowed to take orders (admin restriction)
+        try:
+            writer_profile = writer.writer_profile
+            if not writer_profile.can_take_orders:
+                return False
+        except AttributeError:
+            # Writer profile doesn't exist
+            return False
+        
+        # Check level requirements
         return OrderAccessService.writer_meets_level(writer, order)
 
     @staticmethod

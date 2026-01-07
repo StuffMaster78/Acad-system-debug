@@ -12,14 +12,7 @@
               Manage your assigned orders and track deadlines
             </p>
           </div>
-          <button
-            @click="loadOrders"
-            :disabled="loading"
-            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
-          >
-            <ArrowPathIcon :class="['w-5 h-5', loading && 'animate-spin']" />
-            <span>{{ loading ? 'Refreshing...' : 'Refresh' }}</span>
-          </button>
+          
         </div>
       </div>
 
@@ -373,214 +366,221 @@
         </router-link>
       </div>
 
-      <div v-else class="space-y-5">
-        <div
-          v-for="order in orders"
-          :key="order.id"
-          class="bg-white rounded-xl shadow-md border border-gray-200 hover:shadow-lg transition-all"
-        >
-          <div class="p-6 sm:p-8">
-            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-              <div class="flex-1 min-w-0">
-                <div class="flex flex-wrap items-center gap-3 mb-4">
-                  <h3 class="text-xl font-bold text-gray-900">
-                    Order #{{ order.id }}
-                  </h3>
-                  <span
-                    :class="getPriorityBadgeClass(order.priority || 'medium')"
-                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide cursor-pointer hover:opacity-80 transition-opacity"
-                    @click="showPriorityModal(order)"
-                    :title="`Priority: ${(order.priority || 'medium').toUpperCase()}. Click to change.`"
-                  >
-                    <span>{{ getPriorityIcon(order.priority || 'medium') }}</span>
-                    <span>{{ formatPriority(order.priority || 'medium') }}</span>
-                  </span>
-                  <EnhancedStatusBadge
-                    :status="order.status"
-                    :show-tooltip="true"
-                    :show-priority="true"
-                  />
-                  <span
-                    v-if="isDueSoon(order.writer_deadline || order.client_deadline || order.deadline)"
-                    class="px-3 py-1.5 rounded-full text-xs font-bold bg-red-100 text-red-700 uppercase tracking-wide"
-                  >
-                    ⚠️ Due Soon
-                  </span>
-                </div>
-                
-                <p class="text-base font-semibold text-gray-900 mb-4 line-clamp-2">
-                  {{ order.topic || 'No topic' }}
-                </p>
-                
-                <!-- Revision Notes Section -->
-                <div v-if="order.status === 'revision_requested'" class="mb-4 p-4 bg-orange-50 border-l-4 border-orange-500 rounded-lg">
-                  <div class="flex items-start gap-3">
-                    <div class="shrink-0 mt-0.5">
-                      <span class="text-2xl">⚠️</span>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                      <h4 class="text-sm font-bold text-orange-900 uppercase tracking-wide mb-2">
-                        Revision Required
-                      </h4>
-                      <div v-if="order.revision_request || order.revision_notes || order.revision_instructions" class="space-y-2">
-                        <div v-if="order.revision_request?.title || order.revision_request?.description" class="text-sm text-gray-800">
-                          <p v-if="order.revision_request?.title" class="font-semibold text-gray-900 mb-1">
-                            {{ order.revision_request.title }}
-                          </p>
-                          <p v-if="order.revision_request?.description" class="text-gray-700 whitespace-pre-wrap">
-                            {{ order.revision_request.description }}
-                          </p>
-                        </div>
-                        <div v-if="order.revision_request?.client_notes" class="text-sm text-gray-700 bg-white p-3 rounded border border-orange-200">
-                          <p class="font-semibold text-gray-900 mb-1">Client Notes:</p>
-                          <p class="whitespace-pre-wrap">{{ order.revision_request.client_notes }}</p>
-                        </div>
-                        <div v-if="order.revision_request?.changes_required && order.revision_request.changes_required.length > 0" class="text-sm">
-                          <p class="font-semibold text-gray-900 mb-2">Specific Changes Required:</p>
-                          <ul class="list-disc list-inside space-y-1 text-gray-700 ml-2">
-                            <li v-for="(change, idx) in order.revision_request.changes_required" :key="idx">
-                              <span v-if="change.section" class="font-medium">{{ change.section }}:</span>
-                              <span v-if="change.issue">{{ change.issue }}</span>
-                              <span v-if="change.request" class="text-gray-600"> - {{ change.request }}</span>
-                            </li>
-                          </ul>
-                        </div>
-                        <div v-if="order.revision_notes" class="text-sm text-gray-700 bg-white p-3 rounded border border-orange-200">
-                          <p class="font-semibold text-gray-900 mb-1">Revision Notes:</p>
-                          <p class="whitespace-pre-wrap">{{ order.revision_notes }}</p>
-                        </div>
-                        <div v-if="order.revision_instructions" class="text-sm text-gray-700 bg-white p-3 rounded border border-orange-200">
-                          <p class="font-semibold text-gray-900 mb-1">Revision Instructions:</p>
-                          <p class="whitespace-pre-wrap">{{ order.revision_instructions }}</p>
-                        </div>
-                        <div v-if="order.revision_request?.severity" class="flex items-center gap-2 text-xs">
-                          <span class="font-semibold text-gray-700">Severity:</span>
-                          <span 
-                            class="px-2 py-1 rounded-full font-medium"
-                            :class="{
-                              'bg-red-100 text-red-700': order.revision_request.severity === 'critical',
-                              'bg-orange-100 text-orange-700': order.revision_request.severity === 'major',
-                              'bg-yellow-100 text-yellow-700': order.revision_request.severity === 'moderate',
-                              'bg-blue-100 text-blue-700': order.revision_request.severity === 'minor'
-                            }"
-                          >
-                            {{ order.revision_request.severity?.charAt(0).toUpperCase() + order.revision_request.severity?.slice(1) }}
-                          </span>
-                        </div>
-                        <div v-if="order.revision_request?.agreed_deadline || order.revision_request?.requested_deadline" class="text-xs text-gray-600">
-                          <span class="font-semibold">Deadline:</span>
-                          {{ formatDateTime(order.revision_request.agreed_deadline || order.revision_request.requested_deadline) }}
-                        </div>
-                      </div>
-                      <div v-else class="text-sm text-gray-700">
-                        <p>Please review the order details for revision requirements.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
-                      Pages
-                    </p>
-                    <p class="text-base font-bold text-gray-900">
-                      {{ order.pages || order.number_of_pages || 'N/A' }}
-                    </p>
-                  </div>
-                  <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
-                      Service
-                    </p>
-                    <p class="text-base font-semibold text-gray-900 truncate" :title="order.service_type?.name || order.service_type || 'N/A'">
-                      {{ order.service_type?.name || order.service_type || 'N/A' }}
-                    </p>
-                  </div>
-                  <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
-                      Deadline
-                    </p>
-                    <p
-                      class="text-base font-semibold"
-                      :class="getDeadlineClass(order.writer_deadline || order.client_deadline || order.deadline)"
-                    >
-                      {{ formatDeadline(order.writer_deadline || order.client_deadline || order.deadline) }}
-                    </p>
-                  </div>
-                  <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1">
-                      Price
-                    </p>
-                    <p class="text-base font-bold text-green-600 truncate">
-                      ${{ formatCurrency(order.total_price) }}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="flex flex-col gap-3 lg:ml-6 lg:shrink-0">
-                <router-link
-                  :to="`/orders/${order.id}`"
-                  class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-all shadow-sm text-sm whitespace-nowrap"
-                >
-                  View Details
-                </router-link>
-                <button
-                  v-if="canSubmit(order)"
-                  @click="submitOrder(order)"
-                  :disabled="submittingOrder === order.id"
-                  class="inline-flex items-center justify-center px-5 py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md text-sm whitespace-nowrap"
-                >
-                  {{ submittingOrder === order.id ? 'Submitting...' : 'Submit Order' }}
-                </button>
-                <button
-                  v-if="order.status === 'revision_requested'"
-                  @click="viewRevision(order)"
-                  class="inline-flex items-center justify-center px-5 py-2.5 bg-yellow-600 text-white font-semibold rounded-lg hover:bg-yellow-700 transition-all shadow-sm hover:shadow-md text-sm whitespace-nowrap"
-                >
-                  View Revision
-                </button>
-              </div>
-            </div>
+      <!-- Orders Table -->
+      <div v-else class="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+        <!-- Table Controls -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-gray-50 border-b border-gray-200">
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-700">Show</label>
+            <select
+              v-model="pagination.itemsPerPage"
+              @change="loadOrders(1)"
+              class="border border-gray-300 rounded px-2 py-1 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option :value="10">10</option>
+              <option :value="25">25</option>
+              <option :value="50">50</option>
+              <option :value="100">100</option>
+            </select>
+            <label class="text-sm text-gray-700">entries</label>
           </div>
-        </div>
+          <div class="flex items-center gap-2">
+            <label class="text-sm text-gray-700">Search:</label>
+            <input
+              v-model="searchQuery"
+              @input="debouncedSearch"
+              type="text"
+              placeholder="Search orders..."
+              class="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48"
+            />
+          </div>
+                </div>
+                
+        <div class="overflow-x-auto max-h-96 sm:max-h-[420px] border border-gray-200 rounded-lg shadow-inner">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr class="bg-teal-50">
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">#</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" class="w-3 h-3" />
+                    Status
+                    </div>
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" class="w-3 h-3" />
+                    Writer
+                        </div>
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" class="w-3 h-3" />
+                    Paper Topic
+                        </div>
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" class="w-3 h-3" />
+                    Writer Deadline
+                        </div>
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" class="w-3 h-3" />
+                    Editor Deadline
+                        </div>
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" class="w-3 h-3" />
+                    Client Deadline
+                        </div>
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" class="w-3 h-3" />
+                    Paper Subject
+                  </div>
+                </th>
+                <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  <div class="flex items-center gap-2">
+                    <input type="checkbox" class="w-3 h-3" />
+                    Pages / Cost
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr
+                v-for="order in orders"
+                :key="order.id"
+                class="hover:bg-gray-50 transition-colors cursor-pointer bg-gray-50"
+                            :class="{
+                  'bg-orange-50 hover:bg-orange-100': order.status === 'revision_requested',
+                  'bg-red-50 hover:bg-red-100 border-l-4 border-red-500': isOverdue(order.writer_deadline || order.client_deadline || order.deadline) && isInProgress(order),
+                  'bg-amber-50 hover:bg-amber-100 border-l-4 border-amber-500': isDueSoon(order) && isInProgress(order) && !isOverdue(order.writer_deadline || order.client_deadline || order.deadline)
+                }"
+                @click="$router.push(`/orders/${order.id}`)"
+              >
+                <!-- Order ID with green circle icon -->
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <div class="flex items-center gap-2">
+                    <div class="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                      <span class="text-white text-xs font-bold">+</span>
+                        </div>
+                    <span class="text-sm font-medium text-gray-900">{{ order.id }}</span>
+                        </div>
+                </td>
+                
+                <!-- Status -->
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <OrderStatusTooltip :status="order.status" position="bottom">
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold text-white bg-green-700">
+                      {{ formatStatus(order.status) }}
+                    </span>
+                  </OrderStatusTooltip>
+                </td>
+                
+                <!-- Writer -->
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-sm text-gray-900">
+                    {{ order.assigned_writer?.username || order.assigned_writer?.email || order.writer_username || 'Unassigned' }}
+                  </span>
+                </td>
+                
+                <!-- Paper Topic -->
+                <td class="px-4 py-3 max-w-xs sm:max-w-sm">
+                  <span class="text-sm text-gray-900 truncate">
+                    {{ getShortTitle(order.topic) }}
+                  </span>
+                </td>
+                
+                <!-- Writer Deadline -->
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-sm text-gray-900">
+                    {{ formatTableDeadline(order.writer_deadline) }}
+                  </span>
+                </td>
+                
+                <!-- Editor Deadline -->
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-sm text-gray-900">
+                    {{ formatTableDeadline(order.editor_deadline) }}
+                  </span>
+                </td>
+                
+                <!-- Client Deadline -->
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-sm text-gray-900">
+                    {{ formatTableDeadline(order.client_deadline || order.deadline) }}
+                  </span>
+                </td>
+                
+                <!-- Paper Subject -->
+                <td class="px-4 py-3">
+                  <span class="text-sm text-gray-900">
+                    {{ order.subject?.name || order.subject || 'N/A' }}
+                  </span>
+                </td>
+                
+                <!-- Pages / Cost -->
+                <td class="px-4 py-3 whitespace-nowrap">
+                  <span class="text-sm text-gray-900">
+                    {{ order.pages || order.number_of_pages || 0 }}/ $ {{ formatCurrency(order.writer_compensation || order.total_price || 0) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
       </div>
 
       <!-- Pagination -->
-      <div
-        v-if="pagination && pagination.total_pages > 1"
-        class="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white rounded-xl shadow-md p-6 mt-8"
-      >
-        <div class="text-sm font-medium text-gray-700">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-gray-50 border-t border-gray-200">
+          <div class="text-sm text-gray-700">
           Showing
-          <span class="font-bold text-gray-900">
-            {{ pagination.start_index || 1 }}
+            <span class="font-semibold text-gray-900">
+              {{ pagination?.start_index || 1 }}
           </span>
           to
-          <span class="font-bold text-gray-900">
-            {{ pagination.end_index || orders.length }}
+            <span class="font-semibold text-gray-900">
+              {{ pagination?.end_index || orders.length }}
           </span>
           of
-          <span class="font-bold text-gray-900">
-            {{ pagination.total_count || orders.length }}
+            <span class="font-semibold text-gray-900">
+              {{ pagination?.total_count || orders.length }}
           </span>
-          orders
+            entries
         </div>
-        <div class="flex gap-3">
+          <div class="flex items-center gap-2">
           <button
-            @click="loadOrders(pagination.current_page - 1)"
-            :disabled="!pagination.has_previous || loading"
-            class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm text-sm"
+              @click="loadOrders(pagination?.current_page - 1 || 1)"
+              :disabled="!pagination?.has_previous || loading"
+              class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Previous
           </button>
           <button
-            @click="loadOrders(pagination.current_page + 1)"
-            :disabled="!pagination.has_next || loading"
-            class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm text-sm"
+              v-for="page in getPaginationPages()"
+              :key="page"
+              @click="loadOrders(page)"
+              :class="[
+                'px-3 py-1.5 text-sm font-medium rounded transition-colors',
+                page === (pagination?.current_page || 1)
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+              ]"
+            >
+              {{ page }}
+            </button>
+            <button
+              @click="loadOrders(pagination?.current_page + 1 || 1)"
+              :disabled="!pagination?.has_next || loading"
+              class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Next
           </button>
+          </div>
         </div>
       </div>
     </div>
@@ -669,8 +669,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, unref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, computed, unref, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import {
   ArrowPathIcon,
   PencilIcon,
@@ -687,17 +687,28 @@ import { debounce } from '@/utils/debounce'
 import { useToast } from '@/composables/useToast'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
+import OrderStatusTooltip from '@/components/common/OrderStatusTooltip.vue'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import Modal from '@/components/common/Modal.vue'
 import EnhancedStatusBadge from '@/components/common/EnhancedStatusBadge.vue'
 
 const router = useRouter()
+const route = useRoute()
 const { error: showError, success: showSuccess } = useToast()
 const confirm = useConfirmDialog()
 
 const loading = ref(false)
 const orders = ref([])
-const pagination = ref(null)
+const pagination = ref({
+  current_page: 1,
+  total_pages: 1,
+  total_count: 0,
+  has_next: false,
+  has_previous: false,
+  start_index: 0,
+  end_index: 0,
+  itemsPerPage: 10
+})
 const submittingOrder = ref(null)
 
 const filters = ref({
@@ -748,9 +759,22 @@ const stats = computed(() => {
 const loadOrders = async (page = 1) => {
   loading.value = true
   try {
+    console.log('Loading orders, page:', page) // Debug log
+    
+    const itemsPerPage = pagination.value?.itemsPerPage || 50
     const params = {
       page,
-      assigned_writer: true, // Only get orders assigned to current writer
+      page_size: itemsPerPage,
+      // Note: Backend automatically filters by assigned_writer for writers
+      // We'll filter to only assigned orders on the frontend if needed
+    }
+    
+    console.log('API params:', params) // Debug log
+
+    // Handle archived query parameter
+    if (route.query.archived === 'true') {
+      params.include_archived = true
+      params.only_archived = true
     }
 
     if (filters.value.status) {
@@ -803,13 +827,27 @@ const loadOrders = async (page = 1) => {
 
     const response = await ordersAPI.list(params)
     
-    // Load priorities
-    await loadPriorities()
+    console.log('Orders API Response:', response) // Debug log
+    
+    // Load priorities in background (don't block order loading)
+    loadPriorities().catch(err => {
+      console.warn('Failed to load priorities:', err)
+    })
+    
+    // Handle different response structures
+    let ordersList = []
+    if (response.data) {
+      if (Array.isArray(response.data.results)) {
+        ordersList = response.data.results
+      } else if (Array.isArray(response.data)) {
+        ordersList = response.data
+      }
+    }
     
     // Extract service types from orders for filter dropdown
-    if (response.data.results) {
+    if (ordersList.length > 0) {
       const types = new Set()
-      response.data.results.forEach(order => {
+      ordersList.forEach(order => {
         if (order.service_type?.name) {
           types.add(order.service_type.name)
         } else if (order.service_type) {
@@ -819,8 +857,19 @@ const loadOrders = async (page = 1) => {
       serviceTypes.value = Array.from(types).sort()
     }
     
-    if (response.data.results) {
-      orders.value = response.data.results.map(order => ({
+    // Filter to only show assigned orders (not available or requested orders)
+    // Backend returns assigned + available + requested, but "My Orders" should only show assigned
+    // Check both assigned_writer (object) and assigned_writer_id (ID field)
+    const assignedOrders = ordersList.filter(order => {
+      // Order is assigned if either assigned_writer object exists or assigned_writer_id is set
+      const hasAssignedWriter = (order.assigned_writer !== null && order.assigned_writer !== undefined) ||
+                                (order.assigned_writer_id !== null && order.assigned_writer_id !== undefined)
+      return hasAssignedWriter
+    })
+    
+    console.log(`Total orders: ${ordersList.length}, Assigned orders: ${assignedOrders.length}`) // Debug log
+    
+    orders.value = assignedOrders.map(order => ({
         ...order,
         priority: priorities.value[order.id]?.priority || 'medium',
       }))
@@ -844,26 +893,50 @@ const loadOrders = async (page = 1) => {
         })
       }
       
+    // Set pagination (itemsPerPage already declared above)
+    if (response.data && response.data.results) {
       pagination.value = {
         current_page: response.data.current_page || page,
         total_pages: response.data.total_pages || 1,
-        total_count: response.data.count || response.data.results.length,
+        total_count: response.data.count || assignedOrders.length,
         has_next: response.data.next !== null,
         has_previous: response.data.previous !== null,
-        start_index: ((response.data.current_page || page) - 1) * (response.data.page_size || 20) + 1,
-        end_index: Math.min((response.data.current_page || page) * (response.data.page_size || 20), response.data.count || response.data.results.length),
+        start_index: ((response.data.current_page || page) - 1) * itemsPerPage + 1,
+        end_index: Math.min((response.data.current_page || page) * itemsPerPage, response.data.count || assignedOrders.length),
+        itemsPerPage: itemsPerPage
       }
     } else {
-      orders.value = Array.isArray(response.data) ? response.data : []
-      pagination.value = null
+      pagination.value = {
+        current_page: page,
+        total_pages: 1,
+        total_count: assignedOrders.length,
+        has_next: false,
+        has_previous: false,
+        start_index: 1,
+        end_index: assignedOrders.length,
+        itemsPerPage: itemsPerPage
+      }
     }
   } catch (error) {
     console.error('Failed to load orders:', error)
+    console.error('Error details:', error.response || error.message)
+    console.error('Error stack:', error.stack)
+    
+    // Always clear loading state
+    loading.value = false
+    
     const errorMsg = getErrorMessage(error, 'Failed to load orders. Please try again.')
     showError(errorMsg)
     orders.value = []
-  } finally {
-    loading.value = false
+    pagination.value = {
+      current_page: page,
+      total_pages: 1,
+      total_count: 0,
+      has_next: false,
+      has_previous: false,
+      start_index: 0,
+      end_index: 0,
+    }
   }
 }
 
@@ -1059,13 +1132,28 @@ const getDeadlineClass = (deadline) => {
   }
 }
 
-const isDueSoon = (deadline) => {
+const isOverdue = (deadline) => {
   if (!deadline) return false
   const date = new Date(deadline)
   const now = new Date()
-  const diffMs = date - now
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-  return diffDays <= 2 && diffMs > 0
+  return date < now
+}
+
+const isDueSoon = (order) => {
+  const deadline = order.writer_deadline || order.client_deadline || order.deadline
+  if (!deadline) return false
+  const deadlineDate = new Date(deadline)
+  const now = new Date()
+  const hours = (deadlineDate - now) / 3600000
+  // Consider "due soon" if deadline is within 48 hours (2 days) and not yet overdue
+  return hours > 0 && hours <= 48
+}
+
+const isInProgress = (order) => {
+  // Treat only truly active states as “in progress” for overdue highlighting.
+  // Submitted / approved / closed should NOT be marked as overdue.
+  const inProgressStatuses = ['in_progress', 'under_editing', 'on_revision', 'revision_requested', 'assigned']
+  return inProgressStatuses.includes(order.status)
 }
 
 const formatDateTime = (dateString) => {
@@ -1083,6 +1171,57 @@ const formatDateTime = (dateString) => {
 const formatCurrency = (amount) => {
   if (!amount) return '0.00'
   return parseFloat(amount).toFixed(2)
+}
+
+const formatTableDeadline = (deadline) => {
+  if (!deadline) return 'N/A'
+  const date = new Date(deadline)
+  const day = String(date.getDate()).padStart(2, '0')
+  const month = date.toLocaleDateString('en-US', { month: 'short' })
+  const year = date.getFullYear()
+  const hours = date.getHours()
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  const ampm = hours >= 12 ? 'PM' : 'AM'
+  const displayHours = hours % 12 || 12
+  return `${day}/${month}/${year} ${displayHours}:${minutes} ${ampm}`
+}
+
+const getShortTitle = (topic) => {
+  const base = topic || 'No topic'
+  const maxLength = 50
+  if (base.length <= maxLength) return base
+  return base.slice(0, maxLength) + '…'
+}
+
+const getPaginationPages = () => {
+  if (!pagination.value || pagination.value.total_pages <= 1) {
+    return [1]
+  }
+  const current = pagination.value.current_page || 1
+  const total = pagination.value.total_pages || 1
+  
+  // Show max 5 page numbers
+  const pages = []
+  if (total <= 5) {
+    for (let i = 1; i <= total; i++) {
+      pages.push(i)
+    }
+  } else {
+    if (current <= 3) {
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i)
+      }
+    } else if (current >= total - 2) {
+      for (let i = total - 4; i <= total; i++) {
+        pages.push(i)
+      }
+    } else {
+      for (let i = current - 2; i <= current + 2; i++) {
+        pages.push(i)
+      }
+    }
+  }
+  return pages
 }
 
 const debouncedSearch = debounce(() => {
@@ -1112,9 +1251,23 @@ const resetFilters = () => {
   loadOrders(1)
 }
 
+// Watch for route query changes (especially archived parameter)
+watch(
+  () => route.query.archived,
+  (newArchived) => {
+    // Reload orders when archived parameter changes
+    loadOrders(1)
+  }
+)
+
 onMounted(() => {
   loadPriorities()
+  // Check if archived parameter is in route
+  if (route.query.archived === 'true') {
+    loadOrders(1)
+  } else {
   loadOrders()
+  }
 })
 </script>
 

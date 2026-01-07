@@ -26,111 +26,9 @@
             <p class="text-gray-600 dark:text-gray-400 font-medium">Loading profile...</p>
           </div>
         </div>
-        <form v-else @submit.prevent="updateProfile" class="space-y-6" enctype="multipart/form-data">
-          <!-- Avatar Display & Upload -->
-          <div class="form-group">
-            <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 uppercase tracking-wide">Profile Picture</label>
-            <div 
-              class="relative flex flex-col items-center gap-6 p-8 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-700/50 dark:to-gray-800/50 rounded-2xl border-2 border-dashed transition-all duration-300"
-              :class="[
-                isDragging ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20 scale-[1.02]' : 'border-gray-300 dark:border-gray-600',
-                'hover:border-primary-400 dark:hover:border-primary-500'
-              ]"
-              @dragover.prevent="isDragging = true"
-              @dragleave.prevent="isDragging = false"
-              @drop.prevent="handleDrop"
-            >
-              <!-- Upload Progress Overlay -->
-              <div v-if="uploadingAvatar" class="absolute inset-0 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
-                <div class="text-center">
-                  <div class="relative w-16 h-16 mx-auto mb-4">
-                    <div class="absolute inset-0 border-4 border-primary-200 dark:border-primary-800 rounded-full"></div>
-                    <div class="absolute inset-0 border-4 border-transparent border-t-primary-600 dark:border-t-primary-400 rounded-full animate-spin"></div>
-                  </div>
-                  <p class="text-gray-700 dark:text-gray-300 font-medium">Uploading...</p>
-                </div>
-              </div>
-
-              <div class="relative group">
-                <div class="relative">
-                  <div class="absolute inset-0 bg-primary-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300"></div>
-                  <div class="relative w-32 h-32 rounded-full bg-white/10 backdrop-blur-md border-4 border-white/30 shadow-2xl ring-4 ring-primary-500/20 transform transition-transform duration-300 group-hover:scale-105">
-                <Avatar
-                  :image-url="avatarPreview || (profileData.avatar_url && isValidAvatarUrl(profileData.avatar_url) ? profileData.avatar_url : null)"
-                  :first-name="profileForm.first_name"
-                  :last-name="profileForm.last_name"
-                  :username="profileForm.username"
-                  :email="profileForm.email"
-                  :name="fullName"
-                  size="xl"
-                  shape="circle"
-                  class="w-full h-full"
-                />
-                    <!-- Upload Indicator -->
-                    <div v-if="avatarPreview && !uploadingAvatar" class="absolute inset-0 bg-green-500/20 rounded-full flex items-center justify-center backdrop-blur-sm">
-                      <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-              </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="flex flex-wrap items-center justify-center gap-3">
-                <label for="avatar-upload" class="relative px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-95 cursor-pointer overflow-hidden group">
-                  <span class="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></span>
-                  <input
-                    id="avatar-upload"
-                    type="file"
-                    accept="image/*"
-                    @change="handleAvatarUpload"
-                    class="hidden"
-                  />
-                  <span class="relative flex items-center gap-2">
-                    <svg class="w-5 h-5 transform group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                    </svg>
-                  {{ avatarPreview ? 'Change Picture' : 'Upload Picture' }}
-                  </span>
-                </label>
-                <button
-                  v-if="avatarPreview && avatarFile && !uploadingAvatar"
-                  type="button"
-                  @click="saveAvatarOnly"
-                  :disabled="loading"
-                  class="relative px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none overflow-hidden group"
-                >
-                  <span class="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></span>
-                  <span class="relative flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                    </svg>
-                  {{ loading ? 'Saving...' : 'Save Image' }}
-                  </span>
-                </button>
-                <button
-                  v-if="(profileData.avatar_url || avatarPreview) && !uploadingAvatar"
-                  type="button"
-                  @click="removeAvatar"
-                  class="relative px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:scale-95 overflow-hidden group"
-                >
-                  <span class="absolute inset-0 bg-white/20 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300"></span>
-                  <span class="relative flex items-center gap-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  Remove
-                  </span>
-                </button>
-              </div>
-              <p class="text-sm text-gray-600 dark:text-gray-400 text-center max-w-md">
-                <span v-if="!avatarPreview">Drag and drop an image here, or click to browse</span>
-                <span v-else-if="avatarPreview && avatarFile" class="text-primary-600 dark:text-primary-400 font-semibold">Ready to upload! Click "Save Image" to confirm.</span>
-                <span v-else>Your profile picture is set. Upload a new one to change it.</span>
-              </p>
-            </div>
-          </div>
+        <!-- Avatar upload is handled on the Profile overview page.
+             This form now focuses only on core profile fields. -->
+        <form v-else @submit.prevent="updateProfile" class="space-y-6">
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="form-group relative">
@@ -259,7 +157,7 @@
                 <Tooltip text="Your country helps us provide localized services and comply with regional regulations." />
               </label>
               <div class="relative">
-                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+                <div class="absolute left-4 top-1/2 -translate-y-1/2 z-10 text-gray-400 dark:text-gray-500">
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -268,9 +166,39 @@
                 v-model="profileForm.country"
                 type="text"
                 :disabled="loading"
-                  placeholder="Enter your country"
-                  class="w-full pl-12 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500"
-              />
+                  @input="handleCountryInput"
+                  @focus="showCountrySuggestions = true"
+                  @blur="handleCountryBlur"
+                  @keydown.down.prevent="navigateCountrySuggestions(1)"
+                  @keydown.up.prevent="navigateCountrySuggestions(-1)"
+                  @keydown.enter.prevent="selectCountryByIndex"
+                  @keydown.escape="showCountrySuggestions = false"
+                  placeholder="Start typing country name..."
+                  class="w-full pl-12 pr-10 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:text-white transition-all duration-200 placeholder-gray-400 dark:placeholder-gray-500"
+                />
+                <div v-if="countrySuggestions.length > 0 && showCountrySuggestions" 
+                     class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                  <button
+                    v-for="(country, index) in countrySuggestions"
+                    :key="index"
+                    type="button"
+                    @click="selectCountry(country.name)"
+                    class="w-full text-left px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors first:rounded-t-xl last:rounded-b-xl"
+                    :class="{ 'bg-primary-50 dark:bg-primary-900/20': index === selectedCountryIndex }"
+                  >
+                    <div class="flex items-center gap-2">
+                      <span class="font-medium text-gray-900 dark:text-white">{{ country.name }}</span>
+                      <span class="text-xs text-gray-500 dark:text-gray-400">({{ country.code }})</span>
+                    </div>
+                  </button>
+                </div>
+                <div v-if="profileForm.country && !countrySuggestions.length && showCountrySuggestions" 
+                     class="absolute z-50 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-lg p-4 text-sm text-gray-500 dark:text-gray-400">
+                  No matching countries found. You can still enter your country name manually.
+                </div>
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Type to search countries or enter manually (e.g., "United States" or "US")
+                </p>
               </div>
             </div>
 
@@ -319,7 +247,17 @@
                 <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Detected: <strong class="text-primary-600 dark:text-primary-400">{{ detectedTimezone || 'Unknown' }}</strong>
+                Detected: 
+                <button
+                  v-if="detectedTimezone"
+                  @click="useDetectedTimezone"
+                  type="button"
+                  class="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-semibold underline decoration-2 underline-offset-2 hover:decoration-primary-500 dark:hover:decoration-primary-400 transition-colors cursor-pointer"
+                  title="Click to use detected timezone"
+                >
+                  {{ detectedTimezone }}
+                </button>
+                <strong v-else class="text-gray-400 dark:text-gray-500">Unknown</strong>
               </p>
             </div>
           </div>
@@ -756,7 +694,11 @@ export default {
       deletionError: null,
       avatarPreview: null,
       avatarFile: null,
-      removeAvatarOnSave: false
+      removeAvatarOnSave: false,
+      countrySuggestions: [],
+      showCountrySuggestions: false,
+      selectedCountryIndex: -1,
+      allCountries: []
     }
   },
   computed: {
@@ -777,8 +719,125 @@ export default {
     this.loadSessions()
     this.check2FAStatus()
     this.checkDeletionStatus()
+    this.loadCountries()
   },
   methods: {
+    loadCountries() {
+      // Load a comprehensive list of countries
+      // Using a common list of countries with their ISO codes
+      this.allCountries = [
+        { name: 'United States', code: 'US' },
+        { name: 'United Kingdom', code: 'GB' },
+        { name: 'Canada', code: 'CA' },
+        { name: 'Australia', code: 'AU' },
+        { name: 'Germany', code: 'DE' },
+        { name: 'France', code: 'FR' },
+        { name: 'Italy', code: 'IT' },
+        { name: 'Spain', code: 'ES' },
+        { name: 'Netherlands', code: 'NL' },
+        { name: 'Belgium', code: 'BE' },
+        { name: 'Switzerland', code: 'CH' },
+        { name: 'Austria', code: 'AT' },
+        { name: 'Sweden', code: 'SE' },
+        { name: 'Norway', code: 'NO' },
+        { name: 'Denmark', code: 'DK' },
+        { name: 'Finland', code: 'FI' },
+        { name: 'Poland', code: 'PL' },
+        { name: 'Ireland', code: 'IE' },
+        { name: 'Portugal', code: 'PT' },
+        { name: 'Greece', code: 'GR' },
+        { name: 'Czech Republic', code: 'CZ' },
+        { name: 'Hungary', code: 'HU' },
+        { name: 'Romania', code: 'RO' },
+        { name: 'Bulgaria', code: 'BG' },
+        { name: 'Croatia', code: 'HR' },
+        { name: 'New Zealand', code: 'NZ' },
+        { name: 'South Africa', code: 'ZA' },
+        { name: 'India', code: 'IN' },
+        { name: 'China', code: 'CN' },
+        { name: 'Japan', code: 'JP' },
+        { name: 'South Korea', code: 'KR' },
+        { name: 'Singapore', code: 'SG' },
+        { name: 'Malaysia', code: 'MY' },
+        { name: 'Thailand', code: 'TH' },
+        { name: 'Philippines', code: 'PH' },
+        { name: 'Indonesia', code: 'ID' },
+        { name: 'Vietnam', code: 'VN' },
+        { name: 'Brazil', code: 'BR' },
+        { name: 'Mexico', code: 'MX' },
+        { name: 'Argentina', code: 'AR' },
+        { name: 'Chile', code: 'CL' },
+        { name: 'Colombia', code: 'CO' },
+        { name: 'Peru', code: 'PE' },
+        { name: 'Egypt', code: 'EG' },
+        { name: 'Nigeria', code: 'NG' },
+        { name: 'Kenya', code: 'KE' },
+        { name: 'Ghana', code: 'GH' },
+        { name: 'Israel', code: 'IL' },
+        { name: 'Turkey', code: 'TR' },
+        { name: 'Saudi Arabia', code: 'SA' },
+        { name: 'United Arab Emirates', code: 'AE' },
+        { name: 'Qatar', code: 'QA' },
+        { name: 'Kuwait', code: 'KW' },
+        { name: 'Russia', code: 'RU' },
+        { name: 'Ukraine', code: 'UA' },
+        { name: 'Belarus', code: 'BY' },
+        { name: 'Kazakhstan', code: 'KZ' }
+      ]
+    },
+    handleCountryInput(event) {
+      const query = event.target.value.toLowerCase().trim()
+      this.showCountrySuggestions = true
+      this.selectedCountryIndex = -1
+      
+      if (!query) {
+        this.countrySuggestions = []
+        return
+      }
+      
+      // Filter countries by name or code
+      this.countrySuggestions = this.allCountries.filter(country => 
+        country.name.toLowerCase().includes(query) || 
+        country.code.toLowerCase() === query
+      ).slice(0, 10) // Limit to 10 suggestions
+    },
+    selectCountry(countryName) {
+      this.profileForm.country = countryName
+      this.countrySuggestions = []
+      this.showCountrySuggestions = false
+      this.selectedCountryIndex = -1
+    },
+    handleCountryBlur() {
+      // Delay hiding suggestions to allow click events
+      setTimeout(() => {
+        this.showCountrySuggestions = false
+        this.selectedCountryIndex = -1
+      }, 200)
+    },
+    navigateCountrySuggestions(direction) {
+      if (this.countrySuggestions.length === 0) return
+      
+      this.selectedCountryIndex += direction
+      
+      if (this.selectedCountryIndex < 0) {
+        this.selectedCountryIndex = this.countrySuggestions.length - 1
+      } else if (this.selectedCountryIndex >= this.countrySuggestions.length) {
+        this.selectedCountryIndex = 0
+      }
+    },
+    selectCountryByIndex() {
+      if (this.selectedCountryIndex >= 0 && this.selectedCountryIndex < this.countrySuggestions.length) {
+        this.selectCountry(this.countrySuggestions[this.selectedCountryIndex].name)
+      } else if (this.countrySuggestions.length > 0) {
+        // Select first suggestion if none is selected
+        this.selectCountry(this.countrySuggestions[0].name)
+      }
+    },
+    getCountryNameFromCode(code) {
+      if (!code || code.length !== 2) return null
+      const country = this.allCountries.find(c => c.code.toUpperCase() === code.toUpperCase())
+      return country ? country.name : null
+    },
     handleTabClick(tab) {
       if (tab.route) {
         // Navigate to separate page for Privacy and Security Activity
@@ -788,6 +847,14 @@ export default {
         this.activeTab = tab.id
       }
     },
+    useDetectedTimezone() {
+      if (this.detectedTimezone) {
+        this.profileForm.timezone = this.detectedTimezone
+        // Show a brief success message
+        this.showSuccess('Timezone set to detected value')
+      }
+    },
+    
     async loadProfile() {
       this.loadingProfile = true
       this.error = null
@@ -803,6 +870,9 @@ export default {
         const userData = data.user || data
         
         // Populate form with available data
+        const countryCode = userData.country || data.country || ''
+        const countryName = this.getCountryNameFromCode(countryCode) || countryCode
+        
         this.profileForm = {
           email: userData.email || data.email || '',
           username: userData.username || data.username || '',
@@ -810,7 +880,7 @@ export default {
           last_name: userData.last_name || data.last_name || '',
           phone_number: userData.phone_number || data.phone_number || '',
           bio: userData.bio || data.bio || '',
-          country: userData.country || data.country || '',
+          country: countryName,
           state: userData.state || data.state || '',
           avatar: userData.avatar || data.avatar || '',
           timezone: userData.timezone || data.timezone || ''
@@ -822,6 +892,18 @@ export default {
           userData.timezone ||
           localStorage.getItem('timezone') ||
           null
+        
+        // If still no timezone detected, try to get it from the browser
+        if (!this.detectedTimezone) {
+          try {
+            const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+            if (browserTimezone) {
+              this.detectedTimezone = browserTimezone
+            }
+          } catch (e) {
+            console.warn('Could not detect browser timezone:', e)
+          }
+        }
         
         // Update profileData with avatar_url if available
         // Check multiple possible locations for avatar URL
@@ -1108,11 +1190,12 @@ export default {
         
         // Only update other fields if avatar was not just uploaded
         if (!this.avatarFile && !this.removeAvatarOnSave && Object.keys(updateData).length > 0) {
-          const response = await authApi.updateProfile(updateData)
+          // Use users API profile update endpoint (supports PATCH and mirrors overview behavior)
+          const response = await usersAPI.updateProfile(updateData)
         
           // Check if response includes updated user data
-          if (response.data && response.data.user) {
-            this.profileData = response.data.user
+          if (response.data) {
+            this.profileData = response.data.user || response.data
           }
           
           this.success = response.data?.message || 'Profile updated successfully!'

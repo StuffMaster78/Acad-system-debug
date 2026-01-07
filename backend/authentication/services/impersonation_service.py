@@ -214,13 +214,19 @@ class ImpersonationService:
         }
     
     @transaction.atomic
-    def end_impersonation(self) -> Dict[str, Any]:
+    def end_impersonation(self, close_tab: bool = False) -> Dict[str, Any]:
         """
         End an active impersonation session and restore the original admin.
         Returns new JWT tokens for the admin user.
         
+        Args:
+            close_tab: If True, indicates this is being called from an impersonation tab
+                      that should be closed. In this case, we don't need to return tokens
+                      as the admin tab should remain logged in with its own session.
+        
         Returns:
-            Dict with new JWT tokens for admin and confirmation
+            Dict with new JWT tokens for admin and confirmation (if close_tab=False)
+            Dict with confirmation only (if close_tab=True)
         
         Raises:
             PermissionDenied: If no impersonation is in progress
@@ -260,24 +266,36 @@ class ImpersonationService:
             token=None  # No token for ending impersonation
         )
         
-        # Clear impersonation session data
+        # Clear impersonation session data (this logs out the impersonated user)
         if hasattr(self.request, 'session'):
-            self.request.session.pop('_impersonator_id', None)
-            self.request.session.pop('_impersonator_email', None)
-            self.request.session.pop('_impersonator_role', None)
-            self.request.session.pop('_impersonation_started_at', None)
-            self.request.session.save()
+            # Clear all session data to effectively log out the impersonated user
+            self.request.session.flush()
         
-        # Generate new JWT tokens for original admin
+        logger.info(
+            f"Admin {original_admin.id} ended impersonation of user {current_user.id} "
+            f"on website {self.website.id} (close_tab={close_tab})"
+        )
+        
+        # If this is from an impersonation tab that will be closed,
+        # don't return tokens - the admin tab should use its own session
+        if close_tab:
+            return {
+                "message": "Impersonation ended. Tab will close.",
+                "close_tab": True,
+                "admin_user": {
+                    "id": original_admin.id,
+                    "email": original_admin.email,
+                    "username": original_admin.username,
+                    "full_name": original_admin.get_full_name(),
+                    "role": getattr(original_admin, 'role', None),
+                }
+            }
+        
+        # Generate new JWT tokens for original admin (for same-tab ending)
         from rest_framework_simplejwt.tokens import RefreshToken
         refresh = RefreshToken.for_user(original_admin)
         access_token = str(refresh.access_token)
         refresh_token = str(refresh)
-        
-        logger.info(
-            f"Admin {original_admin.id} ended impersonation of user {current_user.id} "
-            f"on website {self.website.id}"
-        )
         
         return {
             "access_token": access_token,
@@ -290,6 +308,7 @@ class ImpersonationService:
                 "role": getattr(original_admin, 'role', None),
             },
             "message": "Impersonation ended. You are now logged in as yourself.",
+            "close_tab": False,
         }
     
     def is_impersonating(self) -> bool:

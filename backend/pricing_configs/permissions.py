@@ -3,13 +3,13 @@ from rest_framework.permissions import BasePermission
 
 class IsAdminUserOrReadOnly(BasePermission):
     """
-    Allows full access to admin users and read-only access to others.
+    Allows full access to admin users and read-only access to authenticated users.
     """
 
     def has_permission(self, request, view):
-        # Allow read-only actions (GET, HEAD, OPTIONS) for everyone
+        # Allow read-only actions (GET, HEAD, OPTIONS) for authenticated users
         if request.method in ('GET', 'HEAD', 'OPTIONS'):
-            return True
+            return request.user.is_authenticated
         # Full access for admin users only
         return request.user.is_authenticated and request.user.is_staff
 
