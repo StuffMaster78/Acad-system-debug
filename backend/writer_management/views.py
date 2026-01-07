@@ -151,11 +151,15 @@ class WriterProfileViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         """
-        Allow writers to update their own profile (specifically pen_name) and view their own profile.
+        Allow writers (and authenticated users) to access profile endpoints needed by the dashboard.
+        
+        In particular, `my_profile` is used by the writer dashboard immediately after login,
+        so it must be accessible to any authenticated writer.
         """
-        if self.action in ['update', 'partial_update', 'my_profile']:
+        # For profile-related actions, only require authentication
+        if self.action in ['update', 'partial_update', 'my_profile', 'retrieve', 'list']:
             return [permissions.IsAuthenticated()]
-        # For list, retrieve, create, delete - require admin
+        # For create/delete and other admin-only operations, require admin
         return [permissions.IsAdminUser()]
     
     def get_queryset(self):
@@ -701,6 +705,12 @@ class WriterOrderTakeViewSet(viewsets.ModelViewSet):
                     "Taking orders directly is currently disabled. Please submit a request instead."
                 )
 
+            # Check if writer is allowed to take orders (admin restriction)
+            if not writer.can_take_orders:
+                raise ValidationError(
+                    "You are not allowed to take orders. Please contact an administrator."
+                )
+            
             # Get max allowed orders from writer's level
             max_allowed_orders = writer.writer_level.max_orders if writer.writer_level else 0
             

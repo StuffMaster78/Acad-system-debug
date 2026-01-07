@@ -172,20 +172,33 @@ class MessageService:
             thread.sender_role = sender_role
             thread.save(update_fields=['sender_role'])
 
-        # Log to ActivityLog for activity page
+        # Log to ActivityLog for activity page (async to avoid blocking message creation)
         try:
-            from activity.services.logger import ActivityLogger
+            from activity.utils.logger_safe import safe_log_activity
             order = getattr(thread, 'order', None)
             website = getattr(order, 'website', None) if order else getattr(thread, 'website', None)
             
             if website:
-                # Determine description based on context
+                # Determine description based on context (will be prefixed with "You" in serializer)
+                recipient_role = getattr(recipient, 'role', None) if recipient else None
                 if order:
-                    description = f"sent a message about order #{order.id}"
+                    if recipient_role == 'client':
+                        description = f"sent a message to client #{recipient.id} about order #{order.id}"
+                    elif recipient_role == 'writer':
+                        description = f"sent a message to writer #{recipient.id} about order #{order.id}"
+                    else:
+                        description = f"sent a message about order #{order.id}"
                 else:
-                    description = f"sent a message to {recipient.email if recipient else 'recipient'}"
+                    if recipient_role == 'client':
+                        description = f"sent a message to client #{recipient.id}"
+                    elif recipient_role == 'writer':
+                        description = f"sent a message to writer #{recipient.id}"
+                    else:
+                        description = f"sent a message to {recipient.email if recipient else 'recipient'}"
                 
-                ActivityLogger.log_activity(
+                # Use safe_log_activity which tries sync first, falls back to async
+                # This prevents blocking the request if logging fails
+                safe_log_activity(
                     user=sender,
                     website=website,
                     action_type="COMMUNICATION",
@@ -220,7 +233,14 @@ class MessageService:
     def get_visible_messages(user, thread: CommunicationThread):
         """
         Fetch messages in a thread visible to the requesting user.
-        Shows messages where user is sender, recipient, or has role-based visibility.
+        
+        Visibility Rules (Matchmaking Platform):
+        - Admin/Superadmin: See ALL messages (all communications)
+        - Support: See messages where client sends to support (all support users can read)
+        - Editor: See messages where client sends to editor (all editors can read)
+        - Admin: See messages where client sends to admin (all admins can read)
+        - Client: See messages where they are sender/recipient OR writer sends to them (only that specific client)
+        - Writer: See messages where they are sender/recipient OR client sends to them (only that specific writer)
 
         Args:
             user (User): Requesting user.
@@ -236,20 +256,70 @@ class MessageService:
 
         from django.db.models import Q
     
-        if role in {"admin", "superadmin", "support", "editor"}:
-            return thread.messages.filter(is_deleted=False).order_by("sent_at")  # Oldest first for chronological display
+        # Admin/Superadmin: See ALL messages (all communications)
+        if role in {"admin", "superadmin"}:
+            return thread.messages.filter(is_deleted=False).order_by("sent_at")
 
-        # For regular users, show messages where:
-        # 1. User is the sender OR
-        # 2. User is the recipient OR
-        # 3. Message is visible to user's role
+        # Support: See messages where client sends to support (all support users can read)
+        # Also see messages where they are sender/recipient
+        if role == "support":
+            return thread.messages.filter(
+                is_deleted=False
+            ).filter(
+                Q(sender=user) | 
+                Q(recipient=user) |
+                (Q(sender_role="client") & Q(recipient_role="support"))
+            ).order_by("sent_at")
+
+        # Editor: See messages where client sends to editor (all editors can read)
+        # Also see messages where they are sender/recipient
+        if role == "editor":
+            return thread.messages.filter(
+                is_deleted=False
+            ).filter(
+                Q(sender=user) | 
+                Q(recipient=user) |
+                (Q(sender_role="client") & Q(recipient_role="editor"))
+            ).order_by("sent_at")
+
+        # Admin: See messages where client sends to admin (all admins can read)
+        # Also see messages where they are sender/recipient
+        # Note: This is for regular admin role (not superadmin)
+        if role == "admin":
+            return thread.messages.filter(
+                is_deleted=False
+            ).filter(
+                Q(sender=user) | 
+                Q(recipient=user) |
+                (Q(sender_role="client") & Q(recipient_role__in=["admin", "superadmin"]))
+            ).order_by("sent_at")
+
+        # Client: See messages where they are sender/recipient OR writer sends to them (only that specific client)
+        if role == "client":
+            return thread.messages.filter(
+                is_deleted=False
+            ).filter(
+                Q(sender=user) | 
+                Q(recipient=user) |
+                (Q(sender_role="writer") & Q(recipient=user))
+            ).order_by("sent_at")
+
+        # Writer: See messages where they are sender/recipient OR client sends to them (only that specific writer)
+        if role == "writer":
+            return thread.messages.filter(
+                is_deleted=False
+            ).filter(
+                Q(sender=user) | 
+                Q(recipient=user) |
+                (Q(sender_role="client") & Q(recipient=user))
+            ).order_by("sent_at")
+
+        # Default: only messages where user is sender or recipient
         return thread.messages.filter(
             is_deleted=False
         ).filter(
-            Q(sender=user) | 
-            Q(recipient=user) | 
-            Q(visible_to_roles__contains=[role])
-        ).order_by("sent_at")  # Oldest first for chronological display
+            Q(sender=user) | Q(recipient=user)
+        ).order_by("sent_at")
     
 
     @staticmethod

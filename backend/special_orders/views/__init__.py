@@ -2,8 +2,9 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from django.core.exceptions import ValidationError
 
-from .models import (
+from special_orders.models import (
     SpecialOrder,
     InstallmentPayment,
     PredefinedSpecialOrderConfig,
@@ -11,7 +12,7 @@ from .models import (
     WriterBonus,
     EstimatedSpecialOrderSettings
 )
-from .serializers import (
+from special_orders.serializers import (
     SpecialOrderSerializer,
     InstallmentPaymentSerializer,
     PredefinedSpecialOrderConfigSerializer,
@@ -19,10 +20,11 @@ from .serializers import (
     WriterBonusSerializer,
     EstimatedSpecialOrderSettingsSerializer
 )
-from .services.special_order_service import SpecialOrderService
-from .services.installment_payment_service import InstallmentPaymentService
-from .services.order_approval import OrderApprovalService
-from .services.installment_payment_processor import SpecialOrderInstallmentPaymentService
+from special_orders.services.special_order_service import SpecialOrderService
+from special_orders.services.installment_payment_service import InstallmentPaymentService
+from special_orders.services.order_approval import OrderApprovalService
+from special_orders.services.installment_payment_processor import SpecialOrderInstallmentPaymentService
+from special_orders.services.streamlined_order_service import StreamlinedSpecialOrderService
 import logging
 
 logger = logging.getLogger("special_orders")
@@ -186,11 +188,63 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
     def complete_order(self, request, pk=None):
         """
         Mark a special order as completed.
+        Uses streamlined service for better workflow management.
         """
         order = self.get_object()
-        SpecialOrderService.complete_special_order(order)
-        logger.info(f"Order #{order.id} marked as completed.")
-        return Response({'status': 'order completed'})
+        try:
+            completed_order = StreamlinedSpecialOrderService.complete_order(
+                order=order,
+                completed_by=request.user,
+                files_uploaded=request.data.get('files_uploaded', True),
+                completion_notes=request.data.get('completion_notes')
+            )
+            serializer = SpecialOrderSerializer(completed_order)
+            logger.info(f"Order #{order.id} marked as completed by {request.user.username}.")
+            return Response({
+                'status': 'order completed',
+                'order': serializer.data
+            })
+        except Exception as e:
+            logger.exception(f"Error completing order: {e}")
+            # Fallback to old method for backward compatibility
+            SpecialOrderService.complete_special_order(order)
+            return Response({'status': 'order completed'})
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser], url_path='set-price')
+    def set_price(self, request, pk=None):
+        """
+        Set or negotiate price for an estimated order (streamlined).
+        Can be called multiple times for negotiation.
+        """
+        order = self.get_object()
+        try:
+            updated_order = StreamlinedSpecialOrderService.set_price(
+                order=order,
+                admin_user=request.user,
+                total_cost=request.data.get('total_cost'),
+                price_per_day=request.data.get('price_per_day'),
+                admin_notes=request.data.get('admin_notes')
+            )
+            serializer = SpecialOrderSerializer(updated_order)
+            return Response(serializer.data)
+        except Exception as e:
+            logger.exception(f"Error setting price: {e}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+    
+    @action(detail=True, methods=['get'], url_path='workflow-status')
+    def workflow_status(self, request, pk=None):
+        """
+        Get current workflow status and available actions.
+        """
+        order = self.get_object()
+        status_info = StreamlinedSpecialOrderService.get_order_workflow_status(
+            order=order,
+            user=request.user
+        )
+        return Response(status_info)
 
 
 class InstallmentPaymentViewSet(viewsets.ModelViewSet):
@@ -298,27 +352,109 @@ class PredefinedSpecialOrderDurationViewSet(viewsets.ModelViewSet):
 class WriterBonusViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing writer bonuses.
+    Admins can create/manage, writers can view their own.
     """
     queryset = WriterBonus.objects.select_related(
-        'writer', 'special_order'
+        'writer', 'special_order', 'website'
     )
     serializer_class = WriterBonusSerializer
-    permission_classes = [IsAdminUser]
+    permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """
         Filter bonuses by writer or return all for admin.
         """
         user = self.request.user
-        if user.is_staff:
+        if user.is_staff or getattr(user, 'role', None) in ['admin', 'superadmin', 'support']:
             return WriterBonus.objects.all()
-        return WriterBonus.objects.filter(writer=user)
+        elif getattr(user, 'role', None) == 'writer':
+            return WriterBonus.objects.filter(writer=user)
+        return WriterBonus.objects.none()
+    
+    def get_permissions(self):
+        """
+        Admins can create/update/delete, writers can only view.
+        """
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdminUser()]
+        return [IsAuthenticated()]
 
     def perform_create(self, serializer):
         """
-        Save writer bonus.
+        Save writer bonus using streamlined service if add_to_wallet is requested.
         """
-        serializer.save()
+        add_to_wallet = self.request.data.get('add_to_wallet', False)
+        
+        if add_to_wallet:
+            # Use streamlined service
+            from writer_management.services.writer_payment_award_service import WriterPaymentAwardService
+            from websites.utils import get_current_website
+            
+            writer_id = serializer.validated_data.get('writer').id
+            amount = serializer.validated_data.get('amount')
+            category = serializer.validated_data.get('category', 'other')
+            reason = serializer.validated_data.get('reason', '')
+            special_order = serializer.validated_data.get('special_order')
+            website = get_current_website(self.request) or serializer.validated_data.get('website')
+            
+            try:
+                result = WriterPaymentAwardService.award_bonus(
+                    writer_id=writer_id,
+                    amount=amount,
+                    category=category,
+                    reason=reason,
+                    special_order_id=special_order.id if special_order else None,
+                    add_to_wallet=True,
+                    website=website,
+                    admin_user=self.request.user
+                )
+                # Return the created bonus
+                bonus = WriterBonus.objects.get(id=result['bonus_id'])
+                serializer.instance = bonus
+            except Exception as e:
+                logger.exception(f"Error creating bonus with wallet: {e}")
+                # Fallback to regular creation
+                serializer.save()
+        else:
+            serializer.save()
+    
+    @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
+    def pay(self, request, pk=None):
+        """
+        Mark bonus as paid and optionally add to wallet (streamlined).
+        
+        Request body:
+        {
+            "add_to_wallet": true  // If true, add to writer's wallet
+        }
+        """
+        bonus = self.get_object()
+        add_to_wallet = request.data.get('add_to_wallet', True)
+        
+        from writer_management.services.writer_payment_award_service import WriterPaymentAwardService
+        from websites.utils import get_current_website
+        
+        website = get_current_website(request) or bonus.website
+        
+        try:
+            result = WriterPaymentAwardService.pay_bonus(
+                bonus_id=bonus.id,
+                add_to_wallet=add_to_wallet,
+                website=website,
+                admin_user=request.user
+            )
+            serializer = WriterBonusSerializer(bonus)
+            return Response({
+                'bonus': serializer.data,
+                'added_to_wallet': result['added_to_wallet'],
+                'wallet_balance': result.get('wallet_balance'),
+            })
+        except Exception as e:
+            logger.exception(f"Error paying bonus: {e}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
 class EstimatedSpecialOrderSettingsViewSet(viewsets.ModelViewSet):
     """
@@ -327,3 +463,4 @@ class EstimatedSpecialOrderSettingsViewSet(viewsets.ModelViewSet):
     queryset = EstimatedSpecialOrderSettings.objects.all()
     serializer_class = EstimatedSpecialOrderSettingsSerializer
     permission_classes = [IsAdminUser]
+

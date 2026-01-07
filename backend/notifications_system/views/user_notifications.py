@@ -49,8 +49,21 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["get"])
     def unread_count(self, request):
-        count = self.get_queryset().filter(is_read=False).count()
-        return Response({"unread_count": count})
+        """Get unread count including both Notification and CommunicationNotification."""
+        from communications.models import CommunicationNotification
+        
+        # Count general notifications
+        general_count = self.get_queryset().filter(is_read=False).count()
+        
+        # Count communication notifications (message notifications)
+        comm_count = CommunicationNotification.objects.filter(
+            recipient=request.user,
+            is_read=False
+        ).count()
+        
+        # Total unread count
+        total_count = general_count + comm_count
+        return Response({"unread_count": total_count})
 
     @action(detail=True, methods=["post"])
     def mark_as_read(self, request, pk=None):
@@ -134,21 +147,35 @@ class UnreadNotificationCountView(generics.RetrieveAPIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
+        """Get total unread count including both Notification and CommunicationNotification."""
         try:
+            from communications.models import CommunicationNotification
+            
             website = getattr(request.user, 'website', None)
+            
+            # Count general notifications
             if website:
-                count = Notification.objects.filter(
+                general_count = Notification.objects.filter(
                     user=request.user,
                     is_read=False,
                     website=website
                 ).count()
             else:
                 # If user has no website, count all unread notifications
-                count = Notification.objects.filter(
+                general_count = Notification.objects.filter(
                     user=request.user,
                     is_read=False
                 ).count()
-            return Response({"unread_count": count})
+            
+            # Count communication notifications (message notifications)
+            comm_count = CommunicationNotification.objects.filter(
+                recipient=request.user,
+                is_read=False
+            ).count()
+            
+            # Total unread count (both types)
+            total_count = general_count + comm_count
+            return Response({"unread_count": total_count})
         except Exception as e:
             # Return 0 on any error to prevent 500
             return Response({"unread_count": 0})

@@ -4,7 +4,14 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Client Dashboard</h1>
-        <p class="mt-2 text-gray-600">Welcome back, {{ authStore.user?.email }}</p>
+        <p class="mt-2 text-gray-600 flex items-center flex-wrap gap-2">
+          <span>Welcome back, {{ displayName }}</span>
+          <CopyableIdChip
+            v-if="displayId"
+            :label="displayIdLabel"
+            :value="displayId"
+          />
+        </p>
       </div>
       <div class="flex items-center gap-3">
         <button
@@ -102,8 +109,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import CopyableIdChip from '@/components/common/CopyableIdChip.vue'
 import clientDashboardAPI from '@/api/client-dashboard'
 import walletAPI from '@/api/wallet'
 import ordersAPI from '@/api/orders'
@@ -115,7 +123,7 @@ import { reviewRemindersAPI, messageRemindersAPI } from '@/api'
 import ReviewReminderCard from '@/components/orders/ReviewReminderCard.vue'
 import MessageReminderCard from '@/components/orders/MessageReminderCard.vue'
 
-    const authStore = useAuthStore()
+const authStore = useAuthStore()
 
 // State
 const loading = ref(true)
@@ -137,6 +145,16 @@ const recentTickets = ref([])
 const recentTicketsLoading = ref(false)
 const reviewReminders = ref([])
 const messageReminders = ref([])
+
+const displayName = computed(() => {
+  const user = authStore.user
+  if (!user) return 'Client'
+  return user.full_name || user.username || user.email
+})
+
+const displayIdLabel = computed(() => 'Client ID')
+
+const displayId = computed(() => authStore.user?.id || null)
 
 // Fetch functions
 const fetchClientDashboard = async () => {

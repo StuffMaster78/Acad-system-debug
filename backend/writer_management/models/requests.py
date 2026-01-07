@@ -144,6 +144,13 @@ class WriterOrderTake(models.Model):
         config = WriterConfig.objects.first()
         if not config or not config.takes_enabled:
             raise ValidationError("Order takes are currently disabled. Writers must request orders.")
+        
+        # Check if writer is allowed to take orders (admin restriction)
+        if not self.writer.can_take_orders:
+            raise ValidationError(
+                f"Writer {self.writer.user.username} is not allowed to take orders. "
+                "This restriction can only be changed by an administrator."
+            )
 
         max_allowed_orders = self.writer.writer_level.max_orders if self.writer.writer_level else 0
         current_taken_orders = WriterOrderTake.objects.filter(writer=self.writer).count()

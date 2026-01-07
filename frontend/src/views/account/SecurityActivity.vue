@@ -279,8 +279,25 @@ const loadSessions = async () => {
   loadingSessions.value = true
   try {
     const response = await authAPI.getLoginSessions()
+    const data = response.data || {}
+
+    // Backend can return either a plain list or an object wrapper.
+    // Normalize to an array of sessions before filtering.
+    let rawSessions
+    if (Array.isArray(data)) {
+      rawSessions = data
+    } else if (Array.isArray(data.sessions)) {
+      rawSessions = data.sessions
+    } else if (Array.isArray(data.results)) {
+      rawSessions = data.results
+    } else if (Array.isArray(data.current_sessions)) {
+      rawSessions = data.current_sessions
+    } else {
+      rawSessions = []
+    }
+
     // Filter out any null or invalid session objects
-    sessions.value = (response.data || []).filter(s => s && s.id)
+    sessions.value = rawSessions.filter(s => s && s.id)
   } catch (error) {
     console.error('Failed to load sessions:', error)
     sessions.value = []

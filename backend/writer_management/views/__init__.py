@@ -149,6 +149,13 @@ class WriterOrderTakeViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         writer = self.request.user.writer_profile
+        
+        # Check if writer is allowed to take orders (admin restriction)
+        if not writer.can_take_orders:
+            raise ValidationError(
+                "You are not allowed to take orders. Please contact an administrator."
+            )
+        
         config = WriterConfig.objects.first()
         if config and not config.takes_enabled:
             raise ValidationError("Taking orders is disabled.")

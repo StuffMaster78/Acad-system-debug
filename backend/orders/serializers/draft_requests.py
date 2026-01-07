@@ -63,7 +63,7 @@ class DraftRequestSerializer(serializers.ModelSerializer):
         return obj.files.count()
     
     def get_can_request(self, obj):
-        """Check if client can request a draft."""
+        """Check if client or admin can request a draft."""
         can_request, reason = obj.can_request()
         return {
             'can_request': can_request,
@@ -71,36 +71,39 @@ class DraftRequestSerializer(serializers.ModelSerializer):
         }
     
     def validate(self, data):
-        """Validate that client can request a draft."""
+        """Validate that client or admin can request a draft."""
         order = data.get('order')
         requested_by = data.get('requested_by') or self.context['request'].user
         
         if not order:
             raise serializers.ValidationError("Order is required")
         
-        # Check if order belongs to the requesting user
-        if order.client != requested_by:
-            raise serializers.ValidationError("You can only request drafts for your own orders")
+        # Admins can request drafts for any order
+        if requested_by.role not in ['admin', 'superadmin', 'support']:
+            # Check if order belongs to the requesting user
+            if order.client != requested_by:
+                raise serializers.ValidationError("You can only request drafts for your own orders")
         
-        # Check if Progressive Delivery is paid
+        # Check if Progressive Delivery is paid (admins can bypass this)
         draft_request = DraftRequest(
             website=order.website,
             order=order,
             requested_by=requested_by
         )
         can_request, reason = draft_request.can_request()
-        if not can_request:
+        if not can_request and requested_by.role not in ['admin', 'superadmin', 'support']:
             raise serializers.ValidationError(reason or "Cannot request draft")
         
-        # Check if there's already a pending request
-        existing_pending = DraftRequest.objects.filter(
-            order=order,
-            requested_by=requested_by,
-            status__in=['pending', 'in_progress']
-        ).exists()
-        
-        if existing_pending:
-            raise serializers.ValidationError("You already have a pending draft request for this order")
+        # Check if there's already a pending request (admins can create multiple)
+        if requested_by.role not in ['admin', 'superadmin', 'support']:
+            existing_pending = DraftRequest.objects.filter(
+                order=order,
+                requested_by=requested_by,
+                status__in=['pending', 'in_progress']
+            ).exists()
+            
+            if existing_pending:
+                raise serializers.ValidationError("You already have a pending draft request for this order")
         
         return data
 
@@ -116,18 +119,20 @@ class DraftRequestCreateSerializer(serializers.ModelSerializer):
         """Validate the order."""
         user = self.context['request'].user
         
-        # Check if order belongs to user
-        if value.client != user:
-            raise serializers.ValidationError("You can only request drafts for your own orders")
+        # Admins can request drafts for any order
+        if user.role not in ['admin', 'superadmin', 'support']:
+            # Check if order belongs to user
+            if value.client != user:
+                raise serializers.ValidationError("You can only request drafts for your own orders")
         
-        # Check if Progressive Delivery is paid
+        # Check if Progressive Delivery is paid (admins can bypass this)
         draft_request = DraftRequest(
             website=value.website,
             order=value,
             requested_by=user
         )
         can_request, reason = draft_request.can_request()
-        if not can_request:
+        if not can_request and user.role not in ['admin', 'superadmin', 'support']:
             raise serializers.ValidationError(reason or "Cannot request draft")
         
         return value

@@ -27,12 +27,17 @@ class NotificationService:
     @staticmethod
     def notify_user_on_message(msg: CommunicationMessage):
         """
-        Notify recipient of a new message if allowed.
+        Notify both sender and recipient of a new message.
+        
+        Notifies:
+        1. The recipient - "You received a message from X"
+        2. The sender (themselves) - "You sent a message to X"
 
         Args:
             msg (CommunicationMessage): The new message.
         """
         recipient = msg.recipient
+        sender = msg.sender
         if not recipient or msg.is_hidden:
             return
 
@@ -49,13 +54,31 @@ class NotificationService:
         if len(msg.message) > 100:
             preview += "..."
 
+        # 1. Notify the recipient - "You received a message"
+        recipient_role = getattr(recipient, "role", None)
+        sender_label = "Writer" if getattr(sender, "role", None) == "writer" else "Client" if getattr(sender, "role", None) == "client" else sender.username
+        recipient_notification_text = f"You received a message from {sender_label}: {preview}"
+        
         CommunicationNotification.objects.create(
             recipient=recipient,
             message=msg,
-            notification_text=f"New message: {preview}",
+            notification_text=recipient_notification_text,
             is_read=False,
             created_at=timezone.now()
         )
+        
+        # 2. Notify the sender (themselves) - "You sent a message"
+        if sender and sender != recipient:
+            recipient_label = "Writer" if recipient_role == "writer" else "Client" if recipient_role == "client" else recipient.username
+            sender_notification_text = f"You sent a message to {recipient_label}: {preview}"
+            
+            CommunicationNotification.objects.create(
+                recipient=sender,
+                message=msg,
+                notification_text=sender_notification_text,
+                is_read=False,
+                created_at=timezone.now()
+            )
 
     @staticmethod
     def notify_admin_on_flagged_message(flag: FlaggedMessage):

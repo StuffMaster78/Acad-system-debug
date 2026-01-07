@@ -95,8 +95,10 @@ def check_notifications_redis(app_configs, **kwargs):
     """
     Verifies that Redis is reachable for the notifications system.
     Set NOTIFICATIONS_DISABLE_REDIS_CHECK=True to skip.
+    In DEBUG mode, Redis connection issues are warnings, not errors.
     """
     errors = []
+    warnings = []
 
     # Allow disabling via Django settings or raw environment variable.
     # This is useful in dev/docker where Redis may not be configured yet.
@@ -105,49 +107,89 @@ def check_notifications_redis(app_configs, **kwargs):
     if os.environ.get("NOTIFICATIONS_DISABLE_REDIS_CHECK", "").lower() in ("1", "true", "yes"):
         return errors  # skipped via env var
 
+    # In DEBUG mode, make Redis checks non-fatal (warnings only)
+    is_debug = getattr(settings, "DEBUG", False)
+
     try:
         from .redis_health import check_redis_health
     except Exception as exc:  # very defensive in case of import errors
-        errors.append(
-            Error(
-                "Could not import notifications_system.redis_health module.",
-                hint="Ensure redis-py is installed and the module path is correct.",
-                obj="notifications_system.redis_health",
-                id="notifications_system.E009",
+        error_msg = "Could not import notifications_system.redis_health module."
+        if is_debug:
+            warnings.append(
+                Warning(
+                    error_msg,
+                    hint="Ensure redis-py is installed and the module path is correct.",
+                    obj="notifications_system.redis_health",
+                    id="notifications_system.W009",
+                )
             )
-        )
-        return errors
+        else:
+            errors.append(
+                Error(
+                    error_msg,
+                    hint="Ensure redis-py is installed and the module path is correct.",
+                    obj="notifications_system.redis_health",
+                    id="notifications_system.E009",
+                )
+            )
+        return errors if not is_debug else warnings
 
     ok = False
     try:
         ok = check_redis_health()
     except Exception as exc:
-        errors.append(
-            Error(
-                "Redis health check raised an exception.",
-                hint="Inspect logs for the underlying error and verify REDIS_URL.",
-                obj="notifications_system.redis_health.check_redis_health",
-                id="notifications_system.E010",
+        error_msg = "Redis health check raised an exception."
+        if is_debug:
+            warnings.append(
+                Warning(
+                    error_msg,
+                    hint=f"Inspect logs for the underlying error and verify REDIS_URL. Error: {exc}",
+                    obj="notifications_system.redis_health.check_redis_health",
+                    id="notifications_system.W010",
+                )
             )
-        )
-        return errors
+        else:
+            errors.append(
+                Error(
+                    error_msg,
+                    hint="Inspect logs for the underlying error and verify REDIS_URL.",
+                    obj="notifications_system.redis_health.check_redis_health",
+                    id="notifications_system.E010",
+                )
+            )
+        return errors if not is_debug else warnings
 
     if not ok:
         redis_url = getattr(settings, "REDIS_URL", "redis://localhost:6379/0")
-        errors.append(
-            Error(
-                "Redis is unreachable for notifications.",
-                hint=(
-                    "Verify REDIS_URL, the Redis server is running, "
-                    "network/firewall allows access, and credentials are correct. "
-                    f"Current REDIS_URL: {redis_url}"
-                ),
-                obj="notifications_system.redis_health",
-                id="notifications_system.E011",
-            )
+        error_msg = "Redis is unreachable for notifications."
+        hint = (
+            "Verify REDIS_URL, the Redis server is running, "
+            "network/firewall allows access, and credentials are correct. "
+            f"Current REDIS_URL: {redis_url}"
         )
+        
+        if is_debug:
+            # In DEBUG mode, make it a warning so it doesn't block startup
+            warnings.append(
+                Warning(
+                    error_msg,
+                    hint=hint + " (Non-fatal in DEBUG mode)",
+                    obj="notifications_system.redis_health",
+                    id="notifications_system.W011",
+                )
+            )
+        else:
+            errors.append(
+                Error(
+                    error_msg,
+                    hint=hint,
+                    obj="notifications_system.redis_health",
+                    id="notifications_system.E011",
+                )
+            )
 
-    return errors
+    # Return combined list - warnings don't block startup, errors do
+    return errors + warnings
 
 
 @register()

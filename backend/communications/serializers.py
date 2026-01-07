@@ -82,37 +82,22 @@ class CommunicationThreadSerializer(serializers.ModelSerializer):
     def get_unread_count(self, obj):
         """
         Get the count of unread messages for the current user in this thread.
-        Optimized to use prefetched messages if available.
+        Only counts messages that are visible to the user (matches get_visible_messages logic).
+        This ensures the count matches the actual visible messages.
         """
         request = self.context.get("request")
         if not request or not request.user:
             return 0
         user = request.user
         
-        # Use prefetched messages if available (from prefetch_related)
-        if hasattr(obj, '_prefetched_objects_cache') and 'messages' in obj._prefetched_objects_cache:
-            messages = obj._prefetched_objects_cache['messages']
-            # Count messages where user is not in read_by (using prefetched data)
-            unread_count = 0
-            user_id = user.id
-            for message in messages:
-                if not message.is_deleted:
-                    # Check if user is in prefetched read_by
-                    if hasattr(message, '_prefetched_objects_cache') and 'read_by' in message._prefetched_objects_cache:
-                        read_by_ids = [u.id for u in message._prefetched_objects_cache['read_by']]
-                        if user_id not in read_by_ids:
-                            unread_count += 1
-                    else:
-                        # Fallback: use a single query to check all messages at once
-                        # This is still better than per-message queries
-                        pass
-            # If we couldn't use prefetched read_by, fall through to database query
-            if not hasattr(messages[0] if messages else None, '_prefetched_objects_cache'):
-                return obj.messages.filter(is_deleted=False).exclude(read_by=user).count()
-            return unread_count
+        # Get visible messages using the same logic as get_visible_messages
+        from communications.services.messages import MessageService
+        visible_messages = MessageService.get_visible_messages(user, obj)
         
-        # Fallback to database query if not prefetched - use a single optimized query
-        return obj.messages.filter(is_deleted=False).exclude(read_by=user).count()
+        # Count unread messages from visible messages only
+        unread_count = visible_messages.exclude(read_by=user).count()
+        
+        return unread_count
 
 
 class CreateCommunicationThreadSerializer(serializers.Serializer):

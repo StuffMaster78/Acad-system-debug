@@ -7,8 +7,9 @@ These endpoints provide comprehensive statistics and analytics for:
 - Refund Management
 - Review Moderation
 - Order Management
-- Special Orders (already exists, but adding analytics)
-- Class Management
+- Express Classes (single class requests)
+- Class Management (Bundles, etc.)
+- Special Orders
 """
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
@@ -26,10 +27,11 @@ from orders.services.status_transition_service import VALID_TRANSITIONS
 from refunds.models import Refund
 from reviews_system.models import WebsiteReview, WriterReview, OrderReview
 from special_orders.models import SpecialOrder, InstallmentPayment
-from class_management.models import ClassBundle, ClassPurchase
+from class_management.models import ClassBundle, ClassPurchase, ExpressClass
 from fines.models import Fine, FineAppeal, FinePolicy, FineStatus, FineType
 from tickets.models import Ticket
 from users.models import User
+from writer_management.models.advance_payment import WriterAdvancePaymentRequest
 
 
 class AdminDisputeDashboardViewSet(viewsets.ViewSet):
@@ -50,49 +52,51 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
             if website:
                 all_disputes = all_disputes.filter(order__website=website)
         
+        # Combined aggregation - reduces from 4+ queries to 1 query
+        month_ago = timezone.now() - timedelta(days=30)
+        summary_stats = all_disputes.aggregate(
+            total_disputes=Count('id'),
+            pending_disputes=Count('id', filter=Q(dispute_status='open')),
+            resolved_this_month=Count('id', filter=Q(dispute_status='resolved', updated_at__gte=month_ago)),
+        )
+        
         # Status breakdown - Dispute model uses 'dispute_status' not 'status'
         status_breakdown = all_disputes.values('dispute_status').annotate(
             count=Count('id')
         )
         
-        # Pending disputes (open disputes)
-        pending_disputes = all_disputes.filter(dispute_status='open')
-        
-        # Resolved disputes (last 30 days)
-        month_ago = timezone.now() - timedelta(days=30)
-        resolved_recent = all_disputes.filter(
-            dispute_status='resolved',
-            updated_at__gte=month_ago
-        )
+        # Pending disputes (open disputes) - only fetch for list
+        pending_disputes = all_disputes.filter(dispute_status='open')[:20]
         
         # Disputes by reason
         reason_breakdown = all_disputes.values('reason').annotate(
             count=Count('id')
         )
         
-        # Average resolution time
-        # Dispute model doesn't have resolved_at, use updated_at for resolved disputes
+        # Average resolution time - calculate in Python but only for resolved disputes
+        # This is acceptable since we're only calculating for a subset
         resolved_with_time = all_disputes.filter(
             dispute_status='resolved',
             updated_at__isnull=False,
             created_at__isnull=False
-        )
+        ).only('updated_at', 'created_at')  # Only fetch needed fields
         
         avg_resolution_hours = None
         if resolved_with_time.exists():
-            resolution_times = []
-            for dispute in resolved_with_time:
-                if dispute.updated_at and dispute.created_at:
-                    hours = (dispute.updated_at - dispute.created_at).total_seconds() / 3600
-                    resolution_times.append(hours)
+            # Use values_list for faster iteration
+            resolution_times = [
+                (row['updated_at'] - row['created_at']).total_seconds() / 3600
+                for row in resolved_with_time.values('updated_at', 'created_at')
+                if row['updated_at'] and row['created_at']
+            ]
             if resolution_times:
                 avg_resolution_hours = sum(resolution_times) / len(resolution_times)
         
         return Response({
             'summary': {
-                'total_disputes': all_disputes.count(),
-                'pending_disputes': pending_disputes.count(),
-                'resolved_this_month': resolved_recent.count(),
+                'total_disputes': summary_stats['total_disputes'] or 0,
+                'pending_disputes': summary_stats['pending_disputes'] or 0,
+                'resolved_this_month': summary_stats['resolved_this_month'] or 0,
                 'average_resolution_hours': round(avg_resolution_hours, 2) if avg_resolution_hours else None,
             },
             'status_breakdown': {
@@ -112,7 +116,7 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
                     'client_id': dispute.order.client.id if dispute.order and dispute.order.client else None,
                     'writer_id': dispute.order.assigned_writer.id if dispute.order and dispute.order.assigned_writer else None,
                 }
-                for dispute in pending_disputes[:20]
+                for dispute in pending_disputes
             ],
         })
     
@@ -140,13 +144,16 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
             resolved=Count('id', filter=Q(dispute_status='resolved'))
         ).order_by('week')
         
-        # Resolution rate trends
+        # Resolution rate trends - combined aggregation
         month_ago = timezone.now() - timedelta(days=30)
         recent_disputes = all_disputes.filter(created_at__gte=month_ago)
-        resolution_rate = (
-            recent_disputes.filter(dispute_status='resolved').count() / recent_disputes.count() * 100
-            if recent_disputes.count() > 0 else 0
+        recent_stats = recent_disputes.aggregate(
+            total=Count('id'),
+            resolved=Count('id', filter=Q(dispute_status='resolved'))
         )
+        total_recent = recent_stats['total'] or 0
+        resolved_recent = recent_stats['resolved'] or 0
+        resolution_rate = (resolved_recent / total_recent * 100) if total_recent > 0 else 0
         
         return Response({
             'weekly_trends': [
@@ -158,8 +165,8 @@ class AdminDisputeDashboardViewSet(viewsets.ViewSet):
                 for item in weekly_trends
             ],
             'resolution_rate_percent': round(resolution_rate, 2),
-            'total_this_month': recent_disputes.count(),
-            'resolved_this_month': recent_disputes.filter(dispute_status='resolved').count(),
+            'total_this_month': total_recent,
+            'resolved_this_month': resolved_recent,
         })
     
     @action(detail=False, methods=['get'], url_path='pending')
@@ -201,38 +208,35 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
             if website:
                 all_refunds = all_refunds.filter(website=website)
         
+        # Combined aggregations - reduces from 7+ queries to 2 queries
+        month_ago = timezone.now() - timedelta(days=30)
+        
+        # Main summary stats in one query
+        summary_stats = all_refunds.aggregate(
+            total_refunds=Count('id'),
+            pending_refunds=Count('id', filter=Q(status='pending')),
+            processed_this_month=Count('id', filter=Q(status='processed', processed_at__gte=month_ago)),
+            total_requested=Sum(F('wallet_amount') + F('external_amount')),
+            pending_total=Sum(F('wallet_amount') + F('external_amount'), filter=Q(status='pending')),
+            avg_refund=Avg(F('wallet_amount') + F('external_amount')),
+        )
+        
+        # Processed this month total
+        processed_recent = all_refunds.filter(
+            status='processed',
+            processed_at__gte=month_ago
+        )
+        total_processed = processed_recent.aggregate(
+            total=Sum(F('wallet_amount') + F('external_amount'))
+        )['total'] or 0
+        
         # Status breakdown
         status_breakdown = all_refunds.values('status').annotate(
             count=Count('id')
         )
         
-        # Pending refunds
-        pending_refunds = all_refunds.filter(status='pending')
-        
-        # Processed refunds (last 30 days)
-        month_ago = timezone.now() - timedelta(days=30)
-        processed_recent = all_refunds.filter(
-            status='processed',
-            processed_at__gte=month_ago
-        )
-        
-        # Total amounts - Refund model uses wallet_amount + external_amount
-        total_requested = all_refunds.aggregate(
-            total=Sum(F('wallet_amount') + F('external_amount'))
-        )['total'] or 0
-        
-        total_processed = processed_recent.aggregate(
-            total=Sum(F('wallet_amount') + F('external_amount'))
-        )['total'] or 0
-        
-        pending_total = pending_refunds.aggregate(
-            total=Sum(F('wallet_amount') + F('external_amount'))
-        )['total'] or 0
-        
-        # Average refund amount
-        avg_refund = all_refunds.aggregate(
-            avg=Avg(F('wallet_amount') + F('external_amount'))
-        )['avg'] or 0
+        # Pending refunds - only fetch for list
+        pending_refunds = all_refunds.filter(status='pending')[:20]
         
         # Refunds by type (refund model doesn't have 'reason', use 'type' instead)
         type_breakdown = all_refunds.values('type').annotate(
@@ -241,13 +245,13 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
         
         return Response({
             'summary': {
-                'total_refunds': all_refunds.count(),
-                'pending_refunds': pending_refunds.count(),
-                'processed_this_month': processed_recent.count(),
-                'total_requested': str(total_requested),
+                'total_refunds': summary_stats['total_refunds'] or 0,
+                'pending_refunds': summary_stats['pending_refunds'] or 0,
+                'processed_this_month': summary_stats['processed_this_month'] or 0,
+                'total_requested': str(summary_stats['total_requested'] or 0),
                 'total_processed_this_month': str(total_processed),
-                'pending_total': str(pending_total),
-                'average_refund_amount': str(avg_refund),
+                'pending_total': str(summary_stats['pending_total'] or 0),
+                'average_refund_amount': str(summary_stats['avg_refund'] or 0),
             },
             'status_breakdown': {
                 item['status']: item['count'] for item in status_breakdown
@@ -267,7 +271,7 @@ class AdminRefundDashboardViewSet(viewsets.ViewSet):
                     'processed_at': refund.processed_at.isoformat() if refund.processed_at else None,
                     'client_id': refund.client.id if refund.client else (refund.order_payment.order.client.id if refund.order_payment and refund.order_payment.order and refund.order_payment.order.client else None),
                 }
-                for refund in pending_refunds[:20]
+                for refund in pending_refunds
             ],
         })
     
@@ -494,15 +498,22 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
                 all_writer_reviews = all_writer_reviews.filter(website=website)
                 all_order_reviews = all_order_reviews.filter(website=website)
         
-        # Combine counts
-        total_reviews = all_website_reviews.count() + all_writer_reviews.count() + all_order_reviews.count()
-        
-        # Flagged reviews
-        flagged_reviews = (
-            all_website_reviews.filter(is_flagged=True).count() +
-            all_writer_reviews.filter(is_flagged=True).count() +
-            all_order_reviews.filter(is_flagged=True).count()
+        # Combined aggregations - reduces from 6 queries to 3 queries
+        website_stats = all_website_reviews.aggregate(
+            total=Count('id'),
+            flagged=Count('id', filter=Q(is_flagged=True))
         )
+        writer_stats = all_writer_reviews.aggregate(
+            total=Count('id'),
+            flagged=Count('id', filter=Q(is_flagged=True))
+        )
+        order_stats = all_order_reviews.aggregate(
+            total=Count('id'),
+            flagged=Count('id', filter=Q(is_flagged=True))
+        )
+        
+        total_reviews = (website_stats['total'] or 0) + (writer_stats['total'] or 0) + (order_stats['total'] or 0)
+        flagged_reviews = (website_stats['flagged'] or 0) + (writer_stats['flagged'] or 0) + (order_stats['flagged'] or 0)
         
         # Average rating (combine all ratings)
         all_ratings = []
@@ -558,9 +569,9 @@ class AdminReviewModerationDashboardViewSet(viewsets.ViewSet):
         return Response({
             'summary': {
                 'total_reviews': total_reviews,
-                'website_reviews': all_website_reviews.count(),
-                'writer_reviews': all_writer_reviews.count(),
-                'order_reviews': all_order_reviews.count(),
+                'website_reviews': website_stats['total'] or 0,
+                'writer_reviews': writer_stats['total'] or 0,
+                'order_reviews': order_stats['total'] or 0,
                 'flagged_reviews': flagged_reviews,
                 'average_rating': round(avg_rating, 2),
             },
@@ -584,78 +595,94 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
             if website:
                 all_orders = all_orders.filter(website=website)
         
+        # Combined aggregations - reduces from 6+ queries to 2 queries
+        week_ago = timezone.now() - timedelta(days=7)
+        month_ago = timezone.now() - timedelta(days=30)
+        now = timezone.now()
+        
+        # Main summary stats in one query
+        summary_stats = all_orders.aggregate(
+            total_orders=Count('id'),
+            needs_assignment=Count('id', filter=Q(
+                status=OrderStatus.PENDING_ASSIGNMENT.value,
+                assigned_writer__isnull=True
+            )),
+            overdue_orders=Count('id', filter=Q(
+                client_deadline__lt=now,
+                status__in=[
+                    OrderStatus.IN_PROGRESS.value,
+                    OrderStatus.UNDER_EDITING.value,
+                    OrderStatus.PENDING_REVISION.value
+                ]
+            )),
+            stuck_orders=Count('id', filter=Q(
+                status__in=[
+                    OrderStatus.IN_PROGRESS.value,
+                    OrderStatus.UNDER_EDITING.value,
+                ],
+                updated_at__lt=week_ago
+            )),
+            recent_orders=Count('id', filter=Q(created_at__gte=month_ago)),
+            total_revenue=Sum('total_price', filter=Q(status=OrderStatus.COMPLETED.value)),
+        )
+        
         # Status breakdown
         status_breakdown = all_orders.values('status').annotate(
             count=Count('id')
         )
         
-        # Orders needing assignment
+        # Orders needing assignment - only fetch for list
         needs_assignment = all_orders.filter(
             status=OrderStatus.PENDING_ASSIGNMENT.value,
-            writer__isnull=True
-        )
+            assigned_writer__isnull=True
+        )[:20]
         
-        # Overdue orders
+        # Overdue orders - only fetch for list
         overdue_orders = all_orders.filter(
-            deadline__lt=timezone.now(),
+            client_deadline__lt=now,
             status__in=[
                 OrderStatus.IN_PROGRESS.value,
                 OrderStatus.UNDER_EDITING.value,
                 OrderStatus.PENDING_REVISION.value
             ]
-        )
+        )[:20]
         
-        # Stuck orders (no progress in 7 days)
-        week_ago = timezone.now() - timedelta(days=7)
-        stuck_orders = all_orders.filter(
-            status__in=[
-                OrderStatus.IN_PROGRESS.value,
-                OrderStatus.UNDER_EDITING.value,
-            ],
-            updated_at__lt=week_ago
-        )
-        
-        # Recent orders (last 30 days)
-        month_ago = timezone.now() - timedelta(days=30)
-        recent_orders = all_orders.filter(created_at__gte=month_ago)
-        
-        # Total revenue
-        total_revenue = all_orders.filter(
-            status=OrderStatus.COMPLETED.value
-        ).aggregate(
-            total=Sum('total_price')
-        )['total'] or 0
-        
-        # Calculate transition-based counts
-        # For each target status, count orders that can transition to it
-        transition_counts = {}
+        # Calculate transition-based counts - optimized to reduce queries
+        # Build all valid source statuses first, then do one query
         target_statuses = [
             'in_progress', 'submitted', 'completed', 'cancelled', 
             'on_hold', 'available', 'revision_requested', 'disputed',
             'under_editing', 'closed', 'reopened'
         ]
         
+        # Build a map of source statuses to target statuses
+        status_to_targets = {}
+        for source, transitions in VALID_TRANSITIONS.items():
+            for target in target_statuses:
+                if target in transitions:
+                    if target not in status_to_targets:
+                        status_to_targets[target] = []
+                    if source not in status_to_targets[target]:
+                        status_to_targets[target].append(source)
+        
+        # Get counts for all source statuses in one query
+        status_counts = dict(all_orders.values('status').annotate(count=Count('id')))
+        
+        # Calculate transition counts from the status_counts
+        transition_counts = {}
         for target_status in target_statuses:
-            # Find all current statuses that can transition to this target
-            valid_source_statuses = [
-                source for source, transitions in VALID_TRANSITIONS.items()
-                if target_status in transitions
-            ]
-            
-            if valid_source_statuses:
-                count = all_orders.filter(status__in=valid_source_statuses).count()
-                transition_counts[f'can_transition_to_{target_status}'] = count
-            else:
-                transition_counts[f'can_transition_to_{target_status}'] = 0
+            valid_sources = status_to_targets.get(target_status, [])
+            count = sum(status_counts.get(source, 0) for source in valid_sources)
+            transition_counts[f'can_transition_to_{target_status}'] = count
         
         return Response({
             'summary': {
-                'total_orders': all_orders.count(),
-                'needs_assignment': needs_assignment.count(),
-                'overdue_orders': overdue_orders.count(),
-                'stuck_orders': stuck_orders.count(),
-                'recent_orders': recent_orders.count(),
-                'total_revenue': str(total_revenue),
+                'total_orders': summary_stats['total_orders'] or 0,
+                'needs_assignment': summary_stats['needs_assignment'] or 0,
+                'overdue_orders': summary_stats['overdue_orders'] or 0,
+                'stuck_orders': summary_stats['stuck_orders'] or 0,
+                'recent_orders': summary_stats['recent_orders'] or 0,
+                'total_revenue': str(summary_stats['total_revenue'] or 0),
                 **transition_counts,  # Add transition counts to summary
             },
             'status_breakdown': {
@@ -666,21 +693,21 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
                 {
                     'id': order.id,
                     'topic': order.topic,
-                    'pages': order.pages,
-                    'deadline': order.deadline.isoformat() if order.deadline else None,
+                    'pages': order.number_of_pages,
+                    'deadline': order.client_deadline.isoformat() if order.client_deadline else None,
                     'created_at': order.created_at.isoformat() if order.created_at else None,
                 }
-                for order in needs_assignment[:20]
+                for order in needs_assignment
             ],
             'overdue_orders_list': [
                 {
                     'id': order.id,
                     'topic': order.topic,
-                    'pages': order.pages,
-                    'deadline': order.deadline.isoformat() if order.deadline else None,
+                    'pages': order.number_of_pages,
+                    'deadline': order.client_deadline.isoformat() if order.client_deadline else None,
                     'status': order.status,
                 }
-                for order in overdue_orders[:20]
+                for order in overdue_orders
             ],
         })
     
@@ -764,13 +791,13 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
     def overdue(self, request):
         """Get overdue orders."""
         overdue_orders = Order.objects.filter(
-            deadline__lt=timezone.now(),
+            client_deadline__lt=timezone.now(),
             status__in=[
                 OrderStatus.IN_PROGRESS.value,
                 OrderStatus.UNDER_EDITING.value,
                 OrderStatus.PENDING_REVISION.value
             ]
-        ).select_related('client', 'writer', 'website').order_by('deadline')
+        ).select_related('client', 'assigned_writer', 'website').order_by('client_deadline')
         
         # Filter by website if needed
         if request.user.role != 'superadmin':
@@ -818,6 +845,158 @@ class AdminOrderManagementDashboardViewSet(viewsets.ViewSet):
             'count': stuck_orders.count(),
         })
 
+
+# ============================================================================
+# EXPRESS CLASSES DASHBOARD
+# ============================================================================
+
+class AdminExpressClassesDashboardViewSet(viewsets.ViewSet):
+    """Dashboard endpoints for express classes management."""
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    @action(detail=False, methods=['get'], url_path='dashboard')
+    def dashboard(self, request):
+        """Get express class statistics dashboard."""
+        all_express_classes = ExpressClass.objects.all().select_related(
+            'client', 'assigned_writer', 'website'
+        )
+        
+        # Filter by website if needed
+        if request.user.role != 'superadmin':
+            website = getattr(request.user, 'website', None)
+            if website:
+                all_express_classes = all_express_classes.filter(website=website)
+        
+        # Status breakdown
+        status_breakdown = all_express_classes.values('status').annotate(
+            count=Count('id')
+        )
+        
+        # Pending inquiries
+        pending_inquiries = all_express_classes.filter(status='inquiry')
+        
+        # Scope review queue
+        scope_review = all_express_classes.filter(status='scope_review')
+        
+        # Priced (awaiting assignment)
+        priced = all_express_classes.filter(status='priced')
+        
+        # Assigned/In Progress
+        active = all_express_classes.filter(status__in=['assigned', 'in_progress'])
+        
+        # Completed
+        completed = all_express_classes.filter(status='completed')
+        
+        # Total revenue
+        total_revenue = completed.aggregate(
+            total=Sum('price')
+        )['total'] or 0
+        
+        return Response({
+            'summary': {
+                'total_classes': all_express_classes.count(),
+                'pending_inquiries': pending_inquiries.count(),
+                'scope_review': scope_review.count(),
+                'priced': priced.count(),
+                'assigned': all_express_classes.filter(status='assigned').count(),
+                'in_progress': all_express_classes.filter(status='in_progress').count(),
+                'active': active.count(),
+                'completed': completed.count(),
+                'total_revenue': str(total_revenue),
+            },
+            'status_breakdown': {
+                item['status']: item['count'] for item in status_breakdown
+            },
+            'pending_inquiries_list': [
+                {
+                    'id': ec.id,
+                    'client_id': ec.client.id if ec.client else None,
+                    'client_username': ec.client.username if ec.client else None,
+                    'discipline': ec.discipline,
+                    'start_date': ec.start_date.isoformat() if ec.start_date else None,
+                    'end_date': ec.end_date.isoformat() if ec.end_date else None,
+                    'created_at': ec.created_at.isoformat() if ec.created_at else None,
+                }
+                for ec in pending_inquiries[:20]
+            ],
+            'scope_review_list': [
+                {
+                    'id': ec.id,
+                    'client_id': ec.client.id if ec.client else None,
+                    'client_username': ec.client.username if ec.client else None,
+                    'discipline': ec.discipline,
+                    'created_at': ec.created_at.isoformat() if ec.created_at else None,
+                }
+                for ec in scope_review[:20]
+            ],
+        })
+    
+    @action(detail=False, methods=['get'], url_path='analytics')
+    def analytics(self, request):
+        """Get express class analytics."""
+        all_express_classes = ExpressClass.objects.all()
+        
+        # Filter by website if needed
+        if request.user.role != 'superadmin':
+            website = getattr(request.user, 'website', None)
+            if website:
+                all_express_classes = all_express_classes.filter(website=website)
+        
+        # Trends by week (last 12 weeks)
+        weeks_ago = timezone.now() - timedelta(weeks=12)
+        from django.db.models.functions import TruncWeek
+        
+        weekly_trends = all_express_classes.filter(
+            created_at__gte=weeks_ago
+        ).annotate(
+            week=TruncWeek('created_at')
+        ).values('week').annotate(
+            created=Count('id'),
+            completed=Count('id', filter=Q(status='completed')),
+            revenue=Sum('price', filter=Q(status='completed'))
+        ).order_by('week')
+        
+        # Discipline breakdown
+        discipline_breakdown = all_express_classes.values('discipline').annotate(
+            count=Count('id'),
+            revenue=Sum('price', filter=Q(status='completed'))
+        ).order_by('-count')[:10]
+        
+        # Average class value
+        avg_class_value = all_express_classes.filter(
+            status='completed',
+            price__isnull=False
+        ).aggregate(
+            avg=Avg('price')
+        )['avg'] or 0
+        
+        return Response({
+            'weekly_trends': [
+                {
+                    'week': item['week'].isoformat() if item['week'] else None,
+                    'created': item['created'],
+                    'completed': item['completed'],
+                    'revenue': str(item['revenue'] or 0),
+                }
+                for item in weekly_trends
+            ],
+            'discipline_breakdown': [
+                {
+                    'discipline': item['discipline'],
+                    'count': item['count'],
+                    'revenue': str(item['revenue'] or 0),
+                }
+                for item in discipline_breakdown
+            ],
+            'averages': {
+                'avg_class_value': str(avg_class_value),
+            },
+        })
+
+
+# ============================================================================
+# CLASS MANAGEMENT DASHBOARD (BUNDLES, ETC.)
+# ============================================================================
 
 class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
     """Dashboard endpoints for class/bundle management."""
@@ -958,6 +1137,10 @@ class AdminClassManagementDashboardViewSet(viewsets.ViewSet):
             'pending_installments': pending_installments[:20],
         })
 
+
+# ============================================================================
+# SPECIAL ORDERS DASHBOARD
+# ============================================================================
 
 class AdminSpecialOrdersManagementDashboardViewSet(viewsets.ViewSet):
     """Dashboard endpoints for special orders management."""
@@ -1792,5 +1975,230 @@ class AdminFinesManagementDashboardViewSet(viewsets.ViewSet):
         return Response({
             'fines': serializer.data,
             'count': active_fines.count(),
+        })
+
+
+# ============================================================================
+# ADVANCE PAYMENT REQUESTS DASHBOARD
+# ============================================================================
+class AdminAdvancePaymentsDashboardViewSet(viewsets.ViewSet):
+    """Consolidated dashboard endpoints for advance payment requests management."""
+    permission_classes = [IsAuthenticated, IsAdmin]
+    
+    @action(detail=False, methods=['get'], url_path='dashboard')
+    def dashboard(self, request):
+        """Get consolidated advance payment requests statistics dashboard."""
+        all_advances = WriterAdvancePaymentRequest.objects.all().select_related(
+            'writer', 'writer__user', 'reviewed_by', 'disbursed_by', 'website'
+        )
+        
+        # Filter by website if user has website context and is not superadmin
+        if request.user.role != 'superadmin':
+            website = getattr(request.user, 'website', None)
+            if website:
+                all_advances = all_advances.filter(website=website)
+        
+        # Combined aggregation - reduces multiple queries to single query
+        month_ago = timezone.now() - timedelta(days=30)
+        summary_stats = all_advances.aggregate(
+            total_requests=Count('id'),
+            pending_requests=Count('id', filter=Q(status='pending')),
+            approved_requests=Count('id', filter=Q(status='approved')),
+            disbursed_requests=Count('id', filter=Q(status='disbursed')),
+            rejected_requests=Count('id', filter=Q(status='rejected')),
+            repaid_requests=Count('id', filter=Q(status='repaid')),
+            recent_requests=Count('id', filter=Q(requested_at__gte=month_ago)),
+        )
+        
+        # Financial aggregations in one query
+        financial_stats = all_advances.aggregate(
+            total_requested=Sum('requested_amount'),
+            total_approved=Sum('approved_amount'),
+            total_disbursed=Sum('disbursed_amount'),
+            total_repaid=Sum('repaid_amount'),
+            pending_requested=Sum('requested_amount', filter=Q(status='pending')),
+            approved_but_not_disbursed=Sum('approved_amount', filter=Q(status='approved')),
+        )
+        
+        # Calculate outstanding amount (disbursed - repaid) for all active advances
+        outstanding_advances = all_advances.filter(
+            status__in=['disbursed', 'approved'],
+            disbursed_amount__gt=0
+        )
+        total_outstanding = sum(
+            (adv.disbursed_amount or Decimal('0.00')) - (adv.repaid_amount or Decimal('0.00'))
+            for adv in outstanding_advances
+        )
+        
+        # Status breakdown
+        status_breakdown = all_advances.values('status').annotate(
+            count=Count('id'),
+            total_amount=Sum('requested_amount')
+        )
+        
+        # Pending requests (for review queue)
+        pending_requests = all_advances.filter(status='pending').order_by('-requested_at')[:20]
+        
+        # Approved but not disbursed (for disbursement queue)
+        approved_not_disbursed = all_advances.filter(
+            status='approved',
+            disbursed_amount__isnull=True
+        ).order_by('-reviewed_at')[:20]
+        
+        # Recent activity (last 30 days)
+        recent_activity = all_advances.filter(
+            requested_at__gte=month_ago
+        ).order_by('-requested_at')[:20]
+        
+        return Response({
+            'summary': {
+                'total_requests': summary_stats['total_requests'] or 0,
+                'pending_requests': summary_stats['pending_requests'] or 0,
+                'approved_requests': summary_stats['approved_requests'] or 0,
+                'disbursed_requests': summary_stats['disbursed_requests'] or 0,
+                'rejected_requests': summary_stats['rejected_requests'] or 0,
+                'repaid_requests': summary_stats['repaid_requests'] or 0,
+                'recent_requests': summary_stats['recent_requests'] or 0,
+                'total_requested': str(financial_stats['total_requested'] or Decimal('0.00')),
+                'total_approved': str(financial_stats['total_approved'] or Decimal('0.00')),
+                'total_disbursed': str(financial_stats['total_disbursed'] or Decimal('0.00')),
+                'total_repaid': str(financial_stats['total_repaid'] or Decimal('0.00')),
+                'total_outstanding': str(total_outstanding),
+                'pending_requested_amount': str(financial_stats['pending_requested'] or Decimal('0.00')),
+                'approved_not_disbursed_amount': str(financial_stats['approved_but_not_disbursed'] or Decimal('0.00')),
+            },
+            'status_breakdown': {
+                item['status']: {
+                    'count': item['count'],
+                    'total_amount': str(item['total_amount'] or Decimal('0.00'))
+                }
+                for item in status_breakdown
+            },
+            'pending_requests_list': [
+                {
+                    'id': req.id,
+                    'writer_id': req.writer.id,
+                    'writer_username': req.writer.user.username,
+                    'requested_amount': str(req.requested_amount),
+                    'expected_earnings': str(req.expected_earnings),
+                    'max_advance_amount': str(req.max_advance_amount),
+                    'reason': req.reason,
+                    'requested_at': req.requested_at.isoformat() if req.requested_at else None,
+                }
+                for req in pending_requests
+            ],
+            'approved_not_disbursed_list': [
+                {
+                    'id': req.id,
+                    'writer_id': req.writer.id,
+                    'writer_username': req.writer.user.username,
+                    'requested_amount': str(req.requested_amount),
+                    'approved_amount': str(req.approved_amount),
+                    'reviewed_by': req.reviewed_by.username if req.reviewed_by else None,
+                    'reviewed_at': req.reviewed_at.isoformat() if req.reviewed_at else None,
+                    'review_notes': req.review_notes,
+                }
+                for req in approved_not_disbursed
+            ],
+            'recent_activity': [
+                {
+                    'id': req.id,
+                    'writer_id': req.writer.id,
+                    'writer_username': req.writer.user.username,
+                    'status': req.status,
+                    'requested_amount': str(req.requested_amount),
+                    'approved_amount': str(req.approved_amount) if req.approved_amount else None,
+                    'disbursed_amount': str(req.disbursed_amount) if req.disbursed_amount else None,
+                    'requested_at': req.requested_at.isoformat() if req.requested_at else None,
+                }
+                for req in recent_activity
+            ],
+        })
+    
+    @action(detail=False, methods=['get'], url_path='analytics')
+    def analytics(self, request):
+        """Get advance payment requests analytics and trends."""
+        all_advances = WriterAdvancePaymentRequest.objects.all()
+        
+        # Filter by website if needed
+        if request.user.role != 'superadmin':
+            website = getattr(request.user, 'website', None)
+            if website:
+                all_advances = all_advances.filter(website=website)
+        
+        # Time range
+        days = int(request.query_params.get('days', 90))
+        date_from = timezone.now() - timedelta(days=days)
+        
+        # Weekly trends
+        from django.db.models.functions import TruncWeek
+        weekly_trends = all_advances.filter(
+            requested_at__gte=date_from
+        ).annotate(
+            week=TruncWeek('requested_at')
+        ).values('week').annotate(
+            requested=Count('id'),
+            approved=Count('id', filter=Q(status='approved')),
+            disbursed=Count('id', filter=Q(status='disbursed')),
+            total_requested=Sum('requested_amount'),
+            total_disbursed=Sum('disbursed_amount', filter=Q(status='disbursed'))
+        ).order_by('week')
+        
+        # Approval rate
+        total_processed = all_advances.filter(
+            status__in=['approved', 'rejected'],
+            requested_at__gte=date_from
+        ).count()
+        approved_count = all_advances.filter(
+            status='approved',
+            requested_at__gte=date_from
+        ).count()
+        approval_rate = (approved_count / total_processed * 100) if total_processed > 0 else 0
+        
+        # Average request amounts
+        avg_stats = all_advances.filter(
+            requested_at__gte=date_from
+        ).aggregate(
+            avg_requested=Avg('requested_amount'),
+            avg_approved=Avg('approved_amount', filter=Q(status='approved')),
+            avg_disbursed=Avg('disbursed_amount', filter=Q(status='disbursed'))
+        )
+        
+        # Repayment analytics
+        disbursed_advances = all_advances.filter(
+            status='disbursed',
+            disbursed_at__gte=date_from
+        )
+        total_disbursed = sum(adv.disbursed_amount or Decimal('0.00') for adv in disbursed_advances)
+        total_repaid = sum(adv.repaid_amount or Decimal('0.00') for adv in disbursed_advances)
+        repayment_rate = (total_repaid / total_disbursed * 100) if total_disbursed > 0 else 0
+        
+        return Response({
+            'weekly_trends': [
+                {
+                    'week': item['week'].isoformat() if item['week'] else None,
+                    'requested': item['requested'],
+                    'approved': item['approved'],
+                    'disbursed': item['disbursed'],
+                    'total_requested': str(item['total_requested'] or Decimal('0.00')),
+                    'total_disbursed': str(item['total_disbursed'] or Decimal('0.00')),
+                }
+                for item in weekly_trends
+            ],
+            'approval_metrics': {
+                'approval_rate': round(approval_rate, 2),
+                'total_processed': total_processed,
+                'approved_count': approved_count,
+            },
+            'average_amounts': {
+                'avg_requested': str(avg_stats['avg_requested'] or Decimal('0.00')),
+                'avg_approved': str(avg_stats['avg_approved'] or Decimal('0.00')),
+                'avg_disbursed': str(avg_stats['avg_disbursed'] or Decimal('0.00')),
+            },
+            'repayment_metrics': {
+                'total_disbursed': str(total_disbursed),
+                'total_repaid': str(total_repaid),
+                'repayment_rate': round(repayment_rate, 2),
+            },
         })
 

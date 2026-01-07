@@ -3,7 +3,7 @@
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-30 bg-gradient-to-b from-white to-gray-50 dark:from-[#0f0f0f] dark:to-[#1a1a1a] border-r border-gray-200/50 dark:border-gray-800/50 backdrop-blur-sm transform transition-all duration-300 ease-in-out shadow-xl',
+        'fixed inset-y-0 left-0 z-40 bg-gradient-to-b from-white to-gray-50 dark:from-[#0f0f0f] dark:to-[#1a1a1a] border-r border-gray-200/50 dark:border-gray-800/50 backdrop-blur-sm transform transition-all duration-300 ease-in-out shadow-xl',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         'lg:translate-x-0',
         sidebarCollapsed ? 'w-20' : 'w-72'
@@ -291,12 +291,12 @@
               <!-- Issues -->
               <div class="pt-3 mt-2 border-t border-gray-200/50 dark:border-gray-700/50">
                 <div class="px-3.5 py-2 text-[11px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider leading-tight mb-2">Issues</div>
-                <router-link v-if="shouldShowItem('Revision Requested', 'Orders requiring revision')" :to="authStore.isClient ? '/client/orders?status=revision_requested' : '/orders?status=revision_requested'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-amber-50/80 dark:hover:bg-amber-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'revision_requested' ? 'bg-amber-50/90 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-semibold border-l-3 border-amber-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
+                <router-link v-if="shouldShowItem('Revisions', 'Orders requiring revision')" :to="authStore.isClient ? '/client/orders?status=revision_requested' : '/orders?status=revision_requested'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-amber-50/80 dark:hover:bg-amber-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'revision_requested' ? 'bg-amber-50/90 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-semibold border-l-3 border-amber-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
                   <div class="flex items-center min-w-0 flex-1">
                     <div class="flex items-center justify-center w-8 h-8 rounded-lg mr-4 transition-colors duration-300" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'revision_requested' ? 'bg-amber-100 dark:bg-amber-800/50' : 'bg-gray-100/80 dark:bg-gray-800/50 group-hover:bg-amber-100 dark:group-hover:bg-amber-900/30'">
                       <SidebarIcon icon-name="arrow-left" size="sm" :icon-class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'revision_requested' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400 group-hover:text-amber-600 dark:group-hover:text-amber-400'" tooltip="Orders requiring revision" />
                     </div>
-                    <span class="truncate">Revision Requested <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.revision_requested }})</span></span>
+                    <span class="truncate">Revisions <span class="text-gray-500 dark:text-gray-400">({{ orderStatusCounts.revision_requested }})</span></span>
                   </div>
               </router-link>
                 <router-link v-if="shouldShowItem('Disputed', 'Disputed orders')" :to="authStore.isClient ? '/client/orders?status=disputed' : '/orders?status=disputed'" class="flex items-center justify-between px-3.5 py-2 text-sm font-medium leading-relaxed rounded-lg transition-all duration-300 hover:bg-red-50/80 dark:hover:bg-red-900/20 hover:translate-x-1 hover:shadow-sm group mb-1.5 focus:outline-none focus:ring-2 focus:ring-red-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900" :class="(authStore.isClient ? $route.path === '/client/orders' : $route.path === '/orders') && $route.query.status === 'disputed' ? 'bg-red-50/90 dark:bg-red-900/40 text-red-700 dark:text-red-300 font-semibold border-l-3 border-red-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'">
@@ -523,10 +523,19 @@
                   v-if="shouldShowItem('My Orders', 'View all your orders')"
                   to="/writer/orders"
                   class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
-                  :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/orders')}"
+                  :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/orders') && $route.query.archived !== 'true'}"
                 >
                   <SidebarIcon icon-name="clipboard" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View all your orders" />
                   My Orders
+                </router-link>
+                <router-link
+                  v-if="shouldShowItem('Archived', 'View archived orders')"
+                  to="/writer/orders?archived=true"
+                  class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
+                  :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/orders') && $route.query.archived === 'true'}"
+                >
+                  <SidebarIcon icon-name="archive" size="sm" icon-class="text-gray-500 group-hover:text-slate-600 mr-3" tooltip="View archived orders" />
+                  Archived
                 </router-link>
                 <router-link
                   v-if="shouldShowItem('Order Queue', 'Available orders in queue')"
@@ -538,11 +547,8 @@
                     <SidebarIcon icon-name="clipboard" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Available orders in queue" />
                     Order Queue
                   </div>
-                  <span
-                    v-if="writerQueueCounts.available + writerQueueCounts.preferred > 0"
-                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 animate-pulse"
-                  >
-                    {{ writerQueueCounts.available + writerQueueCounts.preferred }}
+                  <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200">
+                    {{ ((writerQueueCounts.available ?? 0) + (writerQueueCounts.preferred ?? 0)) > 0 ? ((writerQueueCounts.available ?? 0) + (writerQueueCounts.preferred ?? 0)) : '(0)' }}
                   </span>
                 </router-link>
                 <router-link
@@ -555,28 +561,22 @@
                     <SidebarIcon icon-name="clipboard" size="sm" icon-class="text-gray-500 group-hover:text-indigo-600 mr-3" tooltip="Order requests from clients" />
                     Order Requests
                   </div>
-                  <span
-                    v-if="writerQueueCounts.requests > 0"
-                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-800 animate-pulse"
-                  >
-                    {{ writerQueueCounts.requests }}
+                  <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200">
+                    {{ (writerQueueCounts.requests ?? 0) > 0 ? writerQueueCounts.requests : '(0)' }}
                   </span>
                 </router-link>
                 <router-link
-                  v-if="shouldShowItem('Revision Requests', 'Orders requiring revision')"
+                  v-if="shouldShowItem('Revisions', 'Orders requiring revision')"
                   to="/writer/orders?status=revision_requested"
                   class="flex items-center justify-between px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
                   :class="{'bg-primary-50 text-primary-700 font-medium': $route.query.status === 'revision_requested'}"
                 >
                   <div class="flex items-center">
                     <SidebarIcon icon-name="exclamation-triangle" size="sm" icon-class="text-gray-500 group-hover:text-amber-600 mr-3" tooltip="Orders requiring revision" />
-                    Revision Requests
+                    Revisions
                   </div>
-                  <span
-                    v-if="writerRevisionRequestsCount > 0"
-                    class="ml-2 inline-flex items-center justify-center px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 animate-pulse"
-                  >
-                    {{ writerRevisionRequestsCount }}
+                  <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
+                    {{ (writerRevisionRequestsCount ?? 0) > 0 ? writerRevisionRequestsCount : '(0)' }}
                   </span>
                 </router-link>
                 <router-link v-if="shouldShowItem('Workload & Capacity', 'Manage workload and capacity')" to="/writer/workload" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/workload')}">
@@ -728,6 +728,10 @@
                   <SidebarIcon icon-name="book" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Resources and guides" />
                   Resources & Guides
                 </router-link>
+                <router-link v-if="shouldShowItem('System Guide', 'System guide and documentation')" to="/help" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/help')}">
+                  <SidebarIcon icon-name="help-circle" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="System guide and documentation" />
+                  System Guide
+                </router-link>
               </div>
             </div>
 
@@ -846,8 +850,8 @@
                         <SidebarIcon icon-name="clipboard-list" size="sm" :icon-class="isRouteActive({ to: '/admin/orders' }) && !$route.query.status ? 'text-primary-600' : 'text-gray-500 group-hover:text-primary-600'" class="mr-4" tooltip="View all orders" />
                         <span>All Orders</span>
                       </div>
-                      <span v-if="orderStatusCounts.total > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                        {{ orderStatusCounts.total }}
+                      <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200">
+                        {{ (orderStatusCounts.total ?? 0) > 0 ? orderStatusCounts.total : '(0)' }}
                       </span>
                     </router-link>
                     
@@ -864,8 +868,8 @@
                       <SidebarIcon icon-name="clock" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'pending' ? 'text-yellow-600' : 'text-gray-500 group-hover:text-yellow-600'" class="mr-4" tooltip="Pending orders" />
                           <span>Pending</span>
                         </div>
-                        <span v-if="orderStatusCounts.pending > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200">
-                          {{ orderStatusCounts.pending }}
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200">
+                          {{ (orderStatusCounts.pending ?? 0) > 0 ? orderStatusCounts.pending : '(0)' }}
                         </span>
                     </router-link>
                     <router-link 
@@ -878,8 +882,8 @@
                       <SidebarIcon icon-name="cog" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'in_progress' ? 'text-blue-600' : 'text-gray-500 group-hover:text-blue-600'" class="mr-4 animate-spin-slow" tooltip="Orders in progress" />
                           <span>In Progress</span>
                         </div>
-                        <span v-if="orderStatusCounts.in_progress > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200">
-                          {{ orderStatusCounts.in_progress }}
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200">
+                          {{ (orderStatusCounts.in_progress ?? 0) > 0 ? orderStatusCounts.in_progress : '(0)' }}
                         </span>
                     </router-link>
                       <router-link 
@@ -892,8 +896,8 @@
                           <SidebarIcon icon-name="clipboard" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'available' ? 'text-emerald-600' : 'text-gray-500 group-hover:text-emerald-600'" class="mr-4" tooltip="Available orders" />
                           <span>Available</span>
                         </div>
-                        <span v-if="orderStatusCounts.available > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200">
-                          {{ orderStatusCounts.available }}
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 dark:bg-emerald-900/50 text-emerald-800 dark:text-emerald-200">
+                          {{ (orderStatusCounts.available ?? 0) > 0 ? orderStatusCounts.available : '(0)' }}
                         </span>
                       </router-link>
                       <router-link 
@@ -906,8 +910,8 @@
                           <SidebarIcon icon-name="stop" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'on_hold' ? 'text-orange-600' : 'text-gray-500 group-hover:text-orange-600'" class="mr-4" tooltip="Orders on hold" />
                           <span>On Hold</span>
                         </div>
-                        <span v-if="orderStatusCounts.on_hold > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200">
-                          {{ orderStatusCounts.on_hold }}
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-orange-100 dark:bg-orange-900/50 text-orange-800 dark:text-orange-200">
+                          {{ (orderStatusCounts.on_hold ?? 0) > 0 ? orderStatusCounts.on_hold : '(0)' }}
                         </span>
                       </router-link>
                       <router-link 
@@ -920,8 +924,8 @@
                           <SidebarIcon icon-name="pencil" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'under_editing' ? 'text-purple-600' : 'text-gray-500 group-hover:text-purple-600'" class="mr-4" tooltip="Orders under editing" />
                           <span>Under Editing</span>
                         </div>
-                        <span v-if="orderStatusCounts.under_editing > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200">
-                          {{ orderStatusCounts.under_editing }}
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-200">
+                          {{ (orderStatusCounts.under_editing ?? 0) > 0 ? orderStatusCounts.under_editing : '(0)' }}
                         </span>
                       </router-link>
                     </div>
@@ -939,22 +943,22 @@
                           <SidebarIcon icon-name="paper-airplane" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'submitted' ? 'text-indigo-600' : 'text-gray-500 group-hover:text-indigo-600'" class="mr-4" tooltip="Submitted orders" />
                           <span>Submitted</span>
                         </div>
-                        <span v-if="orderStatusCounts.submitted > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200">
-                          {{ orderStatusCounts.submitted }}
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-800 dark:text-indigo-200">
+                          {{ (orderStatusCounts.submitted ?? 0) > 0 ? orderStatusCounts.submitted : '(0)' }}
                         </span>
                       </router-link>
                       <router-link 
-                        v-if="shouldShowItem('Revision Requested', 'Orders requiring revision')"
+                        v-if="shouldShowItem('Revisions', 'Orders requiring revision')"
                         to="/admin/orders?status=revision_requested" 
                         class="flex items-center justify-between px-3 py-2 text-sm leading-relaxed font-medium rounded-lg transition-all duration-200 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:translate-x-1 group"
                         :class="$route.path === '/admin/orders' && $route.query.status === 'revision_requested' ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 font-semibold border-l-4 border-amber-500 shadow-sm' : 'text-gray-700 dark:text-gray-300'"
                       >
                         <div class="flex items-center">
                           <SidebarIcon icon-name="arrow-left" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'revision_requested' ? 'text-amber-600' : 'text-gray-500 group-hover:text-amber-600'" class="mr-4" tooltip="Orders requiring revision" />
-                          <span>Revision Requested</span>
+                          <span>Revisions</span>
                         </div>
-                        <span v-if="orderStatusCounts.revision_requested > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
-                          {{ orderStatusCounts.revision_requested }}
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-200">
+                          {{ (orderStatusCounts.revision_requested ?? 0) > 0 ? orderStatusCounts.revision_requested : '(0)' }}
                         </span>
                       </router-link>
                     </div>
@@ -972,8 +976,8 @@
                       <SidebarIcon icon-name="clipboard-check" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'completed' ? 'text-green-600' : 'text-gray-500 group-hover:text-green-600'" class="mr-4" tooltip="Completed orders" />
                           <span>Completed</span>
                         </div>
-                        <span v-if="orderStatusCounts.completed > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200">
-                          {{ orderStatusCounts.completed }}
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200">
+                          {{ (orderStatusCounts.completed ?? 0) > 0 ? orderStatusCounts.completed : '(0)' }}
                         </span>
                     </router-link>
                     </div>
@@ -991,8 +995,8 @@
                       <SidebarIcon icon-name="exclamation-triangle" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'disputed' ? 'text-red-600' : 'text-gray-500 group-hover:text-red-600'" class="mr-4" tooltip="Disputed orders" />
                           <span>Disputed</span>
                         </div>
-                        <span v-if="orderStatusCounts.disputed > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200">
-                          {{ orderStatusCounts.disputed }}
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 dark:bg-red-900/50 text-red-800 dark:text-red-200">
+                          {{ (orderStatusCounts.disputed ?? 0) > 0 ? orderStatusCounts.disputed : '(0)' }}
                         </span>
                 </router-link>
                       <router-link 
@@ -1005,8 +1009,8 @@
                           <SidebarIcon icon-name="ban" size="sm" :icon-class="$route.path === '/admin/orders' && $route.query.status === 'cancelled' ? 'text-gray-600' : 'text-gray-500 group-hover:text-gray-600'" class="mr-3" tooltip="Cancelled orders" />
                           <span>Cancelled</span>
                         </div>
-                        <span v-if="orderStatusCounts.cancelled > 0" class="ml-2 px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                          {{ orderStatusCounts.cancelled }}
+                        <span class="ml-2 inline-flex items-center justify-center min-w-[24px] px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                          {{ (orderStatusCounts.cancelled ?? 0) > 0 ? orderStatusCounts.cancelled : '(0)' }}
                         </span>
                       </router-link>
                     </div>
@@ -2080,18 +2084,41 @@
               <SidebarTooltip :text="authStore.user?.email || 'User Profile'" :collapsed="sidebarCollapsed">
                 <button
                   @click="toggleProfileDropdown"
-                  class="w-10 h-10 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center shrink-0 shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900 cursor-pointer"
+                  class="w-10 h-10 rounded-full flex items-center justify-center shrink-0 shadow-sm hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2 dark:focus:ring-offset-gray-900 cursor-pointer bg-transparent"
                   :aria-label="sidebarCollapsed ? 'User profile menu' : 'User profile menu'"
                   :aria-expanded="showProfileDropdown"
                 >
-                  <span class="text-primary-600 dark:text-primary-400 text-sm font-semibold">
-                    {{ userInitials }}
-                  </span>
+                  <Avatar
+                    :image-url="authStore.user?.avatar_url"
+                    :first-name="authStore.user?.first_name"
+                    :last-name="authStore.user?.last_name"
+                    :username="authStore.user?.username"
+                    :email="authStore.user?.email"
+                    size="sm"
+                    shape="circle"
+                  />
                 </button>
               </SidebarTooltip>
               <div v-show="!sidebarCollapsed" class="ml-3 min-w-0 flex-1">
-                <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ authStore.user?.email }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 capitalize">{{ authStore.userRole }}</p>
+                <!-- Row 1: Username / display name -->
+                <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+                  {{ sidebarDisplayName }}
+                </p>
+                <!-- Row 2: Email (can be longer) -->
+                <p class="text-xs text-gray-600 dark:text-gray-400 truncate">
+                  {{ authStore.user?.email }}
+                </p>
+                <!-- Row 3: Role + copyable ID -->
+                <div class="mt-0.5 flex items-center justify-between gap-2">
+                  <span class="text-[11px] text-gray-500 dark:text-gray-400 capitalize">
+                    {{ authStore.userRole }}
+                  </span>
+                  <CopyableIdChip
+                    v-if="sidebarDisplayId"
+                    :label="sidebarDisplayIdLabel"
+                    :value="sidebarDisplayId"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -2228,28 +2255,195 @@
               </div>
             </div>
 
+            <!-- Announcements -->
+            <div class="relative">
+              <button 
+                @click="toggleAnnouncementsDropdown"
+                class="relative text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none transition-colors"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                </svg>
+                <span 
+                  v-if="unreadAnnouncementsCount > 0"
+                  class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-5 px-1.5 text-xs font-bold text-white bg-orange-600 rounded-full ring-2 ring-white dark:ring-gray-800"
+                >
+                  {{ unreadAnnouncementsCount > 99 ? '99+' : unreadAnnouncementsCount }}
+                </span>
+              </button>
+              
+              <!-- Announcements Dropdown -->
+              <transition
+                enter-active-class="transition ease-out duration-200"
+                enter-from-class="opacity-0 translate-y-1"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition ease-in duration-150"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 translate-y-1"
+              >
+                <div
+                  v-if="showAnnouncementsDropdown"
+                  ref="announcementsDropdownRef"
+                  class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[500px] overflow-hidden flex flex-col backdrop-blur-sm"
+                >
+                  <div class="p-3 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center justify-between mb-2">
+                      <h3 class="font-semibold text-gray-900 dark:text-white text-sm leading-tight">Announcements</h3>
+                      <button
+                        @click="closeAnnouncementsDropdown"
+                        class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span>
+                        <span class="font-medium text-gray-700 dark:text-gray-300">{{ unreadAnnouncementsCount }}</span>
+                        <span> unread</span>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="overflow-y-auto flex-1 max-h-[400px]">
+                    <div v-if="announcementsLoading" class="flex items-center justify-center py-12">
+                      <div class="flex flex-col items-center gap-3">
+                        <div class="animate-spin rounded-full h-8 w-8 border-3 border-primary-200 border-t-primary-600"></div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Loading...</p>
+                      </div>
+                    </div>
+                    <div v-else-if="recentAnnouncements.length === 0" class="text-center py-12">
+                      <div class="max-w-xs mx-auto">
+                        <svg class="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                        </svg>
+                        <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">No announcements</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Check back later for updates!</p>
+                      </div>
+                    </div>
+                    <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
+                      <transition-group name="announcement-dropdown" tag="div">
+                        <div
+                          v-for="announcement in recentAnnouncements"
+                          :key="announcement.id"
+                          :class="[
+                            'p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all duration-200',
+                            !announcement.is_read ? 'bg-gradient-to-r from-orange-50 to-white dark:from-orange-900/20 dark:to-gray-800 border-l-2 border-orange-500' : 'bg-white dark:bg-gray-800'
+                          ]"
+                          @click="handleAnnouncementClick(announcement)"
+                        >
+                          <div class="flex items-start gap-3">
+                            <!-- Icon -->
+                            <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                              <svg class="w-4 h-4 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                              </svg>
+                            </div>
+                            
+                            <!-- Content -->
+                            <div class="flex-1 min-w-0">
+                              <div class="flex items-start justify-between gap-2 mb-1">
+                                <div class="flex items-center gap-2 flex-1 min-w-0">
+                                  <p 
+                                    :class="[
+                                      'text-sm font-semibold line-clamp-1',
+                                      !announcement.is_read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                                    ]"
+                                  >
+                                    {{ announcement.title }}
+                                  </p>
+                                  <span 
+                                    v-if="announcement.is_pinned"
+                                    class="shrink-0 px-1.5 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 rounded text-xs font-medium"
+                                    title="Pinned"
+                                  >
+                                    📌
+                                  </span>
+                                </div>
+                                <span 
+                                  v-if="!announcement.is_read" 
+                                  class="shrink-0 w-2 h-2 bg-orange-500 rounded-full mt-1.5 animate-pulse"
+                                ></span>
+                              </div>
+                              <p 
+                                :class="[
+                                  'text-xs line-clamp-2 mb-1',
+                                  !announcement.is_read ? 'text-gray-700 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'
+                                ]"
+                                v-html="announcement.excerpt || announcement.content?.substring(0, 100) + '...'"
+                              ></p>
+                              <div class="flex items-center gap-2">
+                                <p class="text-xs text-gray-400 dark:text-gray-500">
+                                  {{ formatAnnouncementDate(announcement.created_at || announcement.published_at) }}
+                                </p>
+                                <span 
+                                  v-if="announcement.category"
+                                  class="px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300"
+                                >
+                                  {{ announcement.category }}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </transition-group>
+                    </div>
+                  </div>
+                  
+                  <div class="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#1a1a1a]">
+                    <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mb-2 leading-relaxed">
+                      <span>
+                        <span class="font-medium text-gray-700 dark:text-gray-300">{{ unreadAnnouncementsCount }}</span>
+                        <span> unread</span>
+                        <span v-if="recentAnnouncements.length > 0">
+                          <span class="mx-1">·</span>
+                          <span>{{ recentAnnouncements.length }} shown</span>
+                        </span>
+                      </span>
+                    </div>
+                    <router-link
+                      to="/announcements"
+                      @click="closeAnnouncementsDropdown"
+                      class="block text-center text-sm text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium leading-relaxed transition-colors"
+                    >
+                      View all announcements →
+                    </router-link>
+                  </div>
+                </div>
+              </transition>
+            </div>
+
             <!-- Notifications -->
             <div class="relative">
               <button 
                 @click="toggleNotificationsDropdown"
-                class="relative text-gray-500 hover:text-gray-700 focus:outline-none"
+                class="relative text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none transition-colors"
               >
                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                 </svg>
                 <span 
                   v-if="unreadCount > 0"
-                  class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-5 px-1.5 text-xs font-bold text-white bg-red-600 rounded-full ring-2 ring-white"
+                  class="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-5 px-1.5 text-xs font-bold text-white bg-red-600 rounded-full ring-2 ring-white dark:ring-gray-800"
                 >
                   {{ unreadCount > 99 ? '99+' : unreadCount }}
                 </span>
               </button>
               
               <!-- Notifications Dropdown -->
+              <transition
+                enter-active-class="transition ease-out duration-200"
+                enter-from-class="opacity-0 translate-y-1"
+                enter-to-class="opacity-100 translate-y-0"
+                leave-active-class="transition ease-in duration-150"
+                leave-from-class="opacity-100 translate-y-0"
+                leave-to-class="opacity-0 translate-y-1"
+              >
               <div
                 v-if="showNotificationsDropdown"
                 ref="notificationsDropdownRef"
-                class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 max-h-96 overflow-hidden flex flex-col"
+                  class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[500px] overflow-hidden flex flex-col backdrop-blur-sm"
               >
                 <div class="p-3 border-b border-gray-200">
                   <div class="flex items-center justify-between mb-2">
@@ -2291,38 +2485,92 @@
                   </div>
                 </div>
 
-                <div class="overflow-y-auto flex-1">
-                  <div v-if="notificationsLoading" class="flex items-center justify-center py-8">
-                    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary-600"></div>
+                <div class="overflow-y-auto flex-1 max-h-[400px]">
+                  <div v-if="notificationsLoading" class="flex items-center justify-center py-12">
+                    <div class="flex flex-col items-center gap-3">
+                      <div class="animate-spin rounded-full h-8 w-8 border-3 border-primary-200 border-t-primary-600"></div>
+                      <p class="text-xs text-gray-500">Loading...</p>
                   </div>
-                  <div v-else-if="recentNotifications.length === 0" class="text-center py-8 text-gray-500 text-sm leading-relaxed">
-                    No notifications
                   </div>
-                  <div v-else class="divide-y divide-gray-100">
+                  <div v-else-if="recentNotifications.length === 0" class="text-center py-12">
+                    <div class="max-w-xs mx-auto">
+                      <svg class="w-16 h-16 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                      </svg>
+                      <p class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">No notifications</p>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">You're all caught up!</p>
+                    </div>
+                  </div>
+                  <div v-else class="divide-y divide-gray-100 dark:divide-gray-700">
+                    <transition-group name="notification-dropdown" tag="div">
                     <div
                       v-for="notif in recentNotifications"
                       :key="notif.id"
                       :class="[
-                        'p-3 hover:bg-gray-50 cursor-pointer transition-colors',
-                        !notif.is_read ? 'bg-blue-50' : ''
+                          'p-3 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all duration-200',
+                          !notif.is_read ? 'bg-gradient-to-r from-blue-50 to-white dark:from-blue-900/20 dark:to-gray-800 border-l-2 border-blue-500' : 'bg-white dark:bg-gray-800'
                       ]"
                       @click="handleNotificationClick(notif)"
                     >
-                      <div class="flex items-start gap-2">
-                        <div v-if="!notif.is_read" class="shrink-0 w-2 h-2 bg-blue-600 rounded-full mt-2"></div>
+                        <div class="flex items-start gap-3">
+                          <!-- Icon -->
+                          <div 
+                            :class="[
+                              'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center',
+                              getNotificationIconBg(notif.category, notif.event)
+                            ]"
+                          >
+                            <component 
+                              :is="getNotificationIcon(notif.category, notif.event)" 
+                              :class="[
+                                'w-4 h-4',
+                                getNotificationIconColor(notif.category, notif.event)
+                              ]"
+                            />
+                          </div>
+                          
+                          <!-- Content -->
                         <div class="flex-1 min-w-0">
-                          <p class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-1 leading-relaxed">
-                            {{ notif.title }}
-                          </p>
-                          <p class="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2 leading-relaxed">
-                            {{ notif.message }}
-                          </p>
-                          <p class="text-xs text-gray-400 dark:text-gray-500 mt-1 leading-relaxed">
-                            {{ notif.time_ago || formatNotificationDate(notif.created_at) }}
-                          </p>
+                            <div class="flex items-start justify-between gap-2 mb-1">
+                              <p 
+                                :class="[
+                                  'text-sm font-semibold line-clamp-1',
+                                  !notif.is_read ? 'text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                                ]"
+                              >
+                                {{ notif.title || notif.rendered_title || 'Notification' }}
+                              </p>
+                              <span 
+                                v-if="!notif.is_read" 
+                                class="shrink-0 w-2 h-2 bg-blue-500 rounded-full mt-1.5 animate-pulse"
+                              ></span>
+                            </div>
+                            <p 
+                              :class="[
+                                'text-xs line-clamp-2 mb-1',
+                                !notif.is_read ? 'text-gray-700 dark:text-gray-300' : 'text-gray-500 dark:text-gray-400'
+                              ]"
+                            >
+                              {{ notif.message || notif.rendered_message || notif.description }}
+                            </p>
+                            <div class="flex items-center gap-2">
+                              <p class="text-xs text-gray-400 dark:text-gray-500">
+                                {{ notif.time_ago || formatNotificationDate(notif.created_at || notif.sent_at) }}
+                              </p>
+                              <span 
+                                v-if="notif.category"
+                                :class="[
+                                  'px-1.5 py-0.5 rounded text-xs font-medium',
+                                  getCategoryBadgeClass(notif.category)
+                                ]"
+                              >
+                                {{ formatCategory(notif.category) }}
+                              </span>
                         </div>
                       </div>
                     </div>
+                      </div>
+                    </transition-group>
                   </div>
                 </div>
                 
@@ -2346,6 +2594,7 @@
                   </router-link>
                 </div>
               </div>
+              </transition>
             </div>
 
             <!-- Profile menu -->
@@ -2354,10 +2603,16 @@
                 @click="toggleProfileDropdown"
                 class="flex items-center text-sm text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 focus:outline-none"
               >
-                <div class="w-8 h-8 bg-primary-100 dark:bg-primary-900 rounded-full flex items-center justify-center relative">
-                  <span class="text-primary-600 dark:text-primary-400 text-sm font-medium">
-                    {{ userInitials }}
-                  </span>
+                <div class="relative">
+                  <Avatar
+                    :image-url="authStore.user?.avatar_url"
+                    :first-name="authStore.user?.first_name"
+                    :last-name="authStore.user?.last_name"
+                    :username="authStore.user?.username"
+                    :email="authStore.user?.email"
+                    size="sm"
+                    shape="circle"
+                  />
                   <span 
                     v-if="unreadCount > 0"
                     class="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full ring-2 ring-white"
@@ -2399,9 +2654,10 @@
                   <router-link
                     to="/profile/privacy-security"
                     @click="closeProfileDropdown"
-                    class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                    class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
                   >
-                    Privacy & Security
+                    <SidebarIcon icon-name="lock-closed" size="sm" icon-class="text-gray-500 dark:text-gray-400" />
+                    <span>Privacy & Security</span>
                   </router-link>
                   <router-link
                     to="/profile/security"
@@ -2458,6 +2714,8 @@ import ChevronIcon from '@/components/common/ChevronIcon.vue'
 import SidebarIcon from '@/components/common/SidebarIcon.vue'
 import SidebarTooltip from '@/components/common/SidebarTooltip.vue'
 import ThemeToggle from '@/components/common/ThemeToggle.vue'
+import Avatar from '@/components/common/Avatar.vue'
+import CopyableIdChip from '@/components/common/CopyableIdChip.vue'
 import sessionManager from '@/services/sessionManager'
 import { useTheme } from '@/composables/useTheme'
 import writerDashboardAPI from '@/api/writer-dashboard'
@@ -2846,6 +3104,10 @@ const profileDropdownRef = ref(null)
 // Announcements state
 const unreadAnnouncementsCount = ref(0)
 let announcementsCountInterval = null
+const showAnnouncementsDropdown = ref(false)
+const recentAnnouncements = ref([])
+const announcementsLoading = ref(false)
+const announcementsDropdownRef = ref(null)
 
 // Activities state
 const showActivitiesDropdown = ref(false)
@@ -2893,18 +3155,44 @@ const userInitials = computed(() => {
     .slice(0, 2)
 })
 
+const sidebarDisplayName = computed(() => {
+  const user = authStore.user
+  if (!user) return 'User'
+  return user.username || user.full_name || user.email || 'User'
+})
+
+const sidebarDisplayIdLabel = computed(() => {
+  const role = authStore.userRole
+  if (role === 'writer') return 'Writer ID'
+  if (role === 'client') return 'Client ID'
+  if (role === 'editor') return 'Editor ID'
+  if (role === 'support') return 'Support ID'
+  if (role === 'admin' || role === 'superadmin') return 'Admin ID'
+  return 'User ID'
+})
+
+const sidebarDisplayId = computed(() => {
+  const user = authStore.user
+  if (!user) return null
+  if (authStore.userRole === 'writer') {
+    return (
+      user.registration_id ||
+      user.writer_registration_id ||
+      user.id ||
+      null
+    )
+  }
+  return user.id || null
+})
+
 const navigationItems = computed(() => {
   const role = authStore.userRole
   const accessibleRoutes = getAccessibleRoutes(role) || []
   
   const allItems = [
-    {
-      name: 'Dashboard',
-      to: '/dashboard',
-      label: 'Dashboard',
-      icon: '📊',
-    },
-    // Orders - only show for non-clients (clients have collapsible section)
+    // Dashboard is hardcoded at the top of the sidebar (line 90-118), so don't include it here
+    
+    // ===== CORE NAVIGATION =====
     {
       name: 'Orders',
       to: '/orders',
@@ -2919,132 +3207,32 @@ const navigationItems = computed(() => {
       icon: '🎫',
       roles: ['client', 'admin', 'support'],
     },
+    
+    // ===== COMMUNICATION =====
     {
-      name: 'ConfigManagement',
-      to: '/admin/configs',
-      label: 'Configurations',
-      icon: '🎛️',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'ScreenedWordsManagement',
-      to: '/admin/screened-words',
-      label: 'Screened Words',
-      icon: '🚫',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'FlaggedMessagesManagement',
-      to: '/admin/flagged-messages',
-      label: 'Flagged Messages',
-      icon: '⚠️',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'OrderManagement',
-      to: '/admin/orders',
-      label: 'Order Management',
-      icon: '📋',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'SpecialOrderManagement',
-      to: '/admin/special-orders',
-      label: 'Special Orders',
-      icon: '⭐',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'ClassManagement',
-      to: '/admin/class-management',
-      label: 'Class Management',
-      icon: '📚',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'ExpressClassesManagement',
-      to: '/admin/express-classes',
-      label: 'Express Classes',
-      icon: '⚡',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'ReviewsManagement',
-      to: '/admin/reviews',
-      label: 'Reviews Management',
+      name: 'Messages',
+      to: '/messages',
+      label: 'Messages',
       icon: '💬',
-      roles: ['admin', 'superadmin'],
+      roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
     },
     {
-      name: 'RefundManagement',
-      to: '/admin/refunds',
-      label: 'Refund Management',
-      icon: '💰',
-      roles: ['admin', 'superadmin'],
+      name: 'Notifications',
+      to: '/notifications',
+      label: 'Notifications',
+      icon: '🔔',
+      roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
     },
     {
-      name: 'DisputeManagement',
-      to: '/admin/disputes',
-      label: 'Dispute Management',
-      icon: '⚖️',
-      roles: ['admin', 'superadmin'],
+      name: 'Announcements',
+      to: '/announcements',
+      label: 'Announcements',
+      icon: '📢',
+      roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
     },
-    {
-      name: 'TipManagement',
-      to: '/admin/tips',
-      label: 'Tip Management',
-      icon: '💸',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'FileManagement',
-      to: '/admin/files',
-      label: 'File Management',
-      icon: '📁',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'FinesManagement',
-      to: '/admin/fines',
-      label: 'Fines Management',
-      icon: '⚖️',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'SystemHealth',
-      to: '/admin/system-health',
-      label: 'System Health',
-      icon: '🏥',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'AdvancePaymentsManagement',
-      to: '/admin/advance-payments',
-      label: 'Advance Payments',
-      icon: '💵',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'ActivityLogs',
-      to: '/admin/activity-logs',
-      label: 'Activity Logs',
-      icon: '📋',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'SupportTicketsManagement',
-      to: '/admin/support-tickets',
-      label: 'Support Tickets',
-      icon: '🎫',
-      roles: ['admin', 'superadmin', 'support'],
-    },
-    {
-      name: 'DiscountAnalytics',
-      to: '/admin/discount-analytics',
-      label: 'Discount Analytics',
-      icon: '📊',
-      roles: ['admin', 'superadmin'],
-    },
+    
+    // ===== ADMIN MANAGEMENT (Items not in hardcoded sections) =====
+    // Note: Most admin items are in hardcoded sections (Core Operations, Payments & Financial, Content & Services, etc.)
     {
       name: 'DiscountManagement',
       to: '/admin/discounts',
@@ -3057,34 +3245,6 @@ const navigationItems = computed(() => {
       to: '/admin/campaigns',
       label: 'Promotional Campaigns',
       icon: '📢',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'WriterPerformanceAnalytics',
-      to: '/admin/writer-performance',
-      label: 'Writer Performance',
-      icon: '👥',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'UserManagement', // Use the actual route name, query params will be handled by the path
-      to: '/admin/users?role=writer',
-      label: 'Writer Management',
-      icon: '✍️',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'WriterResourcesManagement',
-      to: '/admin/writer-resources',
-      label: 'Writer Resources & Samples',
-      icon: '📚',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'WriterHierarchy',
-      to: '/admin/writer-hierarchy',
-      label: 'Writer Hierarchy',
-      icon: '📊',
       roles: ['admin', 'superadmin'],
     },
     {
@@ -3108,153 +3268,63 @@ const navigationItems = computed(() => {
       icon: '📋',
       roles: ['admin', 'superadmin'],
     },
+    
+    // ===== EDITOR SPECIFIC =====
     {
-      name: 'DuplicateAccountDetection',
-      to: '/admin/duplicate-detection',
-      label: 'Duplicate Detection',
-      icon: '🔍',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'ReferralTracking',
-      to: '/admin/referral-tracking',
-      label: 'Referral Tracking',
-      icon: '🔗',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'LoyaltyTracking',
-      to: '/admin/loyalty-tracking',
-      label: 'Loyalty Tracking',
-      icon: '⭐',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'LoyaltyManagement',
-      to: '/admin/loyalty-management',
-      label: 'Loyalty Management',
-      icon: '⭐',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'AdvancedAnalytics',
-      to: '/admin/advanced-analytics',
-      label: 'Advanced Analytics',
-      icon: '📊',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'SuperadminDashboard',
-      to: '/admin/superadmin',
-      label: 'Superadmin Dashboard',
-      icon: '👑',
-      roles: ['superadmin'],
-    },
-    {
-      name: 'ReviewAggregation',
-      to: '/admin/review-aggregation',
-      label: 'Review Aggregation',
-      icon: '⭐',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'PricingAnalytics',
-      to: '/admin/pricing-analytics',
-      label: 'Pricing Analytics',
-      icon: '💰',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'EnhancedAnalytics',
-      to: '/admin/enhanced-analytics',
-      label: 'Enhanced Analytics',
-      icon: '📊',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'AnalyticsReports',
-      to: '/admin/analytics-reports',
-      label: 'Analytics & Reports',
-      icon: '📈',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'RefinedStats',
-      to: '/admin/geographic-analytics',
-      label: 'Refined Stats',
-      icon: '📊',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'EmailManagement',
-      to: '/admin/emails',
-      label: 'Email Management',
-      icon: '📧',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'BlogManagement',
-      to: '/admin/blog',
-      label: 'Blog Pages',
+      name: 'EditorTasks',
+      to: '/editor/tasks',
+      label: 'My Tasks',
       icon: '📝',
-      roles: ['admin', 'superadmin'],
+      roles: ['editor'],
     },
     {
-      name: 'SEOPagesManagement',
-      to: '/admin/seo-pages',
-      label: 'SEO Pages',
+      name: 'EditorAvailableTasks',
+      to: '/editor/available-tasks',
+      label: 'Available Tasks',
       icon: '🔍',
-      roles: ['admin', 'superadmin'],
+      roles: ['editor'],
     },
     {
-      name: 'BlogAuthors',
-      to: '/admin/blog-authors',
-      label: 'Blog Authors',
-      icon: '🖊️',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'MediaLibrary',
-      to: '/admin/media-library',
-      label: 'Media Library',
-      icon: '🖼️',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'ContentMetricsDashboard',
-      to: '/admin/content-metrics',
-      label: 'Content Metrics',
-      icon: '📈',
-      roles: ['admin', 'superadmin'],
-    },
-    {
-      name: 'ContentMetricsReport',
-      to: '/admin/content-metrics-report',
-      label: 'Content Reporting',
+      name: 'EditorPerformance',
+      to: '/editor/performance',
+      label: 'Performance',
       icon: '📊',
-      roles: ['admin', 'superadmin'],
+      roles: ['editor'],
+    },
+    
+    // ===== SUPPORT SPECIFIC =====
+    {
+      name: 'SupportTicketQueue',
+      to: '/support/queue',
+      label: 'Ticket Queue',
+      icon: '🎫',
+      roles: ['support', 'admin', 'superadmin'],
     },
     {
-      name: 'OrderStatusMetrics',
-      to: '/admin/order-status-metrics',
-      label: 'Order Status Metrics',
+      name: 'SupportTickets',
+      to: '/support/tickets',
+      label: 'Recent Tickets',
       icon: '📋',
-      roles: ['admin', 'superadmin'],
+      roles: ['support', 'admin', 'superadmin'],
+    },
+    
+    // ===== CLIENT SPECIFIC =====
+    {
+      name: 'Payments',
+      to: '/payments',
+      label: 'Payments',
+      icon: '💳',
+      roles: ['client'],
     },
     {
-      name: 'WalletManagement',
-      to: '/admin/wallets',
-      label: 'Wallet Management',
-      icon: '💰',
-      roles: ['admin', 'superadmin'],
+      name: 'Wallet',
+      to: '/wallet',
+      label: 'My Wallet',
+      icon: '💼',
+      roles: ['client'],
     },
-    {
-      name: 'WebsiteManagement',
-      to: '/websites',
-      label: 'Websites',
-      icon: '🌐',
-      roles: ['admin', 'superadmin'],
-    },
+    
+    // ===== USER ACCOUNT =====
     {
       name: 'Profile',
       to: '/profile',
@@ -3282,38 +3352,8 @@ const navigationItems = computed(() => {
       icon: '🛡️',
       roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
     },
-    // Payments - handled as collapsible section for admin/superadmin, regular link for clients
-    {
-      name: 'Payments',
-      to: '/payments',
-      label: 'Payments',
-      icon: '💳',
-      roles: ['client'],
-    },
-    // Referrals and Loyalty are client-only features
-    // They are accessed via direct links in the client account section (lines 102-125)
-    // Admins/Superadmins have access to tracking dashboards only (ReferralTracking, LoyaltyTracking)
-    {
-      name: 'Messages',
-      to: '/messages',
-      label: 'Messages',
-      icon: '💬',
-      roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
-    },
-    {
-      name: 'Notifications',
-      to: '/notifications',
-      label: 'Notifications',
-      icon: '🔔',
-      roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
-    },
-    {
-      name: 'Announcements',
-      to: '/announcements',
-      label: 'Announcements',
-      icon: '📢',
-      roles: ['client', 'admin', 'superadmin', 'writer', 'editor', 'support'],
-    },
+    
+    // ===== ACTIVITY & LOGS =====
     {
       name: 'ActivityLogsGeneral',
       to: '/activity',
@@ -3321,50 +3361,39 @@ const navigationItems = computed(() => {
       icon: '📊',
       roles: ['admin', 'superadmin', 'support', 'writer', 'client', 'editor'],
     },
-    // Writer items are now grouped in the sidebar template, but keep them here for filtering
-    // They won't be rendered as individual items since they're in collapsible groups
+    
+    // ===== HELP & DOCUMENTATION =====
     {
-      name: 'EditorTasks',
-      to: '/editor/tasks',
-      label: 'My Tasks',
-      icon: '📝',
-      roles: ['editor'],
+      name: 'SystemGuide',
+      to: '/help',
+      label: 'System Guide',
+      icon: '📚',
+      roles: ['admin', 'superadmin', 'support', 'writer', 'client', 'editor'],
     },
-    {
-      name: 'SupportTicketQueue',
-      to: '/support/queue',
-      label: 'Ticket Queue',
-      icon: '🎫',
-      roles: ['support', 'admin', 'superadmin'],
-    },
-    {
-      name: 'SupportTickets',
-      to: '/support/tickets',
-      label: 'Recent Tickets',
-      icon: '📋',
-      roles: ['support', 'admin', 'superadmin'],
-    },
-    {
-      name: 'EditorAvailableTasks',
-      to: '/editor/available-tasks',
-      label: 'Available Tasks',
-      icon: '🔍',
-      roles: ['editor'],
-    },
-    {
-      name: 'EditorPerformance',
-      to: '/editor/performance',
-      label: 'Performance',
-      icon: '📊',
-      roles: ['editor'],
-    },
-    {
-      name: 'Wallet',
-      to: '/wallet',
-      label: 'My Wallet',
-      icon: '💼',
-      roles: ['client'],
-    },
+    
+    // ===== COMMENTED OUT - These are in hardcoded sections =====
+    // Configurations, Screened Words, Flagged Messages → System Management section
+    // Order Management, Special Orders → Core Operations section
+    // Class Management, Express Classes → Content & Services section
+    // Reviews Management → Content & Services section
+    // Refunds, Disputes, Tips, Fines → Payments & Financial section
+    // File Management → Content Management section
+    // System Health, Activity Logs → System Management section
+    // Advance Payments → Payments & Financial section
+    // Support Tickets Management → Core Operations section
+    // Discount Analytics → Analytics & Reporting section
+    // Writer Performance → Analytics & Reporting section
+    // Writer Management, Writer Resources, Writer Hierarchy → Writer Management section
+    // Duplicate Detection → System Management section
+    // Referral Tracking, Loyalty Tracking, Advanced Analytics → Analytics & Reporting section
+    // Superadmin Dashboard → Superadmin section
+    // Review Aggregation → Content & Services section
+    // Pricing Analytics, Enhanced Analytics, Analytics & Reports → Analytics & Reporting section
+    // Email Management → System Management section
+    // Blog Pages, SEO Pages, Blog Authors, Media Library → Content Management section
+    // Content Metrics, Content Reporting, Order Status Metrics → Analytics & Reporting section
+    // Wallet Management → Payments & Financial section
+    // Website Management → Multi-Tenant section
   ]
   
   return allItems.filter(item => {
@@ -3486,6 +3515,12 @@ const handleClickOutside = (event) => {
       closeActivitiesDropdown()
     }
   }
+  if (showAnnouncementsDropdown.value && announcementsDropdownRef.value) {
+    if (!announcementsDropdownRef.value.contains(event.target) && 
+        !event.target.closest('button[class*="relative"]')) {
+      closeAnnouncementsDropdown()
+    }
+  }
   if (showProfileDropdown.value && profileDropdownRef.value) {
     if (!profileDropdownRef.value.contains(event.target) && 
         !event.target.closest('button[class*="flex items-center"]')) {
@@ -3545,6 +3580,107 @@ const loadUnreadAnnouncementsCount = async () => {
       console.error('Failed to load unread announcements count:', error)
     }
   }
+}
+
+const loadRecentAnnouncements = async () => {
+  if (!authStore.isAuthenticated) {
+    recentAnnouncements.value = []
+    return
+  }
+  if (announcementsLoading.value) return
+  announcementsLoading.value = true
+  try {
+    const response = await announcementsAPI.listAnnouncements({
+      limit: 5,
+      unread: false, // Show both read and unread
+    })
+    
+    // Handle both paginated and non-paginated responses
+    let announcements = []
+    if (Array.isArray(response.data)) {
+      announcements = response.data
+    } else if (response.data?.results && Array.isArray(response.data.results)) {
+      announcements = response.data.results
+    } else {
+      announcements = []
+    }
+    
+    // Sort by created_at descending (newest first), pinned first
+    recentAnnouncements.value = announcements
+      .sort((a, b) => {
+        // Pinned announcements first
+        if (a.is_pinned && !b.is_pinned) return -1
+        if (!a.is_pinned && b.is_pinned) return 1
+        // Then by date
+        const dateA = new Date(a.created_at || a.published_at || 0)
+        const dateB = new Date(b.created_at || b.published_at || 0)
+        return dateB - dateA
+      })
+      .slice(0, 5)
+  } catch (error) {
+    console.error('Failed to load announcements:', error)
+    recentAnnouncements.value = []
+  } finally {
+    announcementsLoading.value = false
+  }
+}
+
+const toggleAnnouncementsDropdown = async () => {
+  showAnnouncementsDropdown.value = !showAnnouncementsDropdown.value
+  if (showAnnouncementsDropdown.value) {
+    await loadRecentAnnouncements()
+  }
+  // Close other dropdowns if open
+  if (showProfileDropdown.value) {
+    showProfileDropdown.value = false
+  }
+  if (showActivitiesDropdown.value) {
+    showActivitiesDropdown.value = false
+  }
+  if (showNotificationsDropdown.value) {
+    showNotificationsDropdown.value = false
+  }
+}
+
+const closeAnnouncementsDropdown = () => {
+  showAnnouncementsDropdown.value = false
+}
+
+const handleAnnouncementClick = async (announcement) => {
+  // Track view if unread
+  if (!announcement.is_read) {
+    try {
+      await announcementsAPI.trackView(announcement.id)
+      announcement.is_read = true
+      await loadUnreadAnnouncementsCount()
+    } catch (error) {
+      console.error('Failed to track announcement view:', error)
+    }
+  }
+  // Navigate to announcements page
+  closeAnnouncementsDropdown()
+  router.push(`/announcements`)
+}
+
+const formatAnnouncementDate = (dateString) => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now - date
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+  
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  })
 }
 
 const loadRecentNotifications = async () => {
@@ -3609,13 +3745,15 @@ const toggleNotificationsDropdown = async () => {
   if (showNotificationsDropdown.value) {
     await loadRecentNotifications()
   }
-  // Close profile dropdown if open
+  // Close other dropdowns if open
   if (showProfileDropdown.value) {
     showProfileDropdown.value = false
   }
-  // Close activities dropdown if open
   if (showActivitiesDropdown.value) {
     showActivitiesDropdown.value = false
+  }
+  if (showAnnouncementsDropdown.value) {
+    showAnnouncementsDropdown.value = false
   }
 }
 
@@ -3690,6 +3828,49 @@ const markAllNotificationsRead = async () => {
   }
 }
 
+const getNotificationIcon = (category, event) => {
+  if (event?.includes('order') || category === 'order') return 'OrderIcon'
+  if (event?.includes('payment') || category === 'payment') return 'PaymentIcon'
+  if (event?.includes('message') || event?.includes('communication')) return 'MessageIcon'
+  if (event?.includes('file') || event?.includes('upload')) return 'FileIcon'
+  if (category === 'system') return 'SystemIcon'
+  return 'BellIcon'
+}
+
+const getNotificationIconBg = (category, event) => {
+  if (category === 'order' || event?.includes('order')) return 'bg-blue-100 dark:bg-blue-900/30'
+  if (category === 'payment' || event?.includes('payment')) return 'bg-green-100 dark:bg-green-900/30'
+  if (event?.includes('message') || event?.includes('communication')) return 'bg-purple-100 dark:bg-purple-900/30'
+  if (event?.includes('file') || event?.includes('upload')) return 'bg-orange-100 dark:bg-orange-900/30'
+  if (category === 'system') return 'bg-gray-100 dark:bg-gray-700'
+  return 'bg-primary-100 dark:bg-primary-900/30'
+}
+
+const getNotificationIconColor = (category, event) => {
+  if (category === 'order' || event?.includes('order')) return 'text-blue-600 dark:text-blue-400'
+  if (category === 'payment' || event?.includes('payment')) return 'text-green-600 dark:text-green-400'
+  if (event?.includes('message') || event?.includes('communication')) return 'text-purple-600 dark:text-purple-400'
+  if (event?.includes('file') || event?.includes('upload')) return 'text-orange-600 dark:text-orange-400'
+  if (category === 'system') return 'text-gray-600 dark:text-gray-400'
+  return 'text-primary-600 dark:text-primary-400'
+}
+
+const getCategoryBadgeClass = (category) => {
+  const classes = {
+    order: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+    payment: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+    ticket: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+    system: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+    message: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300',
+    file: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300'
+  }
+  return classes[category] || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+}
+
+const formatCategory = (category) => {
+  return category?.charAt(0).toUpperCase() + category?.slice(1) || 'General'
+}
+
 const formatNotificationDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
@@ -3704,7 +3885,36 @@ const formatNotificationDate = (dateString) => {
   if (diffHours < 24) return `${diffHours}h ago`
   if (diffDays < 7) return `${diffDays}d ago`
   
-  return date.toLocaleDateString()
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  })
+}
+
+// Icon components for notifications dropdown
+const OrderIcon = {
+  template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>`
+}
+
+const PaymentIcon = {
+  template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>`
+}
+
+const MessageIcon = {
+  template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>`
+}
+
+const FileIcon = {
+  template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>`
+}
+
+const SystemIcon = {
+  template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`
+}
+
+const BellIcon = {
+  template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>`
 }
 
 // Activities functions
@@ -3738,11 +3948,13 @@ const toggleActivitiesDropdown = async () => {
   if (showActivitiesDropdown.value) {
     await loadRecentActivities()
   }
-  // Close notifications dropdown if open
+  // Close other dropdowns if open
   if (showNotificationsDropdown.value) {
     showNotificationsDropdown.value = false
   }
-  // Close profile dropdown if open
+  if (showAnnouncementsDropdown.value) {
+    showAnnouncementsDropdown.value = false
+  }
   if (showProfileDropdown.value) {
     showProfileDropdown.value = false
   }
@@ -3856,7 +4068,7 @@ const getIconNameFromEmoji = (emoji) => {
     '💬': 'chat',
     '🎁': 'gift',
     '🎟️': 'discount',
-    '🔒': 'shield',
+    '🔒': 'lock-closed',
     '🔍': 'search',
     '🌐': 'home',
     '👑': 'star',
@@ -4106,6 +4318,52 @@ nav {
 /* Better spacing for section dividers */
 .border-t {
   border-top-width: 1px;
+}
+
+/* Notification dropdown transitions */
+.notification-dropdown-enter-active {
+  transition: all 0.3s ease;
+}
+
+.notification-dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.notification-dropdown-enter-from {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.notification-dropdown-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.notification-dropdown-move {
+  transition: transform 0.3s ease;
+}
+
+/* Announcement dropdown transitions */
+.announcement-dropdown-enter-active {
+  transition: all 0.3s ease;
+}
+
+.announcement-dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.announcement-dropdown-enter-from {
+  opacity: 0;
+  transform: translateX(-10px);
+}
+
+.announcement-dropdown-leave-to {
+  opacity: 0;
+  transform: translateX(10px);
+}
+
+.announcement-dropdown-move {
+  transition: transform 0.3s ease;
 }
 
 /* Smooth transitions for sidebar items */

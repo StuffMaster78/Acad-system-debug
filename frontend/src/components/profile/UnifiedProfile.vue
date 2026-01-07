@@ -80,9 +80,24 @@
 
               <!-- User Info - Compact -->
               <div class="flex-1 min-w-0 pt-1">
+                <!-- Row 1: Full name -->
                 <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1.5 tracking-tight">
                   {{ fullName || profile.user?.username || profile.username || 'User' }}
                 </h1>
+
+                <!-- Row 2: Username + ID (copyable) -->
+                <div class="flex flex-wrap items-center gap-3 text-sm text-gray-700 dark:text-gray-300 mb-1.5">
+                  <span class="font-mono text-xs sm:text-sm truncate">
+                    {{ displayUsername }}
+                  </span>
+                  <CopyableIdChip
+                    v-if="displayId"
+                    :label="displayIdLabel"
+                    :value="displayId"
+                  />
+                </div>
+
+                <!-- Row 3: Email (can be longer) -->
                 <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-3">
                   <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
@@ -90,7 +105,7 @@
                   <span class="truncate">{{ profile.user?.email || profile.email }}</span>
                 </div>
                 
-                <!-- Badges - Compact -->
+                <!-- Row 4: Role + status badges -->
                 <div class="flex flex-wrap items-center gap-2">
                   <span class="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                     {{ roleLabel }}
@@ -540,6 +555,7 @@ import Avatar from '@/components/common/Avatar.vue'
 import SafeHtml from '@/components/common/SafeHtml.vue'
 import RichTextEditor from '@/components/common/RichTextEditor.vue'
 import { useToast } from '@/composables/useToast'
+import CopyableIdChip from '@/components/common/CopyableIdChip.vue'
 
 const { success: showSuccess, error: showError } = useToast()
 
@@ -578,6 +594,39 @@ const roleLabel = computed(() => {
   if (!profile.value) return ''
   const role = profile.value.user?.role || profile.value.role || authStore.userRole
   return role.charAt(0).toUpperCase() + role.slice(1)
+})
+
+const displayUsername = computed(() => {
+  if (!profile.value) return authStore.user?.username || authStore.user?.email || ''
+  const user = profile.value.user || profile.value
+  return user.username || user.full_name || user.email || ''
+})
+
+const displayIdLabel = computed(() => {
+  const role = profile.value?.user?.role || profile.value?.role || authStore.userRole
+  if (role === 'writer') return 'Writer ID'
+  if (role === 'client') return 'Client ID'
+  if (role === 'editor') return 'Editor ID'
+  if (role === 'support') return 'Support ID'
+  if (role === 'admin' || role === 'superadmin') return 'Admin ID'
+  return 'User ID'
+})
+
+const displayId = computed(() => {
+  if (!profile.value) return authStore.user?.id || null
+  const user = profile.value.user || profile.value
+  // Prefer writer registration ID for writers if available
+  if ((user.role || authStore.userRole) === 'writer') {
+    return (
+      user.registration_id ||
+      profile.value.registration_id ||
+      profile.value.writer_registration_id ||
+      authStore.user?.writer_registration_id ||
+      authStore.user?.id ||
+      null
+    )
+  }
+  return user.id || authStore.user?.id || null
 })
 
 const stats = computed(() => {
@@ -650,7 +699,35 @@ const loadProfile = async () => {
   try {
     const response = await usersAPI.getProfile()
     profile.value = response.data
-    
+
+    // Normalize avatar URL so it works across environments (dev/prod) and persists
+    const rawAvatar =
+      profile.value.avatar_url ||
+      profile.value.profile_picture ||
+      profile.value.user?.avatar_url ||
+      profile.value.user?.profile_picture
+
+    if (rawAvatar) {
+      const avatarUrl = constructAvatarUrl(rawAvatar)
+      profile.value.avatar_url = avatarUrl
+      if (profile.value.user) {
+        profile.value.user.avatar_url = avatarUrl
+      }
+
+      // Also sync to auth store so header/sidebar/overview use the same image
+      if (authStore.user) {
+        authStore.user = {
+          ...authStore.user,
+          avatar_url: avatarUrl,
+        }
+        try {
+          localStorage.setItem('user', JSON.stringify(authStore.user))
+        } catch (e) {
+          // Non-fatal; ignore storage issues
+        }
+      }
+    }
+
     // Populate edit form
     const user = profile.value.user || profile.value
     editForm.value = {
@@ -781,12 +858,29 @@ const uploadAvatar = async () => {
     const response = await usersAPI.updateProfile(formData)
     
     // Update avatar URL from response if available
-    if (response.data && response.data.avatar_url && profile.value) {
+    if (response.data && response.data.avatar_url) {
       const avatarUrl = constructAvatarUrl(response.data.avatar_url)
-      profile.value.avatar_url = avatarUrl
-      // Also update nested user object if it exists
-      if (profile.value.user) {
-        profile.value.user.avatar_url = avatarUrl
+
+      // Update local profile state
+      if (profile.value) {
+        profile.value.avatar_url = avatarUrl
+        if (profile.value.user) {
+          profile.value.user.avatar_url = avatarUrl
+        }
+      }
+
+      // Also sync with auth store so sidebar/header avatar update immediately
+      if (authStore.user) {
+        authStore.user = {
+          ...authStore.user,
+          avatar_url: avatarUrl,
+        }
+        // Persist updated user to localStorage
+        try {
+          localStorage.setItem('user', JSON.stringify(authStore.user))
+        } catch (e) {
+          // Non-fatal; ignore storage issues
+        }
       }
     }
     

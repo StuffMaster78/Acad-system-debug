@@ -87,6 +87,7 @@ from writer_management.views.tips import TipViewSet, TipListView
 from writer_management.views.capacity import WriterCapacityViewSet, EditorWorkloadViewSet
 from writer_management.views.feedback import FeedbackViewSet, FeedbackHistoryViewSet
 from writer_management.views.portfolio import WriterPortfolioViewSet, PortfolioSampleViewSet
+from writer_management.views.writer_payment_award_views import WriterPaymentAwardViewSet
 # Import pen name and resource views directly from views.py
 try:
     import sys
@@ -158,6 +159,7 @@ router.register(r'feedback', FeedbackViewSet, basename='feedback')
 router.register(r'feedback-history', FeedbackHistoryViewSet, basename='feedback-history')
 router.register(r'writer-portfolios', WriterPortfolioViewSet, basename='writer-portfolio')
 router.register(r'portfolio-samples', PortfolioSampleViewSet, basename='portfolio-sample')
+router.register(r'writer-payment-awards', WriterPaymentAwardViewSet, basename='writer-payment-award')
 
 urlpatterns = [
     path('', include(router.urls)),

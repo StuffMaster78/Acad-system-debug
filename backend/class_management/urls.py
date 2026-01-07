@@ -4,6 +4,7 @@ from class_management.views import (
     ClassPurchaseViewSet, ClassInstallmentViewSet, ClassBundleConfigViewSet,
     ClassBundleViewSet, ExpressClassViewSet
 )
+from class_management.views.class_payment_views import ClassPaymentViewSet
 
 # Initialize the router
 router = DefaultRouter()
@@ -14,6 +15,7 @@ router.register(r'class-purchases', ClassPurchaseViewSet, basename='class-purcha
 router.register(r'class-installments', ClassInstallmentViewSet, basename='class-installment')
 router.register(r'class-bundle-configs', ClassBundleConfigViewSet, basename='class-bundle-config')
 router.register(r'express-classes', ExpressClassViewSet, basename='express-class')
+router.register(r'class-payments', ClassPaymentViewSet, basename='class-payment')
 
 urlpatterns = [
     path('', include(router.urls)),  # Include all the generated routes from the router

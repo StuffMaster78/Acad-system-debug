@@ -83,9 +83,30 @@ class ActivityLogSerializer(serializers.ModelSerializer):
         return obj.timestamp.strftime("%H:%M %d, %b %Y")
     
     def get_display_description(self, obj):
-        """Get formatted description for display."""
-        # Use the description as-is, or format it based on action type
+        """Get formatted description for display.
+        
+        For user actions (where user or triggered_by matches current user),
+        format description with "You" prefix for better UX.
+        """
+        request = self.context.get('request')
         description = obj.description
+        
+        # Check if current user performed this action
+        if request and request.user:
+            current_user = request.user
+            user_performed_action = (
+                (obj.user and obj.user.id == current_user.id) or
+                (obj.triggered_by and obj.triggered_by.id == current_user.id)
+            )
+            
+            # Format description with "You" if user performed the action
+            if user_performed_action and not description.lower().startswith('you '):
+                # Capitalize first letter and add "You" prefix
+                description = description.strip()
+                if description:
+                    # Remove any existing subject (e.g., "sent a message" -> "You sent a message")
+                    description = description[0].lower() + description[1:] if len(description) > 1 else description
+                    description = f"You {description}"
         
         # Enhance description based on metadata if available
         if obj.metadata:

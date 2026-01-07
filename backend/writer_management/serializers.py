@@ -205,6 +205,12 @@ class WriterOrderTakeSerializer(serializers.ModelSerializer):
                 "Order takes are currently disabled. Writers must request orders."
             )
 
+        # Check if writer is allowed to take orders (admin restriction)
+        if not writer.can_take_orders:
+            raise ValidationError(
+                "You are not allowed to take orders. Please contact an administrator."
+            )
+        
         # Basic level check
         if not writer.writer_level:
             raise ValidationError(
@@ -1032,34 +1038,81 @@ class WriterPaymentViewSerializer(serializers.Serializer):
         return earnings
     
     def get_class_bonuses(self, obj):
-        """Get earnings from classes - these are shown as bonuses, not regular earnings."""
-        from class_management.models import ClassPurchase, ClassBundle
+        """Get earnings from classes with streamlined installment details."""
+        from class_management.class_payment import ClassPayment
         from special_orders.models import WriterBonus
         
         writer_profile = obj
         if not writer_profile.writer_level:
             return []
         
-        # Classes are paid as bonuses, so get them from WriterBonus with class category
-        # First, try to find class-related bonuses
-        class_bonuses = WriterBonus.objects.filter(
-            writer=writer_profile.user,
-            category='class_payment'  # Assuming this category exists for classes
+        # Get class payments using streamlined system
+        class_payments = ClassPayment.objects.filter(
+            assigned_writer=writer_profile.user
+        ).select_related('class_bundle', 'website').prefetch_related(
+            'payment_installments__class_installment',
+            'writer_payments__writer_bonus'
         )
         
         earnings = []
-        for bonus in class_bonuses:
+        for payment in class_payments:
+            bundle = payment.class_bundle
+            
+            # Get installment details
+            installments = payment.payment_installments.all()
+            installment_details = []
+            for inst in installments:
+                installment_details.append({
+                    'installment_number': inst.installment_number,
+                    'amount': float(inst.amount),
+                    'is_paid': inst.is_paid,
+                    'paid_at': inst.paid_at.isoformat() if inst.paid_at else None,
+                })
+            
+            # Get writer payment status
+            writer_payments = payment.writer_payments.all()
+            writer_paid = any(wp.is_paid for wp in writer_payments)
+            writer_paid_amount = sum(float(wp.amount) for wp in writer_payments if wp.is_paid)
+            
+            # Hide client payment info from writers - only show their compensation
             earnings.append({
-                'class_id': getattr(bonus.special_order, 'id', None) if bonus.special_order else None,
-                'class_title': f"Class Bonus - {bonus.reason[:50]}" if bonus.reason else "Class Payment",
-                'amount': float(bonus.amount),
-                'bonus_type': 'class_payment',
-                'granted_at': bonus.granted_at.isoformat() if bonus.granted_at else None,
+                'bundle_id': bundle.id,
+                'class_title': f"Class Bundle #{bundle.id} - {bundle.number_of_classes} classes",
+                # DO NOT include total_amount (client payment) - writers shouldn't see this
+                'writer_compensation': float(payment.writer_compensation_amount),
+                'writer_paid_amount': writer_paid_amount,
+                'writer_payment_status': payment.writer_payment_status,
+                # DO NOT include client_payment_status - writers shouldn't see this
+                # DO NOT include uses_installments, total_installments, paid_installments - client payment details
+                # DO NOT include installment_details - client payment details
+                # DO NOT include payment_progress - client payment progress
+                'is_writer_paid': writer_paid,
+                'created_at': payment.created_at.isoformat() if payment.created_at else None,
             })
         
-        # Also check if there's a direct relationship between classes and writers
-        # This depends on your class model structure
-        # For now, return bonuses found above
+        # Also include legacy WriterBonus records for backward compatibility
+        class_bonuses = WriterBonus.objects.filter(
+            writer=writer_profile.user,
+            category='class_payment'
+        ).exclude(
+            id__in=[wp.writer_bonus_id for payment in class_payments 
+                   for wp in payment.writer_payments.all() if wp.writer_bonus_id]
+        )
+        
+        for bonus in class_bonuses:
+            # Hide client payment info - only show writer compensation
+            earnings.append({
+                'bundle_id': None,
+                'class_title': f"Class Bonus - {bonus.reason[:50]}" if bonus.reason else "Class Payment",
+                # DO NOT include total_amount - writers shouldn't see client payment
+                'writer_compensation': float(bonus.amount),
+                'writer_paid_amount': float(bonus.amount) if bonus.is_paid else 0.0,
+                'writer_payment_status': 'paid' if bonus.is_paid else 'pending',
+                # DO NOT include client_payment_status - writers shouldn't see this
+                # DO NOT include installment details - client payment info
+                'is_writer_paid': bonus.is_paid,
+                'created_at': bonus.granted_at.isoformat() if bonus.granted_at else None,
+            })
         
         return earnings
 

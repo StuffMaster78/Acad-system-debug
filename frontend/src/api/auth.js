@@ -84,8 +84,8 @@ export const authAPI = {
     return apiClient.post('/auth/impersonate/start/', { token })
   },
 
-  endImpersonation: () => {
-    return apiClient.post('/auth/impersonate/end/')
+  endImpersonation: (data = {}) => {
+    return apiClient.post('/auth/impersonate/end/', data)
   },
 
   getImpersonationStatus: () => {

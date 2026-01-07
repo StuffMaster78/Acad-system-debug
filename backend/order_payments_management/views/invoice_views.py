@@ -164,6 +164,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
         
         # Create invoice via service
         send_email = data.get('send_email', True)
+        payment_method = serializer.validated_data.get('payment_method')
         invoice = InvoiceService.create_invoice(
             recipient_email=data.get('recipient_email', client.email if client else ''),
             website=website,
@@ -175,6 +176,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             purpose=data.get('purpose', ''),
             description=data.get('description', ''),
             order_number=data.get('order_number', ''),
+            payment_method=payment_method,
             client=client,
             order=order,
             special_order=special_order,

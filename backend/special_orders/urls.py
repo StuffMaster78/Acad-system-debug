@@ -8,12 +8,19 @@ from .views import (
     WriterBonusViewSet,
     EstimatedSpecialOrderSettingsViewSet
 )
+from .views.streamlined_views import StreamlinedSpecialOrderViewSet
 
 # Initialize the router for the viewsets
 router = DefaultRouter()
 router.register(
     r'special-orders',
     SpecialOrderViewSet
+)
+# Streamlined endpoints (alternative workflow)
+router.register(
+    r'streamlined-orders',
+    StreamlinedSpecialOrderViewSet,
+    basename='streamlined-special-order'
 )
 router.register(
     r'installment-payments',

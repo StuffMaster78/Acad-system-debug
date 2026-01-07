@@ -3,6 +3,14 @@ from writer_management.models.profile import WriterProfile
 from writer_management.services.status_service import WriterStatusService
 
 def can_writer_take_order(writer: WriterProfile) -> bool:
+    """
+    Check if writer can take orders.
+    Includes status checks and admin restriction flag.
+    """
+    # Check admin restriction flag first
+    if not writer.can_take_orders:
+        return False
+    
     status = WriterStatusService.get(writer)
 
     return (

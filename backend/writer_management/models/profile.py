@@ -127,6 +127,10 @@ class WriterProfile(models.Model):
         default=True,
         help_text="If disabled, the writer is hidden from instant assignment/auto queue."
     )
+    can_take_orders = models.BooleanField(
+        default=True,
+        help_text="If disabled, the writer cannot take orders from their profile, even if their level allows it. Admin can override by assigning orders manually."
+    )
     availability_last_changed = models.DateTimeField(
         null=True,
         blank=True,

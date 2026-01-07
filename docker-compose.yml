@@ -1,6 +1,7 @@
 services:
   web:
-    platform: linux/amd64
+    # Remove platform specification to use native architecture (ARM64 on Apple Silicon)
+    # This prevents emulation and improves performance significantly
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -29,13 +30,25 @@ services:
           memory: 512M
 
   db:
+    # Use multi-platform image that supports both ARM64 and AMD64
     image: postgres:15
+    # Remove platform specification to use native architecture
     env_file:
       - ./backend/.env
     environment:
       POSTGRES_DB: ${POSTGRES_DB_NAME:-writingsondo}  # Load database name with default
       POSTGRES_USER: ${POSTGRES_USER_NAME:-awinorick}  # Load database user with default
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Nyakach2030}  # Load database password with default
+      # Reduce PostgreSQL log verbosity (only log warnings and errors)
+      POSTGRES_INITDB_ARGS: "-E UTF8"
+    command: >
+      postgres
+      -c log_min_messages=warning
+      -c log_checkpoints=off
+      -c log_connections=off
+      -c log_disconnections=off
+      -c log_lock_waits=on
+      -c log_temp_files=-1
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
@@ -55,15 +68,18 @@ services:
           memory: 1G
 
   redis:
+    # Use multi-platform image that supports both ARM64 and AMD64
     image: redis:latest
+    # Remove platform specification to use native architecture
     restart: always
     # Require password from .env file (only if set)
+    # Reduce Redis log verbosity (only log warnings and errors)
     command: >
       sh -c "
       if [ -n \"$$REDIS_PASSWORD\" ] && [ \"$$REDIS_PASSWORD\" != \"\" ]; then
-        redis-server --requirepass \"$$REDIS_PASSWORD\"
+        redis-server --requirepass \"$$REDIS_PASSWORD\" --loglevel warning
       else
-        redis-server
+        redis-server --loglevel warning
       fi
       "
     env_file:
@@ -97,7 +113,7 @@ services:
           memory: 256M
 
   celery:
-      platform: linux/amd64
+      # Remove platform specification to use native architecture (ARM64 on Apple Silicon)
       build:
         context: ./backend
         dockerfile: Dockerfile
@@ -122,7 +138,7 @@ services:
         - redis
 
   beat:
-    platform: linux/amd64
+    # Remove platform specification to use native architecture (ARM64 on Apple Silicon)
     build:
       context: ./backend
       dockerfile: Dockerfile

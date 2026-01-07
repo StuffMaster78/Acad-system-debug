@@ -69,7 +69,7 @@
             Edit Profile in Settings
           </router-link>
         </div>
-      </form>
+      </div>
     </div>
 
     <!-- Account Statistics -->
@@ -85,7 +85,6 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
         <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Member Since</p>
         <p class="text-2xl font-bold text-gray-900 dark:text-white">{{ formatDate(authStore.user?.date_joined) }}</p>
-      </div>
       </div>
     </div>
   </div>

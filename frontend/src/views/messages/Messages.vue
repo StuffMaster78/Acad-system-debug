@@ -96,7 +96,6 @@
             :key="thread.id"
             @click="openThread(thread)"
             class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
-            :class="{ 'bg-blue-50 dark:bg-blue-900/20': selectedThreadId === thread.id }"
           >
             <div class="flex items-start justify-between gap-4">
               <div class="flex-1 min-w-0">
@@ -169,26 +168,19 @@
       @message-sent="handleMessageSent"
     />
 
-    <!-- Thread View Modal -->
-    <ThreadViewModal
-      v-if="selectedThread"
-      :thread="selectedThread"
-      :show="!!selectedThread"
-      @close="closeThread"
-      @thread-updated="handleThreadUpdated"
-    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue'
+import { useRouter } from 'vue-router'
 import { communicationsAPI } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import messagesStore from '@/stores/messages'
 import NewMessageModal from '@/components/messages/NewMessageModal.vue'
-import ThreadViewModal from '@/components/messages/ThreadViewModal.vue'
 import { useDebounceFn } from '@vueuse/core'
 
+const router = useRouter()
 const authStore = useAuthStore()
 const currentUser = authStore.user
 
@@ -241,8 +233,6 @@ const activeTab = ref(recipientTabs.value[0]?.id || 'admin')
 const threads = shallowRef([]) // Use shallowRef for better performance with large arrays
 const loadingThreads = ref(false)
 const showNewMessageModal = ref(false)
-const selectedThread = shallowRef(null) // Use shallowRef to prevent deep reactivity
-const selectedThreadId = ref(null)
 const searchQuery = ref('')
 const threadsPerPage = 20
 const currentPage = ref(1)
@@ -484,14 +474,10 @@ const openNewMessageModal = () => {
 }
 
 const openThread = (thread) => {
-  selectedThread.value = thread
-  selectedThreadId.value = thread.id
+  // Navigate to thread detail page instead of opening modal
+  router.push(`/messages/thread/${thread.id}`)
 }
 
-const closeThread = () => {
-  selectedThread.value = null
-  selectedThreadId.value = null
-}
 
 const handleMessageSent = () => {
   showNewMessageModal.value = false
@@ -514,8 +500,6 @@ const handleThreadUpdated = () => {
 }
 
 watch(activeTab, () => {
-  selectedThread.value = null
-  selectedThreadId.value = null
   currentPage.value = 1 // Reset to first page
   // Clear unread counts cache when tab changes
   unreadCountsCache.value.clear()

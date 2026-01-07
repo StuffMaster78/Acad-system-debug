@@ -94,6 +94,7 @@ class WriterDashboardRealtimeService:
         writer_request_count = WriterOrderRequest.objects.filter(
             writer=profile,
             approved=False,
+            order__is_paid=True,  # Only count requests for paid orders
         ).count()
 
         adjustment_requests = WriterRequest.objects.filter(
@@ -113,6 +114,7 @@ class WriterDashboardRealtimeService:
             Order.objects.filter(
                 assigned_writer=user,
                 status__in=cls.READY_FOR_SUBMISSION_STATUSES,
+                is_paid=True,  # Only show paid orders
             )
             .select_related("client")
             .order_by("writer_deadline", "client_deadline")
@@ -133,7 +135,10 @@ class WriterDashboardRealtimeService:
     @classmethod
     def _next_deadline_payload(cls, user):
         upcoming = (
-            Order.objects.filter(assigned_writer=user)
+            Order.objects.filter(
+                assigned_writer=user,
+                is_paid=True,  # Only show paid orders
+            )
             .exclude(status__in=cls.EXCLUDED_DEADLINE_STATUSES)
             .order_by("writer_deadline", "client_deadline", "created_at")
         )

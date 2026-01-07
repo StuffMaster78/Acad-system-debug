@@ -108,14 +108,20 @@ class ImpersonationTokenViewSet(viewsets.ModelViewSet):
     def end(self, request):
         """
         Ends impersonation and logs back in as original admin user.
-        Returns new JWT tokens for the admin.
+        Returns new JWT tokens for the admin (unless close_tab=True).
+        
+        Request body (optional):
+        {
+            "close_tab": true  // If true, indicates impersonation tab should close
+        }
         """
         from websites.utils import get_current_website
         website = get_current_website(request)
         
         service = ImpersonationService(request, website)
         try:
-            result = service.end_impersonation()
+            close_tab = request.data.get('close_tab', False)
+            result = service.end_impersonation(close_tab=close_tab)
             return Response(result, status=status.HTTP_200_OK)
         except PermissionDenied as e:
             return Response(

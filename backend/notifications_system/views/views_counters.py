@@ -59,22 +59,36 @@ class UnreadCountView(APIView):
                 logger.debug(f"Rebuild error in unread count: {rebuild_error}")
 
             # Fallback: direct database query (optimized with select_related)
+            # Include both Notification and CommunicationNotification
             try:
                 from notifications_system.models.notifications import Notification
+                from communications.models import CommunicationNotification
+                
+                # Count general notifications
                 if website:
-                    count = Notification.objects.filter(
+                    general_count = Notification.objects.filter(
                         user=user,
                         is_read=False,
                         website=website
                     ).count()
                 else:
-                    count = Notification.objects.filter(
+                    general_count = Notification.objects.filter(
                         user=user,
                         is_read=False
                     ).count()
+                
+                # Count communication notifications (message notifications)
+                comm_count = CommunicationNotification.objects.filter(
+                    recipient=user,
+                    is_read=False
+                ).count()
+                
+                # Total unread count (both types)
+                total_count = general_count + comm_count
+                
                 # Cache result for 30 seconds to reduce rate limiting
-                cache.set(cache_key, count or 0, 30)
-                return Response({"unread_count": count or 0})
+                cache.set(cache_key, total_count or 0, 30)
+                return Response({"unread_count": total_count or 0})
             except Exception as db_error:
                 logger.error(f"Database error in unread count: {db_error}", exc_info=True)
                 # Return cached value if available, otherwise 0

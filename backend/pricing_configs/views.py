@@ -186,11 +186,14 @@ class PricingCalculatorSessionViewSet(viewsets.ModelViewSet):
 class AdditionalServiceViewSet(WebsiteScopedViewSetMixin, viewsets.ModelViewSet):
     """
     ViewSet for managing AdditionalService.
+    Allows read access for authenticated users (clients can view services),
+    but only admins can create/update/delete.
     """
     queryset = AdditionalService.objects.filter(is_active=True)  # Only return active services by default
     serializer_class = AdditionalServiceSerializer
     permission_classes = [
-        IsAdminUser, IsAdminUserOrReadOnly, IsAdminOfWebsite
+        IsAuthenticated,  # Require authentication for all operations
+        IsAdminUserOrReadOnly,  # Read for all authenticated, write for admins only
     ]
 
     def perform_create(self, serializer):

@@ -1,7 +1,10 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
     <!-- Clean Header -->
-    <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+    <div 
+      ref="headerRef"
+      class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20"
+    >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Back Navigation -->
         <div class="py-3">
@@ -60,7 +63,12 @@
     </div>
 
     <!-- Tabs Navigation -->
-    <div v-if="order" class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-[73px] z-10">
+    <div 
+      v-if="order" 
+      ref="tabsRef"
+      :style="{ top: headerHeight + 'px' }"
+      class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky z-10 transition-all"
+    >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <nav class="flex space-x-1 overflow-x-auto -mb-px" aria-label="Tabs">
           <button
@@ -219,7 +227,7 @@
                     <button
                       type="button"
                       class="underline font-medium"
-                      @click="activeTab = 'messages'"
+                      @click="$router.push(`/orders/${order.id}/messages`)"
                     >
                       ask a question about your order
                     </button>.
@@ -1084,6 +1092,52 @@
           </div>
         </div>
 
+        <!-- Client Actions Section (For paid orders) -->
+        <div v-if="authStore.isClient && order.is_paid" class="mt-6 space-y-6">
+          <!-- Enhance Your Order Section -->
+          <div class="bg-gradient-to-r from-primary-50 to-blue-50 dark:from-primary-900/20 dark:to-blue-900/20 rounded-xl border-2 border-primary-200 dark:border-primary-800 p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-12 h-12 rounded-xl bg-primary-500 dark:bg-primary-600 flex items-center justify-center">
+                <SparklesIcon class="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Enhance Your Order</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Add pages, slides, or premium services to your order</p>
+              </div>
+            </div>
+            
+            <div v-if="canAddPagesSlides" class="space-y-4">
+              <!-- Add Pages/Slides -->
+              <AddPagesSlides
+                :order-id="order.id"
+                @success="handlePagesSlidesAdded"
+                @cancel="showAddPagesSlides = false"
+              />
+
+              <!-- Add Extra Services -->
+              <AddExtraServices
+                :order-id="order.id"
+                :existing-service-ids="order.extra_services?.map(s => s.id || s) || []"
+                @success="handleExtraServicesAdded"
+                @cancel="showAddExtraServices = false"
+              />
+            </div>
+            
+          </div>
+
+          <!-- Writer Requests - For clients to view and respond -->
+          <div v-if="writerRequests.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Writer Requests</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Respond to writer requests for additional pages or slides</p>
+            </div>
+            <WriterRequestResponse
+              :requests="writerRequests"
+              @updated="loadWriterRequests"
+            />
+          </div>
+        </div>
+
         <!-- Revision Notes & Instructions Section -->
         <div v-if="order.status === 'revision_requested' || orderReasons.length > 0 || canAddRevisionNotes" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
           <div class="flex items-center justify-between mb-4">
@@ -1382,8 +1436,8 @@
         </div>
       </div>
 
-      <!-- Order Actions -->
-      <div class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
+      <!-- Order Actions (Hidden for clients) -->
+      <div v-if="!authStore.isClient" class="mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
         <div class="mb-6 pl-4">
           <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">Order Actions</h3>
           <p class="text-sm text-gray-600 dark:text-gray-400">Manage and perform actions on this order</p>
@@ -1617,47 +1671,6 @@
             </div>
           </div>
           
-          <!-- Client Actions -->
-          <div
-            v-if="(canCompleteOrder || canCancelOrder) && !authStore.isAdmin && !authStore.isSuperAdmin && !authStore.isSupport"
-            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6"
-          >
-            <div class="mb-4">
-              <h4 class="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Client Actions</h4>
-              <p class="text-xs text-gray-500 dark:text-gray-400">Actions available for clients</p>
-            </div>
-            
-            <div class="flex flex-wrap gap-3">
-              <button
-                v-if="canCompleteOrder"
-                @click="completeOrder"
-                :disabled="processingAction"
-                class="px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
-              >
-                <span class="text-lg">✓</span>
-                <span>{{ processingAction ? 'Processing...' : 'Mark as Complete' }}</span>
-              </button>
-              
-              <button
-                v-if="canCancelOrder"
-                @click="cancelOrder"
-                :disabled="processingAction"
-                class="px-5 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-2 font-medium shadow-sm hover:shadow-md"
-              >
-                <span class="text-lg">✕</span>
-                <span>{{ processingAction ? 'Processing...' : 'Cancel Order' }}</span>
-              </button>
-            </div>
-          </div>
-          
-          <button
-            v-if="canReopenOrder && !authStore.isAdmin && !authStore.isSuperAdmin && !authStore.isSupport"
-            @click="reopenOrder"
-            :disabled="processingAction"
-            class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {{ processingAction ? 'Processing...' : 'Reopen Order' }}
-          </button>
           
           <!-- Payment Action -->
           <button
@@ -2597,18 +2610,21 @@
               <p v-if="draftEligibility.reason" class="text-sm text-gray-700 dark:text-gray-300 mb-3">
                 {{ draftEligibility.reason }}
               </p>
-              <p v-if="draftEligibility.has_pending_request" class="text-sm text-orange-700 dark:text-orange-400 mb-4 p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+              <p v-if="draftEligibility.has_pending_request && !authStore.isAdmin && !authStore.isSuperAdmin && !authStore.isSupport" class="text-sm text-orange-700 dark:text-orange-400 mb-4 p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                 You already have a pending draft request for this order.
               </p>
+              <p v-if="draftEligibility.has_pending_request && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)" class="text-sm text-blue-700 dark:text-blue-400 mb-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                There is a pending draft request, but you can create additional requests as an admin.
+              </p>
               <button
-                v-if="draftEligibility.can_request && !draftEligibility.has_pending_request"
+                v-if="draftEligibility.can_request && (!draftEligibility.has_pending_request || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
                 @click="showDraftRequestModal = true"
                 class="px-4 py-2.5 bg-primary-600 dark:bg-primary-700 text-white rounded-lg hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors text-sm font-medium shadow-md flex items-center gap-2"
               >
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                 </svg>
-                Request Draft
+                {{ (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) ? 'Create Draft Request (Admin)' : 'Request Draft' }}
               </button>
             </div>
           </div>
@@ -2993,8 +3009,8 @@
                 <span>Resume Order</span>
               </button>
               <button
-                v-if="!['cancelled', 'completed', 'closed'].includes(order.status)"
-                @click="handleCancelOrder"
+                v-if="canRequestCancellation"
+                @click="requestCancellation"
                 :disabled="processingAction"
                 class="flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all font-medium disabled:opacity-50"
               >
@@ -3125,7 +3141,23 @@
 
         <!-- Writer Actions -->
         <div v-if="authStore.isWriter" class="space-y-6">
-          <!-- Note: Writers cannot manually change order status - this is handled through order actions (take, submit, etc.) -->
+          <!-- Writer: Request Additional Pages/Slides -->
+          <div v-if="order.assigned_writer?.id === authStore.user?.id && order.is_paid && ['in_progress', 'assigned', 'draft'].includes(order.status?.toLowerCase())" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
+                <SparklesIcon class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Request Additional Pages/Slides</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Request additional pages or slides if the order scope has changed</p>
+              </div>
+            </div>
+            <WriterPageRequest
+              :order-id="order.id"
+              @success="handleWriterRequestCreated"
+              @cancel="showWriterRequestForm = false"
+            />
+          </div>
           
           <!-- Communication -->
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -3159,20 +3191,20 @@
 
         <!-- Client Actions -->
         <div v-if="authStore.isClient" class="space-y-6">
-          <!-- Order Management -->
-          <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <!-- Order Management - Only show for active orders (not completed/closed) -->
+          <div v-if="!['completed', 'closed', 'cancelled'].includes(order.status?.toLowerCase())" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
             <div class="flex items-center gap-3 mb-6">
               <div class="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
                 <ClipboardList class="w-5 h-5 text-primary-600 dark:text-primary-400" />
               </div>
               <div>
                 <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Order Management</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Manage your order</p>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Manage your active order</p>
               </div>
             </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <button
-                v-if="canRequestRevision"
+                v-if="canRequestRevision && order.status !== 'revision_requested'"
                 @click="showRevisionForm = !showRevisionForm"
                 class="flex items-center gap-3 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all font-medium"
               >
@@ -3180,8 +3212,8 @@
                 <span>{{ showRevisionForm ? 'Cancel Revision Request' : 'Request Revision' }}</span>
               </button>
               <button
-                v-if="['pending', 'in_progress'].includes(order.status)"
-                @click="handleCancelOrder"
+                v-if="canRequestCancellation"
+                @click="requestCancellation"
                 :disabled="processingAction"
                 class="flex items-center gap-3 px-4 py-3 bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-all font-medium disabled:opacity-50"
               >
@@ -3221,14 +3253,14 @@
             </div>
           </div>
 
-          <!-- Payment Actions -->
-          <div v-if="order.payment_status !== 'paid'" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div class="flex items-center gap-3 mb-6">
+          <!-- Payment Actions - Only for unpaid orders (initial payment) -->
+          <div v-if="canPayOrder && !order.is_paid" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-4">
               <div class="w-10 h-10 rounded-lg bg-yellow-100 dark:bg-yellow-900/50 flex items-center justify-center">
                 <span class="text-xl">💳</span>
               </div>
               <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Payment</h3>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Payment Required</h3>
                 <p class="text-sm text-gray-500 dark:text-gray-400">Complete payment to start your order</p>
               </div>
             </div>
@@ -3239,6 +3271,57 @@
               <span>💳</span>
               <span>Pay Now</span>
             </button>
+          </div>
+
+          <!-- Completed Order Actions -->
+          <div v-if="order.status === 'completed' || order.status === 'submitted' || order.status === 'approved'" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center">
+                <span class="text-xl">✅</span>
+              </div>
+              <div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Order Completed</h3>
+                <p class="text-sm text-gray-500 dark:text-gray-400">Rate, review, or request changes</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              <button
+                v-if="canSubmitReview"
+                @click="activeTab = 'overview'"
+                class="flex items-center justify-center gap-2 px-4 py-3 bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-300 dark:border-yellow-700 text-yellow-700 dark:text-yellow-300 rounded-lg hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-all font-medium"
+              >
+                <span>⭐</span>
+                <span>Rate & Review</span>
+              </button>
+              <button
+                v-if="canRequestRevision && order.status !== 'revision_requested'"
+                @click="showRevisionForm = !showRevisionForm"
+                class="flex items-center justify-center gap-2 px-4 py-3 bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-300 dark:border-orange-700 text-orange-700 dark:text-orange-300 rounded-lg hover:bg-orange-100 dark:hover:bg-orange-900/30 transition-all font-medium"
+              >
+                <span>🔄</span>
+                <span>Request Revision</span>
+              </button>
+              <button
+                v-if="order.status === 'completed'"
+                @click="handleCloseOrder"
+                class="flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all font-medium"
+              >
+                <span>🔒</span>
+                <span>Close Order</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Writer Requests - For clients to view and respond -->
+          <div v-if="order.is_paid && writerRequests.length > 0" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div class="mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Writer Requests</h3>
+              <p class="text-sm text-gray-500 dark:text-gray-400">Respond to writer requests for additional pages or slides</p>
+            </div>
+            <WriterRequestResponse
+              :requests="writerRequests"
+              @updated="loadWriterRequests"
+            />
           </div>
         </div>
 
@@ -4011,6 +4094,7 @@ import { getErrorMessage, getSuccessMessage } from '@/utils/errorHandler'
 import { useToast } from '@/composables/useToast'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
 import { useInputModal } from '@/composables/useInputModal'
+import { useLoadingState } from '@/composables/useLoadingState'
 import ConfirmationDialog from '@/components/common/ConfirmationDialog.vue'
 import EnhancedStatusBadge from '@/components/common/EnhancedStatusBadge.vue'
 import { getStatusConfig, getStatusLabel, getStatusIcon } from '@/utils/orderStatus'
@@ -4055,6 +4139,12 @@ import writerOrderRequestsAPI from '@/api/writer-order-requests'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import { loadUnreadMessageCount } from '@/utils/messageUtils'
 import NaiveButton from '@/components/naive/NaiveButton.vue'
+import AddPagesSlides from '@/components/orders/AddPagesSlides.vue'
+import WriterPageRequest from '@/components/orders/WriterPageRequest.vue'
+import WriterRequestResponse from '@/components/orders/WriterRequestResponse.vue'
+import AddExtraServices from '@/components/orders/AddExtraServices.vue'
+import writerRequestsAPI from '@/api/writer-requests'
+import { SparklesIcon } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const router = useRouter()
@@ -4106,11 +4196,36 @@ watch(inputModalShow, (newVal) => {
 })
 
 const order = ref(null)
-const loading = ref(true)
+const { loading, withLoading } = useLoadingState({ minDelay: 200 })
 const error = ref(null)
 const activeTab = ref('overview')
 const unreadMessageCount = ref(0)
 let unreadMessageInterval = null
+
+// Header and tabs refs for sticky positioning
+const headerRef = ref(null)
+const tabsRef = ref(null)
+const headerHeight = ref(0)
+
+// Calculate header height for sticky tabs positioning
+const updateHeaderHeight = () => {
+  if (headerRef.value) {
+    headerHeight.value = headerRef.value.offsetHeight
+  }
+}
+
+// Watch for order changes to recalculate header height
+// Watch order changes to load writer requests
+watch(() => order.value, async (newOrder) => {
+  if (newOrder && authStore.isClient && newOrder.is_paid) {
+    await loadWriterRequests()
+  }
+})
+
+watch(() => order.value, async () => {
+  await nextTick()
+  updateHeaderHeight()
+}, { immediate: false })
 
 // Tabs configuration
 const tabs = computed(() => {
@@ -4136,6 +4251,11 @@ const loadingFiles = ref(false)
 const loadingLinks = ref(false)
 const showSendMessageModal = ref(false)
 const showInitialMessageModal = ref(false)
+const showAddPagesSlides = ref(false)
+const showAddExtraServices = ref(false)
+const showWriterRequestForm = ref(false)
+const writerRequests = ref([])
+const loadingWriterRequests = ref(false)
 const availableRecipients = ref([])
 const loadingRecipientsForModal = ref(false)
 const sendingNewMessage = ref(false)
@@ -4317,13 +4437,60 @@ const canCompleteOrder = computed(() => {
   return (isClient && isOrderClient && status === 'submitted') || (isAdmin.value && ['submitted', 'in_progress'].includes(status))
 })
 
+// Direct cancel - only for unpaid orders
 const canCancelOrder = computed(() => {
   if (!order.value) return false
   const status = order.value.status?.toLowerCase()
   const isClient = userRole.value === 'client'
   const isOrderClient = order.value.client?.id === userId.value || order.value.client_id === userId.value
-  return (isClient && isOrderClient && !['completed', 'cancelled'].includes(status)) || 
-         (isAdmin.value && !['completed', 'cancelled'].includes(status))
+  // Clients can only directly cancel unpaid orders
+  if (isClient && isOrderClient) {
+    return !order.value.is_paid && status === 'unpaid'
+  }
+  // Admins can cancel any non-completed/cancelled order
+  return isAdmin.value && !['completed', 'cancelled'].includes(status)
+})
+
+// Request cancellation - for paid/in-progress orders
+const canRequestCancellation = computed(() => {
+  if (!order.value) return false
+  
+  // Must be client and order must be paid (section visibility already checks this)
+  if (!authStore.isClient || !order.value.is_paid) {
+    return false
+  }
+  
+  const status = (order.value.status || '').toString().toLowerCase().trim()
+  
+  // Block completed/cancelled/closed orders
+  if (['completed', 'cancelled', 'closed'].includes(status)) {
+    return false
+  }
+  
+  // For all other paid orders, allow cancellation request
+  // Note: The section wrapper already ensures user is the client owner
+  return true
+})
+
+// Can add pages/slides - for paid/in-progress orders
+const canAddPagesSlides = computed(() => {
+  if (!order.value) return false
+  
+  // Must be client and order must be paid (section visibility already checks this)
+  if (!authStore.isClient || !order.value.is_paid) {
+    return false
+  }
+  
+  const status = (order.value.status || '').toString().toLowerCase().trim()
+  
+  // Block completed/cancelled/closed orders
+  if (['completed', 'cancelled', 'closed'].includes(status)) {
+    return false
+  }
+  
+  // For all other paid orders, allow enhancement
+  // Note: The section wrapper already ensures user is the client owner
+  return true
 })
 
 const canReopenOrder = computed(() => {
@@ -4332,10 +4499,12 @@ const canReopenOrder = computed(() => {
   return isAdmin.value && ['completed', 'cancelled'].includes(status)
 })
 
+// Payment button - only for unpaid orders (initial payment)
 const canPayOrder = computed(() => {
   if (!order.value) return false
   const isClient = userRole.value === 'client'
   const isOrderClient = order.value.client?.id === userId.value || order.value.client_id === userId.value
+  // Only show payment button for unpaid orders (not for paid/in-progress orders)
   return isClient && isOrderClient && !order.value.is_paid
 })
 
@@ -5775,7 +5944,169 @@ const handleSubmitOrder = async () => {
 }
 
 // Alias for cancelOrder to match Actions tab
-const handleCancelOrder = cancelOrder
+// Updated cancel handler - distinguishes between direct cancel and request cancellation
+const handleCancelOrder = async () => {
+  if (!order.value) return
+  
+  // Direct cancel for unpaid orders
+  if (!order.value.is_paid && order.value.status?.toLowerCase() === 'unpaid') {
+    await cancelOrder()
+  } else {
+    // Request cancellation for paid/in-progress orders
+    await requestCancellation()
+  }
+}
+
+// Request cancellation for paid/in-progress orders
+const requestCancellation = async () => {
+  if (!order.value) return
+  
+  // First, show consequences and confirm
+  const consequences = `Before proceeding, please understand the consequences:
+
+• Your cancellation request will be reviewed by an administrator
+• If approved, the order will be cancelled and cannot be resumed
+• Any work completed by the writer may be lost
+• Refunds (if applicable) will be processed according to our cancellation policy
+• The writer assigned to this order will be notified
+• This action will be recorded in your order history
+
+Are you sure you want to proceed with the cancellation request?`
+  
+  const confirmed = await confirm.showDestructive(
+    consequences,
+    'Request Order Cancellation',
+    {
+      icon: '⚠️',
+      confirmText: 'Yes, Request Cancellation',
+      cancelText: 'No, Keep Order'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  // Then ask for reason
+  const reason = await inputModal.show({
+    title: 'Cancellation Reason Required',
+    message: 'Please provide a detailed reason for requesting cancellation. This information will help us process your request and improve our services.',
+    label: 'Cancellation Reason',
+    placeholder: 'Enter your reason for cancellation (e.g., change in requirements, no longer needed, found alternative solution, etc.)...',
+    required: true,
+    multiline: true,
+    rows: 5,
+    hint: 'Your reason will be reviewed by our support team. Please be as detailed as possible.'
+  })
+  
+  if (!reason) return
+  
+  try {
+    processingAction.value = true
+    actionError.value = null
+    
+    // Use transition endpoint to request cancellation
+    const response = await ordersAPI.transition(
+      order.value.id,
+      'cancelled',
+      reason,
+      { request_cancellation: true }
+    )
+    
+    const successMsg = response.data.message || 'Cancellation request submitted successfully. An administrator will review your request and you will be notified of the decision.'
+    showSuccessToast(successMsg)
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to request cancellation', 'Unable to submit cancellation request. Please try again or contact support.')
+    actionError.value = errorMsg
+    showErrorToast(errorMsg)
+  } finally {
+    processingAction.value = false
+  }
+}
+
+// Handle pages/slides added
+const handlePagesSlidesAdded = async (data) => {
+  if (data.redirectToPayment) {
+    // Redirect to payment page
+    router.push(data.paymentUrl || `/orders/${order.value.id}/pay`)
+  } else {
+    showSuccessToast('Pages/slides added successfully!')
+    await loadOrder()
+  }
+}
+
+// Handle extra services added
+const handleExtraServicesAdded = async (data) => {
+  if (data.redirectToPayment) {
+    // Redirect to payment page
+    router.push(data.paymentUrl || `/orders/${order.value.id}/pay`)
+  } else {
+    showSuccessToast('Services added successfully!')
+    await loadOrder()
+  }
+}
+
+// Handle writer request created
+const handleWriterRequestCreated = async () => {
+  showSuccessToast('Request submitted successfully. The client will be notified.')
+  showWriterRequestForm.value = false
+  await loadWriterRequests()
+}
+
+// Handle close order
+const handleCloseOrder = async () => {
+  if (!order.value) return
+  
+  const confirmed = await confirm.showDestructive(
+    'Are you sure you want to close this order? Once closed, the order cannot be reopened and all actions will be locked.',
+    'Close Order',
+    {
+      icon: '🔒',
+      confirmText: 'Yes, Close Order',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (!confirmed) return
+  
+  try {
+    processingAction.value = true
+    actionError.value = null
+    
+    const response = await ordersAPI.transition(
+      order.value.id,
+      'closed',
+      'Order closed by client',
+      {}
+    )
+    
+    const successMsg = response.data.message || 'Order closed successfully.'
+    showSuccessToast(successMsg)
+    actionSuccess.value = successMsg
+    await loadOrder()
+  } catch (error) {
+    const errorMsg = getErrorMessage(error, 'Failed to close order', 'Unable to close order. Please try again or contact support.')
+    showErrorToast(errorMsg)
+    actionError.value = errorMsg
+  } finally {
+    processingAction.value = false
+  }
+}
+
+// Load writer requests
+const loadWriterRequests = async () => {
+  if (!order.value || !authStore.isClient) return
+  
+  loadingWriterRequests.value = true
+  try {
+    const response = await writerRequestsAPI.getRequests(order.value.id)
+    writerRequests.value = response.data.results || response.data || []
+  } catch (error) {
+    console.error('Failed to load writer requests:', error)
+    writerRequests.value = []
+  } finally {
+    loadingWriterRequests.value = false
+  }
+}
 
 const files = ref([])
 const extraServiceFiles = ref([])
@@ -5848,14 +6179,13 @@ const handleEditOrderError = (error) => {
 }
 
 const loadOrder = async () => {
-  loading.value = true
-  error.value = null
-  try {
+  return withLoading(async () => {
+    error.value = null
+    try {
     const orderId = route.params.id
     
     if (!orderId) {
       error.value = 'Invalid order ID'
-      loading.value = false
       return
     }
     
@@ -5986,10 +6316,9 @@ const loadOrder = async () => {
       if (import.meta.env.DEV) {
         console.warn('Order load failed but cached data is available:', err)
       }
+      }
     }
-  } finally {
-    loading.value = false
-  }
+  })
 }
 
 const loadOrderReview = async () => {
@@ -7667,12 +7996,17 @@ const checkDraftEligibility = async (showError = true) => {
 const createDraftRequest = async () => {
   if (!order.value) return
   
+  // Check if user is admin
+  const isAdmin = authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport
+  
   // Confirm draft request
   const confirmed = await confirm.showDialog(
-    `Request a draft for Order #${order.value.id}?`,
-    'Request Draft',
+    isAdmin ? `Create draft request for Order #${order.value.id}?` : `Request a draft for Order #${order.value.id}?`,
+    isAdmin ? 'Create Draft Request (Admin)' : 'Request Draft',
     {
-      details: `You are about to request a draft for "${order.value.topic || 'Untitled'}". The writer will be notified and can upload a draft file for your review before the final submission.`,
+      details: isAdmin 
+        ? `You are creating a draft request as an admin for "${order.value.topic || 'Untitled'}". The writer will be notified and can upload a draft file.`
+        : `You are about to request a draft for "${order.value.topic || 'Untitled'}". The writer will be notified and can upload a draft file for your review before the final submission.`,
       variant: 'default',
       icon: '📄',
       confirmText: 'Submit Request',
@@ -8023,6 +8357,21 @@ const takeOrder = async () => {
 }
 
 onMounted(async () => {
+  // Calculate header height for sticky tabs
+  await nextTick()
+  updateHeaderHeight()
+  
+  // Update header height on window resize
+  const handleResize = () => {
+    updateHeaderHeight()
+  }
+  window.addEventListener('resize', handleResize)
+  
+  // Cleanup on unmount
+  onUnmounted(() => {
+    window.removeEventListener('resize', handleResize)
+  })
+  
   try {
     await loadOrder()
     // Only load related data if order was successfully loaded
@@ -8064,6 +8413,16 @@ onMounted(async () => {
             console.warn('Failed to check draft eligibility:', err)
           }
         }
+        // Load writer requests for paid orders
+        if (order.value.is_paid) {
+          try {
+            await loadWriterRequests()
+          } catch (err) {
+            if (import.meta.env.DEV) {
+              console.warn('Failed to load writer requests:', err)
+            }
+          }
+        }
       }
       if (authStore.isWriter && order.value.status === 'available') {
         try {
@@ -8092,7 +8451,7 @@ watch(() => route.params.id, async (newId, oldId) => {
     if (order.value) {
       await loadThreads()
       await loadDraftRequests()
-      if (authStore.isClient) {
+      if (authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) {
         await checkDraftEligibility(false)
       }
       if (authStore.isWriter && order.value.status === 'available') {

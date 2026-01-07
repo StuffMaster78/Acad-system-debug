@@ -52,10 +52,12 @@ from .views.dashboard_endpoints import (
     AdminRefundDashboardViewSet,
     AdminReviewModerationDashboardViewSet,
     AdminOrderManagementDashboardViewSet,
-    AdminSpecialOrdersManagementDashboardViewSet,
+    AdminExpressClassesDashboardViewSet,
     AdminClassManagementDashboardViewSet,
+    AdminSpecialOrdersManagementDashboardViewSet,
     AdminFinesManagementDashboardViewSet,
     AdminAdvancedAnalyticsDashboardViewSet,
+    AdminAdvancePaymentsDashboardViewSet,
 )
 from .views.geographic_analytics import GeographicAnalyticsViewSet
 
@@ -110,13 +112,19 @@ router.register(r'geographic-analytics', GeographicAnalyticsViewSet, basename="g
 # Writer Assignment
 router.register(r'writer-assignment', WriterAssignmentViewSet, basename="writer_assignment")
 
-# Special Orders Management
+# Express Classes Management (organized first)
+router.register(r'express-classes/dashboard', AdminExpressClassesDashboardViewSet, basename="admin_express_classes_dashboard")
+
+# Class Bundles Management (organized second)
+router.register(r'class-bundles', AdminClassBundlesManagementViewSet, basename="admin_class_bundles")
+router.register(r'class-bundles/dashboard', AdminClassManagementDashboardViewSet, basename="admin_class_bundles_dashboard")
+
+# Special Orders Management (organized third)
 router.register(r'special-orders', AdminSpecialOrdersManagementViewSet, basename="admin_special_orders")
 router.register(r'special-orders/dashboard', AdminSpecialOrdersManagementDashboardViewSet, basename="admin_special_orders_dashboard")
 
-# Class Bundles Management
-router.register(r'class-bundles', AdminClassBundlesManagementViewSet, basename="admin_class_bundles")
-router.register(r'class-bundles/dashboard', AdminClassManagementDashboardViewSet, basename="admin_class_bundles_dashboard")
+# Advance Payments Management (consolidated dashboard)
+router.register(r'advance-payments/dashboard', AdminAdvancePaymentsDashboardViewSet, basename="admin_advance_payments_dashboard")
 
 # Tip Management
 router.register(r'tips', AdminTipManagementViewSet, basename="admin_tips")

@@ -7,10 +7,11 @@ import { ref, computed } from 'vue'
 import { retryApiCall } from '@/utils/retry'
 import ordersAPI from '@/api/orders'
 import { useToast } from '@/composables/useToast'
+import { useLoadingState } from '@/composables/useLoadingState'
 
 export function useReliableOrders() {
   const orders = ref([])
-  const loading = ref(false)
+  const { loading, withLoading } = useLoadingState({ minDelay: 200 })
   const error = ref(null)
   const retryCount = ref(0)
   const lastRetryAt = ref(null)
@@ -34,12 +35,12 @@ export function useReliableOrders() {
       showRetryProgress = true,
     } = options
 
-    loading.value = true
-    error.value = null
-    retryCount.value = 0
-    isRetrying.value = false
+    return withLoading(async () => {
+      error.value = null
+      retryCount.value = 0
+      isRetrying.value = false
 
-    try {
+      try {
       const response = await retryApiCall(
         () => ordersAPI.list(params),
         {
@@ -106,9 +107,8 @@ export function useReliableOrders() {
       // Return empty array instead of throwing
       orders.value = []
       return []
-    } finally {
-      loading.value = false
-    }
+      }
+    })
   }
 
   /**

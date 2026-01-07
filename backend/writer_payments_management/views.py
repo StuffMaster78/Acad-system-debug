@@ -274,9 +274,10 @@ class WriterPaymentManagementViewSet(viewsets.ViewSet):
                 payments = WriterPayment.objects.filter(status='Pending')
 
             cleared_count = 0
+            payment_reference_id = request.data.get('payment_reference_id')  # Optional payment reference
             for payment in payments:
                 if mark_as_paid:
-                    payment.mark_as_paid(request.user)
+                    payment.mark_as_paid(request.user, payment_reference_id=payment_reference_id)
                 else:
                     payment.delete()
                 cleared_count += 1
