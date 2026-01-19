@@ -1,8 +1,8 @@
 <template>
   <div class="space-y-6">
     <!-- Breadcrumbs -->
-    <nav class="flex items-center space-x-2 text-sm" aria-label="Breadcrumb">
-      <span class="text-gray-900 dark:text-gray-100 font-medium">Dashboard</span>
+    <nav class="flex items-center gap-2 text-xs sm:text-sm overflow-x-auto whitespace-nowrap" aria-label="Breadcrumb">
+      <span class="text-gray-900 dark:text-gray-100 font-medium truncate max-w-[60vw] sm:max-w-none">Dashboard</span>
     </nav>
     
     <!-- Page Header -->

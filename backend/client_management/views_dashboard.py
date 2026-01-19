@@ -47,33 +47,28 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         days = int(request.query_params.get('days', 30))
         date_from = timezone.now() - timedelta(days=days)
         
-        # Get client's orders
-        orders = Order.objects.filter(
-            client=request.user,
-            created_at__gte=date_from
-        )
+        # All-time orders (counts should reflect current portfolio, not only recent)
+        all_orders = Order.objects.filter(client=request.user)
+        recent_orders = all_orders.filter(created_at__gte=date_from)
         
-        # Get payments
-        payments = OrderPayment.objects.filter(
+        # Order statistics - all-time status breakdown
+        orders_by_status = all_orders.values('status').annotate(count=Count('id'))
+        status_breakdown = {item['status']: item['count'] for item in orders_by_status}
+        total_orders = all_orders.count()
+        
+        # All-time payment stats
+        all_time_payments = OrderPayment.objects.filter(
             order__client=request.user,
-            order__created_at__gte=date_from,
             status='completed'
         )
-        
-        # Order statistics - combined query
-        orders_by_status = orders.values('status').annotate(count=Count('id'))
-        status_breakdown = {item['status']: item['count'] for item in orders_by_status}
-        total_orders = sum(item['count'] for item in orders_by_status)
-        
-        # Revenue statistics - combined into single aggregation
-        payment_stats = payments.aggregate(
+        payment_stats = all_time_payments.aggregate(
             total_spend=Sum('amount'),
-            avg_order_value=Avg('amount'),
-            paid_orders_count=Count('id')
+            avg_order_value=Avg('amount')
         )
         total_spend = payment_stats['total_spend'] or Decimal('0.00')
         avg_order_value = payment_stats['avg_order_value'] or Decimal('0.00')
-        paid_orders_count = payment_stats['paid_orders_count'] or 0
+        
+        paid_orders_count = all_orders.filter(is_paid=True).count()
         
         # All-time statistics - combined queries
         all_time_orders_qs = Order.objects.filter(client=request.user)
@@ -133,10 +128,13 @@ class ClientDashboardViewSet(viewsets.ViewSet):
         return Response({
             'total_orders': total_orders,
             'orders_by_status': status_breakdown,
+            'status_breakdown': status_breakdown,
             'total_spend': float(total_spend),
+            'all_time_spend': float(all_time_spend),
             'avg_order_value': float(avg_order_value),
             'paid_orders_count': paid_orders_count,
             'unpaid_orders_count': total_orders - paid_orders_count,
+            'recent_orders_count': recent_orders.count(),
             'all_time': {
                 'orders': all_time_orders,
                 'spend': float(all_time_spend),

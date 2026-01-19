@@ -4,6 +4,7 @@ export default {
   // Note: orders app is mounted under /api/v1/orders/, and the resource is /orders/
   list: (params) => apiClient.get('/orders/orders/', { params }),
   getFilterMetadata: () => apiClient.get('/orders/orders/filter-options/'),
+  getSummary: (params = {}) => apiClient.get('/orders/orders/summary/', { params }),
   get: (id) => apiClient.get(`/orders/orders/${id}/`),
   createClient: (data) => apiClient.post('/orders/orders/create/', data),
   quote: (data) => apiClient.post('/orders/orders/quote/', data),

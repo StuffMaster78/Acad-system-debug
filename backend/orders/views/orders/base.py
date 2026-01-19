@@ -399,7 +399,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 
                 # 1. Assigned orders (most selective - uses assigned_writer index)
                 conditions.append(
-                    models.Q(assigned_writer=user, is_paid=True)
+                    models.Q(assigned_writer=user)
                 )
                 
                 # 2. Requested orders (if any)
@@ -436,7 +436,7 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 base_qs = base_qs.distinct()
             else:
                 # Fallback: only show assigned paid orders if no website
-                base_qs = qs.filter(assigned_writer=user, is_paid=True)
+                base_qs = qs.filter(assigned_writer=user)
         elif user_role in ['admin', 'support', 'editor']:
             # Admins, support, and editors see all orders (no website filtering)
             base_qs = qs
@@ -970,6 +970,33 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 "statuses": status_list,
                 "status_groups": status_groups,
                 "flags": flag_options,
+            }
+        )
+
+    @decorators.action(detail=False, methods=["get"], url_path="summary", permission_classes=[IsAuthenticated])
+    def summary(self, request):
+        """
+        Return role-scoped order counts with status and group breakdowns.
+        Respects the same filters as the list endpoint.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        status_counts = queryset.values("status").annotate(count=models.Count("id"))
+        status_breakdown = {
+            item["status"]: item["count"] for item in status_counts
+        }
+
+        total_count = sum(status_breakdown.values())
+        group_breakdown = {}
+        for key, statuses in STATUS_GROUPS.items():
+            group_breakdown[key] = sum(
+                status_breakdown.get(status, 0) for status in statuses
+            )
+
+        return Response(
+            {
+                "total": total_count,
+                "status_breakdown": status_breakdown,
+                "status_group_breakdown": group_breakdown,
             }
         )
 
