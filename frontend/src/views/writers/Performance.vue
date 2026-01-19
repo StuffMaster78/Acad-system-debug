@@ -1,12 +1,12 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Performance Analytics</h1>
+        <h1 class="page-title text-gray-900">Performance Analytics</h1>
         <p class="mt-2 text-gray-600">Track your performance metrics and trends</p>
       </div>
-      <div class="flex items-center gap-3">
-        <select v-model="selectedDays" @change="loadPerformance" class="border rounded px-3 py-2">
+      <div class="flex items-center gap-3 w-full sm:w-auto">
+        <select v-model="selectedDays" @change="loadPerformance" class="border rounded px-3 py-2 w-full sm:w-auto">
           <option :value="7">Last 7 days</option>
           <option :value="30">Last 30 days</option>
           <option :value="90">Last 90 days</option>

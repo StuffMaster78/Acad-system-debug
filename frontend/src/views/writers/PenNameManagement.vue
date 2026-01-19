@@ -1,12 +1,12 @@
 <template>
-  <div class="space-y-6 p-6">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
     <div>
-      <h1 class="text-3xl font-bold text-gray-900">Pen Name Management</h1>
+      <h1 class="page-title text-gray-900">Pen Name Management</h1>
       <p class="mt-2 text-gray-600">Manage your pen name and request changes</p>
     </div>
 
     <!-- Current Pen Name Display -->
-    <div class="bg-white rounded-lg shadow-sm p-6">
+    <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
       <h2 class="text-xl font-semibold text-gray-900 mb-4">Current Pen Name</h2>
       
       <div class="mb-6 p-4 bg-gray-50 rounded-lg">
@@ -38,14 +38,16 @@
       </div>
     </div>
 
-    <!-- Pen Name Update Form (Direct Update) -->
+    <!-- Pen Name Update / Change Request -->
     <div class="bg-white rounded-lg shadow-sm p-6">
-      <h2 class="text-xl font-semibold text-gray-900 mb-4">Update Pen Name</h2>
+      <h2 class="text-xl font-semibold text-gray-900 mb-2">Update Pen Name</h2>
       <p class="text-sm text-gray-600 mb-4">
-        You can update your pen name directly. If you need to change it after it's been set, you'll need to submit a change request for admin approval.
+        {{ requiresApproval
+          ? 'Your current pen name is already set. Changes require admin approval.'
+          : 'Set your pen name once. If you need to change it later, you will submit a request.' }}
       </p>
       
-      <form @submit.prevent="savePenName" class="space-y-4">
+      <form @submit.prevent="handlePenNameSubmit" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Pen Name</label>
           <input
@@ -60,77 +62,34 @@
           </p>
         </div>
 
-        <div class="flex justify-end gap-3">
-          <button
-            type="button"
-            @click="resetPenNameForm"
-            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            :disabled="savingPenName"
-            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {{ savingPenName ? 'Saving...' : 'Save Pen Name' }}
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Change Request Form (For Admin Approval) -->
-    <div class="bg-white rounded-lg shadow-sm p-6">
-      <h2 class="text-xl font-semibold text-gray-900 mb-4">Request Pen Name Change</h2>
-      <p class="text-sm text-gray-600 mb-4">
-        If you need to change your pen name after it's been set, submit a change request. All changes require admin approval.
-      </p>
-
-      <form @submit.prevent="submitChangeRequest" class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            New Pen Name <span class="text-red-500">*</span>
-          </label>
-          <input
-            v-model="changeRequestForm.requested_pen_name"
-            type="text"
-            maxlength="100"
-            required
-            class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Enter your new pen name"
-          />
-          <p class="text-xs text-gray-500 mt-1">Maximum 100 characters</p>
-        </div>
-
-        <div>
+        <div v-if="requiresApproval">
           <label class="block text-sm font-medium text-gray-700 mb-1">
             Reason for Change <span class="text-red-500">*</span>
           </label>
           <textarea
             v-model="changeRequestForm.reason"
             rows="4"
-            required
             class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Please provide a valid reason for changing your pen name..."
           ></textarea>
           <p class="text-xs text-gray-500 mt-1">A valid reason is required for admin review</p>
         </div>
 
-        <div class="flex gap-3">
-          <button
-            type="submit"
-            :disabled="submittingRequest"
-            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            <span v-if="submittingRequest">Submitting...</span>
-            <span v-else>Submit Change Request</span>
-          </button>
+        <div class="flex flex-wrap justify-end gap-3">
           <button
             type="button"
-            @click="resetChangeRequestForm"
-            class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            @click="resetPenNameForm"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors w-full sm:w-auto"
           >
-            Reset
+            Cancel
+          </button>
+          <button
+            type="submit"
+            :disabled="!canSubmitPenName"
+            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+          >
+            <span v-if="requiresApproval">{{ submittingRequest ? 'Submitting...' : 'Submit Change Request' }}</span>
+            <span v-else>{{ savingPenName ? 'Saving...' : 'Save Pen Name' }}</span>
           </button>
         </div>
       </form>
@@ -229,6 +188,24 @@ const displayName = computed(() => {
   return currentPenName.value || registrationId.value || 'N/A'
 })
 
+const requiresApproval = computed(() => {
+  return !!currentPenName.value
+})
+
+const hasPenNameChange = computed(() => {
+  const nextValue = (penNameForm.value.pen_name || '').trim()
+  const currentValue = (currentPenName.value || '').trim()
+  return nextValue !== currentValue
+})
+
+const canSubmitPenName = computed(() => {
+  if (!hasPenNameChange.value) return false
+  if (requiresApproval.value) {
+    return !!changeRequestForm.value.reason.trim() && !submittingRequest.value
+  }
+  return !savingPenName.value
+})
+
 const loadProfile = async () => {
   loading.value = true
   try {
@@ -299,8 +276,19 @@ const savePenName = async () => {
   }
 }
 
+const handlePenNameSubmit = async () => {
+  if (!hasPenNameChange.value) return
+  if (requiresApproval.value) {
+    changeRequestForm.value.requested_pen_name = (penNameForm.value.pen_name || '').trim()
+    await submitChangeRequest()
+  } else {
+    await savePenName()
+  }
+}
+
 const resetPenNameForm = () => {
   penNameForm.value.pen_name = currentPenName.value || ''
+  changeRequestForm.value.reason = ''
 }
 
 const loadChangeRequestHistory = async () => {

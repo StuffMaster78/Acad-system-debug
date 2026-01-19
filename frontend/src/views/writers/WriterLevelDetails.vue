@@ -1,18 +1,18 @@
 <template>
-  <div class="min-h-screen bg-gray-50 p-6">
-    <div class="max-w-7xl mx-auto space-y-6">
+  <div class="min-h-dvh bg-gray-50">
+    <div class="max-w-7xl mx-auto page-shell space-y-6">
       <!-- Header -->
-      <div class="flex items-center justify-between">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900">Level Details</h1>
+          <h1 class="page-title text-gray-900">Level Details</h1>
           <p class="mt-1 text-lg text-gray-600">{{ levelDetails?.name || 'Not Assigned' }}</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 w-full sm:w-auto">
           <div class="text-3xl">📊</div>
           <button
             @click="loadProfile"
             :disabled="loading"
-            class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm font-medium"
+            class="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm font-medium w-full sm:w-auto"
           >
             {{ loading ? 'Loading...' : 'Refresh' }}
           </button>

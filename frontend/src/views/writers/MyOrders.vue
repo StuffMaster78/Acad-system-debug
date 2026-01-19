@@ -2,12 +2,12 @@
   <div class="min-h-dvh bg-gray-50">
     <div class="max-w-7xl mx-auto page-shell">
       <!-- Breadcrumbs -->
-      <nav class="mb-6 flex flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+      <nav class="mb-6 flex items-center gap-2 text-xs sm:text-sm overflow-x-auto whitespace-nowrap" aria-label="Breadcrumb">
         <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
           Dashboard
         </router-link>
         <span class="text-gray-400 dark:text-gray-600">/</span>
-        <span class="text-gray-900 dark:text-gray-100 font-medium">My Orders</span>
+        <span class="text-gray-900 dark:text-gray-100 font-medium truncate max-w-[60vw] sm:max-w-none">My Orders</span>
       </nav>
       
       <!-- Header -->
@@ -405,7 +405,55 @@
           </div>
                 </div>
                 
-        <div class="table-scroll max-h-96 sm:max-h-[420px] border border-gray-200 rounded-lg shadow-inner">
+        <!-- Mobile Cards -->
+        <div class="sm:hidden space-y-3 px-4 pb-4">
+          <div
+            v-for="order in orders"
+            :key="order.id"
+            class="rounded-xl border border-gray-200 p-3 shadow-sm transition-colors cursor-pointer"
+            :class="{
+              'bg-orange-50 border-orange-200': order.status === 'revision_requested',
+              'bg-red-50 border-red-200': isOverdue(order.writer_deadline || order.client_deadline || order.deadline) && isInProgress(order),
+              'bg-amber-50 border-amber-200': isDueSoon(order) && isInProgress(order) && !isOverdue(order.writer_deadline || order.client_deadline || order.deadline)
+            }"
+            @click="$router.push(`/orders/${order.id}`)"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-xs font-semibold text-gray-500">#{{ order.id }}</span>
+                  <OrderStatusTooltip :status="order.status" position="bottom">
+                    <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold text-white bg-green-700">
+                      {{ formatStatus(order.status) }}
+                    </span>
+                  </OrderStatusTooltip>
+                </div>
+                <div class="text-sm font-semibold text-gray-900 truncate">
+                  {{ getShortTitle(order.topic) }}
+                </div>
+                <div class="text-xs text-gray-500 truncate mt-0.5">
+                  {{ order.subject?.name || order.subject || 'N/A' }}
+                </div>
+              </div>
+              <span class="text-xs text-gray-500">
+                {{ formatTableDeadline(order.writer_deadline || order.client_deadline || order.deadline) }}
+              </span>
+            </div>
+            <div class="mt-3 flex flex-wrap gap-2 text-[11px] text-gray-600">
+              <span class="px-2 py-1 bg-gray-100 rounded-full">
+                {{ order.pages || order.number_of_pages || 0 }} pages
+              </span>
+              <span class="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
+                ${{ formatCurrency(order.writer_compensation || order.total_price || 0) }}
+              </span>
+              <span class="px-2 py-1 bg-blue-50 text-blue-700 rounded-full">
+                {{ formatTableDeadline(order.editor_deadline) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hidden sm:block table-scroll max-h-96 sm:max-h-[420px] border border-gray-200 rounded-lg shadow-inner">
           <table class="min-w-full divide-y divide-gray-200">
             <thead>
               <tr class="bg-teal-50">
@@ -596,9 +644,10 @@
 
   <!-- Priority Modal -->
   <Modal
-    v-model:visible="showPriorityModalFlag"
+    :visible="showPriorityModalFlag"
     title="Set Order Priority"
     size="md"
+    @update:visible="showPriorityModalFlag = $event"
   >
     <div v-if="selectedOrderForPriority" class="space-y-4">
       <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -663,7 +712,7 @@
   <!-- Confirmation Dialog -->
   <ConfirmationDialog
     v-if="confirm.show.value"
-    v-model:show="confirm.show"
+    :show="confirm.show.value"
     :title="unref(confirm.title)"
     :message="unref(confirm.message)"
     :details="unref(confirm.details)"
@@ -673,6 +722,7 @@
     :cancel-text="unref(confirm.cancelText)"
     @confirm="confirm.onConfirm"
     @cancel="confirm.onCancel"
+    @update:show="(val) => (confirm.show.value = val)"
   />
 </div>
 </template>
@@ -930,10 +980,7 @@ const loadOrders = async (page = 1) => {
     console.error('Failed to load orders:', error)
     console.error('Error details:', error.response || error.message)
     console.error('Error stack:', error.stack)
-    
-    // Always clear loading state
-    loading.value = false
-    
+
     const errorMsg = getErrorMessage(error, 'Failed to load orders. Please try again.')
     showError(errorMsg)
     orders.value = []
@@ -946,6 +993,8 @@ const loadOrders = async (page = 1) => {
       start_index: 0,
       end_index: 0,
     }
+  } finally {
+    loading.value = false
   }
 }
 

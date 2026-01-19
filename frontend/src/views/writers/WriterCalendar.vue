@@ -111,14 +111,14 @@
       </div>
 
       <!-- Calendar Grid -->
-      <div class="flex items-center justify-between text-xs text-gray-500 mb-2 sm:hidden">
+      <div v-if="showSwipeHint" class="flex items-center justify-between text-xs text-gray-500 mb-2 sm:hidden">
         <span>Swipe to scroll</span>
         <span>{{ dayHeaders[0] }} → {{ dayHeaders[6] }}</span>
       </div>
       <div class="relative">
         <div class="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white to-transparent"></div>
         <div class="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white to-transparent"></div>
-        <div class="table-scroll">
+        <div ref="calendarScrollRef" class="table-scroll">
         <div class="grid grid-cols-7 gap-1 sm:gap-2 min-w-[640px]">
         <!-- Day Headers -->
         <div
@@ -367,7 +367,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   CalendarIcon,
@@ -401,6 +401,8 @@ const calendarData = ref({
 const currentDate = ref(new Date())
 const selectedOrder = ref(null)
 const selectedDay = ref(null)
+const calendarScrollRef = ref(null)
+const showSwipeHint = ref(false)
 
 const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -585,7 +587,30 @@ const formatTimeRemaining = (hours) => {
 }
 
 onMounted(() => {
+  try {
+    showSwipeHint.value = localStorage.getItem('writerCalendarSwipeHintDismissed') !== 'true'
+  } catch {
+    showSwipeHint.value = true
+  }
+
   loadCalendar()
+  const scrollEl = calendarScrollRef.value
+  if (scrollEl) {
+    const handleScroll = () => {
+      if (!showSwipeHint.value) return
+      showSwipeHint.value = false
+      try {
+        localStorage.setItem('writerCalendarSwipeHintDismissed', 'true')
+      } catch {
+        // Ignore storage errors
+      }
+      scrollEl.removeEventListener('scroll', handleScroll)
+    }
+    scrollEl.addEventListener('scroll', handleScroll, { passive: true })
+    onUnmounted(() => {
+      scrollEl.removeEventListener('scroll', handleScroll)
+    })
+  }
 })
 </script>
 

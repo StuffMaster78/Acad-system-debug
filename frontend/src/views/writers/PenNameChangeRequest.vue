@@ -1,7 +1,7 @@
 <template>
-  <div class="space-y-6">
-    <div class="bg-white rounded-lg shadow-sm p-6">
-      <h1 class="text-2xl font-bold text-gray-900 mb-2">Pen Name Change Request</h1>
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
+    <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+      <h1 class="page-title text-gray-900 mb-2">Pen Name Change Request</h1>
       <p class="text-gray-600 mb-6">
         You can request to change your pen name. Once set, pen names cannot be deleted, only changed with admin approval.
       </p>

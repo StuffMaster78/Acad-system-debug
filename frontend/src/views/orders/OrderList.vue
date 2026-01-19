@@ -1,12 +1,12 @@
 <template>
   <div class="space-y-6">
     <!-- Breadcrumbs -->
-    <nav class="flex flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+    <nav class="flex items-center gap-2 text-xs sm:text-sm overflow-x-auto whitespace-nowrap" aria-label="Breadcrumb">
       <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
         Dashboard
       </router-link>
       <span class="text-gray-400 dark:text-gray-600">/</span>
-      <span class="text-gray-900 dark:text-gray-100 font-medium">Orders</span>
+      <span class="text-gray-900 dark:text-gray-100 font-medium truncate max-w-[60vw] sm:max-w-none">Orders</span>
     </nav>
     
     <div class="page-header">
@@ -32,11 +32,12 @@
 
     <!-- Filter Panel -->
     <FilterPanel
-      v-model:filters="filters"
+      :filters="filters"
       :status-options="statusOptions"
       :show-search="true"
       :show-date-range="true"
       :filter-labels="filterLabels"
+      @update:filters="filters = $event"
       @filter-change="handleFilterChange"
     />
 
@@ -500,7 +501,7 @@
     <!-- Confirmation Dialog (Admin Only) -->
     <ConfirmationDialog
       v-if="authStore.isAdmin || authStore.isSuperAdmin"
-      v-model:show="confirmShow"
+      :show="confirmShow"
       :title="confirmTitle"
       :message="confirmMessage"
       :details="confirmDetails"
@@ -635,8 +636,8 @@ const pagination = ref({
   itemsPerPage: 100  // Default page size (backend uses 100, max 500)
 })
 
-// All order statuses organized by category
-const statusOptions = [
+// All order statuses organized by category (fallback if metadata fails)
+const defaultStatusOptions = [
   // Initial States
   { value: 'created', label: 'Created' },
   { value: 'pending', label: 'Pending' },
@@ -679,6 +680,13 @@ const statusOptions = [
   { value: 'archived', label: 'Archived' },
   { value: 'closed', label: 'Closed' },
 ]
+
+const statusOptions = computed(() => {
+  if (filterMetadata.value.statuses?.length) {
+    return filterMetadata.value.statuses
+  }
+  return defaultStatusOptions
+})
 
 
 const filterLabels = {

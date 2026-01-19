@@ -3,7 +3,7 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Breadcrumb Navigation -->
       <nav class="mb-6" aria-label="Breadcrumb">
-        <ol class="flex items-center space-x-2 text-sm">
+        <ol class="flex items-center gap-2 text-xs sm:text-sm overflow-x-auto whitespace-nowrap">
           <li>
             <router-link
               to="/admin/holidays"
@@ -17,7 +17,7 @@
               <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
             </svg>
           </li>
-          <li class="text-gray-900 dark:text-white font-medium">
+          <li class="text-gray-900 dark:text-white font-medium truncate max-w-[60vw] sm:max-w-none">
             {{ editingSpecialDay ? 'Edit' : 'Create' }}
           </li>
         </ol>

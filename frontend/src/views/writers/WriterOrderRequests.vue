@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="min-h-dvh bg-gradient-to-br from-gray-50 via-white to-gray-50">
+    <div class="max-w-7xl mx-auto page-shell">
       <!-- Header -->
       <div class="mb-10">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
@@ -12,7 +12,7 @@
               Track your order requests and their approval status in real-time
             </p>
           </div>
-          <div class="flex items-center gap-4">
+          <div class="flex flex-wrap items-center gap-4 w-full sm:w-auto">
             <span
               v-if="lastUpdated"
               class="text-sm font-medium text-gray-500 hidden sm:flex items-center gap-2"
@@ -23,7 +23,7 @@
             <button
               @click="loadRequests"
               :disabled="loading"
-              class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+              class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 w-full sm:w-auto"
             >
               <ArrowPathIcon :class="['w-5 h-5', loading && 'animate-spin']" />
               <span>{{ loading ? 'Refreshing...' : 'Refresh' }}</span>
@@ -412,22 +412,22 @@
           </div>
         </div>
       </div>
-    </div>
+    <!-- Confirmation Dialog -->
+    <ConfirmationDialog
+      :show="confirmShow"
+      :title="confirmTitle"
+      :message="confirmMessage"
+      :details="confirmDetails"
+      :variant="confirmVariant"
+      :confirm-text="confirmConfirmText"
+      :cancel-text="confirmCancelText"
+      :icon="confirmIcon"
+      @update:show="confirmShow = $event"
+      @confirm="confirm.onConfirm"
+      @cancel="confirm.onCancel"
+    />
   </div>
-
-  <!-- Confirmation Dialog -->
-  <ConfirmationDialog
-    v-model:show="confirmShow"
-    :title="confirmTitle"
-    :message="confirmMessage"
-    :details="confirmDetails"
-    :variant="confirmVariant"
-    :confirm-text="confirmConfirmText"
-    :cancel-text="confirmCancelText"
-    :icon="confirmIcon"
-    @confirm="confirm.onConfirm"
-    @cancel="confirm.onCancel"
-  />
+  </div>
 </template>
 
 <script setup>

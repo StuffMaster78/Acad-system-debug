@@ -1,12 +1,12 @@
 <template>
-  <div class="space-y-6 p-6">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
     <div>
-      <h1 class="text-3xl font-bold text-gray-900">Writer Profile Settings</h1>
+      <h1 class="page-title text-gray-900">Writer Profile Settings</h1>
       <p class="mt-2 text-gray-600">Manage your pen name and profile visibility</p>
     </div>
 
     <!-- Pen Name Management Link -->
-    <div class="bg-white rounded-lg shadow-sm p-6">
+    <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
       <h2 class="text-xl font-semibold mb-4">Pen Name</h2>
       <p class="text-sm text-gray-600 mb-4">
         Your pen name is what clients will see instead of your real name. 
