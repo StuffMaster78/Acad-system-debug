@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-6xl mx-auto p-6">
+  <div class="max-w-6xl mx-auto page-shell">
     <!-- Progress Steps -->
     <div class="mb-8">
       <div class="flex items-center justify-between">

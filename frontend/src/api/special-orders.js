@@ -15,6 +15,7 @@ export default {
   overridePayment: (id) => apiClient.post(`/special-orders/api/special-orders/${id}/override_payment/`),
   completeOrder: (id) => apiClient.post(`/special-orders/api/special-orders/${id}/complete_order/`),
   assignWriter: (id, data) => apiClient.post(`/special-orders/api/special-orders/${id}/assign_writer/`, data),
+  setPrice: (id, data) => apiClient.post(`/special-orders/api/special-orders/${id}/set-price/`, data),
   
   // Installment Payments
   listInstallments: (params) => apiClient.get('/special-orders/api/installment-payments/', { params }),
@@ -44,8 +45,29 @@ export default {
   
   // Writer Bonuses
   listWriterBonuses: (params) => apiClient.get('/special-orders/api/writer-bonuses/', { params }),
+  getWriterBonus: (id) => apiClient.get(`/special-orders/api/writer-bonuses/${id}/`),
   createWriterBonus: (data) => apiClient.post('/special-orders/api/writer-bonuses/', data),
   updateWriterBonus: (id, data) => apiClient.put(`/special-orders/api/writer-bonuses/${id}/`, data),
   deleteWriterBonus: (id) => apiClient.delete(`/special-orders/api/writer-bonuses/${id}/`),
+  payWriterBonus: (id, data) => apiClient.post(`/special-orders/api/writer-bonuses/${id}/pay/`, data),
+  getWriterBonusStatistics: (params) => apiClient.get('/special-orders/api/writer-bonuses/statistics/', { params }),
+  
+  // Approval Queue
+  getApprovalQueue: (params) => apiClient.get('/special-orders/api/special-orders/approval-queue/', { params }),
+  
+  // Inquiry Files
+  listInquiryFiles: (specialOrderId, params) => apiClient.get(`/special-orders/api/special-order-inquiry-files/`, { params: { special_order: specialOrderId, ...params } }),
+  uploadInquiryFile: (data) => {
+    const formData = new FormData()
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null && data[key] !== undefined) {
+        formData.append(key, data[key])
+      }
+    })
+    return apiClient.post('/special-orders/api/special-order-inquiry-files/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+  deleteInquiryFile: (id) => apiClient.delete(`/special-orders/api/special-order-inquiry-files/${id}/delete/`),
 }
 

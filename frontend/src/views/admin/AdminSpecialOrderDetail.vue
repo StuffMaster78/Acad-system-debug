@@ -315,11 +315,22 @@
         <div class="space-y-6">
           <!-- Financial Information -->
           <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-            <div class="flex items-center gap-2 mb-4">
-              <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                <span class="text-emerald-600 dark:text-emerald-400 text-lg">💰</span>
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                  <span class="text-emerald-600 dark:text-emerald-400 text-lg">💰</span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Financial Information</h3>
               </div>
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Financial Information</h3>
+              <button
+                v-if="order.order_type === 'estimated' && (order.status === 'inquiry' || order.status === 'awaiting_approval')"
+                @click="showNegotiationModal = true"
+                class="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-1.5"
+                title="Negotiate or set price"
+              >
+                <span>💬</span>
+                <span>{{ order.total_cost ? 'Negotiate Price' : 'Set Price' }}</span>
+              </button>
             </div>
             <div class="space-y-3 text-sm">
               <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
@@ -328,6 +339,13 @@
                   <span>Total Cost</span>
                 </span>
                 <span class="text-xl font-bold text-gray-900 dark:text-white">${{ formatCurrency(order.total_cost || 0) }}</span>
+              </div>
+              <div v-if="order.budget" class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                  <span>💼</span>
+                  <span>Client Budget</span>
+                </span>
+                <span class="text-gray-900 dark:text-white font-semibold">${{ formatCurrency(order.budget) }}</span>
               </div>
               <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
                 <span class="font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1">
@@ -342,6 +360,47 @@
                   <span>Approved</span>
                 </span>
                 <span class="px-3 py-1 text-xs rounded-full font-semibold bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">Yes</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Follow-up Tracking -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center">
+                  <span class="text-orange-600 dark:text-orange-400 text-lg">📅</span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Follow-up Tracking</h3>
+              </div>
+              <button
+                @click="showFollowUpModal = true"
+                class="px-3 py-1.5 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors flex items-center gap-1.5"
+                title="Add follow-up note"
+              >
+                <span>➕</span>
+                <span>Add Follow-up</span>
+              </button>
+            </div>
+            <div v-if="followUps.length === 0" class="text-sm text-gray-500 dark:text-gray-400 italic py-2">
+              No follow-ups recorded yet
+            </div>
+            <div v-else class="space-y-3">
+              <div
+                v-for="(followUp, index) in followUps"
+                :key="index"
+                class="p-3 bg-gray-50 dark:bg-gray-900/50 rounded-lg border border-gray-200 dark:border-gray-700"
+              >
+                <div class="flex items-start justify-between mb-1">
+                  <span class="text-xs font-medium text-gray-600 dark:text-gray-400">{{ formatDate(followUp.date) }}</span>
+                  <span class="text-xs px-2 py-0.5 rounded-full" :class="getFollowUpTypeClass(followUp.type)">
+                    {{ followUp.type }}
+                  </span>
+                </div>
+                <p class="text-sm text-gray-700 dark:text-gray-300">{{ followUp.notes }}</p>
+                <p v-if="followUp.next_action" class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Next: {{ followUp.next_action }}
+                </p>
               </div>
             </div>
           </div>
@@ -887,6 +946,216 @@
           </div>
         </div>
       </div>
+
+      <!-- Price Negotiation Modal -->
+      <div v-if="showNegotiationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="showNegotiationModal = false">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <span>💬</span>
+                <span>{{ order?.total_cost ? 'Negotiate Price' : 'Set Price' }}</span>
+              </h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Set or negotiate the price for this estimated order</p>
+            </div>
+            <button
+              @click="showNegotiationModal = false"
+              class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div class="p-6 space-y-6">
+            <!-- Current Price Info -->
+            <div v-if="order?.total_cost" class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
+              <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-blue-700 dark:text-blue-300">Current Price:</span>
+                <span class="text-xl font-bold text-blue-900 dark:text-blue-100">${{ formatCurrency(order.total_cost) }}</span>
+              </div>
+              <div v-if="order?.budget" class="flex justify-between items-center">
+                <span class="text-sm font-medium text-blue-700 dark:text-blue-300">Client Budget:</span>
+                <span class="text-lg font-semibold text-blue-900 dark:text-blue-100">${{ formatCurrency(order.budget) }}</span>
+              </div>
+            </div>
+
+            <!-- Price Input Methods -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Total Cost ($) <span class="text-red-500">*</span>
+                </label>
+                <input
+                  v-model.number="negotiationForm.total_cost"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  required
+                  class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Price Per Day ($)
+                </label>
+                <input
+                  v-model.number="negotiationForm.price_per_day"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+                  placeholder="Auto-calculated"
+                  @input="calculateTotalFromPerDay"
+                />
+                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Duration: {{ order?.duration_days || 0 }} days
+                </p>
+              </div>
+            </div>
+
+            <!-- Negotiation Notes -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Negotiation Notes
+              </label>
+              <textarea
+                v-model="negotiationForm.admin_notes"
+                rows="4"
+                placeholder="Add notes about this price negotiation (e.g., 'Based on complexity, we're proposing $X...')"
+                class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              ></textarea>
+              <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                These notes will be added to admin notes and the client will be notified
+              </p>
+            </div>
+
+            <!-- Calculated Deposit -->
+            <div v-if="negotiationForm.total_cost" class="bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+              <div class="flex justify-between items-center">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Estimated Deposit (50%):</span>
+                <span class="text-lg font-bold text-gray-900 dark:text-white">${{ formatCurrency(negotiationForm.total_cost * 0.5) }}</span>
+              </div>
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="negotiationError" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300">
+              {{ negotiationError }}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                @click="showNegotiationModal = false"
+                class="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                @click="submitPriceNegotiation"
+                :disabled="!negotiationForm.total_cost || processing"
+                class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                <span v-if="processing" class="animate-spin">⏳</span>
+                <span v-else>💾</span>
+                <span>{{ processing ? 'Setting Price...' : (order?.total_cost ? 'Update Price' : 'Set Price') }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Follow-up Modal -->
+      <div v-if="showFollowUpModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="showFollowUpModal = false">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
+            <div>
+              <h3 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <span>📅</span>
+                <span>Add Follow-up</span>
+              </h3>
+              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Record a follow-up action or note for this order</p>
+            </div>
+            <button
+              @click="showFollowUpModal = false"
+              class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            >
+              ✕
+            </button>
+          </div>
+          
+          <div class="p-6 space-y-6">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Follow-up Type <span class="text-red-500">*</span>
+              </label>
+              <select
+                v-model="followUpForm.type"
+                required
+                class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              >
+                <option value="">Select Type</option>
+                <option value="Client Contact">Client Contact</option>
+                <option value="Price Negotiation">Price Negotiation</option>
+                <option value="Writer Assignment">Writer Assignment</option>
+                <option value="Payment Follow-up">Payment Follow-up</option>
+                <option value="Progress Check">Progress Check</option>
+                <option value="Quality Review">Quality Review</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Notes <span class="text-red-500">*</span>
+              </label>
+              <textarea
+                v-model="followUpForm.notes"
+                rows="4"
+                required
+                placeholder="Describe what was done or discussed..."
+                class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              ></textarea>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Next Action (Optional)
+              </label>
+              <input
+                v-model="followUpForm.next_action"
+                type="text"
+                placeholder="e.g., 'Follow up in 2 days', 'Wait for client response'"
+                class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
+              />
+            </div>
+
+            <!-- Error Message -->
+            <div v-if="followUpError" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300">
+              {{ followUpError }}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                @click="showFollowUpModal = false"
+                class="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                @click="submitFollowUp"
+                :disabled="!followUpForm.type || !followUpForm.notes || processing"
+                class="flex-1 px-4 py-2.5 bg-orange-600 text-white rounded-lg font-semibold hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                <span v-if="processing" class="animate-spin">⏳</span>
+                <span v-else>💾</span>
+                <span>{{ processing ? 'Saving...' : 'Save Follow-up' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -932,6 +1201,21 @@ const uploadForm = ref({
 })
 const threads = ref([])
 const creatingThread = ref(false)
+const showNegotiationModal = ref(false)
+const showFollowUpModal = ref(false)
+const followUps = ref([])
+const negotiationForm = ref({
+  total_cost: null,
+  price_per_day: null,
+  admin_notes: ''
+})
+const followUpForm = ref({
+  type: '',
+  notes: '',
+  next_action: ''
+})
+const negotiationError = ref('')
+const followUpError = ref('')
 
 const universalCategories = computed(() => {
   return fileCategories.value.filter(cat => cat.is_universal || cat.website === null)
@@ -990,6 +1274,16 @@ const loadOrder = async () => {
     const res = await specialOrdersAPI.get(route.params.id)
     order.value = res.data
     initializeEditForm()
+    
+    // Initialize negotiation form with current values
+    if (order.value) {
+      negotiationForm.value.total_cost = order.value.total_cost || null
+      negotiationForm.value.price_per_day = order.value.price_per_day || null
+    }
+    
+    // Parse follow-ups from admin notes
+    followUps.value = parseFollowUpsFromNotes()
+    
     // Load related data
     await Promise.all([
       loadFiles(),
@@ -1409,6 +1703,135 @@ const getStatusIcon = (status) => {
 
 const formatCurrency = (value) => {
   return parseFloat(value || 0).toFixed(2)
+}
+
+const calculateTotalFromPerDay = () => {
+  if (negotiationForm.value.price_per_day && order.value?.duration_days) {
+    negotiationForm.value.total_cost = negotiationForm.value.price_per_day * order.value.duration_days
+  }
+}
+
+const submitPriceNegotiation = async () => {
+  if (!negotiationForm.value.total_cost) {
+    negotiationError.value = 'Total cost is required'
+    return
+  }
+
+  processing.value = true
+  negotiationError.value = ''
+
+  try {
+    const payload = {
+      total_cost: negotiationForm.value.total_cost,
+      admin_notes: negotiationForm.value.admin_notes
+    }
+
+    if (negotiationForm.value.price_per_day) {
+      payload.price_per_day = negotiationForm.value.price_per_day
+    }
+
+    await specialOrdersAPI.setPrice(order.value.id, payload)
+    
+    showSuccessToast('Price set successfully! Client has been notified.')
+    showNegotiationModal.value = false
+    
+    // Reset form
+    negotiationForm.value = {
+      total_cost: null,
+      price_per_day: null,
+      admin_notes: ''
+    }
+    
+    // Reload order
+    await loadOrder()
+  } catch (err) {
+    negotiationError.value = err?.response?.data?.detail || err?.response?.data?.error || 'Failed to set price. Please try again.'
+    console.error('Failed to set price:', err)
+  } finally {
+    processing.value = false
+  }
+}
+
+const submitFollowUp = async () => {
+  if (!followUpForm.value.type || !followUpForm.value.notes) {
+    followUpError.value = 'Type and notes are required'
+    return
+  }
+
+  processing.value = true
+  followUpError.value = ''
+
+  try {
+    // Add follow-up to admin notes (or create a separate follow-up system)
+    const timestamp = new Date().toISOString()
+    const followUpNote = `[${new Date(timestamp).toLocaleString()}] ${followUpForm.value.type}: ${followUpForm.value.notes}${followUpForm.value.next_action ? ` | Next: ${followUpForm.value.next_action}` : ''}`
+    
+    // Update admin notes
+    const currentNotes = order.value.admin_notes || ''
+    const updatedNotes = currentNotes ? `${currentNotes}\n\n${followUpNote}` : followUpNote
+    
+    await specialOrdersAPI.update(order.value.id, {
+      admin_notes: updatedNotes
+    })
+    
+    // Add to local follow-ups array
+    followUps.value.push({
+      date: timestamp,
+      type: followUpForm.value.type,
+      notes: followUpForm.value.notes,
+      next_action: followUpForm.value.next_action
+    })
+    
+    showSuccessToast('Follow-up recorded successfully!')
+    showFollowUpModal.value = false
+    
+    // Reset form
+    followUpForm.value = {
+      type: '',
+      notes: '',
+      next_action: ''
+    }
+    
+    // Reload order
+    await loadOrder()
+  } catch (err) {
+    followUpError.value = err?.response?.data?.detail || err?.response?.data?.error || 'Failed to save follow-up. Please try again.'
+    console.error('Failed to save follow-up:', err)
+  } finally {
+    processing.value = false
+  }
+}
+
+const getFollowUpTypeClass = (type) => {
+  const classes = {
+    'Client Contact': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+    'Price Negotiation': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+    'Writer Assignment': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+    'Payment Follow-up': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+    'Progress Check': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+    'Quality Review': 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+    'Other': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
+  }
+  return classes[type] || classes['Other']
+}
+
+const parseFollowUpsFromNotes = () => {
+  if (!order.value?.admin_notes) return []
+  
+  const followUpPattern = /\[([^\]]+)\]\s*([^:]+):\s*([^|]+)(?:\s*\|\s*Next:\s*(.+))?/g
+  const followUps = []
+  let match
+  
+  while ((match = followUpPattern.exec(order.value.admin_notes)) !== null) {
+    followUps.push({
+      date: match[1],
+      type: match[2].trim(),
+      notes: match[3].trim(),
+      next_action: match[4]?.trim() || null
+    })
+  }
+  
+  return followUps.reverse() // Most recent first
 }
 
 const formatDate = (date) => {

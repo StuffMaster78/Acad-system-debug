@@ -1,6 +1,15 @@
 <template>
       <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
   <div class="space-y-5 sm:space-y-6 md:space-y-8 p-4 sm:p-5 md:p-6 lg:p-8" v-if="!componentError && !initialLoading">
+    <!-- Breadcrumbs -->
+    <nav class="flex items-center space-x-2 text-sm" aria-label="Breadcrumb">
+      <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+        Dashboard
+      </router-link>
+      <span class="text-gray-400 dark:text-gray-600">/</span>
+      <span class="text-gray-900 dark:text-gray-100 font-medium">Order Management</span>
+    </nav>
+    
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
       <div>
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Regular Orders Management</h1>

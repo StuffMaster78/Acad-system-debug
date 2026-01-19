@@ -55,38 +55,105 @@
       </div>
     </div>
 
-    <!-- Convert Points Section -->
-    <div class="card p-6">
-      <h2 class="text-xl font-semibold mb-4">Convert Points to Wallet</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+    <!-- Convert Points Section - Enhanced -->
+    <div class="bg-gradient-to-r from-primary-50 to-blue-50 border-2 border-primary-200 rounded-xl p-6 shadow-lg">
+      <div class="flex items-center justify-between mb-4">
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Points to Convert</label>
-          <input
-            v-model.number="convertPoints"
-            type="number"
-            min="1"
-            :max="summary.loyalty_points || 0"
-            class="w-full border rounded-lg px-4 py-3"
-            placeholder="Enter points"
-          />
-          <p class="text-xs text-gray-500 mt-1">
-            Available: {{ summary.loyalty_points || 0 }} points
-          </p>
+          <h2 class="text-2xl font-bold text-gray-900 mb-1">Convert Points to Wallet</h2>
+          <p class="text-sm text-gray-600">Instantly convert your loyalty points to wallet balance</p>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-2">Wallet Amount</label>
-          <div class="w-full border rounded-lg px-4 py-3 bg-gray-50">
-            ${{ convertAmount.toFixed(2) }}
+        <div class="p-3 bg-primary-100 rounded-full">
+          <svg class="w-8 h-8 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        </div>
+      </div>
+      
+      <div class="bg-white rounded-lg p-6 border border-primary-100">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mb-4">
+          <div class="md:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Points to Convert</label>
+            <div class="relative">
+              <input
+                v-model.number="convertPoints"
+                type="number"
+                min="1"
+                :max="summary.loyalty_points || 0"
+                class="w-full border-2 border-gray-300 rounded-lg px-4 py-3 pr-20 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all"
+                placeholder="Enter points"
+              />
+              <button
+                @click="convertPoints = summary.loyalty_points || 0"
+                class="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 text-xs font-medium text-primary-600 hover:text-primary-700 bg-primary-50 rounded"
+              >
+                Max
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+              Available: <span class="font-semibold text-primary-600">{{ summary.loyalty_points || 0 }} points</span>
+            </p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Wallet Amount</label>
+            <div class="w-full border-2 border-green-200 rounded-lg px-4 py-3 bg-green-50 font-bold text-lg text-green-700">
+              ${{ convertAmount.toFixed(2) }}
+            </div>
+            <p class="text-xs text-gray-500 mt-1">
+              Rate: {{ summary.conversion_rate || '0.00' }} pts = $1
+            </p>
+          </div>
+          <div>
+            <button
+              @click="convertLoyaltyPoints"
+              :disabled="converting || !convertPoints || convertPoints <= 0 || convertPoints > (summary.loyalty_points || 0)"
+              class="w-full px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-md hover:shadow-lg transform hover:scale-[1.02]"
+            >
+              <span v-if="converting" class="flex items-center justify-center gap-2">
+                <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Converting...
+              </span>
+              <span v-else class="flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+                Convert Now
+              </span>
+            </button>
           </div>
         </div>
-        <div>
+        
+        <!-- Quick Convert Options -->
+        <div class="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
           <button
-            @click="convertLoyaltyPoints"
-            :disabled="converting || !convertPoints || convertPoints <= 0 || convertPoints > (summary.loyalty_points || 0)"
-            class="w-full px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            v-for="option in quickConvertOptions"
+            :key="option.label"
+            @click="convertPoints = option.points"
+            class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
           >
-            {{ converting ? 'Converting...' : 'Convert' }}
+            {{ option.label }}
           </button>
+        </div>
+        
+        <!-- Auto-Convert Toggle -->
+        <div class="mt-4 pt-4 border-t border-gray-200">
+          <label class="flex items-center justify-between cursor-pointer">
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-900">Automatic Conversion</p>
+              <p class="text-xs text-gray-500">Automatically convert points to wallet when you reach the minimum threshold</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer ml-4">
+              <input
+                type="checkbox"
+                v-model="autoConvertEnabled"
+                @change="saveAutoConvertPreference"
+                class="sr-only peer"
+              />
+              <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
+            </label>
+          </label>
         </div>
       </div>
     </div>
@@ -246,6 +313,7 @@ const summaryLoading = ref(true)
 
 const convertPoints = ref(0)
 const converting = ref(false)
+const autoConvertEnabled = ref(false)
 
 const transactions = ref([])
 const transactionsLoading = ref(true)
@@ -269,6 +337,27 @@ const convertAmount = computed(() => {
   return rate > 0 ? convertPoints.value / rate : 0
 })
 
+const quickConvertOptions = computed(() => {
+  const points = summary.value.loyalty_points || 0
+  const rate = parseFloat(summary.value.conversion_rate) || 1
+  const minPoints = Math.ceil(10 * rate) // Minimum for $10
+  
+  const options = []
+  if (points >= minPoints) {
+    options.push({ label: `$10 (${minPoints} pts)`, points: minPoints })
+  }
+  if (points >= minPoints * 2) {
+    options.push({ label: `$25 (${Math.ceil(25 * rate)} pts)`, points: Math.ceil(25 * rate) })
+  }
+  if (points >= minPoints * 5) {
+    options.push({ label: `$50 (${Math.ceil(50 * rate)} pts)`, points: Math.ceil(50 * rate) })
+  }
+  if (points >= minPoints * 10) {
+    options.push({ label: `$100 (${Math.ceil(100 * rate)} pts)`, points: Math.ceil(100 * rate) })
+  }
+  return options
+})
+
 const filteredItems = computed(() => {
   if (!selectedCategory.value) return redemptionItems.value
   return redemptionItems.value.filter(item => item.category === selectedCategory.value)
@@ -279,6 +368,16 @@ const loadSummary = async () => {
   try {
     const res = await loyaltyAPI.getSummary()
     summary.value = res.data || summary.value
+
+    // Initialize auto-convert preference from localStorage (client-only)
+    if (typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem('loyalty_auto_convert')
+      if (stored === 'true') {
+        autoConvertEnabled.value = true
+      } else if (stored === 'false') {
+        autoConvertEnabled.value = false
+      }
+    }
   } catch (e) {
     console.error('Failed to load summary:', e)
     error.value = 'Failed to load loyalty summary'
@@ -325,6 +424,22 @@ const loadRedemptionRequests = async () => {
     console.error('Failed to load redemption requests:', e)
   } finally {
     requestsLoading.value = false
+  }
+}
+
+const saveAutoConvertPreference = async () => {
+  try {
+    // Save preference to localStorage (or API if you have a user preferences endpoint)
+    localStorage.setItem('loyalty_auto_convert', autoConvertEnabled.value ? 'true' : 'false')
+    message.value = autoConvertEnabled.value 
+      ? 'Automatic conversion enabled. Points will be converted when you reach the minimum threshold.'
+      : 'Automatic conversion disabled.'
+    messageSuccess.value = true
+    setTimeout(() => {
+      message.value = ''
+    }, 5000)
+  } catch (e) {
+    console.error('Failed to save auto-convert preference:', e)
   }
 }
 

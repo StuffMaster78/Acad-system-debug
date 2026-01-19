@@ -9,6 +9,7 @@ from .views import (
     EstimatedSpecialOrderSettingsViewSet
 )
 from .views.streamlined_views import StreamlinedSpecialOrderViewSet
+from .views.inquiry_files import SpecialOrderInquiryFileViewSet
 
 # Initialize the router for the viewsets
 router = DefaultRouter()
@@ -39,6 +40,11 @@ router.register(
     r'estimated-special-order-settings',
     EstimatedSpecialOrderSettingsViewSet,
     basename='estimatedspecialordersettings'
+)
+router.register(
+    r'special-order-inquiry-files',
+    SpecialOrderInquiryFileViewSet,
+    basename='special-order-inquiry-file'
 )
 
 urlpatterns = [

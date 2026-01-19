@@ -1,10 +1,10 @@
 <template>
-  <div class="privacy-security-page bg-gray-50 dark:bg-gray-900 min-h-screen">
-    <div class="max-w-6xl mx-auto p-6">
+  <div class="privacy-security-page bg-gray-50 dark:bg-gray-900 min-h-dvh">
+    <div class="max-w-6xl mx-auto page-shell">
       <div class="page-header mb-8">
-        <div class="flex items-center justify-between">
+        <div class="page-header">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">Privacy & Security</h1>
+            <h1 class="page-title text-gray-900 dark:text-gray-100 mb-2">Privacy & Security</h1>
             <p class="text-gray-600 dark:text-gray-400">Learn about our privacy practices and security measures</p>
           </div>
           <button

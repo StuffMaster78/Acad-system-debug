@@ -114,9 +114,12 @@ class MessageService:
             raise ValueError("Invalid message type.")
         
         # Flag if risky
-        flagged_by_type = inferred_type in {"file", "image", "link"}
+        # Messages with attachments (file, image) are always shadowed until admin review
+        # Messages with links are also shadowed until admin review
+        # Messages with screened words are flagged and shadowed
+        flagged_by_type = inferred_type in {"file", "image", "link"} or bool(attachment_file)
         is_flagged = flagged_by_content or contains_link or flagged_by_type
-        is_hidden = is_flagged
+        is_hidden = is_flagged  # Shadow messages with attachments, links, or screened words
 
         # Compose message object (Final Object)
         comm_msg = CommunicationMessage.objects.create(

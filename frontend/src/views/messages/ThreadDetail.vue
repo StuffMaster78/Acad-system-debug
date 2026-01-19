@@ -1,74 +1,106 @@
 <template>
-  <div class="thread-detail-page min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-6xl mx-auto p-6">
-      <!-- Breadcrumb -->
-      <div class="mb-4">
-        <nav class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-          <router-link to="/dashboard" class="hover:text-gray-900 dark:hover:text-gray-200">Dashboard</router-link>
-          <span>/</span>
-          <router-link to="/messages" class="hover:text-gray-900 dark:hover:text-gray-200">Messaging</router-link>
-          <span>/</span>
-          <span class="text-gray-900 dark:text-gray-200">Thread #{{ threadId }}</span>
-        </nav>
-      </div>
-
-      <!-- Header -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
-        <div class="p-6">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-4">
-              <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
-                {{ getThreadInitials(thread) }}
-              </div>
-              <div>
-                <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ getThreadTitle(thread) }}</h1>
-                <div class="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  <span>{{ getThreadSubtitle(thread) }}</span>
-                  <span v-if="thread.order" class="flex items-center gap-1">
-                    <span>Order #{{ thread.order.id || thread.order }}</span>
-                  </span>
-                </div>
-                <!-- Client/Writer Info -->
-                <div v-if="otherParticipant" class="mt-2 text-sm">
-                  <div v-if="authStore.isWriter && otherParticipant.role === 'client'" class="text-gray-600 dark:text-gray-400">
-                    <span class="font-semibold">Client ID:</span> {{ otherParticipant.id }}
-                    <span v-if="otherParticipant.nickname" class="ml-2">
-                      <span class="font-semibold">Nickname:</span> {{ otherParticipant.nickname }}
-                    </span>
-                  </div>
-                  <div v-else-if="authStore.isClient && otherParticipant.role === 'writer'" class="text-gray-600 dark:text-gray-400">
-                    <span class="font-semibold">Writer ID:</span> {{ otherParticipant.id }}
-                    <span v-if="otherParticipant.writer_profile?.pen_name" class="ml-2">
-                      <span class="font-semibold">Pen Name:</span> {{ otherParticipant.writer_profile.pen_name }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <button 
-              @click="$router.push('/messages')" 
-              class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <!-- Messaging Lock Warning -->
-          <div v-if="isMessagingLocked" class="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
-            <div class="flex items-center gap-2 text-amber-800 dark:text-amber-200">
-              <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
-              </svg>
-              <span class="font-medium">Messaging is locked for this order. You can view messages but cannot send new ones.</span>
-            </div>
-          </div>
+  <div class="thread-detail-page min-h-dvh bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-6xl mx-auto page-shell">
+      <!-- Loading State -->
+      <div v-if="loadingThread" class="flex items-center justify-center min-h-[500px]">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-600 dark:text-gray-400 text-lg">Loading thread...</p>
         </div>
       </div>
 
-      <!-- Messages List (Table Format) -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+      <!-- Error State -->
+      <div v-else-if="!thread" class="flex items-center justify-center min-h-[500px]">
+        <div class="text-center max-w-md">
+          <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 dark:bg-red-900/20 flex items-center justify-center">
+            <svg class="w-10 h-10 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Thread Not Found</h2>
+          <p class="text-gray-600 dark:text-gray-400 mb-6">The thread you're looking for doesn't exist or you don't have permission to view it.</p>
+          <router-link
+            to="/messages"
+            class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-sm hover:shadow-md"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Messages
+          </router-link>
+        </div>
+      </div>
+
+      <!-- Thread Content -->
+      <div v-else>
+        <!-- Breadcrumb -->
+        <div class="mb-4">
+          <nav class="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400" aria-label="Breadcrumb">
+            <router-link to="/dashboard" class="hover:text-gray-900 dark:hover:text-gray-200">Dashboard</router-link>
+            <span>/</span>
+            <router-link to="/messages" class="hover:text-gray-900 dark:hover:text-gray-200">Messages</router-link>
+            <span>/</span>
+            <span class="text-gray-900 dark:text-gray-200 font-medium">Thread #{{ threadId }}</span>
+          </nav>
+        </div>
+
+        <!-- Header -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
+          <div class="p-4 sm:p-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold text-lg">
+                  {{ getThreadInitials(thread) }}
+                </div>
+                <div>
+                  <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ getThreadTitle(thread) }}</h1>
+                  <div class="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
+                    <span>{{ getThreadSubtitle(thread) }}</span>
+                    <span v-if="thread && thread.order" class="flex items-center gap-1">
+                      <span>Order #{{ thread.order.id || thread.order }}</span>
+                    </span>
+                  </div>
+                  <!-- Client/Writer Info -->
+                  <div v-if="otherParticipant" class="mt-2 text-sm">
+                    <div v-if="authStore.isWriter && otherParticipant.role === 'client'" class="text-gray-600 dark:text-gray-400">
+                      <span class="font-semibold">Client ID:</span> {{ otherParticipant.id }}
+                      <span v-if="otherParticipant.nickname" class="ml-2">
+                        <span class="font-semibold">Nickname:</span> {{ otherParticipant.nickname }}
+                      </span>
+                    </div>
+                    <div v-else-if="authStore.isClient && otherParticipant.role === 'writer'" class="text-gray-600 dark:text-gray-400">
+                      <span class="font-semibold">Writer ID:</span> {{ otherParticipant.id }}
+                      <span v-if="otherParticipant.writer_profile?.pen_name" class="ml-2">
+                        <span class="font-semibold">Pen Name:</span> {{ otherParticipant.writer_profile.pen_name }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <button 
+                @click="$router.push('/messages')" 
+                class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors self-start sm:self-auto"
+              >
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Messaging Lock Warning -->
+            <div v-if="isMessagingLocked" class="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+              <div class="flex items-center gap-2 text-amber-800 dark:text-amber-200">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+                <span class="font-medium">Messaging is locked for this order. You can view messages but cannot send new ones.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Messages List (Table Format) -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <!-- Table Controls -->
         <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
           <div class="flex items-center gap-2">
@@ -85,20 +117,20 @@
             </select>
             <label class="text-sm text-gray-700 dark:text-gray-300">entries</label>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <label class="text-sm text-gray-700 dark:text-gray-300">Search:</label>
             <input
               v-model="searchQuery"
               @input="debouncedSearch"
               type="text"
               placeholder="Search messages..."
-              class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-48 dark:bg-gray-800 dark:text-white"
+              class="border border-gray-300 dark:border-gray-600 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 w-full sm:w-48 dark:bg-gray-800 dark:text-white"
             />
           </div>
         </div>
 
         <!-- Messages Table -->
-        <div class="overflow-x-auto">
+        <div class="table-scroll">
           <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
             <thead class="bg-teal-50 dark:bg-teal-900/20">
               <tr>
@@ -257,6 +289,7 @@
       </div>
       <div v-else class="bg-gray-100 dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 text-center text-gray-500 dark:text-gray-400">
         <p>Messaging is locked for this thread. You cannot send new messages.</p>
+      </div>
       </div>
     </div>
   </div>
@@ -422,7 +455,7 @@ const getThreadTitle = (thread) => {
   if (otherParticipants.length === 0) return 'Conversation'
   if (otherParticipants.length === 1) {
     const p = otherParticipants[0]
-    return typeof p === 'object' ? (p.username || p.email) : 'User'
+    return typeof p === 'object' ? (p.username || p.email || 'User') : 'User'
   }
   return `${otherParticipants.length} participants`
 }
@@ -445,12 +478,14 @@ const getThreadSubtitle = (thread) => {
 }
 
 const getThreadInitials = (thread) => {
+  if (!thread) return '??'
   const title = getThreadTitle(thread)
-  const words = title.split(' ')
+  if (!title || title === 'Loading...') return '??'
+  const words = title.split(' ').filter(w => w.length > 0)
   if (words.length >= 2) {
     return (words[0][0] + words[1][0]).toUpperCase()
   }
-  return title.substring(0, 2).toUpperCase()
+  return title.substring(0, 2).toUpperCase() || '??'
 }
 
 const isCurrentUser = (sender) => {

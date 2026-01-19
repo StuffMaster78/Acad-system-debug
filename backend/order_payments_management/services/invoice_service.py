@@ -116,16 +116,25 @@ class InvoiceService:
         return f"INV-{uuid.uuid4().hex[:32].upper()}"
     
     @staticmethod
-    def get_payment_link(invoice: Invoice) -> str:
+    def get_payment_link(invoice: Invoice) -> Optional[str]:
         """
         Get the full payment URL for an invoice.
+        Uses custom_payment_link if set, otherwise generates default link.
         
         Args:
             invoice: Invoice instance
             
         Returns:
-            str: Full payment URL
+            str: Full payment URL, or None if invoice is paid
         """
+        if invoice.is_paid:
+            return None
+        
+        # Use custom payment link if provided
+        if invoice.custom_payment_link:
+            return invoice.custom_payment_link
+        
+        # Generate default payment link
         if not invoice.payment_token:
             # Regenerate token if missing
             invoice.payment_token = InvoiceService._generate_payment_token()

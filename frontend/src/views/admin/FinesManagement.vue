@@ -1904,8 +1904,11 @@ const approveDispute = async (appealId) => {
     
     if (notes === null) return // User cancelled
     
-    await adminManagementAPI.approveAppeal(appealId, { notes: notes || '' })
-    showSuccess('Appeal approved successfully')
+    await finesAPI.reviewAppeal(appealId, { 
+      accept: true, 
+      review_notes: notes || '' 
+    })
+    showSuccess('Appeal approved successfully. Fine has been waived.')
     await Promise.all([loadAppeals(), loadDisputeQueue(), loadFines(), loadStats()])
   } catch (err) {
     if (err !== 'cancelled' && err !== null) {
@@ -1930,13 +1933,16 @@ const rejectDispute = async (appealId) => {
       }
     )
     
-    if (!notes) {
+    if (!notes || notes.trim() === '') {
       showError('Review notes are required to reject an appeal')
       return
     }
     
-    await adminManagementAPI.rejectAppeal(appealId, { notes })
-    showSuccess('Appeal rejected')
+    await finesAPI.reviewAppeal(appealId, { 
+      accept: false, 
+      review_notes: notes 
+    })
+    showSuccess('Appeal rejected. Fine has been upheld.')
     await Promise.all([loadAppeals(), loadDisputeQueue(), loadFines(), loadStats()])
   } catch (err) {
     if (err !== 'cancelled' && err !== null) {

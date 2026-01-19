@@ -64,6 +64,7 @@ class StreamlinedSpecialOrderService:
             'order_type': order_type,
             'duration_days': data.get('duration_days'),
             'inquiry_details': data.get('inquiry_details', ''),
+            'budget': data.get('budget'),
             'status': 'inquiry',
         }
         

@@ -646,7 +646,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'recipient_name', 'recipient_name_display', 'website', 'website_id', '_website_id', 'website_name',
             'issued_by', 'issued_by_username', 'title', 'purpose', 'description', 'order_number',
             'amount', 'due_date', 'payment_method', 'is_paid', 'payment', 'payment_token', 'token_expires_at',
-            'email_sent', 'email_sent_at', 'email_sent_count', 'order', 'order_id', '_order_id',
+            'custom_payment_link', 'email_sent', 'email_sent_at', 'email_sent_count', 'order', 'order_id', '_order_id',
             'special_order', 'special_order_id', '_special_order_id', 'class_purchase', 'class_purchase_id', '_class_purchase_id',
             'created_at', 'paid_at', 'updated_at', 'payment_link', 'is_overdue', 'is_token_valid'
         ]
@@ -657,6 +657,7 @@ class InvoiceSerializer(serializers.ModelSerializer):
             'recipient_email_display', 'recipient_name_display', 'website_name', 'issued_by_username',
             'client_id', 'website_id', 'order_id', 'special_order_id', 'class_purchase_id'
         ]
+        # custom_payment_link is writable (admins can set it)
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -783,7 +784,7 @@ class InvoiceCreateSerializer(serializers.ModelSerializer):
         fields = [
             'recipient_email', 'recipient_name', 'website_id', 'client_id',
             'title', 'purpose', 'description', 'order_number', 'amount', 'due_date',
-            'payment_method', 'order', 'special_order', 'class_purchase', 'send_email'
+            'payment_method', 'custom_payment_link', 'order', 'special_order', 'class_purchase', 'send_email'
         ]
     
     def __init__(self, *args, **kwargs):

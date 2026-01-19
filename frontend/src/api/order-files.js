@@ -11,6 +11,8 @@ export default {
   download: (id) => apiClient.get(`/order-files/order-files/${id}/download/`),
   getSignedUrl: (id) => apiClient.get(`/order-files/order-files/${id}/signed-url/`),
   toggleDownload: (id) => apiClient.post(`/order-files/order-files/${id}/toggle_download/`),
+  requestDeletion: (id, reason = '') => apiClient.post(`/order-files/order-files/${id}/request_deletion/`, { reason }),
+  getAccessHistory: (id) => apiClient.get(`/order-files/order-files/${id}/access_history/`),
   
   // Extra Service Files
   listExtraServiceFiles: (params) => apiClient.get('/order-files/extra-service-files/', { params }),
@@ -34,7 +36,8 @@ export default {
   listDeletionRequests: (params) => apiClient.get('/order-files/file-deletion-requests/', { params }),
   getDeletionRequest: (id) => apiClient.get(`/order-files/file-deletion-requests/${id}/`),
   createDeletionRequest: (data) => apiClient.post('/order-files/file-deletion-requests/', data),
-  approveDeletionRequest: (id) => apiClient.post(`/order-files/file-deletion-requests/${id}/approve/`),
+  approveDeletionRequest: (id, data = {}) => apiClient.post(`/order-files/file-deletion-requests/${id}/approve/`, data),
+  rejectDeletionRequest: (id, data = {}) => apiClient.post(`/order-files/file-deletion-requests/${id}/reject/`, data),
   deleteDeletionRequest: (id) => apiClient.delete(`/order-files/file-deletion-requests/${id}/`),
   
   // Order Files Config

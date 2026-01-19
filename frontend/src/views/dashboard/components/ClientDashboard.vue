@@ -405,20 +405,38 @@
           <div
             v-for="thread in recentCommunications"
             :key="thread.id"
-            class="p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+            @click="$router.push(`/messages/thread/${thread.id}`)"
+            class="p-3 border rounded-lg transition-all cursor-pointer border-l-4"
+            :class="thread.unread_count > 0 
+              ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' 
+              : 'border-l-transparent hover:bg-gray-50'"
           >
             <div class="flex items-center justify-between">
-              <div>
-                <div class="font-medium text-sm">{{ thread.subject || thread.order_topic || 'Conversation' }}</div>
-                <div class="text-xs text-gray-500">
+              <div class="flex-1">
+                <div 
+                  class="font-medium text-sm"
+                  :class="thread.unread_count > 0 ? 'text-gray-900 font-bold' : 'text-gray-700'"
+                >
+                  {{ thread.subject || thread.order_topic || 'Conversation' }}
+                </div>
+                <div 
+                  class="text-xs mt-1"
+                  :class="thread.unread_count > 0 ? 'text-gray-600' : 'text-gray-500'"
+                >
                   Updated: {{ formatDate(thread.updated_at || thread.created_at) }}
                 </div>
               </div>
-              <span v-if="thread.unread_count" class="px-2 py-0.5 text-xs bg-red-100 text-red-700 rounded-full">
-                {{ thread.unread_count }} new
+              <span 
+                v-if="thread.unread_count" 
+                class="px-2 py-0.5 text-xs bg-red-500 text-white rounded-full font-bold shrink-0"
+              >
+                {{ thread.unread_count }}
               </span>
             </div>
-            <div class="text-xs text-gray-500 mt-2 flex items-center gap-2">
+            <div 
+              class="text-xs mt-2 flex items-center gap-2"
+              :class="thread.unread_count > 0 ? 'text-gray-600' : 'text-gray-500'"
+            >
               <span>Participants:</span>
               <span class="font-medium text-gray-700">{{ formatParticipants(thread.participants) }}</span>
             </div>

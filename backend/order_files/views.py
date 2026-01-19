@@ -146,6 +146,123 @@ class OrderFileViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"error": f"Failed to download file: {str(e)}"}, status=500)
     
+    def perform_destroy(self, instance):
+        """Only admin/superadmin/support can delete files when order is in progress.
+        Clients and writers must request deletion."""
+        from rest_framework.exceptions import PermissionDenied
+        
+        user = self.request.user
+        user_role = getattr(user, 'role', None)
+        order = instance.order
+        
+        # Check if order is in progress
+        order_in_progress = order.status in ['in_progress', 'revision', 'paid', 'assigned']
+        
+        # Only admins/superadmin/support can delete when order is in progress
+        if order_in_progress:
+            if not (user_role in ['admin', 'superadmin', 'support'] or user.is_staff):
+                raise PermissionDenied(
+                    "Only administrators and support staff can delete files when an order is in progress. "
+                    "Please request deletion instead."
+                )
+        
+        # If order is not in progress, check if user has permission
+        # Admins/support can always delete
+        if not (user_role in ['admin', 'superadmin', 'support'] or user.is_staff):
+            # Writers can delete their own uploads if order is not in progress
+            if user_role == 'writer' and instance.uploaded_by == user and not order_in_progress:
+                pass  # Allow deletion
+            # Clients can delete files they uploaded if order is not in progress
+            elif user_role == 'client' and instance.uploaded_by == user and not order_in_progress:
+                pass  # Allow deletion
+            else:
+                raise PermissionDenied(
+                    "You do not have permission to delete this file. Please request deletion instead."
+                )
+        
+        # Delete the file
+        instance.file.delete(save=False)
+        instance.delete()
+    
+    @action(detail=True, methods=["post"])
+    def request_deletion(self, request, pk=None):
+        """Allows clients and writers to request file deletion."""
+        from rest_framework.exceptions import PermissionDenied
+        
+        file = get_object_or_404(OrderFile, pk=pk)
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        
+        # Only clients and writers can request deletion
+        if user_role not in ['client', 'writer']:
+            raise PermissionDenied("Only clients and writers can request file deletion.")
+        
+        # Check if user has access to this file's order
+        if user_role == 'client' and file.order.client != user:
+            raise PermissionDenied("You can only request deletion for files in your orders.")
+        
+        if user_role == 'writer' and file.order.assigned_writer != user:
+            raise PermissionDenied("You can only request deletion for files in orders assigned to you.")
+        
+        # Check if deletion request already exists
+        existing_request = FileDeletionRequest.objects.filter(
+            file=file,
+            status='pending'
+        ).first()
+        
+        if existing_request:
+            return Response({
+                "message": "A deletion request for this file is already pending.",
+                "request_id": existing_request.id
+            }, status=status.HTTP_200_OK)
+        
+        # Create deletion request
+        reason = request.data.get('reason', '')
+        deletion_request = FileDeletionRequest.objects.create(
+            website=file.website,
+            file=file,
+            requested_by=user,
+            status='pending'
+        )
+        
+        # Store reason if provided (we may need to add a reason field to the model)
+        # For now, we'll use the description field if it exists
+        
+        return Response({
+            "message": "Deletion request submitted successfully. An admin will review it.",
+            "request_id": deletion_request.id
+        }, status=status.HTTP_201_CREATED)
+    
+    @action(detail=True, methods=["get"])
+    def access_history(self, request, pk=None):
+        """Get file access/download history. Only accessible to admin/superadmin/support."""
+        from rest_framework.exceptions import PermissionDenied
+        
+        file = get_object_or_404(OrderFile, pk=pk)
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        
+        # Only admins/superadmin/support can view access history
+        if not (user_role in ['admin', 'superadmin', 'support'] or user.is_staff):
+            raise PermissionDenied("Only administrators and support staff can view file access history.")
+        
+        # Get download logs for this file
+        download_logs = FileDownloadLog.objects.filter(
+            file=file
+        ).select_related('downloaded_by').order_by('-downloaded_at')
+        
+        # Serialize the logs
+        from .serializers import FileDownloadLogSerializer
+        serializer = FileDownloadLogSerializer(download_logs, many=True)
+        
+        return Response({
+            "file_id": file.id,
+            "file_name": file.file.name.split('/')[-1] if file.file else "Unknown",
+            "order_id": file.order.id,
+            "total_downloads": download_logs.count(),
+            "downloads": serializer.data
+        })
+    
     @action(detail=True, methods=["post"])
     def toggle_download(self, request, pk=None):
         """Allows Admins & Support to enable/disable file downloads."""
@@ -170,13 +287,48 @@ class FileDeletionRequestViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"])
     def approve(self, request, pk=None):
         """Allows Admin or Support to approve deletion requests."""
-        deletion_request = get_object_or_404(FileDeletionRequest, pk=pk)
-        if request.user.is_staff or request.user.groups.filter(name="Support").exists():
-            deletion_request.status = "approved"
-            deletion_request.save()
-            return Response({"message": "Deletion request approved!"})
+        from django.utils import timezone
         
-        return Response({"error": "Unauthorized"}, status=403)
+        deletion_request = get_object_or_404(FileDeletionRequest, pk=pk)
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        
+        if not (user_role in ['admin', 'superadmin', 'support'] or user.is_staff):
+            return Response({"error": "Unauthorized"}, status=403)
+        
+        # Approve and delete the file
+        deletion_request.status = "approved"
+        deletion_request.reviewed_by = user
+        deletion_request.reviewed_at = timezone.now()
+        deletion_request.admin_comment = request.data.get('admin_comment', '')
+        deletion_request.save()
+        
+        # Delete the file
+        if deletion_request.file.file:
+            deletion_request.file.file.delete(save=False)
+        deletion_request.file.delete()
+        
+        return Response({"message": "Deletion request approved and file deleted!"})
+    
+    @action(detail=True, methods=["post"])
+    def reject(self, request, pk=None):
+        """Allows Admin or Support to reject deletion requests."""
+        from django.utils import timezone
+        
+        deletion_request = get_object_or_404(FileDeletionRequest, pk=pk)
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        
+        if not (user_role in ['admin', 'superadmin', 'support'] or user.is_staff):
+            return Response({"error": "Unauthorized"}, status=403)
+        
+        deletion_request.status = "rejected"
+        deletion_request.reviewed_by = user
+        deletion_request.reviewed_at = timezone.now()
+        deletion_request.admin_comment = request.data.get('admin_comment', 'Deletion request rejected')
+        deletion_request.save()
+        
+        return Response({"message": "Deletion request rejected!"})
 
 class ExternalFileLinkViewSet(viewsets.ModelViewSet):
     queryset = ExternalFileLink.objects.all()

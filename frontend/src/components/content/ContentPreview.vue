@@ -1,6 +1,6 @@
 <template>
   <div v-if="show" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="handleClose">
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-7xl w-full h-[90vh] flex flex-col">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-7xl w-full h-[90dvh] flex flex-col">
       <!-- Header -->
       <div class="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-900">
         <div class="flex items-center gap-3">

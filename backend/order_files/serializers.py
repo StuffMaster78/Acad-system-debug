@@ -49,13 +49,105 @@ class OrderFileSerializer(serializers.ModelSerializer):
         except Exception:
             pass
         return None
+    
+    def get_download_count(self, obj):
+        """Get the number of times this file has been downloaded."""
+        from .models import FileDownloadLog
+        return FileDownloadLog.objects.filter(file=obj).count()
+    
+    def get_can_delete(self, obj):
+        """Check if the current user can delete this file."""
+        request = self.context.get('request')
+        if not request or not request.user:
+            return False
+        
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        order = obj.order
+        
+        # Check if order is in progress
+        order_in_progress = order.status in ['in_progress', 'revision', 'paid', 'assigned']
+        
+        # Only admins/superadmin/support can delete when order is in progress
+        if order_in_progress:
+            return user_role in ['admin', 'superadmin', 'support'] or user.is_staff
+        
+        # If order is not in progress, check if user has permission
+        if user_role in ['admin', 'superadmin', 'support'] or user.is_staff:
+            return True
+        
+        # Writers can delete their own uploads if order is not in progress
+        if user_role == 'writer' and obj.uploaded_by == user:
+            return True
+        
+        # Clients can delete files they uploaded if order is not in progress
+        if user_role == 'client' and obj.uploaded_by == user:
+            return True
+        
+        return False
+    
+    def get_can_request_deletion(self, obj):
+        """Check if the current user can request deletion of this file."""
+        request = self.context.get('request')
+        if not request or not request.user:
+            return False
+        
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        
+        # Only clients and writers can request deletion
+        if user_role not in ['client', 'writer']:
+            return False
+        
+        # Check if user has access to this file's order
+        if user_role == 'client' and obj.order.client != user:
+            return False
+        
+        if user_role == 'writer' and obj.order.assigned_writer != user:
+            return False
+        
+        return True
+    
+    def get_has_pending_deletion_request(self, obj):
+        """Check if there's a pending deletion request for this file."""
+        from .models import FileDeletionRequest
+        return FileDeletionRequest.objects.filter(
+            file=obj,
+            status='pending'
+        ).exists()
 
 class FileDeletionRequestSerializer(serializers.ModelSerializer):
     requested_by = serializers.StringRelatedField()
+    requested_by_username = serializers.SerializerMethodField()
+    requested_by_email = serializers.SerializerMethodField()
+    reviewed_by_username = serializers.SerializerMethodField()
+    file_name = serializers.SerializerMethodField()
+    order_id = serializers.SerializerMethodField()
+    status_display = serializers.SerializerMethodField()
 
     class Meta:
         model = FileDeletionRequest
         fields = "__all__"
+    
+    def get_requested_by_username(self, obj):
+        return obj.requested_by.username if obj.requested_by else None
+    
+    def get_requested_by_email(self, obj):
+        return obj.requested_by.email if obj.requested_by else None
+    
+    def get_reviewed_by_username(self, obj):
+        return obj.reviewed_by.username if obj.reviewed_by else None
+    
+    def get_file_name(self, obj):
+        if obj.file and obj.file.file:
+            return obj.file.file.name.split('/')[-1] if '/' in obj.file.file.name else obj.file.file.name
+        return "Unknown"
+    
+    def get_order_id(self, obj):
+        return obj.file.order.id if obj.file and obj.file.order else None
+    
+    def get_status_display(self, obj):
+        return obj.get_status_display() if hasattr(obj, 'get_status_display') else obj.status
 
 class ExternalFileLinkSerializer(serializers.ModelSerializer):
     uploaded_by = serializers.StringRelatedField()

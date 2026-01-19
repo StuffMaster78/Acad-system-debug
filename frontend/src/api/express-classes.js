@@ -72,5 +72,35 @@ export default {
   getThreads(id) {
     return apiClient.get(`${EXPRESS_CLASSES_BASE}/${id}/threads/`)
   },
+
+  /**
+   * Get approval queue for express classes
+   */
+  getApprovalQueue(params = {}) {
+    return apiClient.get(`${EXPRESS_CLASSES_BASE}/approval-queue/`, { params })
+  },
+
+  /**
+   * Inquiry Files
+   */
+  listInquiryFiles(expressClassId, params = {}) {
+    return apiClient.get('/class-management/express-class-inquiry-files/', {
+      params: { express_class: expressClassId, ...params }
+    })
+  },
+  uploadInquiryFile(data) {
+    const formData = new FormData()
+    Object.keys(data).forEach(key => {
+      if (data[key] !== null && data[key] !== undefined) {
+        formData.append(key, data[key])
+      }
+    })
+    return apiClient.post('/class-management/express-class-inquiry-files/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+  deleteInquiryFile(id) {
+    return apiClient.delete(`/class-management/express-class-inquiry-files/${id}/delete/`)
+  },
 }
 

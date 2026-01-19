@@ -74,6 +74,9 @@ export default {
   },
   updateMessage: (threadId, messageId, data) => apiClient.patch(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/`, data),
   deleteMessage: (threadId, messageId) => apiClient.delete(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/`),
+  shadowMessage: (threadId, messageId, reason = '') => apiClient.post(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/shadow/`, { reason }),
+  unshadowMessage: (threadId, messageId) => apiClient.post(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/unshadow/`),
+  editMessage: (threadId, messageId, data) => apiClient.patch(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/edit/`, data),
   downloadAttachment: (threadId, messageId) => apiClient.get(`/order-communications/communication-threads/${threadId}/communication-messages/${messageId}/download_attachment/`, { responseType: 'blob' }),
   uploadAttachment: (formData) => apiClient.post('/order-communications/message-attachments/', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }

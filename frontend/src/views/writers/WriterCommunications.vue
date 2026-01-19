@@ -1,5 +1,14 @@
 <template>
   <div class="space-y-6 p-6">
+    <!-- Breadcrumbs -->
+    <nav class="flex items-center space-x-2 text-sm" aria-label="Breadcrumb">
+      <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+        Dashboard
+      </router-link>
+      <span class="text-gray-400 dark:text-gray-600">/</span>
+      <span class="text-gray-900 dark:text-gray-100 font-medium">Communications</span>
+    </nav>
+    
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -134,12 +143,15 @@
             <div
               v-for="thread in clientGroup.threads"
               :key="thread.id"
-              class="p-6 hover:bg-gray-50 transition-colors cursor-pointer"
+              class="p-6 transition-all cursor-pointer border-l-4"
+              :class="thread.unread_count > 0 
+                ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' 
+                : 'border-l-transparent hover:bg-gray-50'"
               @click="openThread(thread)"
             >
               <div class="flex items-start justify-between">
                 <div class="flex-1">
-                  <div class="flex items-center gap-3 mb-2">
+                  <div class="flex items-center gap-3 mb-2 flex-wrap">
                     <router-link
                       v-if="thread.order_id"
                       :to="`/orders/${thread.order_id}`"
@@ -157,25 +169,38 @@
                     </span>
                     <span
                       v-if="thread.unread_count > 0"
-                      class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full"
+                      class="px-2 py-1 text-xs font-bold bg-red-500 text-white rounded-full"
                     >
                       {{ thread.unread_count }} unread
                     </span>
                   </div>
-                  <p class="text-sm text-gray-600 mb-2">{{ thread.order_topic }}</p>
-                  <div v-if="thread.last_message" class="flex items-center gap-2 text-sm text-gray-500">
+                  <p 
+                    class="text-sm mb-2"
+                    :class="thread.unread_count > 0 ? 'text-gray-700 font-medium' : 'text-gray-600'"
+                  >
+                    {{ thread.order_topic }}
+                  </p>
+                  <div 
+                    v-if="thread.last_message" 
+                    class="flex items-center gap-2 text-sm"
+                    :class="thread.unread_count > 0 ? 'text-gray-600 font-medium' : 'text-gray-500'"
+                  >
                     <span class="font-medium">{{ thread.last_message.sender }}</span>
                     <span>•</span>
                     <span>{{ formatDate(thread.last_message.created_at) }}</span>
                     <span v-if="thread.last_message.has_attachment" class="ml-2">📎</span>
                   </div>
-                  <p v-if="thread.last_message" class="text-sm text-gray-700 mt-2 line-clamp-2">
+                  <p 
+                    v-if="thread.last_message" 
+                    class="text-sm mt-2 line-clamp-2"
+                    :class="thread.unread_count > 0 ? 'text-gray-800 font-medium' : 'text-gray-700'"
+                  >
                     {{ thread.last_message.message }}
                   </p>
                 </div>
                 <button
                   @click.stop="openThread(thread)"
-                  class="ml-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm whitespace-nowrap"
+                  class="ml-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm whitespace-nowrap transition-colors"
                 >
                   Open
                 </button>
@@ -190,13 +215,15 @@
         <div
           v-for="thread in filteredThreads"
           :key="thread.id"
-          class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow cursor-pointer border-l-4"
-          :class="thread.unread_count > 0 ? 'border-orange-500' : 'border-gray-200'"
+          class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-all cursor-pointer border-l-4"
+          :class="thread.unread_count > 0 
+            ? 'border-l-blue-500 bg-blue-50 hover:bg-blue-100' 
+            : 'border-l-gray-200 hover:bg-gray-50'"
           @click="openThread(thread)"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
-              <div class="flex items-center gap-3 mb-2">
+              <div class="flex items-center gap-3 mb-2 flex-wrap">
                 <router-link
                   v-if="thread.order_id"
                   :to="`/orders/${thread.order_id}`"
@@ -214,33 +241,50 @@
                 </span>
                 <span
                   v-if="thread.unread_count > 0"
-                  class="px-2 py-1 text-xs font-medium bg-orange-100 text-orange-800 rounded-full"
+                  class="px-2 py-1 text-xs font-bold bg-red-500 text-white rounded-full"
                 >
                   {{ thread.unread_count }} unread
                 </span>
               </div>
               <div class="flex items-center gap-4 mb-2">
-                <span class="text-sm text-gray-600">
+                <span 
+                  class="text-sm"
+                  :class="thread.unread_count > 0 ? 'text-gray-700 font-medium' : 'text-gray-600'"
+                >
                   <span class="font-medium">Client:</span> {{ thread.client_name }}
                 </span>
-                <span class="text-sm text-gray-600">
+                <span 
+                  class="text-sm"
+                  :class="thread.unread_count > 0 ? 'text-gray-700 font-medium' : 'text-gray-600'"
+                >
                   <span class="font-medium">Topic:</span> {{ thread.order_topic }}
                 </span>
               </div>
-              <div v-if="thread.last_message" class="mt-3 p-3 bg-gray-50 rounded-lg">
-                <div class="flex items-center gap-2 text-sm text-gray-600 mb-1">
+              <div 
+                v-if="thread.last_message" 
+                class="mt-3 p-3 rounded-lg"
+                :class="thread.unread_count > 0 ? 'bg-blue-100' : 'bg-gray-50'"
+              >
+                <div class="flex items-center gap-2 text-sm mb-1"
+                  :class="thread.unread_count > 0 ? 'text-gray-700 font-medium' : 'text-gray-600'"
+                >
                   <span class="font-medium">{{ thread.last_message.sender }}</span>
                   <span class="text-gray-400">({{ thread.last_message.sender_role }})</span>
                   <span>•</span>
                   <span>{{ formatDate(thread.last_message.created_at) }}</span>
                   <span v-if="thread.last_message.has_attachment" class="ml-2 text-primary-600">📎 Attachment</span>
                 </div>
-                <p class="text-sm text-gray-700 line-clamp-2">{{ thread.last_message.message }}</p>
+                <p 
+                  class="text-sm line-clamp-2"
+                  :class="thread.unread_count > 0 ? 'text-gray-800 font-medium' : 'text-gray-700'"
+                >
+                  {{ thread.last_message.message }}
+                </p>
               </div>
             </div>
             <button
               @click.stop="openThread(thread)"
-              class="ml-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm whitespace-nowrap"
+              class="ml-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 text-sm whitespace-nowrap transition-colors"
             >
               Open Conversation
             </button>
@@ -321,13 +365,8 @@ const groupedByClient = computed(() => {
 })
 
 const openThread = (thread) => {
-  if (thread.order_id) {
-    // Navigate to order page with thread open
-    router.push(`/orders/${thread.order_id}?thread=${thread.id}`)
-  } else {
-    // Navigate to communications page with thread
-    router.push(`/communications?thread=${thread.id}`)
-  }
+  // Navigate to dedicated thread detail page
+  router.push(`/messages/thread/${thread.id}`)
 }
 
 const getStatusClass = (status) => {

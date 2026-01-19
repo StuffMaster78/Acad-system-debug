@@ -690,6 +690,13 @@ class ExpressClass(models.Model):
         blank=True,
         help_text="Workload e.g., 'number of pages total'"
     )
+    budget = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Client's stated budget for negotiation purposes"
+    )
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -736,6 +743,15 @@ class ExpressClass(models.Model):
         blank=True,
         help_text="School login password (encrypted/stored securely)"
     )
+    availability_hours = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="When the writer can access the portal (e.g., 'Mon-Fri 9am-5pm EST' or '24/7')"
+    )
+    two_factor_enabled = models.BooleanField(
+        default=False,
+        help_text="Whether two-factor authentication is required for this account"
+    )
     # Admin review fields
     scope_review_notes = models.TextField(
         blank=True,
@@ -772,3 +788,63 @@ class ExpressClass(models.Model):
 
     def __str__(self):
         return f"Express Class for {self.client} from {self.start_date} to {self.end_date}"
+
+
+class ExpressClassInquiryFile(models.Model):
+    """
+    File attachments uploaded during express class inquiry creation.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='express_class_inquiry_files'
+    )
+    express_class = models.ForeignKey(
+        'class_management.ExpressClass',
+        on_delete=models.CASCADE,
+        related_name='inquiry_files',
+        help_text="Express class this file belongs to"
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='express_class_inquiry_files_uploaded',
+        help_text="User who uploaded the file"
+    )
+    file = models.FileField(
+        upload_to='express_classes/inquiry_files/',
+        help_text="Uploaded file"
+    )
+    file_name = models.CharField(
+        max_length=255,
+        help_text="Original filename"
+    )
+    file_size = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="File size in bytes"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Optional description of the file"
+    )
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the file was uploaded"
+    )
+
+    class Meta:
+        ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['express_class', 'uploaded_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.file_name} - Express Class #{self.express_class.id}"
+
+    def save(self, *args, **kwargs):
+        # Auto-set website from express class if not set
+        if not self.website_id and self.express_class_id:
+            self.website = self.express_class.website
+        super().save(*args, **kwargs)

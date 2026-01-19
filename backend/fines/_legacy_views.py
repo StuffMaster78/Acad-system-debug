@@ -78,6 +78,85 @@ class FineViewSet(viewsets.ModelViewSet):
         voided = FineService.void_fine(fine, request.user, reason)
         return Response(self.get_serializer(voided).data, status=status.HTTP_200_OK)
     
+    @action(detail=False, methods=['get'], url_path='statistics')
+    def statistics(self, request):
+        """
+        Get fine statistics for admin dashboard.
+        Returns summary stats, revenue, and breakdowns.
+        """
+        from django.db.models import Sum, Count, Q
+        from django.utils import timezone
+        from decimal import Decimal
+        
+        queryset = self.get_queryset()
+        
+        # Date range filters
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(imposed_at__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(imposed_at__lte=end_date)
+        
+        # Status filters
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            queryset = queryset.filter(status=status_filter)
+        
+        # Calculate statistics
+        total_fines = queryset.count()
+        total_amount = queryset.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        
+        # Revenue (only from paid/resolved fines, not waived/voided)
+        revenue_fines = queryset.filter(
+            status__in=['paid', 'resolved'],
+            resolved=False
+        )
+        total_revenue = revenue_fines.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        
+        # Status breakdown
+        status_breakdown = {}
+        for status_code, status_label in FineStatus.choices:
+            count = queryset.filter(status=status_code).count()
+            amount = queryset.filter(status=status_code).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+            status_breakdown[status_code] = {
+                'label': status_label,
+                'count': count,
+                'amount': float(amount)
+            }
+        
+        # Fine type breakdown
+        fine_type_breakdown = {}
+        fine_types = queryset.values('fine_type').annotate(
+            count=Count('id'),
+            total_amount=Sum('amount')
+        )
+        for item in fine_types:
+            fine_type = item['fine_type'] or 'unknown'
+            fine_type_breakdown[fine_type] = {
+                'count': item['count'],
+                'amount': float(item['total_amount'] or 0)
+            }
+        
+        # Recent fines (last 30 days)
+        thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
+        recent_fines = queryset.filter(imposed_at__gte=thirty_days_ago).count()
+        recent_revenue = queryset.filter(
+            imposed_at__gte=thirty_days_ago,
+            status__in=['paid', 'resolved'],
+            resolved=False
+        ).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        
+        return Response({
+            'total_fines': total_fines,
+            'total_amount': float(total_amount),
+            'total_revenue': float(total_revenue),
+            'recent_fines_count': recent_fines,
+            'recent_revenue': float(recent_revenue),
+            'status_breakdown': status_breakdown,
+            'fine_type_breakdown': fine_type_breakdown,
+        })
+    
     @action(detail=False, methods=["post"], url_path="issue")
     def issue_fine(self, request):
         """

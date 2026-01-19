@@ -1,9 +1,9 @@
 <template>
-  <div class="system-guide-page min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto p-6">
+  <div class="system-guide-page min-h-dvh bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto page-shell">
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 dark:text-white mb-2">System Guide</h1>
+        <h1 class="page-title text-gray-900 dark:text-white mb-2">System Guide</h1>
         <p class="text-lg text-gray-600 dark:text-gray-400">
           Comprehensive documentation for all user roles
         </p>
@@ -68,6 +68,17 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Communications Guidance -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+            💬 Communication Guidelines
+          </h2>
+          <p class="text-sm text-gray-600 dark:text-gray-300">
+            Use platform messages as the primary channel for all coordination and updates.
+            Email should be secondary only, since inboxes can be easy to miss and harder to track.
+          </p>
         </div>
 
         <!-- Role-Specific Guide -->

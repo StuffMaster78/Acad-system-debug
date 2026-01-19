@@ -23,5 +23,15 @@ export default {
   createLatenessRule: (data) => apiClient.post('/fines/lateness-rules/', data),
   updateLatenessRule: (id, data) => apiClient.patch(`/fines/lateness-rules/${id}/`, data),
   deleteLatenessRule: (id) => apiClient.delete(`/fines/lateness-rules/${id}/`),
+  
+  // Statistics
+  getStatistics: (params) => apiClient.get('/fines/fines/statistics/', { params }),
+  
+  // Fine actions
+  waiveFine: (id, data) => apiClient.post(`/fines/fines/${id}/waive/`, data),
+  voidFine: (id, data) => apiClient.post(`/fines/fines/${id}/void/`, data),
+  
+  // Appeal actions
+  reviewAppeal: (appealId, data) => apiClient.post(`/fines/fine-appeals/${appealId}/review/`, data),
 }
 
