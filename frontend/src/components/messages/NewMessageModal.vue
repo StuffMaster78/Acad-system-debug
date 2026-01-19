@@ -187,6 +187,7 @@ const currentUserRoleLabel = computed(() => {
 
 const selectedRecipientType = ref(props.defaultRecipientType || null)
 const selectedRecipient = shallowRef(null) // Use shallowRef for better performance
+const lastSelectedRecipientByType = ref(new Map())
 const availableRecipients = shallowRef([]) // Use shallowRef for large arrays
 const recipientSearch = ref('')
 const message = ref('')
@@ -273,6 +274,14 @@ const loadRecipients = useDebounceFn(async () => {
   const cached = recipientsCache.value.get(cacheKey)
   if (cached && (Date.now() - cached.timestamp) < cacheExpiry) {
     availableRecipients.value = cached.data
+    const lastSelectedId = lastSelectedRecipientByType.value.get(selectedRecipientType.value)
+    if (lastSelectedId) {
+      const match = cached.data.find(recipient => recipient.id === lastSelectedId)
+      if (match) {
+        selectedRecipient.value = match
+        return
+      }
+    }
     // Auto-select if only one recipient
     if (cached.data.length === 1) {
       selectedRecipient.value = cached.data[0]
@@ -305,6 +314,15 @@ const loadRecipients = useDebounceFn(async () => {
     
     availableRecipients.value = filtered
 
+    const lastSelectedId = lastSelectedRecipientByType.value.get(selectedRecipientType.value)
+    if (lastSelectedId) {
+      const match = filtered.find(recipient => recipient.id === lastSelectedId)
+      if (match) {
+        selectedRecipient.value = match
+        return
+      }
+    }
+
     // If exactly one recipient, auto-select to streamline the flow
     if (filtered.length === 1) {
       selectedRecipient.value = filtered[0]
@@ -321,6 +339,9 @@ const loadRecipients = useDebounceFn(async () => {
 
 const selectRecipient = (recipient) => {
   selectedRecipient.value = recipient
+  if (selectedRecipientType.value) {
+    lastSelectedRecipientByType.value.set(selectedRecipientType.value, recipient.id)
+  }
   error.value = ''
 }
 
@@ -368,6 +389,14 @@ watch(selectedRecipientType, (newVal, oldVal) => {
     loadRecipients()
   }
 })
+
+watch(
+  () => filteredRecipients.value,
+  (newList) => {
+    if (selectedRecipient.value || !newList || newList.length !== 1) return
+    selectRecipient(newList[0])
+  }
+)
 
 watch(
   () => props.show,

@@ -135,7 +135,7 @@ const router = createRouter({
         {
           path: 'client/messages',
           name: 'ClientMessages',
-          component: () => import('@/client/views/ClientMessages.vue'),
+          redirect: '/messages',
           meta: { requiresAuth: true, title: 'Messages', roles: ['client'] },
         },
         {
@@ -812,10 +812,10 @@ const router = createRouter({
         {
           path: 'writer/communications',
           name: 'WriterCommunications',
-          component: () => import('@/views/writers/WriterCommunications.vue'),
+          redirect: '/messages',
           meta: {
             requiresAuth: true,
-            title: 'Client Communications',
+            title: 'Messages',
             roles: ['writer'],
           },
         },

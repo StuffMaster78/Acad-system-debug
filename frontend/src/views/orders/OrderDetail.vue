@@ -8,7 +8,7 @@
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Breadcrumbs -->
         <div class="py-3">
-          <nav class="flex flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+          <nav class="flex items-center gap-2 text-xs sm:text-sm overflow-x-auto whitespace-nowrap" aria-label="Breadcrumb">
             <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
               Dashboard
             </router-link>
@@ -17,14 +17,14 @@
               Orders
             </router-link>
             <span class="text-gray-400 dark:text-gray-600">/</span>
-            <span class="text-gray-900 dark:text-gray-100 font-medium">Order #{{ order?.id || route.params.id }}</span>
+            <span class="text-gray-900 dark:text-gray-100 font-medium truncate max-w-[60vw] sm:max-w-none">Order #{{ order?.id || route.params.id }}</span>
           </nav>
         </div>
         
         <!-- Header Content -->
         <div class="py-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-3 mb-2">
+            <div class="flex flex-wrap items-center gap-3 mb-2">
               <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Order #{{ order?.id || '' }}</h1>
               <EnhancedStatusBadge
                 v-if="order?.status"
@@ -32,6 +32,12 @@
                 :show-tooltip="true"
                 :show-priority="true"
               />
+              <span
+                v-if="authStore.isWriter && pendingPreferredAssignment"
+                class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-200"
+              >
+                Preferred assignment pending
+              </span>
               <span
                 v-if="order?.is_paid !== undefined && (authStore.isClient || authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)"
                 :class="[
@@ -72,25 +78,31 @@
       class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky z-10 transition-all"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <nav class="flex space-x-1 overflow-x-auto -mb-px" aria-label="Tabs">
+        <nav class="flex space-x-1 overflow-x-auto -mb-px -mx-2 px-2 sm:mx-0 sm:px-0" aria-label="Tabs">
           <button
             v-for="tab in tabs"
             :key="tab.id"
             @click="activeTab = tab.id"
             :class="[
-              'flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
+              'flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 text-xs sm:text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0',
               activeTab === tab.id
                 ? 'border-primary-600 text-primary-600 dark:text-primary-400'
                 : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
             ]"
           >
-            <component :is="tab.icon" class="w-4 h-4" />
+            <component :is="tab.icon" class="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             <span>{{ tab.label }}</span>
             <span
               v-if="tab.id === 'messages' && unreadMessageCount > 0"
-              class="ml-1 px-1.5 py-0.5 text-xs font-semibold text-white bg-red-500 rounded-full"
+              class="ml-1 px-1 py-0.5 text-[10px] sm:text-xs font-semibold text-white bg-red-500 rounded-full min-w-[16px] h-4 flex items-center justify-center"
             >
               {{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}
+            </span>
+            <span
+              v-if="tab.id === 'actions' && pendingActionCount > 0"
+              class="ml-1 px-1 py-0.5 text-[10px] sm:text-xs font-semibold text-white bg-indigo-500 rounded-full min-w-[16px] h-4 flex items-center justify-center"
+            >
+              {{ pendingActionCount > 99 ? '99+' : pendingActionCount }}
             </span>
           </button>
         </nav>
@@ -112,7 +124,7 @@
           <div class="space-y-6">
             <!-- Soft Deleted Banner -->
             <div v-if="order.is_deleted" class="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-gray-800 rounded-lg p-4">
-              <div class="flex items-start justify-between gap-4">
+              <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div class="flex items-start gap-3 flex-1">
                   <div class="w-8 h-8 rounded-lg bg-red-100 dark:bg-red-900/30 flex items-center justify-center shrink-0 mt-0.5">
                     <Trash2 class="w-4 h-4 text-red-600 dark:text-red-400" />
@@ -144,7 +156,7 @@
         
           <!-- Action Center & Last Activity Banner (for completed/submitted/closed orders) -->
           <div v-if="order.status === 'completed' || order.status === 'submitted' || order.status === 'approved' || order.status === 'closed'" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm p-5">
-            <div class="flex items-start justify-between mb-4">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
               <div>
                 <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">
                   Order {{ order.status === 'completed' ? 'Completed' : order.status === 'submitted' ? 'Submitted' : order.status === 'closed' ? 'Closed' : 'Approved' }}!
@@ -239,7 +251,7 @@
             </div>
           
             <!-- Action Buttons -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
             <!-- Request Revision -->
             <button
               v-if="canRequestRevision && order.status !== 'revision_requested'"
@@ -647,6 +659,225 @@
                   @success="handleEditOrderSuccess"
                   @error="handleEditOrderError"
                 />
+              </div>
+
+              <!-- Quick Actions -->
+              <div v-if="order" class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm p-6 mb-4">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                  <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Quick Actions</h3>
+                      <button
+                        v-if="pendingActionCount > 0"
+                        @click="activeTab = 'actions'"
+                        class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-900/50 transition-colors"
+                      >
+                        {{ pendingActionCount }} pending
+                      </button>
+                    </div>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Take the next best action for this order</p>
+                  </div>
+                  <button
+                    @click="activeTab = 'actions'"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    <span>View all actions</span>
+                    <ChevronRight class="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <!-- Writer Actions -->
+                <div v-if="authStore.isWriter" class="space-y-4">
+                  <div v-if="loadingAssignment || loadingPreferredAssignment" class="text-xs text-gray-500 dark:text-gray-400">
+                    Checking pending assignments...
+                  </div>
+                  <div v-if="pendingAssignment" class="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4">
+                    <div class="flex items-start gap-3">
+                      <div class="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                        <span class="text-lg">📩</span>
+                      </div>
+                      <div class="flex-1">
+                        <h4 class="text-sm font-semibold text-amber-900 dark:text-amber-100">Assignment awaiting your response</h4>
+                        <p class="text-xs text-amber-700 dark:text-amber-200 mt-1">
+                          Please accept or reject this assignment to proceed.
+                        </p>
+                      </div>
+                    </div>
+                    <div class="mt-4 flex flex-wrap gap-3">
+                      <button
+                        @click="acceptAssignment"
+                        :disabled="processingAssignment"
+                        class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                      >
+                        {{ processingAssignment ? 'Processing...' : 'Accept Assignment' }}
+                      </button>
+                      <button
+                        @click="rejectAssignment"
+                        :disabled="processingAssignment"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                      >
+                        Reject Assignment
+                      </button>
+                    </div>
+                  </div>
+
+                  <div v-if="pendingPreferredAssignment" class="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/10 p-4">
+                    <div class="flex items-start gap-3">
+                      <div class="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                        <span class="text-lg">⭐</span>
+                      </div>
+                      <div class="flex-1">
+                        <h4 class="text-sm font-semibold text-indigo-900 dark:text-indigo-100">Preferred assignment offer</h4>
+                        <p class="text-xs text-indigo-700 dark:text-indigo-200 mt-1">
+                          This client requested you specifically. Accept or decline the offer.
+                        </p>
+                      </div>
+                    </div>
+                    <div class="mt-4 flex flex-wrap gap-3">
+                      <button
+                        @click="acceptPreferredAssignment"
+                        :disabled="processingPreferredAssignment"
+                        class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                      >
+                        {{ processingPreferredAssignment ? 'Processing...' : 'Accept Preferred' }}
+                      </button>
+                      <button
+                        @click="rejectPreferredAssignment"
+                        :disabled="processingPreferredAssignment"
+                        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors text-sm font-medium"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    <button
+                      v-if="canStartOrder"
+                      @click="startOrder"
+                      :disabled="processingAction"
+                      class="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all text-sm font-medium"
+                    >
+                      <span>🚀</span>
+                      <span>{{ processingAction ? 'Processing...' : 'Start Order' }}</span>
+                    </button>
+                    <button
+                      v-if="canSubmitOrder"
+                      @click="submitOrder"
+                      :disabled="processingAction"
+                      class="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all text-sm font-medium"
+                    >
+                      <span>📤</span>
+                      <span>{{ processingAction ? 'Processing...' : 'Submit Order' }}</span>
+                    </button>
+                    <button
+                      v-if="canStartRevision"
+                      @click="startRevision"
+                      :disabled="processingAction"
+                      class="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all text-sm font-medium"
+                    >
+                      <span>✏️</span>
+                      <span>{{ processingAction ? 'Processing...' : 'Start Revision' }}</span>
+                    </button>
+                    <button
+                      v-if="canResumeOrder"
+                      @click="resumeOrder"
+                      :disabled="processingAction"
+                      class="flex items-center justify-center gap-2 px-4 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-all text-sm font-medium"
+                    >
+                      <span>▶️</span>
+                      <span>{{ processingAction ? 'Processing...' : 'Resume Order' }}</span>
+                    </button>
+                    <button
+                      v-if="canRequestDeadlineExtension"
+                      @click="showDeadlineExtensionModal = true"
+                      class="flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all text-sm font-medium"
+                    >
+                      <span>⏰</span>
+                      <span>Extend Deadline</span>
+                    </button>
+                    <button
+                      v-if="canRequestHold"
+                      @click="showHoldRequestModal = true"
+                      class="flex items-center justify-center gap-2 px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all text-sm font-medium"
+                    >
+                      <span>🛑</span>
+                      <span>Request Hold</span>
+                    </button>
+                    <button
+                      v-if="canRequestReassignment"
+                      @click="requestReassignment"
+                      :disabled="processingAction"
+                      class="flex items-center justify-center gap-2 px-4 py-3 bg-slate-600 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-all text-sm font-medium"
+                    >
+                      <span>🔁</span>
+                      <span>Request Reassignment</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Client Actions -->
+                <div v-else-if="authStore.isClient" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <button
+                    v-if="canPayOrder && !order.is_paid"
+                    @click="showPaymentModal = true"
+                    class="flex items-center justify-center gap-2 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-all text-sm font-medium"
+                  >
+                    <span>💳</span>
+                    <span>Pay Now</span>
+                  </button>
+                  <button
+                    v-if="canRequestRevision && order.status !== 'revision_requested'"
+                    @click="showRevisionForm = !showRevisionForm"
+                    class="flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all text-sm font-medium"
+                  >
+                    <span>🔄</span>
+                    <span>{{ showRevisionForm ? 'Cancel Revision' : 'Request Revision' }}</span>
+                  </button>
+                  <button
+                    v-if="canRequestCancellation"
+                    @click="requestCancellation"
+                    :disabled="processingAction"
+                    class="flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-all text-sm font-medium"
+                  >
+                    <span>❌</span>
+                    <span>Cancel Order</span>
+                  </button>
+                  <button
+                    @click="activeTab = 'messages'"
+                    class="flex items-center justify-center gap-2 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 border-2 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-all text-sm font-medium"
+                  >
+                    <MessageSquare class="w-4 h-4" />
+                    <span>View Messages</span>
+                  </button>
+                </div>
+
+                <!-- Admin / Support / Editor Actions -->
+                <div v-else class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  <button
+                    @click="activeTab = 'actions'"
+                    class="flex items-center justify-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-all text-sm font-medium"
+                  >
+                    <ClipboardList class="w-4 h-4" />
+                    <span>Open Action Center</span>
+                  </button>
+                  <button
+                    v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
+                    @click="showActionModal = true"
+                    class="flex items-center justify-center gap-2 px-4 py-3 bg-primary-50 dark:bg-primary-900/20 border-2 border-primary-300 dark:border-primary-700 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/30 transition-all text-sm font-medium"
+                  >
+                    <span>⚙️</span>
+                    <span>Run Action</span>
+                  </button>
+                  <button
+                    v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
+                    @click="activeTab = 'files'"
+                    class="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-300 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all text-sm font-medium"
+                  >
+                    <Folder class="w-4 h-4" />
+                    <span>Manage Files</span>
+                  </button>
+                </div>
               </div>
 
               <!-- Order Details Grid (Read-only view when not editing) -->
@@ -2968,6 +3199,69 @@
                 </div>
               </div>
 
+        <!-- Writer Assignment Decisions -->
+        <div v-if="authStore.isWriter && (pendingAssignment || pendingPreferredAssignment)" class="space-y-3">
+          <div v-if="pendingAssignment" class="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/10 p-4">
+            <div class="flex items-start gap-3">
+              <div class="w-9 h-9 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center shrink-0">
+                <span class="text-lg">📩</span>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-sm font-semibold text-amber-900 dark:text-amber-100">Assignment awaiting your response</h4>
+                <p class="text-xs text-amber-700 dark:text-amber-200 mt-1">
+                  Please accept or reject this assignment to proceed.
+                </p>
+              </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <button
+                @click="acceptAssignment"
+                :disabled="processingAssignment"
+                class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium"
+              >
+                {{ processingAssignment ? 'Processing...' : 'Accept Assignment' }}
+              </button>
+              <button
+                @click="rejectAssignment"
+                :disabled="processingAssignment"
+                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors text-sm font-medium"
+              >
+                Reject Assignment
+              </button>
+            </div>
+          </div>
+
+          <div v-if="pendingPreferredAssignment" class="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/10 p-4">
+            <div class="flex items-start gap-3">
+              <div class="w-9 h-9 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
+                <span class="text-lg">⭐</span>
+              </div>
+              <div class="flex-1">
+                <h4 class="text-sm font-semibold text-indigo-900 dark:text-indigo-100">Preferred assignment offer</h4>
+                <p class="text-xs text-indigo-700 dark:text-indigo-200 mt-1">
+                  This client requested you specifically. Accept or decline the offer.
+                </p>
+              </div>
+            </div>
+            <div class="mt-4 flex flex-wrap gap-3">
+              <button
+                @click="acceptPreferredAssignment"
+                :disabled="processingPreferredAssignment"
+                class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium"
+              >
+                {{ processingPreferredAssignment ? 'Processing...' : 'Accept Preferred' }}
+              </button>
+              <button
+                @click="rejectPreferredAssignment"
+                :disabled="processingPreferredAssignment"
+                class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors text-sm font-medium"
+              >
+                Decline
+              </button>
+            </div>
+          </div>
+        </div>
+
         <!-- Inline Actions Component (Admin/SuperAdmin/Support) -->
         <div v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport">
           <InlineOrderActions
@@ -4224,6 +4518,7 @@ import progressAPI from '@/api/progress'
 import InlineOrderActions from '@/components/order/InlineOrderActions.vue'
 import EditOrderInline from '@/components/order/actions/EditOrderInline.vue'
 import usersAPI from '@/api/users'
+import writerAssignmentAPI from '@/api/writer-assignment'
 import { getErrorMessage, getSuccessMessage } from '@/utils/errorHandler'
 import { useToast } from '@/composables/useToast'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
@@ -4263,7 +4558,8 @@ import {
   FileCheck,
   AlertTriangle,
   Download,
-  Star
+  Star,
+  ChevronRight
 } from 'lucide-vue-next'
 import EnhancedOrderStatus from '@/components/client/EnhancedOrderStatus.vue'
 import InputModal from '@/components/common/InputModal.vue'
@@ -4381,6 +4677,14 @@ const tabs = computed(() => {
 
   return baseTabs
 })
+
+const pendingActionCount = computed(() => {
+  if (!authStore.isWriter) return 0
+  let count = 0
+  if (pendingAssignment.value) count += 1
+  if (pendingPreferredAssignment.value) count += 1
+  return count
+})
 const loadingFiles = ref(false)
 const loadingLinks = ref(false)
 const showSendMessageModal = ref(false)
@@ -4432,6 +4736,14 @@ const selectedAction = ref(null)
 const availableActions = ref([])
 const availableWriters = ref([])
 
+// Writer assignment acceptance state
+const pendingAssignment = ref(null)
+const loadingAssignment = ref(false)
+const processingAssignment = ref(false)
+const pendingPreferredAssignment = ref(null)
+const loadingPreferredAssignment = ref(false)
+const processingPreferredAssignment = ref(false)
+
 // Inline edit mode for Overview tab (admin/superadmin/support)
 const editingOrderDetails = ref(false)
 
@@ -4446,6 +4758,174 @@ const loadAvailableActions = async () => {
   } catch (error) {
     console.error('Failed to load available actions:', error)
     availableActions.value = []
+  }
+}
+
+const hasAvailableAction = (actionKey) => {
+  const actions = availableActions.value || []
+  return actions.some((action) => {
+    if (typeof action === 'string') return action === actionKey
+    const normalized = [action.action, action.name, action.id, action.key].filter(Boolean)
+    return normalized.includes(actionKey)
+  })
+}
+
+const loadPendingAssignment = async () => {
+  if (!authStore.isWriter || !order.value) {
+    pendingAssignment.value = null
+    return
+  }
+  loadingAssignment.value = true
+  try {
+    const res = await writerAssignmentAPI.getPendingAssignments()
+    const assignments = Array.isArray(res.data)
+      ? res.data
+      : Array.isArray(res.data?.results)
+        ? res.data.results
+        : []
+    pendingAssignment.value =
+      assignments.find(item => item.order_id === order.value.id || item.order?.id === order.value.id) || null
+  } catch (error) {
+    pendingAssignment.value = null
+    if (import.meta.env.DEV) {
+      console.error('Failed to load pending assignments:', error)
+    }
+  } finally {
+    loadingAssignment.value = false
+  }
+}
+
+const loadPendingPreferredAssignment = async () => {
+  if (!authStore.isWriter || !order.value) {
+    pendingPreferredAssignment.value = null
+    return
+  }
+  loadingPreferredAssignment.value = true
+  try {
+    const res = await writerAssignmentAPI.getPendingPreferredAssignments()
+    const assignments = Array.isArray(res.data)
+      ? res.data
+      : Array.isArray(res.data?.results)
+        ? res.data.results
+        : []
+    pendingPreferredAssignment.value =
+      assignments.find(item => item.order_id === order.value.id || item.order?.id === order.value.id) || null
+  } catch (error) {
+    pendingPreferredAssignment.value = null
+    if (import.meta.env.DEV) {
+      console.error('Failed to load pending preferred assignments:', error)
+    }
+  } finally {
+    loadingPreferredAssignment.value = false
+  }
+}
+
+const acceptAssignment = async () => {
+  if (!pendingAssignment.value || !order.value) return
+  processingAssignment.value = true
+  try {
+    await writerAssignmentAPI.acceptAssignment(pendingAssignment.value.id)
+    showSuccessToast('Assignment accepted successfully.')
+    await loadOrder()
+  } catch (error) {
+    showErrorToast(getErrorMessage(error, 'Failed to accept assignment'))
+  } finally {
+    processingAssignment.value = false
+  }
+}
+
+const rejectAssignment = async () => {
+  if (!pendingAssignment.value || !order.value) return
+  const reason = await inputModal.showModal(
+    `Reason for rejecting Order #${order.value.id} (optional)`,
+    'Reject Assignment',
+    {
+      label: 'Reason',
+      placeholder: 'Tell us why you cannot take this order...',
+      multiline: true,
+      rows: 4,
+      required: false
+    }
+  )
+  if (reason === null) return
+  processingAssignment.value = true
+  try {
+    await writerAssignmentAPI.rejectAssignment(pendingAssignment.value.id, reason || '')
+    showSuccessToast('Assignment rejected successfully.')
+    await loadOrder()
+  } catch (error) {
+    showErrorToast(getErrorMessage(error, 'Failed to reject assignment'))
+  } finally {
+    processingAssignment.value = false
+  }
+}
+
+const acceptPreferredAssignment = async () => {
+  if (!pendingPreferredAssignment.value || !order.value) return
+  processingPreferredAssignment.value = true
+  try {
+    await writerAssignmentAPI.acceptPreferredAssignment(order.value.id)
+    showSuccessToast('Preferred assignment accepted successfully.')
+    await loadOrder()
+  } catch (error) {
+    showErrorToast(getErrorMessage(error, 'Failed to accept preferred assignment'))
+  } finally {
+    processingPreferredAssignment.value = false
+  }
+}
+
+const rejectPreferredAssignment = async () => {
+  if (!pendingPreferredAssignment.value || !order.value) return
+  const reason = await inputModal.showModal(
+    `Reason for rejecting preferred assignment for Order #${order.value.id} (optional)`,
+    'Reject Preferred Assignment',
+    {
+      label: 'Reason',
+      placeholder: 'Tell us why you cannot take this order...',
+      multiline: true,
+      rows: 4,
+      required: false
+    }
+  )
+  if (reason === null) return
+  processingPreferredAssignment.value = true
+  try {
+    await writerAssignmentAPI.rejectPreferredAssignment(order.value.id, reason || '')
+    showSuccessToast('Preferred assignment rejected successfully.')
+    await loadOrder()
+  } catch (error) {
+    showErrorToast(getErrorMessage(error, 'Failed to reject preferred assignment'))
+  } finally {
+    processingPreferredAssignment.value = false
+  }
+}
+
+const requestReassignment = async () => {
+  if (!order.value) return
+  const reason = await inputModal.showModal(
+    `Reason for requesting reassignment of Order #${order.value.id} (optional)`,
+    'Request Reassignment',
+    {
+      label: 'Reason',
+      placeholder: 'Explain why you need this order reassigned...',
+      multiline: true,
+      rows: 4,
+      required: false
+    }
+  )
+  if (reason === null) return
+  processingAction.value = true
+  actionError.value = ''
+  actionSuccess.value = ''
+  try {
+    const res = await ordersAPI.executeAction(order.value.id, 'reassignment_request', {
+      reason: reason || ''
+    })
+    await handleActionSuccess(res?.data || { action: 'reassignment_request' })
+  } catch (error) {
+    handleActionError(error?.response?.data || error)
+  } finally {
+    processingAction.value = false
   }
 }
 
@@ -4706,6 +5186,18 @@ const canRequestHold = computed(() => {
   // Admins/Superadmins can also request holds for any assigned orders in valid statuses
   return (isWriter && isAssignedWriter && ['in_progress', 'assigned', 'draft'].includes(status)) ||
     (isAdminLike && ['in_progress', 'assigned', 'draft'].includes(status))
+})
+
+const canRequestReassignment = computed(() => {
+  if (!order.value || !authStore.isWriter) return false
+  const status = order.value.status?.toLowerCase()
+  const isAssignedWriter =
+    order.value.writer?.id === userId.value ||
+    order.value.writer_id === userId.value ||
+    order.value.assigned_writer_id === userId.value
+  if (!isAssignedWriter) return false
+  if (!['assigned', 'in_progress', 'on_hold', 'draft'].includes(status)) return false
+  return hasAvailableAction('reassignment_request')
 })
 
 const canStartOrder = computed(() => {
@@ -6356,7 +6848,10 @@ const loadOrder = async () => {
           loadCategories(),
           loadWalletBalance(),
           loadOrderReview(),
-          loadPaymentSummary()
+          loadPaymentSummary(),
+          loadAvailableActions(),
+          loadPendingAssignment(),
+          loadPendingPreferredAssignment()
         ])
       } catch (relatedError) {
         // Silently handle related data errors when using cache
@@ -6401,7 +6896,10 @@ const loadOrder = async () => {
         loadCategories(),
         loadWalletBalance(),
         loadOrderReview(),
-        loadPaymentSummary()
+        loadPaymentSummary(),
+        loadAvailableActions(),
+        loadPendingAssignment(),
+        loadPendingPreferredAssignment()
       ])
     } catch (apiError) {
       // If API call fails and we don't have cached data, show error

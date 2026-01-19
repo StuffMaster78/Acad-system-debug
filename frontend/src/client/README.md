@@ -37,7 +37,7 @@ All client routes are prefixed with `/client`:
 - `/client/orders/create` - Create new order
 - `/client/orders/:id` - Order details
 - `/client/payments` - Payment management
-- `/client/messages` - Messages/Communications
+- `/messages` - Messages/Communications
 - `/client/profile` - Profile settings
 - `/client/loyalty` - Loyalty & Rewards
 - `/client/referrals` - Referrals
@@ -91,7 +91,7 @@ All client routes are prefixed with `/client`:
    - View orders: `/client/orders`
    - Track order: `/client/orders/:id`
    - Make payment: `/client/payments`
-   - Message writer: `/client/messages`
+   - Message writer: `/messages`
 
 ### For Development
 

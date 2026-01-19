@@ -3,7 +3,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Breadcrumbs -->
       <nav class="mb-6" aria-label="Breadcrumb">
-        <ol class="flex items-center space-x-2 text-sm">
+        <ol class="flex items-center gap-2 text-xs sm:text-sm overflow-x-auto whitespace-nowrap">
           <li>
             <router-link to="/orders" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
               Orders
@@ -16,7 +16,7 @@
             </router-link>
           </li>
           <li class="text-gray-400 dark:text-gray-600">/</li>
-          <li class="text-gray-900 dark:text-gray-100 font-medium">Messages</li>
+          <li class="text-gray-900 dark:text-gray-100 font-medium truncate max-w-[60vw] sm:max-w-none">Messages</li>
         </ol>
       </nav>
 
