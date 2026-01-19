@@ -274,6 +274,8 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
     unread_count = serializers.SerializerMethodField()
     link_preview_json = serializers.JSONField(read_only=True)
     reactions = serializers.SerializerMethodField()
+    is_previous_writer_message = serializers.SerializerMethodField()
+    previous_writer_label = serializers.SerializerMethodField()
 
     class Meta:
         model = CommunicationMessage
@@ -284,7 +286,7 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
             "is_flagged", "is_hidden", "contains_link", "is_link_approved",
             "is_read", "sent_at", "flagged_message", "read_receipts", "attachment",
             "unread_count", "is_system", "is_sender", "link_preview", "link_preview_json",
-            "reactions"
+            "reactions", "is_previous_writer_message", "previous_writer_label"
         ]
         read_only_fields = [
             "id", "thread", "sender",
@@ -411,6 +413,26 @@ class CommunicationMessageSerializer(serializers.ModelSerializer):
         
         # Default: return full info
         return SimpleUserSerializer(obj.recipient).data
+
+    def get_is_previous_writer_message(self, obj):
+        request = self.context.get("request")
+        if not request or not request.user:
+            return False
+        viewer = request.user
+        if getattr(viewer, "role", None) != "writer":
+            return False
+        thread = getattr(obj, "thread", None)
+        order = getattr(thread, "order", None) if thread else None
+        if not order or not getattr(order, "assigned_writer_id", None):
+            return False
+        if obj.sender_role != "writer":
+            return False
+        return obj.sender_id != order.assigned_writer_id
+
+    def get_previous_writer_label(self, obj):
+        if self.get_is_previous_writer_message(obj):
+            return "Previous writer"
+        return None
     
     def get_recipient_role(self, obj):
         """Return the raw recipient role for routing/tab logic."""

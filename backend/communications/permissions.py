@@ -130,6 +130,27 @@ def can_send_message(user, thread) -> bool:
     if not has_order_access:
         return False
 
+    # Role-specific fencing for order threads
+    if role == "writer":
+        if user in thread.participants.all():
+            pass
+        elif order.assigned_writer == user and (
+            thread.sender_role == "writer" or thread.recipient_role == "writer"
+        ):
+            pass
+        else:
+            return False
+
+    if role == "client":
+        if user in thread.participants.all():
+            pass
+        elif order.client == user and (
+            thread.sender_role == "client" or thread.recipient_role == "client"
+        ):
+            pass
+        else:
+            return False
+
     # Check order status restrictions
     if order.status in {"archived", "cancelled"}:
         return thread.admin_override
@@ -159,16 +180,23 @@ def can_view_thread(user, thread) -> bool:
     order = getattr(thread, "order", None)
     if order:
         role = getattr(user, "role", None)
-        
-        # Client who placed the order
-        if order.client == user:
-            return True
-        # Writer assigned to the order
-        if order.assigned_writer == user:
-            return True
+
         # Staff roles have access
         if role in {"admin", "superadmin", "editor", "support"}:
             return True
+
+        # Client who placed the order (client-involved threads only)
+        if order.client == user and (
+            thread.sender_role == "client" or thread.recipient_role == "client"
+        ):
+            return True
+
+        # Writer assigned to the order (writer-involved threads only)
+        if order.assigned_writer == user and (
+            thread.sender_role == "writer" or thread.recipient_role == "writer"
+        ):
+            return True
+
         # Special orders - only admin/support
         if order.is_special and role in {"admin", "support"}:
             return True
