@@ -1,11 +1,11 @@
 <template>
-  <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Workload & Capacity</h1>
+        <h1 class="page-title text-gray-900">Workload & Capacity</h1>
         <p class="mt-2 text-gray-600">Track your current workload vs capacity</p>
       </div>
-      <div class="flex items-center gap-3">
+      <div class="flex flex-wrap items-center gap-3 w-full sm:w-auto">
         <label class="flex items-center gap-2 text-sm text-gray-600">
           <input
             type="checkbox"
@@ -14,7 +14,7 @@
           />
           <span>Auto-refresh (30s)</span>
         </label>
-        <button @click="loadWorkload" :disabled="loading" class="btn btn-secondary">
+        <button @click="loadWorkload" :disabled="loading" class="btn btn-secondary w-full sm:w-auto">
           {{ loading ? 'Loading...' : 'Refresh' }}
         </button>
       </div>
@@ -28,7 +28,7 @@
 
     <div v-else-if="workloadData" class="space-y-6">
       <!-- Capacity Overview -->
-      <div class="bg-white rounded-lg shadow-sm p-6">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
         <h2 class="text-xl font-semibold text-gray-900 mb-4">Capacity Overview</h2>
         
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

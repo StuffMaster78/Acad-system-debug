@@ -763,7 +763,7 @@
                   <SidebarIcon icon-name="view-grid" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Dashboard summary" />
                       Dashboard Summary
                     </router-link>
-                    <router-link v-if="shouldShowItem('Communications', 'Communications')" to="/writer/communications" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/writer/communications')}">
+                  <router-link v-if="shouldShowItem('Communications', 'Communications')" to="/messages" class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group" :class="{'bg-primary-50 text-primary-700 font-medium': $route.path.startsWith('/messages')}">
                       <SidebarIcon icon-name="inbox" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Communications" />
                       Communications
                     </router-link>
@@ -3542,7 +3542,7 @@ const updateExpandedSections = (path) => {
       writerUserManagementOpen.value = true
     }
     // Activity group
-    if (path.startsWith('/writer/communications') || path.startsWith('/writer/tickets') || 
+    if (path.startsWith('/messages') || path.startsWith('/writer/tickets') || 
         path.startsWith('/activity')) {
       writerActivityOpen.value = true
     }

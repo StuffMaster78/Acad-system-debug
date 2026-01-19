@@ -1,8 +1,8 @@
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Badge Management</h1>
+        <h1 class="page-title text-gray-900">Badge Management</h1>
         <p class="mt-2 text-gray-600">View and manage your earned badges</p>
       </div>
     </div>

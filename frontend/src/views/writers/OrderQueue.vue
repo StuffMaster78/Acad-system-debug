@@ -1,11 +1,11 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="min-h-dvh bg-gray-50">
+    <div class="max-w-7xl mx-auto page-shell">
       <!-- Header -->
       <div class="mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div class="space-y-2">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+            <h1 class="page-title text-gray-900 tracking-tight">
               Order Queue
             </h1>
             <p class="text-base text-gray-600 leading-relaxed max-w-2xl">
@@ -15,7 +15,7 @@
           <button
             @click="loadQueue"
             :disabled="loading"
-            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5"
+            class="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md transform hover:-translate-y-0.5 w-full sm:w-auto"
           >
             <ArrowPathIcon :class="['w-5 h-5', loading && 'animate-spin']" />
             <span>{{ loading ? 'Refreshing...' : 'Refresh' }}</span>
@@ -24,8 +24,8 @@
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-blue-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-blue-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -37,13 +37,13 @@
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
                 <ClipboardDocumentListIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-purple-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-purple-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-purple-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -55,13 +55,13 @@
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
                 <StarIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-amber-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-amber-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -73,13 +73,13 @@
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
                 <DocumentTextIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-emerald-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-emerald-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -91,7 +91,7 @@
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
                 <CheckCircleIcon class="w-6 h-6 text-white" />
               </div>
             </div>
@@ -100,14 +100,14 @@
       </div>
 
     <!-- Take Capacity -->
-    <div class="bg-white rounded-lg shadow-sm border border-primary-100 p-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <div class="bg-white rounded-lg shadow-sm border border-primary-100 p-4 sm:p-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
       <div>
         <p class="text-sm font-medium text-primary-600 uppercase tracking-wide">Level Capacity</p>
         <p class="text-xl font-semibold text-gray-900 mt-1">
           {{ levelDetails?.name || 'Unranked' }}
         </p>
         <div class="space-y-2">
-          <div class="flex items-center gap-4 text-sm">
+          <div class="flex flex-wrap items-center gap-4 text-sm">
             <div class="flex items-center gap-2">
               <span class="text-gray-600">Active:</span>
               <span class="font-semibold text-gray-900">{{ takeCapacity.active }}</span>
@@ -151,12 +151,12 @@
       <!-- Recommended Orders -->
       <div
         v-if="recommendedOrders.length"
-        class="bg-white rounded-xl shadow-md border-l-4 border-blue-600 p-6 sm:p-8 mb-8"
+        class="bg-white rounded-xl shadow-md border-l-4 border-blue-600 p-4 sm:p-8 mb-8"
       >
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <div class="space-y-2">
             <div class="flex items-center gap-3">
-              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
                 <SparklesIcon class="w-6 h-6 text-white" />
               </div>
               <div>
@@ -174,7 +174,7 @@
           </div>
           <button
             type="button"
-            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all border-2 border-transparent hover:border-primary-200 whitespace-nowrap"
+            class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all border-2 border-transparent hover:border-primary-200 whitespace-nowrap w-full sm:w-auto justify-center"
             @click="scrollToTabs"
           >
             <span>View full queue</span>

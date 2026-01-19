@@ -1,27 +1,27 @@
 <template>
-  <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">My Tips</h1>
+        <h1 class="page-title text-gray-900">My Tips</h1>
         <p class="mt-2 text-gray-600">View tips received from clients</p>
       </div>
     </div>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Total Tips</p>
         <p class="text-3xl font-bold text-green-900">${{ stats.total_tips || '0.00' }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Received</p>
         <p class="text-3xl font-bold text-blue-900">${{ stats.total_received || '0.00' }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200">
         <p class="text-sm font-medium text-purple-700 mb-1">Total Count</p>
         <p class="text-3xl font-bold text-purple-900">{{ stats.total_count || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">This Month</p>
         <p class="text-3xl font-bold text-yellow-900">${{ stats.this_month || '0.00' }}</p>
       </div>

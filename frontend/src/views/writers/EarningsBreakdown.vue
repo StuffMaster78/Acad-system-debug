@@ -1,22 +1,22 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="min-h-dvh bg-gray-50">
+    <div class="max-w-7xl mx-auto page-shell">
       <!-- Header -->
       <div class="mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div class="space-y-2">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+            <h1 class="page-title text-gray-900 tracking-tight">
               Earnings Breakdown
             </h1>
             <p class="text-base text-gray-600 leading-relaxed max-w-2xl">
               Detailed breakdown of your earnings by source
             </p>
           </div>
-          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
             <select
               v-model="selectedDays"
               @change="loadBreakdown"
-              class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors shadow-sm"
+              class="px-4 py-2.5 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors shadow-sm w-full sm:w-auto"
             >
               <option :value="30">Last 30 days</option>
               <option :value="90">Last 90 days</option>
@@ -26,7 +26,7 @@
             <button
               @click="exportEarnings"
               :disabled="exporting"
-              class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md"
+              class="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm hover:shadow-md w-full sm:w-auto"
             >
               <svg
                 v-if="!exporting"

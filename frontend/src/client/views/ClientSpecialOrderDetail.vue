@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Breadcrumbs -->
-    <nav class="flex items-center space-x-2 text-sm" aria-label="Breadcrumb">
+    <nav class="flex items-center gap-2 text-xs sm:text-sm overflow-x-auto whitespace-nowrap" aria-label="Breadcrumb">
       <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
         Dashboard
       </router-link>
@@ -10,7 +10,7 @@
         Special Orders
       </router-link>
       <span class="text-gray-400 dark:text-gray-600">/</span>
-      <span class="text-gray-900 dark:text-gray-100 font-medium">Order #{{ order?.id }}</span>
+      <span class="text-gray-900 dark:text-gray-100 font-medium truncate max-w-[60vw] sm:max-w-none">Order #{{ order?.id }}</span>
     </nav>
 
     <div v-if="loading" class="text-center py-12">

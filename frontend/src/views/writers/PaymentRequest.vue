@@ -1,15 +1,15 @@
 <template>
-  <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Payment Requests</h1>
+        <h1 class="page-title text-gray-900">Payment Requests</h1>
         <p class="mt-2 text-gray-600">Request manual payments outside of your scheduled payment dates</p>
       </div>
     </div>
 
     <!-- Wallet Balance Card -->
-    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-6 border border-blue-200">
-      <div class="flex items-center justify-between">
+    <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg shadow-sm p-4 sm:p-6 border border-blue-200">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <p class="text-sm font-medium text-blue-700 mb-1">Available Balance</p>
           <p class="text-4xl font-bold text-blue-900">${{ formatCurrency(walletBalance) }}</p>
@@ -17,7 +17,7 @@
             Payment Schedule: <span class="font-medium">{{ paymentSchedule }}</span>
           </p>
         </div>
-        <div class="text-right">
+        <div class="text-left sm:text-right">
           <p class="text-sm text-blue-600 mb-2">Next Scheduled Payment</p>
           <p class="text-lg font-semibold text-blue-900">{{ nextPaymentDate || 'Not scheduled' }}</p>
         </div>
@@ -156,7 +156,7 @@
 
     <!-- Confirmation Dialog -->
     <ConfirmationDialog
-      v-model:show="confirm.show.value"
+      :show="confirm.show.value"
       :title="confirm.title.value"
       :message="confirm.message.value"
       :details="confirm.details.value"
@@ -164,6 +164,7 @@
       :icon="confirm.icon.value"
       :confirm-text="confirm.confirmText.value"
       :cancel-text="confirm.cancelText.value"
+      @update:show="confirm.show.value = $event"
       @confirm="confirm.onConfirm"
       @cancel="confirm.onCancel"
     />

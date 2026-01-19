@@ -1,5 +1,5 @@
 <template>
-  <div class="space-y-6">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
     <PageHeader
       title="Advance Payments"
       description="Request advance payments against your expected earnings"

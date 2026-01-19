@@ -1,6 +1,6 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="min-h-dvh bg-gray-50">
+    <div class="max-w-7xl mx-auto page-shell">
       <!-- Header -->
       <div class="mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
@@ -15,7 +15,7 @@
           <button
             @click="loadPaymentStatus"
             :disabled="loading"
-            class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+            class="inline-flex items-center justify-center px-5 py-2.5 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm w-full sm:w-auto"
           >
             {{ loading ? 'Loading...' : 'Refresh' }}
           </button>
@@ -32,9 +32,9 @@
 
       <!-- Summary Cards -->
       <div v-else-if="paymentStatus" class="mb-8">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
           <!-- Pending -->
-          <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl shadow-md p-4 sm:p-6 border-l-4 border-yellow-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-yellow-700 uppercase tracking-wide mb-2">
@@ -48,7 +48,7 @@
                 </p>
               </div>
               <div class="ml-4 shrink-0">
-                <div class="w-12 h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-yellow-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">⏳</span>
                 </div>
               </div>
@@ -56,7 +56,7 @@
           </div>
           
           <!-- Delayed -->
-          <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-md p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-xl shadow-md p-4 sm:p-6 border-l-4 border-red-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-red-700 uppercase tracking-wide mb-2">
@@ -70,7 +70,7 @@
                 </p>
               </div>
               <div class="ml-4 shrink-0">
-                <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-red-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">⚠️</span>
                 </div>
               </div>
@@ -78,7 +78,7 @@
           </div>
           
           <!-- Paid (30 days) -->
-          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-md p-4 sm:p-6 border-l-4 border-green-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-green-700 uppercase tracking-wide mb-2">
@@ -92,7 +92,7 @@
                 </p>
               </div>
               <div class="ml-4 shrink-0">
-                <div class="w-12 h-12 bg-green-600 rounded-lg flex items-center justify-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-green-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">✅</span>
                 </div>
               </div>
@@ -100,7 +100,7 @@
           </div>
           
           <!-- Total Earnings -->
-          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
+          <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl shadow-md p-4 sm:p-6 border-l-4 border-blue-600 hover:shadow-lg transition-shadow">
             <div class="flex items-start justify-between mb-4">
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-blue-700 uppercase tracking-wide mb-2">
@@ -114,7 +114,7 @@
                 </p>
               </div>
               <div class="ml-4 shrink-0">
-                <div class="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div class="w-10 h-10 sm:w-12 sm:h-12 bg-blue-600 rounded-lg flex items-center justify-center">
                   <span class="text-2xl">💰</span>
                 </div>
               </div>

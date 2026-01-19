@@ -1,8 +1,8 @@
 <template>
-  <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Fines & Appeals</h1>
+        <h1 class="page-title text-gray-900">Fines & Appeals</h1>
         <p class="mt-2 text-gray-600">
           Track fines that impact your payouts and submit appeals when something looks off.
         </p>
@@ -10,7 +10,7 @@
       <button
         @click="loadFines"
         :disabled="loading"
-        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+        class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 w-full sm:w-auto"
       >
         {{ loading ? 'Loading...' : 'Refresh' }}
       </button>
@@ -18,24 +18,24 @@
 
     <!-- Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
         <p class="text-sm font-medium text-gray-600 mb-1">Total Fines</p>
         <p class="text-3xl font-bold text-gray-900">
           ${{ formatCurrency(stats.total_amount) }}
         </p>
         <p class="text-xs text-gray-500 mt-1">{{ fines.length }} records</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 border border-yellow-100">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-yellow-100">
         <p class="text-sm font-medium text-yellow-700 mb-1">Pending / Active</p>
         <p class="text-3xl font-bold text-yellow-900">${{ formatCurrency(stats.active_amount) }}</p>
         <p class="text-xs text-yellow-600 mt-1">{{ stats.active_count }} fines affecting payouts</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 border border-blue-100">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-blue-100">
         <p class="text-sm font-medium text-blue-700 mb-1">Appeals in Progress</p>
         <p class="text-3xl font-bold text-blue-900">{{ stats.appealed_count }}</p>
         <p class="text-xs text-blue-600 mt-1">Awaiting review</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 border border-green-100">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-green-100">
         <p class="text-sm font-medium text-green-700 mb-1">Waived / Resolved</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.resolved_count }}</p>
         <p class="text-xs text-green-600 mt-1">No longer impacting payouts</p>
@@ -233,50 +233,47 @@
           </button>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- Appeal Details Drawer -->
-  <div
+    <!-- Appeal Details Drawer -->
+    <div
     v-if="showAppealDetails"
     class="fixed inset-0 z-40 bg-black bg-opacity-50 flex justify-end"
     @click.self="closeAppealDetails"
-  >
-    <div class="bg-white w-full max-w-3xl h-full shadow-2xl flex flex-col">
-      <div class="p-6 border-b flex items-center justify-between">
-        <div>
-          <h2 class="text-2xl font-bold text-gray-900">
-            Appeal Timeline
-          </h2>
-          <p class="text-sm text-gray-500 mt-1">
-            Fine #{{ activeAppealFine?.id }} • Order #{{ activeAppealFine?.order }}
-          </p>
+    >
+      <div class="bg-white w-full max-w-3xl h-full shadow-2xl flex flex-col">
+        <div class="p-6 border-b flex items-center justify-between">
+          <div>
+            <h2 class="text-2xl font-bold text-gray-900">
+              Appeal Timeline
+            </h2>
+            <p class="text-sm text-gray-500 mt-1">
+              Fine #{{ activeAppealFine?.id }} • Order #{{ activeAppealFine?.order }}
+            </p>
+          </div>
+          <button
+            class="text-gray-500 hover:text-gray-700"
+            @click="closeAppealDetails"
+          >
+            ✕
+          </button>
         </div>
-        <button
-          class="text-gray-500 hover:text-gray-700"
-          @click="closeAppealDetails"
-        >
-          ✕
-        </button>
-      </div>
-      <div class="p-6 overflow-y-auto space-y-6 flex-1">
-        <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
-          <p class="text-sm text-gray-600">Fine Summary</p>
-          <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-            <div>
-              <p class="text-xs text-gray-500 uppercase">Amount</p>
-              <p class="font-semibold text-gray-900">${{ formatCurrency(activeAppealFine?.amount) }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-500 uppercase">Status</p>
-              <p class="font-semibold text-gray-900">{{ formatStatus(activeAppealFine?.status) }}</p>
-            </div>
-            <div class="sm:col-span-2">
-              <p class="text-xs text-gray-500 uppercase">Reason</p>
-              <p class="text-gray-800">{{ activeAppealFine?.reason }}</p>
+        <div class="p-6 overflow-y-auto space-y-6 flex-1">
+          <div class="bg-gray-50 rounded-lg p-4 border border-gray-100">
+            <p class="text-sm text-gray-600">Fine Summary</p>
+            <div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div>
+                <p class="text-xs text-gray-500 uppercase">Amount</p>
+                <p class="font-semibold text-gray-900">${{ formatCurrency(activeAppealFine?.amount) }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-500 uppercase">Status</p>
+                <p class="font-semibold text-gray-900">{{ formatStatus(activeAppealFine?.status) }}</p>
+              </div>
+              <div class="sm:col-span-2">
+                <p class="text-xs text-gray-500 uppercase">Reason</p>
+                <p class="text-gray-800">{{ activeAppealFine?.reason }}</p>
+              </div>
             </div>
           </div>
-        </div>
 
         <section>
           <div class="flex items-center justify-between mb-3">
@@ -386,6 +383,7 @@
             </button>
           </div>
         </section>
+        </div>
       </div>
     </div>
   </div>

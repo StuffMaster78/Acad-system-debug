@@ -1,28 +1,28 @@
 <template>
-  <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">My Support Tickets</h1>
+        <h1 class="page-title text-gray-900">My Support Tickets</h1>
         <p class="mt-2 text-gray-600">Create and manage your support tickets</p>
       </div>
-      <button @click="showCreateModal = true" class="btn btn-primary">Create Ticket</button>
+      <button @click="showCreateModal = true" class="btn btn-primary w-full sm:w-auto">Create Ticket</button>
     </div>
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200">
         <p class="text-sm font-medium text-blue-700 mb-1">Total Tickets</p>
         <p class="text-3xl font-bold text-blue-900">{{ stats.total_tickets || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 bg-gradient-to-br from-yellow-50 to-yellow-100 border border-yellow-200">
         <p class="text-sm font-medium text-yellow-700 mb-1">Open</p>
         <p class="text-3xl font-bold text-yellow-900">{{ stats.open_tickets || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 bg-gradient-to-br from-orange-50 to-orange-100 border border-orange-200">
         <p class="text-sm font-medium text-orange-700 mb-1">In Progress</p>
         <p class="text-3xl font-bold text-orange-900">{{ stats.in_progress_tickets || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 bg-gradient-to-br from-green-50 to-green-100 border border-green-200">
         <p class="text-sm font-medium text-green-700 mb-1">Closed</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.closed_tickets || 0 }}</p>
       </div>

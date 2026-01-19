@@ -1,16 +1,16 @@
 <template>
-  <div class="space-y-6 p-6">
+  <div class="min-h-dvh bg-gray-50 page-shell space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Order Hold Requests</h1>
+        <h1 class="page-title text-gray-900">Order Hold Requests</h1>
         <p class="mt-2 text-gray-600">
           Request to pause an order’s deadline while you wait for client action or clarification.
         </p>
       </div>
       <button
         @click="openModal()"
-        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors w-full sm:w-auto"
       >
         + New Hold Request
       </button>
@@ -18,19 +18,19 @@
 
     <!-- Stats -->
     <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 border border-gray-100">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-gray-100">
         <p class="text-sm font-medium text-gray-600 mb-1">Total Requests</p>
         <p class="text-3xl font-bold text-gray-900">{{ stats.total }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 border border-yellow-100">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-yellow-100">
         <p class="text-sm font-medium text-yellow-700 mb-1">Pending</p>
         <p class="text-3xl font-bold text-yellow-900">{{ stats.pending }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 border border-green-100">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-green-100">
         <p class="text-sm font-medium text-green-700 mb-1">Approved</p>
         <p class="text-3xl font-bold text-green-900">{{ stats.approved }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 border border-red-100">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border border-red-100">
         <p class="text-sm font-medium text-red-700 mb-1">Rejected</p>
         <p class="text-3xl font-bold text-red-900">{{ stats.rejected }}</p>
       </div>

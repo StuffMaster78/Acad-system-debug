@@ -1,24 +1,24 @@
 <template>
-  <div class="space-y-6 p-6">
+  <div class="space-y-6 p-4 sm:p-6">
     <!-- Breadcrumbs -->
-    <nav class="flex items-center space-x-2 text-sm" aria-label="Breadcrumb">
+    <nav class="flex items-center gap-2 text-xs sm:text-sm overflow-x-auto whitespace-nowrap" aria-label="Breadcrumb">
       <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
         Dashboard
       </router-link>
       <span class="text-gray-400 dark:text-gray-600">/</span>
-      <span class="text-gray-900 dark:text-gray-100 font-medium">Communications</span>
+      <span class="text-gray-900 dark:text-gray-100 font-medium truncate max-w-[60vw] sm:max-w-none">Communications</span>
     </nav>
     
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">Client Communications</h1>
+        <h1 class="page-title text-gray-900">Client Communications</h1>
         <p class="mt-2 text-gray-600">Manage your conversations with clients</p>
       </div>
       <button
         @click="loadCommunications"
         :disabled="loading"
-        class="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+        class="flex items-center justify-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 w-full sm:w-auto"
       >
         <svg
           class="w-5 h-5"
@@ -35,19 +35,19 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-500">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-blue-500">
         <p class="text-sm font-medium text-gray-600 mb-1">Total Threads</p>
         <p class="text-3xl font-bold text-blue-600">{{ communicationsData?.total_threads || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-orange-500">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-orange-500">
         <p class="text-sm font-medium text-gray-600 mb-1">Unread Messages</p>
         <p class="text-3xl font-bold text-orange-600">{{ communicationsData?.total_unread || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-green-500">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-green-500">
         <p class="text-sm font-medium text-gray-600 mb-1">Active Conversations</p>
         <p class="text-3xl font-bold text-green-600">{{ communicationsData?.active_conversations || 0 }}</p>
       </div>
-      <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-purple-500">
+      <div class="bg-white rounded-lg shadow-sm p-4 sm:p-6 border-l-4 border-purple-500">
         <p class="text-sm font-medium text-gray-600 mb-1">This Week</p>
         <p class="text-3xl font-bold text-purple-600">{{ communicationsData?.summary?.threads_this_week || 0 }}</p>
       </div>
@@ -55,7 +55,7 @@
 
     <!-- Filters -->
     <div class="bg-white rounded-lg shadow-sm p-4">
-      <div class="flex items-center gap-4">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4">
         <div class="flex-1">
           <input
             v-model="searchQuery"
@@ -68,7 +68,7 @@
         <select
           v-model="filterType"
           @change="filterThreads"
-          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+          class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 w-full sm:w-auto"
         >
           <option value="all">All Threads</option>
           <option value="unread">Unread Only</option>

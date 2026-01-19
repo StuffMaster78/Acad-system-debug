@@ -1,14 +1,14 @@
 <template>
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+  <div class="max-w-7xl mx-auto page-shell space-y-6">
     <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900">My Payments</h1>
+        <h1 class="page-title text-gray-900">My Payments</h1>
         <p class="text-gray-600 mt-1">View your payment history and upcoming payments</p>
       </div>
-      <div class="flex items-center gap-2 flex-wrap justify-end">
+      <div class="flex flex-wrap items-center gap-2 justify-start md:justify-end w-full md:w-auto">
         <router-link
           to="/writer/advance-payments"
-          class="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold shadow-sm hover:shadow-md"
+          class="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold shadow-sm hover:shadow-md w-full md:w-auto justify-center"
         >
           <span>💳</span>
           <span>Request Advance Payment</span>
@@ -16,7 +16,7 @@
         <select
           v-model="periodView"
           @change="loadPayments"
-          class="border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          class="border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
         >
           <option value="monthly">Monthly View</option>
           <option value="fortnightly">Fortnightly View</option>
@@ -35,7 +35,7 @@
             <input
               v-model="filters.dateFrom"
               type="date"
-              class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
             />
           </div>
           <div>
@@ -45,7 +45,7 @@
             <input
               v-model="filters.dateTo"
               type="date"
-              class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
             />
           </div>
           <div>
@@ -54,7 +54,7 @@
             </label>
             <select
               v-model="filters.status"
-              class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
             >
               <option value="">All</option>
               <option value="pending">Pending</option>
@@ -71,29 +71,29 @@
               v-model="filters.search"
               type="text"
               placeholder="Order or description"
-              class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              class="border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
             />
           </div>
           <button
             @click="resetFilters"
             type="button"
-            class="mt-6 md:mt-0 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+            class="mt-6 md:mt-0 px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors w-full md:w-auto"
           >
             Reset
           </button>
         </div>
-        <div class="flex items-center gap-3 justify-end">
+        <div class="flex flex-wrap items-center gap-3 justify-start md:justify-end w-full md:w-auto">
           <button
             @click="downloadPaymentsCsv"
             type="button"
-            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold"
+            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold w-full md:w-auto"
           >
             Download CSV
           </button>
           <select
             v-model="periodView"
             @change="loadPayments"
-            class="border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            class="border rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full md:w-auto"
           >
             <option value="monthly">Monthly View</option>
             <option value="fortnightly">Fortnightly View</option>
@@ -103,15 +103,15 @@
     </div>
 
     <!-- Advance Payments CTA -->
-    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg shadow-lg p-6 text-white">
-      <div class="flex items-center justify-between">
+    <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg shadow-lg p-4 sm:p-6 text-white">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 class="text-2xl font-bold mb-2">Need Money Before Payday?</h2>
           <p class="text-primary-100">Request an advance payment against your earnings</p>
         </div>
         <router-link
           to="/writer/advance-payments"
-          class="flex items-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg hover:bg-primary-50 transition-colors shadow-md hover:shadow-lg font-semibold"
+          class="flex items-center justify-center gap-2 px-6 py-3 bg-white text-primary-600 rounded-lg hover:bg-primary-50 transition-colors shadow-md hover:shadow-lg font-semibold w-full sm:w-auto"
         >
           <span>💳</span>
           <span>Request Advance</span>
