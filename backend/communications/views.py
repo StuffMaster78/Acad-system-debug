@@ -90,9 +90,21 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         # Threads where user is a participant (always visible)
         participant_filter = Q(participants=user)
         
-        # For writers and clients: ONLY threads where they are participants
-        if role in {"writer", "client"}:
-            return queryset.filter(participant_filter).distinct().order_by('-updated_at', '-id')
+        # For writers: threads where they are participants OR current assigned writer
+        # for writer-involved threads (includes previous-writer history).
+        if role == "writer":
+            writer_role_filter = Q(sender_role="writer") | Q(recipient_role="writer")
+            writer_order_filter = Q(order__assigned_writer=user)
+            writer_visible = participant_filter | (writer_order_filter & writer_role_filter)
+            return queryset.filter(writer_visible).distinct().order_by('-updated_at', '-id')
+
+        # For clients: threads where they are participants OR client-involved threads
+        # for orders they own.
+        if role == "client":
+            client_role_filter = Q(sender_role="client") | Q(recipient_role="client")
+            client_order_filter = Q(order__client=user)
+            client_visible = participant_filter | (client_order_filter & client_role_filter)
+            return queryset.filter(client_visible).distinct().order_by('-updated_at', '-id')
         
         # For admin/superadmin: can see all threads
         if role in {"admin", "superadmin"}:

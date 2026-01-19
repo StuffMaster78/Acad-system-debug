@@ -242,8 +242,8 @@ class MessageService:
         - Support: See messages where client sends to support (all support users can read)
         - Editor: See messages where client sends to editor (all editors can read)
         - Admin: See messages where client sends to admin (all admins can read)
-        - Client: See messages where they are sender/recipient OR writer sends to them (only that specific client)
-        - Writer: See messages where they are sender/recipient OR client sends to them (only that specific writer)
+        - Client: See messages in client-involved threads they can access
+        - Writer: See messages in writer-involved threads they can access (includes previous-writer history)
 
         Args:
             user (User): Requesting user.
@@ -297,25 +297,27 @@ class MessageService:
                 (Q(sender_role="client") & Q(recipient_role__in=["admin", "superadmin"]))
             ).order_by("sent_at")
 
-        # Client: See messages where they are sender/recipient OR writer sends to them (only that specific client)
+        # Client: See all messages in client-involved threads they can access
         if role == "client":
-            return thread.messages.filter(
-                is_deleted=False
-            ).filter(
-                Q(sender=user) | 
-                Q(recipient=user) |
-                (Q(sender_role="writer") & Q(recipient=user))
-            ).order_by("sent_at")
+            order = getattr(thread, "order", None)
+            if user in thread.participants.all():
+                return thread.messages.filter(is_deleted=False).order_by("sent_at")
+            if order and order.client == user and (
+                thread.sender_role == "client" or thread.recipient_role == "client"
+            ):
+                return thread.messages.filter(is_deleted=False).order_by("sent_at")
+            return CommunicationMessage.objects.none()
 
-        # Writer: See messages where they are sender/recipient OR client sends to them (only that specific writer)
+        # Writer: See all messages in writer-involved threads they can access
         if role == "writer":
-            return thread.messages.filter(
-                is_deleted=False
-            ).filter(
-                Q(sender=user) | 
-                Q(recipient=user) |
-                (Q(sender_role="client") & Q(recipient=user))
-            ).order_by("sent_at")
+            order = getattr(thread, "order", None)
+            if user in thread.participants.all():
+                return thread.messages.filter(is_deleted=False).order_by("sent_at")
+            if order and order.assigned_writer == user and (
+                thread.sender_role == "writer" or thread.recipient_role == "writer"
+            ):
+                return thread.messages.filter(is_deleted=False).order_by("sent_at")
+            return CommunicationMessage.objects.none()
 
         # Default: only messages where user is sender or recipient
         return thread.messages.filter(
