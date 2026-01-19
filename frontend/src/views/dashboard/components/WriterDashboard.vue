@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
     <!-- Breadcrumbs -->
-    <nav class="flex flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+    <nav class="flex items-center gap-2 text-xs sm:text-sm overflow-x-auto whitespace-nowrap" aria-label="Breadcrumb">
       <span class="text-gray-900 dark:text-gray-100 font-medium">Dashboard</span>
     </nav>
     
@@ -146,7 +146,88 @@
 
         <!-- Orders Table -->
         <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div class="table-scroll">
+          <!-- Mobile Cards -->
+          <div class="sm:hidden space-y-3 px-4 pb-4">
+            <div
+              v-for="order in filteredOrders"
+              :key="order.id"
+              class="rounded-xl border border-gray-200 p-3 shadow-sm transition-colors cursor-pointer"
+              :class="{
+                'bg-orange-50 border-orange-200': order.status === 'revision_requested',
+                'bg-red-50 border-red-200': isOverdue(order) && isInProgress(order),
+                'bg-amber-50 border-amber-200': !isOverdue(order) && isDueSoon(order) && isInProgress(order)
+              }"
+              @click="$router.push(`/orders/${order.id}`)"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-semibold text-gray-500">#{{ order.id }}</span>
+                    <OrderStatusTooltip :status="order.status" position="bottom">
+                      <span
+                        class="px-2 py-0.5 rounded-full text-[11px] font-semibold"
+                        :class="getOrderStatusClass(order.status)"
+                      >
+                        {{ formatStatus(order.status) }}
+                      </span>
+                    </OrderStatusTooltip>
+                  </div>
+                  <div class="text-sm font-semibold text-gray-900 truncate">
+                    {{ getShortTitle(order) }}
+                  </div>
+                  <div
+                    v-if="order.subject?.name || order.subject"
+                    class="text-xs text-gray-500 truncate mt-0.5"
+                  >
+                    {{ order.subject?.name || order.subject }}
+                  </div>
+                </div>
+                <span class="text-xs text-gray-500">
+                  {{ formatDate(order.created_at) }}
+                </span>
+              </div>
+              <div class="mt-3 flex flex-wrap gap-2 text-[11px] text-gray-600">
+                <span class="px-2 py-1 bg-gray-100 rounded-full">
+                  {{ order.number_of_pages || order.pages || 0 }} pages
+                </span>
+                <span class="px-2 py-1 bg-emerald-50 text-emerald-700 rounded-full">
+                  ${{ (Number(order.writer_compensation) || 0).toFixed(2) }}
+                </span>
+                <span
+                  class="px-2 py-1 rounded-full"
+                  :class="isOverdue(order) ? 'bg-red-100 text-red-700' : isDueSoon(order) ? 'bg-amber-100 text-amber-700' : 'bg-blue-50 text-blue-700'"
+                >
+                  {{ formatDeadline(order) }}
+                </span>
+              </div>
+              <div class="mt-3 flex flex-col gap-2" @click.stop>
+                <button
+                  v-if="activeTab !== 'available'"
+                  @click="$router.push(`/orders/${order.id}`)"
+                  class="w-full px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-xs font-semibold"
+                >
+                  {{ getActionButtonText(order.status) }}
+                </button>
+                <div v-else class="flex gap-2">
+                  <button
+                    @click="$router.push(`/orders/${order.id}`)"
+                    class="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-semibold"
+                  >
+                    View
+                  </button>
+                  <button
+                    @click="$router.push(`/writer/queue?order=${order.id}`)"
+                    class="flex-1 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-xs font-semibold"
+                  >
+                    Request
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="hidden sm:block">
+            <div class="table-scroll">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
@@ -274,6 +355,7 @@
                 </tr>
               </tbody>
             </table>
+          </div>
         </div>
       </div>
 
@@ -479,24 +561,24 @@
         </svg>
         </router-link>
       </div>
+      <!-- Availability Confirmation Dialog -->
+      <ConfirmationDialog
+        v-if="confirm.show.value"
+        :show="confirm.show.value"
+        :title="unref(confirm.title)"
+        :message="unref(confirm.message)"
+        :details="unref(confirm.details)"
+        :variant="unref(confirm.variant)"
+        :icon="unref(confirm.icon)"
+        :confirm-text="unref(confirm.confirmText)"
+        :cancel-text="unref(confirm.cancelText)"
+        @confirm="confirm.onConfirm"
+        @cancel="confirm.onCancel"
+        @update:show="(val) => (confirm.show.value = val)"
+      />
                   </div>
                 </div>
                 </div>
-
-  <!-- Availability Confirmation Dialog -->
-  <ConfirmationDialog
-    v-if="confirm.show.value"
-    v-model:show="confirm.show"
-    :title="unref(confirm.title)"
-    :message="unref(confirm.message)"
-    :details="unref(confirm.details)"
-    :variant="unref(confirm.variant)"
-    :icon="unref(confirm.icon)"
-    :confirm-text="unref(confirm.confirmText)"
-    :cancel-text="unref(confirm.cancelText)"
-    @confirm="confirm.onConfirm"
-    @cancel="confirm.onCancel"
-  />
 </template>
 
 <script setup>
@@ -513,7 +595,6 @@ import {
 import ordersAPI from '@/api/orders'
 import writerDashboardAPI from '@/api/writer-dashboard'
 import { useToast } from '@/composables/useToast'
-import onlineStatusAPI from '@/api/online-status'
 import { useAuthStore } from '@/stores/auth'
 import OrderStatusTooltip from '@/components/common/OrderStatusTooltip.vue'
 import { useConfirmDialog } from '@/composables/useConfirmDialog'
@@ -547,6 +628,8 @@ const availableOrders = ref([])
 const availableOrdersLoading = ref(false)
 const orderRequests = ref([])
 const orderRequestsLoading = ref(false)
+const orderSummary = ref(null)
+const summaryLoading = ref(false)
 const currentPage = ref(1)
 const hasMoreOrders = ref(false)
 
@@ -620,6 +703,29 @@ const fetchOrdersByStatus = async (statuses = null, page = 1, includeArchived = 
     ordersLoading.value = false
   }
 }
+
+const fetchOrderSummary = async () => {
+  summaryLoading.value = true
+  try {
+    const res = await ordersAPI.getSummary({ include_archived: true })
+    orderSummary.value = res.data || {}
+  } catch (err) {
+    console.error('Failed to fetch order summary:', err)
+    orderSummary.value = null
+  } finally {
+    summaryLoading.value = false
+  }
+}
+
+const getSummaryStatusCount = (statuses) => {
+  if (!statuses || statuses.length === 0) return 0
+  const breakdown = orderSummary.value?.status_breakdown
+  if (breakdown) {
+    return statuses.reduce((sum, status) => sum + (breakdown[status] || 0), 0)
+  }
+  return allOrders.value.filter(order => statuses.includes(order.status)).length
+}
+
 
 // Fetch available orders (orders writer can request/take)
 // Only shows unassigned, paid orders that haven't been assigned to any writer
@@ -736,11 +842,7 @@ const orderTabs = computed(() => {
       id: 'assigned',
       label: 'Assigned',
       statuses: assignedStatuses,
-      count: allOrders.value.filter(o => 
-        assignedStatuses.includes(o.status) && 
-        o.assigned_writer && 
-        !inProgressStatuses.includes(o.status)
-      ).length,
+      count: getSummaryStatusCount(assignedStatuses),
       color: 'bg-indigo-500',
       textColor: 'text-indigo-600',
       bgColor: 'bg-indigo-50',
@@ -762,10 +864,7 @@ const orderTabs = computed(() => {
       id: 'in_progress',
       label: 'In Progress',
       statuses: inProgressStatuses,
-      count: allOrders.value.filter(o => 
-        inProgressStatuses.includes(o.status) && 
-        o.assigned_writer
-      ).length,
+      count: getSummaryStatusCount(inProgressStatuses),
       color: 'bg-emerald-500',
       textColor: 'text-emerald-600',
       bgColor: 'bg-emerald-50',
@@ -776,7 +875,7 @@ const orderTabs = computed(() => {
       id: 'revision_requests',
       label: 'Revision Requests',
       statuses: revisionStatuses,
-      count: allOrders.value.filter(o => revisionStatuses.includes(o.status)).length,
+      count: getSummaryStatusCount(revisionStatuses),
       color: 'bg-orange-500',
       textColor: 'text-orange-600',
       bgColor: 'bg-orange-50',
@@ -787,7 +886,7 @@ const orderTabs = computed(() => {
       id: 'completed',
       label: 'Completed',
       statuses: completedStatuses,
-      count: allOrders.value.filter(o => completedStatuses.includes(o.status)).length,
+      count: getSummaryStatusCount(completedStatuses),
       color: 'bg-green-500',
       textColor: 'text-green-600',
       bgColor: 'bg-green-50',
@@ -798,7 +897,7 @@ const orderTabs = computed(() => {
       id: 'disputed',
       label: 'Disputed',
       statuses: ['disputed'],
-      count: allOrders.value.filter(o => o.status === 'disputed').length,
+      count: getSummaryStatusCount(['disputed']),
       color: 'bg-red-500',
       textColor: 'text-red-600',
       bgColor: 'bg-red-50',
@@ -809,7 +908,7 @@ const orderTabs = computed(() => {
       id: 'on_hold',
       label: 'On Hold',
       statuses: ['on_hold'],
-      count: allOrders.value.filter(o => o.status === 'on_hold').length,
+      count: getSummaryStatusCount(['on_hold']),
       color: 'bg-amber-500',
       textColor: 'text-amber-600',
       bgColor: 'bg-amber-50',
@@ -820,7 +919,7 @@ const orderTabs = computed(() => {
       id: 'cancelled',
       label: 'Cancelled',
       statuses: cancelledStatuses,
-      count: allOrders.value.filter(o => cancelledStatuses.includes(o.status)).length,
+      count: getSummaryStatusCount(cancelledStatuses),
       color: 'bg-gray-500',
       textColor: 'text-gray-600',
       bgColor: 'bg-gray-50',
@@ -831,7 +930,7 @@ const orderTabs = computed(() => {
       id: 'closed',
       label: 'Closed',
       statuses: closedStatuses,
-      count: allOrders.value.filter(o => closedStatuses.includes(o.status)).length,
+      count: getSummaryStatusCount(closedStatuses),
       color: 'bg-slate-500',
       textColor: 'text-slate-600',
       bgColor: 'bg-slate-50',
@@ -842,7 +941,7 @@ const orderTabs = computed(() => {
       id: 'archived',
       label: 'Archived',
       statuses: null, // Special case - uses is_archived flag
-      count: allOrders.value.filter(o => o.is_archived === true).length,
+      count: getSummaryStatusCount(['archived']),
       color: 'bg-slate-600',
       textColor: 'text-slate-700',
       bgColor: 'bg-slate-100',
@@ -853,7 +952,7 @@ const orderTabs = computed(() => {
       id: 'all',
       label: 'All Orders',
       statuses: null,
-      count: allOrders.value.length,
+      count: orderSummary.value?.total ?? allOrders.value.length,
       color: 'bg-gray-600',
       textColor: 'text-gray-700',
       bgColor: 'bg-gray-100',
@@ -954,12 +1053,19 @@ const filteredOrders = computed(() => {
 
 // Order counts
 const activeOrdersCount = computed(() => {
-  return allOrders.value.filter(o => 
-    ['in_progress', 'under_editing', 'on_hold', 'submitted', 'revision_requested', 'on_revision'].includes(o.status)
-  ).length
+  const activeStatuses = ['in_progress', 'under_editing', 'on_hold', 'submitted', 'revision_requested', 'on_revision']
+  const count = getSummaryStatusCount(activeStatuses)
+  if (count) {
+    return count
+  }
+  return allOrders.value.filter(o => activeStatuses.includes(o.status)).length
 })
 
 const inProgressCount = computed(() => {
+  const count = getSummaryStatusCount(['in_progress'])
+  if (count) {
+    return count
+  }
   return allOrders.value.filter(o => o.status === 'in_progress').length
 })
 
@@ -991,7 +1097,7 @@ const totalReviews = computed(() => {
 // Escalations Count (disputed orders + orders with escalation flags)
 const escalationsCount = computed(() => {
   // Count disputed orders
-  const disputed = allOrders.value.filter(o => o.status === 'disputed').length
+  const disputed = getSummaryStatusCount(['disputed']) || allOrders.value.filter(o => o.status === 'disputed').length
   // Could also check for escalation flags if they exist in the order data
   // For now, we'll use disputed orders as escalations
   return disputed
@@ -1069,6 +1175,7 @@ const refreshOrders = async () => {
       await fetchOrdersByStatus(tab.statuses, 1, false)
     }
   }
+  await fetchOrderSummary()
   // Also emit to parent to refresh
   emit('refresh-requested', { scope: 'orders' })
 }
@@ -1238,7 +1345,7 @@ const deadlineCountdown = computed(() => {
 
 // Availability
 const isAvailabilityOnline = computed(() => {
-  return props.availabilityStatus?.is_online ?? false
+  return props.availabilityStatus?.is_available ?? false
 })
 
 const availabilityMessage = computed(() => {
@@ -1273,10 +1380,10 @@ const toggleAvailability = async () => {
 
     availabilityLoading.value = true
   try {
-    await onlineStatusAPI.updateAvailability({
-      is_online: newStatus,
+    const response = await writerDashboardAPI.updateAvailability({
+      is_available: newStatus,
     })
-    emit('availability-updated', { is_online: newStatus })
+    emit('availability-updated', response?.data || { is_available: newStatus })
     lastAvailabilityPing.value = new Date()
   } catch (err) {
     console.error('Failed to toggle availability:', err)
@@ -1357,6 +1464,7 @@ const fetchAllWriterOrders = async () => {
 
 // Initialize
 onMounted(async () => {
+  await fetchOrderSummary()
   // Fetch all orders first for accurate counts
   await fetchAllWriterOrders()
   
