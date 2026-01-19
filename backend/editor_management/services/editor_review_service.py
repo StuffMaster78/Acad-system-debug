@@ -183,14 +183,16 @@ class EditorReviewService:
             # Notify client
             if order.client:
                 NotificationHelper.send_notification(
-                    event_key="order.reviewed",
                     user=order.client,
-                    context={
+                    event="order.reviewed",
+                    payload={
                         "order_id": order.id,
                         "order_topic": order.topic,
                         "reviewed_by": editor.name,
                         "approved": True,
+                        "website_id": order.website_id,
                     },
+                    website=order.website
                 )
         else:
             # Requires revision - keep in review but mark task appropriately
@@ -218,14 +220,16 @@ class EditorReviewService:
             # Notify writer
             if order.assigned_writer:
                 NotificationHelper.send_notification(
-                    event_key="order.revision_requested",
                     user=order.assigned_writer,
-                    context={
+                    event="order.revision_requested",
+                    payload={
                         "order_id": order.id,
                         "order_topic": order.topic,
                         "revision_notes": revision_notes,
                         "requested_by": editor.name,
+                        "website_id": order.website_id,
                     },
+                    website=order.website
                 )
         
         AuditLogService.log_auto(

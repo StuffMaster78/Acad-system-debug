@@ -398,6 +398,84 @@ class OrderReassignedTemplate(BaseNotificationTemplate):
         cta_text, cta_url = _cta(ctx)
         body = f"{pref} Order{_order_num(ctx)}."
         return title, body, _html(title, body, cta_text, cta_url)
+
+
+@register_template("order.unassigned")
+class OrderUnassignedTemplate(BaseNotificationTemplate):
+    """Template for writer unassignment."""
+
+    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
+        ctx = {**self.context, **(context or {})}
+        title = _title(ctx, "Writer unassigned")
+        pref = _preheader(ctx, "The writer was removed from the order.")
+        cta_text, cta_url = _cta(ctx)
+        body = f"{pref} Order{_order_num(ctx)}."
+        return title, body, _html(title, body, cta_text, cta_url)
+
+
+@register_template("order.assignment_accepted")
+class OrderAssignmentAcceptedTemplate(BaseNotificationTemplate):
+    """Template for assignment accepted by writer."""
+
+    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
+        ctx = {**self.context, **(context or {})}
+        title = _title(ctx, "Assignment accepted")
+        pref = _preheader(ctx, "A writer accepted the assignment.")
+        cta_text, cta_url = _cta(ctx)
+        body = f"{pref} Order{_order_num(ctx)}."
+        return title, body, _html(title, body, cta_text, cta_url)
+
+
+@register_template("order.assignment_rejected")
+class OrderAssignmentRejectedTemplate(BaseNotificationTemplate):
+    """Template for assignment rejected by writer."""
+
+    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
+        ctx = {**self.context, **(context or {})}
+        title = _title(ctx, "Assignment rejected")
+        pref = _preheader(ctx, "A writer rejected the assignment.")
+        cta_text, cta_url = _cta(ctx)
+        body = f"{pref} Order{_order_num(ctx)}."
+        return title, body, _html(title, body, cta_text, cta_url)
+
+
+@register_template("order.preferred_writer_accepted")
+class PreferredWriterAcceptedTemplate(BaseNotificationTemplate):
+    """Template for preferred writer acceptance."""
+
+    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
+        ctx = {**self.context, **(context or {})}
+        title = _title(ctx, "Preferred writer accepted")
+        pref = _preheader(ctx, "Your preferred writer accepted the order.")
+        cta_text, cta_url = _cta(ctx)
+        body = f"{pref} Order{_order_num(ctx)}."
+        return title, body, _html(title, body, cta_text, cta_url)
+
+
+@register_template("order.preferred_writer_rejected")
+class PreferredWriterRejectedTemplate(BaseNotificationTemplate):
+    """Template for preferred writer rejection."""
+
+    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
+        ctx = {**self.context, **(context or {})}
+        title = _title(ctx, "Preferred writer rejected")
+        pref = _preheader(ctx, "Your preferred writer declined the order.")
+        cta_text, cta_url = _cta(ctx)
+        body = f"{pref} Order{_order_num(ctx)}."
+        return title, body, _html(title, body, cta_text, cta_url)
+
+
+@register_template("order.fined")
+class OrderFinedTemplate(BaseNotificationTemplate):
+    """Template for order fine applied."""
+
+    def render(self, context: Dict | None = None) -> Tuple[str, str, str]:
+        ctx = {**self.context, **(context or {})}
+        title = _title(ctx, "Fine applied")
+        pref = _preheader(ctx, "A fine was applied for this order.")
+        cta_text, cta_url = _cta(ctx)
+        body = f"{pref} Order{_order_num(ctx)}."
+        return title, body, _html(title, body, cta_text, cta_url)
     
 @register_template("order.archived")
 class OrderArchivedTemplate(BaseNotificationTemplate):

@@ -17,9 +17,31 @@
       "label": "Order assigned",
       "description": "Order assigned to a writer.",
       "enabled": true,
-      "roles": ["client", "writer"],
+      "roles": ["client", "writer", "admin", "support"],
       "channels": ["in_app", "email", "webhook"],
       "priority": "critical",
+      "templates": {}
+    },
+    "order.assignment_accepted": {
+      "key": "order.assignment_accepted",
+      "event_key": "order.assignment_accepted",
+      "label": "Assignment accepted",
+      "description": "Writer accepted an assignment.",
+      "enabled": true,
+      "roles": ["admin", "support"],
+      "channels": ["in_app", "email"],
+      "priority": "high",
+      "templates": {}
+    },
+    "order.assignment_rejected": {
+      "key": "order.assignment_rejected",
+      "event_key": "order.assignment_rejected",
+      "label": "Assignment rejected",
+      "description": "Writer rejected an assignment.",
+      "enabled": true,
+      "roles": ["admin", "support"],
+      "channels": ["in_app", "email"],
+      "priority": "high",
       "templates": {}
     },
     "order.preferred_writer_assigned": {
@@ -27,6 +49,28 @@
       "event_key": "order.preferred_writer_assigned",
       "label": "Preferred writer assigned",
       "description": "Assigned to client's preferred writer.",
+      "enabled": true,
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "priority": "high",
+      "templates": {}
+    },
+    "order.preferred_writer_accepted": {
+      "key": "order.preferred_writer_accepted",
+      "event_key": "order.preferred_writer_accepted",
+      "label": "Preferred writer accepted",
+      "description": "Preferred writer accepted the order.",
+      "enabled": true,
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "priority": "high",
+      "templates": {}
+    },
+    "order.preferred_writer_rejected": {
+      "key": "order.preferred_writer_rejected",
+      "event_key": "order.preferred_writer_rejected",
+      "label": "Preferred writer rejected",
+      "description": "Preferred writer rejected the order.",
       "enabled": true,
       "roles": ["client", "writer"],
       "channels": ["in_app", "email"],
@@ -73,7 +117,7 @@
       "label": "Order available",
       "description": "Order available for assignment.",
       "enabled": true,
-      "roles": ["writer"],
+      "roles": ["writer_pool"],
       "channels": ["in_app"],
       "priority": "low",
       "templates": {}
@@ -309,6 +353,28 @@
       "priority": "high",
       "templates": {}
     },
+    "order.disputed": {
+      "key": "order.disputed",
+      "event_key": "order.disputed",
+      "label": "Order disputed",
+      "description": "Order is under dispute.",
+      "enabled": true,
+      "roles": ["client", "writer", "admin", "support"],
+      "channels": ["in_app", "email"],
+      "priority": "high",
+      "templates": {}
+    },
+    "order.unassigned": {
+      "key": "order.unassigned",
+      "event_key": "order.unassigned",
+      "label": "Writer unassigned",
+      "description": "Writer removed from the order; order returned to the pool.",
+      "enabled": true,
+      "roles": ["client", "writer"],
+      "channels": ["in_app", "email"],
+      "priority": "medium",
+      "templates": {}
+    },
     "order.expired": {
       "key": "order.expired",
       "event_key": "order.expired",
@@ -318,6 +384,17 @@
       "roles": ["client", "writer", "admin"],
       "channels": ["in_app", "email", "sms"],
       "forced_channels": ["email"],
+      "priority": "high",
+      "templates": {}
+    },
+    "order.fined": {
+      "key": "order.fined",
+      "event_key": "order.fined",
+      "label": "Order fine applied",
+      "description": "A fine was applied for the order.",
+      "enabled": true,
+      "roles": ["writer", "admin"],
+      "channels": ["in_app", "email"],
       "priority": "high",
       "templates": {}
     },

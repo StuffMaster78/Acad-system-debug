@@ -31,7 +31,7 @@ def _default_ctx(order: Any,
     """
     website = getattr(order, "website", None)
     client = getattr(order, "client", None)
-    writer = getattr(order, "writer", None)
+    writer = getattr(order, "assigned_writer", None) or getattr(order, "writer", None)
 
     deadline = getattr(order, "deadline_at", None)
     if hasattr(deadline, "isoformat"):
@@ -123,21 +123,50 @@ def emit_event(event_key: str,
                extra: Optional[Mapping[str, Any]] = None) -> None:
     """Emit a canonical order event into the notifications pipeline.
 
-    This calls the handler registry, which resolves recipients by role
-    and sends via the NotificationService.
-
-    Args:
-        event_key: Canonical event (e.g., "order.paid").
-        order: Order-like object for context.
-        actor: Optional user/system actor.
-        extra: Optional additional context fields.
-
-    Returns:
-        None
+    Resolves recipients by role and dispatches to handlers with
+    the expected signature.
     """
+    from notifications_system.registry.notification_registry import get_event
+    from notifications_system.registry.role_registry import resolve_role_user
+
     ctx = _context(event_key, order, actor=actor, extra=extra)
     _assert_event_known(event_key)
-    dispatch(event_key, ctx)
+
+    event_meta = get_event(event_key)
+    roles = event_meta.roles if event_meta else []
+    if not roles:
+        return
+
+    role_context = {
+        "order": order,
+        "actor": actor,
+        "website": getattr(order, "website", None),
+    }
+
+    for role in roles:
+        resolved = resolve_role_user(role, role_context)
+        if not resolved:
+            continue
+
+        users = resolved
+        if hasattr(resolved, "all"):
+            users = resolved.all()
+        if not isinstance(users, (list, tuple, set)):
+            users = [users]
+
+        for user in users:
+            if not user:
+                continue
+            dispatch(
+                event_key,
+                user=user,
+                event=event_key,
+                payload=ctx,
+                order=order,
+                actor=actor,
+                website=getattr(order, "website", None),
+                viewer_role=role,
+            )
 
 
 # ---- Convenience emitters (one per transition) -----------------------------
@@ -253,6 +282,11 @@ def emit_order_reassigned(*, order: Any, actor: Any | None = None,
     """Order reassigned to a different writer."""
     emit_event("order.reassigned", order=order, actor=actor, extra=extra)
 
+def emit_order_unassigned(*, order: Any, actor: Any | None = None,
+                          extra: Mapping[str, Any] | None = None) -> None:
+    """Writer unassigned from order."""
+    emit_event("order.unassigned", order=order, actor=actor, extra=extra)
+
 
 def emit_order_expired(*, order: Any, actor: Any | None = None,
                        extra: Mapping[str, Any] | None = None) -> None:
@@ -331,6 +365,7 @@ __all__ = [
     "emit_order_archived",
     "emit_order_completed",
     "emit_order_reassigned",
+    "emit_order_unassigned",
     "emit_order_expired",
     "emit_order_assigned",
     "emit_order_created",

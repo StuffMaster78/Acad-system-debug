@@ -200,6 +200,7 @@ def build_order_context(
     viewer_role: Optional[str] = None,
     subject: Optional[str] = None,
     preheader: Optional[str] = None,
+    meta: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Build a rich, consistent context dictionary for order templates.
 
@@ -236,7 +237,7 @@ def build_order_context(
     urls = _order_urls(order)
     order_d = _order_bits(order)
     client_d = _user_bits(getattr(order, "client", None))
-    writer_d = _user_bits(getattr(order, "writer", None))
+    writer_d = _user_bits(getattr(order, "assigned_writer", None) or getattr(order, "writer", None))
     actor_d = _user_bits(actor)
     meta = meta or {}
 

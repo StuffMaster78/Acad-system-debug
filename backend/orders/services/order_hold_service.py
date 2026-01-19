@@ -47,7 +47,6 @@ class HoldOrderService:
 
         # Use unified transition helper to move to on_hold
         from orders.services.transition_helper import OrderTransitionHelper
-        from notifications_system.services.notification_helper import NotificationHelper
 
         OrderTransitionHelper.transition_order(
             self.order,
@@ -58,33 +57,6 @@ class HoldOrderService:
             is_automatic=False,
             metadata={},
         )
-
-        # Notify key stakeholders that the order has been put on hold.
-        try:
-            if getattr(self.order, "client", None):
-                NotificationHelper.send_notification(
-                    event_key="order.on_hold",
-                    user=self.order.client,
-                    context={
-                        "order_id": self.order.id,
-                        "order_topic": getattr(self.order, "topic", ""),
-                        "put_on_hold_by": getattr(self.user, "username", None),
-                    },
-                )
-
-            if getattr(self.order, "assigned_writer", None):
-                NotificationHelper.send_notification(
-                    event_key="order.on_hold",
-                    user=self.order.assigned_writer,
-                    context={
-                        "order_id": self.order.id,
-                        "order_topic": getattr(self.order, "topic", ""),
-                        "put_on_hold_by": getattr(self.user, "username", None),
-                    },
-                )
-        except Exception:
-            # Notification failures should not prevent the state change.
-            pass
 
         return self.order
 
@@ -107,7 +79,6 @@ class HoldOrderService:
 
         # Use unified transition helper to move to in_progress
         from orders.services.transition_helper import OrderTransitionHelper
-        from notifications_system.services.notification_helper import NotificationHelper
 
         OrderTransitionHelper.transition_order(
             self.order,
@@ -118,30 +89,5 @@ class HoldOrderService:
             is_automatic=False,
             metadata={},
         )
-
-        try:
-            if getattr(self.order, "client", None):
-                NotificationHelper.send_notification(
-                    event_key="order.resumed",
-                    user=self.order.client,
-                    context={
-                        "order_id": self.order.id,
-                        "order_topic": getattr(self.order, "topic", ""),
-                        "resumed_by": getattr(self.user, "username", None),
-                    },
-                )
-
-            if getattr(self.order, "assigned_writer", None):
-                NotificationHelper.send_notification(
-                    event_key="order.resumed",
-                    user=self.order.assigned_writer,
-                    context={
-                        "order_id": self.order.id,
-                        "order_topic": getattr(self.order, "topic", ""),
-                        "resumed_by": getattr(self.user, "username", None),
-                    },
-                )
-        except Exception:
-            pass
 
         return self.order

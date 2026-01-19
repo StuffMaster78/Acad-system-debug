@@ -5,6 +5,7 @@ from django.utils import timezone
 from orders.models import Order
 from orders.order_enums import OrderStatus
 from notifications_system.services.core import NotificationService
+from orders.notification_context import build_order_context
 from orders.services.order_access_service import OrderAccessService
 from django.core.exceptions import PermissionDenied
 from orders.models import WriterReassignmentLog
@@ -274,72 +275,56 @@ class OrderAssignmentService:
             }
         )
 
-        NotificationService.send_notification(
-            user=writer,
-            event="Order Unassigned",
-            context={"order_id": self.order.id}
-        )
-        NotificationService.send_notification(
-            user=self.order.client,
-            event="Writer Unassigned",
-            context={"order_id": self.order.id},
-            message=f"The writer was unassigned from your Order #{self.order.id} and it's now available again."
-        )
+        try:
+            from orders.notification_emitters import emit_order_unassigned
+            emit_order_unassigned(
+                order=self.order,
+                actor=self.actor if hasattr(self, "actor") else None,
+                extra={"unassigned_writer_id": writer.id},
+            )
+        except Exception:
+            pass
+
+        try:
+            NotificationService.send_notification(
+                user=writer,
+                event="order.unassigned",
+                payload=build_order_context(
+                    event="order.unassigned",
+                    order=self.order,
+                    actor=self.actor if hasattr(self, "actor") else None,
+                    viewer_role="writer",
+                    meta={"unassigned_writer_id": writer.id},
+                ),
+                website=self.order.website,
+            )
+        except Exception:
+            pass
 
         return self.order
     
 
     def _notify_assignment(self, writer):
-        NotificationService.send_notification(
-            user=writer,
-            event="New Order Assigned",
-            payload={
-                "order_id": self.order.id,
-                "message": "You have been assigned a new order. Please accept or reject the assignment.",
-                "order_topic": self.order.topic
-            },
-            website=self.order.website
-        )
-
-        NotificationService.send_notification(
-            user=self.order.client,
-            event="Writer Assigned",
-            payload={
-                "order_id": self.order.id,
-                "message": f"A writer has been assigned to your order. Waiting for writer confirmation."
-            },
-            website=self.order.website
-        )
+        return
 
     def _notify_reassignment(self, old_writer, new_writer, reason):
-        NotificationService.send_notification(
-            user=old_writer,
-            event="Order Reassigned",
-            payload={
-                "order_id": self.order.id,
-                "message": f"Order #{self.order.id} has been reassigned to another writer.",
-                "reason": reason
-            },
-            website=self.order.website
-        )
-
-        NotificationService.send_notification(
-            user=new_writer,
-            event="New Order Assigned",
-            payload={
-                "order_id": self.order.id,
-                "message": "You have been assigned a new order. Please accept or reject the assignment.",
-                "order_topic": self.order.topic
-            },
-            website=self.order.website
-        )
-
-        NotificationService.send_notification(
-            user=self.order.client,
-            event="Writer Reassigned",
-            payload={
-                "order_id": self.order.id,
-                "message": f"Order #{self.order.id} has been reassigned to a new writer. Waiting for writer confirmation."
-            },
-            website=self.order.website
-        )
+        if old_writer:
+            try:
+                NotificationService.send_notification(
+                    user=old_writer,
+                    event="order.reassigned",
+                    payload=build_order_context(
+                        event="order.reassigned",
+                        order=self.order,
+                        actor=getattr(self, "actor", None),
+                        viewer_role="writer",
+                        meta={
+                            "previous_writer_id": getattr(old_writer, "id", None),
+                            "new_writer_id": getattr(new_writer, "id", None),
+                            "reason": reason,
+                        },
+                    ),
+                    website=self.order.website,
+                )
+            except Exception:
+                pass

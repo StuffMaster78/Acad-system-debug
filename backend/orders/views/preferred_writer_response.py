@@ -78,26 +78,12 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
         try:
             updated_order = PreferredWriterResponseService.accept(order_id, request.user)
             
-            # Send notifications
-            from notifications_system.services.core import NotificationService
-            NotificationService.send_notification(
-                user=request.user,
-                event="Preferred Order Accepted",
-                payload={
-                    "order_id": order.id,
-                    "message": f"You have accepted Order #{order.id}. Work can now begin."
-                },
-                website=order.website
-            )
-            
-            NotificationService.send_notification(
-                user=order.client,
-                event="Preferred Writer Accepted Order",
-                payload={
-                    "order_id": order.id,
-                    "message": f"Your preferred writer has accepted Order #{order.id}. Work is now in progress."
-                },
-                website=order.website
+            from orders.notification_emitters import emit_event
+            emit_event(
+                "order.preferred_writer_accepted",
+                order=order,
+                actor=request.user,
+                extra={"order_id": order.id}
             )
             
             return Response(
@@ -152,27 +138,13 @@ class PreferredWriterResponseViewSet(viewsets.ViewSet):
         try:
             updated_order = PreferredWriterResponseService.reject(order_id, request.user, reason=reason)
             
-            # Send notifications
-            from notifications_system.services.core import NotificationService
-            NotificationService.send_notification(
-                user=request.user,
-                event="Preferred Order Rejected",
-                payload={
-                    "order_id": order.id,
-                    "message": f"You have rejected Order #{order.id}. It has been returned to the available pool."
-                },
-                website=order.website
-            )
-            
-            NotificationService.send_notification(
-                user=order.client,
-                event="Preferred Writer Rejected Order",
-                payload={
-                    "order_id": order.id,
-                    "message": f"Your preferred writer has declined Order #{order.id}. The order is now available for other writers.",
-                    "reason": reason
-                },
-                website=order.website
+            from orders.notification_emitters import emit_event
+
+            emit_event(
+                "order.preferred_writer_rejected",
+                order=order,
+                actor=request.user,
+                extra={"reason": reason, "order_id": order.id}
             )
             
             return Response(
