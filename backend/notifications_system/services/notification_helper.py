@@ -117,7 +117,7 @@ class NotificationHelper:
         if order.assigned_writer:
             notifications.append(
                 NotificationHelper.send_notification(
-                    user=order.assigned_writer.user,
+                    user=order.assigned_writer,
                     event="order.paid",
                     payload={**payload, "role": "writer"}
                 )

@@ -294,11 +294,15 @@ class OrderActionService:
             # If action doesn't exist, try direct transition
             target_status = action_config.get("target_status")
             if target_status:
-                transition_service = StatusTransitionService(user=self.user)
-                updated_order = transition_service.transition_order_to_status(
+                from orders.services.transition_helper import OrderTransitionHelper
+                updated_order = OrderTransitionHelper.transition_order(
                     order,
                     target_status,
-                    reason=transition_reason
+                    user=self.user,
+                    reason=transition_reason,
+                    action=action_name,
+                    is_automatic=False,
+                    skip_payment_check=False,
                 )
             else:
                 raise ValueError(f"Action '{action_name}' failed: {str(e)}")
@@ -306,12 +310,16 @@ class OrderActionService:
         # If action has a target status and order hasn't transitioned, do it now
         target_status = action_config.get("target_status")
         if target_status and updated_order.status != target_status:
-            transition_service = StatusTransitionService(user=self.user)
             try:
-                updated_order = transition_service.transition_order_to_status(
+                from orders.services.transition_helper import OrderTransitionHelper
+                updated_order = OrderTransitionHelper.transition_order(
                     updated_order,
                     target_status,
-                    reason=transition_reason
+                    user=self.user,
+                    reason=transition_reason,
+                    action=action_name,
+                    is_automatic=False,
+                    skip_payment_check=False,
                 )
             except Exception as e:
                 # Transition failed, but action might have succeeded

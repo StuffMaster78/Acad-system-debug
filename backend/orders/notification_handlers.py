@@ -255,7 +255,7 @@ def on_order_revision_in_progress(
     )
 
 
-@notification_handler("order.revision_completed")
+@notification_handler("order.revised")
 def on_order_revision_completed(*, user, event, payload=None, **kw) -> None:
     """Revision submitted for review."""
     _send(
@@ -398,7 +398,7 @@ def on_order_restored(*, user, event, payload=None, **kw) -> None:
     )
 
 
-@notification_handler("order.returned_to_progress")
+@notification_handler("order.returned")
 def on_order_returned_to_progress(
     *, user, event, payload=None, **kw
 ) -> None:
@@ -424,4 +424,108 @@ def on_order_preferred_writer_assigned(
         subject="Order Assigned to Your Preferred Writer",
         preheader="The order has been assigned to your preferred writer.",
         **kw
+    )
+
+
+@notification_handler("order.preferred_writer_accepted")
+def on_order_preferred_writer_accepted(*, user, event, payload=None, **kw) -> None:
+    """Preferred writer accepted the order."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Preferred writer accepted",
+        preheader="Your preferred writer accepted the order.",
+        **kw,
+    )
+
+
+@notification_handler("order.preferred_writer_rejected")
+def on_order_preferred_writer_rejected(*, user, event, payload=None, **kw) -> None:
+    """Preferred writer rejected the order."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Preferred writer rejected",
+        preheader="Your preferred writer declined the order.",
+        **kw,
+    )
+
+
+@notification_handler("order.assignment_accepted")
+def on_order_assignment_accepted(*, user, event, payload=None, **kw) -> None:
+    """Writer accepted assignment."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Assignment accepted",
+        preheader="A writer accepted the assignment.",
+        **kw,
+    )
+
+
+@notification_handler("order.assignment_rejected")
+def on_order_assignment_rejected(*, user, event, payload=None, **kw) -> None:
+    """Writer rejected assignment."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Assignment rejected",
+        preheader="A writer rejected the assignment.",
+        **kw,
+    )
+
+
+@notification_handler("order.reassigned")
+def on_order_reassigned(*, user, event, payload=None, **kw) -> None:
+    """Order reassigned to a different writer."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Order reassigned",
+        preheader="The order has been reassigned.",
+        **kw,
+    )
+
+
+@notification_handler("order.unassigned")
+def on_order_unassigned(*, user, event, payload=None, **kw) -> None:
+    """Writer unassigned from the order."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Writer unassigned",
+        preheader="The writer was removed from the order.",
+        **kw,
+    )
+
+
+@notification_handler("order.fined")
+def on_order_fined(*, user, event, payload=None, **kw) -> None:
+    """Fine applied to an order."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Fine applied",
+        preheader="A fine was applied for this order.",
+        **kw,
+    )
+
+
+@notification_handler("order.disputed")
+def on_order_disputed(*, user, event, payload=None, **kw) -> None:
+    """Order disputed."""
+    _send(
+        user=user,
+        event=event,
+        payload=payload,
+        subject="Order disputed",
+        preheader="The order is under dispute.",
+        **kw,
     )

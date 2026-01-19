@@ -53,6 +53,72 @@ TRANSITION_VALIDATION_RULES: Dict[tuple, List[Callable]] = {
 }
 
 
+def _event_for_transition(from_status: str, to_status: str) -> Optional[str]:
+    if from_status == "on_hold" and to_status in {"in_progress", "available", "reassigned"}:
+        return "order.off_hold"
+    mapping = {
+        "pending_writer_assignment": "order.assigned",
+        "pending_preferred": "order.preferred_writer_assigned",
+        "available": "order.available",
+        "in_progress": "order.in_progress",
+        "on_hold": "order.on_hold",
+        "under_editing": "order.under_editing",
+        "submitted": "order.submitted",
+        "reviewed": "order.reviewed",
+        "rated": "order.rated",
+        "approved": "order.approved",
+        "completed": "order.completed",
+        "revision_requested": "order.revision_requested",
+        "revision_in_progress": "order.revision_in_progress",
+        "revised": "order.revised",
+        "reassigned": "order.reassigned",
+        "disputed": "order.disputed",
+        "cancelled": "order.cancelled",
+        "refunded": "order.refunded",
+        "archived": "order.archived",
+        "unarchived": "order.unarchived",
+        "restored": "order.restored",
+        "closed": "order.closed",
+        "unpaid": "order.unpaid",
+        "paid": "order.paid",
+    }
+    return mapping.get(to_status)
+
+
+def _emit_transition_notification(
+    *,
+    order: Order,
+    from_status: str,
+    to_status: str,
+    user=None,
+    metadata: Optional[Dict[str, Any]] = None,
+    reason: Optional[str] = None,
+    action: str = "status_transition",
+) -> None:
+    event_key = _event_for_transition(from_status, to_status)
+    if not event_key:
+        return
+    try:
+        from orders.notification_emitters import emit_event
+        emit_event(
+            event_key,
+            order=order,
+            actor=user,
+            extra={
+                "from_status": from_status,
+                "to_status": to_status,
+                "action": action,
+                "reason": reason,
+                **(metadata or {}),
+            },
+        )
+    except Exception as exc:
+        logger.warning(
+            "Failed to emit notification for %s -> %s on order %s: %s",
+            from_status, to_status, order.id, exc
+        )
+
+
 def _validate_can_cancel_paid_order(order: Order, user=None, **kwargs) -> None:
     """Validate that paid orders can only be cancelled by admins."""
     skip_payment_check = kwargs.get('skip_payment_check', False)
@@ -326,6 +392,16 @@ class OrderTransitionHelper:
             to_status=target_status,
             user=user,
             metadata=metadata
+        )
+
+        _emit_transition_notification(
+            order=updated_order,
+            from_status=current_status,
+            to_status=target_status,
+            user=user,
+            metadata=metadata,
+            reason=reason,
+            action=action,
         )
         
         return updated_order

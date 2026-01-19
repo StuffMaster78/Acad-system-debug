@@ -26,8 +26,6 @@ from websites.models import Website
 from audit_logging.services.audit_log_service import AuditLogEntry
 from orders.models import WriterRequest
 from audit_logging.services.audit_log_service import AuditLogService
-from notifications_system.services.core import NotificationService
-from notifications_system.enums import NotificationType
 
 logger = logging.getLogger(__name__)
 
@@ -282,102 +280,55 @@ def expire_stale_writer_requests():
 
 @shared_task
 def notify_writer_order_assigned(order):
-    writer = order.writer
-    if not writer:
+    if not order:
         return
-    
-
-    NotificationService.send_notification(
-        user=writer,
-        event="order_assigned",
-        context={
-            "order_id": order.id,
-            "title": "New Order Assigned",
-            "message": f"You have been assigned Order #{order.id} - {order.topic}.",
-            "link": f"/orders/{order.id}/"
-        },
-        website=order.website,
-        channels=[NotificationType.EMAIL, NotificationType.IN_APP]
-    )
+    try:
+        from orders.notification_emitters import emit_event
+        emit_event("order.assigned", order=order, actor=None)
+    except Exception:
+        pass
 
 @shared_task
 def notify_writer_missed_deadline(order):
-    writer = order.writer
-    if not writer:
+    if not order:
         return
-
-    NotificationService.send_notification(
-        user=writer,
-        event="deadline_missed",
-        context={
-            "order_id": order.id,
-            "title": "Deadline Missed",
-            "message": f"You’ve missed the deadline for Order #{order.id}. Please contact support.",
-            "link": f"/orders/{order.id}/"
-        },
-        website=order.website,
-        channels=[NotificationType.EMAIL, NotificationType.IN_APP],
-        category="warning",
-        is_critical=True
-    )
+    try:
+        from orders.notification_emitters import emit_event
+        emit_event("order.expired", order=order, actor=None, extra={"reason": "deadline_missed"})
+    except Exception:
+        pass
 
 @shared_task
 def notify_writer_fined(order, fine_amount):
-    writer = order.writer
-    if not writer:
+    if not order:
         return
-
-    NotificationService.send_notification(
-        user=writer,
-        event="fine_applied",
-        context={
-            "order_id": order.id,
-            "fine_amount": f"{fine_amount:.2f}",
-            "title": "Fine Applied",
-            "message": f"A fine of ${fine_amount:.2f} has been applied to your Order #{order.id}.",
-            "link": f"/orders/{order.id}/"
-        },
-        website=order.website,
-        channels=[NotificationType.EMAIL, NotificationType.IN_APP],
-        category="error"
-    )
+    try:
+        from orders.notification_emitters import emit_event
+        emit_event(
+            "order.fined",
+            order=order,
+            actor=None,
+            extra={"fine_amount": f"{fine_amount:.2f}"}
+        )
+    except Exception:
+        pass
 
 @shared_task
 def notify_client_writer_declined(order):
-    client = order.client
-    if not client:
+    if not order:
         return
-
-    NotificationService.send_notification(
-        user=client,
-        event="writer_declined",
-        context={
-            "order_id": order.id,
-            "title": "Writer Declined",
-            "message": f"Your preferred writer declined Order #{order.id}. The order is now public.",
-            "link": f"/orders/{order.id}/"
-        },
-        website=order.website,
-        channels=[NotificationType.EMAIL, NotificationType.IN_APP],
-        category="info"
-    )
+    try:
+        from orders.notification_emitters import emit_event
+        emit_event("order.preferred_writer_rejected", order=order, actor=None)
+    except Exception:
+        pass
 
 @shared_task
 def notify_client_order_completed(order):
-    client = order.client
-    if not client:
+    if not order:
         return
-
-    NotificationService.send_notification(
-        user=client,
-        event="order_completed",
-        context={
-            "order_id": order.id,
-            "title": "Order Completed",
-            "message": f"Order #{order.id} has been completed. Please log in to review it.",
-            "link": f"/orders/{order.id}/"
-        },
-        website=order.website,
-        channels=[NotificationType.EMAIL, NotificationType.IN_APP],
-        category="success"
-    )
+    try:
+        from orders.notification_emitters import emit_event
+        emit_event("order.completed", order=order, actor=None)
+    except Exception:
+        pass

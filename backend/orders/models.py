@@ -1802,13 +1802,20 @@ class WriterAssignmentAcceptance(models.Model):
         
         # Send notification
         from notifications_system.services.core import NotificationService
+        from orders.notification_context import build_order_context
         NotificationService.send_notification(
             user=self.assigned_by,
-            event="Writer Accepted Assignment",
-            payload={
-                "order_id": self.order.id,
-                "writer_id": self.writer.id
-            },
+            event="order.assignment_accepted",
+            payload=build_order_context(
+                event="order.assignment_accepted",
+                order=self.order,
+                actor=self.writer,
+                viewer_role=getattr(self.assigned_by, "role", None),
+                meta={
+                    "writer_id": self.writer.id,
+                    "assignment_acceptance_id": self.id,
+                },
+            ),
             website=self.website
         )
     
@@ -1845,14 +1852,21 @@ class WriterAssignmentAcceptance(models.Model):
         
         # Send notification
         from notifications_system.services.core import NotificationService
+        from orders.notification_context import build_order_context
         NotificationService.send_notification(
             user=self.assigned_by,
-            event="Writer Rejected Assignment",
-            payload={
-                "order_id": self.order.id,
-                "writer_id": self.writer.id,
-                "reason": reason
-            },
+            event="order.assignment_rejected",
+            payload=build_order_context(
+                event="order.assignment_rejected",
+                order=self.order,
+                actor=self.writer,
+                viewer_role=getattr(self.assigned_by, "role", None),
+                meta={
+                    "writer_id": self.writer.id,
+                    "assignment_acceptance_id": self.id,
+                    "reason": reason,
+                },
+            ),
             website=self.website
         )
 

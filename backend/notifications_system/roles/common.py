@@ -37,7 +37,9 @@ def resolve_client(ctx: Mapping[str, Any]) -> Any | None:
 def resolve_writer(ctx: Mapping[str, Any]) -> Any | None:
     """Mirror of resolve_client for a writer-like relation."""
     obj = _obj_from(ctx, ("order", "ticket"))
-    return getattr(obj, "writer", None) if obj else None
+    if not obj:
+        return None
+    return getattr(obj, "assigned_writer", None) or getattr(obj, "writer", None)
 
 def resolve_support(ctx: Mapping[str, Any]) -> Any | None:
     """Pick any staff user (or refine per project rules)."""
