@@ -1017,12 +1017,27 @@
               </div>
             </div>
             
-                <!-- Special Orders -->
+                <!-- Approval Queue - High priority -->
+                <router-link
+                  v-if="shouldShowItem('Approval Queue', 'Review pending approvals')"
+                  to="/admin/approval-queue"
+                  :class="[
+                    'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed mb-2',
+                    isRouteActive({ to: '/admin/approval-queue' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                  ]"
+                >
+                  <SidebarIcon icon-name="clipboard-check" size="md" icon-class="text-gray-600 group-hover:text-green-500" class="mr-4" tooltip="Review pending approvals" />
+                  Approval Queue
+                </router-link>
+                
+                <!-- Special Orders - Moved higher for visibility -->
                 <router-link
                   v-if="shouldShowItem('Special Orders', 'Manage special orders')"
                   to="/admin/special-orders"
                   :class="[
-                    'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed',
+                    'flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 group leading-relaxed mb-2',
                     isRouteActive({ to: '/admin/special-orders' })
                       ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
                       : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
@@ -1031,6 +1046,37 @@
                   <SidebarIcon icon-name="sparkles" size="md" icon-class="text-gray-600 group-hover:text-yellow-500" class="mr-4" tooltip="Manage special orders" />
                   Special Orders
                 </router-link>
+                
+                <!-- Classes Section - Moved higher for visibility -->
+                <div class="space-y-1.5 mb-3">
+                  <router-link
+                    v-if="shouldShowItem('Class Management', 'Manage classes')"
+                    to="/admin/class-management"
+                    :class="[
+                      'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                      isRouteActive({ to: '/admin/class-management' })
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                    ]"
+                  >
+                    <SidebarIcon icon-name="book" size="md" icon-class="text-gray-600 group-hover:text-primary-600" class="mr-3" tooltip="Manage classes" />
+                    Class Management
+                  </router-link>
+                  
+                  <router-link
+                    v-if="shouldShowItem('Express Classes', 'Manage express classes')"
+                    to="/admin/express-classes"
+                    :class="[
+                      'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
+                      isRouteActive({ to: '/admin/express-classes' })
+                        ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
+                    ]"
+                  >
+                    <SidebarIcon icon-name="lightning" size="md" icon-class="text-gray-600 group-hover:text-yellow-500" class="mr-3" tooltip="Manage express classes" />
+                    Express Classes
+                  </router-link>
+                </div>
                 
                 <!-- Users Section -->
                 <div v-if="shouldShowItem('Users', 'User Management Clients Writers Editors Support Admins')" class="space-y-1">
@@ -1210,6 +1256,24 @@
                     >
                       <SidebarIcon icon-name="receipt-tax" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="View and manage invoices" />
                       Invoices
+                    </router-link>
+                    <router-link 
+                      v-if="shouldShowItem('Fines Dashboard', 'View and analyze writer fines')"
+                      to="/admin/fines-dashboard" 
+                      class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
+                      :class="isRouteActive({ to: '/admin/fines-dashboard' }) ? 'bg-red-50 text-red-700 font-medium' : ''"
+                    >
+                      <SidebarIcon icon-name="shield-exclamation" size="sm" icon-class="text-gray-500 group-hover:text-red-600 mr-3" tooltip="View and analyze writer fines" />
+                      Fines
+                    </router-link>
+                    <router-link 
+                      v-if="shouldShowItem('Writer Bonuses', 'Manage writer performance bonuses')"
+                      to="/admin/writer-bonuses" 
+                      class="flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group"
+                      :class="isRouteActive({ to: '/admin/writer-bonuses' }) ? 'bg-emerald-50 text-emerald-700 font-medium' : ''"
+                    >
+                      <SidebarIcon icon-name="star" size="sm" icon-class="text-gray-500 group-hover:text-emerald-600 mr-3" tooltip="Manage writer performance bonuses" />
+                      Writer Bonuses
                     </router-link>
                     <router-link 
                       v-if="shouldShowItem('Wallets', 'Manage user wallets')"
@@ -1394,34 +1458,6 @@
                     </router-link>
                   </div>
                 </div>
-                
-                <router-link
-                  v-if="shouldShowItem('Class Management', 'Manage classes')"
-                  to="/admin/class-management"
-                  :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
-                    isRouteActive({ to: '/admin/class-management' })
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
-                  ]"
-                >
-                  <SidebarIcon icon-name="book" size="md" icon-class="text-gray-600 group-hover:text-primary-600" class="mr-3" tooltip="Manage classes" />
-                  Class Management
-                </router-link>
-                
-                <router-link
-                  v-if="shouldShowItem('Express Classes', 'Manage express classes')"
-                  to="/admin/express-classes"
-                  :class="[
-                    'flex items-center px-4 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 group',
-                    isRouteActive({ to: '/admin/express-classes' })
-                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 shadow-sm'
-                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm hover:translate-x-1'
-                  ]"
-                >
-                  <SidebarIcon icon-name="lightning" size="md" icon-class="text-gray-600 group-hover:text-yellow-500" class="mr-3" tooltip="Manage express classes" />
-                  Express Classes
-                </router-link>
               </div>
             </div>
 
@@ -1452,6 +1488,19 @@
                 >
                   <SidebarIcon icon-name="newspaper" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage blog posts" />
                   Blog Pages
+                </router-link>
+                <router-link
+                  v-if="shouldShowItem('Social Platforms', 'Manage social share platforms')"
+                  to="/admin/social-platforms"
+                  :class="[
+                    'flex items-center px-3 py-2 text-sm leading-relaxed rounded-lg transition-all duration-200 hover:bg-gray-100 hover:translate-x-1 group',
+                    isRouteActive({ to: '/admin/social-platforms' })
+                      ? 'bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 font-medium'
+                      : 'text-gray-700 dark:text-gray-300'
+                  ]"
+                >
+                  <SidebarIcon icon-name="share" size="sm" icon-class="text-gray-500 group-hover:text-primary-600 mr-3" tooltip="Manage social share platforms" />
+                  Social Platforms
                 </router-link>
                 <router-link
                   v-if="shouldShowItem('SEO Pages', 'Manage SEO service pages')"
@@ -2151,11 +2200,18 @@
       </div>
     </aside>
 
+    <div
+      v-if="sidebarOpen"
+      class="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-30 lg:hidden"
+      @click="sidebarOpen = false"
+      aria-hidden="true"
+    ></div>
+
     <!-- Main content -->
-    <div :class="['h-screen overflow-hidden flex flex-col transition-all duration-300', sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72']">
+    <div :class="['min-h-dvh overflow-hidden flex flex-col transition-all duration-300 lg:h-screen', sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-72']">
       <!-- Top bar -->
       <header class="sticky top-0 z-40 bg-white dark:bg-[#111111] border-b border-gray-200 dark:border-gray-800 backdrop-blur-sm bg-opacity-95 dark:bg-opacity-95">
-        <div class="flex items-center justify-between h-16 px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-14 sm:h-16 px-3 sm:px-6 lg:px-8">
           <button
             @click="sidebarOpen = !sidebarOpen"
             class="lg:hidden text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-gray-100"
@@ -2165,13 +2221,13 @@
             </svg>
           </button>
 
-          <div class="flex-1 flex items-center justify-between">
+          <div class="flex-1 flex items-center justify-end sm:justify-between">
             <div class="hidden sm:block text-sm text-gray-500 dark:text-gray-400">
               <span class="font-medium text-gray-700 dark:text-gray-100">{{ $route.meta.title || 'Dashboard' }}</span>
             </div>
-            <div class="flex items-center space-x-4 flex-1 max-w-2xl mx-4">
+            <div class="flex items-center gap-3 flex-1 max-w-2xl mx-2 sm:mx-4">
               <!-- Global Search -->
-              <div class="flex-1 max-w-xl">
+              <div class="hidden md:block flex-1 max-w-xl">
                 <GlobalSearch />
               </div>
             <!-- Activity & Theme -->
@@ -2191,7 +2247,7 @@
               <div
                 v-if="showActivitiesDropdown"
                 ref="activitiesDropdownRef"
-                class="absolute right-0 mt-2 w-80 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 z-50 max-h-96 overflow-hidden flex flex-col backdrop-blur-sm"
+                class="absolute right-0 mt-2 w-[90vw] max-w-[360px] sm:w-80 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 z-50 max-h-96 overflow-hidden flex flex-col backdrop-blur-sm"
               >
                 <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                   <h3 class="font-semibold text-gray-900 dark:text-gray-100">Activities</h3>
@@ -2284,7 +2340,7 @@
                 <div
                   v-if="showAnnouncementsDropdown"
                   ref="announcementsDropdownRef"
-                  class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[500px] overflow-hidden flex flex-col backdrop-blur-sm"
+                  class="absolute right-0 mt-2 w-[90vw] max-w-[360px] sm:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[500px] overflow-hidden flex flex-col backdrop-blur-sm"
                 >
                   <div class="p-3 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex items-center justify-between mb-2">
@@ -2443,7 +2499,7 @@
               <div
                 v-if="showNotificationsDropdown"
                 ref="notificationsDropdownRef"
-                  class="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[500px] overflow-hidden flex flex-col backdrop-blur-sm"
+                  class="absolute right-0 mt-2 w-[90vw] max-w-[360px] sm:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50 max-h-[500px] overflow-hidden flex flex-col backdrop-blur-sm"
               >
                 <div class="p-3 border-b border-gray-200">
                   <div class="flex items-center justify-between mb-2">
@@ -2624,7 +2680,7 @@
               <div
                 v-if="showProfileDropdown"
                 ref="profileDropdownRef"
-                class="absolute right-0 mt-2 w-56 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 z-50 backdrop-blur-sm"
+                class="absolute right-0 mt-2 w-[90vw] max-w-[320px] sm:w-56 bg-white dark:bg-[#1a1a1a] rounded-lg shadow-lg border border-gray-200 dark:border-gray-800 z-50 backdrop-blur-sm"
               >
                 <div class="p-2">
                   <router-link
@@ -2683,7 +2739,7 @@
 
       <!-- Page content -->
       <main class="flex-1 overflow-y-auto bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
-        <div class="p-6 sm:p-8 lg:p-10 xl:p-12 max-w-[1600px] mx-auto min-h-full">
+        <div class="p-4 sm:p-6 lg:p-8 xl:p-10 max-w-[1600px] mx-auto min-h-full">
         <router-view />
         </div>
       </main>

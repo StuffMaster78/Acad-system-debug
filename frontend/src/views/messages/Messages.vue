@@ -1,9 +1,18 @@
 <template>
-  <div class="messages-page min-h-screen bg-gray-50 dark:bg-gray-900">
-    <div class="max-w-7xl mx-auto p-6">
+  <div class="messages-page min-h-dvh bg-gray-50 dark:bg-gray-900">
+    <div class="max-w-7xl mx-auto page-shell">
+      <!-- Breadcrumbs -->
+      <nav class="mb-6 flex flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+        <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+          Dashboard
+        </router-link>
+        <span class="text-gray-400 dark:text-gray-600">/</span>
+        <span class="text-gray-900 dark:text-gray-100 font-medium">Messages</span>
+      </nav>
+      
       <!-- Header -->
       <div class="mb-6">
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-2">Messages</h1>
+        <h1 class="page-title text-gray-900 dark:text-white mb-2">Messages</h1>
         <p class="text-gray-600 dark:text-gray-400">Communicate with team members and clients</p>
       </div>
 
@@ -95,47 +104,73 @@
             v-for="thread in paginatedThreads"
             :key="thread.id"
             @click="openThread(thread)"
-            class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-colors"
+            class="p-4 cursor-pointer transition-all border-l-4"
+            :class="thread.unread_count > 0 
+              ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+              : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 border-l-transparent'"
           >
             <div class="flex items-start justify-between gap-4">
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-semibold shrink-0">
+                  <div 
+                    class="w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold shrink-0"
+                    :class="thread.unread_count > 0 
+                      ? 'bg-gradient-to-br from-blue-500 to-blue-600 ring-2 ring-blue-300 dark:ring-blue-700' 
+                      : 'bg-gradient-to-br from-gray-400 to-gray-600'"
+                  >
                     {{ getThreadInitials(thread) }}
                   </div>
                   <div class="flex-1 min-w-0">
-                    <h3 class="font-semibold text-gray-900 dark:text-white truncate">
-                      {{ getThreadTitle(thread) }}
-                    </h3>
+                    <div class="flex items-center gap-2">
+                      <h3 
+                        class="font-semibold truncate"
+                        :class="thread.unread_count > 0 
+                          ? 'text-gray-900 dark:text-white font-bold' 
+                          : 'text-gray-700 dark:text-gray-300'"
+                      >
+                        {{ getThreadTitle(thread) }}
+                      </h3>
+                      <span
+                        v-if="thread.unread_count > 0"
+                        class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-bold shrink-0"
+                      >
+                        {{ thread.unread_count }}
+                      </span>
+                    </div>
                     <p class="text-sm text-gray-500 dark:text-gray-400">
                       {{ getThreadSubtitle(thread) }}
                     </p>
                   </div>
                 </div>
-                <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 truncate ml-13">
+                <p 
+                  v-if="thread.last_message" 
+                  class="text-sm truncate ml-13"
+                  :class="thread.unread_count > 0 
+                    ? 'text-gray-700 dark:text-gray-200 font-medium' 
+                    : 'text-gray-600 dark:text-gray-300'"
+                >
                   {{ thread.last_message.message || '📎 File attachment' }}
                 </p>
               </div>
               <div class="flex flex-col items-end gap-2 shrink-0">
-                <span class="text-xs text-gray-500 dark:text-gray-400">
-                  {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
-                </span>
-                <span
-                  v-if="thread.unread_count > 0"
-                  class="px-2 py-1 bg-red-500 text-white text-xs rounded-full font-medium"
+                <span 
+                  class="text-xs"
+                  :class="thread.unread_count > 0 
+                    ? 'text-gray-700 dark:text-gray-300 font-medium' 
+                    : 'text-gray-500 dark:text-gray-400'"
                 >
-                  {{ thread.unread_count }}
+                  {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
                 </span>
               </div>
             </div>
           </div>
           
           <!-- Pagination -->
-          <div v-if="totalPages > 1" class="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+          <div v-if="totalPages > 1" class="p-4 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div class="text-sm text-gray-600 dark:text-gray-400">
               Showing {{ (currentPage - 1) * threadsPerPage + 1 }} - {{ Math.min(currentPage * threadsPerPage, filteredThreads.length) }} of {{ filteredThreads.length }}
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
               <button
                 @click="currentPage = Math.max(1, currentPage - 1)"
                 :disabled="currentPage === 1"

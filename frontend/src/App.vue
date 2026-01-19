@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
+  <div class="min-h-dvh bg-white dark:bg-[#0a0a0a] transition-colors duration-300 safe-area-top safe-area-bottom">
     <!-- Temporarily disable NaiveProvider to debug blank screen -->
     <!-- <NaiveProvider> -->
       <RouterView />

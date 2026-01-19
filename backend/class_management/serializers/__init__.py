@@ -264,9 +264,10 @@ class ExpressClassSerializer(serializers.ModelSerializer):
             'number_of_assignments', 'number_of_exams', 'number_of_quizzes',
             'number_of_projects', 'number_of_presentations', 'number_of_papers',
             'total_workload_in_pages',
-            'price', 'price_approved', 'installments_needed',
+            'budget', 'price', 'price_approved', 'installments_needed',
             'instructions',
             'school_login_link', 'school_login_username', 'school_login_password',
+            'availability_hours', 'two_factor_enabled',
             'scope_review_notes', 'admin_notes',
             'reviewed_by', 'reviewed_by_username', 'reviewed_at',
             'threads_count', 'tickets_count',
@@ -294,7 +295,7 @@ class ExpressClassCreateSerializer(serializers.ModelSerializer):
             'number_of_discussion_posts', 'number_of_discussion_posts_replies',
             'number_of_assignments', 'number_of_exams', 'number_of_quizzes',
             'number_of_projects', 'number_of_presentations', 'number_of_papers',
-            'total_workload_in_pages', 'instructions',
+            'total_workload_in_pages', 'instructions', 'budget',
             'school_login_link', 'school_login_username', 'school_login_password'
         )
 

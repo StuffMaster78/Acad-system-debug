@@ -1,24 +1,28 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="min-h-dvh bg-gray-50 dark:bg-gray-900">
     <!-- Clean Header -->
     <div 
       ref="headerRef"
       class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-20"
     >
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <!-- Back Navigation -->
+        <!-- Breadcrumbs -->
         <div class="py-3">
-          <router-link
-            :to="getBackRoute()"
-            class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-          >
-            <ArrowLeft class="w-4 h-4" />
-            <span>{{ getBackButtonText() }}</span>
-          </router-link>
+          <nav class="flex flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+            <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+              Dashboard
+            </router-link>
+            <span class="text-gray-400 dark:text-gray-600">/</span>
+            <router-link to="/orders" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+              Orders
+            </router-link>
+            <span class="text-gray-400 dark:text-gray-600">/</span>
+            <span class="text-gray-900 dark:text-gray-100 font-medium">Order #{{ order?.id || route.params.id }}</span>
+          </nav>
         </div>
         
         <!-- Header Content -->
-        <div class="py-4 flex items-start justify-between gap-4">
+        <div class="py-4 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-3 mb-2">
               <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">Order #{{ order?.id || '' }}</h1>
@@ -43,21 +47,19 @@
             </p>
           </div>
           
-          <!-- Messages Button -->
-          <router-link
-            v-if="order"
-            :to="`/orders/${order.id}/messages`"
-            class="relative inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium shadow-sm"
-          >
-            <MessageSquare class="w-4 h-4" />
-            <span>Messages</span>
-            <span
-              v-if="unreadMessageCount > 0"
-              class="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-xs font-semibold text-white bg-red-500 rounded-full ring-2 ring-white"
-            >
-              {{ unreadMessageCount > 99 ? '99+' : unreadMessageCount }}
-            </span>
-          </router-link>
+          <!-- Client ID and Writer ID -->
+          <div v-if="order" class="flex flex-wrap items-center gap-4 text-sm">
+            <div class="flex items-center gap-2">
+              <span class="text-gray-600 dark:text-gray-400 font-medium">Client ID:</span>
+              <span class="text-gray-900 dark:text-white font-semibold">{{ order.client?.id || order.client_id || 'N/A' }}</span>
+            </div>
+            <div v-if="order.assigned_writer?.id || order.writer_id || order.assigned_writer_id" class="flex items-center gap-2">
+              <span class="text-gray-600 dark:text-gray-400 font-medium">Writer ID:</span>
+              <span class="text-gray-900 dark:text-white font-semibold">
+                {{ order.assigned_writer?.id || order.writer_id || order.assigned_writer_id }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -96,7 +98,7 @@
     </div>
 
     <!-- Main Content -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
       <template v-if="loading">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12">
           <div class="flex items-center justify-center">
@@ -2954,7 +2956,7 @@
             <div v-if="activeTab === 'actions'" class="p-6 space-y-4">
               <div class="bg-primary-50 dark:bg-primary-900/20 rounded-lg border border-primary-200 dark:border-primary-800 p-4 mb-4">
                 <div class="flex items-start gap-3">
-                  <div class="flex-shrink-0 w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
+                  <div class="shrink-0 w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
                     <Zap class="w-4 h-4 text-primary-600 dark:text-primary-400" />
                   </div>
                   <div class="flex-1">
@@ -3141,23 +3143,112 @@
 
         <!-- Writer Actions -->
         <div v-if="authStore.isWriter" class="space-y-6">
-          <!-- Writer: Request Additional Pages/Slides -->
-          <div v-if="order.assigned_writer?.id === authStore.user?.id && order.is_paid && ['in_progress', 'assigned', 'draft'].includes(order.status?.toLowerCase())" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-lg bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center">
-                <SparklesIcon class="w-5 h-5 text-primary-600 dark:text-primary-400" />
+          <!-- Assigned Writer Actions (only for assigned writers) -->
+          <template v-if="order.writer_id === authStore.user?.id || order.assigned_writer_id === authStore.user?.id || order.assigned_writer?.id === authStore.user?.id">
+            <!-- Primary Actions -->
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
+                  <span class="text-xl">⚡</span>
+                </div>
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Primary Actions</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Start, submit, or resume your order</p>
+                </div>
               </div>
-              <div>
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Request Additional Pages/Slides</h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">Request additional pages or slides if the order scope has changed</p>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <!-- Start Order -->
+                <button
+                  v-if="canStartOrder"
+                  @click="startOrder"
+                  :disabled="processingAction"
+                  class="flex items-center justify-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-all font-medium"
+                >
+                  <span>🚀</span>
+                  <span>{{ processingAction ? 'Processing...' : 'Start Order' }}</span>
+                </button>
+                
+                <!-- Submit Order -->
+                <button
+                  v-if="canSubmitOrder"
+                  @click="submitOrder"
+                  :disabled="processingAction"
+                  class="flex items-center justify-center gap-2 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-all font-medium"
+                >
+                  <span>📤</span>
+                  <span>{{ processingAction ? 'Processing...' : 'Submit Order' }}</span>
+                </button>
+                
+                <!-- Start Revision -->
+                <button
+                  v-if="canStartRevision"
+                  @click="startRevision"
+                  :disabled="processingAction"
+                  class="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-all font-medium"
+                >
+                  <span>✏️</span>
+                  <span>{{ processingAction ? 'Processing...' : 'Start Revision' }}</span>
+                </button>
+                
+                <!-- Resume Order -->
+                <button
+                  v-if="canResumeOrder"
+                  @click="resumeOrder"
+                  :disabled="processingAction"
+                  class="flex items-center justify-center gap-2 px-4 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-all font-medium"
+                >
+                  <span>▶️</span>
+                  <span>{{ processingAction ? 'Processing...' : 'Resume Order' }}</span>
+                </button>
               </div>
             </div>
-            <WriterPageRequest
-              :order-id="order.id"
-              @success="handleWriterRequestCreated"
-              @cancel="showWriterRequestForm = false"
-            />
-          </div>
+
+            <!-- Request Actions -->
+            <div v-if="canRequestDeadlineExtension || canRequestHold || (order.assigned_writer?.id === authStore.user?.id && order.is_paid && ['in_progress', 'assigned', 'draft'].includes(order.status?.toLowerCase()))" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/50 flex items-center justify-center">
+                  <span class="text-xl">📋</span>
+                </div>
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Request Actions</h3>
+                  <p class="text-sm text-gray-500 dark:text-gray-400">Request changes, extensions, or put order on hold</p>
+                </div>
+              </div>
+              <div class="space-y-4">
+                <!-- Request Additional Pages/Slides -->
+                <div v-if="order.assigned_writer?.id === authStore.user?.id && order.is_paid && ['in_progress', 'assigned', 'draft'].includes(order.status?.toLowerCase())">
+                  <WriterPageRequest
+                    :order-id="order.id"
+                    @success="handleWriterRequestCreated"
+                    @cancel="showWriterRequestForm = false"
+                  />
+                </div>
+                
+                <!-- Request Actions Buttons -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <!-- Extend Deadline -->
+                  <button
+                    v-if="canRequestDeadlineExtension"
+                    @click="showDeadlineExtensionModal = true"
+                    class="flex items-center justify-center gap-2 px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-all font-medium"
+                  >
+                    <span>⏰</span>
+                    <span>Extend Deadline</span>
+                  </button>
+                  
+                  <!-- Put on Hold -->
+                  <button
+                    v-if="canRequestHold"
+                    @click="showHoldRequestModal = true"
+                    class="flex items-center justify-center gap-2 px-4 py-3 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-all font-medium"
+                  >
+                    <span>🛑</span>
+                    <span>Put on Hold</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </template>
           
           <!-- Communication -->
           <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -3852,6 +3943,49 @@
             class="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 transition-colors"
           >
             {{ submittingDeadlineExtension ? 'Submitting...' : 'Submit' }}
+          </button>
+        </div>
+      </div>
+    </Modal>
+    
+    <!-- Put on Hold Modal -->
+    <Modal
+      v-model:visible="showHoldRequestModal"
+      title="Put Order on Hold"
+      size="md"
+    >
+      <div class="space-y-4">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+          <p><strong>Note:</strong> Putting an order on hold will pause the deadline timer. Please provide a clear reason. The client and admin will be notified.</p>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Reason for Hold <span class="text-red-500">*</span>
+          </label>
+          <textarea
+            v-model="holdRequestForm.reason"
+            rows="4"
+            class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500"
+            placeholder="Explain why you need to put this order on hold (e.g., waiting for client clarification, technical issues, personal emergency, etc.)..."
+            required
+          ></textarea>
+        </div>
+        
+        <div class="flex gap-2 justify-end">
+          <button
+            @click="showHoldRequestModal = false"
+            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            :disabled="submittingHoldRequest"
+          >
+            Cancel
+          </button>
+          <button
+            @click="submitHoldRequest"
+            :disabled="submittingHoldRequest || !holdRequestForm.reason.trim()"
+            class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 disabled:opacity-50 transition-colors"
+          >
+            {{ submittingHoldRequest ? 'Submitting...' : 'Put on Hold' }}
           </button>
         </div>
       </div>
@@ -5102,6 +5236,10 @@ const showHoldRequestModal = ref(false)
 const submittingDeadlineExtension = ref(false)
 const deadlineExtensionForm = ref({
   requested_deadline: '',
+  reason: ''
+})
+const submittingHoldRequest = ref(false)
+const holdRequestForm = ref({
   reason: ''
 })
 const showOrderRequestModal = ref(false)
@@ -8185,6 +8323,30 @@ const submitDeadlineExtension = async () => {
     showErrorToast(getErrorMessage(error, 'Failed to submit deadline extension request'))
   } finally {
     submittingDeadlineExtension.value = false
+  }
+}
+
+const submitHoldRequest = async () => {
+  if (!order.value) return
+  
+  submittingHoldRequest.value = true
+  try {
+    // Use the order transition endpoint to put order on hold
+    const response = await ordersAPI.transition(
+      order.value.id,
+      'on_hold',
+      holdRequestForm.value.reason,
+      {}
+    )
+    
+    showSuccessToast(response.data?.message || 'Order has been put on hold successfully!')
+    showHoldRequestModal.value = false
+    holdRequestForm.value.reason = ''
+    await loadOrder() // Reload order to get updated info
+  } catch (error) {
+    showErrorToast(getErrorMessage(error, 'Failed to put order on hold', 'Unable to put order on hold. Please try again or contact support.'))
+  } finally {
+    submittingHoldRequest.value = false
   }
 }
 

@@ -1,33 +1,33 @@
 <template>
-  <div class="space-y-6 p-6">
-    <div class="flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-100 shadow-sm">
+  <div class="space-y-6 p-4 sm:p-6">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 sm:p-6 border border-blue-100 shadow-sm">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
-          <div class="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-3">
+          <div class="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
             <CalendarIcon class="w-6 h-6 text-white" />
           </div>
           <span>Deadline Calendar</span>
         </h1>
         <p class="mt-2 text-gray-600">View your order deadlines in calendar format</p>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
         <button 
           @click="previousMonth" 
-          class="btn btn-secondary text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl"
+          class="btn btn-secondary text-xs sm:text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl w-full sm:w-auto justify-center"
         >
           <ChevronLeftIcon class="w-4 h-4" />
           <span>Previous</span>
         </button>
         <button 
           @click="nextMonth" 
-          class="btn btn-secondary text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl"
+          class="btn btn-secondary text-xs sm:text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl w-full sm:w-auto justify-center"
         >
           <span>Next</span>
           <ChevronRightIcon class="w-4 h-4" />
         </button>
         <button 
           @click="goToToday" 
-          class="btn btn-primary text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl"
+          class="btn btn-primary text-xs sm:text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl w-full sm:w-auto justify-center"
         >
           <CalendarDaysIcon class="w-4 h-4" />
           <span>Today</span>
@@ -35,7 +35,7 @@
         <button 
           @click="loadCalendar" 
           :disabled="loading" 
-          class="btn btn-secondary hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl"
+          class="btn btn-secondary text-xs sm:text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl w-full sm:w-auto justify-center"
         >
           <ArrowPathIcon :class="['w-4 h-4', loading && 'animate-spin']" />
           <span>{{ loading ? 'Loading...' : 'Refresh' }}</span>
@@ -43,7 +43,7 @@
         <button 
           @click="exportToCalendar" 
           :disabled="loading || calendarData.total_orders === 0"
-          class="btn btn-primary hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl"
+          class="btn btn-primary text-xs sm:text-sm hover:shadow-md transition-all duration-200 flex items-center gap-2 px-4 py-2 rounded-xl w-full sm:w-auto justify-center"
           title="Export deadlines to your calendar (Google Calendar, Outlook, Apple Calendar)"
         >
           <ArrowDownTrayIcon class="w-4 h-4" />
@@ -54,7 +54,7 @@
 
     <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-blue-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+      <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-blue-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <div class="relative flex items-center justify-between">
           <div class="flex-1 min-w-0">
@@ -62,13 +62,13 @@
             <p class="text-4xl font-extrabold text-blue-900">{{ calendarData.total_orders || 0 }}</p>
           </div>
           <div class="ml-4 shrink-0">
-            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
               <ClipboardDocumentListIcon class="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
       </div>
-      <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-red-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+      <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-red-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-br from-red-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <div class="relative flex items-center justify-between">
           <div class="flex-1 min-w-0">
@@ -76,13 +76,13 @@
             <p class="text-4xl font-extrabold text-red-900">{{ calendarData.overdue_count || 0 }}</p>
           </div>
           <div class="ml-4 shrink-0">
-            <div class="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
               <ExclamationTriangleIcon class="w-6 h-6 text-white" />
             </div>
           </div>
         </div>
       </div>
-      <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-amber-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+      <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-amber-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
         <div class="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         <div class="relative flex items-center justify-between">
           <div class="flex-1 min-w-0">
@@ -90,7 +90,7 @@
             <p class="text-4xl font-extrabold text-amber-900">{{ calendarData.urgent_count || 0 }}</p>
           </div>
           <div class="ml-4 shrink-0">
-            <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+            <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
               <ClockIcon class="w-6 h-6 text-white" />
             </div>
           </div>
@@ -105,18 +105,26 @@
       </div>
     </div>
 
-    <div v-else class="bg-white rounded-lg shadow-sm p-6">
+    <div v-else class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
       <div class="mb-4 text-center">
-        <h2 class="text-xl font-semibold text-gray-900">{{ currentMonthYear }}</h2>
+        <h2 class="text-lg sm:text-xl font-semibold text-gray-900">{{ currentMonthYear }}</h2>
       </div>
 
       <!-- Calendar Grid -->
-      <div class="grid grid-cols-7 gap-2">
+      <div class="flex items-center justify-between text-xs text-gray-500 mb-2 sm:hidden">
+        <span>Swipe to scroll</span>
+        <span>{{ dayHeaders[0] }} → {{ dayHeaders[6] }}</span>
+      </div>
+      <div class="relative">
+        <div class="pointer-events-none absolute inset-y-0 left-0 w-6 bg-gradient-to-r from-white to-transparent"></div>
+        <div class="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-white to-transparent"></div>
+        <div class="table-scroll">
+        <div class="grid grid-cols-7 gap-1 sm:gap-2 min-w-[640px]">
         <!-- Day Headers -->
         <div
           v-for="day in dayHeaders"
           :key="day"
-          class="text-center text-sm font-semibold text-gray-600 py-2"
+          class="text-center text-xs sm:text-sm font-semibold text-gray-600 py-2"
         >
           {{ day }}
         </div>
@@ -127,7 +135,7 @@
           :key="index"
           @click="day.orderCount > 0 ? selectDay(day) : null"
           :class="[
-            'min-h-[100px] border rounded-lg p-2 transition-all duration-200',
+            'min-h-[90px] sm:min-h-[100px] border rounded-lg p-1.5 sm:p-2 transition-all duration-200',
             day.isCurrentMonth ? 'bg-white hover:bg-blue-50' : 'bg-gray-50',
             day.isToday ? 'ring-2 ring-primary-500 shadow-md' : 'hover:shadow-sm',
             day.orderCount > 0 ? 'cursor-pointer' : '',
@@ -163,7 +171,7 @@
               :key="order.id"
               @click.stop="viewOrder(order.id)"
               :class="[
-                'text-xs p-1.5 rounded cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-sm',
+                'text-[11px] sm:text-xs p-1.5 rounded cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-sm',
                 order.is_overdue ? 'bg-red-100 text-red-900 border border-red-300 hover:bg-red-200' :
                 order.is_urgent ? 'bg-orange-100 text-orange-900 border border-orange-300 hover:bg-orange-200' :
                 'bg-blue-50 text-blue-900 border border-blue-200 hover:bg-blue-100'
@@ -171,27 +179,29 @@
               :title="`${order.topic} - ${order.service_type}${order.hours_remaining !== null ? ` (${formatTimeRemaining(order.hours_remaining)} remaining)` : ''}`"
             >
               <div class="font-medium truncate">#{{ order.id }}</div>
-              <div class="text-xs opacity-75 truncate">{{ order.topic }}</div>
+              <div class="text-[11px] sm:text-xs opacity-75 truncate">{{ order.topic }}</div>
             </div>
             <div
               v-if="day.orders.length > 2"
-              class="text-xs text-gray-500 text-center py-1 font-medium"
+              class="text-[11px] sm:text-xs text-gray-500 text-center py-1 font-medium"
             >
               +{{ day.orders.length - 2 }} more
             </div>
           </div>
         </div>
+        </div>
+      </div>
       </div>
     </div>
 
     <!-- Day Tasks Sidebar -->
     <div
       v-if="selectedDay"
-      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-center sm:justify-end z-50"
       @click.self="selectedDay = null"
     >
-      <div class="bg-white h-full w-full max-w-2xl shadow-2xl overflow-y-auto">
-        <div class="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-6 shadow-lg">
+      <div class="bg-white w-full max-w-2xl h-[85vh] sm:h-full shadow-2xl overflow-y-auto rounded-t-2xl sm:rounded-none">
+        <div class="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 sm:p-6 shadow-lg">
           <div class="flex items-center justify-between">
             <div>
               <h2 class="text-2xl font-bold">Tasks Due</h2>

@@ -275,6 +275,11 @@ class FileDeletionRequest(models.Model):
         related_name="file_deletion_requests",
         help_text="User who requested the file deletion"
     )
+    reason = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Reason for requesting file deletion"
+    )
     status = models.CharField(
         max_length=20,
         choices=[
@@ -288,6 +293,12 @@ class FileDeletionRequest(models.Model):
     reviewed_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True,
         blank=True, related_name="file_deletion_reviews"
+    )
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    admin_comment = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Admin comment on the deletion request"
     )
 
     def __str__(self):

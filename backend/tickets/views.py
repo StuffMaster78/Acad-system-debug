@@ -131,6 +131,126 @@ class TicketViewSet(viewsets.ModelViewSet):
             )
         return Response({'status': 'Ticket assigned'}, status=status.HTTP_200_OK)
     
+    @action(detail=True, methods=['post'])
+    def close(self, request, pk=None):
+        """Close a ticket. Only admins, superadmins, support, and editors can close tickets."""
+        ticket = self.get_object()
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        
+        # Check permissions
+        if user_role not in ['admin', 'superadmin', 'support', 'editor']:
+            return Response(
+                {'error': 'Only administrators, support staff, and editors can close tickets.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Get optional reason/notes
+        reason = request.data.get('reason', '')
+        
+        # Update ticket status
+        old_status = ticket.status
+        ticket.status = 'closed'
+        ticket.resolution_time = timezone.now()
+        ticket.save()
+        
+        # Create log entry
+        action_text = f"Ticket closed by {user.username or user.email}"
+        if reason:
+            action_text += f": {reason}"
+        TicketLog.objects.create(
+            ticket=ticket,
+            action=action_text,
+            performed_by=user
+        )
+        
+        # Notify ticket creator if they exist and aren't the one closing it
+        if ticket.created_by and ticket.created_by != user:
+            try:
+                from notifications_system.services.notification_helper import NotificationHelper
+                NotificationHelper.notify_ticket_closed(
+                    ticket=ticket,
+                    closed_by=user,
+                    reason=reason
+                )
+            except Exception as e:
+                log.exception(f"Failed to send ticket closed notification: {e}")
+        
+        return Response({
+            'status': 'Ticket closed',
+            'ticket': TicketSerializer(ticket).data,
+            'old_status': old_status,
+            'new_status': ticket.status
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'])
+    def reopen(self, request, pk=None):
+        """Reopen a closed ticket. Only admins, superadmins, support, and editors can reopen tickets."""
+        ticket = self.get_object()
+        user = request.user
+        user_role = getattr(user, 'role', None)
+        
+        # Check permissions
+        if user_role not in ['admin', 'superadmin', 'support', 'editor']:
+            return Response(
+                {'error': 'Only administrators, support staff, and editors can reopen tickets.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        # Check if ticket is closed
+        if ticket.status != 'closed':
+            return Response(
+                {'error': f'Cannot reopen ticket with status "{ticket.status}". Only closed tickets can be reopened.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Get optional reason/notes and target status
+        reason = request.data.get('reason', '')
+        target_status = request.data.get('status', 'open')  # Default to 'open', can be 'in_progress'
+        
+        # Validate target status
+        valid_statuses = ['open', 'in_progress']
+        if target_status not in valid_statuses:
+            return Response(
+                {'error': f'Invalid status "{target_status}". Must be one of: {", ".join(valid_statuses)}'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Update ticket status
+        old_status = ticket.status
+        ticket.status = target_status
+        ticket.resolution_time = None  # Clear resolution time
+        ticket.save()
+        
+        # Create log entry
+        action_text = f"Ticket reopened by {user.username or user.email} (status: {target_status})"
+        if reason:
+            action_text += f": {reason}"
+        TicketLog.objects.create(
+            ticket=ticket,
+            action=action_text,
+            performed_by=user
+        )
+        
+        # Notify ticket creator if they exist
+        if ticket.created_by:
+            try:
+                from notifications_system.services.notification_helper import NotificationHelper
+                NotificationHelper.notify_ticket_reopened(
+                    ticket=ticket,
+                    reopened_by=user,
+                    reason=reason
+                )
+            except Exception as e:
+                log.exception(f"Failed to send ticket reopened notification: {e}")
+        
+        return Response({
+            'status': 'Ticket reopened',
+            'ticket': TicketSerializer(ticket).data,
+            'old_status': old_status,
+            'new_status': ticket.status
+        }, status=status.HTTP_200_OK)
+    
     def perform_update(self, serializer):
         """
         On close -> notify the ticket creator (not the closer).

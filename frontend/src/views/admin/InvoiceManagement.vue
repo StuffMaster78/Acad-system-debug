@@ -151,6 +151,20 @@
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium" @click.stop>
                 <div class="flex items-center gap-2">
+                  <a
+                    v-if="invoice.payment_link && !invoice.is_paid"
+                    :href="invoice.payment_link"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    @click.stop
+                    class="px-3 py-1.5 bg-primary-600 text-white rounded hover:bg-primary-700 text-xs font-medium flex items-center gap-1"
+                    title="Pay Now"
+                  >
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Pay
+                  </a>
                   <button
                     @click="viewInvoice(invoice)"
                     class="text-blue-600 hover:text-blue-900"
@@ -309,6 +323,20 @@
               />
             </div>
 
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Custom Payment Link (Optional)
+                <span class="text-xs text-gray-500 font-normal">(Overrides default generated link)</span>
+              </label>
+              <input
+                v-model="invoiceForm.custom_payment_link"
+                type="url"
+                placeholder="https://example.com/pay"
+                class="w-full border rounded px-3 py-2"
+              />
+              <p class="mt-1 text-xs text-gray-500">Leave blank to use auto-generated payment link</p>
+            </div>
+
             <div class="flex items-center gap-2">
               <input
                 v-model="invoiceForm.send_email"
@@ -404,21 +432,36 @@
               </div>
             </div>
 
-            <div v-if="viewingInvoice.payment_link">
-              <p class="text-sm font-medium text-gray-600">Payment Link</p>
-              <div class="flex items-center gap-2">
+            <div v-if="viewingInvoice.payment_link && !viewingInvoice.is_paid" class="bg-gradient-to-r from-primary-50 to-blue-50 border border-primary-200 rounded-lg p-4">
+              <p class="text-sm font-medium text-gray-700 mb-2">Payment Link</p>
+              <div class="flex items-center gap-2 mb-3">
                 <input
                   :value="viewingInvoice.payment_link"
                   readonly
-                  class="flex-1 border rounded px-3 py-2 bg-gray-50 text-sm"
+                  class="flex-1 border rounded px-3 py-2 bg-white text-sm font-mono"
                 />
                 <button
                   @click="copyPaymentLink(viewingInvoice.payment_link)"
-                  class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+                  class="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300 text-sm flex items-center gap-2"
+                  title="Copy payment link"
                 >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
                   Copy
                 </button>
               </div>
+              <a
+                :href="viewingInvoice.payment_link"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Pay Now
+              </a>
             </div>
 
             <div class="grid grid-cols-2 gap-4 text-sm">
@@ -563,6 +606,7 @@ const invoiceForm = ref({
   amount: 0,
   due_date: '',
   website_id: '',
+  custom_payment_link: '',
   send_email: true,
 })
 
@@ -647,6 +691,7 @@ const openCreateModal = () => {
     title: '',
     description: '',
     amount: 0,
+    custom_payment_link: '',
     due_date: '',
     website_id: '',
     send_email: true,
@@ -708,6 +753,7 @@ const editInvoice = (invoice) => {
     amount: invoice.amount || 0,
     due_date: invoice.due_date ? invoice.due_date.split('T')[0] : '',
     website_id: invoice.website?.id || '',
+    custom_payment_link: invoice.custom_payment_link || '',
     send_email: false,
   }
   actionMenuInvoice.value = null

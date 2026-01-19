@@ -77,3 +77,19 @@
     @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6 dark:bg-[#1a1a1a] dark:border-gray-800;
   }
 }
+
+@layer components {
+  @media (max-width: 640px) {
+    .btn {
+      @apply px-3 py-2;
+    }
+
+    .input {
+      @apply px-3 py-2;
+    }
+
+    .card {
+      @apply p-4;
+    }
+  }
+}

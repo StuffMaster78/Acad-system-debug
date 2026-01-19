@@ -26,7 +26,7 @@ export default {
   // Class Installments
   listInstallments: (params) => apiClient.get('/class-management/class-installments/', { params }),
   getInstallment: (id) => apiClient.get(`/class-management/class-installments/${id}/`),
-  payInstallment: (id, data) => apiClient.post(`/class-management/class-installments/${id}/pay_installment/`, data),
+  payInstallment: (id, data) => apiClient.post(`/class-management/class-installments/${id}/pay/`, data),
   
   // Bundle Configs
   listConfigs: (params) => apiClient.get('/class-management/class-bundle-configs/', { params }),

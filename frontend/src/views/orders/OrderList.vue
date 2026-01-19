@@ -1,8 +1,17 @@
 <template>
   <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-3xl font-bold text-gray-900">Orders</h1>
-      <div class="flex items-center gap-2">
+    <!-- Breadcrumbs -->
+    <nav class="flex flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+      <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+        Dashboard
+      </router-link>
+      <span class="text-gray-400 dark:text-gray-600">/</span>
+      <span class="text-gray-900 dark:text-gray-100 font-medium">Orders</span>
+    </nav>
+    
+    <div class="page-header">
+      <h1 class="page-title text-gray-900">Orders</h1>
+      <div class="page-actions">
         <ExportButton
           v-if="authStore.isAdmin || authStore.isSuperAdmin"
           :export-function="exportOrders"
@@ -45,7 +54,7 @@
             {{ group.label }}
           </button>
         </div>
-        <div class="ml-auto flex items-center gap-2 relative" ref="savedFiltersMenuRef">
+        <div class="sm:ml-auto flex flex-wrap items-center gap-2 w-full sm:w-auto relative" ref="savedFiltersMenuRef">
           <button
             type="button"
             class="px-3 py-2 rounded-lg border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
@@ -138,8 +147,8 @@
 
     <!-- Bulk Actions (Admin Only) -->
     <div v-if="(authStore.isAdmin || authStore.isSuperAdmin) && selectedOrders.length > 0" class="card p-4 bg-blue-50 border border-blue-200">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-3">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div class="flex flex-wrap items-center gap-3">
           <span class="text-sm font-medium text-blue-900">
             {{ selectedOrders.length }} order(s) selected
           </span>
@@ -150,10 +159,10 @@
             Clear Selection
           </button>
         </div>
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2 w-full sm:w-auto">
           <select
             v-model="bulkAction"
-            class="border rounded px-3 py-2 text-sm"
+            class="border rounded px-3 py-2 text-sm w-full sm:w-auto"
             @change="handleBulkAction"
           >
             <option value="">Bulk Actions...</option>

@@ -1,11 +1,20 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+  <div class="min-h-dvh bg-gray-50">
+    <div class="max-w-7xl mx-auto page-shell">
+      <!-- Breadcrumbs -->
+      <nav class="mb-6 flex flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+        <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+          Dashboard
+        </router-link>
+        <span class="text-gray-400 dark:text-gray-600">/</span>
+        <span class="text-gray-900 dark:text-gray-100 font-medium">My Orders</span>
+      </nav>
+      
       <!-- Header -->
       <div class="mb-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
           <div class="space-y-2">
-            <h1 class="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight">
+            <h1 class="page-title text-gray-900 tracking-tight">
               My Orders
             </h1>
             <p class="text-base text-gray-600 leading-relaxed max-w-2xl">
@@ -17,8 +26,8 @@
       </div>
 
       <!-- Stats Cards -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-blue-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-blue-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -30,13 +39,13 @@
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
                 <PencilIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-amber-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-amber-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-amber-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -48,13 +57,13 @@
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-amber-500 to-amber-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
                 <ClockIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-emerald-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-emerald-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-emerald-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -66,13 +75,13 @@
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
                 <PaperAirplaneIcon class="w-6 h-6 text-white" />
               </div>
             </div>
           </div>
         </div>
-        <div class="group relative bg-white rounded-2xl shadow-lg p-5 border-l-4 border-indigo-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
+        <div class="group relative bg-white rounded-2xl shadow-lg p-4 sm:p-5 border-l-4 border-indigo-500 hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 overflow-hidden">
           <div class="absolute inset-0 bg-gradient-to-br from-indigo-50/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           <div class="relative flex items-center justify-between">
             <div class="flex-1 min-w-0">
@@ -84,7 +93,7 @@
               </p>
             </div>
             <div class="ml-4 shrink-0">
-              <div class="w-12 h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-shadow">
                 <ChartBarIcon class="w-6 h-6 text-white" />
               </div>
             </div>
@@ -93,15 +102,15 @@
       </div>
 
       <!-- Filters -->
-      <div class="bg-white rounded-2xl shadow-lg p-6 mb-8 border border-gray-100">
+      <div class="bg-white rounded-2xl shadow-lg p-4 sm:p-6 mb-8 border border-gray-100">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
           <h3 class="text-xl font-extrabold text-gray-900 flex items-center gap-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-md">
+            <div class="w-9 h-9 sm:w-10 sm:h-10 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center shadow-md">
               <FunnelIcon class="w-5 h-5 text-white" />
             </div>
             <span>Filters & Search</span>
           </h3>
-          <div class="flex items-center gap-3">
+          <div class="flex flex-wrap items-center gap-3">
             <button
               @click="showAdvancedFilters = !showAdvancedFilters"
               class="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-xl transition-all border-2 border-transparent hover:border-primary-200"
@@ -183,7 +192,7 @@
           </select>
         </div>
         <div class="flex-1 min-w-[200px]">
-          <label class="block text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
+          <label class="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
             <MagnifyingGlassIcon class="w-4 h-4 text-gray-500" />
             <span>Search</span>
           </label>
@@ -384,19 +393,19 @@
             </select>
             <label class="text-sm text-gray-700">entries</label>
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <label class="text-sm text-gray-700">Search:</label>
             <input
               v-model="searchQuery"
               @input="debouncedSearch"
               type="text"
               placeholder="Search orders..."
-              class="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-48"
+              class="border border-gray-300 rounded px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 w-full sm:w-48"
             />
           </div>
                 </div>
                 
-        <div class="overflow-x-auto max-h-96 sm:max-h-[420px] border border-gray-200 rounded-lg shadow-inner">
+        <div class="table-scroll max-h-96 sm:max-h-[420px] border border-gray-200 rounded-lg shadow-inner">
           <table class="min-w-full divide-y divide-gray-200">
             <thead>
               <tr class="bg-teal-50">
@@ -552,7 +561,7 @@
           </span>
             entries
         </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center gap-2">
           <button
               @click="loadOrders(pagination?.current_page - 1 || 1)"
               :disabled="!pagination?.has_previous || loading"

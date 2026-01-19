@@ -82,9 +82,62 @@
         </div>
       </div>
 
+      <!-- Payment Reference Fields (for mark_paid action) -->
+      <div v-if="actionForm.action === 'mark_paid'">
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+          <div class="flex items-center gap-2 mb-3">
+            <svg class="w-5 h-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+            <p class="text-sm font-medium text-blue-900 dark:text-blue-200">External Payment Information</p>
+          </div>
+          
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Payment Reference Number
+                <span class="text-gray-500 text-xs font-normal">(Optional)</span>
+              </label>
+              <input
+                v-model="actionForm.reference_id"
+                type="text"
+                placeholder="e.g., MPESA code, PayPal transaction ID, bank reference..."
+                class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                :class="{ 'border-red-300': errors.reference_id }"
+              />
+              <p v-if="errors.reference_id" class="mt-1 text-sm text-red-600">{{ errors.reference_id }}</p>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Enter the external payment reference if payment was made outside the system (MPESA, PayPal, bank transfer, etc.)
+              </p>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Payment Method
+                <span class="text-gray-500 text-xs font-normal">(Optional)</span>
+              </label>
+              <select
+                v-model="actionForm.payment_method"
+                class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                :class="{ 'border-red-300': errors.payment_method }"
+              >
+                <option value="">-- Select payment method --</option>
+                <option value="mpesa">MPESA</option>
+                <option value="paypal">PayPal</option>
+                <option value="bank_transfer">Bank Transfer</option>
+                <option value="stripe">Stripe</option>
+                <option value="manual">Manual/Cash</option>
+                <option value="other">Other</option>
+              </select>
+              <p v-if="errors.payment_method" class="mt-1 text-sm text-red-600">{{ errors.payment_method }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Reason/Notes Field -->
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-2">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Reason / Notes
           <span class="text-gray-500 text-xs font-normal">(Optional, for audit trail)</span>
         </label>
@@ -92,7 +145,7 @@
           v-model="actionForm.reason"
           rows="3"
           placeholder="Enter reason or notes for this action..."
-          class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-800 dark:border-gray-700 dark:text-white"
           :class="{ 'border-red-300': errors.reason }"
         ></textarea>
         <p v-if="errors.reason" class="mt-1 text-sm text-red-600">{{ errors.reason }}</p>
@@ -313,7 +366,9 @@ watch(confirmShow, (newVal) => {
 const actionForm = ref({
   action: props.selectedAction || '',
   reason: '',
-  writer_id: null
+  writer_id: null,
+  reference_id: '',
+  payment_method: ''
 })
 
 const errors = ref({})
@@ -382,7 +437,9 @@ watch(() => props.visible, (newVal) => {
     actionForm.value = {
       action: props.selectedAction || '',
       reason: '',
-      writer_id: null
+      writer_id: null,
+      reference_id: '',
+      payment_method: ''
     }
     error.value = null
     errorDetails.value = null
@@ -399,6 +456,12 @@ const onActionChange = () => {
   if (actionForm.value.action !== 'assign_order' && actionForm.value.action !== 'reassign_order') {
     actionForm.value.writer_id = null
     selectedWriterDetails.value = null
+  }
+  
+  // Reset payment fields when action changes away from mark_paid
+  if (actionForm.value.action !== 'mark_paid') {
+    actionForm.value.reference_id = ''
+    actionForm.value.payment_method = ''
   }
 }
 
@@ -584,6 +647,16 @@ const handleSubmit = async () => {
       // Add writer_id if needed
       if (actionForm.value.writer_id) {
         payload.writer_id = actionForm.value.writer_id
+      }
+      
+      // Add payment reference fields for mark_paid action
+      if (actionForm.value.action === 'mark_paid') {
+        if (actionForm.value.reference_id) {
+          payload.reference_id = actionForm.value.reference_id
+        }
+        if (actionForm.value.payment_method) {
+          payload.payment_method = actionForm.value.payment_method
+        }
       }
       
       response = await ordersAPI.executeAction(props.order.id, actionForm.value.action, payload)

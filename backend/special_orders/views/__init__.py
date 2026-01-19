@@ -35,8 +35,8 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
     ViewSet for managing special orders.
     """
     queryset = SpecialOrder.objects.select_related(
-        'client', 'writer', 'predefined_type'
-    ).order_by('-created_at')
+        'client', 'writer', 'predefined_type', 'website'
+    ).prefetch_related('installments').order_by('-created_at')
     serializer_class = SpecialOrderSerializer
     permission_classes = [IsAuthenticated]
 
@@ -245,6 +245,33 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
             user=request.user
         )
         return Response(status_info)
+    
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser], url_path='approval-queue')
+    def approval_queue(self, request):
+        """
+        Get all special orders awaiting approval.
+        Returns orders with status 'inquiry' or 'awaiting_approval'.
+        """
+        queryset = self.get_queryset().filter(
+            status__in=['inquiry', 'awaiting_approval']
+        ).order_by('created_at')
+        
+        # Apply filters
+        website_id = request.query_params.get('website')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        
+        order_type = request.query_params.get('order_type')
+        if order_type:
+            queryset = queryset.filter(order_type=order_type)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class InstallmentPaymentViewSet(viewsets.ModelViewSet):
@@ -417,6 +444,80 @@ class WriterBonusViewSet(viewsets.ModelViewSet):
                 serializer.save()
         else:
             serializer.save()
+    
+    @action(detail=False, methods=['get'], url_path='statistics', permission_classes=[IsAdminUser])
+    def statistics(self, request):
+        """
+        Get writer bonus statistics for admin dashboard.
+        Returns summary stats, total paid, and breakdowns.
+        """
+        from django.db.models import Sum, Count, Q, Avg
+        from django.utils import timezone
+        from decimal import Decimal
+        
+        queryset = self.get_queryset()
+        
+        # Date range filters
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
+        if start_date:
+            queryset = queryset.filter(created_at__gte=start_date)
+        if end_date:
+            queryset = queryset.filter(created_at__lte=end_date)
+        
+        # Status filters
+        is_paid_filter = request.query_params.get('is_paid')
+        if is_paid_filter is not None:
+            is_paid = is_paid_filter.lower() == 'true'
+            queryset = queryset.filter(is_paid=is_paid)
+        
+        # Calculate statistics
+        total_bonuses = queryset.count()
+        total_amount = queryset.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        
+        # Paid bonuses
+        paid_bonuses = queryset.filter(is_paid=True)
+        paid_count = paid_bonuses.count()
+        total_paid = paid_bonuses.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        
+        # Pending bonuses
+        pending_bonuses = queryset.filter(is_paid=False)
+        pending_count = pending_bonuses.count()
+        total_pending = pending_bonuses.aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        
+        # Category breakdown
+        category_breakdown = {}
+        categories = queryset.values('category').annotate(
+            count=Count('id'),
+            total_amount=Sum('amount')
+        )
+        for item in categories:
+            category = item['category'] or 'other'
+            category_breakdown[category] = {
+                'count': item['count'],
+                'amount': float(item['total_amount'] or 0)
+            }
+        
+        # Recent bonuses (last 30 days)
+        thirty_days_ago = timezone.now() - timezone.timedelta(days=30)
+        recent_bonuses = queryset.filter(created_at__gte=thirty_days_ago).count()
+        recent_amount = queryset.filter(created_at__gte=thirty_days_ago).aggregate(Sum('amount'))['amount__sum'] or Decimal('0.00')
+        
+        # Average bonus amount
+        avg_bonus = queryset.aggregate(Avg('amount'))['amount__avg'] or Decimal('0.00')
+        
+        return Response({
+            'total_bonuses': total_bonuses,
+            'total_amount': float(total_amount),
+            'paid_count': paid_count,
+            'total_paid': float(total_paid),
+            'pending_count': pending_count,
+            'total_pending': float(total_pending),
+            'recent_bonuses_count': recent_bonuses,
+            'recent_amount': float(recent_amount),
+            'average_bonus': float(avg_bonus),
+            'category_breakdown': category_breakdown,
+        })
     
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def pay(self, request, pk=None):

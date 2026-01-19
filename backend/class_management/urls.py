@@ -5,6 +5,7 @@ from class_management.views import (
     ClassBundleViewSet, ExpressClassViewSet
 )
 from class_management.views.class_payment_views import ClassPaymentViewSet
+from class_management.views.inquiry_files import ExpressClassInquiryFileViewSet
 
 # Initialize the router
 router = DefaultRouter()
@@ -16,6 +17,11 @@ router.register(r'class-installments', ClassInstallmentViewSet, basename='class-
 router.register(r'class-bundle-configs', ClassBundleConfigViewSet, basename='class-bundle-config')
 router.register(r'express-classes', ExpressClassViewSet, basename='express-class')
 router.register(r'class-payments', ClassPaymentViewSet, basename='class-payment')
+router.register(
+    r'express-class-inquiry-files',
+    ExpressClassInquiryFileViewSet,
+    basename='express-class-inquiry-file'
+)
 
 urlpatterns = [
     path('', include(router.urls)),  # Include all the generated routes from the router

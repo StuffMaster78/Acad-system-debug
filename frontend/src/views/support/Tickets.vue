@@ -220,10 +220,29 @@
 
           <!-- Actions -->
           <div class="border-t pt-4">
-            <div class="flex justify-end space-x-3">
-              <button v-if="!selectedTicket.assigned_to" @click="assignToMe(selectedTicket)" class="btn btn-secondary">Assign to Me</button>
-              <button v-if="!selectedTicket.is_escalated" @click="escalateTicket(selectedTicket)" class="btn btn-warning">Escalate</button>
-              <button @click="selectedTicket = null" class="btn btn-secondary">Close</button>
+            <div class="flex justify-between items-center">
+              <div class="flex space-x-3">
+                <button v-if="!selectedTicket.assigned_to" @click="assignToMe(selectedTicket)" class="btn btn-secondary">Assign to Me</button>
+                <button v-if="!selectedTicket.is_escalated" @click="escalateTicket(selectedTicket)" class="btn btn-warning">Escalate</button>
+              </div>
+              <div class="flex space-x-3">
+                <!-- Close/Reopen Ticket Actions -->
+                <button
+                  v-if="selectedTicket.status !== 'closed' && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport || authStore.isEditor)"
+                  @click="showCloseModal = true"
+                  class="btn bg-red-600 hover:bg-red-700 text-white"
+                >
+                  Close Ticket
+                </button>
+                <button
+                  v-if="selectedTicket.status === 'closed' && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport || authStore.isEditor)"
+                  @click="showReopenModal = true"
+                  class="btn bg-green-600 hover:bg-green-700 text-white"
+                >
+                  Reopen Ticket
+                </button>
+                <button @click="selectedTicket = null" class="btn btn-secondary">Close Modal</button>
+              </div>
             </div>
           </div>
         </div>
@@ -364,6 +383,76 @@
       </div>
     </div>
 
+    <!-- Close Ticket Modal -->
+    <div v-if="showCloseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6 border-b">
+          <h2 class="text-xl font-bold text-gray-900">Close Ticket</h2>
+        </div>
+        <div class="p-6 space-y-4">
+          <p class="text-sm text-gray-600">
+            Are you sure you want to close ticket #{{ selectedTicket?.id }}? This action will mark the ticket as resolved.
+          </p>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Reason / Notes (Optional)
+            </label>
+            <textarea
+              v-model="closeReason"
+              rows="3"
+              placeholder="Enter reason for closing this ticket..."
+              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            ></textarea>
+          </div>
+          <div class="flex justify-end gap-3 pt-4 border-t">
+            <button @click="showCloseModal = false; closeReason = ''" class="btn btn-secondary">Cancel</button>
+            <button @click="closeTicket" class="btn bg-red-600 hover:bg-red-700 text-white">Close Ticket</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reopen Ticket Modal -->
+    <div v-if="showReopenModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="p-6 border-b">
+          <h2 class="text-xl font-bold text-gray-900">Reopen Ticket</h2>
+        </div>
+        <div class="p-6 space-y-4">
+          <p class="text-sm text-gray-600">
+            Reopen ticket #{{ selectedTicket?.id }}? The ticket will be set back to active status.
+          </p>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Reopen Status
+            </label>
+            <select
+              v-model="reopenStatus"
+              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            >
+              <option value="open">Open</option>
+              <option value="in_progress">In Progress</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">
+              Reason / Notes (Optional)
+            </label>
+            <textarea
+              v-model="reopenReason"
+              rows="3"
+              placeholder="Enter reason for reopening this ticket..."
+              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            ></textarea>
+          </div>
+          <div class="flex justify-end gap-3 pt-4 border-t">
+            <button @click="showReopenModal = false; reopenReason = ''; reopenStatus = 'open'" class="btn btn-secondary">Cancel</button>
+            <button @click="reopenTicket" class="btn bg-green-600 hover:bg-green-700 text-white">Reopen Ticket</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Confirmation Dialog -->
     <ConfirmationDialog
       v-model:show="confirm.show.value"
@@ -384,6 +473,7 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { debounce } from '@/utils/debounce'
 import supportTicketsAPI from '@/api/support-tickets'
+import ticketsAPI from '@/api/tickets'
 import usersAPI from '@/api/users'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
@@ -426,6 +516,13 @@ const createForm = ref({
 const userSearchResults = ref([])
 const showUserDropdown = ref(false)
 const selectedUser = ref(null)
+
+// Close/Reopen Ticket Modals
+const showCloseModal = ref(false)
+const showReopenModal = ref(false)
+const closeReason = ref('')
+const reopenReason = ref('')
+const reopenStatus = ref('open')
 
 const canCreateTicket = computed(() => {
   return createForm.value.created_by && 
@@ -578,6 +675,45 @@ const escalateTicket = async (ticket) => {
   } catch (error) {
     console.error('Failed to escalate ticket:', error)
     showError('Failed to escalate ticket. Please try again.')
+  }
+}
+
+const closeTicket = async () => {
+  if (!selectedTicket.value) return
+  
+  try {
+    const response = await ticketsAPI.close(selectedTicket.value.id, closeReason.value)
+    showSuccess('Ticket closed successfully')
+    showCloseModal.value = false
+    closeReason.value = ''
+    await loadTickets()
+    // Update selected ticket
+    if (selectedTicket.value) {
+      selectedTicket.value = response.data.ticket || { ...selectedTicket.value, status: 'closed' }
+    }
+  } catch (error) {
+    console.error('Failed to close ticket:', error)
+    showError(error.response?.data?.error || 'Failed to close ticket. Please try again.')
+  }
+}
+
+const reopenTicket = async () => {
+  if (!selectedTicket.value) return
+  
+  try {
+    const response = await ticketsAPI.reopen(selectedTicket.value.id, reopenReason.value, reopenStatus.value)
+    showSuccess('Ticket reopened successfully')
+    showReopenModal.value = false
+    reopenReason.value = ''
+    reopenStatus.value = 'open'
+    await loadTickets()
+    // Update selected ticket
+    if (selectedTicket.value) {
+      selectedTicket.value = response.data.ticket || { ...selectedTicket.value, status: reopenStatus.value }
+    }
+  } catch (error) {
+    console.error('Failed to reopen ticket:', error)
+    showError(error.response?.data?.error || 'Failed to reopen ticket. Please try again.')
   }
 }
 

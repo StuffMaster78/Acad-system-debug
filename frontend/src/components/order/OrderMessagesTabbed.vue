@@ -88,48 +88,509 @@
         </button>
       </div>
 
-      <div v-else class="divide-y divide-gray-200 dark:divide-gray-700">
-        <div
-          v-for="thread in filteredThreads"
-          :key="thread.id"
-          @click="openThread(thread)"
-          class="p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-all"
-          :class="{ 
-            'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-l-blue-600 dark:border-l-blue-400': selectedThreadId === thread.id,
-            'border-l-4 border-l-transparent': selectedThreadId !== thread.id
-          }"
-        >
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-4 mb-3">
-                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
-                  {{ getThreadInitials(thread) }}
-                </div>
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 mb-1">
-                    <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
-                      {{ getThreadTitle(thread) }}
-                    </h3>
-                    <span
-                      v-if="thread.unread_count > 0"
-                      class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0"
-                    >
-                      {{ thread.unread_count }}
+      <div v-else class="space-y-6">
+        <!-- Group: From Client to Me -->
+        <div v-if="groupedThreads.fromClient.length > 0" class="space-y-3">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide px-2">
+            From Client to Me
+          </h3>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div
+              v-for="thread in groupedThreads.fromClient"
+              :key="thread.id"
+              class="transition-all border-l-4"
+              :class="thread.unread_count > 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                : selectedThreadId === thread.id
+                  ? 'bg-gray-50 dark:bg-gray-700/50 border-l-gray-400'
+                  : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+            >
+              <div 
+                @click="expandThread(thread)"
+                class="p-5 cursor-pointer"
+              >
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-4 mb-3">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
+                        {{ getThreadInitials(thread) }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            {{ getThreadTitle(thread) }}
+                          </h3>
+                          <span
+                            v-if="thread.unread_count > 0"
+                            class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0"
+                          >
+                            {{ thread.unread_count }}
+                          </span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                          {{ getThreadSubtitle(thread) }}
+                        </p>
+                      </div>
+                    </div>
+                    <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
+                      {{ thread.last_message.message || '📎 File attachment' }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
                     </span>
                   </div>
-                  <p class="text-sm text-gray-500 dark:text-gray-400">
-                    {{ getThreadSubtitle(thread) }}
-                  </p>
                 </div>
               </div>
-              <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
-                {{ thread.last_message.message || '📎 File attachment' }}
-              </p>
+              <div class="px-5 pb-3 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700">
+                <button
+                  @click.stop="openThread(thread)"
+                  class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm"
+                >
+                  Open Full View
+                </button>
+              </div>
             </div>
-            <div class="flex flex-col items-end gap-2 shrink-0">
-              <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
-              </span>
+          </div>
+        </div>
+
+        <!-- Group: From Me to Client -->
+        <div v-if="groupedThreads.toClient.length > 0" class="space-y-3">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide px-2">
+            From Me to Client
+          </h3>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div
+              v-for="thread in groupedThreads.toClient"
+              :key="thread.id"
+              class="transition-all border-l-4"
+              :class="thread.unread_count > 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                : selectedThreadId === thread.id
+                  ? 'bg-gray-50 dark:bg-gray-700/50 border-l-gray-400'
+                  : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+            >
+              <div @click="expandThread(thread)" class="p-5 cursor-pointer">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-4 mb-3">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
+                        {{ getThreadInitials(thread) }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            {{ getThreadTitle(thread) }}
+                          </h3>
+                          <span v-if="thread.unread_count > 0" class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0">
+                            {{ thread.unread_count }}
+                          </span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ getThreadSubtitle(thread) }}</p>
+                      </div>
+                    </div>
+                    <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
+                      {{ thread.last_message.message || '📎 File attachment' }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="px-5 pb-3 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700">
+                <button @click.stop="openThread(thread)" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                  Open Full View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group: From Admin/SuperAdmin/Support to Me -->
+        <div v-if="groupedThreads.fromAdmin.length > 0 || groupedThreads.fromSupport.length > 0" class="space-y-3">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide px-2">
+            From Admin/Support to Me
+          </h3>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div
+              v-for="thread in [...groupedThreads.fromAdmin, ...groupedThreads.fromSupport]"
+              :key="thread.id"
+              class="transition-all border-l-4"
+              :class="thread.unread_count > 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                : selectedThreadId === thread.id
+                  ? 'bg-gray-50 dark:bg-gray-700/50 border-l-gray-400'
+                  : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+            >
+              <div @click="expandThread(thread)" class="p-5 cursor-pointer">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-4 mb-3">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
+                        {{ getThreadInitials(thread) }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            {{ getThreadTitle(thread) }}
+                          </h3>
+                          <span v-if="thread.unread_count > 0" class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0">
+                            {{ thread.unread_count }}
+                          </span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ getThreadSubtitle(thread) }}</p>
+                      </div>
+                    </div>
+                    <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
+                      {{ thread.last_message.message || '📎 File attachment' }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="px-5 pb-3 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700">
+                <button @click.stop="openThread(thread)" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                  Open Full View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group: From Me to Admin/SuperAdmin/Support -->
+        <div v-if="groupedThreads.toAdmin.length > 0 || groupedThreads.toSupport.length > 0" class="space-y-3">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide px-2">
+            From Me to Admin/Support
+          </h3>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div
+              v-for="thread in [...groupedThreads.toAdmin, ...groupedThreads.toSupport]"
+              :key="thread.id"
+              class="transition-all border-l-4"
+              :class="thread.unread_count > 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                : selectedThreadId === thread.id
+                  ? 'bg-gray-50 dark:bg-gray-700/50 border-l-gray-400'
+                  : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+            >
+              <div @click="expandThread(thread)" class="p-5 cursor-pointer">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-4 mb-3">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
+                        {{ getThreadInitials(thread) }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            {{ getThreadTitle(thread) }}
+                          </h3>
+                          <span v-if="thread.unread_count > 0" class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0">
+                            {{ thread.unread_count }}
+                          </span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ getThreadSubtitle(thread) }}</p>
+                      </div>
+                    </div>
+                    <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
+                      {{ thread.last_message.message || '📎 File attachment' }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="px-5 pb-3 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700">
+                <button @click.stop="openThread(thread)" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                  Open Full View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group: From Writer to Me -->
+        <div v-if="groupedThreads.fromWriter.length > 0" class="space-y-3">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide px-2">
+            From Writer to Me
+          </h3>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div
+              v-for="thread in groupedThreads.fromWriter"
+              :key="thread.id"
+              class="transition-all border-l-4"
+              :class="thread.unread_count > 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                : selectedThreadId === thread.id
+                  ? 'bg-gray-50 dark:bg-gray-700/50 border-l-gray-400'
+                  : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+            >
+              <div @click="expandThread(thread)" class="p-5 cursor-pointer">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-4 mb-3">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
+                        {{ getThreadInitials(thread) }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            {{ getThreadTitle(thread) }}
+                          </h3>
+                          <span v-if="thread.unread_count > 0" class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0">
+                            {{ thread.unread_count }}
+                          </span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ getThreadSubtitle(thread) }}</p>
+                      </div>
+                    </div>
+                    <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
+                      {{ thread.last_message.message || '📎 File attachment' }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="px-5 pb-3 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700">
+                <button @click.stop="openThread(thread)" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                  Open Full View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group: From Me to Writer -->
+        <div v-if="groupedThreads.toWriter.length > 0" class="space-y-3">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide px-2">
+            From Me to Writer
+          </h3>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div
+              v-for="thread in groupedThreads.toWriter"
+              :key="thread.id"
+              class="transition-all border-l-4"
+              :class="thread.unread_count > 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                : selectedThreadId === thread.id
+                  ? 'bg-gray-50 dark:bg-gray-700/50 border-l-gray-400'
+                  : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+            >
+              <div @click="expandThread(thread)" class="p-5 cursor-pointer">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-4 mb-3">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
+                        {{ getThreadInitials(thread) }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            {{ getThreadTitle(thread) }}
+                          </h3>
+                          <span v-if="thread.unread_count > 0" class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0">
+                            {{ thread.unread_count }}
+                          </span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ getThreadSubtitle(thread) }}</p>
+                      </div>
+                    </div>
+                    <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
+                      {{ thread.last_message.message || '📎 File attachment' }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="px-5 pb-3 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700">
+                <button @click.stop="openThread(thread)" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                  Open Full View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group: From Editor to Me -->
+        <div v-if="groupedThreads.fromEditor.length > 0" class="space-y-3">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide px-2">
+            From Editor to Me
+          </h3>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div
+              v-for="thread in groupedThreads.fromEditor"
+              :key="thread.id"
+              class="transition-all border-l-4"
+              :class="thread.unread_count > 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                : selectedThreadId === thread.id
+                  ? 'bg-gray-50 dark:bg-gray-700/50 border-l-gray-400'
+                  : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+            >
+              <div @click="expandThread(thread)" class="p-5 cursor-pointer">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-4 mb-3">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
+                        {{ getThreadInitials(thread) }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            {{ getThreadTitle(thread) }}
+                          </h3>
+                          <span v-if="thread.unread_count > 0" class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0">
+                            {{ thread.unread_count }}
+                          </span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ getThreadSubtitle(thread) }}</p>
+                      </div>
+                    </div>
+                    <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
+                      {{ thread.last_message.message || '📎 File attachment' }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="px-5 pb-3 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700">
+                <button @click.stop="openThread(thread)" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                  Open Full View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group: From Me to Editor -->
+        <div v-if="groupedThreads.toEditor.length > 0" class="space-y-3">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide px-2">
+            From Me to Editor
+          </h3>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div
+              v-for="thread in groupedThreads.toEditor"
+              :key="thread.id"
+              class="transition-all border-l-4"
+              :class="thread.unread_count > 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                : selectedThreadId === thread.id
+                  ? 'bg-gray-50 dark:bg-gray-700/50 border-l-gray-400'
+                  : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+            >
+              <div @click="expandThread(thread)" class="p-5 cursor-pointer">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-4 mb-3">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
+                        {{ getThreadInitials(thread) }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            {{ getThreadTitle(thread) }}
+                          </h3>
+                          <span v-if="thread.unread_count > 0" class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0">
+                            {{ thread.unread_count }}
+                          </span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ getThreadSubtitle(thread) }}</p>
+                      </div>
+                    </div>
+                    <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
+                      {{ thread.last_message.message || '📎 File attachment' }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="px-5 pb-3 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700">
+                <button @click.stop="openThread(thread)" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                  Open Full View
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Group: Other -->
+        <div v-if="groupedThreads.other.length > 0" class="space-y-3">
+          <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide px-2">
+            Other Conversations
+          </h3>
+          <div class="divide-y divide-gray-200 dark:divide-gray-700">
+            <div
+              v-for="thread in groupedThreads.other"
+              :key="thread.id"
+              class="transition-all border-l-4"
+              :class="thread.unread_count > 0 
+                ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+                : selectedThreadId === thread.id
+                  ? 'bg-gray-50 dark:bg-gray-700/50 border-l-gray-400'
+                  : 'border-l-transparent hover:bg-gray-50 dark:hover:bg-gray-700/50'"
+            >
+              <div @click="expandThread(thread)" class="p-5 cursor-pointer">
+                <div class="flex items-start justify-between gap-4">
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-4 mb-3">
+                      <div class="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-semibold shrink-0 shadow-sm">
+                        {{ getThreadInitials(thread) }}
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                          <h3 class="font-semibold text-gray-900 dark:text-white truncate text-base">
+                            {{ getThreadTitle(thread) }}
+                          </h3>
+                          <span v-if="thread.unread_count > 0" class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-semibold shrink-0">
+                            {{ thread.unread_count }}
+                          </span>
+                        </div>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">{{ getThreadSubtitle(thread) }}</p>
+                      </div>
+                    </div>
+                    <p v-if="thread.last_message" class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2 ml-16">
+                      {{ thread.last_message.message || '📎 File attachment' }}
+                    </p>
+                  </div>
+                  <div class="flex flex-col items-end gap-2 shrink-0">
+                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      {{ formatTime(thread.last_message?.sent_at || thread.updated_at) }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div class="px-5 pb-3 flex items-center gap-2 border-t border-gray-200 dark:border-gray-700">
+                <button @click.stop="openThread(thread)" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors text-sm">
+                  Open Full View
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -146,14 +607,92 @@
       @message-sent="handleMessageSent"
     />
 
-    <!-- Thread View Modal -->
-    <ThreadViewModal
-      v-if="selectedThread"
-      :thread="selectedThread"
-      :show="!!selectedThread"
-      @close="closeThread"
-      @thread-updated="handleThreadUpdated"
-    />
+    <!-- Expanded Thread View (Inline) -->
+    <div v-if="selectedThread" class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+      <div class="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4 flex-1">
+            <div class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white font-bold text-lg">
+              {{ getThreadInitials(selectedThread) }}
+            </div>
+            <div class="flex-1 min-w-0">
+              <h3 class="text-xl font-bold text-white truncate">{{ getThreadTitle(selectedThread) }}</h3>
+              <div class="flex items-center gap-4 mt-1 text-sm text-blue-100">
+                <span>{{ getThreadSubtitle(selectedThread) }}</span>
+                <span v-if="selectedThread.order || selectedThread.order_id" class="flex items-center gap-1">
+                  <span>•</span>
+                  <span>Order #{{ selectedThread.order?.id || selectedThread.order_id }}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <router-link
+              :to="`/messages/thread/${selectedThread.id}`"
+              class="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium transition-colors text-sm"
+            >
+              Open Full View
+            </router-link>
+            <button 
+              @click="closeThread" 
+              class="text-white/80 hover:text-white hover:bg-white/20 rounded-lg p-1.5 transition-colors"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Thread Details -->
+      <div class="p-6 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div>
+            <span class="text-gray-600 dark:text-gray-400 font-medium">Sender:</span>
+            <span class="ml-2 text-gray-900 dark:text-white">
+              {{ getSenderInfo(selectedThread) }}
+            </span>
+          </div>
+          <div>
+            <span class="text-gray-600 dark:text-gray-400 font-medium">Recipient:</span>
+            <span class="ml-2 text-gray-900 dark:text-white">
+              {{ getRecipientInfo(selectedThread) }}
+            </span>
+          </div>
+          <div>
+            <span class="text-gray-600 dark:text-gray-400 font-medium">Last Message:</span>
+            <span class="ml-2 text-gray-900 dark:text-white">
+              {{ formatTime(selectedThread.last_message?.sent_at || selectedThread.updated_at) }}
+            </span>
+          </div>
+          <div>
+            <span class="text-gray-600 dark:text-gray-400 font-medium">Status:</span>
+            <span class="ml-2">
+              <span 
+                class="px-2 py-1 text-xs font-medium rounded-full"
+                :class="selectedThread.is_active ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300'"
+              >
+                {{ selectedThread.is_active ? 'Active' : 'Inactive' }}
+              </span>
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Quick Actions -->
+      <div class="p-4 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+        <router-link
+          :to="`/messages/thread/${selectedThread.id}`"
+          class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          View All Messages
+        </router-link>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -163,8 +702,8 @@ import { communicationsAPI } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import messagesStore from '@/stores/messages'
 import OrderNewMessageModal from '@/components/order/OrderNewMessageModal.vue'
-import ThreadViewModal from '@/components/messages/ThreadViewModal.vue'
 import { useToast } from '@/composables/useToast'
+import { useRouter } from 'vue-router'
 
 const { success: showSuccess, error: showError } = useToast()
 
@@ -181,6 +720,7 @@ const props = defineProps({
 
 const emit = defineEmits(['unread-count-update'])
 
+const router = useRouter()
 const authStore = useAuthStore()
 const currentUser = authStore.user
 
@@ -384,6 +924,99 @@ const filteredThreads = computed(() => {
   })
 })
 
+// Group threads by direction
+const groupedThreads = computed(() => {
+  const groups = {
+    fromClient: [],
+    toClient: [],
+    fromAdmin: [],
+    toAdmin: [],
+    fromSupport: [],
+    toSupport: [],
+    fromWriter: [],
+    toWriter: [],
+    fromEditor: [],
+    toEditor: [],
+    other: []
+  }
+
+  filteredThreads.value.forEach(thread => {
+    const lastMessage = thread.last_message
+    if (!lastMessage) {
+      groups.other.push(thread)
+      return
+    }
+
+    const senderRole = lastMessage.sender_role
+    const recipientRole = lastMessage.recipient_role
+    const senderId = lastMessage.sender?.id || (typeof lastMessage.sender === 'object' ? lastMessage.sender?.id : lastMessage.sender)
+    const isFromMe = senderId === currentUser?.id
+
+    // Determine direction based on last message
+    // "From X to Me" means sender is X and I'm the recipient
+    // "From Me to X" means I'm the sender and recipient is X
+    
+    if (senderRole === 'client' && !isFromMe) {
+      // Client sent to me
+      groups.fromClient.push(thread)
+    } else if (recipientRole === 'client' && isFromMe) {
+      // I sent to client
+      groups.toClient.push(thread)
+    } else if ((senderRole === 'admin' || senderRole === 'superadmin') && !isFromMe) {
+      // Admin/SuperAdmin sent to me
+      groups.fromAdmin.push(thread)
+    } else if ((recipientRole === 'admin' || recipientRole === 'superadmin') && isFromMe) {
+      // I sent to Admin/SuperAdmin
+      groups.toAdmin.push(thread)
+    } else if (senderRole === 'support' && !isFromMe) {
+      // Support sent to me
+      groups.fromSupport.push(thread)
+    } else if (recipientRole === 'support' && isFromMe) {
+      // I sent to Support
+      groups.toSupport.push(thread)
+    } else if (senderRole === 'writer' && !isFromMe) {
+      // Writer sent to me
+      groups.fromWriter.push(thread)
+    } else if (recipientRole === 'writer' && isFromMe) {
+      // I sent to Writer
+      groups.toWriter.push(thread)
+    } else if (senderRole === 'editor' && !isFromMe) {
+      // Editor sent to me
+      groups.fromEditor.push(thread)
+    } else if (recipientRole === 'editor' && isFromMe) {
+      // I sent to Editor
+      groups.toEditor.push(thread)
+    } else {
+      // Fallback: use participant roles if last message doesn't have role info
+      const otherParticipants = thread.participants?.filter(p => {
+        const participantId = typeof p === 'object' ? p.id : p
+        return participantId !== currentUser?.id
+      }) || []
+      
+      if (otherParticipants.length > 0) {
+        const otherRole = typeof otherParticipants[0] === 'object' ? otherParticipants[0].role : null
+        if (otherRole === 'client') {
+          groups.fromClient.push(thread)
+        } else if (otherRole === 'writer') {
+          groups.fromWriter.push(thread)
+        } else if (otherRole === 'editor') {
+          groups.fromEditor.push(thread)
+        } else if (otherRole === 'support') {
+          groups.fromSupport.push(thread)
+        } else if (otherRole === 'admin' || otherRole === 'superadmin') {
+          groups.fromAdmin.push(thread)
+        } else {
+          groups.other.push(thread)
+        }
+      } else {
+        groups.other.push(thread)
+      }
+    }
+  })
+
+  return groups
+})
+
 const loadThreads = async (forceRefresh = false) => {
   loadingThreads.value = true
   try {
@@ -560,8 +1193,49 @@ const openThread = (thread) => {
     showError('Invalid conversation')
     return
   }
+  // Navigate to dedicated thread detail page
+  router.push(`/messages/thread/${thread.id}`)
+}
+
+const expandThread = (thread) => {
+  if (!thread || !thread.id) {
+    console.error('Invalid thread:', thread)
+    showError('Invalid conversation')
+    return
+  }
   selectedThread.value = thread
   selectedThreadId.value = thread.id
+}
+
+const getSenderInfo = (thread) => {
+  if (!thread || !thread.last_message) return 'N/A'
+  const sender = thread.last_message.sender
+  if (typeof sender === 'object') {
+    return `${sender.username || sender.email} (${sender.role || 'User'})`
+  }
+  return thread.last_message.sender_name || 'Unknown'
+}
+
+const getRecipientInfo = (thread) => {
+  if (!thread || !thread.last_message) {
+    // Fallback to participants
+    const otherParticipants = thread.participants?.filter(p => {
+      const participantId = typeof p === 'object' ? p.id : p
+      return participantId !== currentUser?.id
+    }) || []
+    if (otherParticipants.length > 0) {
+      const p = otherParticipants[0]
+      if (typeof p === 'object') {
+        return `${p.username || p.email} (${p.role || 'User'})`
+      }
+    }
+    return 'N/A'
+  }
+  const recipientRole = thread.last_message.recipient_role
+  if (recipientRole) {
+    return `${recipientRole.charAt(0).toUpperCase() + recipientRole.slice(1)}`
+  }
+  return 'N/A'
 }
 
 const closeThread = () => {

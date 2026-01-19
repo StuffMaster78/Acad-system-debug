@@ -1,7 +1,7 @@
 <template>
   <div class="security-activity">
-    <div class="max-w-6xl mx-auto p-6">
-      <h1 class="text-3xl font-bold mb-6 dark:text-white">Security Activity</h1>
+    <div class="max-w-6xl mx-auto page-shell">
+      <h1 class="page-title mb-6 dark:text-white">Security Activity</h1>
 
       <!-- Summary Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

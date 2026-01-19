@@ -1,5 +1,10 @@
 <template>
   <div class="space-y-6">
+    <!-- Breadcrumbs -->
+    <nav class="flex items-center space-x-2 text-sm" aria-label="Breadcrumb">
+      <span class="text-gray-900 dark:text-gray-100 font-medium">Dashboard</span>
+    </nav>
+    
     <!-- Page Header -->
     <div class="flex items-center justify-between">
       <div>

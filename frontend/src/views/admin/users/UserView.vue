@@ -841,7 +841,57 @@
               </div>
               <p v-if="user.writer_profile?.writer_level" class="text-xs text-gray-500 dark:text-gray-400 mt-2">
                 Current: {{ user.writer_profile.writer_level.name }}
+                <span v-if="user.writer_profile.writer_level.max_orders" class="ml-2">
+                  (Max Orders: {{ user.writer_profile.writer_level.max_orders }})
+                </span>
               </p>
+            </div>
+
+            <!-- Takes Restrictions (Admin Only) -->
+            <div v-if="authStore.user?.role === 'admin' || authStore.user?.role === 'superadmin'" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-4">
+                <h4 class="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">Order Takes Restrictions</h4>
+                <p class="text-xs text-blue-700 dark:text-blue-300 mb-3">
+                  Control whether this writer can take orders directly from their profile. This restriction only applies to writers taking orders themselves; admins can still assign orders manually.
+                </p>
+                <div class="space-y-2 text-xs text-blue-600 dark:text-blue-400">
+                  <p><strong>Level-Based Restriction:</strong> Writer's level allows up to {{ user.writer_profile?.writer_level?.max_orders || 0 }} simultaneous orders.</p>
+                  <p><strong>Profile Override:</strong> You can disable takes entirely for this writer regardless of their level.</p>
+                </div>
+              </div>
+              
+              <div class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <div class="flex-1">
+                  <label class="block text-sm font-medium text-gray-900 dark:text-white mb-1">
+                    Allow Order Takes
+                  </label>
+                  <p class="text-xs text-gray-500 dark:text-gray-400">
+                    When disabled, writer cannot take orders from their profile (admins can still assign manually)
+                  </p>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    v-model="canTakeOrders"
+                    @change="updateTakesRestriction"
+                    :disabled="updatingTakesRestriction"
+                    class="sr-only peer"
+                  />
+                  <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 dark:peer-focus:ring-primary-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary-600"></div>
+                </label>
+              </div>
+              
+              <div v-if="user.writer_profile?.writer_level" class="mt-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg">
+                <p class="text-xs text-yellow-800 dark:text-yellow-200">
+                  <strong>Current Status:</strong> 
+                  <span v-if="canTakeOrders">
+                    Writer can take up to {{ user.writer_profile.writer_level.max_orders }} orders (level limit).
+                  </span>
+                  <span v-else>
+                    Writer cannot take orders (restricted by admin override).
+                  </span>
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -1000,6 +1050,10 @@ const writerLevels = ref([])
 const writerLevelsLoading = ref(false)
 const updatingLevel = ref(false)
 const selectedLevelId = ref(null)
+
+// Takes restrictions management
+const canTakeOrders = ref(true)
+const updatingTakesRestriction = ref(false)
 
 // Computed: Orders grouped by status (for writers)
 const ordersByStatus = computed(() => {
@@ -1506,6 +1560,42 @@ const formatEarningMode = (mode) => {
   return modeMap[mode] || mode
 }
 
+const updateTakesRestriction = async () => {
+  if (!user.value || !user.value.writer_profile) return
+  
+  updatingTakesRestriction.value = true
+  try {
+    let writerProfileId = user.value.writer_profile.id
+    
+    if (!writerProfileId) {
+      try {
+        const profileResponse = await writerManagementAPI.getWriter(user.value.id)
+        writerProfileId = profileResponse.data?.id || profileResponse.data?.writer_profile?.id
+      } catch (e) {
+        console.warn('Could not get writer profile ID:', e)
+      }
+    }
+    
+    if (!writerProfileId) {
+      throw new Error('Writer profile ID not found.')
+    }
+    
+    await apiClient.patch(
+      `/writer-management/writers/${writerProfileId}/`,
+      { can_take_orders: canTakeOrders.value }
+    )
+    
+    await loadUser()
+    showSuccess('Takes restriction updated successfully!')
+  } catch (e) {
+    showError(getErrorMessage(e, 'Failed to update takes restriction', 'Unable to update restriction. Please try again.'))
+    // Revert the toggle on error
+    canTakeOrders.value = user.value.writer_profile?.can_take_orders ?? true
+  } finally {
+    updatingTakesRestriction.value = false
+  }
+}
+
 onMounted(async () => {
   await loadUser()
   if (user.value) {
@@ -1517,6 +1607,11 @@ onMounted(async () => {
       loadLoyaltyInfo(),
       loadWriterLevels()
     ])
+    
+    // Initialize takes restriction toggle
+    if (user.value.writer_profile) {
+      canTakeOrders.value = user.value.writer_profile.can_take_orders !== false
+    }
   }
 })
 </script>

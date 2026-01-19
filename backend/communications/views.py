@@ -944,6 +944,102 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
         instance.is_deleted = True
         instance.save()
     
+    @action(detail=True, methods=['post'], url_path='shadow')
+    def shadow_message(self, request, thread_pk=None, pk=None):
+        """Shadow (hide) a message. Only admin/superadmin can shadow messages."""
+        from rest_framework.exceptions import PermissionDenied
+        from .permissions import can_delete_message
+        
+        message = self.get_object()
+        
+        if not can_delete_message(request.user, message):
+            raise PermissionDenied("Only administrators can shadow messages.")
+        
+        reason = request.data.get('reason', 'Message shadowed by admin')
+        message.is_hidden = True
+        message.save()
+        
+        # Log the shadow action
+        from .models import FlaggedMessage
+        FlaggedMessage.objects.create(
+            message=message,
+            flagged_by=request.user,
+            reason=reason,
+            category='admin_action',
+            is_unblocked=False
+        )
+        
+        return Response({
+            'detail': 'Message shadowed successfully.',
+            'message_id': message.id
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'], url_path='unshadow')
+    def unshadow_message(self, request, thread_pk=None, pk=None):
+        """Unshadow (show) a message. Only admin/superadmin can unshadow messages.
+        This also approves attachments/links if the message contains them."""
+        from rest_framework.exceptions import PermissionDenied
+        from .permissions import can_delete_message
+        
+        message = self.get_object()
+        
+        if not can_delete_message(request.user, message):
+            raise PermissionDenied("Only administrators can unshadow messages.")
+        
+        # Unshadow the message
+        message.is_hidden = False
+        message.is_flagged = False
+        
+        # If message has attachment or link, approve it
+        if message.attachment or message.message_type in ['file', 'image']:
+            message.is_link_approved = True
+        
+        if message.contains_link:
+            message.is_link_approved = True
+        
+        message.save()
+        
+        # If there's a flagged message record, mark it as unblocked
+        if hasattr(message, 'flagged_message'):
+            flagged = message.flagged_message
+            flagged.is_unblocked = True
+            flagged.reviewed_by = request.user
+            from django.utils import timezone
+            flagged.reviewed_at = timezone.now()
+            flagged.admin_comment = request.data.get('admin_comment', 'Message approved and unshadowed by admin')
+            flagged.save()
+        
+        return Response({
+            'detail': 'Message unshadowed and approved successfully.',
+            'message_id': message.id
+        }, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['patch'], url_path='edit')
+    def edit_message(self, request, thread_pk=None, pk=None):
+        """Edit a message. Only admin/superadmin can edit any message."""
+        from rest_framework.exceptions import PermissionDenied
+        from .permissions import can_edit_message
+        
+        message = self.get_object()
+        
+        if not can_edit_message(request.user, message):
+            raise PermissionDenied("You do not have permission to edit this message.")
+        
+        # Allow admins to edit message content
+        if 'message' in request.data:
+            message.message = request.data['message']
+        if 'is_hidden' in request.data:
+            message.is_hidden = request.data['is_hidden']
+        if 'is_deleted' in request.data:
+            message.is_deleted = request.data['is_deleted']
+        
+        message.save()
+        
+        return Response(
+            CommunicationMessageSerializer(message, context={'request': request}).data,
+            status=status.HTTP_200_OK
+        )
+    
     @action(detail=False, methods=['post'], url_path='mark-thread-read')
     def mark_thread_read(self, request, thread_pk=None):
         """Mark all unread messages in a thread as read for the current user."""

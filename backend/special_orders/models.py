@@ -135,6 +135,13 @@ class SpecialOrder(models.Model):
     )
     inquiry_details = models.TextField(blank=True)
     admin_notes = models.TextField(blank=True)
+    budget = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Client's stated budget for negotiation purposes"
+    )
     total_cost = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -386,3 +393,63 @@ class WriterBonus(models.Model):
 
     def __str__(self):
         return f"Bonus of ${self.amount} to {self.writer} (Category: {self.category})"
+
+
+class SpecialOrderInquiryFile(models.Model):
+    """
+    File attachments uploaded during special order inquiry creation.
+    """
+    website = models.ForeignKey(
+        Website,
+        on_delete=models.CASCADE,
+        related_name='special_order_inquiry_files'
+    )
+    special_order = models.ForeignKey(
+        'special_orders.SpecialOrder',
+        on_delete=models.CASCADE,
+        related_name='inquiry_files',
+        help_text="Special order this file belongs to"
+    )
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='special_order_inquiry_files_uploaded',
+        help_text="User who uploaded the file"
+    )
+    file = models.FileField(
+        upload_to='special_orders/inquiry_files/',
+        help_text="Uploaded file"
+    )
+    file_name = models.CharField(
+        max_length=255,
+        help_text="Original filename"
+    )
+    file_size = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="File size in bytes"
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="Optional description of the file"
+    )
+    uploaded_at = models.DateTimeField(
+        auto_now_add=True,
+        help_text="When the file was uploaded"
+    )
+
+    class Meta:
+        ordering = ['-uploaded_at']
+        indexes = [
+            models.Index(fields=['special_order', 'uploaded_at']),
+        ]
+
+    def __str__(self):
+        return f"{self.file_name} - Special Order #{self.special_order.id}"
+
+    def save(self, *args, **kwargs):
+        # Auto-set website from special order if not set
+        if not self.website_id and self.special_order_id:
+            self.website = self.special_order.website
+        super().save(*args, **kwargs)

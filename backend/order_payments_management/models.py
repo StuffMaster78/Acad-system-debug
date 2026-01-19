@@ -1121,6 +1121,10 @@ class Invoice(models.Model):
         null=True, blank=True,
         help_text="When payment token expires"
     )
+    custom_payment_link = models.URLField(
+        max_length=500, null=True, blank=True,
+        help_text="Optional custom payment link (overrides default generated link if set)"
+    )
     
     # Email tracking
     email_sent = models.BooleanField(default=False)

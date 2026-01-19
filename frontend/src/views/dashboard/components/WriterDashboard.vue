@@ -1,5 +1,10 @@
 <template>
   <div class="space-y-6">
+    <!-- Breadcrumbs -->
+    <nav class="flex flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+      <span class="text-gray-900 dark:text-gray-100 font-medium">Dashboard</span>
+    </nav>
+    
     <!-- Earnings Summary Bar - Always Visible -->
     <div class="bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500 rounded-2xl shadow-xl p-6 text-white">
       <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -60,10 +65,10 @@
     <!-- Orders Section - Main Focus -->
     <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
       <!-- Orders Header with Tabs -->
-      <div class="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-6 py-4">
-        <div class="flex items-center justify-between mb-4">
+      <div class="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200 px-4 sm:px-6 py-4">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
           <div>
-            <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-3">
               <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
@@ -71,27 +76,27 @@
             </h2>
             <p class="text-sm text-gray-600 mt-1">Manage and track all your assigned orders</p>
           </div>
-          <div class="flex items-center gap-3">
-              <router-link
+          <div class="flex items-center gap-3 w-full sm:w-auto">
+            <router-link
               to="/writer/queue" 
-              class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-semibold flex items-center gap-2 shadow-sm"
-              >
+              class="w-full sm:w-auto justify-center px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-semibold flex items-center gap-2 shadow-sm"
+            >
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
               </svg>
               Browse Orders
-              </router-link>
+            </router-link>
+          </div>
         </div>
-      </div>
 
         <!-- Status Tabs -->
-        <div class="flex items-center gap-2 overflow-x-auto pb-2 px-1">
+        <div class="flex items-center gap-2 overflow-x-auto pb-2 px-1 -mx-2 sm:mx-0 sm:px-1">
           <button
             v-for="tab in orderTabs"
             :key="tab.id"
             @click="activeTab = tab.id"
             :class="[
-              'px-4 py-2.5 rounded-lg text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-2',
+              'px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all whitespace-nowrap flex items-center gap-2 shrink-0',
               activeTab === tab.id
                 ? `${tab.bgColor} ${tab.textColor} shadow-md border-2 ${tab.borderColor}`
                 : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
@@ -100,19 +105,19 @@
             <!-- Colored Number Circle -->
             <span 
               :class="[
-                'w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white',
+                'w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold text-white',
                 tab.color
               ]"
             >
               {{ tab.count }}
             </span>
-            {{ tab.label }}
+            <span>{{ tab.label }}</span>
           </button>
       </div>
     </div>
 
       <!-- Orders Content -->
-      <div class="p-6">
+      <div class="p-4 sm:p-6">
         <!-- Loading State -->
         <div v-if="ordersLoading || (activeTab === 'available' && availableOrdersLoading) || (activeTab === 'order_requests' && orderRequestsLoading)" class="flex items-center justify-center py-16">
           <div class="text-center">
@@ -141,19 +146,19 @@
 
         <!-- Orders Table -->
         <div v-else class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <div class="overflow-x-auto">
+          <div class="table-scroll">
             <table class="min-w-full divide-y divide-gray-200">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">#</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Title</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Pages</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Earnings</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Deadline</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Client</th>
-                  <th class="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
+                  <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">#</th>
+                  <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Title</th>
+                  <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                  <th class="hidden lg:table-cell px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
+                  <th class="hidden md:table-cell px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Pages</th>
+                  <th class="hidden md:table-cell px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Earnings</th>
+                  <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Deadline</th>
+                  <th class="hidden lg:table-cell px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Client</th>
+                  <th class="px-3 sm:px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
               <tbody class="bg-white divide-y divide-gray-200">
@@ -169,7 +174,7 @@
                   @click="$router.push(`/orders/${order.id}`)"
                 >
                   <!-- Order ID -->
-                  <td class="px-4 py-4 whitespace-nowrap">
+                  <td class="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
         <div class="flex items-center gap-2">
                       <div class="w-10 h-10 bg-gradient-to-br from-emerald-400 to-green-500 rounded-lg flex items-center justify-center text-white font-bold shadow-md">
                         #{{ order.id }}
@@ -178,7 +183,7 @@
                   </td>
                   
                   <!-- Title -->
-                  <td class="px-4 py-4 max-w-xs sm:max-w-sm">
+                  <td class="px-3 sm:px-4 py-3 sm:py-4 max-w-[180px] sm:max-w-xs">
                     <div class="flex flex-col">
                       <span class="text-sm font-semibold text-gray-900 truncate">
                         {{ getShortTitle(order) }}
@@ -193,7 +198,7 @@
                   </td>
                   
                   <!-- Status -->
-                  <td class="px-4 py-4 whitespace-nowrap">
+                  <td class="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                     <OrderStatusTooltip :status="order.status" position="bottom">
                       <span
                         class="px-3 py-1 rounded-full text-xs font-semibold"
@@ -205,28 +210,28 @@
                   </td>
                   
                   <!-- Date -->
-                  <td class="px-4 py-4 whitespace-nowrap">
+                  <td class="hidden lg:table-cell px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                     <span class="text-sm text-gray-600">
                       {{ formatDate(order.created_at) }}
                     </span>
                   </td>
                   
                   <!-- Pages -->
-                  <td class="px-4 py-4 whitespace-nowrap">
+                  <td class="hidden md:table-cell px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                     <span class="text-sm font-medium text-gray-900">
                       {{ order.number_of_pages || order.pages || 0 }}
                     </span>
                   </td>
                   
                   <!-- Earnings -->
-                  <td class="px-4 py-4 whitespace-nowrap">
+                  <td class="hidden md:table-cell px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                     <span class="text-sm font-bold text-emerald-600">
                       ${{ (Number(order.writer_compensation) || 0).toFixed(2) }}
                     </span>
                   </td>
                   
                   <!-- Deadline -->
-                  <td class="px-4 py-4 whitespace-nowrap">
+                  <td class="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                     <span
                       class="text-sm font-semibold"
                       :class="isOverdue(order) ? 'text-red-600' : isDueSoon(order) ? 'text-orange-600' : 'text-gray-900'"
@@ -236,18 +241,18 @@
                   </td>
                   
                   <!-- Client -->
-                  <td class="px-4 py-4 whitespace-nowrap">
+                  <td class="hidden lg:table-cell px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap">
                     <span class="text-sm text-gray-600">
                       {{ order.client_username || order.client?.username || order.client?.email || 'N/A' }}
                     </span>
                   </td>
                   
                   <!-- Action -->
-                  <td class="px-4 py-4 whitespace-nowrap" @click.stop>
+                  <td class="px-3 sm:px-4 py-3 sm:py-4 whitespace-nowrap" @click.stop>
                     <button
                       v-if="activeTab !== 'available'"
                       @click="$router.push(`/orders/${order.id}`)"
-                      class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-semibold shadow-sm"
+                      class="px-3 sm:px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-xs sm:text-sm font-semibold shadow-sm"
                     >
                       {{ getActionButtonText(order.status) }}
                     </button>

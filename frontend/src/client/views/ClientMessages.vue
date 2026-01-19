@@ -1,5 +1,14 @@
 <template>
   <div class="space-y-6">
+    <!-- Breadcrumbs -->
+    <nav class="flex items-center space-x-2 text-sm" aria-label="Breadcrumb">
+      <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+        Dashboard
+      </router-link>
+      <span class="text-gray-400 dark:text-gray-600">/</span>
+      <span class="text-gray-900 dark:text-gray-100 font-medium">Messages</span>
+    </nav>
+    
     <!-- Header -->
     <div>
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Messages</h1>
@@ -23,22 +32,44 @@
           <button
             v-for="thread in threads"
             :key="thread.id"
-            @click="selectedThread = thread"
-            class="w-full p-4 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            :class="selectedThread?.id === thread.id ? 'bg-primary-50 dark:bg-primary-900/20' : ''"
+            @click="openThread(thread)"
+            class="w-full p-4 text-left transition-all border-l-4"
+            :class="thread.unread_count > 0 
+              ? 'bg-blue-50 dark:bg-blue-900/20 border-l-blue-500 hover:bg-blue-100 dark:hover:bg-blue-900/30' 
+              : 'hover:bg-gray-50 dark:hover:bg-gray-700 border-l-transparent'"
           >
             <div class="flex items-center justify-between mb-1">
-              <p class="font-medium text-gray-900 dark:text-white">
-                {{ thread.order?.topic || `Order #${thread.order_id}` }}
-              </p>
-              <span v-if="thread.unread_count > 0" class="px-2 py-1 text-xs bg-primary-600 text-white rounded-full">
-                {{ thread.unread_count }}
-              </span>
+              <div class="flex items-center gap-2 flex-1 min-w-0">
+                <p 
+                  class="font-medium truncate"
+                  :class="thread.unread_count > 0 
+                    ? 'text-gray-900 dark:text-white font-bold' 
+                    : 'text-gray-700 dark:text-gray-300'"
+                >
+                  {{ thread.order?.topic || `Order #${thread.order_id}` }}
+                </p>
+                <span 
+                  v-if="thread.unread_count > 0" 
+                  class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full font-bold shrink-0"
+                >
+                  {{ thread.unread_count }}
+                </span>
+              </div>
             </div>
-            <p class="text-sm text-gray-500 truncate">
+            <p 
+              class="text-sm truncate"
+              :class="thread.unread_count > 0 
+                ? 'text-gray-700 dark:text-gray-200 font-medium' 
+                : 'text-gray-500 dark:text-gray-400'"
+            >
               {{ thread.last_message?.content || 'No messages yet' }}
             </p>
-            <p class="text-xs text-gray-400 mt-1">
+            <p 
+              class="text-xs mt-1"
+              :class="thread.unread_count > 0 
+                ? 'text-gray-600 dark:text-gray-300' 
+                : 'text-gray-400 dark:text-gray-500'"
+            >
               {{ formatDate(thread.updated_at) }}
             </p>
           </button>
@@ -118,11 +149,12 @@
 
 <script setup>
 import { ref, watch, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import communicationsAPI from '@/api/communications'
 
 const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 
 const loadingThreads = ref(true)
@@ -206,6 +238,11 @@ const formatDate = (dateString) => {
   if (hours < 24) return `${hours}h ago`
   if (days < 7) return `${days}d ago`
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const openThread = (thread) => {
+  // Navigate to dedicated thread detail page
+  router.push(`/messages/thread/${thread.id}`)
 }
 
 watch(selectedThread, () => {

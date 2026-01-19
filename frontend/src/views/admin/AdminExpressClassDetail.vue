@@ -356,6 +356,91 @@
             <p class="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ expressClass.instructions }}</p>
           </div>
 
+          <!-- School Details -->
+          <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <div class="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
+                  <span class="text-teal-600 dark:text-teal-400 text-lg">🏫</span>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white">School Details</h3>
+              </div>
+              <button
+                @click="showSchoolDetailsModal = true"
+                class="px-3 py-1.5 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors flex items-center gap-1.5"
+                title="Manage school login details"
+              >
+                <span>{{ expressClass.school_login_link ? '✏️' : '➕' }}</span>
+                <span>{{ expressClass.school_login_link ? 'Edit' : 'Add' }} Details</span>
+              </button>
+            </div>
+            <div v-if="expressClass.school_login_link || expressClass.school_login_username" class="space-y-3 text-sm">
+              <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                  <span>🔗</span>
+                  <span>Login URL</span>
+                </span>
+                <a
+                  v-if="expressClass.school_login_link"
+                  :href="expressClass.school_login_link"
+                  target="_blank"
+                  class="text-blue-600 dark:text-blue-400 hover:underline max-w-xs truncate"
+                >
+                  {{ expressClass.school_login_link }}
+                </a>
+                <span v-else class="text-gray-400 italic">Not provided</span>
+              </div>
+              <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                  <span>👤</span>
+                  <span>Username</span>
+                </span>
+                <span class="text-gray-900 dark:text-white font-mono">{{ expressClass.school_login_username || 'Not provided' }}</span>
+              </div>
+              <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                <span class="font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                  <span>🔒</span>
+                  <span>Password</span>
+                </span>
+                <div class="flex items-center gap-2">
+                  <span v-if="expressClass.school_login_password" class="text-gray-900 dark:text-white font-mono">
+                    {{ showPassword ? expressClass.school_login_password : '••••••••' }}
+                  </span>
+                  <span v-else class="text-gray-400 italic">Not provided</span>
+                  <button
+                    v-if="expressClass.school_login_password"
+                    @click="showPassword = !showPassword"
+                    class="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    {{ showPassword ? 'Hide' : 'Show' }}
+                  </button>
+                </div>
+              </div>
+              <div v-if="expressClass.availability_hours" class="flex justify-between items-center py-2">
+                <span class="font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                  <span>⏰</span>
+                  <span>Availability Hours</span>
+                </span>
+                <span class="text-gray-900 dark:text-white">{{ expressClass.availability_hours }}</span>
+              </div>
+              <div class="flex justify-between items-center py-2">
+                <span class="font-medium text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                  <span>🔐</span>
+                  <span>2FA Enabled</span>
+                </span>
+                <span
+                  class="px-2 py-1 text-xs rounded-full font-semibold"
+                  :class="expressClass.two_factor_enabled ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'"
+                >
+                  {{ expressClass.two_factor_enabled ? 'Yes' : 'No' }}
+                </span>
+              </div>
+            </div>
+            <div v-else class="text-sm text-gray-500 dark:text-gray-400 italic py-2">
+              No school details provided yet. Click "Add Details" to add login information.
+            </div>
+          </div>
+
           <!-- Admin Notes -->
           <div v-if="expressClass.admin_notes" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
             <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Admin Notes</h3>
@@ -869,6 +954,123 @@
         </div>
       </div>
     </div>
+
+    <!-- School Details Modal -->
+    <div v-if="showSchoolDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="showSchoolDetailsModal = false">
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
+          <div>
+            <h3 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              <span>🏫</span>
+              <span>School Login Details</span>
+            </h3>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Manage school login credentials and access information</p>
+          </div>
+          <button
+            @click="showSchoolDetailsModal = false"
+            class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+        
+        <div class="p-6 space-y-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              School Login URL
+            </label>
+            <input
+              v-model="schoolDetailsForm.school_login_link"
+              type="url"
+              placeholder="https://school-portal.example.com/login"
+              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Username
+            </label>
+            <input
+              v-model="schoolDetailsForm.school_login_username"
+              type="text"
+              placeholder="student@school.edu"
+              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+            />
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Password
+            </label>
+            <div class="relative">
+              <input
+                v-model="schoolDetailsForm.school_login_password"
+                :type="showPasswordInput ? 'text' : 'password'"
+                placeholder="Enter password"
+                class="w-full border rounded-lg px-3 py-2 pr-10 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+              />
+              <button
+                type="button"
+                @click="showPasswordInput = !showPasswordInput"
+                class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              >
+                {{ showPasswordInput ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Availability Hours
+            </label>
+            <input
+              v-model="schoolDetailsForm.availability_hours"
+              type="text"
+              placeholder="e.g., 'Mon-Fri 9am-5pm EST' or '24/7'"
+              class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 dark:bg-gray-700 dark:text-white"
+            />
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">When the writer can access the portal</p>
+          </div>
+
+          <div>
+            <label class="flex items-center gap-2">
+              <input
+                v-model="schoolDetailsForm.two_factor_enabled"
+                type="checkbox"
+                class="w-4 h-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"
+              />
+              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Two-Factor Authentication (2FA) Required</span>
+            </label>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-6">Check if 2FA is enabled for this account</p>
+          </div>
+
+          <!-- Error Message -->
+          <div v-if="schoolDetailsError" class="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300">
+            {{ schoolDetailsError }}
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <button
+              @click="showSchoolDetailsModal = false"
+              class="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              @click="saveSchoolDetails"
+              :disabled="processing"
+              class="flex-1 px-4 py-2.5 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            >
+              <span v-if="processing" class="animate-spin">⏳</span>
+              <span v-else>💾</span>
+              <span>{{ processing ? 'Saving...' : 'Save Details' }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -893,6 +1095,9 @@ const saving = ref(false)
 const editingClass = ref(false)
 const showAssignWriterModal = ref(false)
 const showReviewScopeModal = ref(false)
+const showSchoolDetailsModal = ref(false)
+const showPassword = ref(false)
+const showPasswordInput = ref(false)
 const loadingWriters = ref(false)
 const writerSearch = ref('')
 const availableWriters = ref([])
@@ -943,6 +1148,16 @@ const scopeReviewForm = ref({
   scope_review_notes: '',
   admin_notes: ''
 })
+
+const schoolDetailsForm = ref({
+  school_login_link: '',
+  school_login_username: '',
+  school_login_password: '',
+  availability_hours: '',
+  two_factor_enabled: false
+})
+
+const schoolDetailsError = ref('')
 
 const filteredWriters = computed(() => {
   if (!writerSearch.value) return availableWriters.value
@@ -1132,6 +1347,34 @@ const initializeEditForm = () => {
       instructions: expressClass.value.instructions || '',
       admin_notes: expressClass.value.admin_notes || ''
     }
+    
+    // Initialize school details form
+    schoolDetailsForm.value = {
+      school_login_link: expressClass.value.school_login_link || '',
+      school_login_username: expressClass.value.school_login_username || '',
+      school_login_password: expressClass.value.school_login_password || '',
+      availability_hours: expressClass.value.availability_hours || '',
+      two_factor_enabled: expressClass.value.two_factor_enabled || false
+    }
+  }
+}
+
+const saveSchoolDetails = async () => {
+  if (!expressClass.value) return
+  
+  processing.value = true
+  schoolDetailsError.value = ''
+  
+  try {
+    await expressClassesAPI.update(expressClass.value.id, schoolDetailsForm.value)
+    showSuccessToast('School details saved successfully!')
+    showSchoolDetailsModal.value = false
+    await loadClass()
+  } catch (err) {
+    schoolDetailsError.value = err?.response?.data?.detail || err?.response?.data?.error || 'Failed to save school details. Please try again.'
+    console.error('Failed to save school details:', err)
+  } finally {
+    processing.value = false
   }
 }
 
@@ -1249,6 +1492,12 @@ const openAssignWriterModal = () => {
   }
   showAssignWriterModal.value = true
   loadWriters()
+  // Initialize bonus amount with class price
+  assignForm.value = {
+    writer_id: null,
+    bonus_amount: expressClass.value?.price ? parseFloat(expressClass.value.price) : null,
+    admin_notes: ''
+  }
 }
 
 const getStatusClass = (status) => {

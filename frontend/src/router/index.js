@@ -157,6 +157,36 @@ const router = createRouter({
           meta: { requiresAuth: true, title: 'Referrals', roles: ['client'] },
         },
         {
+          path: 'client/classes/create',
+          name: 'ClientClassCreate',
+          component: () => import('@/components/classes/ClassCreationWizard.vue'),
+          meta: { requiresAuth: true, title: 'Create Class Request', roles: ['client'] },
+        },
+        {
+          path: 'client/special-orders',
+          name: 'ClientSpecialOrders',
+          component: () => import('@/client/views/ClientSpecialOrders.vue'),
+          meta: { requiresAuth: true, title: 'My Special Orders', roles: ['client'] },
+        },
+        {
+          path: 'client/special-orders/:id',
+          name: 'ClientSpecialOrderDetail',
+          component: () => import('@/client/views/ClientSpecialOrderDetail.vue'),
+          meta: { requiresAuth: true, title: 'Special Order Details', roles: ['client'] },
+        },
+        {
+          path: 'client/express-classes',
+          name: 'ClientExpressClasses',
+          component: () => import('@/client/views/ClientExpressClasses.vue'),
+          meta: { requiresAuth: true, title: 'My Express Classes', roles: ['client'] },
+        },
+        // {
+        //   path: 'client/express-classes/:id',
+        //   name: 'ClientExpressClassDetail',
+        //   component: () => import('@/client/views/ClientExpressClassDetail.vue'),
+        //   meta: { requiresAuth: true, title: 'Express Class Details', roles: ['client'] },
+        // },
+        {
           path: 'orders/drafts',
           name: 'OrderDrafts',
           component: () => import('@/views/orders/OrderDrafts.vue'),
@@ -406,6 +436,26 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'Invoice Management',
+            roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/fines-dashboard',
+          name: 'FinesDashboard',
+          component: () => import('@/views/admin/FinesDashboard.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Fines Management',
+            roles: ['admin', 'superadmin', 'support'],
+          },
+        },
+        {
+          path: 'admin/writer-bonuses',
+          name: 'WriterBonusesDashboard',
+          component: () => import('@/views/admin/WriterBonusesDashboard.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Writer Bonuses',
             roles: ['admin', 'superadmin'],
           },
         },
@@ -1467,6 +1517,16 @@ const router = createRouter({
             requiresAuth: true,
             title: 'Wallet Management',
             roles: ['admin', 'superadmin'],
+          },
+        },
+        {
+          path: 'admin/approval-queue',
+          name: 'ApprovalQueue',
+          component: () => import('@/views/admin/ApprovalQueue.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Approval Queue',
+            roles: ['admin', 'superadmin', 'support'],
           },
         },
         {

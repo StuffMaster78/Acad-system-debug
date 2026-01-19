@@ -1,8 +1,8 @@
 <template>
   <div class="subscriptions-page">
-    <div class="max-w-6xl mx-auto p-6">
+    <div class="max-w-6xl mx-auto page-shell">
       <div class="page-header mb-8">
-        <h1 class="text-3xl font-bold text-gray-900 mb-2">Communication Preferences</h1>
+        <h1 class="page-title text-gray-900 mb-2">Communication Preferences</h1>
         <p class="text-gray-600">Manage how and when you receive updates from us</p>
       </div>
 

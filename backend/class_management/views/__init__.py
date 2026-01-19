@@ -145,16 +145,97 @@ class ClassInstallmentViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for viewing class installments.
     """
-    queryset = ClassInstallment.objects.select_related('bundle', 'payment_record')
+    queryset = ClassInstallment.objects.select_related('class_bundle', 'payment_record', 'paid_by')
     serializer_class = ClassInstallmentSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         """Filter installments based on user role."""
         user = self.request.user
-        if user.is_staff:
-            return self.queryset.all()
-        return self.queryset.filter(bundle__client=user)
+        queryset = self.queryset
+        
+        # Filter by bundle if provided
+        bundle_id = self.request.query_params.get('class_bundle')
+        if bundle_id:
+            queryset = queryset.filter(class_bundle_id=bundle_id)
+        
+        if user.is_staff or getattr(user, 'role', None) in ['admin', 'superadmin', 'support']:
+            return queryset
+        return queryset.filter(class_bundle__client=user)
+    
+    @action(detail=True, methods=['post'], url_path='pay')
+    def pay_installment(self, request, pk=None):
+        """
+        Process payment for a class installment.
+        """
+        from rest_framework.response import Response
+        from rest_framework import status
+        from rest_framework.exceptions import ValidationError
+        from class_management.services.class_payment_processor import ClassPaymentProcessor
+        
+        installment = self.get_object()
+        user = request.user
+        
+        # Check if already paid
+        if installment.is_paid:
+            return Response(
+                {'error': 'This installment has already been paid.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Check permissions (client must own the bundle, or admin)
+        if not (user.is_staff or getattr(user, 'role', None) in ['admin', 'superadmin', 'support']):
+            if installment.class_bundle.client != user:
+                return Response(
+                    {'error': 'You do not have permission to pay for this installment.'},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        
+        payment_method = request.data.get('payment_method', 'wallet')
+        
+        try:
+            # Process payment
+            payment = ClassPaymentProcessor.process_installment_payment(
+                installment=installment,
+                client=user if installment.class_bundle.client == user else installment.class_bundle.client,
+                payment_method=payment_method
+            )
+            
+            # Mark installment as paid
+            installment.is_paid = True
+            installment.paid_at = timezone.now()
+            installment.paid_by = user if installment.class_bundle.client == user else installment.class_bundle.client
+            installment.payment_record = payment
+            installment.save()
+            
+            # Reload installment with updated data
+            installment.refresh_from_db()
+            
+            serializer = self.get_serializer(installment)
+            return Response({
+                'message': 'Installment paid successfully.',
+                'installment': serializer.data,
+                'payment': {
+                    'id': payment.id,
+                    'reference_id': payment.reference_id,
+                    'amount': str(payment.amount),
+                    'status': payment.payment_status
+                }
+            }, status=status.HTTP_200_OK)
+            
+        except ValidationError as e:
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error processing installment payment: {e}", exc_info=True)
+            return Response(
+                {'error': 'Failed to process payment. Please try again.'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 
 class ClassBundleConfigViewSet(viewsets.ModelViewSet):
@@ -171,7 +252,9 @@ class ExpressClassViewSet(viewsets.ModelViewSet):
     """
     ViewSet for managing express classes.
     """
-    queryset = ExpressClass.objects.select_related('client', 'website', 'assigned_writer', 'created_by_admin')
+    queryset = ExpressClass.objects.select_related(
+        'client', 'website', 'assigned_writer', 'created_by_admin', 'reviewed_by'
+    )
     permission_classes = [IsAuthenticated]
 
     def get_serializer_class(self):
@@ -217,17 +300,80 @@ class ExpressClassViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def assign_writer(self, request, pk=None):
-        """Admin assigns a writer to an express class."""
+        """Admin assigns a writer to an express class and creates a bonus."""
+        from django.db import transaction
+        from special_orders.models import WriterBonus
+        from websites.utils import get_current_website
+        from accounts.models import User
+        
         express_class = self.get_object()
         serializer = ExpressClassAssignWriterSerializer(data=request.data)
         
         if serializer.is_valid():
-            writer = serializer.validated_data['writer']
-            express_class.assigned_writer = writer
-            express_class.assigned_at = timezone.now()
-            express_class.save()
-            return Response({'status': 'writer assigned'})
+            writer_id = serializer.validated_data['writer_id']
+            bonus_amount = serializer.validated_data['bonus_amount']
+            admin_notes = serializer.validated_data.get('admin_notes', '')
+            
+            try:
+                writer = User.objects.get(id=writer_id)
+            except User.DoesNotExist:
+                return Response(
+                    {'error': 'Writer not found'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            website = get_current_website(request) or express_class.website
+            
+            with transaction.atomic():
+                # Assign writer
+                express_class.assigned_writer = writer
+                express_class.assigned_at = timezone.now()
+                express_class.status = 'assigned'
+                express_class.save()
+                
+                # Create WriterBonus for the class payment
+                WriterBonus.objects.create(
+                    website=website,
+                    writer=writer,
+                    special_order=None,  # Express classes don't have special orders
+                    amount=bonus_amount,
+                    category='express_class',
+                    reason=f"Payment for Express Class #{express_class.id}: {express_class.course or 'Class'}",
+                    admin_notes=admin_notes,
+                    is_paid=False,
+                )
+            
+            return Response({
+                'status': 'writer assigned',
+                'bonus_created': True,
+                'bonus_amount': str(bonus_amount)
+            })
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['get'], permission_classes=[IsAdminUser], url_path='approval-queue')
+    def approval_queue(self, request):
+        """
+        Get all express classes awaiting approval/review.
+        Returns classes with status 'inquiry' or 'scope_review'.
+        """
+        from django.db import models as db_models
+        
+        queryset = self.get_queryset().filter(
+            status__in=['inquiry', 'scope_review']
+        ).order_by('created_at')
+        
+        # Apply filters
+        website_id = request.query_params.get('website')
+        if website_id:
+            queryset = queryset.filter(website_id=website_id)
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def get_website(self):
         """Get website from request."""

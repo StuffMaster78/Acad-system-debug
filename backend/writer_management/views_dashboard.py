@@ -1798,8 +1798,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
             .select_related(
                 'order',
                 'order__client',
-                'reviewed_by',
-                'website'
+                'reviewed_by'
             )
             .only(
                 'id', 'approved', 'requested_at', 'reason',
@@ -1860,7 +1859,7 @@ class WriterDashboardViewSet(viewsets.ViewSet):
                     if hasattr(req, 'reviewed_at') and req.reviewed_at
                     else None
                 ),
-                'reason': req.reason or '',
+                'reason': getattr(req, 'request_reason', None) or getattr(req, 'reason', '') or '',
             })
         
         # Process WriterRequest

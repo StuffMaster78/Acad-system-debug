@@ -22,7 +22,7 @@
       <!-- Icon -->
       <div 
         :class="[
-          'flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center',
+          'shrink-0 w-10 h-10 rounded-lg flex items-center justify-center',
           getIconBgClass(notification.category, notification.event)
         ]"
       >
@@ -58,7 +58,7 @@
           </div>
           
           <!-- Priority Badge -->
-          <div v-if="notification.priority_label || notification.is_critical" class="flex-shrink-0">
+          <div v-if="notification.priority_label || notification.is_critical" class="shrink-0">
             <span 
               :class="[
                 'px-2 py-0.5 rounded-full text-xs font-medium',
@@ -104,7 +104,7 @@
       </div>
       
       <!-- Actions -->
-      <div class="flex-shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div class="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           v-if="!notification.is_read"
           @click.stop="markAsRead"
