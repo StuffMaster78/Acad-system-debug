@@ -97,7 +97,7 @@
         <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Actions</h2>
         <div class="flex flex-wrap gap-3">
           <router-link
-            :to="`/client/messages?order=${order.id}`"
+            :to="`/messages?order=${order.id}`"
             class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             Message Writer

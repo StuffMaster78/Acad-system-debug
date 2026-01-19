@@ -2,12 +2,12 @@
   <div class="messages-page min-h-dvh bg-gray-50 dark:bg-gray-900">
     <div class="max-w-7xl mx-auto page-shell">
       <!-- Breadcrumbs -->
-      <nav class="mb-6 flex flex-wrap items-center gap-2 text-sm" aria-label="Breadcrumb">
+      <nav class="mb-6 flex items-center gap-2 text-xs sm:text-sm overflow-x-auto whitespace-nowrap" aria-label="Breadcrumb">
         <router-link to="/dashboard" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
           Dashboard
         </router-link>
         <span class="text-gray-400 dark:text-gray-600">/</span>
-        <span class="text-gray-900 dark:text-gray-100 font-medium">Messages</span>
+        <span class="text-gray-900 dark:text-gray-100 font-medium truncate max-w-[60vw] sm:max-w-none">Messages</span>
       </nav>
       
       <!-- Header -->
@@ -34,11 +34,16 @@
               <span class="flex items-center gap-2">
                 <component :is="tab.icon" class="w-5 h-5" />
                 {{ tab.label }}
-                <span
-                  v-if="getUnreadCountForTab(tab.id) > 0"
-                  class="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full"
-                >
-                  {{ getUnreadCountForTab(tab.id) }}
+                <span class="ml-2 inline-flex items-center gap-1">
+                  <span class="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-full">
+                    {{ getThreadCountForTab(tab.id) }}
+                  </span>
+                  <span
+                    v-if="getUnreadCountForTab(tab.id) > 0"
+                    class="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full"
+                  >
+                    {{ getUnreadCountForTab(tab.id) }}
+                  </span>
                 </span>
               </span>
             </button>
@@ -208,7 +213,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, shallowRef } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { communicationsAPI } from '@/api'
 import { useAuthStore } from '@/stores/auth'
 import messagesStore from '@/stores/messages'
@@ -216,6 +221,7 @@ import NewMessageModal from '@/components/messages/NewMessageModal.vue'
 import { useDebounceFn } from '@vueuse/core'
 
 const router = useRouter()
+const route = useRoute()
 const authStore = useAuthStore()
 const currentUser = authStore.user
 
@@ -345,6 +351,16 @@ const totalPages = computed(() => {
   return Math.ceil(filteredThreads.value.length / threadsPerPage)
 })
 
+const openThreadFromOrder = () => {
+  if (!route.query.order || threads.value.length === 0) return
+  const orderId = parseInt(route.query.order, 10)
+  if (Number.isNaN(orderId)) return
+  const match = threads.value.find(thread => thread.order_id === orderId)
+  if (match) {
+    openThread(match)
+  }
+}
+
 // Debounced load threads to prevent rapid API calls
 const loadThreads = useDebounceFn(async (forceRefresh = false) => {
   if (loadingThreads.value && !forceRefresh) return // Prevent concurrent loads
@@ -357,6 +373,7 @@ const loadThreads = useDebounceFn(async (forceRefresh = false) => {
     threads.value = fetchedThreads
     // Reset to first page when threads change
     currentPage.value = 1
+    openThreadFromOrder()
   } catch (error) {
     if (import.meta.env.DEV) {
       console.error('Failed to load threads:', error)
@@ -368,6 +385,7 @@ const loadThreads = useDebounceFn(async (forceRefresh = false) => {
 
 // Memoized unread counts per tab
 const unreadCountsCache = ref(new Map())
+const threadCountsCache = ref(new Map())
 
 const getUnreadCountForTab = (tabId) => {
   // Return cached value if available
@@ -396,6 +414,33 @@ const getUnreadCountForTab = (tabId) => {
     .reduce((sum, thread) => sum + (thread.unread_count || 0), 0)
 
   unreadCountsCache.value.set(tabId, count)
+  return count
+}
+
+const getThreadCountForTab = (tabId) => {
+  if (threadCountsCache.value.has(tabId)) {
+    return threadCountsCache.value.get(tabId)
+  }
+
+  const activeTabData = recipientTabs.value.find(t => t.id === tabId)
+  if (!activeTabData) {
+    threadCountsCache.value.set(tabId, 0)
+    return 0
+  }
+
+  const count = threads.value.filter(thread => {
+    const otherParticipants = thread.participants?.filter(p => {
+      const participantId = typeof p === 'object' ? p.id : p
+      return participantId !== currentUser?.id
+    }) || []
+
+    return otherParticipants.some(participant => {
+      const participantRole = typeof participant === 'object' ? participant.role : null
+      return participantRole && activeTabData.roles.includes(participantRole)
+    })
+  }).length
+
+  threadCountsCache.value.set(tabId, count)
   return count
 }
 
@@ -518,6 +563,7 @@ const handleMessageSent = () => {
   showNewMessageModal.value = false
   // Clear caches
   unreadCountsCache.value.clear()
+  threadCountsCache.value.clear()
   threadTitleCache.value = new WeakMap()
   threadSubtitleCache.value = new WeakMap()
   threadInitialsCache.value = new WeakMap()
@@ -529,6 +575,7 @@ const handleMessageSent = () => {
 const handleThreadUpdated = () => {
   // Clear caches
   unreadCountsCache.value.clear()
+  threadCountsCache.value.clear()
   // Invalidate cache and reload
   messagesStore.invalidateThreadsCache()
   loadThreads(true) // Force refresh
@@ -538,6 +585,7 @@ watch(activeTab, () => {
   currentPage.value = 1 // Reset to first page
   // Clear unread counts cache when tab changes
   unreadCountsCache.value.clear()
+  threadCountsCache.value.clear()
 })
 
 // Debounced search
@@ -548,6 +596,21 @@ const debouncedSearch = useDebounceFn(() => {
 watch(searchQuery, () => {
   debouncedSearch()
 })
+
+watch(
+  () => [route.query.order, threads.value.length],
+  () => {
+    openThreadFromOrder()
+  }
+)
+
+watch(
+  () => threads.value,
+  () => {
+    unreadCountsCache.value.clear()
+    threadCountsCache.value.clear()
+  }
+)
 
 onMounted(async () => {
   await loadThreads()
@@ -563,6 +626,7 @@ onUnmounted(() => {
   messagesStore.stopAllRefreshes()
   // Clear all caches
   unreadCountsCache.value.clear()
+  threadCountsCache.value.clear()
   timeFormatCache.value.clear()
   threadTitleCache.value = new WeakMap()
   threadSubtitleCache.value = new WeakMap()

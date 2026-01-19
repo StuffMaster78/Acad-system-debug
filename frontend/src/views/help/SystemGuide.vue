@@ -79,6 +79,16 @@
             Use platform messages as the primary channel for all coordination and updates.
             Email should be secondary only, since inboxes can be easy to miss and harder to track.
           </p>
+          <div class="mt-4">
+            <h3 class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-2">Role-based visibility</h3>
+            <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-300">
+              <li><span class="font-medium text-gray-800 dark:text-gray-200">Admin/Superadmin:</span> Full visibility across all communications and threads.</li>
+              <li><span class="font-medium text-gray-800 dark:text-gray-200">Support:</span> Access threads they participate in, plus client-writer threads for support oversight. No access to client-admin threads unless added.</li>
+              <li><span class="font-medium text-gray-800 dark:text-gray-200">Editor:</span> Access threads they participate in, plus client-writer threads for editorial oversight. No access to client-admin threads unless added.</li>
+              <li><span class="font-medium text-gray-800 dark:text-gray-200">Client:</span> Access threads tied to their orders where the client role is involved. No access to internal staff-only threads.</li>
+              <li><span class="font-medium text-gray-800 dark:text-gray-200">Writer:</span> Access threads tied to orders they are assigned to where the writer role is involved. Messages from a previous writer on reassigned orders are labeled.</li>
+            </ul>
+          </div>
         </div>
 
         <!-- Role-Specific Guide -->

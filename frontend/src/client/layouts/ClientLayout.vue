@@ -42,9 +42,9 @@
               Payments
             </router-link>
             <router-link
-              to="/client/messages"
+              to="/messages"
               class="px-4 py-2 text-sm font-medium rounded-lg transition-colors"
-              :class="$route.path.startsWith('/client/messages') ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
+              :class="$route.path.startsWith('/messages') ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
             >
               Messages
             </router-link>
@@ -173,9 +173,9 @@
           Payments
         </router-link>
         <router-link
-          to="/client/messages"
+          to="/messages"
           class="block px-3 py-2 text-sm font-medium rounded-lg"
-          :class="$route.path.startsWith('/client/messages') ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300'"
+          :class="$route.path.startsWith('/messages') ? 'bg-primary-100 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'text-gray-700 dark:text-gray-300'"
         >
           Messages
         </router-link>

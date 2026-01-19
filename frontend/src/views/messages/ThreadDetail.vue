@@ -35,12 +35,12 @@
       <div v-else>
         <!-- Breadcrumb -->
         <div class="mb-4">
-          <nav class="flex flex-wrap items-center gap-2 text-sm text-gray-600 dark:text-gray-400" aria-label="Breadcrumb">
+          <nav class="flex items-center gap-2 text-xs sm:text-sm text-gray-600 dark:text-gray-400 overflow-x-auto whitespace-nowrap" aria-label="Breadcrumb">
             <router-link to="/dashboard" class="hover:text-gray-900 dark:hover:text-gray-200">Dashboard</router-link>
             <span>/</span>
             <router-link to="/messages" class="hover:text-gray-900 dark:hover:text-gray-200">Messages</router-link>
             <span>/</span>
-            <span class="text-gray-900 dark:text-gray-200 font-medium">Thread #{{ threadId }}</span>
+            <span class="text-gray-900 dark:text-gray-200 font-medium truncate max-w-[60vw] sm:max-w-none">Thread #{{ threadId }}</span>
           </nav>
         </div>
 
@@ -85,6 +85,17 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
+            </div>
+
+            <div class="mt-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800 dark:border-blue-900/40 dark:bg-blue-900/20 dark:text-blue-200">
+              If you see *** in your message, the word might have been part of the sensitive words forbidden between sender and recipient. You can reach out to the support for further analysis in case it is a false positive.
+            </div>
+
+            <div
+              v-if="hasPreviousWriterMessages"
+              class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-200"
+            >
+              This order was reassigned. Messages from the previous writer are labeled for clarity.
             </div>
             
             <!-- Messaging Lock Warning -->
@@ -207,6 +218,12 @@
                 <td class="px-4 py-3">
                   <span class="text-sm text-gray-900 dark:text-white">
                     {{ isCurrentUser(message.sender) ? 'From Me' : `From ${getSenderName(message.sender)}` }}
+                    <span
+                      v-if="message.previous_writer_label"
+                      class="ml-2 inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-900/40 dark:text-amber-200"
+                    >
+                      {{ message.previous_writer_label }}
+                    </span>
                     <span v-if="message.recipient && !isCurrentUser(message.recipient)" class="text-gray-500 dark:text-gray-400">
                       to {{ getRecipientName(message.recipient) }}
                     </span>
@@ -409,6 +426,11 @@ const paginatedMessages = computed(() => {
   const start = (currentPage.value - 1) * itemsPerPage.value
   const end = start + itemsPerPage.value
   return filteredMessages.value.slice(start, end)
+})
+
+const hasPreviousWriterMessages = computed(() => {
+  if (!authStore.isWriter) return false
+  return messages.value.some(message => !!message.previous_writer_label)
 })
 
 const totalPages = computed(() => {
