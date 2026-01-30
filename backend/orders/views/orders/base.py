@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
 from django.utils.functional import cached_property
+from django.core.cache import cache
 from rest_framework import decorators, mixins, status, viewsets
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -979,6 +980,11 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
         Return role-scoped order counts with status and group breakdowns.
         Respects the same filters as the list endpoint.
         """
+        cache_key = f"orders:summary:{request.user.id}:{request.get_full_path()}"
+        cached_payload = cache.get(cache_key)
+        if cached_payload is not None:
+            return Response(cached_payload)
+
         queryset = self.filter_queryset(self.get_queryset())
         status_counts = queryset.values("status").annotate(count=models.Count("id"))
         status_breakdown = {
@@ -992,13 +998,13 @@ class OrderBaseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.
                 status_breakdown.get(status, 0) for status in statuses
             )
 
-        return Response(
-            {
-                "total": total_count,
-                "status_breakdown": status_breakdown,
-                "status_group_breakdown": group_breakdown,
-            }
-        )
+        payload = {
+            "total": total_count,
+            "status_breakdown": status_breakdown,
+            "status_group_breakdown": group_breakdown,
+        }
+        cache.set(cache_key, payload, timeout=30)
+        return Response(payload)
 
     @decorators.action(detail=True, methods=["get"], url_path="payment-summary")
     def payment_summary(self, request, pk=None):

@@ -34,7 +34,7 @@ class StreamlinedSpecialOrderViewSet(viewsets.ModelViewSet):
             return queryset
         elif getattr(user, 'role', None) == 'writer':
             return queryset.filter(writer=user)
-        elif getattr(user, 'role', None) == 'client':
+        elif getattr(user, 'role', None) in ['client', 'customer']:
             return queryset.filter(client=user)
         
         return queryset.none()

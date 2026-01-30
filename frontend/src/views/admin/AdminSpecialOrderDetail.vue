@@ -301,7 +301,7 @@
                   <span>👤</span>
                   <span>Writer</span>
                 </span>
-                <span class="text-gray-900 dark:text-white font-medium">{{ order.writer?.username || order.writer?.email || 'N/A' }}</span>
+                <span class="text-gray-900 dark:text-white font-medium">{{ order.writer_username || order.writer?.username || order.writer?.email || 'N/A' }}</span>
               </div>
             </div>
             <div v-else class="text-sm text-gray-500 dark:text-gray-400 italic py-2 flex items-center gap-2">
@@ -436,222 +436,18 @@
       </div>
 
       <!-- Messages Tab -->
-      <div v-if="!editingOrder && activeTab === 'messages'" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm min-h-[500px]">
-        <div class="p-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <span>💬</span>
-                <span>Order Messages</span>
-              </h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Communicate with client and writer about this order</p>
-            </div>
-            <button
-              v-if="threads.length === 0"
-              @click="createNewMessageThread"
-              :disabled="creatingThread"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-              <span v-if="creatingThread">⏳</span>
-              <span v-else>➕</span>
-              <span>{{ creatingThread ? 'Creating...' : 'Start Conversation' }}</span>
-            </button>
-          </div>
-        </div>
-        <SimplifiedOrderMessages :order-id="order.id" :show-thread-list="true" @thread-created="handleThreadCreated" />
+      <div v-if="!editingOrder && activeTab === 'messages'" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+        <OrderMessagesTabbed :special-order-id="order.id" />
       </div>
 
       <!-- Files Tab -->
-      <div v-if="!editingOrder && activeTab === 'files'" class="space-y-6">
-        <div class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <span>📁</span>
-                <span>Order Files</span>
-              </h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Upload and manage files for this special order</p>
-            </div>
-            <button
-              @click="showFileUploadModal = true"
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <span>➕</span>
-              <span>Upload File</span>
-            </button>
-          </div>
-
-          <LoadingState 
-            v-if="loadingFiles" 
-            type="spinner" 
-            size="medium"
-            message="Loading files..."
-          />
-
-          <EmptyState
-            v-else-if="files.length === 0"
-            icon="📄"
-            title="No files uploaded yet"
-            description="Get started by uploading your first file for this special order."
-            action-label="Upload First File"
-            :action-handler="() => showFileUploadModal = true"
-          />
-
-          <div v-else class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead class="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">File</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Category</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Uploaded By</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Date</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                <tr v-for="file in files" :key="file.id" class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center gap-2">
-                      <span class="text-xl">📄</span>
-                      <div>
-                        <span class="text-sm font-medium text-gray-900 dark:text-white">{{ file.file_name || 'Unnamed' }}</span>
-                        <div v-if="file.file_size" class="text-xs text-gray-500 dark:text-gray-400">
-                          {{ formatFileSize(file.file_size) }}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    <span v-if="getCategoryById(file.category)?.is_final_draft" class="px-2 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 rounded text-xs font-medium">
-                      Final Draft
-                    </span>
-                    <span v-else>{{ getCategoryName(file.category) || '—' }}</span>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {{ file.uploaded_by_username || file.uploaded_by?.username || 'N/A' }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-400">
-                    {{ formatDate(file.created_at) }}
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div class="flex items-center gap-2">
-                      <button
-                        @click="downloadFile(file)"
-                        class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium flex items-center gap-1"
-                        title="Download"
-                      >
-                        <span>⬇️</span>
-                        <span>Download</span>
-                      </button>
-                      <button
-                        @click="deleteFile(file.id)"
-                        class="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-xs font-medium flex items-center gap-1"
-                        title="Delete"
-                      >
-                        <span>🗑️</span>
-                        <span>Delete</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      </div>
-
-      <!-- File Upload Modal -->
-      <div v-if="showFileUploadModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="showFileUploadModal = false">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
-            <div>
-              <h3 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <span>📤</span>
-                <span>Upload Files</span>
-              </h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">Upload files for Special Order #{{ order.id }}</p>
-            </div>
-            <button
-              @click="showFileUploadModal = false"
-              class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
-              ✕
-            </button>
-          </div>
-          
-          <div class="p-6 space-y-6">
-            <!-- Category Selection -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Category <span class="text-gray-400">(Optional)</span>
-              </label>
-              <select
-                v-model="uploadForm.category"
-                class="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
-              >
-                <option :value="null">No Category</option>
-                <optgroup v-if="universalCategories.length > 0" label="Universal Categories">
-                  <option v-for="cat in universalCategories" :key="cat.id" :value="cat.id">
-                    {{ cat.name }}
-                    <span v-if="cat.is_final_draft"> (Final Draft)</span>
-                  </option>
-                </optgroup>
-                <optgroup v-if="websiteSpecificCategories.length > 0" label="Website-Specific Categories">
-                  <option v-for="cat in websiteSpecificCategories" :key="cat.id" :value="cat.id">
-                    {{ cat.name }}
-                    <span v-if="cat.is_final_draft"> (Final Draft)</span>
-                  </option>
-                </optgroup>
-              </select>
-            </div>
-
-            <!-- File Upload Component -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Select Files
-              </label>
-              <FileUpload
-                v-model="uploadedFiles"
-                :multiple="true"
-                :auto-upload="false"
-                :max-size="100 * 1024 * 1024"
-                accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.zip,.rar,.xls,.xlsx,.ppt,.pptx"
-                label="Drop files here or click to browse"
-                @upload="handleFileSelect"
-              />
-            </div>
-
-            <!-- Upload Status -->
-            <div v-if="uploadSuccess" class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg flex items-center gap-2">
-              <span class="text-green-600 dark:text-green-400 text-xl">✅</span>
-              <span class="text-green-700 dark:text-green-300">{{ uploadSuccess }}</span>
-            </div>
-            <div v-if="uploadError" class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-2">
-              <span class="text-red-600 dark:text-red-400 text-xl">❌</span>
-              <span class="text-red-700 dark:text-red-300">{{ uploadError }}</span>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="flex gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <button
-                @click="showFileUploadModal = false"
-                class="flex-1 px-4 py-2.5 border-2 border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                @click="uploadSelectedFiles"
-                :disabled="uploadedFiles.length === 0 || uploadingFiles"
-                class="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-              >
-                <span v-if="uploadingFiles" class="animate-spin">⏳</span>
-                <span v-else>📤</span>
-                <span>{{ uploadingFiles ? 'Uploading...' : `Upload ${uploadedFiles.length} File(s)` }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+      <div v-if="!editingOrder && activeTab === 'files'" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 shadow-sm">
+        <SpecialOrderFilesPanel
+          :special-order-id="order.id"
+          :allow-upload="true"
+          :can-delete-all="true"
+          @count-change="filesCount = $event"
+        />
       </div>
 
       <!-- History Tab -->
@@ -737,7 +533,7 @@
                 </div>
                 <div class="flex-1">
                   <div class="font-medium text-gray-900 dark:text-white">Writer Profile</div>
-                  <div class="text-sm text-gray-600 dark:text-gray-400">{{ order.writer?.username || order.writer?.email }}</div>
+                  <div class="text-sm text-gray-600 dark:text-gray-400">{{ order.writer_username || order.writer?.username || order.writer?.email }}</div>
                 </div>
                 <router-link
                   v-if="order.writer?.id"
@@ -946,8 +742,9 @@
           </div>
         </div>
       </div>
+    </div>
 
-      <!-- Price Negotiation Modal -->
+    <!-- Price Negotiation Modal -->
       <div v-if="showNegotiationModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4" @click.self="showNegotiationModal = false">
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between z-10">
@@ -1164,11 +961,11 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import specialOrdersAPI from '@/api/special-orders'
-import { writerAssignmentAPI, orderFilesAPI, communicationsAPI, activityLogsAPI } from '@/api'
+import { writerAssignmentAPI, activityLogsAPI } from '@/api'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
-import SimplifiedOrderMessages from '@/components/order/SimplifiedOrderMessages.vue'
-import FileUpload from '@/components/common/FileUpload.vue'
+import OrderMessagesTabbed from '@/components/order/OrderMessagesTabbed.vue'
+import SpecialOrderFilesPanel from '@/components/special-orders/SpecialOrderFilesPanel.vue'
 import LoadingState from '@/components/common/LoadingState.vue'
 import ErrorState from '@/components/common/ErrorState.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -1186,21 +983,9 @@ const saving = ref(false)
 const editingOrder = ref(false)
 const showAssignWriterModal = ref(false)
 const activeTab = ref('overview')
-const files = ref([])
-const loadingFiles = ref(false)
+const filesCount = ref(0)
 const history = ref([])
 const loadingHistory = ref(false)
-const showFileUploadModal = ref(false)
-const fileCategories = ref([])
-const uploadedFiles = ref([])
-const uploadingFiles = ref(false)
-const uploadSuccess = ref('')
-const uploadError = ref('')
-const uploadForm = ref({
-  category: null
-})
-const threads = ref([])
-const creatingThread = ref(false)
 const showNegotiationModal = ref(false)
 const showFollowUpModal = ref(false)
 const followUps = ref([])
@@ -1217,20 +1002,11 @@ const followUpForm = ref({
 const negotiationError = ref('')
 const followUpError = ref('')
 
-const universalCategories = computed(() => {
-  return fileCategories.value.filter(cat => cat.is_universal || cat.website === null)
-})
-
-const websiteSpecificCategories = computed(() => {
-  if (!order.value?.website) return []
-  return fileCategories.value.filter(cat => !cat.is_universal && cat.website === order.value.website?.id)
-})
-
 const tabs = computed(() => {
   const baseTabs = [
     { id: 'overview', label: 'Overview', icon: '📋' },
     { id: 'messages', label: 'Messages', icon: '💬', badge: null },
-    { id: 'files', label: 'Files', icon: '📁', badge: files.value.length || null },
+    { id: 'files', label: 'Files', icon: '📁', badge: filesCount.value || null },
     { id: 'history', label: 'History', icon: '📜' },
     { id: 'related', label: 'Related', icon: '🔗' },
   ]
@@ -1286,36 +1062,13 @@ const loadOrder = async () => {
     
     // Load related data
     await Promise.all([
-      loadFiles(),
-      loadHistory(),
-      loadCategories()
+      loadHistory()
     ])
   } catch (err) {
     error.value = err.response?.data?.detail || 'Failed to load special order'
     console.error('Error loading special order:', err)
   } finally {
     loading.value = false
-  }
-}
-
-const loadFiles = async () => {
-  if (!order.value) return
-  loadingFiles.value = true
-  try {
-    // Try different parameter names for special orders
-    const params = { 
-      order: order.value.id,
-      order_id: order.value.id,
-      special_order: order.value.id,
-      special_order_id: order.value.id
-    }
-    const res = await orderFilesAPI.list(params)
-    files.value = res.data.results || res.data || []
-  } catch (err) {
-    console.error('Error loading files:', err)
-    files.value = []
-  } finally {
-    loadingFiles.value = false
   }
 }
 
@@ -1371,143 +1124,6 @@ const loadHistory = async () => {
   }
 }
 
-const loadCategories = async () => {
-  try {
-    const res = await orderFilesAPI.listCategories()
-    fileCategories.value = res.data.results || res.data || []
-  } catch (err) {
-    console.error('Error loading categories:', err)
-    fileCategories.value = []
-  }
-}
-
-const getCategoryName = (categoryId) => {
-  const category = fileCategories.value.find(c => c.id === categoryId)
-  return category?.name || null
-}
-
-const getCategoryById = (categoryId) => {
-  return fileCategories.value.find(c => c.id === categoryId) || null
-}
-
-const formatFileSize = (bytes) => {
-  if (!bytes) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-}
-
-const handleFileSelect = (fileList) => {
-  // Files selected, ready for upload
-}
-
-const uploadSelectedFiles = async () => {
-  if (uploadedFiles.value.length === 0 || !order.value) return
-  
-  uploadingFiles.value = true
-  uploadError.value = ''
-  uploadSuccess.value = ''
-  
-  try {
-    const uploadPromises = uploadedFiles.value.map(async (fileObj) => {
-      const formData = new FormData()
-      formData.append('file', fileObj.file || fileObj)
-      formData.append('order', order.value.id)
-      
-      // Try different field names for special orders
-      formData.append('special_order', order.value.id)
-      
-      if (uploadForm.value.category) {
-        formData.append('category', uploadForm.value.category)
-      }
-      
-      return await orderFilesAPI.upload(formData)
-    })
-    
-    await Promise.all(uploadPromises)
-    uploadSuccess.value = `Successfully uploaded ${uploadedFiles.value.length} file(s)!`
-    
-    // Clear form
-    uploadedFiles.value = []
-    uploadForm.value.category = null
-    
-    // Reload files
-    await loadFiles()
-    
-    setTimeout(() => {
-      uploadSuccess.value = ''
-      if (uploadedFiles.value.length === 0) {
-        showFileUploadModal.value = false
-      }
-    }, 3000)
-  } catch (error) {
-    uploadError.value = 'Failed to upload files: ' + (error.response?.data?.detail || error.message)
-    setTimeout(() => {
-      uploadError.value = ''
-    }, 5000)
-  } finally {
-    uploadingFiles.value = false
-  }
-}
-
-const downloadFile = async (file) => {
-  try {
-    if (file.download_url || file.url) {
-      window.open(file.download_url || file.url, '_blank')
-      return
-    }
-    
-    // Try to get signed URL
-    const res = await orderFilesAPI.getSignedUrl(file.id)
-    if (res.data.url) {
-      window.open(res.data.url, '_blank')
-    } else {
-      // Fallback: direct download
-      const blob = await orderFilesAPI.download(file.id)
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = file.file_name || 'download'
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
-    }
-  } catch (err) {
-    showErrorToast('Failed to download file: ' + (err.response?.data?.detail || err.message))
-  }
-}
-
-const createNewMessageThread = async () => {
-  creatingThread.value = true
-  try {
-    await communicationsAPI.startThreadForOrder(order.value.id)
-    showSuccessToast('Conversation started!')
-    // Reload threads in SimplifiedOrderMessages component
-    await loadOrder()
-  } catch (err) {
-    showErrorToast(err.response?.data?.detail || 'Failed to start conversation')
-  } finally {
-    creatingThread.value = false
-  }
-}
-
-const handleThreadCreated = () => {
-  // Thread was created, refresh if needed
-  loadOrder()
-}
-
-const deleteFile = async (fileId) => {
-  if (!confirm('Are you sure you want to delete this file?')) return
-  try {
-    await orderFilesAPI.delete(fileId)
-    showSuccessToast('File deleted successfully')
-    await loadFiles()
-  } catch (err) {
-    showErrorToast(err.response?.data?.detail || 'Failed to delete file')
-  }
-}
 
 const getHistoryIcon = (action) => {
   const icons = {

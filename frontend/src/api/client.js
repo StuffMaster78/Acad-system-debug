@@ -4,8 +4,12 @@ import { maskEndpoint, getUserRole } from '@/utils/endpoint-masker'
 import { getCachedResponse, cacheResponse, invalidateCache } from '@/utils/requestCache'
 import { deduplicateRequest } from '@/utils/requestDeduplication'
 
+const apiBaseURL = import.meta.env.VITE_API_BASE_URL
+  || import.meta.env.VITE_API_FULL_URL
+  || (import.meta.env.DEV ? 'http://localhost:8000/api/v1' : '/api/v1')
+
 const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_FULL_URL || '/api/v1',
+  baseURL: apiBaseURL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -368,12 +372,12 @@ apiClient.interceptors.response.use(
     // Known missing/restricted endpoints that are expected to fail
     const expectedFailures = [
       '/writer-management/writer-order-hold-requests/',
-      '/wallet/api/client-wallet/my_wallet/',
+      '/client-wallet/client-wallet/my_wallet/',
       '/notifications_system/notifications/feed/',
-      '/order-configs/api/academic-levels/',
-      '/order-configs/api/paper-types/',
-      '/order-configs/api/types-of-work/',
-      '/order-configs/api/subjects/',
+      '/order-configs/academic-levels/',
+      '/order-configs/paper-types/',
+      '/order-configs/types-of-work/',
+      '/order-configs/subjects/',
       '/auth/auth/refresh-token/',
       '/order-files/order-files/',
       '/order-files/extra-service-files/',

@@ -417,6 +417,8 @@ class OrderPayment(models.Model):
             models.Index(fields=['payment_type', 'class_purchase_id']),
             models.Index(fields=['client', 'status']),
             models.Index(fields=['related_object_type', 'related_object_id']),
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['order', 'status']),
         ]
     
     def clean(self):

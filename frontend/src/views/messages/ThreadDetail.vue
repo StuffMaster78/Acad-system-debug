@@ -56,8 +56,9 @@
                   <h1 class="text-2xl font-bold text-gray-900 dark:text-white">{{ getThreadTitle(thread) }}</h1>
                   <div class="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
                     <span>{{ getThreadSubtitle(thread) }}</span>
-                    <span v-if="thread && thread.order" class="flex items-center gap-1">
-                      <span>Order #{{ thread.order.id || thread.order }}</span>
+                    <span v-if="thread && (thread.order || thread.special_order)" class="flex items-center gap-1">
+                      <span v-if="thread.order">Order #{{ thread.order.id || thread.order }}</span>
+                      <span v-else>Special Order #{{ thread.special_order.id || thread.special_order }}</span>
                     </span>
                   </div>
                   <!-- Client/Writer Info -->

@@ -34,8 +34,9 @@ class CommunicationGuardService:
             return  # Allow messaging for class bundles if thread is active
         
         order = getattr(thread, "order", None)
+        special_order = getattr(thread, "special_order", None)
 
-        if not order:
+        if not order and not special_order:
             # If no order, check if user is a participant
             if user not in thread.participants.all():
                 raise PermissionDenied("You do not have access to this thread.")
@@ -47,31 +48,41 @@ class CommunicationGuardService:
         role = getattr(user, "role", None)
         has_order_access = False
         
-        # Client who placed the order
-        if order.client == user:
-            has_order_access = True
-        # Writer assigned to the order
-        elif order.assigned_writer == user:
-            has_order_access = True
-        # Staff roles (admin, superadmin, editor, support) have access
-        elif role in {"admin", "superadmin", "editor", "support"}:
-            has_order_access = True
-        # User is already a participant
-        elif user in thread.participants.all():
-            has_order_access = True
+        if order:
+            # Client who placed the order
+            if order.client == user:
+                has_order_access = True
+            # Writer assigned to the order
+            elif order.assigned_writer == user:
+                has_order_access = True
+            # Staff roles (admin, superadmin, editor, support) have access
+            elif role in {"admin", "superadmin", "editor", "support"}:
+                has_order_access = True
+            # User is already a participant
+            elif user in thread.participants.all():
+                has_order_access = True
+        elif special_order:
+            if special_order.client == user:
+                has_order_access = True
+            elif special_order.writer == user:
+                has_order_access = True
+            elif role in {"admin", "superadmin", "editor", "support"}:
+                has_order_access = True
+            elif user in thread.participants.all():
+                has_order_access = True
 
         if not has_order_access:
-            raise PermissionDenied("You do not have access to this order.")
+            raise PermissionDenied("You do not have access to this thread.")
 
         # Disallow communication on archived orders (unless admin override)
-        if order.status == "archived" and not thread.admin_override:
+        if order and order.status == "archived" and not thread.admin_override:
             raise PermissionDenied("Cannot message on archived orders.")
 
         # Block special/private class orders if needed (unless admin override)
-        if getattr(order, "is_special", False) and not thread.admin_override:
+        if order and getattr(order, "is_special", False) and not thread.admin_override:
             raise PermissionDenied("Messaging is blocked for special orders.")
 
-        if getattr(order, "is_class", False) and not thread.admin_override:
+        if order and getattr(order, "is_class", False) and not thread.admin_override:
             raise PermissionDenied("Messaging is blocked for classes.")
 
         if not thread.is_active and not thread.admin_override:

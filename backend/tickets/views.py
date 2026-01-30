@@ -1,5 +1,6 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from django.db.models import Avg, Count, F, Q
 from .models import (
@@ -7,7 +8,7 @@ from .models import (
     TicketStatistics, TicketAttachment
 )
 from .serializers import (
-    TicketSerializer, TicketCreateSerializer, TicketUpdateSerializer,
+    TicketSerializer, TicketListSerializer, TicketCreateSerializer, TicketUpdateSerializer,
     TicketMessageSerializer, TicketMessageCreateSerializer,
     TicketLogSerializer, TicketStatisticsSerializer,
     TicketAttachmentSerializer
@@ -28,16 +29,22 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
+class TicketPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = "page_size"
+    max_page_size = 200
+
 # Backward-compatibility stub used by some tests that patch this symbol
 def notify_user(*args, **kwargs):
     return True
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.select_related(
         'created_by', 'assigned_to', 'website'
-    ).prefetch_related('messages', 'logs')
+    )
     serializer_class = TicketSerializer
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    pagination_class = None
+    pagination_class = TicketPagination
     search_fields = ['title', 'description']
     ordering_fields = ['created_at', 'updated_at', 'priority']
     ordering = ['-created_at']
@@ -46,18 +53,22 @@ class TicketViewSet(viewsets.ModelViewSet):
         """Return different serializers based on action."""
         if self.action == 'create':
             return TicketCreateSerializer
-        elif self.action in ['update', 'partial_update']:
+        if self.action in ['update', 'partial_update']:
             return TicketUpdateSerializer
+        if self.action == 'list':
+            return TicketListSerializer
         return TicketSerializer
 
     def get_queryset(self):
-        """Filter tickets based on user role."""
+        """Filter tickets based on user role and avoid heavy prefetch for lists."""
         user = self.request.user
-        qs = super().get_queryset()
+        qs = Ticket.objects.select_related('created_by', 'assigned_to', 'website')
         if getattr(user, 'role', None) in ['writer', 'client']:
-            return qs.filter(created_by=user)
+            qs = qs.filter(created_by=user)
+        if self.action in ['retrieve', 'update', 'partial_update']:
+            return qs.prefetch_related('messages', 'logs')
         return qs
-    
+
     def perform_create(self, serializer):
         """Auto-assign ticket creator and save."""
         user = self.request.user
@@ -286,7 +297,7 @@ class TicketViewSet(viewsets.ModelViewSet):
 class TicketMessageViewSet(viewsets.ModelViewSet):
     queryset = TicketMessage.objects.select_related('ticket', 'sender')
     serializer_class = TicketMessageSerializer
-    pagination_class = None
+    pagination_class = TicketPagination
 
     def get_serializer_class(self):
         if self.action == 'create':
@@ -356,7 +367,7 @@ class TicketAttachmentViewSet(viewsets.ModelViewSet):
         'ticket__created_by', 'ticket__website'
     )
     serializer_class = TicketAttachmentSerializer
-    pagination_class = None
+    pagination_class = TicketPagination
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['ticket__title', 'uploaded_by__username']
     ordering_fields = ['uploaded_at']
@@ -429,7 +440,7 @@ class TicketLogViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["timestamp"]
     ordering = ["-timestamp"]
-    # Optional: throttle/paginate/permission here (recommended)
+    pagination_class = TicketPagination
 
 
 # --- Statistics ---

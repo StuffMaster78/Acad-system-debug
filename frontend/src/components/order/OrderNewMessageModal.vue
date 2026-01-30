@@ -7,7 +7,7 @@
           <div class="flex items-center justify-between">
             <div>
               <h3 class="text-xl font-bold text-white">New Message</h3>
-              <p class="text-sm text-blue-100 mt-1">Order #{{ orderId }}</p>
+              <p class="text-sm text-blue-100 mt-1">{{ targetLabel }} #{{ targetId }}</p>
             </div>
             <button 
               @click="$emit('close')" 
@@ -34,10 +34,10 @@
           <!-- Order Context -->
           <section class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700">
             <p class="text-sm font-semibold text-blue-900 dark:text-blue-100 mb-1">
-              About Order #{{ orderId }}
+              About {{ targetLabel }} #{{ targetId }}
             </p>
             <p class="text-xs text-blue-700 dark:text-blue-300">
-              This message will be linked to this order.
+              This message will be linked to this {{ targetLabelLower }}.
             </p>
           </section>
 
@@ -107,7 +107,7 @@
               Loading recipients...
             </div>
             <div v-else-if="filteredRecipients.length === 0" class="p-3 text-sm text-gray-500 dark:text-gray-400">
-              No {{ selectedRecipientType }} recipients are available for this order.
+              No {{ selectedRecipientType }} recipients are available for this {{ targetLabelLower }}.
               Try a different recipient type above.
             </div>
             <div v-else class="space-y-2 max-h-40 overflow-y-auto">
@@ -152,7 +152,7 @@
             </label>
             <textarea
               v-model="message"
-              placeholder="Type your message about this order..."
+              :placeholder="`Type your message about this ${targetLabelLower}...`"
               rows="5"
               class="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-white resize-none text-sm"
             ></textarea>
@@ -198,7 +198,13 @@ const props = defineProps({
   },
   orderId: {
     type: [Number, String],
-    required: true
+    required: false,
+    default: null
+  },
+  specialOrderId: {
+    type: [Number, String],
+    required: false,
+    default: null
   },
   defaultRecipientType: {
     type: String,
@@ -211,12 +217,17 @@ const emit = defineEmits(['close', 'message-sent'])
 const authStore = useAuthStore()
 const currentUser = authStore.user
 
+const targetId = computed(() => props.specialOrderId || props.orderId)
+const isSpecial = computed(() => !!props.specialOrderId)
+const targetLabel = computed(() => (isSpecial.value ? 'Special Order' : 'Order'))
+const targetLabelLower = computed(() => (isSpecial.value ? 'special order' : 'order'))
+
 const currentUserRoleLabel = computed(() => {
   const role = currentUser?.role || 'user'
   return role.charAt(0).toUpperCase() + role.slice(1)
 })
 
-const selectedRecipientType = ref(props.defaultRecipientType || null)
+const selectedRecipientType = ref(null)
 const selectedRecipient = ref(null)
 const allOrderRecipients = ref([]) // fetched once per modal open
 const availableRecipients = ref([])
@@ -230,7 +241,7 @@ const recipientTabs = computed(() => {
   const role = currentUser?.role
   const tabs = []
 
-  if (role === 'client') {
+  if (role === 'client' || role === 'customer') {
     tabs.push(
       { id: 'admin', label: 'Admin', icon: 'AdminIcon', tooltip: 'Message the admin team about this order.' },
       { id: 'support', label: 'Support', icon: 'SupportIcon', tooltip: 'Get help from support about this order.' },
@@ -273,7 +284,7 @@ const visibleRecipientTabs = computed(() => {
     support: ['support'],
     writer: ['writer'],
     editor: ['editor'],
-    client: ['client']
+    client: ['client', 'customer']
   }
 
   return recipientTabs.value.filter(tab => {
@@ -299,7 +310,7 @@ const canSend = computed(() => {
 })
 
 const loadRecipients = async () => {
-  if (!selectedRecipientType.value || !props.orderId) return
+  if (!selectedRecipientType.value || !targetId.value) return
 
   loadingRecipients.value = true
   error.value = ''
@@ -315,7 +326,7 @@ const loadRecipients = async () => {
       support: ['support'],
       writer: ['writer'],
       editor: ['editor'],
-      client: ['client']
+      client: ['client', 'customer']
     }
 
     const roles = roleMap[selectedRecipientType.value] || []
@@ -323,7 +334,9 @@ const loadRecipients = async () => {
 
     // Fetch once per modal open and cache
     if (!allOrderRecipients.value.length) {
-      const response = await communicationsAPI.getOrderRecipients(props.orderId)
+      const response = isSpecial.value
+        ? await communicationsAPI.getSpecialOrderRecipients(targetId.value)
+        : await communicationsAPI.getOrderRecipients(targetId.value)
       allOrderRecipients.value = response.data || []
     }
 
@@ -358,7 +371,9 @@ const sendMessage = async () => {
   try {
     // Use the order-specific thread creation endpoint with explicit recipient
     // This ensures threads are created with only sender + recipient, not all participants
-    const threadResponse = await communicationsAPI.startThreadForOrder(props.orderId, selectedRecipient.value.id)
+    const threadResponse = isSpecial.value
+      ? await communicationsAPI.startThreadForSpecialOrder(targetId.value, selectedRecipient.value.id)
+      : await communicationsAPI.startThreadForOrder(targetId.value, selectedRecipient.value.id)
     const thread = threadResponse.data.thread || threadResponse.data
 
     // Send the message with explicit recipient to ensure it's received
@@ -408,11 +423,13 @@ watch(
   (newVal) => {
     if (newVal) {
       resetForm()
-      // If there is no tab selected yet, use the default and let the watcher load recipients
-      if (!selectedRecipientType.value && props.defaultRecipientType) {
+      const hasDefault = recipientTabs.value.some(tab => tab.id === props.defaultRecipientType)
+      if (hasDefault) {
         selectedRecipientType.value = props.defaultRecipientType
-      } else if (selectedRecipientType.value) {
-        // If a tab is already selected (e.g., admin preselected), just load its recipients
+      } else {
+        selectedRecipientType.value = recipientTabs.value[0]?.id || null
+      }
+      if (selectedRecipientType.value) {
         loadRecipients()
       }
     }

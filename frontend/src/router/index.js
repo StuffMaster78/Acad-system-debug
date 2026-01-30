@@ -86,7 +86,7 @@ const router = createRouter({
     },
     {
       path: '/',
-      component: () => import('@/layouts/DashboardLayout.vue'),
+      component: () => import('@/layouts/ModernDashboardLayout.vue'),
       redirect: '/dashboard',
       meta: { requiresAuth: true },
       children: [
@@ -766,6 +766,26 @@ const router = createRouter({
           meta: {
             requiresAuth: true,
             title: 'My Orders',
+            roles: ['writer'],
+          },
+        },
+        {
+          path: 'writer/special-orders',
+          name: 'WriterSpecialOrders',
+          component: () => import('@/views/writers/WriterSpecialOrders.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Special Orders',
+            roles: ['writer'],
+          },
+        },
+        {
+          path: 'writer/special-orders/:id',
+          name: 'WriterSpecialOrderDetail',
+          component: () => import('@/views/writers/WriterSpecialOrderDetail.vue'),
+          meta: {
+            requiresAuth: true,
+            title: 'Special Order Details',
             roles: ['writer'],
           },
         },

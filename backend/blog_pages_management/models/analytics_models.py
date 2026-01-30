@@ -6,7 +6,7 @@ from django.contrib.auth import get_user_model
 from django.db.models import Sum, Avg, Count
 from django.utils import timezone
 from datetime import timedelta
-
+from .workflow_models import WorkflowTransition
 User = get_user_model()
 
 
@@ -714,6 +714,14 @@ class ContentFreshnessReminder(models.Model):
     
     def __str__(self):
         return f"Freshness reminder for: {self.blog_post.title}"
+    
+    @property
+    def days_since_update(self):
+        """Calculate days since the blog post was last updated."""
+        if self.blog_post.updated_at:
+            delta = timezone.now() - self.blog_post.updated_at
+            return delta.days
+        return 0
     
     @classmethod
     def get_stale_content(cls, months_threshold=None, website=None):

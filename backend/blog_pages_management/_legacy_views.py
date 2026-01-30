@@ -194,7 +194,7 @@ class AuthorProfileViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'designation', 'expertise', 'bio']
     ordering_fields = ['name', 'display_order', 'created_at']
     ordering = ['display_order', 'name']
-    pagination_class = None  # Disable pagination for author list
+    pagination_class = BlogPagination
     
     def get_queryset(self):
         """Filter authors by website and active status."""

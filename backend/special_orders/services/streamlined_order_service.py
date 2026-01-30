@@ -119,10 +119,37 @@ class StreamlinedSpecialOrderService:
         if order.total_cost:
             InstallmentPaymentService.generate_installments(order)
         
-        # Notify admins (notification would need to be sent individually to each admin)
-        # For now, we'll skip admin notifications or implement separately
-        # TODO: Implement admin notification broadcast
-        logger.info(f"New special order {order.id} created - admin notification needed")
+        # Notify client and admins/support
+        try:
+            NotificationService.send_notification(
+                user=order.client,
+                event="special_order.created",
+                payload={
+                    "order_id": order.id,
+                    "order_type": order.order_type,
+                    "status": order.status,
+                },
+                website=order.website
+            )
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            staff_users = User.objects.filter(
+                role__in=["admin", "support", "superadmin"],
+                is_active=True
+            )
+            for staff in staff_users:
+                NotificationService.send_notification(
+                    user=staff,
+                    event="special_order.created",
+                    payload={
+                        "order_id": order.id,
+                        "order_type": order.order_type,
+                        "status": order.status,
+                    },
+                    website=order.website
+                )
+        except Exception as e:
+            logger.warning(f"Failed to send creation notifications for order {order.id}: {e}")
         
         logger.info(f"Special order {order.id} placed by client {client.username}")
         return order

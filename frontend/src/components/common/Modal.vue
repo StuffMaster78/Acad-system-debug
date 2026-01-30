@@ -4,11 +4,11 @@
       v-if="visible"
       class="fixed inset-0 z-50 overflow-y-auto"
     >
-      <!-- Background overlay -->
+      <!-- Background overlay with blur -->
       <Transition name="modal-backdrop">
         <div
           v-if="visible"
-          class="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm transition-opacity"
+          class="fixed inset-0 bg-black/50 backdrop-blur-sm transition-all"
           style="z-index: 40;"
           @click="closeOnBackdrop ? close() : null"
         ></div>
@@ -21,34 +21,58 @@
         <!-- Center modal -->
         <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-        <!-- Modal panel -->
+        <!-- Modal panel with enhanced styling -->
         <Transition name="modal-panel">
           <div
             v-if="visible"
             ref="modalPanelRef"
             @click.stop
-            class="relative flex flex-col align-bottom bg-white dark:bg-gray-800 rounded-lg text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle max-h-[90vh]"
+            class="relative flex flex-col align-bottom glass-strong rounded-xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle max-h-[90vh] border border-gray-200/20 dark:border-slate-700/30"
             :class="[
+              size === 'xs' ? 'sm:max-w-xs' : '',
               size === 'sm' ? 'sm:max-w-sm' : '',
               size === 'md' ? 'sm:max-w-md' : '',
               size === 'lg' ? 'sm:max-w-lg' : '',
               size === 'xl' ? 'sm:max-w-xl' : '',
               size === '2xl' ? 'sm:max-w-2xl' : '',
-              size === 'full' ? 'sm:max-w-full' : 'sm:max-w-lg',
+              size === '3xl' ? 'sm:max-w-3xl' : '',
+              size === '4xl' ? 'sm:max-w-4xl' : '',
+              size === '5xl' ? 'sm:max-w-5xl' : '',
+              size === 'full' ? 'sm:max-w-full sm:mx-4' : 'sm:max-w-lg',
               'w-full'
             ]"
             role="dialog"
             aria-modal="true"
             :aria-labelledby="title ? 'modal-title' : undefined"
           >
-            <!-- Header -->
-            <div v-if="title || $slots.header || icon" class="bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-700 px-4 pt-5 pb-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
-              <div class="flex items-center justify-between">
+            <!-- Enhanced Header with gradient -->
+            <div 
+              v-if="title || $slots.header || icon" 
+              class="relative bg-gradient-to-br from-white via-gray-50 to-white dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 px-6 py-4 border-b border-gray-200/50 dark:border-slate-700/50"
+            >
+              <!-- Decorative gradient overlay -->
+              <div class="absolute inset-0 bg-gradient-to-r from-primary-500/5 via-transparent to-primary-500/5 pointer-events-none"></div>
+              
+              <div class="relative flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                  <div v-if="icon" class="text-2xl">{{ icon }}</div>
+                  <!-- Enhanced icon with background -->
+                  <div 
+                    v-if="icon" 
+                    class="flex items-center justify-center w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 text-2xl"
+                  >
+                    {{ icon }}
+                  </div>
                   <div>
-                    <h3 v-if="title" id="modal-title" class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }}</h3>
-                    <p v-if="subtitle" class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ subtitle }}</p>
+                    <h3 
+                      v-if="title" 
+                      id="modal-title" 
+                      class="text-xl font-bold text-gray-900 dark:text-slate-100 tracking-tight"
+                    >
+                      {{ title }}
+                    </h3>
+                    <p v-if="subtitle" class="text-sm text-gray-500 dark:text-slate-400 mt-0.5">
+                      {{ subtitle }}
+                    </p>
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -57,11 +81,11 @@
                     v-if="showClose"
                     @click="close"
                     type="button"
-                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 rounded-lg p-2 transition-all hover:bg-gray-100 dark:hover:bg-gray-600"
+                    class="group p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded-lg transition-all hover:bg-gray-100 dark:hover:bg-slate-700/50 hover:scale-110 active:scale-95"
                     aria-label="Close modal"
                   >
                     <span class="sr-only">Close</span>
-                    <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="h-5 w-5 transition-transform group-hover:rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -69,22 +93,25 @@
               </div>
             </div>
 
-            <!-- Body -->
+            <!-- Body with improved scrolling -->
             <div 
               ref="bodyRef"
-              class="bg-white dark:bg-gray-800 px-4 pt-5 pb-4 sm:p-6 flex-1"
+              class="bg-white dark:bg-slate-900 px-6 py-5 flex-1 relative"
               :class="[
                 scrollable ? 'overflow-y-auto modal-body-scrollable' : 'overflow-y-visible',
-                showTopShadow ? 'shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1)]' : '',
-                showBottomShadow ? 'shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]' : ''
+                showTopShadow ? 'shadow-[inset_0_8px_8px_-8px_rgba(0,0,0,0.1)]' : '',
+                showBottomShadow ? 'shadow-[inset_0_-8px_8px_-8px_rgba(0,0,0,0.1)]' : ''
               ]"
               :style="scrollable ? { maxHeight: maxHeight } : {}"
             >
               <slot></slot>
             </div>
 
-            <!-- Footer -->
-            <div v-if="$slots.footer" class="modal-footer-aligned">
+            <!-- Enhanced Footer -->
+            <div 
+              v-if="$slots.footer" 
+              class="bg-gray-50/50 dark:bg-slate-800/50 px-6 py-4 border-t border-gray-200/50 dark:border-slate-700/50 backdrop-blur-sm"
+            >
               <slot name="footer"></slot>
             </div>
           </div>
@@ -116,8 +143,8 @@ const props = defineProps({
   },
   size: {
     type: String,
-    default: 'md', // sm, md, lg, xl, 2xl, full
-    validator: (value) => ['sm', 'md', 'lg', 'xl', '2xl', 'full'].includes(value)
+    default: 'md', // xs, sm, md, lg, xl, 2xl, 3xl, 4xl, 5xl, full
+    validator: (value) => ['xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl', '4xl', '5xl', 'full'].includes(value)
   },
   showClose: {
     type: Boolean,
@@ -160,8 +187,6 @@ const close = () => {
 }
 
 const handleBackdropClick = (event) => {
-  // Only close if clicking directly on the backdrop container, not on the modal panel
-  // The modal panel has @click.stop which prevents this from firing when clicking inside
   if (props.closeOnBackdrop) {
     close()
   }
@@ -190,17 +215,14 @@ const updateScrollShadows = () => {
 const focusFirstInput = async () => {
   if (!props.autoFocus || !props.visible) return
   
-  // Save the previously focused element
   previousActiveElement.value = document.activeElement
   
   await nextTick()
   if (modalPanelRef.value) {
-    // Find first focusable element (input, textarea, select, button)
     const focusableElements = modalPanelRef.value.querySelectorAll(
       'input:not([disabled]), textarea:not([disabled]), select:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])'
     )
     if (focusableElements.length > 0) {
-      // Small delay to ensure modal is fully rendered
       setTimeout(() => {
         focusableElements[0].focus()
       }, 100)
@@ -208,13 +230,11 @@ const focusFirstInput = async () => {
   }
 }
 
-// Restore focus to previous element
 const restoreFocus = () => {
   if (previousActiveElement.value && previousActiveElement.value.focus) {
     try {
       previousActiveElement.value.focus()
     } catch (e) {
-      // Element might not be focusable anymore
       console.warn('Could not restore focus:', e)
     }
   }
@@ -235,13 +255,11 @@ const trapFocus = (event) => {
   
   if (event.key === 'Tab') {
     if (event.shiftKey) {
-      // Shift + Tab
       if (document.activeElement === firstElement) {
         event.preventDefault()
         lastElement.focus()
       }
     } else {
-      // Tab
       if (document.activeElement === lastElement) {
         event.preventDefault()
         firstElement.focus()
@@ -250,9 +268,8 @@ const trapFocus = (event) => {
   }
 }
 
-// Prevent body scroll when modal is open (more robust)
+// Prevent body scroll when modal is open
 const preventBodyScroll = () => {
-  // Save current scroll position
   const scrollY = window.scrollY
   document.body.style.position = 'fixed'
   document.body.style.top = `-${scrollY}px`
@@ -286,18 +303,14 @@ watch(() => [props.scrollable, props.visible], async ([scrollable, visible]) => 
 watch(() => props.visible, async (newVal) => {
   if (newVal) {
     preventBodyScroll()
-    // Add keyboard listeners
     document.addEventListener('keydown', handleEscape)
     document.addEventListener('keydown', trapFocus)
-    // Focus first input after a short delay
     await nextTick()
     focusFirstInput()
   } else {
     restoreBodyScroll()
-    // Remove keyboard listeners
     document.removeEventListener('keydown', handleEscape)
     document.removeEventListener('keydown', trapFocus)
-    // Clean up scroll listener
     if (bodyRef.value) {
       bodyRef.value.removeEventListener('scroll', updateScrollShadows)
     }
@@ -316,9 +329,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Modal animations */
 .modal-enter-active,
 .modal-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease;
 }
 
 .modal-enter-from,
@@ -328,53 +342,53 @@ onUnmounted(() => {
 
 .modal-backdrop-enter-active,
 .modal-backdrop-leave-active {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.25s ease, backdrop-filter 0.25s ease;
 }
 
 .modal-backdrop-enter-from,
 .modal-backdrop-leave-to {
   opacity: 0;
+  backdrop-filter: blur(0);
 }
 
-.modal-panel-enter-active,
+.modal-panel-enter-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 .modal-panel-leave-active {
-  transition: all 0.3s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .modal-panel-enter-from {
   opacity: 0;
-  transform: scale(0.95) translateY(-10px);
+  transform: scale(0.9) translateY(-20px);
 }
 
 .modal-panel-leave-to {
   opacity: 0;
-  transform: scale(0.98) translateY(10px);
+  transform: scale(0.95) translateY(10px);
 }
 
-/* Smooth scrollbar styling for scrollable modals */
+/* Enhanced scrollbar styling */
 .modal-body-scrollable::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
 }
 
 .modal-body-scrollable::-webkit-scrollbar-track {
-  background: transparent;
+  @apply bg-gray-100/50 dark:bg-slate-800/50;
+  border-radius: 10px;
+  margin: 4px;
 }
 
 .modal-body-scrollable::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
+  @apply bg-gray-300 hover:bg-gray-400 dark:bg-slate-600 dark:hover:bg-slate-500;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
 }
 
-.modal-body-scrollable::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.3);
-}
-
-.dark .modal-body-scrollable::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.dark .modal-body-scrollable::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
+/* Fade scrollbar when not hovering */
+.modal-body-scrollable::-webkit-scrollbar-thumb {
+  transition: background-color 0.2s ease;
 }
 </style>
-

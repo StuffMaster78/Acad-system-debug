@@ -111,3 +111,61 @@ class ThreadService:
 
         thread.participants.set(participants)
         return thread
+
+    @staticmethod
+    def create_special_order_thread(special_order, created_by, participants, thread_type="special", website=None):
+        """
+        Creates a communication thread for a special order.
+        """
+        if not special_order:
+            raise PermissionDenied("Special order is required.")
+
+        # Get website from special order if not provided
+        if not website:
+            website = getattr(special_order, "website", None)
+        if not website:
+            raise PermissionDenied("Website is required for thread creation.")
+
+        # Determine sender_role and recipient_role from participants
+        sender_role = "client"
+        recipient_role = "writer"
+
+        if participants:
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+
+            participant_users = []
+            for p in participants:
+                if isinstance(p, User):
+                    participant_users.append(p)
+                else:
+                    participant_users.append(User.objects.get(id=p))
+
+            sender = created_by
+            sender_role = getattr(sender, "role", "client")
+
+            recipients = [p for p in participant_users if p.id != sender.id]
+            if recipients:
+                recipient = recipients[0]
+                recipient_role = getattr(recipient, "role", "writer")
+            elif len(participant_users) == 1:
+                if sender_role in ["admin", "superadmin", "support", "editor"]:
+                    recipient_role = "client"
+                elif sender_role == "client":
+                    recipient_role = "writer"
+                elif sender_role == "writer":
+                    recipient_role = "support"
+                else:
+                    recipient_role = "client"
+
+        thread = CommunicationThread.objects.create(
+            special_order=special_order,
+            website=website,
+            thread_type=thread_type,
+            sender_role=sender_role,
+            recipient_role=recipient_role,
+            is_active=True
+        )
+
+        thread.participants.set(participants)
+        return thread

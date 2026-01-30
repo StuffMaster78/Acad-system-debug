@@ -149,7 +149,7 @@
               </div>
               <div v-if="order.writer" class="flex items-center gap-1">
                 <span class="text-gray-500 dark:text-gray-400">✍️</span>
-                <span class="text-gray-700 dark:text-gray-300">Writer: {{ order.writer?.username || 'Assigned' }}</span>
+                <span class="text-gray-700 dark:text-gray-300">Writer: {{ order.writer_username || order.writer?.username || 'Assigned' }}</span>
               </div>
             </div>
           </div>

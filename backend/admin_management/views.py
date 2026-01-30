@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Sum, Count, Q
 from django.db import models
 from rest_framework import viewsets, status, views
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -56,13 +57,19 @@ from .permissions import IsAdmin, IsSuperAdmin
 User = get_user_model()
 
 
+class AdminLogPagination(PageNumberPagination):
+    page_size = 100
+    page_size_query_param = "page_size"
+    max_page_size = 500
+
+
 class AdminActivityLogViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet for retrieving admin activity logs.
     """
     serializer_class = AdminLogSerializer
     permission_classes = [IsAuthenticated, IsAdmin]
-    pagination_class = None  # Disable pagination to return all logs, or use custom pagination
+    pagination_class = AdminLogPagination
     
     def get_queryset(self):
         """Filter logs by website if user has website context."""
@@ -100,10 +107,12 @@ class AdminDashboardView(viewsets.ViewSet):
         from .services.dashboard_metrics_service import DashboardMetricsService
         from django.core.cache import cache
         
+        # Get cache key (needed for both refresh and normal requests)
+        cache_key = DashboardMetricsService.get_cache_key(request.user, "summary")
+        
         # Clear cache on refresh if requested
         if request.query_params.get('refresh') == 'true':
             # Clear all dashboard cache keys for this user
-            cache_key = DashboardMetricsService.get_cache_key(request.user, "summary")
             cache.delete(cache_key)
             # Clear other related cache keys by trying common patterns
             website_id = getattr(request.user, 'website_id', None) or 'all'
@@ -850,7 +859,7 @@ class BlacklistedUserViewSet(mixins.ListModelMixin,
     ).order_by("-blacklisted_at")
     lookup_field = "email"
     lookup_value_regex = r"[\w\.-]+@[\w\.-]+\.\w+"
-    pagination_class = None  # Disable pagination for simplicity
+    pagination_class = AdminLogPagination
     filterset_fields = ["website", "blacklisted_by"]
     search_fields = ["email", "website__name"]
     ordering_fields = ["blacklisted_at", "email"]
@@ -2522,13 +2531,14 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         orders = orders[:limit]
         
         serializer = SpecialOrderSerializer(orders, many=True)
+        total_awaiting_approval = SpecialOrder.objects.filter(
+            status__in=['inquiry', 'awaiting_approval'],
+            is_approved=False
+        ).count()
         return Response({
-            'orders': serializer.data,
+            'results': serializer.data,
             'count': len(serializer.data),
-            'total_awaiting_approval': SpecialOrder.objects.filter(
-                status__in=['inquiry', 'awaiting_approval'],
-                is_approved=False
-            ).count()
+            'total_awaiting_approval': total_awaiting_approval
         })
     
     @action(detail=False, methods=['get'], url_path='estimated-queue')
@@ -2555,14 +2565,15 @@ class AdminSpecialOrdersManagementViewSet(viewsets.ViewSet):
         orders = orders[:limit]
         
         serializer = SpecialOrderSerializer(orders, many=True)
+        total_needing_estimation = SpecialOrder.objects.filter(
+            order_type='estimated',
+            total_cost__isnull=True,
+            status__in=['inquiry', 'awaiting_approval']
+        ).count()
         return Response({
-            'orders': serializer.data,
+            'results': serializer.data,
             'count': len(serializer.data),
-            'total_needing_estimation': SpecialOrder.objects.filter(
-                order_type='estimated',
-                total_cost__isnull=True,
-                status__in=['inquiry', 'awaiting_approval']
-            ).count()
+            'total_needing_estimation': total_needing_estimation
         })
     
     @action(detail=False, methods=['get'], url_path='installment-tracking')

@@ -48,5 +48,5 @@ router.register(
 )
 
 urlpatterns = [
-    path('api/', include(router.urls)),  # API URLs for the viewsets
+    path('', include(router.urls)),  # API URLs for the viewsets
 ]

@@ -102,13 +102,14 @@ def can_send_message(user, thread) -> bool:
     Allows all users with access to the order to send messages.
     """
     order = getattr(thread, "order", None)
+    special_order = getattr(thread, "special_order", None)
     role = getattr(user, "role", None)
 
     if not thread.is_active and not thread.admin_override:
         return False
 
-    # If no order, check if user is a participant
-    if not order:
+    # If no order or special order, check if user is a participant
+    if not order and not special_order:
         return user in thread.participants.all()
 
     # Check if user has access to the order
@@ -127,6 +128,14 @@ def can_send_message(user, thread) -> bool:
     elif user in thread.participants.all():
         has_order_access = True
 
+    if not has_order_access and special_order:
+        has_order_access = (
+            special_order.client == user or
+            special_order.writer == user or
+            role in {"admin", "superadmin", "editor", "support"} or
+            user in thread.participants.all()
+        )
+
     if not has_order_access:
         return False
 
@@ -135,6 +144,10 @@ def can_send_message(user, thread) -> bool:
         if user in thread.participants.all():
             pass
         elif order.assigned_writer == user and (
+            thread.sender_role == "writer" or thread.recipient_role == "writer"
+        ):
+            pass
+        elif special_order and special_order.writer == user and (
             thread.sender_role == "writer" or thread.recipient_role == "writer"
         ):
             pass
@@ -148,14 +161,15 @@ def can_send_message(user, thread) -> bool:
             thread.sender_role == "client" or thread.recipient_role == "client"
         ):
             pass
+        elif special_order and special_order.client == user and (
+            thread.sender_role == "client" or thread.recipient_role == "client"
+        ):
+            pass
         else:
             return False
 
     # Check order status restrictions
-    if order.status in {"archived", "cancelled"}:
-        return thread.admin_override
-
-    if getattr(order, "is_special", False):
+    if order and order.status in {"archived", "cancelled"}:
         return thread.admin_override
 
     if getattr(order, "is_class_order", False):
@@ -176,8 +190,9 @@ def can_view_thread(user, thread) -> bool:
     if user in thread.participants.all():
         return True
 
-    # Check if user has access to the order
+    # Check if user has access to the order or special order
     order = getattr(thread, "order", None)
+    special_order = getattr(thread, "special_order", None)
     if order:
         role = getattr(user, "role", None)
 
@@ -197,8 +212,17 @@ def can_view_thread(user, thread) -> bool:
         ):
             return True
 
-        # Special orders - only admin/support
-        if order.is_special and role in {"admin", "support"}:
+    if special_order:
+        role = getattr(user, "role", None)
+        if role in {"admin", "superadmin", "editor", "support"}:
+            return True
+        if special_order.client == user and (
+            thread.sender_role == "client" or thread.recipient_role == "client"
+        ):
+            return True
+        if special_order.writer == user and (
+            thread.sender_role == "writer" or thread.recipient_role == "writer"
+        ):
             return True
 
     return False  # Default deny
@@ -216,7 +240,9 @@ def can_edit_message(user, message) -> bool:
 
     # Additional checks for special cases
     user_role = getattr(user, "role", None)
-    if getattr(message, "order", None) and message.order.is_special and user_role in {"admin", "support"}:
+    thread = getattr(message, "thread", None)
+    special_order = getattr(thread, "special_order", None) if thread else None
+    if special_order and user_role in {"admin", "support", "superadmin"}:
         return True
 
     return False  # Default deny

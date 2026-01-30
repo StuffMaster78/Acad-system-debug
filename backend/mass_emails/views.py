@@ -18,6 +18,7 @@ from mass_emails.models import EmailRecipient
 from mass_emails.serializers import EmailRecipientSerializer
 from rest_framework.permissions import IsAdminUser
 from rest_framework.authentication import BasicAuthentication
+from rest_framework.pagination import PageNumberPagination
 from django.contrib.auth import get_user_model
 from mass_emails.serializers import EmailRecipientSerializer
 
@@ -52,6 +53,12 @@ except Exception:
     send_single_test_email = _NoopTask()
 
 User = get_user_model()
+
+
+class EmailHistoryPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = "page_size"
+    max_page_size = 200
 
 class EmailCampaignViewSet(viewsets.ModelViewSet):
     """
@@ -235,7 +242,7 @@ class UserEmailHistoryView(generics.ListAPIView):
     authentication_classes = [BasicAuthentication]
     serializer_class = EmailRecipientSerializer
     filter_backends = [filters.OrderingFilter, filters.SearchFilter]
-    pagination_class = None
+    pagination_class = EmailHistoryPagination
     ordering_fields = ['sent_at', 'status']
     ordering = ['-sent_at']
     search_fields = ['campaign__title', 'campaign__subject']
@@ -263,7 +270,7 @@ class AdminEmailHistoryView(generics.ListAPIView):
     permission_classes = [IsAdminUser]
     authentication_classes = [BasicAuthentication]
     filter_backends = [filters.OrderingFilter, filters.SearchFilter]
-    pagination_class = None
+    pagination_class = EmailHistoryPagination
     ordering_fields = ['sent_at', 'status']
     ordering = ['-sent_at']
     search_fields = ['campaign__title', 'campaign__subject']

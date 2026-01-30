@@ -41,6 +41,10 @@ from .analytics_models import (
     EditorAnalytics,
     BlogPostAnalytics,
     ContentPerformanceMetrics,
+    WebsiteContentMetrics,
+    WebsitePublishingTarget,
+    CategoryPublishingTarget,
+    ContentFreshnessReminder,
 )
 from .editor_usage_tracking import (
     EditorSession,
@@ -135,6 +139,7 @@ __all__ = [
     'BlogPostRevision', 'BlogPostAutoSave', 'BlogPostEditLock', 'BlogPostPreview',
     'BlogPostWorkflow', 'BlogPostReviewComment', 'WorkflowTransition', 'ContentTemplate', 'ContentSnippet',
     'EditorAnalytics', 'BlogPostAnalytics', 'ContentPerformanceMetrics',
+    'WebsiteContentMetrics', 'WebsitePublishingTarget', 'CategoryPublishingTarget', 'ContentFreshnessReminder',
     'EditorSession', 'EditorAction', 'EditorProductivityMetrics',
     'CollaborativeSession', 'CollaborativeEditor', 'CollaborativeChange', 'CollaborativePresence',
     'PreviewTokenRateLimit', 'AuditTrail',

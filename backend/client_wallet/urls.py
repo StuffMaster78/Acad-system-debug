@@ -17,5 +17,5 @@ router.register(r'admin/wallets', AdminWalletManagementViewSet, basename='admin-
 
 # Define the URL patterns
 urlpatterns = [
-    path('api/', include(router.urls)),  # Include all the API viewsets
+    path('', include(router.urls)),  # Include all the API viewsets
 ]

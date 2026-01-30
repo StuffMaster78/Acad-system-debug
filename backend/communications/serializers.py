@@ -27,6 +27,8 @@ class CommunicationThreadSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "order",
+            "special_order",
+            "thread_type",
             "is_active",
             "admin_override",
             "participants",
@@ -35,7 +37,18 @@ class CommunicationThreadSerializer(serializers.ModelSerializer):
             "last_message",
             "unread_count"
         ]
-        read_only_fields = ["id", "is_active", "admin_override", "participants", "created_at", "updated_at", "last_message", "unread_count"]
+        read_only_fields = [
+            "id",
+            "special_order",
+            "thread_type",
+            "is_active",
+            "admin_override",
+            "participants",
+            "created_at",
+            "updated_at",
+            "last_message",
+            "unread_count",
+        ]
 
     def get_last_message(self, obj):
         """
@@ -107,6 +120,11 @@ class CreateCommunicationThreadSerializer(serializers.Serializer):
         allow_null=True,
         help_text="Order ID for this thread (optional for general threads)"
     )
+    special_order = serializers.IntegerField(
+        required=False,
+        allow_null=True,
+        help_text="Special order ID for this thread"
+    )
     website = serializers.IntegerField(
         required=False,
         allow_null=True,
@@ -134,6 +152,17 @@ class CreateCommunicationThreadSerializer(serializers.Serializer):
             return order
         except Order.DoesNotExist:
             raise serializers.ValidationError("Order does not exist.")
+
+    def validate_special_order(self, value):
+        """Validate special order exists and is accessible."""
+        if value is None:
+            return None
+        from special_orders.models import SpecialOrder
+        try:
+            special_order = SpecialOrder.objects.get(id=value)
+            return special_order
+        except SpecialOrder.DoesNotExist:
+            raise serializers.ValidationError("Special order does not exist.")
     
     def validate_website(self, value):
         """Validate website exists if provided."""
@@ -162,6 +191,19 @@ class CreateCommunicationThreadSerializer(serializers.Serializer):
                 raise serializers.ValidationError(f"User with ID {user_id} does not exist.")
         
         return validated_participants
+
+    def validate(self, attrs):
+        """Ensure only one target is specified."""
+        order = attrs.get("order")
+        special_order = attrs.get("special_order")
+        if order and special_order:
+            raise serializers.ValidationError("Provide either order or special_order, not both.")
+        if not order and not special_order:
+            # Allow general threads, but only when thread_type is not order/special
+            thread_type = attrs.get("thread_type")
+            if thread_type in {"order", "special"}:
+                raise serializers.ValidationError("order or special_order is required for this thread type.")
+        return attrs
 
 
 class MessageAttachmentSerializer(serializers.Serializer):

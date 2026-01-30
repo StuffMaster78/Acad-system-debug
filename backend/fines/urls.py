@@ -10,5 +10,5 @@ router.register(r"lateness-rules", LatenessFineRuleViewSet, basename="lateness-f
 router.register(r"fine-types", FineTypeConfigViewSet, basename="fine-type-config")
 
 urlpatterns = [
-    path('api/', include(router.urls)),
+    path('', include(router.urls)),
 ]

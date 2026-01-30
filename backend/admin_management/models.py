@@ -269,3 +269,7 @@ class AdminActivityLog(models.Model):
         verbose_name = "Admin Activity Log"
         verbose_name_plural = "Admin Activity Logs"
         ordering = ["-timestamp"]  # Newest logs first
+        indexes = [
+            models.Index(fields=["timestamp"]),
+            models.Index(fields=["admin", "timestamp"]),
+        ]

@@ -53,7 +53,8 @@ class SpecialOrderInquiryFileViewSet(viewsets.ModelViewSet):
                 # Check permissions
                 if not (user.is_staff or 
                         getattr(user, 'role', None) in ['admin', 'superadmin', 'support'] or
-                        special_order.client == user):
+                        special_order.client == user or
+                        special_order.writer == user):
                     raise PermissionError("You don't have permission to upload files for this order")
                 
                 serializer.save(

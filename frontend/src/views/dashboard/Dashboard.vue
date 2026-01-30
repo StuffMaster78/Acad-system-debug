@@ -1,37 +1,73 @@
 <template>
-  <div class="space-y-6">
-    <!-- Page header with Place Order button -->
-    <div class="flex items-center justify-between">
-      <div>
-        <div class="flex items-center gap-3">
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
-          <div v-if="!isOnline" class="flex items-center gap-2 px-3 py-1 bg-red-50 border border-red-200 rounded-lg">
-            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
-            </svg>
-            <span class="text-xs font-medium text-red-600">Offline</span>
+  <div class="space-y-4 sm:space-y-6">
+    <!-- Enhanced Page Header - Fully Responsive -->
+    <div class="glass-strong rounded-2xl border border-gray-200/50 dark:border-slate-700/50 p-4 sm:p-6 shadow-sm">
+      <!-- Top Row: Title and Offline Indicator -->
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4 sm:mb-6">
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-3 flex-wrap">
+            <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-slate-100 tracking-tight">
+              Dashboard
+            </h1>
+            <div v-if="!isOnline" class="flex items-center gap-2 px-3 py-1.5 bg-error-50 border border-error-200 rounded-lg dark:bg-error-900/20 dark:border-error-800 animate-pulse-slow">
+              <svg class="w-4 h-4 text-error-600 dark:text-error-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+              </svg>
+              <span class="text-xs font-semibold text-error-600 dark:text-error-400">Offline</span>
+            </div>
           </div>
+          <p class="mt-2 text-sm sm:text-base text-gray-600 dark:text-slate-400 flex items-center flex-wrap gap-2">
+            <span>Welcome back, {{ displayName }}</span>
+            <CopyableIdChip
+              v-if="displayId"
+              :label="displayIdLabel"
+              :value="displayId"
+            />
+          </p>
         </div>
-        <p class="mt-2 text-gray-600 dark:text-gray-400 flex items-center flex-wrap gap-2">
-          <span>Welcome back, {{ displayName }}</span>
-          <CopyableIdChip
-            v-if="displayId"
-            :label="displayIdLabel"
-            :value="displayId"
-          />
-        </p>
+        
+        <!-- Desktop: Place Order Button (Large) -->
+        <router-link
+          v-if="(authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && !authStore.isClient"
+          to="/admin/orders/create"
+          class="hidden lg:flex items-center justify-center gap-3 px-6 py-3.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 font-semibold text-base group"
+        >
+          <svg class="w-6 h-6 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Place Order</span>
+          <span class="px-2 py-0.5 bg-white/20 rounded-md text-xs font-bold">NEW</span>
+        </router-link>
+
+        <!-- Desktop: Client Create Order Button -->
+        <router-link
+          v-if="authStore.isClient"
+          to="/orders/wizard"
+          class="hidden lg:flex items-center justify-center gap-3 px-6 py-3.5 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 font-semibold text-base group"
+        >
+          <svg class="w-6 h-6 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
+          </svg>
+          <span>Create Order</span>
+          <span class="px-2 py-0.5 bg-white/20 rounded-md text-xs font-bold">NEW</span>
+        </router-link>
       </div>
-      <div class="flex items-center gap-3">
+
+      <!-- Bottom Row: Controls and Actions -->
+      <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4">
         <!-- Time Period Selector (Admin/Superadmin) -->
-        <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="flex items-center gap-2 text-sm text-gray-600">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div 
+          v-if="authStore.isAdmin || authStore.isSuperAdmin" 
+          class="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300 bg-white dark:bg-slate-800 rounded-lg px-4 py-2.5 border border-gray-200 dark:border-slate-700 shadow-sm"
+        >
+          <svg class="w-4 h-4 text-gray-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
-          <span>Time period:</span>
+          <span class="font-medium hidden sm:inline">Period:</span>
           <select 
             v-model="timePeriod" 
             @change="refreshDashboard"
-            class="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
+            class="input py-1.5 px-2 text-sm font-medium min-w-[120px] sm:min-w-[140px]"
           >
             <option value="7">Last 7 days</option>
             <option value="30">Last 30 days</option>
@@ -40,14 +76,19 @@
             <option value="all">All time</option>
           </select>
         </div>
+
+        <!-- Spacer -->
+        <div class="flex-1 hidden sm:block"></div>
+
+        <!-- Refresh Button -->
         <button
           v-if="authStore.isAdmin || authStore.isSuperAdmin"
           @click="refreshDashboard"
           :disabled="refreshing"
-          class="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm font-medium"
+          class="btn btn-secondary flex-shrink-0"
         >
           <svg 
-            class="w-4 h-4" 
+            class="w-5 h-5" 
             :class="{ 'animate-spin': refreshing }"
             fill="none" 
             stroke="currentColor" 
@@ -55,27 +96,32 @@
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          {{ refreshing ? 'Loading...' : 'Refresh' }}
+          <span class="hidden sm:inline">{{ refreshing ? 'Loading...' : 'Refresh' }}</span>
+          <span class="sm:hidden">{{ refreshing ? '...' : 'Refresh' }}</span>
         </button>
+
+        <!-- Mobile/Tablet: Place Order Button (Full Width) -->
         <router-link
-          v-if="authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport"
+          v-if="(authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) && !authStore.isClient"
           to="/admin/orders/create"
-          class="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          class="flex lg:hidden items-center justify-center gap-2.5 px-5 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all shadow-md hover:shadow-lg active:scale-95 font-semibold text-base flex-1 sm:flex-initial group"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
           </svg>
-          Place Order
+          <span>Place Order</span>
         </router-link>
+
+        <!-- Mobile/Tablet: Client Create Order Button -->
         <router-link
           v-if="authStore.isClient"
           to="/orders/wizard"
-          class="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors shadow-sm hover:shadow-md font-semibold"
+          class="flex lg:hidden items-center justify-center gap-2.5 px-5 py-3 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all shadow-md hover:shadow-lg active:scale-95 font-semibold text-base flex-1 sm:flex-initial group"
         >
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+          <svg class="w-5 h-5 sm:w-6 sm:h-6 group-hover:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4" />
           </svg>
-          Create Order
+          <span>Create Order</span>
         </router-link>
       </div>
     </div>
@@ -208,57 +254,47 @@
       :loading="loading.summary"
     />
 
-    <!-- Admin/Superadmin Quick Actions - Improved Layout -->
+    <!-- Admin/Superadmin Quick Actions - Modern Icons -->
     <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="mb-8">
-      <div class="flex items-center justify-between mb-4">
-        <h2 class="text-lg font-semibold text-gray-900">Quick Actions</h2>
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100">Quick Actions</h2>
       </div>
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-        <router-link 
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
+        <QuickActionCard 
           to="/admin/orders" 
-          class="group relative bg-white rounded-xl shadow-sm p-5 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-400"
-        >
-          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">📝</div>
-          <div class="font-semibold text-gray-900 mb-1">Orders</div>
-          <div class="text-xs text-gray-500">Manage all orders</div>
-          <div class="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        </router-link>
-        <router-link 
+          icon="orders"
+          title="Orders"
+          description="Manage all orders"
+          color="blue"
+        />
+        <QuickActionCard 
           to="/admin/users" 
-          class="group relative bg-white rounded-xl shadow-sm p-5 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-400"
-        >
-          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">👥</div>
-          <div class="font-semibold text-gray-900 mb-1">Users</div>
-          <div class="text-xs text-gray-500">Manage users</div>
-          <div class="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        </router-link>
-        <router-link 
+          icon="users"
+          title="Users"
+          description="Manage users"
+          color="purple"
+        />
+        <QuickActionCard 
           to="/admin/payments/writer-payments" 
-          class="group relative bg-white rounded-xl shadow-sm p-5 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-400"
-        >
-          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">💳</div>
-          <div class="font-semibold text-gray-900 mb-1">Payments</div>
-          <div class="text-xs text-gray-500">Writer payouts</div>
-          <div class="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        </router-link>
-        <router-link 
+          icon="payments"
+          title="Payments"
+          description="Writer payouts"
+          color="green"
+        />
+        <QuickActionCard 
           to="/admin/refunds" 
-          class="group relative bg-white rounded-xl shadow-sm p-5 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-400"
-        >
-          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">↩️</div>
-          <div class="font-semibold text-gray-900 mb-1">Refunds</div>
-          <div class="text-xs text-gray-500">Process refunds</div>
-          <div class="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        </router-link>
-        <router-link 
+          icon="refunds"
+          title="Refunds"
+          description="Process refunds"
+          color="amber"
+        />
+        <QuickActionCard 
           to="/websites" 
-          class="group relative bg-white rounded-xl shadow-sm p-5 text-center transition-all duration-200 hover:shadow-lg hover:scale-[1.02] border-2 border-gray-200 hover:border-primary-400"
-        >
-          <div class="text-4xl mb-3 group-hover:scale-110 transition-transform">🌐</div>
-          <div class="font-semibold text-gray-900 mb-1">Websites</div>
-          <div class="text-xs text-gray-500">Multi-tenant</div>
-          <div class="absolute top-2 right-2 w-2 h-2 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-        </router-link>
+          icon="websites"
+          title="Websites"
+          description="Multi-tenant"
+          color="cyan"
+        />
       </div>
     </div>
 
@@ -279,70 +315,67 @@
       </div>
     </router-link>
 
-    <!-- Summary Stats Grid (Admin/Superadmin) - Primary Metrics - Flup Style -->
+    <!-- Summary Stats Grid (Admin/Superadmin) - Primary Metrics -->
     <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-      <div
-        v-for="stat in summaryStats"
-        :key="stat.name"
-        class="group bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-lg hover:border-gray-200 transition-all duration-300"
-      >
-        <div class="flex items-start justify-between mb-3">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ stat.name }}</span>
-          <div v-if="stat.change !== null && stat.change !== undefined" class="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold"
-            :class="stat.change > 0 ? 'bg-green-50 text-green-700' : stat.change < 0 ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-600'">
-            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path v-if="stat.change > 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              <path v-else-if="stat.change < 0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-              <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 12h14" />
-            </svg>
-            <span>{{ formatPercentageChange(stat.change) }}</span>
-          </div>
-        </div>
-        <div class="text-3xl font-bold text-gray-900 mb-1 tracking-tight">{{ stat.value }}</div>
-        <p v-if="stat.subtitle" class="text-xs text-gray-500 mt-2 leading-relaxed">{{ stat.subtitle }}</p>
-      </div>
+      <!-- Use MoneyCard for financial metrics -->
+      <template v-for="stat in summaryStats" :key="stat.name">
+        <MoneyCard 
+          v-if="stat.isCurrency"
+          :amount="stat.rawAmount"
+          :label="stat.name"
+          :subtitle="stat.subtitle"
+          :change="stat.change"
+          :iconName="stat.iconName"
+          :color="stat.color"
+          size="md"
+          :maxLength="10"
+        />
+        
+        <!-- Regular stat card for non-currency metrics -->
+        <StatCard
+          v-else
+          :label="stat.name"
+          :value="stat.value"
+          :subtitle="stat.subtitle"
+          :change="stat.change"
+          :iconName="stat.iconName"
+          :color="stat.color"
+          :gradient="true"
+          :loading="loading.summary"
+        />
+      </template>
     </div>
 
     <!-- Key Metrics Grid (Admin/Superadmin) - Secondary Metrics -->
     <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-8">
-      <div
+      <StatCard
         v-for="metric in keyMetrics"
         :key="metric.name"
-        class="group bg-white rounded-2xl shadow-sm p-5 hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-gray-200"
-      >
-        <div class="flex items-start justify-between">
-          <div class="flex-1 min-w-0">
-            <p class="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">{{ metric.name }}</p>
-            <p 
-              :class="[
-                'font-bold text-gray-900 mb-1 tracking-tight',
-                metric.size === 'compact' ? 'text-xl' : 'text-2xl'
-              ]"
-            >{{ metric.value }}</p>
-            <p v-if="metric.subtitle" class="text-xs text-gray-500 mt-1 leading-relaxed">{{ metric.subtitle }}</p>
-          </div>
-          <div class="p-3 rounded-xl ml-3 shrink-0 transition-transform group-hover:scale-110" :class="metric.bgColor || 'bg-gray-100'">
-            <span class="text-xl">{{ metric.icon }}</span>
-          </div>
-        </div>
-      </div>
+        :label="metric.name"
+        :value="metric.value"
+        :subtitle="metric.subtitle"
+        :iconName="metric.iconName"
+        :color="metric.color"
+        :gradient="true"
+        :loading="loading.summary"
+        :valueSize="metric.size === 'compact' ? 'text-xl' : 'text-2xl'"
+      />
     </div>
 
     <!-- User Statistics (Admin/Superadmin) -->
     <div v-if="authStore.isAdmin || authStore.isSuperAdmin" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5 mb-8">
-      <div
+      <StatCard
         v-for="stat in userStats"
         :key="stat.name"
-        class="group bg-gradient-to-br from-white to-gray-50 rounded-2xl shadow-sm p-5 border border-gray-100 hover:shadow-lg hover:scale-[1.02] transition-all duration-300"
-      >
-        <div class="flex items-center justify-between mb-3">
-          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wider">{{ stat.name }}</p>
-          <span class="text-xl transition-transform group-hover:scale-110">{{ stat.icon }}</span>
-        </div>
-        <p v-if="loading.summary" class="text-2xl font-bold text-gray-300 animate-pulse mb-1 tracking-tight">—</p>
-        <p v-else class="text-2xl font-bold text-gray-900 mb-1 tracking-tight">{{ stat.value }}</p>
-        <p v-if="stat.percentage !== undefined && !loading.summary" class="text-xs text-gray-500 mt-1">{{ stat.percentage }}% of total</p>
-      </div>
+        :label="stat.name"
+        :value="stat.value"
+        :subtitle="`${stat.percentage}% of total users`"
+        :iconName="stat.iconName"
+        :color="stat.color"
+        :gradient="true"
+        :loading="loading.summary"
+        valueSize="text-2xl"
+      />
     </div>
 
     <!-- Order Status Metrics Quick Link (Admin/Superadmin) -->
@@ -643,6 +676,10 @@ import EditorDashboard from './components/EditorDashboard.vue'
 import SupportDashboard from './components/SupportDashboard.vue'
 import GitHubStyleHeatmap from '@/components/dashboard/GitHubStyleHeatmap.vue'
 import CopyableIdChip from '@/components/common/CopyableIdChip.vue'
+import StatIcon from '@/components/common/StatIcon.vue'
+import QuickActionCard from '@/components/common/QuickActionCard.vue'
+import MoneyCard from '@/components/common/MoneyCard.vue'
+import StatCard from '@/components/common/StatCard.vue'
 import { useReliableOrders } from '@/composables/useReliableOrders'
 import { useConnectionStatus } from '@/composables/useConnectionStatus'
 import { useMultipleLoadingStates } from '@/composables/useLoadingState'
@@ -790,10 +827,10 @@ const currentMonthName = computed(() => {
 const editorStats = computed(() => {
   if (!editorDashboardData.value) {
     return [
-      { name: 'Active Tasks', value: '0', icon: '📋' },
-      { name: 'Completed Reviews', value: '0', icon: '✅' },
-      { name: 'Pending Tasks', value: '0', icon: '⏳' },
-      { name: 'Average Score', value: '0.0', icon: '⭐' },
+      { name: 'Active Tasks', value: '0', iconName: 'clipboard', color: 'blue' },
+      { name: 'Completed Reviews', value: '0', iconName: 'check', color: 'green' },
+      { name: 'Pending Tasks', value: '0', iconName: 'clock', color: 'amber' },
+      { name: 'Average Score', value: '0.0', iconName: 'star', color: 'yellow' },
     ]
   }
   const data = editorDashboardData.value
@@ -807,22 +844,26 @@ const editorStats = computed(() => {
     { 
       name: 'Active Tasks', 
       value: summary.active_tasks_count || (taskBreakdown.pending || 0) + (taskBreakdown.in_review || 0) || 0, 
-      icon: '📋' 
+      iconName: 'clipboard',
+      color: 'blue'
     },
     { 
       name: 'Completed Reviews', 
       value: summary.recent_completions || taskBreakdown.completed || performance.total_orders_reviewed || 0, 
-      icon: '✅' 
+      iconName: 'check',
+      color: 'green'
     },
     { 
       name: 'Pending Tasks', 
       value: summary.pending_tasks_count || taskBreakdown.pending || 0, 
-      icon: '⏳' 
+      iconName: 'clock',
+      color: 'amber' 
     },
     { 
       name: 'Average Score', 
       value: (performance.average_quality_score || 0).toFixed(1), 
-      icon: '⭐' 
+      iconName: 'star',
+      color: 'amber'
     },
   ]
 })
@@ -843,7 +884,8 @@ const enhancedWriterStats = computed(() => {
     { 
       name: 'Total Earnings', 
       value: earnings?.total_earnings ? `$${earnings.total_earnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$0.00', 
-      icon: '💰',
+      iconName: 'dollar',
+      color: 'green',
       subtitle: earnings?.this_month ? `$${earnings.this_month.toFixed(2)} earned this month` : 'Start earning today',
       trend: earnings?.earnings_trend?.length > 1 ? calculateTrend(earnings.earnings_trend) : null,
       gradientBg: 'bg-gradient-to-br from-green-50 to-emerald-50',
@@ -856,7 +898,8 @@ const enhancedWriterStats = computed(() => {
     { 
       name: 'Completed Orders', 
       value: (performance?.completed_orders || 0).toLocaleString(), 
-      icon: '✅',
+      iconName: 'check-badge',
+      color: 'emerald',
       subtitle: performance?.completion_rate ? `${performance.completion_rate.toFixed(1)}% completion rate` : 'No orders yet',
       trend: null,
       gradientBg: 'bg-gradient-to-br from-blue-50 to-indigo-50',
@@ -882,7 +925,8 @@ const enhancedWriterStats = computed(() => {
     { 
       name: 'Average Rating', 
       value: performance?.avg_rating ? `${performance.avg_rating.toFixed(1)}` : 'N/A', 
-      icon: '⭐',
+      iconName: 'star',
+      color: 'amber',
       subtitle: performance?.total_reviews ? `From ${performance.total_reviews} reviews` : 'No reviews yet',
       trend: null,
       gradientBg: 'bg-gradient-to-br from-yellow-50 to-amber-50',
@@ -907,7 +951,8 @@ const writerQuickMetrics = computed(() => {
     {
       name: 'Active Orders',
       value: performance?.active_orders || performance?.total_orders || 0,
-      icon: '📝',
+      iconName: 'orders',
+      color: 'blue',
       description: 'Currently assigned'
     },
     {
@@ -925,7 +970,8 @@ const writerQuickMetrics = computed(() => {
     {
       name: 'Revision Rate',
       value: performance?.revision_rate ? `${performance.revision_rate.toFixed(1)}%` : '0%',
-      icon: '📝',
+      iconName: 'arrow-path',
+      color: 'amber',
       description: `${performance?.revised_orders || 0} revised`
     },
     {
@@ -955,13 +1001,15 @@ const writerStats = computed(() => {
     { 
       name: 'Total Earnings', 
       value: earnings?.total_earnings ? `$${earnings.total_earnings.toFixed(2)}` : '$0.00', 
-      icon: '💰',
+      iconName: 'dollar',
+      color: 'green',
       subtitle: earnings?.this_month ? `$${earnings.this_month.toFixed(2)} this month` : ''
     },
     { 
       name: 'Completed Orders', 
       value: performance?.completed_orders || 0, 
-      icon: '✅',
+      iconName: 'check',
+      color: 'emerald',
       subtitle: performance?.completion_rate ? `${performance.completion_rate.toFixed(1)}% completion rate` : 'No data'
     },
     { 
@@ -983,18 +1031,18 @@ const writerStats = computed(() => {
 const supportStats = computed(() => {
   if (!supportDashboardData.value) {
     return [
-      { name: 'Open Tickets', value: '0', icon: '🎫' },
-      { name: 'Resolved Today', value: '0', icon: '✅' },
-      { name: 'Pending Orders', value: '0', icon: '⏳' },
-      { name: 'Escalations', value: '0', icon: '🚨' },
+      { name: 'Open Tickets', value: '0', iconName: 'ticket', color: 'blue' },
+      { name: 'Resolved Today', value: '0', iconName: 'check', color: 'green' },
+      { name: 'Pending Orders', value: '0', iconName: 'clock', color: 'amber' },
+      { name: 'Escalations', value: '0', iconName: 'exclamation', color: 'red' },
     ]
   }
   const data = supportDashboardData.value
   return [
-    { name: 'Open Tickets', value: data.open_tickets_count || 0, icon: '🎫' },
-    { name: 'Resolved Today', value: data.resolved_today_count || 0, icon: '✅' },
-    { name: 'Pending Orders', value: data.pending_orders_count || 0, icon: '⏳' },
-    { name: 'Escalations', value: data.escalations_count || 0, icon: '🚨' },
+    { name: 'Open Tickets', value: data.open_tickets_count || 0, iconName: 'ticket', color: 'blue' },
+    { name: 'Resolved Today', value: data.resolved_today_count || 0, iconName: 'check', color: 'green' },
+    { name: 'Pending Orders', value: data.pending_orders_count || 0, iconName: 'clock', color: 'amber' },
+    { name: 'Escalations', value: data.escalations_count || 0, iconName: 'exclamation', color: 'red' },
   ]
 })
 
@@ -1003,10 +1051,10 @@ const summaryStats = computed(() => {
   // Show loading state with placeholders
   if (!summaryData.value || loading.value.summary) {
     return [
-      { name: 'Total Orders', value: loading.value.summary ? '—' : '0', icon: '📝', change: null, subtitle: loading.value.summary ? 'Loading...' : 'No data', bgColor: 'bg-blue-100' },
-      { name: 'Total Revenue', value: loading.value.summary ? '—' : '$0.00', icon: '💰', change: null, subtitle: loading.value.summary ? 'Loading...' : 'No data', bgColor: 'bg-green-100' },
-      { name: 'Paid Orders', value: loading.value.summary ? '—' : '0', icon: '✅', change: null, subtitle: loading.value.summary ? 'Loading...' : 'No data', bgColor: 'bg-emerald-100' },
-      { name: 'Unpaid Orders', value: loading.value.summary ? '—' : '0', icon: '⏳', change: null, subtitle: loading.value.summary ? 'Loading...' : 'No data', bgColor: 'bg-amber-100' },
+      { name: 'Total Orders', value: loading.value.summary ? '—' : '0', iconName: 'orders', color: 'blue', change: null, subtitle: loading.value.summary ? 'Loading...' : 'No data', isCurrency: false },
+      { name: 'Total Revenue', value: loading.value.summary ? '—' : '$0.00', rawAmount: 0, iconName: 'dollar', color: 'green', change: null, subtitle: loading.value.summary ? 'Loading...' : 'No data', isCurrency: true },
+      { name: 'Orders in Progress', value: loading.value.summary ? '—' : '0', iconName: 'cog', color: 'indigo', change: null, subtitle: loading.value.summary ? 'Loading...' : 'No data', isCurrency: false },
+      { name: 'Amount Paid Today', value: loading.value.summary ? '—' : '$0.00', rawAmount: 0, iconName: 'cash', color: 'emerald', change: null, subtitle: loading.value.summary ? 'Loading...' : 'No data', isCurrency: true },
     ]
   }
 
@@ -1067,38 +1115,40 @@ const summaryStats = computed(() => {
     {
       name: 'Total Orders',
       value: totalOrders.toLocaleString(),
-      icon: '📝',
+      iconName: 'orders',
+      color: 'blue',
       change: calculateChange(totalOrders, prevTotalOrders),
       subtitle: recentOrders > 0 ? (recentOrders + ' in last 7 days') : 'No orders in last 7 days',
-      bgColor: 'bg-blue-100',
-      size: 'normal',
+      isCurrency: false,
     },
     {
       name: 'Total Revenue',
       value: formatLargeCurrency(totalRevenue),
-      icon: '💰',
+      rawAmount: totalRevenue,
+      iconName: 'dollar',
+      color: 'green',
       change: calculateChange(totalRevenue, prevTotalRevenue),
       subtitle: paidOrders > 0 ? ('From ' + paidOrders.toLocaleString() + ' paid order' + (paidOrders !== 1 ? 's' : '')) : 'No paid orders yet',
-      bgColor: 'bg-gradient-to-br from-green-100 to-emerald-100',
-      size: 'large',
+      isCurrency: true,
     },
     {
       name: 'Orders in Progress',
       value: ordersInProgress.toLocaleString(),
-      icon: '⚙️',
+      iconName: 'cog',
+      color: 'indigo',
       change: calculateChange(ordersInProgress, prevOrdersInProgress),
       subtitle: 'Active work in progress',
-      bgColor: 'bg-indigo-100',
-      size: 'normal',
+      isCurrency: false,
     },
     {
       name: 'Amount Paid Today',
       value: formatAmountPaidToday(amountPaidToday),
-      icon: '💵',
+      rawAmount: amountPaidToday,
+      iconName: 'cash',
+      color: 'emerald',
       change: calculateChange(amountPaidToday, prevAmountPaidToday),
       subtitle: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      bgColor: 'bg-emerald-100',
-      size: amountPaidToday >= 10000 ? 'compact' : 'normal',
+      isCurrency: true,
     },
   ]
 })
@@ -1168,11 +1218,11 @@ const userStats = computed(() => {
   // Show loading state with placeholders
   if (!summaryData.value || loading.value.summary) {
     return [
-      { name: 'WRITERS', value: loading.value.summary ? '—' : '0', icon: '✍️', percentage: '0.0' },
-      { name: 'CLIENTS', value: loading.value.summary ? '—' : '0', icon: '👤', percentage: '0.0' },
-      { name: 'EDITORS', value: loading.value.summary ? '—' : '0', icon: '📝', percentage: '0.0' },
-      { name: 'SUPPORT', value: loading.value.summary ? '—' : '0', icon: '🎧', percentage: '0.0' },
-      { name: 'SUSPENDED', value: loading.value.summary ? '—' : '0', icon: '🚫', percentage: '0.0' },
+      { name: 'WRITERS', value: loading.value.summary ? '—' : '0', iconName: 'pencil', color: 'blue', percentage: '0.0' },
+      { name: 'CLIENTS', value: loading.value.summary ? '—' : '0', iconName: 'user', color: 'purple', percentage: '0.0' },
+      { name: 'EDITORS', value: loading.value.summary ? '—' : '0', iconName: 'document', color: 'indigo', percentage: '0.0' },
+      { name: 'SUPPORT', value: loading.value.summary ? '—' : '0', iconName: 'ticket', color: 'emerald', percentage: '0.0' },
+      { name: 'SUSPENDED', value: loading.value.summary ? '—' : '0', iconName: 'ban', color: 'red', percentage: '0.0' },
     ]
   }
   
@@ -1194,31 +1244,36 @@ const userStats = computed(() => {
     {
       name: 'WRITERS',
       value: totalWriters.toLocaleString(),
-      icon: '✍️',
+      iconName: 'pencil',
+      color: 'blue',
       percentage: calculatePercentage(totalWriters),
     },
     {
       name: 'CLIENTS',
       value: totalClients.toLocaleString(),
-      icon: '👤',
+      iconName: 'user',
+      color: 'purple',
       percentage: calculatePercentage(totalClients),
     },
     {
       name: 'EDITORS',
       value: totalEditors.toLocaleString(),
-      icon: '📝',
+      iconName: 'document',
+      color: 'indigo',
       percentage: calculatePercentage(totalEditors),
     },
     {
       name: 'SUPPORT',
       value: totalSupport.toLocaleString(),
-      icon: '🎧',
+      iconName: 'ticket',
+      color: 'emerald',
       percentage: calculatePercentage(totalSupport),
     },
     {
       name: 'SUSPENDED',
       value: suspendedUsers.toLocaleString(),
-      icon: '🚫',
+      iconName: 'ban',
+      color: 'red',
       percentage: calculatePercentage(suspendedUsers),
     },
   ]
