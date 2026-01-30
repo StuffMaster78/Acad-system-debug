@@ -22,9 +22,9 @@ from special_orders.serializers import (
 )
 from special_orders.services.special_order_service import SpecialOrderService
 from special_orders.services.installment_payment_service import InstallmentPaymentService
-from special_orders.services.order_approval import OrderApprovalService
 from special_orders.services.installment_payment_processor import SpecialOrderInstallmentPaymentService
 from special_orders.services.streamlined_order_service import StreamlinedSpecialOrderService
+from special_orders.services.services_orders import override_payment as override_special_order_payment
 import logging
 
 logger = logging.getLogger("special_orders")
@@ -45,15 +45,29 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
         Return filtered queryset based on user role.
         """
         user = self.request.user
-        if user.is_staff:
-            return SpecialOrder.objects.all().order_by('-created_at')
-        return SpecialOrder.objects.filter(client=user).order_by('-created_at')
+        queryset = self.queryset
+        if user.is_staff or getattr(user, 'role', None) in ['admin', 'superadmin', 'support']:
+            return queryset
+        if getattr(user, 'role', None) == 'writer':
+            return queryset.filter(writer=user)
+        if getattr(user, 'role', None) in ['client', 'customer']:
+            return queryset.filter(client=user)
+        return queryset.none()
 
-    def perform_create(self, serializer):
+    def create(self, request, *args, **kwargs):
         """
-        Assign the current user as client on creation.
+        Streamlined creation for special orders.
         """
-        serializer.save(client=self.request.user)
+        try:
+            order = StreamlinedSpecialOrderService.place_order(
+                data=request.data,
+                client=request.user
+            )
+            serializer = SpecialOrderSerializer(order, context={'request': request})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            logger.exception(f"Error creating special order: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def approve(self, request, pk=None):
@@ -61,13 +75,25 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
         Admin endpoint to approve a special order.
         """
         order = self.get_object()
-        OrderApprovalService.approve_special_order(order, request.user)
-        logger.info(f"Order #{order.id} approved by admin {request.user.username}.")
-        return Response({
-            'status': 'approved',
-            'order_status': order.status,
-            'message': f"Order approved. Status: {order.status}"
-        })
+        try:
+            result = StreamlinedSpecialOrderService.approve_and_assign(
+                order=order,
+                admin_user=request.user,
+                writer_id=None,
+                writer_payment_amount=None,
+                writer_payment_percentage=None,
+                auto_assign=False
+            )
+            logger.info(f"Order #{order.id} approved by admin {request.user.username}.")
+            return Response({
+                'status': 'approved',
+                'order_status': result['status'],
+                'writer_assigned': result['writer_assigned'],
+                'message': f"Order approved. Status: {result['status']}"
+            })
+        except Exception as e:
+            logger.exception(f"Error approving order {order.id}: {e}")
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def override_payment(self, request, pk=None):
@@ -75,9 +101,38 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
         Admin endpoint to override payment status.
         """
         order = self.get_object()
-        SpecialOrderService.override_payment(order)
+        override_special_order_payment(order, request.user)
+        if order.is_approved:
+            if order.writer:
+                order.status = 'in_progress'
+            else:
+                order.status = 'awaiting_approval'
+            order.save(update_fields=['status'])
         logger.info(f"Payment overridden for order #{order.id}")
         return Response({'status': 'payment overridden'})
+
+    def update(self, request, *args, **kwargs):
+        """
+        Align updates with streamlined pricing when price fields change.
+        """
+        order = self.get_object()
+        if any(key in request.data for key in ('total_cost', 'price_per_day')):
+            if not request.user.is_staff:
+                return Response({'error': 'Only staff can update pricing.'}, status=status.HTTP_403_FORBIDDEN)
+            try:
+                updated_order = StreamlinedSpecialOrderService.set_price(
+                    order=order,
+                    admin_user=request.user,
+                    total_cost=request.data.get('total_cost'),
+                    price_per_day=request.data.get('price_per_day'),
+                    admin_notes=request.data.get('admin_notes')
+                )
+                serializer = SpecialOrderSerializer(updated_order, context={'request': request})
+                return Response(serializer.data)
+            except Exception as e:
+                logger.exception(f"Error updating price for order {order.id}: {e}")
+                return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return super().update(request, *args, **kwargs)
 
     @action(detail=True, methods=['post'], permission_classes=[IsAdminUser])
     def assign_writer(self, request, pk=None):
@@ -160,10 +215,14 @@ class SpecialOrderViewSet(viewsets.ModelViewSet):
                 order.admin_notes = (order.admin_notes or '') + '\n' + admin_notes
                 order.save()
             
-            # Update status if needed
-            if order.status == 'awaiting_approval':
+            # Update status if approved and deposit is paid
+            deposit_paid = (
+                order.admin_marked_paid or
+                (order.deposit_required and order.installments.filter(is_paid=True).exists())
+            )
+            if order.is_approved and deposit_paid:
                 order.status = 'in_progress'
-                order.save()
+                order.save(update_fields=['status'])
             
             logger.info(f"Writer {writer.username} assigned to special order #{order.id} with payment: amount={payment_amount_decimal}, percentage={payment_percentage_decimal}")
             

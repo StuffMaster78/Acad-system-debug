@@ -21,6 +21,19 @@ export default {
     return apiClient.post('/order-communications/communication-threads/start-for-order/', payload)
   },
   /**
+   * Simplified method to start a conversation for a special order.
+   * @param {number} specialOrderId - The special order ID
+   * @param {number} recipientId - Optional: specific recipient ID for the thread
+   * @returns {Promise} API response with thread data
+   */
+  startThreadForSpecialOrder: (specialOrderId, recipientId = null) => {
+    const payload = { special_order_id: specialOrderId }
+    if (recipientId) {
+      payload.recipient_id = recipientId
+    }
+    return apiClient.post('/order-communications/communication-threads/start-for-special-order/', payload)
+  },
+  /**
    * Create a general messaging thread (not order-related)
    * @param {number} recipientId - The recipient user ID
    * @param {string} message - Initial message text
@@ -83,6 +96,7 @@ export default {
   }),
   getAvailableRecipients: (threadId) => apiClient.get(`/order-communications/communication-threads/${threadId}/communication-messages/available_recipients/`),
   getOrderRecipients: (orderId) => apiClient.get(`/order-communications/communication-threads/order-recipients/`, { params: { order_id: orderId } }),
+  getSpecialOrderRecipients: (specialOrderId) => apiClient.get(`/order-communications/communication-threads/special-order-recipients/`, { params: { special_order_id: specialOrderId } }),
   
   // Notifications
   listNotifications: (params) => apiClient.get('/order-communications/communication-notifications/', { params }),

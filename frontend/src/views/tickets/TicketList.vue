@@ -34,6 +34,25 @@
             <router-link :to="`/tickets/${t.id}`" class="text-primary-600 text-sm">Open</router-link>
           </li>
         </ul>
+        <div v-if="pagination.count" class="mt-4 flex items-center justify-between text-sm text-gray-600">
+          <div>{{ pagination.count }} total</div>
+          <div class="flex gap-2">
+            <button
+              :disabled="!pagination.previous"
+              @click="loadPage(pagination.previous)"
+              class="px-3 py-1.5 rounded border disabled:opacity-50"
+            >
+              Previous
+            </button>
+            <button
+              :disabled="!pagination.next"
+              @click="loadPage(pagination.next)"
+              class="px-3 py-1.5 rounded border disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -42,20 +61,34 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import ticketsAPI from '@/api/tickets'
+import apiClient from '@/api/client'
 
 const loading = ref(true)
 const tickets = ref([])
 const filters = ref({ search: '', status: '', order_id: null })
+const pagination = ref({ next: null, previous: null, count: 0 })
 
-const fetchTickets = async () => {
+const fetchTickets = async (url = null) => {
   loading.value = true
   try {
-    const params = {}
-    if (filters.value.search) params.search = filters.value.search
-    if (filters.value.status) params.status = filters.value.status
-    if (filters.value.order_id) params.order_id = filters.value.order_id
-    const res = await ticketsAPI.list(params)
+    let res
+    if (url) {
+      const urlObj = new URL(url)
+      const path = urlObj.pathname + urlObj.search
+      res = await apiClient.get(path)
+    } else {
+      const params = { page_size: 50 }
+      if (filters.value.search) params.search = filters.value.search
+      if (filters.value.status) params.status = filters.value.status
+      if (filters.value.order_id) params.order_id = filters.value.order_id
+      res = await ticketsAPI.list(params)
+    }
     tickets.value = Array.isArray(res.data?.results) ? res.data.results : (res.data || [])
+    pagination.value = {
+      next: res.data?.next || null,
+      previous: res.data?.previous || null,
+      count: res.data?.count || tickets.value.length,
+    }
   } finally {
     loading.value = false
   }
@@ -63,6 +96,11 @@ const fetchTickets = async () => {
 
 const applyFilters = () => {
   fetchTickets()
+}
+
+const loadPage = (url) => {
+  if (!url) return
+  fetchTickets(url)
 }
 
 const badgeClass = (status) => {

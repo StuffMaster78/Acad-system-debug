@@ -4,7 +4,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from django_filters.rest_framework import DjangoFilterBackend
+from django.core.cache import cache
 from notifications_system.models.notifications import Notification
+from notifications_system.models.notifications_user_status import NotificationsUserStatus
 from notifications_system.serializers import NotificationSerializer
 from notifications_system.throttles import NotificationThrottle
 from notifications_system.filters import NotificationFilter
@@ -51,10 +53,24 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     def unread_count(self, request):
         """Get unread count including both Notification and CommunicationNotification."""
         from communications.models import CommunicationNotification
-        
-        # Count general notifications
-        general_count = self.get_queryset().filter(is_read=False).count()
-        
+
+        cache_key = f"notifications:unread_count:{request.user.id}"
+        cached_count = cache.get(cache_key)
+        if cached_count is not None:
+            return Response({"unread_count": cached_count})
+
+        # Count general notifications (use per-user status table when applicable)
+        if request.user.is_staff:
+            general_count = Notification.objects.filter(
+                user=request.user,
+                is_read=False
+            ).count()
+        else:
+            general_count = NotificationsUserStatus.objects.filter(
+                user=request.user,
+                is_read=False
+            ).count()
+
         # Count communication notifications (message notifications)
         comm_count = CommunicationNotification.objects.filter(
             recipient=request.user,
@@ -63,6 +79,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         
         # Total unread count
         total_count = general_count + comm_count
+        cache.set(cache_key, total_count, timeout=10)
         return Response({"unread_count": total_count})
 
     @action(detail=True, methods=["post"])
@@ -71,6 +88,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
         if not notification.is_read:
             notification.is_read = True
             notification.save(update_fields=["is_read"])
+        cache.delete(f"notifications:unread_count:{request.user.id}")
         return Response(
             {"status": "marked as read"}
         )
@@ -78,6 +96,7 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
     @action(detail=False, methods=["post"])
     def mark_all_as_read(self, request):
         count = self.get_queryset().filter(is_read=False).update(is_read=True)
+        cache.delete(f"notifications:unread_count:{request.user.id}")
         return Response(
             {"status": "all marked as read",
              "updated": count}

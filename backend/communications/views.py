@@ -46,10 +46,14 @@ class MessagePagination(PageNumberPagination):
 class CommunicationThreadViewSet(viewsets.ModelViewSet):
     queryset = CommunicationThread.objects.select_related(
         'order',
+        'special_order',
         'website',
         'order__client',
         'order__assigned_writer',
-        'order__website'
+        'order__website',
+        'special_order__client',
+        'special_order__writer',
+        'special_order__website'
     ).prefetch_related(
         'participants',
         Prefetch(
@@ -95,20 +99,24 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         if role == "writer":
             writer_role_filter = Q(sender_role="writer") | Q(recipient_role="writer")
             writer_order_filter = Q(order__assigned_writer=user)
-            writer_visible = participant_filter | (writer_order_filter & writer_role_filter)
-            return queryset.filter(writer_visible).distinct().order_by('-updated_at', '-id')
+            writer_special_filter = Q(special_order__writer=user)
+            writer_visible = participant_filter | (writer_order_filter & writer_role_filter) | (writer_special_filter & writer_role_filter)
+            queryset = queryset.filter(writer_visible).distinct()
+            return self._filter_by_targets(queryset).order_by('-updated_at', '-id')
 
         # For clients: threads where they are participants OR client-involved threads
         # for orders they own.
         if role == "client":
             client_role_filter = Q(sender_role="client") | Q(recipient_role="client")
             client_order_filter = Q(order__client=user)
-            client_visible = participant_filter | (client_order_filter & client_role_filter)
-            return queryset.filter(client_visible).distinct().order_by('-updated_at', '-id')
+            client_special_filter = Q(special_order__client=user)
+            client_visible = participant_filter | (client_order_filter & client_role_filter) | (client_special_filter & client_role_filter)
+            queryset = queryset.filter(client_visible).distinct()
+            return self._filter_by_targets(queryset).order_by('-updated_at', '-id')
         
         # For admin/superadmin: can see all threads
         if role in {"admin", "superadmin"}:
-            return queryset.order_by('-updated_at', '-id')
+            return self._filter_by_targets(queryset).order_by('-updated_at', '-id')
         
         # For support/editor: can see threads where they are participants OR client-writer threads
         # But NOT admin-client threads where they're not participants
@@ -138,10 +146,22 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
             
             # Combine: participant threads OR client-writer threads (but exclude admin-client threads where not participant)
             combined_filter = participant_threads | (client_writer_threads & ~admin_client_threads)
-            return queryset.filter(combined_filter).distinct().order_by('-updated_at', '-id')
+            queryset = queryset.filter(combined_filter).distinct()
+            return self._filter_by_targets(queryset).order_by('-updated_at', '-id')
         
         # Default: only participant threads
-        return queryset.filter(participant_filter).distinct().order_by('-updated_at', '-id')
+        queryset = queryset.filter(participant_filter).distinct()
+        return self._filter_by_targets(queryset).order_by('-updated_at', '-id')
+
+    def _filter_by_targets(self, queryset):
+        """Filter threads by order/special_order query params when provided."""
+        order_id = self.request.query_params.get("order")
+        if order_id:
+            queryset = queryset.filter(order_id=order_id)
+        special_order_id = self.request.query_params.get("special_order")
+        if special_order_id:
+            queryset = queryset.filter(special_order_id=special_order_id)
+        return queryset
 
     @action(detail=True, methods=['post'], url_path='typing')
     def typing(self, request, pk=None):
@@ -203,30 +223,44 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         
         order = serializer.validated_data.get("order")  # Can be None for general threads
+        special_order = serializer.validated_data.get("special_order")
         participants = serializer.validated_data.get("participants", [])
         created_by = request.user
 
         # Check thread creation permission (only for order threads)
         if order and not getattr(created_by, "role", None) in ["admin", "superadmin"]:
             ThreadService.assert_can_create_thread(order)
+        if special_order and not (
+            created_by.is_staff or getattr(created_by, "role", None) in ["admin", "superadmin", "support"]
+            or special_order.client == created_by
+            or special_order.writer == created_by
+        ):
+            return Response(
+                {"detail": "You do not have permission to create a thread for this special order."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         # Auto-determine participants if not provided (simplified approach)
-        if not participants and order:
+        if not participants and (order or special_order):
             # If no participants specified, auto-determine based on order
             participants = [created_by]  # Always include the creator
             
             # Add order client if exists and different from creator
-            if order.client and order.client != created_by:
+            if order and order.client and order.client != created_by:
                 participants.append(order.client)
+            if special_order and special_order.client and special_order.client != created_by:
+                participants.append(special_order.client)
             
             # Add assigned writer if exists and different from creator
-            if order.assigned_writer and order.assigned_writer != created_by:
+            if order and order.assigned_writer and order.assigned_writer != created_by:
                 participants.append(order.assigned_writer)
+            if special_order and special_order.writer and special_order.writer != created_by:
+                participants.append(special_order.writer)
             
             # Ensure we have at least 2 participants (creator + one other)
             # If no client or writer, add support/admin as fallback
             if len(participants) == 1:
-                website = order.website
+                website = order.website if order else special_order.website
                 if website:
                     from django.contrib.auth import get_user_model
                     User = get_user_model()
@@ -247,20 +281,38 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
                     participants.append(order.client)
                 if order.assigned_writer and order.assigned_writer not in participants:
                     participants.append(order.assigned_writer)
+            if special_order:
+                if special_order.client and special_order.client not in participants:
+                    participants.append(special_order.client)
+                if special_order.writer and special_order.writer not in participants:
+                    participants.append(special_order.writer)
 
         # Get thread_type from serializer if provided
         thread_type = serializer.validated_data.get("thread_type", "order")
-        website = serializer.validated_data.get("website") or (order.website if order else None)
+        if special_order and thread_type == "order":
+            thread_type = "special"
+        website = serializer.validated_data.get("website") or (
+            order.website if order else (special_order.website if special_order else None)
+        )
         
         # Actually create the thread
         try:
-            thread = ThreadService.create_thread(
-                order=order,
-                created_by=created_by,
-                participants=participants,
-                thread_type=thread_type,
-                website=website
-            )
+            if special_order:
+                thread = ThreadService.create_special_order_thread(
+                    special_order=special_order,
+                    created_by=created_by,
+                    participants=participants,
+                    thread_type=thread_type,
+                    website=website
+                )
+            else:
+                thread = ThreadService.create_thread(
+                    order=order,
+                    created_by=created_by,
+                    participants=participants,
+                    thread_type=thread_type,
+                    website=website
+                )
         except PermissionDenied as e:
             return Response(
                 {"detail": str(e)},
@@ -309,7 +361,7 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         website = order.website
         
         # Clients can message: support, admin, writer, editor
-        if sender_role == "client":
+        if sender_role in {"client", "customer"}:
             # Get assigned writer (anonymized)
             if order.assigned_writer and order.assigned_writer != sender:
                 recipients.append({
@@ -398,6 +450,118 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
                             'role': getattr(staff_user, 'role', None),
                         })
         
+        return Response(recipients)
+
+    @action(detail=False, methods=['get'], url_path='special-order-recipients')
+    def special_order_recipients(self, request):
+        """Get list of available recipients for a special order (before creating a thread)."""
+        special_order_id = request.query_params.get('special_order_id')
+        if not special_order_id:
+            return Response(
+                {"detail": "special_order_id parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            from special_orders.models import SpecialOrder
+            special_order = SpecialOrder.objects.get(pk=special_order_id)
+        except SpecialOrder.DoesNotExist:
+            return Response(
+                {"detail": "Special order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        sender = request.user
+        sender_role = getattr(sender, 'role', None)
+        recipients = []
+
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        website = special_order.website or getattr(sender, 'website', None)
+
+        # Clients can message: support, admin, writer, editor
+        if sender_role == "client":
+            if special_order.writer and special_order.writer != sender:
+                recipients.append({
+                    'id': special_order.writer.id,
+                    'username': f"Writer #{special_order.writer.id}",
+                    'email': None,
+                    'role': 'writer',
+                })
+
+            if website:
+                staff_users = User.objects.filter(
+                    role__in=['admin', 'superadmin', 'editor', 'support'],
+                    website=website
+                ).exclude(id=sender.id).distinct()
+
+                for staff_user in staff_users:
+                    display_name = "Support" if staff_user.role in ['admin', 'superadmin', 'support'] else "Editor"
+                    recipients.append({
+                        'id': staff_user.id,
+                        'username': display_name,
+                        'email': None,
+                        'role': getattr(staff_user, 'role', None),
+                    })
+
+        # Writers can message: clients, admin, support, editor
+        elif sender_role == "writer":
+            if special_order.client and special_order.client != sender:
+                recipients.append({
+                    'id': special_order.client.id,
+                    'username': "Client",
+                    'email': None,
+                    'role': 'client',
+                })
+
+            if website:
+                staff_users = User.objects.filter(
+                    role__in=['admin', 'superadmin', 'editor', 'support'],
+                    website=website
+                ).exclude(id=sender.id).distinct()
+
+                for staff_user in staff_users:
+                    display_name = "Support" if staff_user.role in ['admin', 'superadmin', 'support'] else "Editor"
+                    recipients.append({
+                        'id': staff_user.id,
+                        'username': display_name,
+                        'email': None,
+                        'role': getattr(staff_user, 'role', None),
+                    })
+
+        # Staff can see all (no anonymization)
+        elif sender_role in {'admin', 'superadmin', 'editor', 'support'}:
+            if special_order.client and special_order.client != sender:
+                recipients.append({
+                    'id': special_order.client.id,
+                    'username': special_order.client.username,
+                    'email': special_order.client.email,
+                    'role': getattr(special_order.client, 'role', None),
+                })
+
+            if special_order.writer and special_order.writer != sender:
+                recipients.append({
+                    'id': special_order.writer.id,
+                    'username': special_order.writer.username,
+                    'email': special_order.writer.email,
+                    'role': getattr(special_order.writer, 'role', None),
+                })
+
+            if website:
+                staff_users = User.objects.filter(
+                    role__in=['admin', 'superadmin', 'editor', 'support'],
+                    website=website
+                ).exclude(id=sender.id).distinct()
+
+                for staff_user in staff_users:
+                    if not any(r['id'] == staff_user.id for r in recipients):
+                        recipients.append({
+                            'id': staff_user.id,
+                            'username': staff_user.username,
+                            'email': staff_user.email,
+                            'role': getattr(staff_user, 'role', None),
+                        })
+
         return Response(recipients)
     
     @action(detail=False, methods=['post'], url_path='create-general-thread')
@@ -696,6 +860,140 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
                 {"detail": "An error occurred while creating the conversation thread. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+    @action(detail=False, methods=['post'], url_path='start-for-special-order')
+    def start_for_special_order(self, request):
+        """
+        Start a conversation thread for a special order with a specific recipient.
+        POST /api/v1/order-communications/communication-threads/start-for-special-order/
+        Body:
+        {
+            "special_order_id": 123,
+            "recipient_id": 456  # Optional: specific recipient for the thread
+        }
+        """
+        special_order_id = request.data.get('special_order_id')
+        recipient_id = request.data.get('recipient_id')
+
+        if not special_order_id:
+            return Response(
+                {"detail": "special_order_id is required."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            from special_orders.models import SpecialOrder
+            special_order = SpecialOrder.objects.get(pk=special_order_id)
+        except SpecialOrder.DoesNotExist:
+            return Response(
+                {"detail": "Special order not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        user = request.user
+        user_role = getattr(user, "role", None)
+
+        has_access = (
+            user.is_staff
+            or user_role in {"admin", "superadmin", "support"}
+            or special_order.client == user
+            or special_order.writer == user
+        )
+        if not has_access:
+            return Response(
+                {"detail": "You do not have permission to create a thread for this special order."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        participants = [user]
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+
+        if recipient_id:
+            try:
+                recipient = User.objects.get(pk=recipient_id)
+                recipient_role = getattr(recipient, "role", None)
+                recipient_has_access = (
+                    special_order.client == recipient
+                    or special_order.writer == recipient
+                    or recipient_role in {"admin", "superadmin", "editor", "support"}
+                )
+                if not recipient_has_access:
+                    return Response(
+                        {"detail": "Selected recipient does not have access to this special order."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                if recipient != user:
+                    participants.append(recipient)
+            except User.DoesNotExist:
+                return Response(
+                    {"detail": "Recipient not found."},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        else:
+            if special_order.client and special_order.client != user:
+                participants.append(special_order.client)
+            if special_order.writer and special_order.writer != user:
+                participants.append(special_order.writer)
+
+            if len(participants) == 1:
+                website = special_order.website
+                if website:
+                    support_user = User.objects.filter(
+                        role__in=['admin', 'superadmin', 'support'],
+                        website=website
+                    ).first()
+                    if support_user and support_user != user:
+                        participants.append(support_user)
+
+        existing_threads = CommunicationThread.objects.filter(special_order=special_order)
+        for thread in existing_threads:
+            thread_participants = set(thread.participants.all())
+            requested_participants = set(participants)
+            if thread_participants == requested_participants:
+                serializer = CommunicationThreadSerializer(thread, context={'request': request})
+                return Response(
+                    {
+                        "detail": "Conversation thread already exists for this special order and recipient.",
+                        "thread": serializer.data
+                    },
+                    status=status.HTTP_200_OK
+                )
+
+        try:
+            thread = ThreadService.create_special_order_thread(
+                special_order=special_order,
+                created_by=user,
+                participants=participants,
+                thread_type="special",
+                website=special_order.website
+            )
+            serializer = CommunicationThreadSerializer(thread, context={'request': request})
+            return Response(
+                {
+                    "detail": "Conversation thread created successfully.",
+                    "thread": serializer.data
+                },
+                status=status.HTTP_201_CREATED
+            )
+        except PermissionDenied as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        except (ValueError, TypeError) as e:
+            return Response(
+                {"detail": str(e)},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception(f"Error creating conversation thread for special order {special_order_id}: {e}")
+            return Response(
+                {"detail": "An error occurred while creating the conversation thread. Please try again."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=True, methods=['post'], url_path='send-message-simple')
     def send_message_simple(self, request, pk=None):
@@ -729,11 +1027,17 @@ class CommunicationThreadViewSet(viewsets.ModelViewSet):
         if not participants:
             # If no other participants, try to get from order
             order = getattr(thread, 'order', None)
+            special_order = getattr(thread, 'special_order', None)
             if order:
                 if user == order.client and order.assigned_writer:
                     recipient = order.assigned_writer
                 elif user == order.assigned_writer and order.client:
                     recipient = order.client
+            elif special_order:
+                if user == special_order.client and special_order.writer:
+                    recipient = special_order.writer
+                elif user == special_order.writer and special_order.client:
+                    recipient = special_order.client
                 else:
                     # For staff, default to client or writer
                     recipient = order.client or order.assigned_writer
@@ -853,7 +1157,8 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
         try:
             # Optimize thread lookup with select_related
             thread = CommunicationThread.objects.select_related(
-                'order', 'order__client', 'order__assigned_writer'
+                'order', 'order__client', 'order__assigned_writer',
+                'special_order', 'special_order__client', 'special_order__writer'
             ).get(pk=thread_id)
         except CommunicationThread.DoesNotExist:
             return CommunicationMessage.objects.none()
@@ -886,7 +1191,8 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
             thread_id = self.kwargs.get("thread_pk")
             # Optimize thread lookup with select_related
             thread = CommunicationThread.objects.select_related(
-                'order', 'order__client', 'order__assigned_writer'
+                'order', 'order__client', 'order__assigned_writer',
+                'special_order', 'special_order__client', 'special_order__writer'
             ).get(pk=thread_id)
             context['thread'] = thread
         return context
@@ -895,7 +1201,8 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
         thread_id = self.kwargs.get("thread_pk")
         # Optimize thread lookup with select_related and prefetch participants once
         thread = CommunicationThread.objects.select_related(
-            'order', 'order__client', 'order__assigned_writer'
+            'order', 'order__client', 'order__assigned_writer',
+            'special_order', 'special_order__client', 'special_order__writer'
         ).prefetch_related('participants').get(pk=thread_id)
         sender = self.request.user
         recipient = serializer.validated_data.get("recipient")
@@ -912,7 +1219,7 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
             from rest_framework.exceptions import ValidationError
             raise ValidationError("Recipient is required. Please select a recipient before sending the message.")
 
-        # Validate recipient has access to the order (use cached order from select_related)
+        # Validate recipient has access to the order or special order (use cached relations)
         if thread.order:
             order = thread.order  # Already loaded via select_related
             role = getattr(recipient, "role", None)
@@ -927,6 +1234,19 @@ class CommunicationMessageViewSet(viewsets.ModelViewSet):
             if not has_access:
                 from rest_framework.exceptions import ValidationError
                 raise ValidationError("Selected recipient does not have access to this order.")
+        elif thread.special_order:
+            special_order = thread.special_order
+            role = getattr(recipient, "role", None)
+            participants_list = list(thread.participants.all())
+            has_access = (
+                special_order.client_id == recipient.id or
+                special_order.writer_id == recipient.id or
+                role in {"admin", "superadmin", "editor", "support"} or
+                recipient.id in [p.id for p in participants_list]
+            )
+            if not has_access:
+                from rest_framework.exceptions import ValidationError
+                raise ValidationError("Selected recipient does not have access to this special order.")
 
         # ✍️ Create via service
         msg = MessageService.create_message(

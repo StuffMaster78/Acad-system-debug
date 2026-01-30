@@ -1107,7 +1107,7 @@ const loadWriters = async () => {
 
 const loadDropdownOptions = async () => {
   try {
-    const response = await apiClient.get('/order-configs/api/order-configs/')
+    const response = await apiClient.get('/order-configs/management/dropdown-options/')
     const configs = response.data || {}
     subjects.value = configs.subjects || []
     typesOfWork.value = configs.types_of_work || []

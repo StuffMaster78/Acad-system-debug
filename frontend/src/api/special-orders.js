@@ -2,61 +2,59 @@ import apiClient from './client'
 
 export default {
   // Special Orders
-  // Note: special-orders app is mounted under /api/v1/special-orders/, router adds /api/, then resource name
-  // Full path: /api/v1/special-orders/api/special-orders/
-  list: (params) => apiClient.get('/special-orders/api/special-orders/', { params }),
-  get: (id) => apiClient.get(`/special-orders/api/special-orders/${id}/`),
-  create: (data) => apiClient.post('/special-orders/api/special-orders/', data),
-  update: (id, data) => apiClient.put(`/special-orders/api/special-orders/${id}/`, data),
-  delete: (id) => apiClient.delete(`/special-orders/api/special-orders/${id}/`),
+  list: (params) => apiClient.get('/special-orders/special-orders/', { params }),
+  get: (id) => apiClient.get(`/special-orders/special-orders/${id}/`),
+  create: (data) => apiClient.post('/special-orders/special-orders/', data),
+  update: (id, data) => apiClient.put(`/special-orders/special-orders/${id}/`, data),
+  delete: (id) => apiClient.delete(`/special-orders/special-orders/${id}/`),
   
   // Admin Actions
-  approve: (id) => apiClient.post(`/special-orders/api/special-orders/${id}/approve/`),
-  overridePayment: (id) => apiClient.post(`/special-orders/api/special-orders/${id}/override_payment/`),
-  completeOrder: (id) => apiClient.post(`/special-orders/api/special-orders/${id}/complete_order/`),
-  assignWriter: (id, data) => apiClient.post(`/special-orders/api/special-orders/${id}/assign_writer/`, data),
-  setPrice: (id, data) => apiClient.post(`/special-orders/api/special-orders/${id}/set-price/`, data),
+  approve: (id) => apiClient.post(`/special-orders/special-orders/${id}/approve/`),
+  overridePayment: (id) => apiClient.post(`/special-orders/special-orders/${id}/override_payment/`),
+  completeOrder: (id) => apiClient.post(`/special-orders/special-orders/${id}/complete_order/`),
+  assignWriter: (id, data) => apiClient.post(`/special-orders/special-orders/${id}/assign_writer/`, data),
+  setPrice: (id, data) => apiClient.post(`/special-orders/special-orders/${id}/set-price/`, data),
   
   // Installment Payments
-  listInstallments: (params) => apiClient.get('/special-orders/api/installment-payments/', { params }),
-  getInstallment: (id) => apiClient.get(`/special-orders/api/installment-payments/${id}/`),
-  updateInstallment: (id, data) => apiClient.put(`/special-orders/api/installment-payments/${id}/`, data),
-  payInstallment: (id, data) => apiClient.post(`/special-orders/api/installment-payments/${id}/pay_installment/`, data),
+  listInstallments: (params) => apiClient.get('/special-orders/installment-payments/', { params }),
+  getInstallment: (id) => apiClient.get(`/special-orders/installment-payments/${id}/`),
+  updateInstallment: (id, data) => apiClient.put(`/special-orders/installment-payments/${id}/`, data),
+  payInstallment: (id, data) => apiClient.post(`/special-orders/installment-payments/${id}/pay_installment/`, data),
   
   // Predefined Configs
-  listPredefinedConfigs: (params) => apiClient.get('/special-orders/api/predefined-special-order-configs/', { params }),
-  getPredefinedConfig: (id) => apiClient.get(`/special-orders/api/predefined-special-order-configs/${id}/`),
-  createPredefinedConfig: (data) => apiClient.post('/special-orders/api/predefined-special-order-configs/', data),
-  updatePredefinedConfig: (id, data) => apiClient.put(`/special-orders/api/predefined-special-order-configs/${id}/`, data),
-  deletePredefinedConfig: (id) => apiClient.delete(`/special-orders/api/predefined-special-order-configs/${id}/`),
+  listPredefinedConfigs: (params) => apiClient.get('/special-orders/predefined-special-order-configs/', { params }),
+  getPredefinedConfig: (id) => apiClient.get(`/special-orders/predefined-special-order-configs/${id}/`),
+  createPredefinedConfig: (data) => apiClient.post('/special-orders/predefined-special-order-configs/', data),
+  updatePredefinedConfig: (id, data) => apiClient.put(`/special-orders/predefined-special-order-configs/${id}/`, data),
+  deletePredefinedConfig: (id) => apiClient.delete(`/special-orders/predefined-special-order-configs/${id}/`),
   
   // Predefined Durations
-  listDurations: (params) => apiClient.get('/special-orders/api/predefined-special-order-durations/', { params }),
-  getDuration: (id) => apiClient.get(`/special-orders/api/predefined-special-order-durations/${id}/`),
-  createDuration: (data) => apiClient.post('/special-orders/api/predefined-special-order-durations/', data),
-  updateDuration: (id, data) => apiClient.put(`/special-orders/api/predefined-special-order-durations/${id}/`, data),
-  deleteDuration: (id) => apiClient.delete(`/special-orders/api/predefined-special-order-durations/${id}/`),
+  listDurations: (params) => apiClient.get('/special-orders/predefined-special-order-durations/', { params }),
+  getDuration: (id) => apiClient.get(`/special-orders/predefined-special-order-durations/${id}/`),
+  createDuration: (data) => apiClient.post('/special-orders/predefined-special-order-durations/', data),
+  updateDuration: (id, data) => apiClient.put(`/special-orders/predefined-special-order-durations/${id}/`, data),
+  deleteDuration: (id) => apiClient.delete(`/special-orders/predefined-special-order-durations/${id}/`),
   
   // Estimated Settings
-  listEstimatedSettings: (params) => apiClient.get(`/special-orders/api/estimated-special-order-settings/`, { params }),
-  getEstimatedSettings: (websiteId) => apiClient.get(`/special-orders/api/estimated-special-order-settings/`, { params: { website: websiteId } }),
-  updateEstimatedSettings: (id, data) => apiClient.put(`/special-orders/api/estimated-special-order-settings/${id}/`, data),
-  createEstimatedSettings: (data) => apiClient.post('/special-orders/api/estimated-special-order-settings/', data),
+  listEstimatedSettings: (params) => apiClient.get(`/special-orders/estimated-special-order-settings/`, { params }),
+  getEstimatedSettings: (websiteId) => apiClient.get(`/special-orders/estimated-special-order-settings/`, { params: { website: websiteId } }),
+  updateEstimatedSettings: (id, data) => apiClient.put(`/special-orders/estimated-special-order-settings/${id}/`, data),
+  createEstimatedSettings: (data) => apiClient.post('/special-orders/estimated-special-order-settings/', data),
   
   // Writer Bonuses
-  listWriterBonuses: (params) => apiClient.get('/special-orders/api/writer-bonuses/', { params }),
-  getWriterBonus: (id) => apiClient.get(`/special-orders/api/writer-bonuses/${id}/`),
-  createWriterBonus: (data) => apiClient.post('/special-orders/api/writer-bonuses/', data),
-  updateWriterBonus: (id, data) => apiClient.put(`/special-orders/api/writer-bonuses/${id}/`, data),
-  deleteWriterBonus: (id) => apiClient.delete(`/special-orders/api/writer-bonuses/${id}/`),
-  payWriterBonus: (id, data) => apiClient.post(`/special-orders/api/writer-bonuses/${id}/pay/`, data),
-  getWriterBonusStatistics: (params) => apiClient.get('/special-orders/api/writer-bonuses/statistics/', { params }),
+  listWriterBonuses: (params) => apiClient.get('/special-orders/writer-bonuses/', { params }),
+  getWriterBonus: (id) => apiClient.get(`/special-orders/writer-bonuses/${id}/`),
+  createWriterBonus: (data) => apiClient.post('/special-orders/writer-bonuses/', data),
+  updateWriterBonus: (id, data) => apiClient.put(`/special-orders/writer-bonuses/${id}/`, data),
+  deleteWriterBonus: (id) => apiClient.delete(`/special-orders/writer-bonuses/${id}/`),
+  payWriterBonus: (id, data) => apiClient.post(`/special-orders/writer-bonuses/${id}/pay/`, data),
+  getWriterBonusStatistics: (params) => apiClient.get('/special-orders/writer-bonuses/statistics/', { params }),
   
   // Approval Queue
-  getApprovalQueue: (params) => apiClient.get('/special-orders/api/special-orders/approval-queue/', { params }),
+  getApprovalQueue: (params) => apiClient.get('/special-orders/special-orders/approval-queue/', { params }),
   
   // Inquiry Files
-  listInquiryFiles: (specialOrderId, params) => apiClient.get(`/special-orders/api/special-order-inquiry-files/`, { params: { special_order: specialOrderId, ...params } }),
+  listInquiryFiles: (specialOrderId, params) => apiClient.get(`/special-orders/special-order-inquiry-files/`, { params: { special_order: specialOrderId, ...params } }),
   uploadInquiryFile: (data) => {
     const formData = new FormData()
     Object.keys(data).forEach(key => {
@@ -64,10 +62,10 @@ export default {
         formData.append(key, data[key])
       }
     })
-    return apiClient.post('/special-orders/api/special-order-inquiry-files/', formData, {
+    return apiClient.post('/special-orders/special-order-inquiry-files/', formData, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
   },
-  deleteInquiryFile: (id) => apiClient.delete(`/special-orders/api/special-order-inquiry-files/${id}/delete/`),
+  deleteInquiryFile: (id) => apiClient.delete(`/special-orders/special-order-inquiry-files/${id}/delete/`),
 }
 

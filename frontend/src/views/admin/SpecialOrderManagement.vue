@@ -73,7 +73,7 @@
           <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             <tr v-for="order in specialOrders" :key="order.id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
               <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">#{{ order.id }}</td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ order.client?.username || 'N/A' }}</td>
+              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">{{ order.client_username || order.client?.username || 'N/A' }}</td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                 <span class="px-2 py-1 text-xs rounded-full" :class="order.order_type === 'predefined' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'">
                     {{ order.order_type === 'predefined' ? 'Predefined' : 'Estimated' }}
@@ -143,11 +143,11 @@ const loadSpecialOrders = async () => {
     
     if (activeTab.value === 'approval') {
       const res = await adminSpecialOrdersAPI.getApprovalQueue()
-      specialOrders.value = res.data.results || res.data || []
+      specialOrders.value = res.data.results || res.data.orders || res.data || []
       return
     } else if (activeTab.value === 'estimated') {
       const res = await adminSpecialOrdersAPI.getEstimatedQueue()
-      specialOrders.value = res.data.results || res.data || []
+      specialOrders.value = res.data.results || res.data.orders || res.data || []
       return
     } else if (activeTab.value === 'in_progress') {
       params.status = 'in_progress'

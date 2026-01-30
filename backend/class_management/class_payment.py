@@ -42,9 +42,9 @@ class ClassPayment(models.Model):
         on_delete=models.CASCADE,
         related_name="class_payments",
         help_text="The class bundle this payment is for",
-    )
+    ) 
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name="class_payments",
         help_text="Website this payment belongs to",

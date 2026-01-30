@@ -104,10 +104,10 @@
 
               <!-- Message Content -->
               <div class="text-sm whitespace-pre-wrap">
-                <template v-for="(segment, index) in parseMessage(message.message)" :key="index">
+                <span v-for="(segment, index) in parseMessage(message.message)" :key="index">
                   <span v-if="segment.type === 'text'">{{ segment.content }}</span>
                   <router-link
-                    v-else-if="segment.type === 'link'"
+                    v-else
                     :to="segment.to"
                     :class="[
                       'underline font-medium',
@@ -118,7 +118,7 @@
                   >
                     {{ segment.content }}
                   </router-link>
-                </template>
+                </span>
               </div>
 
               <!-- Attachment -->
@@ -198,7 +198,13 @@ import { parseMessageLinks } from '@/utils/messageUtils'
 const props = defineProps({
   orderId: {
     type: [Number, String],
-    required: true
+    required: false,
+    default: null
+  },
+  specialOrderId: {
+    type: [Number, String],
+    required: false,
+    default: null
   },
   showThreadList: {
     type: Boolean,
@@ -226,7 +232,13 @@ const typingStatusInterval = ref(null)
 
 const loadThreads = async () => {
   try {
-    const response = await communicationsAPI.listThreads({ order: props.orderId })
+    if (!props.orderId && !props.specialOrderId) {
+      throw new Error('Missing orderId or specialOrderId')
+    }
+    const params = props.specialOrderId
+      ? { special_order: props.specialOrderId }
+      : { order: props.orderId }
+    const response = await communicationsAPI.listThreads(params)
     threads.value = response.data.results || response.data || []
     
     // Auto-select first thread if none selected
@@ -244,7 +256,9 @@ const loadThreads = async () => {
 const createNewThread = async () => {
   creatingThread.value = true
   try {
-    const response = await communicationsAPI.startThreadForOrder(props.orderId)
+    const response = props.specialOrderId
+      ? await communicationsAPI.startThreadForSpecialOrder(props.specialOrderId)
+      : await communicationsAPI.startThreadForOrder(props.orderId)
     const threadData = response.data?.thread || response.data
     
     if (threadData) {

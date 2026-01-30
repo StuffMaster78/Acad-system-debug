@@ -141,7 +141,7 @@
               <div class="space-y-3 text-sm">
                 <div class="flex justify-between items-center">
                   <span class="font-medium text-gray-600 dark:text-gray-400">Writer:</span>
-                  <span class="text-gray-900 dark:text-white">{{ order.writer?.username || 'Assigned' }}</span>
+                  <span class="text-gray-900 dark:text-white">{{ order.writer_username || order.writer?.username || 'Assigned' }}</span>
                 </div>
               </div>
             </div>
@@ -151,38 +151,12 @@
 
       <!-- Messages Tab -->
       <div v-if="activeTab === 'messages'" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 min-h-[500px]">
-        <SimplifiedOrderMessages :order-id="order.id" :show-thread-list="true" />
+        <OrderMessagesTabbed :special-order-id="order.id" />
       </div>
 
       <!-- Files Tab -->
       <div v-if="activeTab === 'files'" class="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Order Files</h3>
-        <div v-if="files.length === 0" class="text-center py-12 text-gray-500 dark:text-gray-400">
-          <p>No files uploaded yet</p>
-        </div>
-        <div v-else class="space-y-3">
-          <div
-            v-for="file in files"
-            :key="file.id"
-            class="flex items-center justify-between p-4 border border-gray-200 dark:border-gray-700 rounded-lg"
-          >
-            <div class="flex items-center gap-3">
-              <span class="text-2xl">📄</span>
-              <div>
-                <p class="font-medium text-gray-900 dark:text-white">{{ file.file_name || 'Unnamed' }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">{{ formatDate(file.created_at) }}</p>
-              </div>
-            </div>
-            <a
-              v-if="file.download_url || file.url"
-              :href="file.download_url || file.url"
-              target="_blank"
-              class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm"
-            >
-              Download
-            </a>
-          </div>
-        </div>
+        <SpecialOrderFilesPanel :special-order-id="order.id" />
       </div>
     </div>
   </div>
@@ -192,15 +166,14 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import specialOrdersAPI from '@/api/special-orders'
-import { orderFilesAPI } from '@/api'
-import SimplifiedOrderMessages from '@/components/order/SimplifiedOrderMessages.vue'
+import OrderMessagesTabbed from '@/components/order/OrderMessagesTabbed.vue'
+import SpecialOrderFilesPanel from '@/components/special-orders/SpecialOrderFilesPanel.vue'
 
 const route = useRoute()
 
 const loading = ref(true)
 const error = ref(null)
 const order = ref(null)
-const files = ref([])
 const activeTab = ref('overview')
 
 const tabs = [
@@ -215,7 +188,6 @@ const loadOrder = async () => {
   try {
     const response = await specialOrdersAPI.get(route.params.id)
     order.value = response.data
-    await loadFiles()
   } catch (err) {
     error.value = err.response?.data?.detail || 'Failed to load order details'
     console.error('Error loading order:', err)
@@ -224,15 +196,6 @@ const loadOrder = async () => {
   }
 }
 
-const loadFiles = async () => {
-  try {
-    const response = await orderFilesAPI.list({ special_order: order.value.id })
-    files.value = response.data.results || response.data || []
-  } catch (err) {
-    console.error('Error loading files:', err)
-    files.value = []
-  }
-}
 
 const getStatusClass = (status) => {
   const classes = {

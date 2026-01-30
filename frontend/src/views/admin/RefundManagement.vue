@@ -675,7 +675,7 @@ const loadRefunds = async () => {
       params.search = filters.value.search
     }
 
-    const res = await refundsAPI.list(params)
+    const res = await refundsAPI.list({ ...params, page_size: 200 })
     refunds.value = res.data.results || res.data || []
     calculateStats()
   } catch (error) {
@@ -688,7 +688,7 @@ const loadRefunds = async () => {
 const loadRefundLogs = async () => {
   logsLoading.value = true
   try {
-    const res = await refundsAPI.listLogs()
+    const res = await refundsAPI.listLogs({ page_size: 200 })
     refundLogs.value = res.data.results || res.data || []
   } catch (error) {
     showMessage('Failed to load refund logs: ' + (error.response?.data?.detail || error.message), false)
@@ -700,7 +700,7 @@ const loadRefundLogs = async () => {
 const loadRefundReceipts = async () => {
   receiptsLoading.value = true
   try {
-    const res = await refundsAPI.listReceipts()
+    const res = await refundsAPI.listReceipts({ page_size: 200 })
     refundReceipts.value = res.data.results || res.data || []
   } catch (error) {
     showMessage('Failed to load refund receipts: ' + (error.response?.data?.detail || error.message), false)

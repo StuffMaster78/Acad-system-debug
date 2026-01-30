@@ -62,6 +62,7 @@ class MessageService:
         # Auto-add sender to participants if they have order access but aren't a participant yet
         if sender not in thread.participants.all():
             order = getattr(thread, "order", None)
+            special_order = getattr(thread, "special_order", None)
             if order:
                 role = getattr(sender, "role", None)
                 # Check if user has access to the order
@@ -74,6 +75,17 @@ class MessageService:
                     thread.participants.add(sender)
                 else:
                     raise ValueError("You don't have access to this order. Please contact support if you believe this is an error.")
+            elif special_order:
+                role = getattr(sender, "role", None)
+                has_special_access = (
+                    special_order.client == sender or
+                    special_order.writer == sender or
+                    role in {"admin", "superadmin", "editor", "support"}
+                )
+                if has_special_access:
+                    thread.participants.add(sender)
+                else:
+                    raise ValueError("You don't have access to this special order. Please contact support if you believe this is an error.")
             else:
                 raise ValueError("You are not a participant in this conversation. Please contact support if you need access.")
         
@@ -160,6 +172,7 @@ class MessageService:
         CommunicationLog.objects.create(
             user=sender,
             order=thread.order,
+            special_order=getattr(thread, "special_order", None),
             action="sent",  # Use existing action choice
             details=sanitized_message[:200]
         )
@@ -179,7 +192,10 @@ class MessageService:
         try:
             from activity.utils.logger_safe import safe_log_activity
             order = getattr(thread, 'order', None)
-            website = getattr(order, 'website', None) if order else getattr(thread, 'website', None)
+            special_order = getattr(thread, 'special_order', None)
+            website = getattr(order, 'website', None) if order else (
+                getattr(special_order, 'website', None) if special_order else getattr(thread, 'website', None)
+            )
             
             if website:
                 # Determine description based on context (will be prefixed with "You" in serializer)
@@ -191,6 +207,13 @@ class MessageService:
                         description = f"sent a message to writer #{recipient.id} about order #{order.id}"
                     else:
                         description = f"sent a message about order #{order.id}"
+                elif special_order:
+                    if recipient_role == 'client':
+                        description = f"sent a message to client #{recipient.id} about special order #{special_order.id}"
+                    elif recipient_role == 'writer':
+                        description = f"sent a message to writer #{recipient.id} about special order #{special_order.id}"
+                    else:
+                        description = f"sent a message about special order #{special_order.id}"
                 else:
                     if recipient_role == 'client':
                         description = f"sent a message to client #{recipient.id}"
@@ -210,6 +233,7 @@ class MessageService:
                         "message_id": comm_msg.id,
                         "thread_id": thread.id,
                         "order_id": order.id if order else None,
+                        "special_order_id": special_order.id if special_order else None,
                         "recipient_id": recipient.id if recipient else None,
                         "message_type": inferred_type,
                     },
@@ -300,9 +324,14 @@ class MessageService:
         # Client: See all messages in client-involved threads they can access
         if role == "client":
             order = getattr(thread, "order", None)
+            special_order = getattr(thread, "special_order", None)
             if user in thread.participants.all():
                 return thread.messages.filter(is_deleted=False).order_by("sent_at")
             if order and order.client == user and (
+                thread.sender_role == "client" or thread.recipient_role == "client"
+            ):
+                return thread.messages.filter(is_deleted=False).order_by("sent_at")
+            if special_order and special_order.client == user and (
                 thread.sender_role == "client" or thread.recipient_role == "client"
             ):
                 return thread.messages.filter(is_deleted=False).order_by("sent_at")
@@ -311,9 +340,14 @@ class MessageService:
         # Writer: See all messages in writer-involved threads they can access
         if role == "writer":
             order = getattr(thread, "order", None)
+            special_order = getattr(thread, "special_order", None)
             if user in thread.participants.all():
                 return thread.messages.filter(is_deleted=False).order_by("sent_at")
             if order and order.assigned_writer == user and (
+                thread.sender_role == "writer" or thread.recipient_role == "writer"
+            ):
+                return thread.messages.filter(is_deleted=False).order_by("sent_at")
+            if special_order and special_order.writer == user and (
                 thread.sender_role == "writer" or thread.recipient_role == "writer"
             ):
                 return thread.messages.filter(is_deleted=False).order_by("sent_at")
@@ -399,6 +433,7 @@ class MessageService:
 
         thread = message_obj.thread
         order = getattr(thread, "order", None)
+        special_order = getattr(thread, "special_order", None)
         
         # Check if user has access to the order
         has_order_access = False
@@ -415,6 +450,13 @@ class MessageService:
             elif order.assigned_writer == user:
                 has_order_access = True
             # Staff roles have access
+            elif role in {"admin", "superadmin", "editor", "support"}:
+                has_order_access = True
+        elif special_order:
+            if special_order.client == user:
+                has_order_access = True
+            elif special_order.writer == user:
+                has_order_access = True
             elif role in {"admin", "superadmin", "editor", "support"}:
                 has_order_access = True
 

@@ -22,6 +22,39 @@
       "priority": 5,
       "templates": {}
     },
+    "special_order.price_set": {
+      "key": "special_order.price_set",
+      "event_key": "special_order.price_set",
+      "label": "Special Order Price Set",
+      "description": "Pricing was set for a special order",
+      "enabled": true,
+      "roles": ["client", "admin", "support"],
+      "channels": ["in_app", "email"],
+      "priority": 6,
+      "templates": {}
+    },
+    "special_order.approved": {
+      "key": "special_order.approved",
+      "event_key": "special_order.approved",
+      "label": "Special Order Approved",
+      "description": "A special order has been approved",
+      "enabled": true,
+      "roles": ["client", "admin", "support", "writer"],
+      "channels": ["in_app", "email"],
+      "priority": 7,
+      "templates": {}
+    },
+    "special_order.assigned": {
+      "key": "special_order.assigned",
+      "event_key": "special_order.assigned",
+      "label": "Special Order Assigned",
+      "description": "A special order has been assigned to a writer",
+      "enabled": true,
+      "roles": ["client", "admin", "support", "writer"],
+      "channels": ["in_app", "email"],
+      "priority": 7,
+      "templates": {}
+    },
     "special_order.deleted": {
       "key": "special_order.deleted",
       "event_key": "special_order.deleted",

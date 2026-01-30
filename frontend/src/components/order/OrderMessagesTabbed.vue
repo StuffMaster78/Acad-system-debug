@@ -7,7 +7,7 @@
         <div class="flex-1">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">Conversations</h2>
           <p v-if="authStore.isWriter" class="text-sm text-gray-600 dark:text-gray-400">
-            Message the client, admin, support, or editor about this order
+            Message the client, admin, support, or editor about this {{ targetTypeLabelLower }}
           </p>
         </div>
         <button
@@ -602,7 +602,8 @@
       v-if="showNewMessageModal"
       :show="showNewMessageModal"
       :order-id="orderId"
-      :default-recipient-type="activeTab"
+      :special-order-id="specialOrderId"
+      :default-recipient-type="modalDefaultRecipientType"
       @close="showNewMessageModal = false"
       @message-sent="handleMessageSent"
     />
@@ -619,9 +620,10 @@
               <h3 class="text-xl font-bold text-white truncate">{{ getThreadTitle(selectedThread) }}</h3>
               <div class="flex items-center gap-4 mt-1 text-sm text-blue-100">
                 <span>{{ getThreadSubtitle(selectedThread) }}</span>
-                <span v-if="selectedThread.order || selectedThread.order_id" class="flex items-center gap-1">
+                <span v-if="selectedThread.order || selectedThread.order_id || selectedThread.special_order || selectedThread.special_order_id" class="flex items-center gap-1">
                   <span>•</span>
-                  <span>Order #{{ selectedThread.order?.id || selectedThread.order_id }}</span>
+                  <span v-if="selectedThread.order || selectedThread.order_id">Order #{{ selectedThread.order?.id || selectedThread.order_id }}</span>
+                  <span v-else>Special Order #{{ selectedThread.special_order?.id || selectedThread.special_order_id }}</span>
                 </span>
               </div>
             </div>
@@ -710,7 +712,13 @@ const { success: showSuccess, error: showError } = useToast()
 const props = defineProps({
   orderId: {
     type: [Number, String],
-    required: true
+    required: false,
+    default: null
+  },
+  specialOrderId: {
+    type: [Number, String],
+    required: false,
+    default: null
   },
   orderTopic: {
     type: String,
@@ -723,6 +731,10 @@ const emit = defineEmits(['unread-count-update'])
 const router = useRouter()
 const authStore = useAuthStore()
 const currentUser = authStore.user
+
+const targetId = computed(() => props.specialOrderId || props.orderId)
+const targetTypeLabel = computed(() => (props.specialOrderId ? 'Special Order' : 'Order'))
+const targetTypeLabelLower = computed(() => (props.specialOrderId ? 'special order' : 'order'))
 
 // Initialize state variables first
 // Admin/support default to "all" tab to see all messages
@@ -739,12 +751,19 @@ const showNewMessageModal = ref(false)
 const selectedThread = ref(null)
 const selectedThreadId = ref(null)
 
+const modalDefaultRecipientType = computed(() => {
+  if (!activeTab.value || activeTab.value === 'all') {
+    return null
+  }
+  return activeTab.value
+})
+
 // Tabs configuration based on user role
 const recipientTabs = computed(() => {
   const role = currentUser?.role
   const tabs = []
 
-  if (role === 'client') {
+  if (role === 'client' || role === 'customer') {
     tabs.push(
       { id: 'admin', label: 'To Admin', icon: 'AdminIcon', roles: ['admin', 'superadmin'] },
       { id: 'support', label: 'To Support', icon: 'SupportIcon', roles: ['support'] },
@@ -753,7 +772,7 @@ const recipientTabs = computed(() => {
     )
   } else if (role === 'writer') {
     tabs.push(
-      { id: 'client', label: 'To Client', icon: 'ClientIcon', roles: ['client'] },
+      { id: 'client', label: 'To Client', icon: 'ClientIcon', roles: ['client', 'customer'] },
       { id: 'admin', label: 'To Admin', icon: 'AdminIcon', roles: ['admin', 'superadmin'] },
       { id: 'support', label: 'To Support', icon: 'SupportIcon', roles: ['support'] },
       { id: 'editor', label: 'To Editor', icon: 'EditorIcon', roles: ['editor'] }
@@ -762,7 +781,7 @@ const recipientTabs = computed(() => {
     // Admin/support see all tabs and can view all conversations
     tabs.push(
       { id: 'all', label: 'All Messages', icon: 'AllIcon', roles: ['client', 'writer', 'admin', 'superadmin', 'support', 'editor'] },
-      { id: 'client', label: 'To Client', icon: 'ClientIcon', roles: ['client'] },
+      { id: 'client', label: 'To Client', icon: 'ClientIcon', roles: ['client', 'customer'] },
       { id: 'writer', label: 'To Writer', icon: 'WriterIcon', roles: ['writer'] },
       { id: 'editor', label: 'To Editor', icon: 'EditorIcon', roles: ['editor'] },
       { id: 'support', label: 'To Support', icon: 'SupportIcon', roles: ['support'] }
@@ -771,14 +790,14 @@ const recipientTabs = computed(() => {
     // Support sees all tabs and can view all conversations
     tabs.push(
       { id: 'all', label: 'All Messages', icon: 'AllIcon', roles: ['client', 'writer', 'admin', 'superadmin', 'support', 'editor'] },
-      { id: 'client', label: 'To Client', icon: 'ClientIcon', roles: ['client'] },
+      { id: 'client', label: 'To Client', icon: 'ClientIcon', roles: ['client', 'customer'] },
       { id: 'writer', label: 'To Writer', icon: 'WriterIcon', roles: ['writer'] },
       { id: 'admin', label: 'To Admin', icon: 'AdminIcon', roles: ['admin', 'superadmin'] },
       { id: 'editor', label: 'To Editor', icon: 'EditorIcon', roles: ['editor'] }
     )
   } else if (role === 'editor') {
     tabs.push(
-      { id: 'client', label: 'To Client', icon: 'ClientIcon', roles: ['client'] },
+      { id: 'client', label: 'To Client', icon: 'ClientIcon', roles: ['client', 'customer'] },
       { id: 'writer', label: 'To Writer', icon: 'WriterIcon', roles: ['writer'] },
       { id: 'admin', label: 'To Admin', icon: 'AdminIcon', roles: ['admin', 'superadmin'] },
       { id: 'support', label: 'To Support', icon: 'SupportIcon', roles: ['support'] }
@@ -796,16 +815,22 @@ watch(recipientTabs, (tabs) => {
 }, { immediate: true })
 
 // Computed property for total unread count across all tabs
+const getThreadTargetId = (thread) => {
+  return props.specialOrderId
+    ? (thread.special_order || thread.special_order_id)
+    : (thread.order || thread.order_id)
+}
+
 const totalUnreadCount = computed(() => {
-  if (!threads.value || !Array.isArray(threads.value)) {
+  if (!threads.value || !Array.isArray(threads.value) || !targetId.value) {
     return 0
   }
-  const orderThreads = threads.value.filter(thread => {
-    const threadOrderId = thread.order || thread.order_id
-    return threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
+  const targetThreads = threads.value.filter(thread => {
+    const threadTargetId = getThreadTargetId(thread)
+    return threadTargetId && parseInt(threadTargetId) === parseInt(targetId.value)
   })
-  
-  return orderThreads.reduce((sum, thread) => {
+
+  return targetThreads.reduce((sum, thread) => {
     return sum + (thread.unread_count || 0)
   }, 0)
 })
@@ -872,16 +897,17 @@ const getOtherParticipantRoles = (thread) => {
 const filteredThreads = computed(() => {
   const activeTabData = recipientTabs.value.find(t => t.id === activeTab.value)
   if (!activeTabData) return []
+  if (!targetId.value) return []
 
-  // Filter threads that are related to this order
-  const orderThreads = threads.value.filter(thread => {
-    const threadOrderId = thread.order || thread.order_id
-    return threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
+  // Filter threads that are related to this order or special order
+  const targetThreads = threads.value.filter(thread => {
+    const threadTargetId = getThreadTargetId(thread)
+    return threadTargetId && parseInt(threadTargetId) === parseInt(targetId.value)
   })
 
   // If "All Messages" tab is selected (for admin/support), show all threads
   if (activeTab.value === 'all' && (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport)) {
-    return orderThreads.sort((a, b) => {
+    return targetThreads.sort((a, b) => {
       const aTime = a.last_message?.sent_at || a.updated_at || a.created_at
       const bTime = b.last_message?.sent_at || b.updated_at || b.created_at
       return new Date(bTime) - new Date(aTime)
@@ -890,7 +916,7 @@ const filteredThreads = computed(() => {
 
   // Filter threads based on the recipient role of the last message
   // This ensures threads appear under the correct tab (only ONE tab)
-  return orderThreads.filter(thread => {
+  return targetThreads.filter(thread => {
     const otherRoles = getOtherParticipantRoles(thread)
     if (!otherRoles.length) {
       // If no roles found, check if thread has participants with roles
@@ -1022,22 +1048,34 @@ const loadThreads = async (forceRefresh = false) => {
   try {
     // Always use direct API call with order filter for order-specific messages
     // This ensures we get all threads for this specific order
-    const response = await communicationsAPI.listThreads({ order: props.orderId })
+    if (!targetId.value) {
+      threads.value = []
+      return
+    }
+    const params = props.specialOrderId
+      ? { special_order: props.specialOrderId }
+      : { order: props.orderId }
+    const response = await communicationsAPI.listThreads(params)
     const allThreads = response.data?.results || response.data || []
     
-    // Filter threads that belong to this order (double-check)
+    // Filter threads that belong to this order/special order (double-check)
     threads.value = allThreads.filter(thread => {
-      const threadOrderId = thread.order || thread.order_id
-      const matches = threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
+      const threadTargetId = getThreadTargetId(thread)
+      const matches = threadTargetId && parseInt(threadTargetId) === parseInt(targetId.value)
       return matches
     })
     
     // Debug logging for admin/support
     if (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) {
-      console.log(`[OrderMessagesTabbed] Loaded ${threads.value.length} threads for order ${props.orderId}`, {
+      console.log(`[OrderMessagesTabbed] Loaded ${threads.value.length} threads for ${targetTypeLabel.value} ${targetId.value}`, {
         totalFromAPI: allThreads.length,
         filtered: threads.value.length,
-        threads: threads.value.map(t => ({ id: t.id, order: t.order || t.order_id, unread: t.unread_count }))
+        threads: threads.value.map(t => ({
+          id: t.id,
+          order: t.order || t.order_id,
+          special_order: t.special_order || t.special_order_id,
+          unread: t.unread_count
+        }))
       })
     }
   } catch (error) {
@@ -1051,6 +1089,7 @@ const loadThreads = async (forceRefresh = false) => {
     if (authStore.isAdmin || authStore.isSuperAdmin || authStore.isSupport) {
       console.error('[OrderMessagesTabbed] Error details:', {
         orderId: props.orderId,
+        specialOrderId: props.specialOrderId,
         error: error.response?.data || error.message,
         status: error.response?.status
       })
@@ -1066,8 +1105,8 @@ const getUnreadCountForTab = (tabId) => {
 
   // Use the same filtering logic as filteredThreads to ensure count matches visible threads
   const orderThreads = threads.value.filter(thread => {
-    const threadOrderId = thread.order || thread.order_id
-    return threadOrderId && parseInt(threadOrderId) === parseInt(props.orderId)
+    const threadTargetId = getThreadTargetId(thread)
+    return threadTargetId && parseInt(threadTargetId) === parseInt(targetId.value)
   })
 
   // If "all" tab, return total unread count
@@ -1263,16 +1302,7 @@ const handleThreadUpdated = async (success = true) => {
     
     // Also directly fetch unread count from API to ensure accuracy
     // This handles cases where the backend might have stale unread_count in thread data
-    try {
-      const apiCount = await loadUnreadMessageCount(props.orderId)
-      // Emit the API count directly to ensure parent has accurate count
-      emit('unread-count-update', apiCount)
-    } catch (error) {
-      // If API call fails, rely on computed totalUnreadCount
-      if (import.meta.env.DEV) {
-        console.warn('Failed to refresh unread count from API:', error)
-      }
-    }
+    // No direct unread API for special orders; rely on thread data
   } else {
     showError('Failed to update thread. Please try again.')
   }
@@ -1283,14 +1313,14 @@ watch(activeTab, () => {
   selectedThreadId.value = null
 })
 
-watch(() => props.orderId, () => {
-  if (props.orderId) {
+watch(targetId, () => {
+  if (targetId.value) {
     loadThreads()
   }
 })
 
 onMounted(async () => {
-  if (props.orderId) {
+  if (targetId.value) {
     await loadThreads()
     // Emit initial count after threads are loaded
     emit('unread-count-update', totalUnreadCount.value)

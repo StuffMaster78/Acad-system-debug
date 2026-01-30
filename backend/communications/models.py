@@ -423,7 +423,8 @@ class CommunicationLog(models.Model):
 
     order = models.ForeignKey(
         Order, on_delete=models.CASCADE,
-        related_name="message_logs"
+        related_name="message_logs",
+        null=True, blank=True
     )
     special_order = models.ForeignKey(
         'special_orders.SpecialOrder', on_delete=models.CASCADE,
@@ -444,7 +445,11 @@ class CommunicationLog(models.Model):
         ordering = ["-timestamp"]
 
     def __str__(self):
-        return f"{self.user} - {self.action} in Order {self.order.id} at {self.timestamp}"
+        if self.order_id:
+            return f"{self.user} - {self.action} in Order {self.order.id} at {self.timestamp}"
+        if self.special_order_id:
+            return f"{self.user} - {self.action} in Special Order {self.special_order.id} at {self.timestamp}"
+        return f"{self.user} - {self.action} at {self.timestamp}"
 
 
 class FlaggedMessage(models.Model):
@@ -471,7 +476,12 @@ class FlaggedMessage(models.Model):
         ordering = ["-flagged_at"]
 
     def __str__(self):
-        return f"Flagged Message (Order {self.message.thread.order.id})"
+        thread = getattr(self.message, "thread", None)
+        if thread and thread.order_id:
+            return f"Flagged Message (Order {thread.order.id})"
+        if thread and thread.special_order_id:
+            return f"Flagged Message (Special Order {thread.special_order.id})"
+        return f"Flagged Message (Thread {thread.id if thread else 'unknown'})"
 
     def unblock(self, admin_user, comment=""):
         """Admin manually unblocks a flagged message with a comment."""
@@ -487,10 +497,16 @@ class FlaggedMessage(models.Model):
         emails = [a.email for a in admins if a.email]
 
         if emails:
+            thread = getattr(self.message, "thread", None)
+            order_id = getattr(thread, "order_id", None)
+            special_order_id = getattr(thread, "special_order_id", None)
+            order_label = f"Order {order_id}" if order_id else (
+                f"Special Order {special_order_id}" if special_order_id else "Thread"
+            )
             send_mail(
                 subject="Flagged Message Alert",
                 message=(
-                    f"Order {self.message.thread.order.id} was flagged.\n"
+                    f"{order_label} was flagged.\n"
                     f"Message: {self.message.message}\n"
                     f"Sender: {self.message.sender.username}\n"
                 ),

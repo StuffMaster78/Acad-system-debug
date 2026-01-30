@@ -1,4 +1,5 @@
 from rest_framework import viewsets, status
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
@@ -12,17 +13,24 @@ from .serializers import (
 )
 from .services.refunds_processor import RefundProcessorService
 
+
+class RefundPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = "page_size"
+    max_page_size = 200
+
 class RefundViewSet(viewsets.ModelViewSet):
     queryset = Refund.objects.all().select_related('order_payment', 'client')
     serializer_class = RefundSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = None
+    pagination_class = RefundPagination
 
     def get_queryset(self):
         user = self.request.user
+        base_qs = Refund.objects.select_related('order_payment', 'client')
         if user.is_staff:
-            return Refund.objects.all()
-        return Refund.objects.filter(client=user)
+            return base_qs
+        return base_qs.filter(client=user)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -167,22 +175,24 @@ class RefundLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = RefundLog.objects.all().select_related('order', 'refund', 'client', 'processed_by')
     serializer_class = RefundLogSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = None
+    pagination_class = RefundPagination
 
     def get_queryset(self):
         user = self.request.user
+        base_qs = RefundLog.objects.select_related('order', 'refund', 'client', 'processed_by')
         if user.is_staff:
-            return RefundLog.objects.all()
-        return RefundLog.objects.filter(client=user)
+            return base_qs
+        return base_qs.filter(client=user)
 
 class RefundReceiptViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = RefundReceipt.objects.all().select_related('refund', 'order_payment', 'client', 'processed_by')
     serializer_class = RefundReceiptSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = None
+    pagination_class = RefundPagination
 
     def get_queryset(self):
         user = self.request.user
+        base_qs = RefundReceipt.objects.select_related('refund', 'order_payment', 'client', 'processed_by')
         if user.is_staff:
-            return RefundReceipt.objects.all()
-        return RefundReceipt.objects.filter(client=user)
+            return base_qs
+        return base_qs.filter(client=user)

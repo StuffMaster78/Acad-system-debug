@@ -4,7 +4,6 @@ Content blocks for blogs - CTAs, Tables, Auto-inserted content sections.
 from django.db import models
 from django.conf import settings
 from django.utils.text import slugify
-from websites.models import Website
 from django.db.models import JSONField
 from django.core.validators import MinValueValidator, MaxValueValidator
 
@@ -38,7 +37,7 @@ class CTABlock(models.Model):
     ]
     
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='cta_blocks'
     )
@@ -195,12 +194,12 @@ class ContentBlockTemplate(models.Model):
         ('testimonial', 'Testimonial Block'),
         ('pricing_table', 'Pricing Table'),
     ]
-    
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='content_block_templates'
-    )
+    ) 
+
     name = models.CharField(max_length=255)
     block_type = models.CharField(
         max_length=20,

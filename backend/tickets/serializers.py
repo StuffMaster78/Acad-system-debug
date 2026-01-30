@@ -36,6 +36,20 @@ class TicketSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
 
+
+class TicketListSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source='created_by.username', read_only=True)
+    assigned_to_name = serializers.CharField(source='assigned_to.username', read_only=True)
+
+    class Meta:
+        model = Ticket
+        fields = [
+            'id', 'title', 'description', 'created_by', 'created_by_name',
+            'assigned_to', 'assigned_to_name', 'website', 'status', 'priority',
+            'category', 'is_escalated', 'resolution_time', 'created_at', 'updated_at',
+        ]
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
 class TicketAttachmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = TicketAttachment

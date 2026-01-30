@@ -61,6 +61,8 @@ class SpecialOrderSerializer(serializers.ModelSerializer):
         required=False
     )
     total_cost = serializers.ReadOnlyField()
+    price_per_day = serializers.ReadOnlyField()
+    admin_approved_cost = serializers.ReadOnlyField()
     writer = serializers.PrimaryKeyRelatedField(read_only=True)
     client = serializers.HiddenField(default=serializers.CurrentUserDefault())
     installments = InstallmentPaymentSerializer(
@@ -74,10 +76,21 @@ class SpecialOrderSerializer(serializers.ModelSerializer):
             'id', 'client', 'client_username', 'writer', 'writer_username',
             'order_type', 'predefined_type', 'predefined_type_id',
             'inquiry_details', 'admin_notes', 'budget', 'total_cost',
-            'deposit_required', 'is_approved', 'status', 'duration_days',
-            'website', 'created_at', 'updated_at', 'installments'
+            'price_per_day', 'admin_approved_cost', 'deposit_required',
+            'is_approved', 'status', 'duration_days', 'website',
+            'admin_marked_paid', 'admin_unlocked_files',
+            'writer_completed_no_files', 'writer_payment_amount',
+            'writer_payment_percentage',
+            'created_at', 'updated_at', 'installments'
         ]
-        read_only_fields = ['created_at', 'updated_at']
+        read_only_fields = [
+            'created_at', 'updated_at',
+            'total_cost', 'price_per_day', 'admin_approved_cost',
+            'deposit_required', 'is_approved',
+            'admin_marked_paid', 'admin_unlocked_files',
+            'writer_completed_no_files', 'writer_payment_amount',
+            'writer_payment_percentage', 'writer'
+        ]
 
     def validate(self, data):
         """
