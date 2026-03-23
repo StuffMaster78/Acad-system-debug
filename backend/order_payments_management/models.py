@@ -9,7 +9,7 @@ from django.core.exceptions import ValidationError
 from discounts.models.discount import Discount 
 from django.utils.timezone import now
 from referrals.models import Referral, ReferralBonusConfig
-from websites.models import Website
+from websites.models.websites import Website
 
 
 STATUS_CHOICES = [

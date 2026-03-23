@@ -10,7 +10,8 @@ from django.core.exceptions import ValidationError
 from special_orders.models import SpecialOrder, InstallmentPayment, EstimatedSpecialOrderSettings
 from special_orders.services.installment_payment_service import InstallmentPaymentService
 from special_orders.services.writer_assignment import assign_writer as assign_special_order_writer
-from notifications_system.services.core import NotificationService
+from notifications_system.services.notification_service import NotificationService
+from websites.models.websites import Website
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +45,7 @@ class StreamlinedSpecialOrderService:
         Returns:
             SpecialOrder: Created order
         """
-        from websites.models import Website
+        from websites.models.websites import Website
         
         order_type = data.get('order_type', 'estimated')
         website_id = data.get('website_id') or data.get('website')
@@ -121,15 +122,15 @@ class StreamlinedSpecialOrderService:
         
         # Notify client and admins/support
         try:
-            NotificationService.send_notification(
-                user=order.client,
-                event="special_order.created",
-                payload={
+            NotificationService.notify(
+                event_key="special_order.created",
+                recipient=order.client,
+                website=order.website,
+                context={
                     "order_id": order.id,
                     "order_type": order.order_type,
                     "status": order.status,
-                },
-                website=order.website
+                }
             )
             from django.contrib.auth import get_user_model
             User = get_user_model()
@@ -138,15 +139,15 @@ class StreamlinedSpecialOrderService:
                 is_active=True
             )
             for staff in staff_users:
-                NotificationService.send_notification(
-                    user=staff,
-                    event="special_order.created",
-                    payload={
+                NotificationService.notify(
+                    event_key="special_order.created",
+                    recipient=staff,
+                    website=order.website,
+                    context={
                         "order_id": order.id,
                         "order_type": order.order_type,
                         "status": order.status,
-                    },
-                    website=order.website
+                    }
                 )
         except Exception as e:
             logger.warning(f"Failed to send creation notifications for order {order.id}: {e}")
@@ -196,8 +197,8 @@ class StreamlinedSpecialOrderService:
         
         # Calculate deposit
         config = getattr(order.website, 'estimated_order_settings', None)
-        deposit_percent = config.default_deposit_percentage if config else 50.0
-        order.deposit_required = round(total_cost * (deposit_percent / 100), 2)
+        deposit_percent = config.default_deposit_percentage if config else Decimal('50.0')
+        order.deposit_required = round(total_cost * (deposit_percent / Decimal('100')), 2)
         
         # Update admin notes
         if admin_notes:
@@ -220,16 +221,16 @@ class StreamlinedSpecialOrderService:
         
         # Notify client
         try:
-            NotificationService.send_notification(
-                user=order.client,
-                event="special_order.price_set",
-                payload={
+            NotificationService.notify(
+                event_key="special_order.price_set",
+                recipient=order.client,
+                website=order.website,
+                context={
                     "order_id": order.id,
                     "total_cost": float(total_cost),
                     "deposit_required": float(order.deposit_required),
                     "admin_notes": admin_notes,
-                },
-                website=order.website
+                }
             )
         except Exception as e:
             logger.warning(f"Failed to send price notification for order {order.id}: {e}")
@@ -307,26 +308,26 @@ class StreamlinedSpecialOrderService:
         
         # Notify client and writer
         try:
-            NotificationService.send_notification(
-                user=order.client,
-                event="special_order.approved",
-                payload={
+            NotificationService.notify(
+                event_key="special_order.approved",
+                recipient=order.client,
+                website=order.website,
+                context={
                     "order_id": order.id,
                     "status": order.status,
                     "writer_assigned": writer is not None,
-                },
-                website=order.website
+                }
             )
             
             if writer:
-                NotificationService.send_notification(
-                    user=writer,
-                    event="special_order.assigned",
-                    payload={
+                NotificationService.notify(
+                    event_key="special_order.assigned",
+                    recipient=writer,
+                    website=order.website,
+                    context={
                         "order_id": order.id,
                         "client_username": order.client.username,
-                    },
-                    website=order.website
+                    }
                 )
         except Exception as e:
             logger.warning(f"Failed to send approval notifications for order {order.id}: {e}")
@@ -375,15 +376,15 @@ class StreamlinedSpecialOrderService:
         
         # Notify client
         try:
-            NotificationService.send_notification(
-                user=order.client,
-                event="special_order.completed",
-                payload={
+            NotificationService.notify(
+                event_key="special_order.completed",
+                recipient=order.client,
+                website=order.website,
+                context={
                     "order_id": order.id,
                     "completed_by": completed_by.username,
                     "files_uploaded": files_uploaded,
-                },
-                website=order.website
+                }
             )
         except Exception as e:
             logger.warning(f"Failed to send completion notification for order {order.id}: {e}")

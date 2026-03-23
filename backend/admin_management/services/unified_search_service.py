@@ -8,12 +8,13 @@ from typing import Dict, List, Any, Optional
 from decimal import Decimal
 
 from orders.models import Order
-from users.models import User
+from django.conf import settings
 from order_payments_management.models import OrderPayment
 from communications.models import CommunicationMessage, CommunicationThread
 from client_wallet.models import ClientWalletTransaction
 from writer_wallet.models import WalletTransaction
 
+User = settings.AUTH_USER_MODEL
 
 class UnifiedSearchService:
     """Service for unified search across multiple models."""
@@ -157,7 +158,8 @@ class UnifiedSearchService:
             pass
         
         # Check for registration_id in profiles
-        from users.models import ClientProfile, WriterProfile
+        from client_management.models import ClientProfile
+        from writer_management.models import WriterProfile
         client_profiles = ClientProfile.objects.filter(registration_id__icontains=query).values_list('user_id', flat=True)
         writer_profiles = WriterProfile.objects.filter(registration_id__icontains=query).values_list('user_id', flat=True)
         if client_profiles.exists() or writer_profiles.exists():

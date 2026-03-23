@@ -2,7 +2,7 @@
 Login Alert Preferences Serializers
 """
 from rest_framework import serializers
-from users.login_alerts import LoginAlertPreference
+from users.models.login_alerts import LoginAlertPreference
 
 
 class LoginAlertPreferenceSerializer(serializers.ModelSerializer):

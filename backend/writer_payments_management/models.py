@@ -1,13 +1,14 @@
 from django.db import models
 from django.utils.timezone import now
 from decimal import Decimal
+from typing import Optional
 from orders.models import Order
 from special_orders.models import SpecialOrder
 from writer_management.models import WriterProfile
 from wallet.models import Wallet, WalletTransaction
-from notifications_system.services.core import NotificationService  # Import notification system
+from notifications_system.services.notification_service import NotificationService  # Import notification system
 from django.conf import settings
-from websites.models import Website
+from websites.models.websites import Website
 
 
 User = settings.AUTH_USER_MODEL 
@@ -57,19 +58,19 @@ class WriterPayment(models.Model):
     bonuses = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        default=0.00,
+        default=Decimal('0.00'),
         help_text="Bonus amount added."
     )
     fines = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        default=0.00,
+        default=Decimal('0.00'),
         help_text="Any fines deducted."
     )
     tips = models.DecimalField(
         max_digits=12,
         decimal_places=2,
-        default=0.00,
+        default=Decimal('0.00'),
         help_text="Tips received from clients."
     )
     status = models.CharField(
@@ -170,9 +171,9 @@ class WriterPayment(models.Model):
                 # No review exists for this order, skip rating bonus
                 pass
 
-        # Calculate total deductions (penalties)
-        total_fines = sum(p.amount_deducted for p in self.writer.penalties.all())
-        self.fines += total_fines
+        # Calculate total deductions (penalties) - if applicable
+        # total_fines = sum(p.amount_deducted for p in self.writer.penalties.all())
+        # self.fines += total_fines
 
         # Calculate final payment
         final_payment = base_payment + self.bonuses + self.tips - self.fines
@@ -197,11 +198,11 @@ class WriterPayment(models.Model):
         self.save()
 
         # Send notifications
-        NotificationService.send_notification(
-            user=self.writer.user,
-            title="Payment Processed",
-            message=f"You payment of ${self.amount} is on it's way.",
-            category="payment"
+        NotificationService.notify(
+            event_key="payment.processed",
+            recipient=self.writer.user,
+            website=self.website,
+            context={"amount": str(self.amount)}
         )
 
     def update_payment_status(self):
@@ -209,6 +210,9 @@ class WriterPayment(models.Model):
         Updates payment status when an order is cancelled, reassigned, 
         put on revision, or disputed.
         """
+        if not self.order:
+            return
+        
         if self.order.status == "Cancelled":
             self.status = "Blocked"
             self.amount = 0  # Remove earnings
@@ -218,14 +222,15 @@ class WriterPayment(models.Model):
             self.status = "Voided"
             self.amount = 0  # Reset payment as order moved
 
-            # Create a new payment for the new writer
-            new_writer_payment = WriterPayment.objects.create(
-                writer=self.order.assigned_writer,
-                order=self.order,
-                amount=0.00,  # Will be recalculated
-                status="Pending"
-            )
-            new_writer_payment.process_payment()
+            # Create a new payment for the new writer if assigned writer exists
+            if self.order.assigned_writer:
+                new_writer_payment = WriterPayment.objects.create(
+                    writer=self.order.assigned_writer,
+                    order=self.order,
+                    amount=Decimal('0.00'),  # Will be recalculated
+                    status="Pending"
+                )
+                new_writer_payment.process_payment()
             
         elif self.order.status == "Disputed":
             self.status = "Delayed"
@@ -233,7 +238,7 @@ class WriterPayment(models.Model):
         self.save()
 
 
-    def mark_as_paid(self, admin_user, payment_reference_id: str = None):
+    def mark_as_paid(self, admin_user, payment_reference_id: Optional[str] = None):
         """
         Manually sets a payment as 'Paid'.
         Updates the writer's wallet and logs the transaction.
@@ -278,11 +283,11 @@ class WriterPayment(models.Model):
             )
 
             # Notify writer
-            NotificationService.send_notification(
-                user=self.writer.user,
-                title="Payment Approved",
-                message=f"Your payment of ${self.amount} has been approved.",
-                category="payment"
+            NotificationService.notify(
+                event_key="payment.approved",
+                recipient=self.writer.user,
+                website=self.website,
+                context={"amount": str(self.amount)}
             )
 
     class Meta:
@@ -354,11 +359,11 @@ class WriterPayoutRequest(models.Model):
         self.save()
 
         # Send notification
-        NotificationService.send_notification(
-            user=self.writer.user,
-            title="Payout Approved",
-            message=f"Your payout request of ${self.amount_requested} has been approved.",
-            category="payout"
+        NotificationService.notify(
+            event_key="payout.approved",
+            recipient=self.writer.user,
+            website=self.website,
+            context={"amount": str(self.amount_requested)}
         )
 
 class SpecialOrderBonus(models.Model):
@@ -406,11 +411,11 @@ class SpecialOrderBonus(models.Model):
         )
 
         # Notify writer
-        NotificationService.send_notification(
-            user=self.writer.user,
-            title="Bonus Received",
-            message=f"You have received a special order bonus of ${self.bonus_amount}.",
-            category="bonus"
+        NotificationService.notify(
+            event_key="bonus.received",
+            recipient=self.writer.user,
+            website=self.website,
+            context={"amount": str(self.bonus_amount)}
         )
 
 

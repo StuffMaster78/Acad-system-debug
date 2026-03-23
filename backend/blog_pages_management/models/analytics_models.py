@@ -2,12 +2,13 @@
 Advanced analytics models for blog content management.
 """
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.db.models import Sum, Avg, Count
 from django.utils import timezone
 from datetime import timedelta
 from .workflow_models import WorkflowTransition
-User = get_user_model()
+
+User = settings.AUTH_USER_MODEL
 
 
 class EditorAnalytics(models.Model):

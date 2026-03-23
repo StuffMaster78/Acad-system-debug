@@ -10,15 +10,14 @@ from datetime import datetime, timedelta
 import calendar
 from typing import Dict, List, Any, Optional
 from decimal import Decimal
-
+from django.conf import settings
 from orders.models import Order
 from orders.order_enums import OrderStatus
-from users.models import User
 from tickets.models import Ticket
 from communications.models import CommunicationMessage
 from pricing_configs.models import AdditionalService
 
-
+User = settings.AUTH_USER_MODEL
 class DashboardMetricsService:
     """
     Service for generating comprehensive dashboard metrics.

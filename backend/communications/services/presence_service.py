@@ -32,21 +32,3 @@ class PresenceService:
         key = f"{cls.PREFIX}:{thread_id}"
         data = await redis.hgetall(key)
         return {int(k.decode()): v.decode() for k, v in data.items()}
-
-
-
-    # @staticmethod
-    # def _key(thread_id):
-    #     return f"presence:{thread_id}"
-
-    # @classmethod
-    # async def add_user(cls, thread_id, user_id):
-    #     await r.sadd(cls._key(thread_id), user_id)
-
-    # @classmethod
-    # async def remove_user(cls, thread_id, user_id):
-    #     await r.srem(cls._key(thread_id), user_id)
-
-    # @classmethod
-    # async def get_users(cls, thread_id):
-    #     return await r.smembers(cls._key(thread_id))

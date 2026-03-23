@@ -38,7 +38,7 @@ def get_order_by_id(order_id, user=None, check_soft_deleted=True):
     if user:
         _log_order_access(user, order)
 
-    logger.debug(f"Order #{order.id} retrieved by user {user}")
+    logger.debug(f"Order #{order.pk} retrieved by user {user}")
 
     return order
 

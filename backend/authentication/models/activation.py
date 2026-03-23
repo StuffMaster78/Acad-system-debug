@@ -4,7 +4,8 @@ from django.conf import settings
 
 class EmailVerification(models.Model):
     """
-    Stores the email verification token for a user (used in link-based verification).
+    Stores the email verification token for a user 
+    (used in link-based verification).
     Can be used alongside OTP.
     """
     user = models.ForeignKey(

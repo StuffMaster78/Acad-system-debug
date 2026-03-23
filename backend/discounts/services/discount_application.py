@@ -11,7 +11,7 @@ from typing import List, Dict, Any
 from discounts.services.discount_suggestions import DiscountSuggestionService
 from discounts.services.discount_engine import DiscountEngine
 from discounts.services.discount_hints import DiscountHintService
-from notifications_system.services import notify_admin_of_error
+from notifications_system.services.notification_service import NotificationService
 from discounts.utils import get_discount_model
 
 logger = logging.getLogger(__name__)
@@ -66,7 +66,15 @@ class ApplyDiscountCodeService:
             return result
         except Exception as exc:
             logger.exception(f"Critical error applying discounts on order {order.id}: {exc}")
-            notify_admin_of_error(f"Discount error on order {order.id}: {exc}")
+            NotificationService.notify(
+                event_key="discount.error",
+                recipient=None,
+                website=order.website,
+                context={
+                    "order_id": order.id,
+                    "error": str(exc)
+                }
+            )
             suggestions = DiscountSuggestionService.get_suggestions(order.website)
             result.update({
                 "errors": ["Unexpected internal error. Please try again later."],

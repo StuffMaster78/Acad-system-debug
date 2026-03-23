@@ -4,8 +4,6 @@ from django.utils.timezone import now
 import requests # type: ignore
 from users.utils import get_client_ip
 from django.utils import timezone
-# from django.contrib.auth import get_user_model
-# from users.models import User
 from django.conf import settings
 
 

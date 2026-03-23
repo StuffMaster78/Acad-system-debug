@@ -5,7 +5,7 @@ Structured revision requests with severity, deadline, and specific change reques
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class RevisionRequest(models.Model):
@@ -140,7 +140,7 @@ class RevisionRequest(models.Model):
         verbose_name_plural = "Revision Requests"
     
     def __str__(self):
-        return f"Revision #{self.id} - Order #{self.order.id} - {self.severity}"
+        return f"Revision #{self.pk} - Order #{self.order.pk} - {self.severity}"
     
     def can_complete(self):
         """Check if revision can be marked as completed."""

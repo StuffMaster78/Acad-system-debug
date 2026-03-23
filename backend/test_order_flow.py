@@ -6,6 +6,7 @@ Simplified version that works with existing database.
 import os
 import sys
 import django
+from django.conf import settings
 from datetime import datetime, timedelta
 from decimal import Decimal
 

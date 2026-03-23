@@ -1,5 +1,6 @@
 import re
 from datetime import timedelta
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.exceptions import ValidationError
@@ -12,7 +13,10 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
-User = get_user_model()
+if TYPE_CHECKING:
+    from django.db.models import Manager
+
+User = settings.AUTH_USER_MODEL 
 
 class CommRole(models.TextChoices):
     CLIENT = "client", "Client"
@@ -197,6 +201,10 @@ class CommunicationThread(models.Model):
             # Soft delete indexes
             models.Index(fields=['is_active', 'updated_at']),
         ]
+
+    if TYPE_CHECKING:
+        messages: 'Manager[CommunicationMessage]'
+        id: int
 
 class CommunicationMessage(models.Model):
     """
@@ -383,6 +391,8 @@ class CommunicationMessage(models.Model):
             return f"{self.sender_role} ({self.sender}) | Thread {self.thread.id}"
 
 
+    if TYPE_CHECKING:
+        id: int
 
 class MessageReadReceipt(models.Model):
     """ Tracks read receipts for messages,

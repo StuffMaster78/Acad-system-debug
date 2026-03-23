@@ -3,7 +3,7 @@
 from writer_management.models.metrics import WriterPerformanceMetrics
 from writer_management.models.levels import WriterLevel, WriterLevelHistory
 from writer_management.models.configs import WriterLevelConfig
-
+from notifications_system.services.notification_service import NotificationService
 
 class WriterLevelingService:
     @staticmethod
@@ -57,5 +57,22 @@ class WriterLevelingService:
             #     title="🎉 You’ve leveled up!",
             #     message=f"You’ve been promoted to level: {level}"
             # )
+
+            NotificationService.notify(
+                event_key="writer.level_change",
+                recipient=writer.user,
+                website=website,
+                context={
+                    "new_level": level,
+                    "previous_level": current.level if current else None,
+                },
+                channels=["email", "in_app"],
+                priority="medium",
+                is_critical=False,
+                is_digest=False,
+                is_silent=False,
+                digest_group="writer_leveling"
+            )
+
 
         return level

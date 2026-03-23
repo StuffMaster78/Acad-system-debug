@@ -7,7 +7,6 @@ from datetime import timedelta
 from random import choice, randint
 
 from django.conf import settings
-from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from django.db import transaction
@@ -32,7 +31,7 @@ from pricing_configs.models import PricingConfiguration, AcademicLevelPricing, W
 from wallet.models import Wallet
 from writer_management.models.payout import WriterPayment
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class Command(BaseCommand):

@@ -5,7 +5,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils import timezone
 from notifications_system.models.broadcast_notification import BroadcastNotification
-from notifications_system.services.broadcast_services import BroadcastNotificationService
+from notifications_system.services.broadcast_services import BroadcastService
 from .models import Announcement
 import logging
 
@@ -40,13 +40,21 @@ def send_announcement_notifications(sender, instance, created, **kwargs):
                 # We just need to ensure the broadcast is sent
                 if not instance.broadcast.sent_at:
                     # Send the broadcast which will trigger email notifications
-                    BroadcastNotificationService.send_broadcast(
-                        event=instance.broadcast.event_type,
+                    BroadcastService.send_broadcast(
+                        event_key=instance.broadcast.event_type,
                         title=instance.broadcast.title,
                         message=instance.broadcast.message,
                         website=instance.broadcast.website,
-                        channels=instance.broadcast.channels or ['in_app', 'email'],
-                        is_test=False
+                        channels=instance.broadcast.channels,
+                        target_roles=instance.broadcast.target_roles,
+                        show_to_all=instance.broadcast.show_to_all,
+                        triggered_by=instance.broadcast.created_by,
+                        priority='high',
+                        is_critical=False,
+                        require_acknowledgement=False,
+                        scheduled_for=timezone.now(),
+                        expires_at=instance.broadcast.expires_at,
+                        is_blocking=False,
                     )
                     instance.broadcast.sent_at = timezone.now()
                     instance.broadcast.save(update_fields=['sent_at'])

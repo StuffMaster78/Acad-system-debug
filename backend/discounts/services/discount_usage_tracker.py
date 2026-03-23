@@ -43,10 +43,10 @@ class DiscountUsageTracker:
             user (User, optional): The user using the discount. Defaults to
                 order.user.
         """
-        from discounts.models import Discount, DiscountUsage
+        from discounts.models.discount import Discount, DiscountUsage
         user = user or order.user
         DiscountUsage.objects.create(
-            base_discount=discount,
+            discount=discount,
             user=user,
             website=order.website,
             order=order
@@ -69,7 +69,7 @@ class DiscountUsageTracker:
         Args:
             order (Order): The order whose discount usages are to be reverted.
         """
-        from discounts.models import DiscountUsage
+        from discounts.models.discount import DiscountUsage
         deleted_count, _ = DiscountUsage.objects.filter(order=order).delete()
         logger.info(
             f"Reverted {deleted_count} discount usages for order {order.id}"
@@ -88,10 +88,10 @@ class DiscountUsageTracker:
                 audit logging.
             reason (str, optional): Reason for untracking. Logged for context.
         """
-        from discounts.models import Discount, DiscountUsage
+        from discounts.models.discount import Discount, DiscountUsage
         usages = DiscountUsage.objects.filter(order=order)
         if discount:
-            usages = usages.filter(base_discount=discount)
+            usages = usages.filter(discount=discount)
 
         if not usages.exists():
             logger.info(
@@ -100,11 +100,14 @@ class DiscountUsageTracker:
             return
 
         codes = list(
-            usages.values_list("base_discount__code", flat=True)
+            usages.values_list("discount__discount_code", flat=True)
         )
 
-        for usage in usages:
-            Discount.objects.filter(id=usage.base_discount_id).update(
+        # Use related object access to avoid Pylance complaint about implicit *_id field
+        for usage in usages.select_related("discount"):
+            if usage.discount is None:
+                continue
+            Discount.objects.filter(pk=usage.discount.pk).update(
                 used_count=F("used_count") - 1
             )
 
@@ -138,9 +141,9 @@ class DiscountUsageTracker:
         Returns:
             bool: True if used, False otherwise.
         """
-        from discounts.models import DiscountUsage
+        from discounts.models.discount import DiscountUsage
         return DiscountUsage.objects.filter(
-            base_discount=discount,
+            discount=discount,
             user=user
         ).exists()
 
@@ -155,7 +158,7 @@ class DiscountUsageTracker:
         Returns:
             int: Usage count.
         """
-        from discounts.models import DiscountUsage
+        from discounts.models.discount import DiscountUsage
         return DiscountUsage.objects.filter(
-            base_discount=discount
+            discount=discount
         ).count()

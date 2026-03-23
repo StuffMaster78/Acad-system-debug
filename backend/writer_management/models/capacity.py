@@ -5,7 +5,7 @@ Allows writers to set max active orders, blackout dates, and preferred subjects.
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class WriterCapacity(models.Model):

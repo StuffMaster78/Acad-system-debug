@@ -7,7 +7,7 @@ from order_payments_management.models import AdminLog, PaymentLog
 from refunds.models import RefundLog
 from discounts.services.discount_usage_tracker import DiscountUsageTracker
 from refunds.models import RefundReceipt
-from notifications_system.services.core import NotificationService
+from notifications_system.services.notification_service import NotificationService
 from django.db import transaction as transaction
 from wallet.services.wallet_transaction_service import WalletTransactionService
 
@@ -59,6 +59,7 @@ class RefundProcessorService:
         if refund.wallet_amount > 0:
             WalletTransactionService.credit(
                 user=refund.client,
+                website=refund.website,
                 amount=refund.wallet_amount,
                 reference=f"refund_{refund.id}",
                 metadata={
@@ -328,23 +329,17 @@ class RefundProcessorService:
     
     @staticmethod
     def notify_client(refund, processed_by, reason):
-        NotificationService.send_notification(
+        NotificationService.notify(
+            event_key="refund.processed",
             recipient=refund.client,
-            title="Refund Processed",
-            message=(
-                f"Your refund of ${refund.total_amount()} has been processed. "
-                f"Reason: {reason or 'Refunded'}."
-            ),
-            performed_by=processed_by,
             website=refund.website,
-            extra_data={
-                'refund_id': refund.id,
-                'order_id': refund.order_payment.order.id,
-                'amount': refund.total_amount(),
-                'reason': reason or "Refunded"
+            context={
+                "refund_id": refund.id,
+                "order_id": refund.order_payment.order.id,
+                "amount": refund.total_amount(),
+                "reason": reason or "Refunded",
+                "performed_by_id": processed_by.id if processed_by else None,
             },
-            category='in_app',
-            channels=['in_app', 'email']
         )
 
     @staticmethod

@@ -3,10 +3,10 @@ Analytics service for announcements.
 """
 from django.db.models import Count, Q, F
 from django.utils import timezone
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from announcements.models import Announcement, AnnouncementView
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class AnnouncementAnalyticsService:

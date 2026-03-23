@@ -5,7 +5,7 @@ Opt-in, privacy-aware portfolio for writers that clients can view when assigning
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class WriterPortfolio(models.Model):

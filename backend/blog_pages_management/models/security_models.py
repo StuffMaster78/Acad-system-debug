@@ -2,12 +2,12 @@
 Security and rate limiting models for preview tokens and other features.
 """
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.core.cache import cache
 from django.utils import timezone
 from datetime import timedelta
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class PreviewTokenRateLimit(models.Model):

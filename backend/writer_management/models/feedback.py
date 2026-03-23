@@ -5,7 +5,7 @@ Structured feedback from editors to writers and from clients to writers/editors.
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class Feedback(models.Model):

@@ -1,75 +1,149 @@
+# notifications_system/management/commands/validate_templates.py
 """
-Django management command to validate notification templates.
+Validates that all active notification events have templates
+for all supported channels.
+
+Run: python manage.py validate_templates
+Run: python manage.py validate_templates --fix   (seeds missing ones)
+Run: python manage.py validate_templates --channel email
 """
-from django.core.management.base import BaseCommand, CommandError
-from notifications_system.templates.validator import validate_all_templates, test_all_templates
-from notifications_system.registry.template_registry import autoload_all_templates
+from __future__ import annotations
+
+from django.core.management.base import BaseCommand
+
+from notifications_system.enums import NotificationChannel
+from notifications_system.models.notification_event import NotificationEvent
+from notifications_system.models.event_config import NotificationEventConfig
+from notifications_system.models.notifications_template import NotificationTemplate
 
 
 class Command(BaseCommand):
-    help = 'Validate and test notification templates'
-    
+    help = 'Validate template coverage for all active notification events.'
+
     def add_arguments(self, parser):
         parser.add_argument(
-            '--test',
-            action='store_true',
-            help='Run template tests in addition to validation',
+            '--channel',
+            type=str,
+            default=None,
+            help='Check a specific channel only (email or in_app)',
         )
         parser.add_argument(
-            '--verbose',
+            '--fix',
             action='store_true',
-            help='Show detailed output',
+            help='Auto-seed missing templates with placeholder content.',
         )
-    
+        parser.add_argument(
+            '--strict',
+            action='store_true',
+            help='Exit with code 1 if any templates are missing.',
+        )
+
     def handle(self, *args, **options):
-        """Handle the command execution."""
-        self.stdout.write("Loading notification templates...")
-        
-        # Load all templates
-        autoload_all_templates()
-        
-        # Validate templates
-        self.stdout.write("Validating templates...")
-        is_valid, errors, warnings = validate_all_templates()
-        
-        # Show validation results
-        if errors:
-            self.stdout.write(self.style.ERROR(f"Validation failed with {len(errors)} errors:"))
-            for error in errors:
-                self.stdout.write(self.style.ERROR(f"  ❌ {error}"))
-        else:
-            self.stdout.write(self.style.SUCCESS("✅ All templates passed validation"))
-        
-        if warnings:
-            self.stdout.write(self.style.WARNING(f"Found {len(warnings)} warnings:"))
-            for warning in warnings:
-                self.stdout.write(self.style.WARNING(f"  ⚠️  {warning}"))
-        
-        # Run tests if requested
-        if options['test']:
-            self.stdout.write("\nRunning template tests...")
-            test_results = test_all_templates()
-            
-            for event_key, results in test_results.items():
-                self.stdout.write(f"\nTesting {event_key}:")
-                for result in results:
-                    test_name = result['test']
-                    status = result['status']
-                    
-                    if status == 'passed':
-                        self.stdout.write(self.style.SUCCESS(f"  ✅ {test_name}"))
-                    elif status == 'warning':
-                        self.stdout.write(self.style.WARNING(f"  ⚠️  {test_name}"))
-                    else:
-                        self.stdout.write(self.style.ERROR(f"  ❌ {test_name}"))
-                        if 'error' in result:
-                            self.stdout.write(self.style.ERROR(f"      Error: {result['error']}"))
-                    
-                    if options['verbose'] and 'message' in result:
-                        self.stdout.write(f"      {result['message']}")
-        
+        channel_filter = options['channel']
+        fix = options['fix']
+        strict = options['strict']
+
+        channels = [channel_filter] if channel_filter else [
+            NotificationChannel.EMAIL,
+            NotificationChannel.IN_APP,
+        ]
+
+        events = NotificationEvent.objects.filter(is_active=True)
+        missing = []
+        ok_count = 0
+
+        self.stdout.write(f"\nChecking {events.count()} active events "
+                          f"across {len(channels)} channel(s)...\n")
+
+        for event in events.order_by('category', 'event_key'):
+            # Get which channels this event supports
+            try:
+                config = NotificationEventConfig.objects.get(event=event)
+                supported_channels = []
+                if config.supports_email and NotificationChannel.EMAIL in channels:
+                    supported_channels.append(NotificationChannel.EMAIL)
+                if config.supports_in_app and NotificationChannel.IN_APP in channels:
+                    supported_channels.append(NotificationChannel.IN_APP)
+            except NotificationEventConfig.DoesNotExist:
+                supported_channels = channels
+
+            for channel in supported_channels:
+                exists = NotificationTemplate.objects.filter(
+                    event=event,
+                    channel=channel,
+                    is_active=True,
+                ).exists()
+
+                if exists:
+                    ok_count += 1
+                else:
+                    missing.append((event, channel))
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f"  MISSING  {event.event_key:<45} [{channel}]"
+                        )
+                    )
+
+                    if fix:
+                        self._create_placeholder(event, channel)
+
         # Summary
-        if not is_valid:
-            raise CommandError("Template validation failed")
-        
-        self.stdout.write(self.style.SUCCESS("\n🎉 All templates are valid and working correctly!"))
+        self.stdout.write('')
+        self.stdout.write(
+            self.style.SUCCESS(f"  OK       {ok_count} template(s) found")
+        )
+
+        if missing:
+            self.stdout.write(
+                self.style.ERROR(
+                    f"  MISSING  {len(missing)} template(s) not found"
+                )
+            )
+            self.stdout.write(
+                '\nRun with --fix to create placeholders, '
+                'or run seed_templates to seed defaults.\n'
+            )
+            if strict:
+                raise SystemExit(1)
+        else:
+            self.stdout.write(
+                self.style.SUCCESS('\n✓ All templates are present.\n')
+            )
+
+    def _create_placeholder(self, event, channel):
+        """Create a placeholder template so the system doesn't crash on delivery."""
+        from notifications_system.models.notifications_template import NotificationTemplate
+
+        defaults = {
+            'locale': 'en',
+            'version': 1,
+            'is_active': True,
+            'available_variables': [],
+        }
+
+        if channel == NotificationChannel.EMAIL:
+            defaults.update({
+                'subject': f'[{event.label}]',
+                'body_text': f'You have a new notification: {event.label}',
+                'body_html': (
+                    f'<p>You have a new notification: <strong>{event.label}</strong></p>'
+                ),
+            })
+        else:
+            defaults.update({
+                'title': event.label,
+                'message': f'You have a new notification.',
+            })
+
+        NotificationTemplate.objects.get_or_create(
+            event=event,
+            channel=channel,
+            website=None,
+            locale='en',
+            defaults=defaults,
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"    → Created placeholder for {event.event_key} [{channel}]"
+            )
+        )

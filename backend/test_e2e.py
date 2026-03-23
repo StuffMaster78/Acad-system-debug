@@ -6,6 +6,7 @@ Tests complete user journeys for both frontend and backend.
 import os
 import sys
 import django
+from django.conf import settings
 import json
 import requests
 from datetime import datetime
@@ -15,10 +16,9 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings')
 django.setup()
 
 from django.test import Client
-from django.contrib.auth import get_user_model
-from websites.models import Website
+from websites.models.websites import Website
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 # Test configuration
 BASE_URL = "http://localhost:8000"

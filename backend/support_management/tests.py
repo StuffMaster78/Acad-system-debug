@@ -1,4 +1,4 @@
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from rest_framework import status
 from rest_framework.test import APITestCase
 from .models import (
@@ -7,7 +7,7 @@ from .models import (
     PaymentIssueLog, FAQManagement, SupportDashboard
 )
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 # 🚀 **1️⃣ Base Setup for Test Cases**

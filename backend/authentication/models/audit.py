@@ -3,7 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 from authentication.utils.audit import get_client_ip
 
-
+User = settings.AUTH_USER_MODEL
 
 class AuditLog(models.Model):
     """
@@ -32,7 +32,7 @@ class AuditLog(models.Model):
     )
     
     user = models.ForeignKey(
-        'users.User',
+        User,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

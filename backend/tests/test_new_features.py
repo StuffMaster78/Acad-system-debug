@@ -2,12 +2,12 @@
 Tests for new high-impact features
 """
 import pytest
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from rest_framework.test import APIClient
 from rest_framework import status
 from websites.models import Website
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 @pytest.fixture

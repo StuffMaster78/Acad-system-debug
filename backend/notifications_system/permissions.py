@@ -1,39 +1,31 @@
-from rest_framework.permissions import BasePermission, SAFE_METHODS
+"""
+Notification-specific DRF permissions.
+"""
+from __future__ import annotations
+
+from rest_framework.permissions import BasePermission
 
 
-class IsSuperUser(BasePermission):
+class IsNotificationOwner(BasePermission):
     """
-    Allows access only to superusers.
+    Allows access only to the owner of a notification.
+    Used on NotificationFeedViewSet to prevent users
+    reading each other's notifications.
     """
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.is_superuser)
+
+    def has_object_permission(self, request, view, obj) -> bool:  # type: ignore[override]
+        return obj.user == request.user
 
 
-class IsAdminOrReadOnly(BasePermission):
+class IsWebsiteScoped(BasePermission):
     """
-    Allows access only to admin/staff users for unsafe methods.
-    Safe methods (GET, HEAD, OPTIONS) are open.
+    Ensures the object belongs to the requesting user's website.
+    Prevents cross-tenant data access.
     """
-    def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
-            return True
-        return bool(request.user and request.user.is_staff)
 
-
-class IsAuthenticatedOrReadOnly(BasePermission):
-    """
-    Allows access only to authenticated users for unsafe methods.
-    Safe methods (GET, HEAD, OPTIONS) are open.
-    """
-    def has_permission(self, request, view):
-        if request.method in SAFE_METHODS:
-            return True
-        return bool(request.user and request.user.is_authenticated)
-    
-
-class IsAdminUser(BasePermission):
-    """
-    Allows access only to admin/staff users.
-    """
-    def has_permission(self, request, view):
-        return bool(request.user and request.user.is_staff)
+    def has_object_permission(self, request, view, obj) -> bool:  # type: ignore[override]
+        user_website = getattr(request.user, 'website', None)
+        obj_website = getattr(obj, 'website', None)
+        if not user_website or not obj_website:
+            return False
+        return obj_website == user_website

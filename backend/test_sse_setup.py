@@ -19,7 +19,7 @@ from django.contrib.auth import get_user_model
 from django.test import Client
 from django.conf import settings
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 def test_sse_endpoint():

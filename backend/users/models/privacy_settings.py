@@ -5,7 +5,7 @@ Handles privacy settings for writers and clients.
 from django.db import models
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class WriterPrivacySettings(models.Model):

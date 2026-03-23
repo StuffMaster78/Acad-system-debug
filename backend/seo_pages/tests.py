@@ -2,14 +2,14 @@
 Tests for SEO Pages endpoints.
 """
 from django.test import TestCase
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from rest_framework.test import APIClient
 from rest_framework import status
 from websites.models import Website
 
 from .models import SeoPage
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class SeoPageAPITestCase(TestCase):

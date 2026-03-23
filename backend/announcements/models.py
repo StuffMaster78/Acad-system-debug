@@ -6,7 +6,7 @@ from django.conf import settings
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField
 from notifications_system.models.broadcast_notification import BroadcastNotification
-from websites.models import Website
+from websites.models.websites import Website
 
 User = settings.AUTH_USER_MODEL
 

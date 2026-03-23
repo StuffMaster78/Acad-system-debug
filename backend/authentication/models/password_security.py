@@ -6,7 +6,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class PasswordHistory(models.Model):
@@ -20,7 +20,7 @@ class PasswordHistory(models.Model):
         help_text=_("User whose password history is tracked")
     )
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='password_histories',
         help_text=_("Website context for multi-tenancy")
@@ -58,7 +58,7 @@ class PasswordExpirationPolicy(models.Model):
         help_text=_("User whose password expiration is tracked")
     )
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='password_expiration_policies',
         help_text=_("Website context")
@@ -154,7 +154,7 @@ class PasswordBreachCheck(models.Model):
         help_text=_("User whose password was checked")
     )
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='password_breach_checks',
         help_text=_("Website context")

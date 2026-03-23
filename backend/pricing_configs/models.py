@@ -3,7 +3,7 @@ Module for storing the pricing configurations for each website
 """
 
 from django.db import models
-from websites.models import Website
+from websites.models.websites import Website
 from order_configs.models import AcademicLevel
 from django.core.validators import (
     MinValueValidator, MaxValueValidator

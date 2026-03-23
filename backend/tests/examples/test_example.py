@@ -6,13 +6,13 @@ This file serves as a reference for writing tests in the Writing System Platform
 import pytest
 from rest_framework import status
 from rest_framework.test import APIClient
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from tests.factories import (
     ClientUserFactory, WriterUserFactory, OrderFactory,
     WebsiteFactory, ClientWalletFactory
 )
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 # ============================================================================

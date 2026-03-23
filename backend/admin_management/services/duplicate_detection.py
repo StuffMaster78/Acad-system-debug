@@ -5,12 +5,13 @@ Helps identify clients and writers who may have created multiple accounts.
 from django.contrib.auth import get_user_model
 from django.db.models import Q, Count, F
 from django.db import transaction
+from django.conf import settings
 from collections import defaultdict
 from datetime import timedelta
 from django.utils import timezone
 import re
 
-User = get_user_model()
+User = settings.AUSTH_USER_MODEL
 
 
 class DuplicateAccountDetectionService:
@@ -65,7 +66,7 @@ class DuplicateAccountDetectionService:
     @staticmethod
     def detect_by_email():
         """Detect accounts with similar/normalized emails."""
-        from authentication.models import LoginSession
+        from authentication.models.login import LoginSession
         
         # Get all users with their normalized emails
         users = User.objects.filter(
@@ -99,7 +100,7 @@ class DuplicateAccountDetectionService:
     @staticmethod
     def detect_by_ip_address(days_back=90):
         """Detect accounts sharing IP addresses."""
-        from authentication.models import LoginSession
+        from authentication.models.login import LoginSession
         from writer_management.models.logs import WriterIPLog
         
         cutoff_date = timezone.now() - timedelta(days=days_back)
@@ -212,7 +213,7 @@ class DuplicateAccountDetectionService:
     @staticmethod
     def detect_cross_website_patterns():
         """Detect users active across multiple websites with same credentials."""
-        from authentication.models import LoginSession
+        from authentication.models.login import LoginSession
         
         # Find users who logged into multiple websites
         user_website_counts = LoginSession.objects.values('user_id', 'website_id').distinct().values(
@@ -328,7 +329,7 @@ class DuplicateAccountDetectionService:
                             all_websites.add(w.id if hasattr(w, 'id') else w)
             
             # Convert to website objects for easier access
-            from websites.models import Website
+            from websites.models.websites import Website
             website_objects = Website.objects.filter(id__in=all_websites) if all_websites else []
             
             grouped.append({

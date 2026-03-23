@@ -14,7 +14,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings_test')
 django.setup()
 
 from django.test import Client
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
 from websites.models import Website
 from orders.models import Order
@@ -31,7 +31,7 @@ from order_payments_management.models import OrderPayment
 from order_configs.models import PaperType, AcademicLevel
 from client_wallet.models import ClientWallet
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 class Colors:
     GREEN = '\033[92m'

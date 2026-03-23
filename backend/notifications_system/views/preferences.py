@@ -1,213 +1,183 @@
-from rest_framework import viewsets
+"""
+User notification preference management.
+Users control channel toggles, DND, digest, and per-event settings.
+"""
+from __future__ import annotations
+
+import logging
+
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
+from rest_framework.views import APIView
 
-from notifications_system.models.notification_preferences import (
-    NotificationPreference,
-    EventNotificationPreference,
-    NotificationEventPreference,
-    RoleNotificationPreference
-)
-from notifications_system.models.notification_profile import NotificationProfile
 from notifications_system.serializers import (
     NotificationPreferenceSerializer,
-    EventNotificationPreferenceSerializer,
     NotificationEventPreferenceSerializer,
-    RoleNotificationPreferenceSerializer
 )
-from notifications_system.enums import NotificationType
-from notifications_system.permissions import IsAdminUser
-from websites.models import Website
+from notifications_system.services.preference_service import PreferenceService
+from notifications_system.throttles import NotificationPreferenceUpdateThrottle
+
+logger = logging.getLogger(__name__)
+
+# Fields the user is allowed to update on their master preference
+UPDATABLE_PREFERENCE_FIELDS = {
+    'email_enabled',
+    'in_app_enabled',
+    'dnd_enabled',
+    'dnd_start_hour',
+    'dnd_end_hour',
+    'mute_all',
+    'mute_until',
+    'digest_enabled',
+    'digest_only',
+    'digest_frequency',
+    'min_priority',
+}
+
+# Fields the user is allowed to update on per-event preferences
+UPDATABLE_EVENT_PREF_FIELDS = {
+    'email_enabled',
+    'in_app_enabled',
+    'digest_enabled',
+    'is_enabled',
+}
 
 
-class NotificationPreferenceViewSet(viewsets.ModelViewSet):
+class NotificationPreferenceView(APIView):
     """
-    API endpoint for users to manage their notification preferences.
-    Superusers can manage for others.
+    GET  /notifications/preferences/    → return current preferences
+    PATCH /notifications/preferences/   → update specific fields
     """
-    serializer_class = NotificationPreferenceSerializer
     permission_classes = [IsAuthenticated]
+    throttle_classes = [NotificationPreferenceUpdateThrottle]
 
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_superuser and self.request.query_params.get("user_id"):
-            return NotificationPreference.objects.filter(
-                user_id=self.request.query_params["user_id"]
+    def get(self, request):
+        website = getattr(request.user, 'website', None)
+        pref = PreferenceService.get_or_create_preference(
+            request.user, website
+        )
+        return Response(NotificationPreferenceSerializer(pref).data)
+
+    def patch(self, request):
+        website = getattr(request.user, 'website', None)
+        updates = {
+            k: v for k, v in request.data.items()
+            if k in UPDATABLE_PREFERENCE_FIELDS
+        }
+        if not updates:
+            return Response(
+                {'error': 'No valid fields provided.'},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        return NotificationPreference.objects.filter(user=user)
-
-    def get_object(self):
-        target_user = self._get_target_user()
-        website = self._get_website()
-        obj, _ = NotificationPreference.objects.get_or_create(
-            user=target_user, website=website
+        PreferenceService.update_preference(request.user, website, **updates)
+        pref = PreferenceService.get_or_create_preference(
+            request.user, website
         )
-        return obj
-    
-    def perform_create(self, serializer):
-        serializer.save(
-            user=self._get_target_user(),
-            website=self._get_website(),
+        return Response(NotificationPreferenceSerializer(pref).data)
+
+
+class NotificationEventPreferenceViewSet(viewsets.ViewSet):
+    """
+    Per-event preference management.
+    Users toggle individual event types on/off per channel.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def list(self, request):
+        """List all per-event preferences grouped by category."""
+        from notifications_system.models.notification_preferences import (
+            NotificationEventPreference,
+        )
+        website = getattr(request.user, 'website', None)
+        prefs = NotificationEventPreference.objects.filter(
+            user=request.user,
+            website=website,
+        ).select_related('event').order_by('event__category', 'event__event_key')
+
+        # Group by category for the UI
+        group_by = request.query_params.get('group_by') == 'category'
+        if group_by:
+            grouped = {}
+            for pref in prefs:
+                cat = pref.event.category or 'other'
+                grouped.setdefault(cat, []).append(pref)
+            return Response({
+                cat: NotificationEventPreferenceSerializer(items, many=True).data
+                for cat, items in grouped.items()
+            })
+
+        return Response(
+            NotificationEventPreferenceSerializer(prefs, many=True).data
         )
 
-    def perform_update(self, serializer):
-        serializer.save(
-            user=self._get_target_user(),
-            website=self._get_website()
+    def partial_update(self, request, pk=None):
+        """Update a specific event preference."""
+        from notifications_system.models.notification_preferences import (
+            NotificationEventPreference,
         )
-
-    def _get_target_user(self):
-        if self.request.user.is_superuser and "user_id" in self.request.data:
-            from users.models import User
-            return get_object_or_404(User, id=self.request.data["user_id"])
-        return self.request.user
-
-    def _get_website(self):
-        website_id = self.request.query_params.get("website_id") or self.request.data.get("website")
-        if website_id:
-            return get_object_or_404(Website, id=website_id)
-        return getattr(self.request.user, "website", None)
-    
-    def partial_update(self, request, *args, **kwargs):
-        """
-        Allow toggling a single channel like in-app, email, etc.
-        Accepts: { "channel": "email", "enabled": true }
-        """
-        channel = request.data.get("channel")
-        enabled = request.data.get("enabled")
-
-        if channel and enabled is not None:
-            obj = self.get_object()
-            # Use PRIORITY_LABEL_CHOICES or define NOTIFICATION_CHANNELS as needed
-            NOTIFICATION_CHANNELS = [v for k, v in NotificationType.choices()]
-            if channel not in NOTIFICATION_CHANNELS:
-                return Response({"error": "Invalid channel"}, status=400)
-
-            setattr(obj, f"receive_{channel}", enabled)
-            obj.save()
-            return Response(self.get_serializer(obj).data)
-
-        return super().partial_update(request, *args, **kwargs)
-
-    @action(detail=False, methods=["post"], url_path="apply-profile")
-    def apply_profile(self, request):
-        """
-        Apply a saved profile to the current user's preferences.
-        """
-        profile_slug = request.data.get("profile")
-        if not profile_slug:
-            return Response({"error": "Profile slug required."}, status=400)
+        website = getattr(request.user, 'website', None)
         try:
-            profile = NotificationProfile.objects.get(slug=profile_slug)
-        except NotificationProfile.DoesNotExist:
-            return Response({"error": "Profile not found."}, status=404)
-
-        pref = self.get_object()
-        for channel in [v for _, v in NotificationType.choices()]:
-            value = getattr(profile, f"receive_{channel}", False)
-            setattr(pref, f"receive_{channel}", value)
-        pref.profile = profile
-        pref.save()
-        return Response({"status": "Profile applied", "profile": profile.name})
-    
-    @action(detail=False, methods=["post"], url_path="reset")
-    def reset_preferences(self, request):
-        """Reset user notification preferences to default."""
-        from notifications_system.services.preferences import (
-            NotificationPreferenceResolver
-        )
-        from notifications_system.emails.reset_notification_preferences import (
-            send_reset_confirmation_email,
-        )
-
-        user = self._get_target_user()
-        website = self._get_website()
-        success = NotificationPreferenceResolver.reset_user_preferences(user)
-
-        if success:
-            NotificationPreferenceResolver.assign_default_preferences(user, website)
-            send_reset_confirmation_email(user, website)
-            return Response({"status": "Reset and re-applied default profile. Confirmation email sent."})
-        
-        return Response({"error": "No preferences found to reset."}, status=404)
-    
-    @action(detail=False, methods=["post"], url_path="clone-profile")
-    def clone_profile(self, request):
-        """
-        Clone a profile and apply it to the user's preferences.
-        """
-        profile_slug = request.data.get("profile")
-
-        if not profile_slug:
-            return Response({"error": "Profile slug required."}, status=400)
-
-        try:
-            profile = NotificationProfile.objects.get(slug=profile_slug)
-        except NotificationProfile.DoesNotExist:
-            return Response({"error": "Profile not found."}, status=404)
-
-        pref = self.get_object()
-
-        # Copy all receive_* fields
-        for field in [
-            "receive_email", "receive_in_app", "receive_push", "receive_sms"
-        ]:
-            setattr(pref, field, getattr(profile, field))
-
-        pref.profile = None  # it's now a user-customized version
-        pref.save()
-
-        return Response({
-            "status": "Cloned from profile",
-            "preferences": NotificationPreferenceSerializer(pref).data
-        })
-
-
-class MyNotificationPreferencesViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = NotificationPreferenceSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_object(self):
-        return NotificationPreference.objects.get(user=self.request.user)
-
-
-class MyEventNotificationPreferenceViewSet(viewsets.ModelViewSet):
-    serializer_class = EventNotificationPreferenceSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        return EventNotificationPreference.objects.filter(user=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
-
-
-class NotificationEventPreferenceViewSet(viewsets.ModelViewSet):
-    serializer_class = NotificationEventPreferenceSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        if user.is_superuser and self.request.query_params.get("user_id"):
-            return NotificationPreference.objects.filter(
-                user_id=self.request.query_params["user_id"]
+            pref = NotificationEventPreference.objects.get(
+                id=pk, user=request.user, website=website,
             )
-        return NotificationPreference.objects.filter(user=user)
-    
-class RoleNotificationPreferenceViewSet(viewsets.ModelViewSet):
-    queryset = RoleNotificationPreference.objects.all()
-    serializer_class = RoleNotificationPreferenceSerializer
-    permission_classes = [IsAdminUser]
+        except NotificationEventPreference.DoesNotExist:
+            return Response(
+                {'error': 'Event preference not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
 
+        updates = {
+            k: v for k, v in request.data.items()
+            if k in UPDATABLE_EVENT_PREF_FIELDS
+        }
+        for field, value in updates.items():
+            setattr(pref, field, value)
+        pref.save(update_fields=list(updates.keys()) + ['updated_at'])
+        PreferenceService._invalidate_cache(request.user, website)
 
-class MyEventNotificationPreferenceViewSet(viewsets.ModelViewSet):
-    serializer_class = EventNotificationPreferenceSerializer
-    permission_classes = [IsAuthenticated]
+        return Response(NotificationEventPreferenceSerializer(pref).data)
 
-    def get_queryset(self):
-        return EventNotificationPreference.objects.filter(user=self.request.user)
+    @action(detail=False, methods=['post'])
+    def reset(self, request):
+        """Reset all preferences to system defaults."""
+        website = getattr(request.user, 'website', None)
+        PreferenceService.reset_preferences(request.user, website)
+        return Response({'status': 'preferences reset to defaults'})
 
-    def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+    @action(detail=False, methods=['post'])
+    def bulk_update(self, request):
+        """
+        Bulk update multiple event preferences at once.
+        Body: [{"id": 1, "email_enabled": false}, ...]
+        """
+        from notifications_system.models.notification_preferences import (
+            NotificationEventPreference,
+        )
+        website = getattr(request.user, 'website', None)
+        items = request.data if isinstance(request.data, list) else []
+
+        updated = 0
+        errors = []
+        for item in items:
+            pref_id = item.get('id')
+            if not pref_id:
+                continue
+            try:
+                pref = NotificationEventPreference.objects.get(
+                    id=pref_id, user=request.user, website=website,
+                )
+                updates = {
+                    k: v for k, v in item.items()
+                    if k in UPDATABLE_EVENT_PREF_FIELDS
+                }
+                for field, value in updates.items():
+                    setattr(pref, field, value)
+                pref.save(update_fields=list(updates.keys()) + ['updated_at'])
+                updated += 1
+            except NotificationEventPreference.DoesNotExist:
+                errors.append(pref_id)
+
+        PreferenceService._invalidate_cache(request.user, website)
+        return Response({'updated': updated, 'not_found': errors})

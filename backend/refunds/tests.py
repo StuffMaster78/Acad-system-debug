@@ -1,12 +1,12 @@
 from django.urls import reverse
 from rest_framework.test import APITestCase, APIClient
 from rest_framework import status
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from refunds.models import Refund, RefundLog, RefundReceipt
 from order_payments_management.models import OrderPayment
 from django.utils import timezone
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 class RefundsAPITestCase(APITestCase):
     def setUp(self):

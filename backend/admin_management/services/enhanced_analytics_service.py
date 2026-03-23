@@ -5,16 +5,18 @@ Provides deeper insights and trend analysis.
 from django.db.models import Count, Sum, Avg, Q, F, DecimalField
 from django.db.models.functions import TruncDay, TruncWeek, TruncMonth
 from django.utils import timezone
+from django.conf import settings
 from datetime import timedelta
 from decimal import Decimal
 from typing import Dict, List, Any
 
 from orders.models import Order
 from orders.order_enums import OrderStatus
-from users.models import User
 from writer_management.models import WriterProfile
 from writer_wallet.models import WriterPayment
 
+
+User = settings.AUTH_USER_MODEL
 
 class EnhancedAnalyticsService:
     """Service for enhanced analytics and insights."""

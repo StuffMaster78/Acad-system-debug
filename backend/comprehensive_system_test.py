@@ -7,20 +7,20 @@ Tests all major functionality across all user roles
 import os
 import sys
 import django
+from django.conf import settings
 
 # Setup Django
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings')
 django.setup()
 
-from django.contrib.auth import get_user_model
 from django.test import Client
 from django.urls import reverse
 from rest_framework.test import APIClient
 from rest_framework import status
 import json
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 class SystemTester:
     def __init__(self):

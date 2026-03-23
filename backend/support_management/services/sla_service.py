@@ -6,7 +6,7 @@ from django.db.models import Q, Count, Avg, F
 from datetime import timedelta
 from decimal import Decimal
 from support_management.models import OrderDisputeSLA
-from notifications_system.services.core import send_notification
+from notifications_system.services.notification_service import NotificationService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -61,18 +61,17 @@ class SLAService:
             if sla.assigned_to:
                 try:
                     # Send in-app notification
-                    send_notification(
-                        user=sla.assigned_to,
-                        notification_type='sla_warning',
-                        title='SLA Warning: Approaching Deadline',
-                        message=f"Your {sla.get_sla_type_display()} is approaching deadline. Time remaining: {sla.time_remaining_minutes} minutes.",
-                        priority='medium',
-                        metadata={
+                    NotificationService.notify(
+                        event_key='support.sla_warning',
+                        recipient=sla.assigned_to,
+                        website=getattr(sla.order.website if sla.order else sla.dispute.website if sla.dispute else None, 'id', None),
+                        context={
                             'sla_id': sla.id,
                             'sla_type': sla.sla_type,
                             'time_remaining_minutes': sla.time_remaining_minutes,
                             'order_id': sla.order.id if sla.order else None,
                             'dispute_id': sla.dispute.id if sla.dispute else None,
+                            'message': f"Your {sla.get_sla_type_display()} is approaching deadline. Time remaining: {sla.time_remaining_minutes} minutes.",
                         }
                     )
                     
@@ -109,19 +108,20 @@ class SLAService:
             if sla.assigned_to:
                 try:
                     # Send in-app notification
-                    send_notification(
-                        user=sla.assigned_to,
-                        notification_type='sla_breach',
-                        title='🚨 SLA BREACH ALERT',
-                        message=f"Your {sla.get_sla_type_display()} has been breached. Breach duration: {sla.breach_duration_minutes} minutes.",
-                        priority='high',
-                        metadata={
+                    NotificationService.notify(
+                        event_key='support.sla_breach',
+                        recipient=sla.assigned_to,
+                        website=getattr(sla.order.website if sla.order else sla.dispute.website if sla.dispute else None, 'id', None),
+                        context={
                             'sla_id': sla.id,
                             'sla_type': sla.sla_type,
                             'breach_duration_minutes': sla.breach_duration_minutes,
                             'order_id': sla.order.id if sla.order else None,
                             'dispute_id': sla.dispute.id if sla.dispute else None,
-                        }
+                            'message': f"Your {sla.get_sla_type_display()} has been breached. Breach duration: {sla.breach_duration_minutes} minutes.",
+                        },
+                        priority='high',
+                        is_critical=True
                     )
                     
                     # Send email alert if not already sent

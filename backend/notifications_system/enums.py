@@ -1,260 +1,200 @@
-# notifications_system/enums.py
-from __future__ import annotations
-
-from enum import IntEnum
-from typing import Iterable, List, Set, Tuple
-
+"""Enums for the notification system."""
 from django.db.models import TextChoices
 from django.utils.translation import gettext_lazy as _
 
 
-# =========================
-# Channels / Delivery Types
-# =========================
+class NotificationEvent(TextChoices):
+    """
+    All notification events in the system.
+
+    Naming convention: {domain}.{action}
+    Recipient notes show who receives each version where multiple
+    recipients get different rendered content for the same event.
+
+    Note: Auth transactional emails (signup, password reset etc.)
+    are handled by the authentication app, not this system.
+    """
+
+    # Orders — most events have a client version and a writer version
+    ORDER_CREATED = 'order.created', _('Order Created')
+    ORDER_ASSIGNED = 'order.assigned', _('Order Assigned')                  # writer + client receive
+    ORDER_UPDATED = 'order.updated', _('Order Updated')                     # writer + client receive
+    ORDER_APPROVED = 'order.approved', _('Order Approved')
+    ORDER_COMPLETED = 'order.completed', _('Order Completed')               # writer + client receive
+    ORDER_CANCELLED = 'order.cancelled', _('Order Cancelled')               # writer + client receive
+    ORDER_REJECTED = 'order.rejected', _('Order Rejected')
+    ORDER_ON_HOLD = 'order.on_hold', _('Order On Hold')
+    ORDER_REOPENED = 'order.reopened', _('Order Reopened')                  # writer + client receive
+    ORDER_REASSIGNED = 'order.reassigned', _('Order Reassigned')            # writer receives
+    ORDER_REVISION_REQUESTED = 'order.revision_requested', _('Revision Requested')   # writer receives
+    ORDER_REVISION_COMPLETED = 'order.revision_completed', _('Revision Completed')   # writer + client receive
+    ORDER_DISPUTED = 'order.disputed', _('Order Disputed')                  # staff receives
+    ORDER_DISPUTE_RESOLVED = 'order.dispute_resolved', _('Dispute Resolved')         # writer + client receive
+    ORDER_DISPUTE_ESCALATED = 'order.dispute_escalated', _('Dispute Escalated')      # staff receives
+    ORDER_DEADLINE_APPROACHING = 'order.deadline_approaching', _('Deadline Approaching')  # writer receives
+    ORDER_RATED = 'order.rated', _('Order Rated')                           # writer receives
+
+    # Payments / Wallet
+    WALLET_CREDITED = 'wallet.credited', _('Wallet Credited')
+    WALLET_DEBITED = 'wallet.debited', _('Wallet Debited')
+    WALLET_BALANCE_LOW = 'wallet.balance_low', _('Wallet Balance Low')
+    WALLET_TX_FAILED = 'wallet.tx_failed', _('Transaction Failed')
+    WALLET_REFUND_INITIATED = 'wallet.refund_initiated', _('Refund Initiated')
+    WALLET_REFUND_COMPLETED = 'wallet.refund_completed', _('Refund Completed')
+
+    # Payouts — writer-specific
+    PAYOUT_REQUESTED = 'payout.requested', _('Payout Requested')           # staff receives
+    PAYOUT_PROCESSING = 'payout.processing', _('Payout Processing')        # writer receives
+    PAYOUT_COMPLETED = 'payout.completed', _('Payout Completed')           # writer receives
+    PAYOUT_FAILED = 'payout.failed', _('Payout Failed')                    # writer receives
+    PAYOUT_ROLLED_OVER = 'payout.rolled_over', _('Payout Rolled Over')     # writer receives
+
+    # Writer management — staff acts, writer receives
+    WRITER_APPROVED = 'writer.approved', _('Writer Approved')
+    WRITER_REJECTED = 'writer.rejected', _('Writer Rejected')
+    WRITER_SUSPENDED = 'writer.suspended', _('Writer Suspended')
+    WRITER_REINSTATED = 'writer.reinstated', _('Writer Reinstated')
+    WRITER_BANNED = 'writer.banned', _('Writer Banned')
+    WRITER_UNBANNED = 'writer.unbanned', _('Writer Unbanned')
+    WRITER_WARNING = 'writer.warning', _('Writer Warning')
+    WRITER_STRIKED = 'writer.striked', _('Writer Striked')
+    WRITER_PROBATION = 'writer.probation', _('Writer On Probation')
+    WRITER_PROMOTED = 'writer.promoted', _('Writer Promoted')
+    WRITER_DEMOTED = 'writer.demoted', _('Writer Demoted')
+    WRITER_LEVEL_UP = 'writer.level_up', _('Writer Level Up')
+    WRITER_BADGE_EARNED = 'writer.badge_earned', _('Badge Earned')
+
+    # Tickets — one version for user, one for staff
+    TICKET_CREATED = 'ticket.created', _('Ticket Created')                 # staff receives
+    TICKET_UPDATED = 'ticket.updated', _('Ticket Updated')
+    TICKET_ASSIGNED = 'ticket.assigned', _('Ticket Assigned')              # staff receives
+    TICKET_ESCALATED = 'ticket.escalated', _('Ticket Escalated')           # staff receives
+    TICKET_RESOLVED = 'ticket.resolved', _('Ticket Resolved')              # user receives
+    TICKET_CLOSED = 'ticket.closed', _('Ticket Closed')
+    TICKET_REOPENED = 'ticket.reopened', _('Ticket Reopened')
+    TICKET_COMMENT_ADDED = 'ticket.comment_added', _('Comment Added')      # user + staff receive
+
+    # Account
+    ACCOUNT_SUSPENDED = 'account.suspended', _('Account Suspended')
+    ACCOUNT_BLACKLISTED = 'account.blacklisted', _('Account Blacklisted')
+    ACCOUNT_REACTIVATED = 'account.reactivated', _('Account Reactivated')
+    ACCOUNT_DELETION_REQUESTED = 'account.deletion_requested', _('Deletion Requested')
+    ACCOUNT_DELETION_SCHEDULED = 'account.deletion_scheduled', _('Deletion Scheduled')
+    ACCOUNT_VERIFIED = 'account.verified', _('Account Verified')
+    ACCOUNT_LOGIN_NEW_DEVICE = 'account.login_new_device', _('Login from New Device')
+    ACCOUNT_PASSWORD_CHANGED = 'account.password_changed', _('Password Changed')
+    ACCOUNT_EMAIL_CHANGED = 'account.email_changed', _('Email Changed')
+    ACCOUNT_TWO_FACTOR_ENABLED = 'account.2fa_enabled', _('Two-Factor Enabled')
+    ACCOUNT_TWO_FACTOR_DISABLED = 'account.2fa_disabled', _('Two-Factor Disabled')
+
+    # Files
+    FILE_UPLOADED = 'file.uploaded', _('File Uploaded')
+    FILE_UPDATED = 'file.updated', _('File Updated')
+    FILE_DELETED = 'file.deleted', _('File Deleted')
+
+    # Messages
+    MESSAGE_NEW = 'message.new', _('New Message')
+
+    # System / Admin — staff triggers, users receive
+    SYSTEM_MAINTENANCE = 'system.maintenance', _('System Maintenance')
+    SYSTEM_ALERT = 'system.alert', _('System Alert')
+    SYSTEM_ANNOUNCEMENT = 'system.announcement', _('System Announcement')
+    ADMIN_BROADCAST = 'system.broadcast', _('Admin Broadcast')
+
 
 class NotificationChannel(TextChoices):
-    EMAIL = "email", _("Email")
-    IN_APP = "in_app", _("In-app")
-    SMS = "sms", _("SMS")
-    WS = "ws", _("WebSocket")
-    SSE = "sse", _("Server-Sent Events")
-    PUSH = "push", _("Push")
-    WEBHOOK = "webhook", _("Webhook")
-    TELEGRAM = "telegram", _("Telegram")
-    DISCORD = "discord", _("Discord")
-    SYSTEM = "system", _("System")
-    WHATSAPP = "whatsapp", _("WhatsApp")
-
-# Alias to keep legacy imports working
-NotificationType = NotificationChannel
+    """
+    Delivery channels.
+    Uncomment TELEGRAM when ready to integrate.
+    """
+    EMAIL = 'email', _('Email')
+    IN_APP = 'in_app', _('In-App')
+    # TELEGRAM = 'telegram', _('Telegram')
 
 
-# ===============
-# Status & Labels
-# ===============
-
-class DeliveryStatus(TextChoices):
-    PENDING = "pending", _("Pending")
-    QUEUED = "queued", _("Queued")
-    SENT = "sent", _("Sent")
-    RETRY = "retry", _("Retry")
-    DELAYED = "delayed", _("Delayed")
-    TIMEOUT = "timeout", _("Timeout")
-    FAILED = "failed", _("Failed")
-    DLQ = "dlq", _("Dead Letter Queue")
-    CANCELLED = "cancelled", _("Cancelled")
-    BOUNCED = "bounced", _("Bounced")
-    OPENED = "opened", _("Opened")
-    CLICKED = "clicked", _("Clicked")
-    UNDELIVERABLE = "undeliverable", _("Undeliverable")
-    COMPLAINT = "complaint", _("Complaint")
-    SUBSCRIBED = "subscribed", _("Subscribed")
-    UNSUBSCRIBED = "unsubscribed", _("Unsubscribed")
-    SKIPPEd = "skipped", _("Skipped")
+class NotificationPriority(TextChoices):
+    LOW = 'low', _('Low')
+    NORMAL = 'normal', _('Normal')
+    HIGH = 'high', _('High')
+    CRITICAL = 'critical', _('Critical')
 
 
 class NotificationCategory(TextChoices):
-    INFO = "info", _("Info")
-    WARNING = "warning", _("Warning")
-    ERROR = "error", _("Error")
-    ANNOUNCEMENT = "announcement", _("Announcement")
-    NEWS = "news", _("News")
+    ORDER = 'order', _('Order')
+    PAYMENT = 'payment', _('Payment')
+    WALLET = 'wallet', _('Wallet')
+    WRITER = 'writer', _('Writer')
+    ACCOUNT = 'account', _('Account')
+    TICKET = 'ticket', _('Ticket')
+    FILE = 'file', _('File')
+    MESSAGE = 'message', _('Message')
+    SYSTEM = 'system', _('System')
+    INFO = 'info', _('Info')
+
+class TemplateScope(TextChoices):
+    GLOBAL = 'global', 'Global'
+    WEBSITE = 'website', 'Website Override'
+
+class DeliveryStatus(TextChoices):
+    PENDING = 'pending', _('Pending')
+    QUEUED = 'queued', _('Queued')
+    SENDING = 'sending', _('Sending')
+    SENT = 'sent', _('Sent')
+    RETRYING = 'retrying', _('Retrying')
+    FAILED = 'failed', _('Failed')
+    SKIPPED = 'skipped', _('Skipped')
+    CANCELLED = 'cancelled', _('Cancelled')
+    BOUNCED = 'bounced', _('Bounced')
+    DLQ = 'dlq', _('Dead Letter Queue')
+    UNDELIVERABLE = 'undeliverable', _('Undeliverable')
+
+class PreferenceSource(TextChoices):
+    USER = 'user', 'Set by User'
+    ADMIN = 'admin', 'Set by Admin'
+    SYSTEM = 'system', 'System Default'
 
 
-class DigestType(TextChoices):
-    DAILY = "daily_summary", _("Daily Summary")
-    WEEKLY = "weekly_summary", _("Weekly Summary")
-    CRITICAL = "critical_alerts", _("Critical Alerts")
+class DigestFrequency(TextChoices):
+    IMMEDIATE = 'immediate', _('Immediate')
+    HOURLY = 'hourly', _('Hourly')
+    DAILY = 'daily', _('Daily')
+    WEEKLY = 'weekly', _('Weekly')
+    MONTHLY = 'monthly', _('Monthly')
 
 
-# ===================
-# Priority (IntEnum)
-# ===================
+# ===========================
+# Helpers
+# ===========================
 
-class NotificationPriority(IntEnum):
-    EMERGENCY = 1
-    HIGH = 2
-    MEDIUM_HIGH = 3
-    NORMAL = 5
-    LOW = 7
-    PASSIVE = 10
-
-    @classmethod
-    def choices(cls) -> List[Tuple[int, str]]:
-        return [(m.value, m.name.replace("_", " ").title()) for m in cls]
-
-
-# ================
-# Grouped Event Enums
-# ================
-
-class OrderEvent(TextChoices):
-    ASSIGNED = "order_assigned", _("Order Assigned")
-    ON_HOLD = "order_on_hold", _("Order On Hold")
-    COMPLETED = "order_completed", _("Order Completed")
-    CANCELLED = "order_cancelled", _("Order Cancelled")
-    REJECTED = "order_rejected", _("Order Rejected")
-    UPDATED = "order_updated", _("Order Updated")
-    CREATED = "order_created", _("Order Created")
-    APPROVED = "order_approved", _("Order Approved")
-    ARCHIVED = "order_archived", _("Order Archived")
-    RESTORED = "order_restored", _("Order Restored")
-    REOPENED = "order_reopened", _("Order Reopened")
-    REASSIGNED = "order_reassigned", _("Order Reassigned")
-    RATED = "order_rated", _("Order Rated")
-    REVIEWED = "order_reviewed", _("Order Reviewed")
-    PAYMENT_FAILED = "order_payment_failed", _("Order Payment Failed")
-    PAYMENT_SUCCESS = "order_payment_success", _("Order Payment Success")
-    REFUNDED = "order_refunded", _("Order Refunded")
-    ON_DISPUTE = "order_on_dispute", _("Order On Dispute")
-    DISPUTE_RESOLVED = "order_dispute_resolved", _("Order Dispute Resolved")
-    DISPUTE_ESCALATED = "order_dispute_escalated", _("Order Dispute Escalated")
-    DISPUTE_CLOSED = "order_dispute_closed", _("Order Dispute Closed")
-    REVIEW_REQUESTED = "order_review_requested", _("Order Review Requested")
-    REVIEW_SUBMITTED = "order_review_submitted", _("Order Review Submitted")
-    REVIEW_APPROVED = "order_review_approved", _("Order Review Approved")
-    REVIEW_REJECTED = "order_review_rejected", _("Order Review Rejected")
+def get_event_category(event_key: str) -> str:
+    """Infer NotificationCategory from event key prefix."""
+    prefix_map = {
+        'order': NotificationCategory.ORDER,
+        'wallet': NotificationCategory.WALLET,
+        'payout': NotificationCategory.PAYMENT,
+        'ticket': NotificationCategory.TICKET,
+        'account': NotificationCategory.ACCOUNT,
+        'writer': NotificationCategory.WRITER,
+        'file': NotificationCategory.FILE,
+        'message': NotificationCategory.MESSAGE,
+        'system': NotificationCategory.SYSTEM,
+    }
+    prefix = event_key.split('.')[0] if '.' in event_key else ''
+    return prefix_map.get(prefix, NotificationCategory.INFO)
 
 
-class FileEvent(TextChoices):
-    UPLOADED = "file_uploaded", _("File Uploaded")
-    DELETED = "file_deleted", _("File Deleted")
-    UPDATED = "file_updated", _("File Updated")
-
-
-class WalletEvent(TextChoices):
-    BALANCE_LOW = "wallet_balance_low", _("Wallet Balance Low")
-    CREDITED = "wallet_credited", _("Wallet Credited")
-    DEBITED = "wallet_debited", _("Wallet Debited")
-    TX_FAILED = "wallet_transaction_failed", _("Wallet Transaction Failed")
-    TX_SUCCESS = "wallet_transaction_success", _("Wallet Transaction Success")
-    REFUND_INITIATED = "wallet_refund_initiated", _("Wallet Refund Initiated")
-    REFUND_COMPLETED = "wallet_refund_completed", _("Wallet Refund Completed")
-
-
-class PayoutEvent(TextChoices):
-    PROCESSING = "payout_processing", _("Payout Processing")
-    COMPLETED = "payout_completed", _("Payout Completed")
-    FAILED = "payout_failed", _("Payout Failed")
-    CANCELLED = "payout_cancelled", _("Payout Cancelled")
-
-
-class TicketEvent(TextChoices):
-    CREATED = "ticket_created", _("Ticket Created")
-    UPDATED = "ticket_updated", _("Ticket Updated")
-    CLOSED = "ticket_closed", _("Ticket Closed")
-    REOPENED = "ticket_reopened", _("Ticket Reopened")
-    ASSIGNED = "ticket_assigned", _("Ticket Assigned")
-    UNASSIGNED = "ticket_unassigned", _("Ticket Unassigned")
-    ESCALATED = "ticket_escalated", _("Ticket Escalated")
-    RESOLVED = "ticket_resolved", _("Ticket Resolved")
-    COMMENT_ADDED = "ticket_comment_added", _("Ticket Comment Added")
-    COMMENT_UPDATED = "ticket_comment_updated", _("Ticket Comment Updated")
-    COMMENT_DELETED = "ticket_comment_deleted", _("Ticket Comment Deleted")
-
-
-class AccountEvent(TextChoices):
-    PASSWORD_RESET = "password_reset", _("Password Reset")
-    ACCOUNT_SUSPENDED = "account_suspended", _("Account Suspended")
-    USER_VERIFIED = "user_verified", _("User Verified")
-    USER_UNVERIFIED = "user_unverified", _("User Unverified")
-    USER_BLACKLISTED = "user_blacklisted", _("User Blacklisted")
-    USER_UNBLACKLISTED = "user_unblacklisted", _("User Unblacklisted")
-
-
-class MessageEvent(TextChoices):
-    NEW_MESSAGE = "new_message", _("New Message")
-
-
-class WriterEvent(TextChoices):
-    REVIEWED = "writer_reviewed", _("Writer Reviewed")
-    SUSPENDED = "writer_suspended", _("Writer Suspended")
-    PROBATION = "writer_sent_on_probation", _("Writer Sent on Probation")
-    STRIKED = "writer_striked", _("Writer Striked")
-    UNSTRIKED = "writer_unstriked", _("Writer Unstriked")
-    WARNING = "writer_warning", _("Writer Warning")
-    BANNED = "writer_banned", _("Writer Banned")
-    UNBANNED = "writer_unbanned", _("Writer Unbanned")
-    REINSTATED = "writer_reinstated", _("Writer Reinstated")
-    REJECTED = "writer_rejected", _("Writer Rejected")
-    APPROVED = "writer_approved", _("Writer Approved")
-    ON_HOLD = "writer_on_hold", _("Writer On Hold")
-    ON_PROBATION = "writer_on_probation", _("Writer On Probation")
-    PROMOTED = "writer_promoted", _("Writer Promoted")
-    DEMOTED = "writer_demoted", _("Writer Demoted")
-    REVIEW_REQUESTED = "writer_review_requested", _("Writer Review Requested")
-    REVIEW_SUBMITTED = "writer_review_submitted", _("Writer Review Submitted")
-    REVIEW_APPROVED = "writer_review_approved", _("Writer Review Approved")
-
-# =======
-# Groups (back-compat for legacy imports expecting EventType)
-# =======
-class EventType(TextChoices):
-    ORDERS   = "orders",   _("Orders")
-    PAYMENTS = "payments", _("Payments")
-    WRITERS  = "writers",  _("Writers")
-    CLIENTS  = "clients",  _("Clients")
-    SECURITY = "security", _("Security")
-    SYSTEM   = "system",   _("System")
-    CUSTOM   = "custom",   _("Custom")
-
-# ==========================
-# Helpers for grouped events
-# ==========================
-
-def all_event_values() -> Set[str]:
-    """
-    Flatten and return a set of all event values across grouped enums.
-    """
-    groups: Iterable[TextChoices] = (
-        OrderEvent, FileEvent, WalletEvent, PayoutEvent, TicketEvent,
-        AccountEvent, MessageEvent, WriterEvent
-    )
-    values: Set[str] = set()
-    for enum in groups:
-        values.update(enum.values)
-    return values
-
-
-def is_order_event(key: str) -> bool:
-    return key in OrderEvent.values
-
-
-def is_wallet_event(key: str) -> bool:
-    return key in WalletEvent.values
-
-
-def is_ticket_event(key: str) -> bool:
-    return key in TicketEvent.values
-
-
-def is_writer_event(key: str) -> bool:
-    return key in WriterEvent.values
-
-
-def is_account_event(key: str) -> bool:
-    return key in AccountEvent.values
-
-
-def is_file_event(key: str) -> bool:
-    return key in FileEvent.values
-
-
-def is_message_event(key: str) -> bool:
-    return key in MessageEvent.values
-
+def is_valid_event(event_key: str) -> bool:
+    """Check if an event key is registered."""
+    return event_key in NotificationEvent.values
 
 
 __all__ = [
-    "NotificationChannel", "NotificationType",
-    "NotificationPriority", "DeliveryStatus",
-    "NotificationCategory", "DigestType",
-    # grouped events
-    "OrderEvent", "FileEvent", "WalletEvent", "PayoutEvent",
-    "TicketEvent", "AccountEvent", "MessageEvent", "WriterEvent",
-    # helpers
-    "all_event_values", "is_order_event", "is_wallet_event",
-    "is_ticket_event", "is_writer_event", "is_account_event",
-    "is_file_event", "is_message_event",
-    "EventType", # legacy alias
+    'NotificationEvent',
+    'NotificationChannel',
+    'NotificationPriority',
+    'NotificationCategory',
+    'DeliveryStatus',
+    'DigestFrequency',
+    'get_event_category',
+    'is_valid_event',
 ]

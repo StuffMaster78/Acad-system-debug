@@ -2,10 +2,10 @@
 Serializers for Enhanced Disputes
 """
 from rest_framework import serializers
+from django.conf import settings
 from support_management.models.enhanced_disputes import OrderDispute, DisputeMessage
-from django.contrib.auth import get_user_model
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class DisputeMessageSerializer(serializers.ModelSerializer):

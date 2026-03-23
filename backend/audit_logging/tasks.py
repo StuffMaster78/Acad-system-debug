@@ -37,9 +37,7 @@ def async_log_audit(
     Raises:
         self.retry: Retries the task on exception.
     """
-    from django.contrib.auth import get_user_model
-
-    User = get_user_model()
+    User = settings.AUTH_USER_MODEL
     actor = None
 
     if actor_id:

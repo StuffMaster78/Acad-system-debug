@@ -8,14 +8,14 @@ This module provides:
 - Common test utilities
 """
 import pytest
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.test import Client
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
-from websites.models import Website
+from websites.models.websites import Website
 from decimal import Decimal
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 # ============================================================================

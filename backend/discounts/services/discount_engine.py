@@ -20,7 +20,6 @@ from ..validators.discount_validation import DiscountValidationService
 from .discount_stacking import DiscountStackingService
 from .discount_cloning_service import DiscountCloningService
 from .discount_code_service import DiscountCodeService
-# from .usage_service import DiscountUsageService
 from .discount_usage_tracker import DiscountUsageTracker
 from discounts.utils import (
     get_discount_model, get_discount_usage_model,

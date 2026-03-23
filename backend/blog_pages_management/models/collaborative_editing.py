@@ -2,13 +2,13 @@
 Collaborative editing models for real-time collaboration.
 """
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import JSONField
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class CollaborativeSession(models.Model):

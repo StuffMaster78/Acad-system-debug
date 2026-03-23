@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from orders.models import Dispute
 from .models import BlacklistedUser
 from .services.admin_services import (
@@ -13,7 +13,7 @@ from .services.admin_services import (
     assign_admin_permissions
 )
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 @receiver(post_save, sender=User)

@@ -4,10 +4,11 @@ from django.utils import timezone
 from decimal import Decimal
 from wallet.models import Wallet, WalletTransaction
 from wallet.exceptions import InsufficientWalletBalance
-from notifications_system.services.dispatch import send
-from django.contrib.auth import get_user_model
+from notifications_system.services.notification_service import NotificationService
+from django.conf import settings
 
-User = get_user_model()
+
+User = settings.AUTH_USER_MODEL
 
 class WalletTransactionService:
     """
@@ -62,11 +63,14 @@ class WalletTransactionService:
         """
         wallet = WalletTransactionService.get_wallet(user, website)
 
-        send (
+        NotificationService.notify(
+            event_key="wallet.credited",
             recipient=user,
-            title="Wallet Credited",
-            message=f"Your wallet has been credited with {amount} on {website}.",
-            category="wallet"
+            website=website,
+            context={
+                "amount": amount,
+                "website": website
+            }
         )
 
         return WalletTransaction.objects.create(
@@ -114,11 +118,14 @@ class WalletTransactionService:
                 f"Insufficient funds. Current balance: {current_balance}"
             )
 
-        send (
+        NotificationService.notify(
+            event_key="wallet.debited",
             recipient=user,
-            title="Wallet Debited",
-            message=f"Your wallet has been debited by {amount} on {website}.",
-            category="wallet"
+            website=website,
+            context={
+                "amount": amount,
+                "website": website
+            }
         )
 
         wallet = WalletTransactionService.get_wallet(user, website)

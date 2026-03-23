@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 from django.conf import settings
-from websites.models import Website
+from websites.models.websites import Website
 from django.apps import apps
 from decimal import Decimal
 # from core.models.base import WebsiteSpecificBaseModel

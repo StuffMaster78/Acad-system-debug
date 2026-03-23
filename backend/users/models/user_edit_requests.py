@@ -6,7 +6,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class UserEditRequest(models.Model):
@@ -42,7 +42,7 @@ class UserEditRequest(models.Model):
         help_text=_("User requesting the edit")
     )
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='user_edit_requests',
         help_text=_("Website context")

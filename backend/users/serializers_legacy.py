@@ -1,21 +1,19 @@
 from django.templatetags.static import static
 from django.conf import settings
 from rest_framework import serializers
-from .models import User
-from users.models import UserProfile
+from users.models.profile import UserProfile
 from client_management.models import ClientProfile
 from writer_management.models.profile import WriterProfile
 from editor_management.models import EditorProfile
 from support_management.models import SupportProfile
 from superadmin_management.models import SuperadminProfile
-from django.contrib.auth import get_user_model
-from websites.models import Website
+from websites.models.websites import Website
 from authentication.models import AccountDeletionRequest
 from rest_framework.exceptions import ValidationError
 from phonenumber_field.serializerfields import PhoneNumberField
 from django_countries.serializer_fields import CountryField as CountrySerializerField
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 class SimpleUserSerializer(serializers.ModelSerializer):
     role = serializers.CharField(read_only=True)

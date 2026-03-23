@@ -6,6 +6,7 @@ from django.test import TestCase
 from django.core.cache import cache
 from django.db import connection
 from django.db.models import Count, Sum
+from django.conf import settings
 from orders.models import Order
 from communications.models import CommunicationThread
 from admin_management.views import AdminDashboardView
@@ -112,10 +113,9 @@ class TestDashboardCaching(TestCase):
     def setUp(self):
         """Set up test environment."""
         cache.clear()
-        from django.contrib.auth import get_user_model
         from websites.models import Website
         
-        User = get_user_model()
+        User = settings.AUTH_USER_MODEL
         self.website = Website.objects.create(
             name="Test Website",
             domain="test.local",

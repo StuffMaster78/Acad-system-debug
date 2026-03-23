@@ -4,7 +4,7 @@ from django.utils import timezone
 from django.core.exceptions import ValidationError
 import uuid
 from orders.models import Order
-from websites.models import Website
+from websites.models.websites import Website
 from order_payments_management.models import OrderPayment 
 from django.apps import apps
 import uuid

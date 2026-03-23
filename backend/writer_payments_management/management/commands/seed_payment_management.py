@@ -5,17 +5,17 @@ Creates payments with various statuses, linked to orders and special orders.
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from decimal import Decimal
-from websites.models import Website
+from django.conf import settings
+from websites.models.websites import Website
 from writer_payments_management.models import WriterPayment
 from writer_management.models import WriterProfile
 from orders.models import Order
 from special_orders.models import SpecialOrder
-from users.models import User
 from django.utils import timezone
 from datetime import timedelta
 import random
 
-
+User = settings.AUTH_USER_MODEL
 class Command(BaseCommand):
     help = 'Seed writer payment management records with sample data'
 
@@ -74,7 +74,7 @@ class Command(BaseCommand):
             total_blocked = 0
 
             for website in websites:
-                self.stdout.write(f'\nProcessing website: {website.name} (ID: {website.id})')
+                self.stdout.write(f'\nProcessing website: {website.name} (ID: {website.pk})')
 
                 # Get writers for this website
                 writer_profiles = WriterProfile.objects.filter(
@@ -355,9 +355,9 @@ class Command(BaseCommand):
 
                         entity_info = ""
                         if order:
-                            entity_info = f" | Order #{order.id}"
+                            entity_info = f" | Order #{order.pk}"
                         elif special_order:
-                            entity_info = f" | Special Order #{special_order.id}"
+                            entity_info = f" | Special Order #{special_order.pk}"
 
                         # Add status category for clarity
                         status_category = ""
@@ -371,7 +371,7 @@ class Command(BaseCommand):
                             status_category = "[BLOCKED]"
 
                         self.stdout.write(
-                            f'  ✓ Created payment #{payment.id} | '
+                            f'  ✓ Created payment #{payment.pk} | '
                             f'{writer_profile.user.email} | ${total_amount} | '
                             f'{status_category} {status} | Base: ${base_amount} | '
                             f'Bonuses: ${bonuses} | Tips: ${tips} | Fines: ${fines}{entity_info}'

@@ -5,7 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils.timezone import now
 # from admin_management.managers import AdminManager 
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 class AdminProfile(models.Model):
     """
@@ -273,3 +273,43 @@ class AdminActivityLog(models.Model):
             models.Index(fields=["timestamp"]),
             models.Index(fields=["admin", "timestamp"]),
         ]
+
+
+class StaffWebsiteAssignment(models.Model):
+    """
+    Tracks which staff members are assigned to which websites.
+
+    Staff users (admin, support, editor, superadmin) operate across
+    multiple websites via this M2M bridge — they do not have a hard
+    website FK on their User model the way tenant users (writers,
+    clients) do.
+    """
+    staff_member = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='website_assignments',
+    )
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name='staff_assignments',
+    )
+    is_active = models.BooleanField(default=True)
+    assigned_at = models.DateTimeField(auto_now_add=True)
+    assigned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='staff_assignments_made',
+    )
+
+    class Meta:
+        unique_together = ('staff_member', 'website')
+        ordering = ['-assigned_at']
+
+    def __str__(self):
+        return (
+            f"{self.staff_member} → {self.website} "
+            f"({'active' if self.is_active else 'inactive'})"
+        )

@@ -64,15 +64,15 @@ def notify_writer_on_acceptance(sender, instance, created, **kwargs):
     order = instance.order
     writer = instance.writer
 
-    subject = "🎉 Your order request has been accepted!"
+    subject = "Your order request has been accepted!"
     dashboard_url = f"https://{domain}/orders/{order.id}/"
     accept_url = f"https://{domain}/orders/{order.id}/accept/"
 
     message = (
-        f"🎉 Congrats {writer.get_full_name()}!\n\n"
+        f"Congrats {writer.get_full_name()}!\n\n"
         f"Your request to work on Order #{order.id} has been accepted.\n"
         f"You can now begin working on it.\n\n"
-        f"🔎 Order Details:\n"
+        f"Order Details:\n"
         f"• Topic: {order.topic}\n"
         f"• Client: {order.client.username}\n"
         f"• Due Date: {order.due_date.strftime('%Y-%m-%d %H:%M')}\n"
@@ -88,7 +88,7 @@ def notify_writer_on_acceptance(sender, instance, created, **kwargs):
     try:
         send(
             user=writer,
-            message="🎯 Your request to work on an order was accepted! "
+            message="Your request to work on an order was accepted! "
                     f"Click to accept the assignment: {accept_url}",
             metadata={
                 "order_id": order.id,

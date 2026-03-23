@@ -3,6 +3,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db import transaction
 from django.utils import timezone
+from django.conf import settings
 from decimal import Decimal
 from datetime import timedelta
 from calendar import monthrange
@@ -11,10 +12,9 @@ from .models import WriterPayment, WriterPayoutRequest, WriterPaymentAdjustment
 from writer_wallet.models import PaymentSchedule, ScheduledWriterPayment
 from writer_management.models import WriterProfile
 from websites.models import Website
-from django.contrib.auth import get_user_model
 from admin_management.permissions import IsAdmin
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class WriterPaymentManagementViewSet(viewsets.ViewSet):

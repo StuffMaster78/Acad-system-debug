@@ -79,31 +79,4 @@ class OrderActionDispatcher:
         """
         action = action_class(order=self.order, actor=self.actor, **kwargs)
         result = action.execute()
-        self._trigger_webhooks_if_needed(action)
         return result
-    
-    def _trigger_webhooks_if_needed(self, action):
-        # Lazy import to avoid circular import issues
-        from orders.webhooks.tasks import deliver_webhook_task
-        
-        writer = self.order.assigned_writer
-        if not writer:
-            return
-
-        settings = getattr(writer, "webhook_settings", None)
-        if not settings or not settings.enabled:
-            return
-
-        if action.event_name not in settings.subscribed_events:
-            return
-
-        deliver_webhook_task.delay(
-            user_id=writer.id,
-            platform=settings.platform,
-            webhook_url=settings.webhook_url,
-            event=action.event_name,
-            order_id=self.order.id,
-            triggered_by_id=self.actor.id,
-            test=False,
-            fallback_icon="https://yourcdn.com/images/default-avatar.png"
-        )

@@ -11,7 +11,7 @@ from django.utils import timezone
 from communications.models import CommunicationThread
 from tickets.models import Ticket
 from wallet.models import Wallet
-from websites.models import Website
+from websites.models.websites import Website
 
 # Use apps.get_model() to access Website model lazily
 # def get_website_model():

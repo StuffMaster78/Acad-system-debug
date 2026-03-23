@@ -1,13 +1,11 @@
-# writer_management.services.writer_status_service.py
+# writer_management.services.status_service.py
 
 from django.core.cache import cache
 from writer_management.models.status import WriterStatus
 from writer_management.models.profile import WriterProfile
 from writer_management.services.escalation_config_service import EscalationConfigService
 from audit_logging.services.audit_log_service import AuditLogService
-from writer_management.services.discipline_notification_service import (
-    DisciplineNotificationService,
-)
+
 class WriterStatusService:
     """
     Service to fetch and update a writer's centralized status,
@@ -20,7 +18,7 @@ class WriterStatusService:
         Returns the cached status if available, otherwise updates
         and caches a fresh status.
         """
-        cache_key = f"writer_status:{writer.id}"
+        cache_key = f"writer_status:{writer.pk}"
         status = cache.get(cache_key)
         if status:
             return status
@@ -35,8 +33,9 @@ class WriterStatusService:
         """
         # Import models here to avoid circular imports
         from writer_management.models.discipline import (
-            WriterStrike, WriterSuspension, WriterBlacklist, Probation, WriterWarning
+            WriterStrike, WriterSuspension, WriterBlacklist, Probation
         )
+        from writer_management.models.writer_warnings import WriterWarning
         
         # Get previous status from database to avoid recursive call
         try:

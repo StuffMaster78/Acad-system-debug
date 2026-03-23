@@ -3,7 +3,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.db import transaction
 
-from .models import Website
+from .models.websites import Website
 
 
 def _should_auto_populate() -> bool:

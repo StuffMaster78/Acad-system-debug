@@ -4,7 +4,7 @@ from django.conf import settings
 from decimal import Decimal
 import uuid
 from wallet.models import Wallet, WalletTransaction
-from websites.models import Website
+from websites.models.websites import Website
 from loyalty_management.models import LoyaltyTransaction, LoyaltyTier
 from django.apps import apps
 

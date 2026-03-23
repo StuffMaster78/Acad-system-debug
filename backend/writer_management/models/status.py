@@ -1,7 +1,7 @@
 # writer_management.models.status.py
 
 from django.db import models
-from websites.models import Website
+from websites.models.websites import Website
 from writer_management.models.profile import WriterProfile
 
 class WriterStatus(models.Model):

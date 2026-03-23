@@ -1,14 +1,15 @@
+from botocore import context
 from django.contrib.auth.models import Group, Permission
 from django.apps import apps
 from django.db import transaction
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from admin_management.models import AdminProfile, BlacklistedUser
 from orders.models import Dispute
 from admin_management.models import AdminActivityLog
-from notifications_system.services.core import NotificationService
+from notifications_system.services.notification_service import NotificationService
 from users.services.group_service import UserGroupService
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 def create_admin_profile_if_needed(user):
     if user.role == "admin":
@@ -66,16 +67,22 @@ def notify_superadmins_new_admin(user):
             return  # Cannot send notification without website
         
         for superadmin in User.objects.filter(role="superadmin"):
-            NotificationService.send_notification(
-                user=superadmin,
-                event="admin.created",
-                payload={
+            NotificationService.notify(
+                event_key="admin.created",
+                recipient=superadmin,
+                website=website,
+                context={
                     "admin_username": user.username,
                     "admin_email": user.email,
                     "message": f"{user.username} has been assigned as an Admin.",
                 },
-                website=website,
-                category="user"
+                channels=["email", "in_app"],
+                triggered_by=user,
+                priority="high",
+                is_critical=True,
+                is_digest=False,
+                is_silent=False,
+                digest_group="admin_notifications"
             )
 
 def log_user_suspension_if_needed(user):
@@ -101,16 +108,21 @@ def notify_superadmins_blacklist(blacklisted_user):
         return  # Cannot send notification without website
     
     for superadmin in User.objects.filter(role="superadmin"):
-        NotificationService.send_notification(
-            user=superadmin,
-            event="user.blacklisted",
-            payload={
+        NotificationService.notify(
+            event_key="user.blacklisted",
+            website=website,
+            recipient=superadmin,
+            context={
                 "blacklisted_email": blacklisted_user.email,
                 "blacklisted_by": blacklisted_user.blacklisted_by.username if hasattr(blacklisted_user, 'blacklisted_by') else None,
                 "message": f"{blacklisted_user.email} was blacklisted by {blacklisted_user.blacklisted_by.username if hasattr(blacklisted_user, 'blacklisted_by') else 'system'}.",
             },
-            website=website,
-            category="security"
+            channels=["email", "in_app"],
+            priority="high",
+            is_critical=True,
+            is_digest=False,
+            is_silent=False,
+            digest_group="admin_notifications"
         )
 
 def notify_admins_new_dispute(dispute):
@@ -126,16 +138,22 @@ def notify_admins_new_dispute(dispute):
     
     created_by = dispute.user.username
     for admin in User.objects.filter(role="admin"):
-        NotificationService.send_notification(
-            user=admin,
-            event="dispute.created",
-            payload={
+        NotificationService.notify(
+            event_key="dispute.created",
+            website=website,
+            context={
                 "order_id": dispute.order.id,
                 "created_by": created_by,
                 "message": f"A dispute for Order #{dispute.order.id} was opened by {created_by}.",
             },
-            website=website,
-            category="dispute"
+            triggered_by=dispute.user,
+            recipient=admin,
+            channels=["email", "in_app"],
+            priority="high",
+            is_critical=True,
+            is_digest=False,
+            is_silent=False,
+            digest_group="admin_notifications"
         )
 
 def assign_admin_permissions_on_user_save(sender, instance, created, **kwargs):

@@ -6,7 +6,7 @@ Allows admins to create and manage fine types dynamically.
 from django.db import models
 from django.utils import timezone
 from decimal import Decimal
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class FineTypeConfig(models.Model):

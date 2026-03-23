@@ -22,7 +22,7 @@ except Exception as e:
     sys.exit(1)
 
 from django.contrib.auth import get_user_model
-from websites.models import Website
+from websites.models.websites import Website
 
 User = get_user_model()
 

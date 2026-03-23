@@ -6,6 +6,7 @@ Tests the complete impersonation workflow.
 import os
 import sys
 import django
+from django.conf import settings
 
 # Setup Django
 # IMPORTANT: Set environment variables BEFORE django.setup()
@@ -18,10 +19,9 @@ django.setup()
 
 import requests
 import json
-from django.contrib.auth import get_user_model
 from authentication.models.impersonation import ImpersonationToken, ImpersonationLog
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 BASE_URL = os.getenv("API_BASE_URL", "http://localhost:8000/api/v1")
 
@@ -55,7 +55,7 @@ def test_impersonation():
         superadmin = User.objects.filter(role='superadmin', is_staff=True).first()
         if not superadmin:
             print_info("Creating test superadmin user...")
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
             if not website:
                 print_error("No active website found. Please create one first.")
@@ -96,7 +96,7 @@ def test_impersonation():
         client = User.objects.filter(role='client').first()
         if not client:
             print_info("Creating test client user...")
-            from websites.models import Website
+            from websites.models.websites import Website
             website = Website.objects.filter(is_active=True).first()
             if not website:
                 website = getattr(superadmin, 'website', None) or Website.objects.filter(is_active=True).first()
@@ -117,7 +117,7 @@ def test_impersonation():
             print_success(f"Using existing client: {client.username} (ID: {client.id})")
             # Ensure client has a website
             if not client.website:
-                from websites.models import Website
+                from websites.models.websites import Website
                 website = Website.objects.filter(is_active=True).first()
                 if website:
                     client.website = website

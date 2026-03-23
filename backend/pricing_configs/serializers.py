@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from websites.models import Website
+from websites.models.websites import Website
 from .models import (
     PricingConfiguration,
     AdditionalService,
