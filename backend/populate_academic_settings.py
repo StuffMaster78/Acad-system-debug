@@ -13,7 +13,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings')
 django.setup()
 
 from django.utils import timezone
-from websites.models import Website
+from websites.models.websites import Website
 from order_configs.models import (
     PaperType, FormattingandCitationStyle, Subject, AcademicLevel,
     TypeOfWork, EnglishType

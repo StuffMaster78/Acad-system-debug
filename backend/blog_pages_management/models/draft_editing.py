@@ -3,12 +3,12 @@ Enhanced draft and editing models for blog posts and service pages.
 Includes auto-save, revisions, preview, and collaborative editing features.
 """
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.db.models import JSONField
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class BlogPostRevision(models.Model):

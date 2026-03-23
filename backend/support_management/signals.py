@@ -14,7 +14,7 @@ from .utils import send_support_notification, update_support_workload
 from django.contrib.auth import get_user_model
 from django.conf import settings
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 # 🚀 **1️⃣ Automatically Create Support Profile**

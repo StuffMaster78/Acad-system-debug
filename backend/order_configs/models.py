@@ -1,5 +1,5 @@
 from django.db import models
-from websites.models import Website
+from websites.models.websites import Website
 import json
 
 

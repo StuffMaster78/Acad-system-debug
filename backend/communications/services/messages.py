@@ -1,4 +1,6 @@
 import re
+import datetime
+from typing import Optional
 from django.utils import timezone
 from django.db import transaction
 from communications.models import (
@@ -33,11 +35,11 @@ class MessageService:
         recipient,
         sender_role: str,
         message: str,
-        link: str = None,
-        domain: str = None,
+        link: Optional[str] = None,
+        domain: Optional[str] = None,
         message_type: str = "text",
         *,
-        reply_to: CommunicationMessage = None,
+        reply_to: Optional[CommunicationMessage] = None,
         enforce_visibility: bool=True,
         attachment_file=None
     ) -> CommunicationMessage:
@@ -155,14 +157,24 @@ class MessageService:
 
         # Admin gets notified on flagged messages
         if is_flagged:
-            flag= FlaggedMessage.objects.create(
+            reasons = []
+            if flagged_by_content:
+                reasons.append("restricted content")
+            if inferred_type in {"file", "image", "link"} or bool(attachment_file):
+                reasons.append("sensitive upload")
+            if contains_link:
+                reasons.append("link content")
+
+            flagged_reason = ", ".join(reasons) if reasons else "flagged content"
+
+            flag = FlaggedMessage.objects.create(
                 message=comm_msg,
-                flagged_reason="Contains restricted content"
+                flagged_reason=flagged_reason
             )
             NotificationService.notify_admin_on_flagged_message(flag)
 
         # Admins also get pinged for uploads (file, image, link)
-        if message_type in ["file", "image", "link"]:
+        if inferred_type in ["file", "image", "link"]:
             NotificationService.notify_admin_on_sensitive_upload(comm_msg)
 
         # Notify recipient normally
@@ -248,7 +260,7 @@ class MessageService:
         recent_count = CommunicationMessage.objects.filter(
             sender=sender,
             thread=thread,
-            sent_at__gte=timezone.now() - timezone.timedelta(seconds=10)
+            sent_at__gte=timezone.now() - datetime.timedelta(seconds=10)
         ).count()
         if recent_count > 5:
             raise ValueError("Too many messages. Please slow down.")
@@ -426,7 +438,7 @@ class MessageService:
         Returns:
             bool: True if the user can reply, False otherwise.
         """
-        role = getattr(user, "role", None) or getattr(user, "role", None)
+        role = getattr(user, "role", None)
 
         if message_obj.is_deleted:
             return False

@@ -86,13 +86,13 @@ class SpecialOrderInstallmentPaymentService:
             discount=None,  # Discounts applied at order level
             status='pending',
             payment_method=payment_method,
-            related_object_id=installment.id,
+            related_object_id=installment.pk,
             related_object_type='installment_payment',
         )
         
         logger.info(
-            f"Created OrderPayment {payment.id} for installment {installment.id} "
-            f"(special order #{special_order.id})"
+            f"Created OrderPayment {payment.id} for installment {installment.pk} "
+            f"(special order #{special_order.pk})"
         )
         
         # Process payment based on method
@@ -100,7 +100,7 @@ class SpecialOrderInstallmentPaymentService:
             try:
                 payment = OrderPaymentService.process_wallet_payment(payment)
             except ValueError as e:
-                logger.error(f"Wallet payment failed for installment {installment.id}: {e}")
+                logger.error(f"Wallet payment failed for installment {installment.pk}: {e}")
                 raise ValidationError(f"Payment failed: {str(e)}")
         elif payment_method in ['stripe', 'paypal']:
             # Future: Gateway integration

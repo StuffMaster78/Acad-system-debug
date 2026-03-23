@@ -3,10 +3,10 @@ Management command to seed common holidays and special days.
 """
 from django.core.management.base import BaseCommand
 from django.utils import timezone
+from django.conf import settings
 from holiday_management.models import SpecialDay
-from django.contrib.auth import get_user_model
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class Command(BaseCommand):

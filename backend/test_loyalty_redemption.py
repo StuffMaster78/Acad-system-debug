@@ -5,6 +5,7 @@ Test script for Loyalty Redemption system
 import os
 import sys
 import django
+from django.conf import settings
 
 # Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings')

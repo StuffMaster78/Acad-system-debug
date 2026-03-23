@@ -5,7 +5,7 @@ Extended FinePolicy model for progressive hourly lateness fines.
 from django.db import models
 from django.utils import timezone
 from decimal import Decimal
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class LatenessFineRule(models.Model):

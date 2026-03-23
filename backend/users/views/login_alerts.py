@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from users.login_alerts import LoginAlertPreference
+from users.models.login_alerts import LoginAlertPreference
 from users.serializers.login_alerts import (
     LoginAlertPreferenceSerializer,
     LoginAlertPreferenceUpdateSerializer,

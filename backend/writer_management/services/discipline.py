@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import timedelta
     # already imported: WriterStrike, WriterSuspension, WriterDisciplineConfig
 from writer_management.models.profile import WriterProfile
-from websites.models import Website
+from websites.models.websites import Website
 from django.db import transaction
 
 class DisciplineService:

@@ -120,7 +120,7 @@ INSTALLED_APPS = [
     'django_otp',
     'django_otp.plugins.otp_totp',
     'drf_yasg',
-    # "notifications_system.apps.NotificationsSystemConfig",
+    "notifications_system.apps.NotificationsSystemConfig",
     # 'django_celery_results',
     
 
@@ -171,7 +171,7 @@ INSTALLED_APPS = [
    
 
     # Notifications and Support
-    'notifications_system',
+    # 'notifications_system',
     'tickets',
     'mass_emails',
     'announcements',  # Announcements Center
@@ -217,7 +217,6 @@ MIDDLEWARE = [
     'superadmin_management.middleware.BlacklistMiddleware',
     'core.middleware.compression.EnhancedCompressionMiddleware',  # Enhanced compression with better control
     "activity.middleware.ActivityAuditMiddleware",
-    "notifications_system.middleware.sse_middleware.SSEAuthMiddleware",
     "core.middleware.performance_monitoring.PerformanceMonitoringMiddleware",  # Performance monitoring
 ]
 
@@ -651,8 +650,12 @@ REST_FRAMEWORK = {
         'anon': '500/hour',  # Unauthenticated users (~8/min)
         
         # Burst limits (short-term)
-        'burst': '100/minute',  # Burst limit for rapid requests
-        'sustained': '10000/day',  # Sustained limit over 24 hours
+        # 'burst': '100/minute',  # Burst limit for rapid requests
+        # 'sustained': '10000/day',  # Sustained limit over 24 hours
+
+        'notification_mark_read': '60/minute',
+        'notification_preference_update': '30/minute',
+        'notification_poll': '4/minute',
         
         # Operation-based limits
         'write': '200/hour',  # Write operations (POST, PUT, PATCH, DELETE)
@@ -759,17 +762,44 @@ CELERY_BEAT_SCHEDULE = {
         "task": "orders.tasks.archive_approved_orders",
         "schedule": crontab(hour=1, minute=0),  # every 1 am daily
     },
-    'send-daily-digests': {
-        'task': 'notifications_system.tasks.send_daily_digests',
-        'schedule': crontab(hour=8, minute=0),
-    },
-        'backfill-group-notification-profiles-every-night': {
-        'task': 'notifications_system.tasks.backfill_profiles.backfill_group_notification_profiles',
-        'schedule': crontab(hour=3, minute=0),  # Run at 3 AM daily
-    },
     'aggregate-content-metrics': {
         'task': 'blog_pages_management.tasks.aggregate_content_metrics',
         'schedule': timedelta(hours=6),  # Run every 6 hours
+    },
+    'rebuild-unread-counts-weekly': {
+        'task': 'notifications_system.tasks.maintenance.rebuild_unread_counts',
+        'schedule': crontab(hour=3, minute=0, day_of_week=0),  # Sunday 3am
+    },
+    'process-due-digests': {
+        'task': 'notifications_system.tasks.digest.process_due_digests',
+        'schedule': 3600,  # every hour
+    },
+    'expire-stale-notifications': {
+        'task': 'notifications_system.tasks.expiry.expire_stale_notifications',
+        'schedule': 1800,  # every 30 minutes
+    },
+    'purge-expired-notifications': {
+        'task': 'notifications_system.tasks.expiry.purge_expired_notifications',
+        'schedule': 86400,                   # daily
+        'kwargs': {'older_than_days': 90},
+    },
+    'clear-stale-digests': {
+        'task': 'notifications_system.tasks.maintenance.clear_stale_digests',
+        'schedule': 86400,  # daily
+        'kwargs': {'before_days': 30},
+    },
+    'purge-expired-notifications': {
+        'task': 'notifications_system.tasks.expiry.purge_expired_notifications',
+        'schedule': 86400,
+        'kwargs': {'older_than_days': 90},
+    },
+    'requeue-pending-outbox': {
+        'task': 'notifications_system.tasks.maintenance.requeue_pending_outbox',
+        'schedule': 300,   # every 5 minutes — safety net
+    },
+    'cleanup-processed-outbox': {
+        'task': 'notifications_system.tasks.maintenance.cleanup_processed_outbox',
+        'schedule': 86400,  # daily
     },
 }
 RATELIMIT_VIEW = os.getenv("RATELIMIT_VIEW", "default")
@@ -830,41 +860,39 @@ if not TOKEN_ENCRYPTION_KEY:
 
 
 # Notifications System Configurations for override
+ENABLE_NOTIFICATIONS = True
+ENABLE_CELERY = True
+# Email provider — 'gmail' for dev, 'sendgrid'/'mailgun'/'ses' for prod
+DEFAULT_EMAIL_PROVIDER = os.getenv('DEFAULT_EMAIL_PROVIDER', 'gmail')
+DEFAULT_EMAIL_CONFIG = {
+    'email':    os.getenv('GMAIL_EMAIL', ''),
+    'password': os.getenv('GMAIL_APP_PASSWORD', ''),
+}
+DEFAULT_FROM_NAME = os.getenv('DEFAULT_FROM_NAME', 'Writing System')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', os.getenv('GMAIL_EMAIL', ''))
+
+# Deduplication — same event for same user within this window is suppressed
+NOTIFICATION_DEDUPE_WINDOW_SECONDS = int(
+    os.getenv('NOTIFICATION_DEDUPE_WINDOW_SECONDS', 45)
+)
+
 # --- Delivery behavior ---
+# Fallback channels — if primary channel fails try these
 NOTIFICATION_CHANNEL_FALLBACKS = {
-    "sms": ["email", "push"],
-    "push": ["email"],
+    'email': ['in_app'],
 }
 USE_SYNC_RETRIES = False  # Celery in prod
 
 NOTIFICATION_CHANNEL_BACKOFFS = {
-    "email": 10,
-    "sms": 30,
-    "push": 5,
-    "in_app": 0,
-    "telegram": 5,
-    "whatsapp": 5,
-    "sse": 1,
+    'email':  60,   # 1 minute base — exponential applied in task
+    'in_app': 0,    # no backoff for in-app
 }
 NOTIFICATION_MAX_RETRIES_PER_CHANNEL = {
     "email": 3,
-    "sms": 2,
-    "push": 2,
+    "in_app": 2,
 }
 
-# --- What to load ---
-LOAD_CENTRAL_NOTIFICATION_CONFIG = False      # no central "notification_event_config.json"
-LOAD_BROADCAST_CONFIG = True                  # keep these centralized
-LOAD_DIGEST_CONFIG = True
 
-# If you truly don’t have digest/broadcast files, set these to None.
-# Otherwise point them at real files. Pick ONE set; don’t redefine later.
-NOTIFY_DIGEST_CONFIG_FILE = (
-    BASE_DIR / "notifications_system" / "registry" / "configs" / "digest_event_config.json"
-)
-NOTIFY_BROADCAST_CONFIG_FILE = (
-    BASE_DIR / "notifications_system" / "registry" / "configs" / "broadcast_event_config.json"
-)
 
 # --- Response Compression Settings ---
 # Minimum response size (in bytes) to compress
@@ -917,33 +945,10 @@ NOTIFICATION_COMMON_ROLE_OVERRIDES = {
     "editor": {"*": {"in_app", "email"}},
 }
 
-# --- Throttles / dedupe ---
-NOTIFY_INACTIVITY_FALLBACK_HOURS = 3
-NOTIFY_EMAIL_COOLDOWN_MINUTES = 30
-NOTIFY_DAILY_EMAIL_LIMIT = 5
-NOTIFY_WEEKLY_EMAIL_LIMIT = 20
-NOTIFY_DISABLE_EMAIL_FALLBACK = False
+# --- Dedupe ---
 NOTIFICATION_DEDUPE_WINDOW_SECONDS = 45
 
-# --- Per-app discovery (use ** to match deep trees) ---
-NOTIFICATION_EVENT_GLOBS = [
-    "**/notification_configs/events.json",
-    "**/notifications_config/events.json",  # tolerate singular dir name
-]
-NOTIFY_APP_EVENTS_SUBDIR = "notification_configs"  # or "notifications_config" if that’s what you use
 
-# Optional: central schemas dir (still useful for $ref resolution)
-NOTIFY_EVENTS_DIR = BASE_DIR / "notifications_system" / "registry" / "configs"
-
-# Silences template-related warnings in Django system checks
-# Set to False to re-enable warnings for missing templates
-NOTIFICATIONS_SILENCE_TEMPLATE_WARNINGS = True
-
-# --- Webhook ---
-WEBHOOK_DEFAULT_TIMEOUT = 5
-WEBHOOK_HMAC_HEADER = "X-Notif-Signature"
-WEBHOOK_HMAC_ALGO = "sha256"
-# WEBHOOK_SECRET = ...
 
 # Structured Logging Configuration
 # Import logging config (with fallback if file doesn't exist)

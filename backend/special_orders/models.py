@@ -1,7 +1,9 @@
 from django.db import models
 from django.conf import settings
-from websites.models import Website
+from websites.models.websites import Website
 from django.utils import timezone
+from typing import TYPE_CHECKING
+from decimal import Decimal
 class PredefinedSpecialOrderConfig(models.Model):
     """
     Configuration for predefined-cost special orders.
@@ -32,6 +34,10 @@ class PredefinedSpecialOrderConfig(models.Model):
         Returns a string representation of the predefined order configuration.
         """
         return f"{self.name} - Active: {self.is_active}"
+
+    if TYPE_CHECKING:
+        id: int
+        durations: 'models.Manager[PredefinedSpecialOrderDuration]'
 
 
 class PredefinedSpecialOrderDuration(models.Model):
@@ -83,7 +89,7 @@ class EstimatedSpecialOrderSettings(models.Model):
     default_deposit_percentage = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=50.0,
+        default=Decimal('50.0'),
         help_text="Default deposit percentage (e.g., 50.00 means 50%)."
     )
 
@@ -237,9 +243,9 @@ class SpecialOrder(models.Model):
         elif self.order_type == 'estimated' and self.total_cost:
             # Lookup config deposit %
             config = getattr(self.website, 'estimated_order_settings', None)
-            deposit_percent = config.default_deposit_percentage if config else 50.0
+            deposit_percent = config.default_deposit_percentage if config else Decimal('50.0')
             self.deposit_required = round(
-                self.total_cost * (deposit_percent / 100), 2
+                self.total_cost * (deposit_percent / Decimal('100')), 2
             )
 
         super().save(*args, **kwargs)
@@ -255,6 +261,9 @@ class SpecialOrder(models.Model):
         """Approve a specific cost for the order."""
         self.admin_approved_cost = approved_cost
         self.save()
+
+    if TYPE_CHECKING:
+        id: int
     
 
 class InstallmentPayment(models.Model):
@@ -311,6 +320,9 @@ class InstallmentPayment(models.Model):
 
     def __str__(self):
         return f"Installment {self.id} for Order #{self.special_order.id} - Due: {self.due_date} - Paid: {self.is_paid}"
+
+    if TYPE_CHECKING:
+        id: int
 
 
 class OrderCompletionLog(models.Model):
@@ -447,6 +459,11 @@ class SpecialOrderInquiryFile(models.Model):
 
     def __str__(self):
         return f"{self.file_name} - Special Order #{self.special_order.id}"
+
+    if TYPE_CHECKING:
+        id: int
+        website_id: int
+        special_order_id: int
 
     def save(self, *args, **kwargs):
         # Auto-set website from special order if not set

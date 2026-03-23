@@ -44,7 +44,11 @@ class DiscountCodeValidator:
         Returns:
             bool: True if format is valid, False otherwise.
         """
-        return CodeFormatValidator.is_valid_format(code)
+        try:
+            CodeFormatValidator().is_valid_format(code)
+            return True
+        except ValidationError:
+            return False
 
     @staticmethod
     def is_valid_code(code):

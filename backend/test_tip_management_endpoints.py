@@ -5,12 +5,12 @@ Test script for Tip Management endpoints
 import os
 import sys
 import django
+from django.conf import settings
 
 # Setup Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings')
 django.setup()
 
-from django.contrib.auth import get_user_model
 from rest_framework.test import APIRequestFactory
 from rest_framework.test import force_authenticate
 from rest_framework.request import Request
@@ -18,7 +18,7 @@ from admin_management.views import AdminTipManagementViewSet
 from writer_management.models.tipping import Tip
 from websites.models import Website
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 def test_tip_management_endpoints():
     """Test all Tip Management endpoints"""

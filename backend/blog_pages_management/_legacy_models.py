@@ -8,7 +8,7 @@ from django.db.models import F
 import math
 import re
 import uuid
-from websites.models import Website
+from websites.models.websites import Website
 from django.utils.crypto import get_random_string
 from bs4 import BeautifulSoup  # Extract headings
 import json

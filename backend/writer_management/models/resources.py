@@ -5,7 +5,7 @@ Admins can upload guides and share resources for writers' personal development.
 from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
-from websites.models import Website
+from websites.models.websites import Website
 
 User = settings.AUTH_USER_MODEL
 

@@ -25,8 +25,9 @@ except Exception as e:
 
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+from django.conf import settings
 from django.db import transaction
-from websites.models import Website
+from websites.models.websites import Website
 from orders.models import Order
 from orders.services.create_order_service import CreateOrderService
 from orders.services.assignment import OrderAssignmentService
@@ -42,7 +43,7 @@ from communications.services.thread_service import ThreadService
 from notifications_system.models.notifications import Notification
 from writer_management.models.tipping import Tip
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 class Colors:
     GREEN = '\033[92m'

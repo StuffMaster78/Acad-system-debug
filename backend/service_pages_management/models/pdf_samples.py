@@ -4,10 +4,10 @@ Allows readers to download sample PDFs attached to service pages.
 """
 from django.db import models
 from django.utils.text import slugify
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.core.validators import FileExtensionValidator
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class ServicePagePDFSampleSection(models.Model):

@@ -5,7 +5,7 @@ from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class PaymentReminderConfig(models.Model):

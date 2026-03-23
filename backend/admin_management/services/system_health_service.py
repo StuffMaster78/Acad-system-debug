@@ -9,13 +9,14 @@ from django.core.cache import cache
 from django.db import connection
 from orders.models import Order
 from orders.order_enums import OrderStatus
-from users.models import User
+from django.conf import settings
 from writer_management.models import WriterProfile
 from writer_wallet.models import WriterPayment
 from fines.models import Fine
 import logging
 
 logger = logging.getLogger(__name__)
+User = settings.AUTH_USER_MODEL
 
 class SystemHealthService:
     """Service for monitoring system health and performance."""

@@ -2,7 +2,7 @@
 Serializers for Review Reminders
 """
 from rest_framework import serializers
-from orders.models import ReviewReminder
+from orders.models.review_reminders import ReviewReminder
 
 
 class ReviewReminderSerializer(serializers.ModelSerializer):

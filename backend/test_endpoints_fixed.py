@@ -5,17 +5,17 @@ Or: docker exec -it writing_project-web-1 python manage.py test_endpoints_fixed
 """
 import os
 import django
+from django.conf import settings
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings')
 django.setup()
 
 from django.test import Client
-from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
 from rest_framework import status
 import json
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 def test_endpoints():
     """Test the fixed endpoints"""

@@ -1,7 +1,7 @@
 from django.db import models
-from django.contrib.auth import get_user_model
 from django.apps import apps
-from websites.models import Website
+from django.conf import settings
+from websites.models.websites import Website
 from django.utils.translation import gettext_lazy as _
 # Use apps.get_model() to access Website model lazily
 # def get_website_model():
@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 #     return Website
 
 # Website = get_website_model()
-User = get_user_model()
+User =  settings.AUTH_USER_MODEL
 
 
 class ActorType(models.TextChoices):
@@ -51,7 +51,7 @@ class ActivityLog(models.Model):
     )
 
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,

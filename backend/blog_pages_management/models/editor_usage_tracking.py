@@ -2,13 +2,12 @@
 Editor usage tracking models for detailed editor analytics.
 """
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
-User = get_user_model()
-
+User = settings.AUTH_USER_MODEL
 
 class EditorSession(models.Model):
     """

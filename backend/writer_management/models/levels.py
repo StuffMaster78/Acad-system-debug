@@ -1,10 +1,11 @@
 from django.db import models
 from decimal import Decimal
-from websites.models import Website
+from django.conf import settings
+from websites.models.websites import Website
 from writer_management.models.profile import WriterProfile
-from django.contrib.auth import get_user_model
 
-User = get_user_model()
+
+User = settings.AUTH_USER_MODEL
 
 
 
@@ -47,33 +48,33 @@ class WriterLevel(models.Model):
     base_pay_per_page = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=0.00,
+        default=Decimal('0.00'),
         help_text="Base pay per page (used in fixed_per_page mode or as minimum fallback)."
     )
     base_pay_per_slide = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=0.00,
+        default=Decimal('0.00'),
         help_text="Base pay per slide (used in fixed_per_page mode or as minimum fallback)."
     )
     
     # PERCENTAGE-BASED EARNINGS (when earning_mode is percentage)
     earnings_percentage_of_cost = models.DecimalField(
-        max_digits=5, decimal_places=2, default=0.00,
+        max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text="Percentage of order cost (before discounts) writer earns"
     )
     earnings_percentage_of_total = models.DecimalField(
-        max_digits=5, decimal_places=2, default=0.00,
+        max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text="Percentage of order total (after discounts) writer earns"
     )
 
     # URGENCY-BASED MULTIPLIERS
     urgency_percentage_increase = models.DecimalField(
-        max_digits=5, decimal_places=2, default=0.00,
+        max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text="Percentage increase for urgent orders."
     )
     urgency_additional_per_page = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0.00,
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text="Additional amount per page for urgent orders (beyond percentage increase)"
     )
     urgency_deadline_limit = models.PositiveIntegerField(
@@ -89,27 +90,27 @@ class WriterLevel(models.Model):
     technical_order_adjustment_per_page = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        default=0.00,
+        default=Decimal('0.00'),
         help_text="Extra pay per page for technical orders."
     )
     technical_order_adjustment_per_slide = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0.00,
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text="Extra pay per slide for technical orders."
     )
 
     # DEADLINE MANAGEMENT
     deadline_percentage = models.DecimalField(
-        max_digits=5, decimal_places=2, default=80.00,
+        max_digits=5, decimal_places=2, default=Decimal('80.00'),
         help_text="Percentage of client deadline writer receives (e.g., 80% means writer gets 80% of client deadline time)"
     )
 
     # TIPS & BONUSES
     tip_percentage = models.DecimalField(
-        max_digits=5, decimal_places=2, default=100.00,
+        max_digits=5, decimal_places=2, default=Decimal('100.00'),
         help_text="Percentage of tips writer receives (100% = full tips, 50% = half tips)"
     )
     tips_percentage = models.DecimalField(
-        max_digits=5, decimal_places=2, default=100.00,
+        max_digits=5, decimal_places=2, default=Decimal('100.00'),
         help_text="Percentage of tips writer receives (alias for tip_percentage)"
     )
     
@@ -119,7 +120,7 @@ class WriterLevel(models.Model):
         help_text="Minimum number of completed orders required to reach this level"
     )
     min_rating_to_attain = models.DecimalField(
-        max_digits=3, decimal_places=2, default=0.00,
+        max_digits=3, decimal_places=2, default=Decimal('0.00'),
         help_text="Minimum average rating required to reach this level"
     )
     min_takes_to_attain = models.PositiveIntegerField(
@@ -127,7 +128,7 @@ class WriterLevel(models.Model):
         help_text="Minimum number of successful order takes required to reach this level"
     )
     min_completion_rate = models.DecimalField(
-        max_digits=5, decimal_places=2, default=0.00,
+        max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text="Minimum order completion rate (%) required"
     )
     max_revision_rate = models.DecimalField(
@@ -141,15 +142,15 @@ class WriterLevel(models.Model):
     
     # BONUS STRUCTURE
     bonus_per_order_completed = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0.00,
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text="Fixed bonus per completed order"
     )
     bonus_per_rating_above_threshold = models.DecimalField(
-        max_digits=10, decimal_places=2, default=0.00,
+        max_digits=10, decimal_places=2, default=Decimal('0.00'),
         help_text="Bonus for orders rated above threshold (e.g., 4.5+)"
     )
     rating_threshold_for_bonus = models.DecimalField(
-        max_digits=3, decimal_places=2, default=4.50,
+        max_digits=3, decimal_places=2, default=Decimal('4.50'),
         help_text="Rating threshold to qualify for bonus"
     )
     
@@ -217,7 +218,7 @@ class WriterLevel(models.Model):
                 site = Website.objects.filter(is_active=True).first()
                 if site is None:
                     site = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
-                self.website_id = site.id
+                self.website_id = site.pk
             except Exception:
                 pass
         super().save(*args, **kwargs)

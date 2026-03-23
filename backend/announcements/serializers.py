@@ -2,13 +2,13 @@
 Serializers for announcements app.
 """
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
 from notifications_system.models.broadcast_notification import BroadcastNotification
 from notifications_system.serializers import BroadcastNotificationSerializer
 from .models import Announcement, AnnouncementView
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class AnnouncementViewSerializer(serializers.ModelSerializer):

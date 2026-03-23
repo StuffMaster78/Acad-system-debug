@@ -8,7 +8,7 @@ Usage:
     order = OrderFactory(client=user)
 """
 import factory
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.utils import timezone
 from decimal import Decimal
 from datetime import timedelta
@@ -19,7 +19,7 @@ from orders.models import Order
 from client_wallet.models import ClientWallet
 from writer_management.models import WriterProfile
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 fake = Faker()
 
 

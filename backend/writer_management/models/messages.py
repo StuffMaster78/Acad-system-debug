@@ -1,6 +1,6 @@
 from django.db import models
 from django.conf import settings
-from websites.models import Website
+from websites.models.websites import Website
 from django.contrib.auth import get_user_model
 from writer_management.models.profile import WriterProfile
 from orders.models import Order

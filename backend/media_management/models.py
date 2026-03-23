@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 
-from websites.models import Website
+from websites.models.websites import Website
 
 
 class MediaAsset(models.Model):

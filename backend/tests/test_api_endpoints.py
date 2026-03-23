@@ -2,12 +2,12 @@
 API endpoint tests for critical functionality.
 """
 import pytest
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from rest_framework.test import APIClient
 from rest_framework import status
 from websites.models import Website
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 @pytest.mark.api
@@ -23,10 +23,9 @@ class TestAdminDashboardAPI:
     
     def test_admin_dashboard_caching(self, db_with_website):
         """Test that admin dashboard uses caching."""
-        from django.contrib.auth import get_user_model
         from django.core.cache import cache
         
-        User = get_user_model()
+        User = settings.AUTH_USER_MODEL
         website = db_with_website
         
         # Create admin user
@@ -143,11 +142,10 @@ class TestOptimizedEndpoints:
     
     def test_review_management_uses_combined_aggregations(self, db_with_website):
         """Test that review management uses combined aggregations."""
-        from django.contrib.auth import get_user_model
         from django.db import connection
         from django.test.utils import override_settings
         
-        User = get_user_model()
+        User = settings.AUTH_USER_MODEL
         website = db_with_website
         
         admin = User.objects.create_user(

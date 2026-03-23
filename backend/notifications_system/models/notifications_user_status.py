@@ -1,64 +1,98 @@
-from datetime import timezone
 from django.db import models
-
 from django.conf import settings
-import users
-from websites.models import Website
-from notifications_system.enums import (
-    NotificationPriority
-)
-from notifications_system.models.notifications import Notification
-from django.db import models
-# from django.contrib.auth import get_user_model
+from django.utils import timezone
+from notifications_system.enums import NotificationPriority
 
-# User = get_user_model()
 
 class NotificationsUserStatus(models.Model):
     """
-    Represents the status of a user regarding notifications.
-    This model tracks whether a user has acknowledged
-    or read a notification, pinning, 
-    priorities, and read statuses for notifications
-    per user or per notification copy,
-    as well as their preferences for receiving future notifications.
-    """ 
+    Per-user status for a specific notification.
+    Tracks read state, acknowledgement, and pinning.
+    One row per user per notification.
+    """
     user = models.ForeignKey(
-        "users.User",
+        settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="notification_statuses"
+        related_name='notification_statuses',
     )
     notification = models.ForeignKey(
-        Notification,
+        'notifications_system.Notification',
         on_delete=models.CASCADE,
-        related_name="user_statuses"
+        related_name='user_statuses',
     )
-    is_acknowledged = models.BooleanField(default=False)
-    is_acknowledged_at = models.DateTimeField(null=True, blank=True)
+    website = models.ForeignKey(
+        'websites.Website',
+        on_delete=models.CASCADE,
+        related_name='notification_user_statuses',
+    )
 
+    # Read state
     is_read = models.BooleanField(default=False)
     read_at = models.DateTimeField(null=True, blank=True)
 
-    pinned = models.BooleanField(default=False)
+    # Acknowledgement — for notifications requiring explicit confirmation
+    is_acknowledged = models.BooleanField(default=False)
+    acknowledged_at = models.DateTimeField(null=True, blank=True)
+
+    # Pinning — user or staff can pin important notifications
+    is_pinned = models.BooleanField(default=False)
     pinned_at = models.DateTimeField(null=True, blank=True)
-    
+    pinned_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='pinned_notification_statuses',
+        help_text="Staff member who pinned this, or null if self-pinned.",
+    )
+
     priority = models.CharField(
         max_length=20,
-        choices=NotificationPriority.choices(),
-        default=NotificationPriority.NORMAL
+        choices=NotificationPriority.choices,
+        default=NotificationPriority.NORMAL,
     )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'notification')
         verbose_name = 'User Notification Status'
         verbose_name_plural = 'User Notification Statuses'
-    indexes = [
-        models.Index(fields=['user', 'notification']),
-        models.Index(fields=['user', 'is_acknowledged']),
-        models.Index(fields=['user', 'is_read']),
-        models.Index(fields=['notification', 'priority']),
-    ]
+        unique_together = ('user', 'notification')
+        indexes = [
+            models.Index(fields=['user', 'website', 'is_read']),
+            models.Index(fields=['user', 'website', 'is_acknowledged']),
+            models.Index(fields=['user', 'is_pinned']),
+            models.Index(fields=['notification', 'priority']),
+        ]
 
     def __str__(self):
-        return f"{self.user.username} - {self.notification.title} Status"
+        return f"{self.user} — {self.notification} [{self.priority}]"
+
+    def mark_read(self):
+        """Mark notification as read."""
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save(update_fields=['is_read', 'read_at', 'updated_at'])
+
+    def acknowledge(self):
+        """Mark notification as acknowledged."""
+        if not self.is_acknowledged:
+            self.is_acknowledged = True
+            self.acknowledged_at = timezone.now()
+            self.save(update_fields=['is_acknowledged', 'acknowledged_at', 'updated_at'])
+
+    def pin(self, pinned_by=None):
+        """Pin this notification for the user."""
+        self.is_pinned = True
+        self.pinned_at = timezone.now()
+        self.pinned_by = pinned_by
+        self.save(update_fields=['is_pinned', 'pinned_at', 'pinned_by', 'updated_at'])
+
+    def unpin(self):
+        """Unpin this notification."""
+        self.is_pinned = False
+        self.pinned_at = None
+        self.pinned_by = None
+        self.save(update_fields=['is_pinned', 'pinned_at', 'pinned_by', 'updated_at'])

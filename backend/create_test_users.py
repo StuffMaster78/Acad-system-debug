@@ -7,17 +7,17 @@ Or: python create_test_users.py (after setting up Django)
 import os
 import sys
 import django
+from django.conf import settings
 
 # Setup Django
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings')
 django.setup()
 
-from django.contrib.auth import get_user_model
 from websites.models import Website
 from django.db import transaction
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 # Common password for all test users
 TEST_PASSWORD = "testpass123"

@@ -11,7 +11,7 @@ from cryptography.fernet import Fernet
 from django.conf import settings
 import base64
 import os
-from websites.models import Website
+from websites.models.websites import Website
 
 
 def get_encryption_key():

@@ -1,263 +1,171 @@
-from datetime import timezone
 from django.db import models
-from django.utils.timezone import now
-from core.models.base import WebsiteSpecificBaseModel
 from django.conf import settings
-from websites.models import Website
+from django.utils import timezone
 from notifications_system.enums import (
-    DigestType,
-    NotificationType,
+    NotificationChannel,
     NotificationCategory,
+    NotificationPriority,
     DeliveryStatus,
-    EventType,
-    NotificationPriority
 )
-from django.contrib.postgres.fields import ArrayField
-from users.mixins import UserRole   
-from django.contrib.postgres.fields import JSONField
-from notifications_system.models.notification_log import NotificationLog
 
 
-User = settings.AUTH_USER_MODEL 
 class Notification(models.Model):
     """
-    Represents a notification sent to a user.
+    A single notification instance targeting one user.
+    Immutable after creation — represents the intent to notify.
+
+    Delivery details (attempts, retries, provider responses)
+    live on related Delivery rows, not here.
+
+    User-specific state (read, pinned, acknowledged)
+    lives on NotificationsUserStatus, not here.
     """
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
-        related_name="system_notifications"
+        related_name='notifications',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notifications',
     )
 
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="user_notifications",
-        help_text="The user receiving the notification."
+    # Who triggered this notification — null means system
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='triggered_notifications',
     )
-    type = models.CharField(
+
+    event_key = models.CharField(
+        max_length=128,
+        help_text="Event that triggered this notification e.g. 'order.completed'",
+    )
+    category = models.CharField(
+        max_length=50,
+        choices=NotificationCategory.choices,
+        default=NotificationCategory.INFO,
+        blank=True,
+    )
+    priority = models.CharField(
         max_length=20,
-        choices=NotificationType.choices,
-        default='in_app',
-        help_text="The type of notification."
+        choices=NotificationPriority.choices,
+        default=NotificationPriority.NORMAL,
     )
-    title = models.CharField(
-        max_length=255,
-        help_text="Notification title."
+
+    # Channels this notification should be delivered through
+    channels = models.JSONField(
+        default=list,
+        help_text="Channels e.g. ['email', 'in_app']",
     )
-    message = models.TextField(
-        help_text="Notification content."
+
+    # Raw context passed to template renderer
+    payload = models.JSONField(
+        default=dict,
+        help_text="Context variables for template rendering.",
     )
-    link = models.URLField(
-        blank=True, null=True,
-        help_text="Link to more information or action."
+
+    # Rendered output — populated after rendering
+    rendered = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Rendered output: title, message, subject, link etc.",
     )
-    is_read = models.BooleanField(
-        default=False,
-        help_text="Has the user read this notification?"
-    )
+
+    # Delivery state — summary only, details are on Delivery rows
     status = models.CharField(
         max_length=20,
         choices=DeliveryStatus.choices,
-        default='pending',
-        help_text="Delivery status of the notification."
+        default=DeliveryStatus.PENDING,
     )
-    category = models.CharField(
-        max_length=20,
-        choices=NotificationCategory.choices,
-        default='info',
+    failed_channels = models.JSONField(
+        default=list,
         blank=True,
-        null=True,
-        help_text="Category of the notification."
+        help_text="Channels that failed delivery e.g. ['email']",
     )
-    event = models.CharField(
-        max_length=100,
-        choices=EventType.choices,
-        help_text="Event name, e.g. 'order_assigned'"
-    )
-    payload = models.JSONField(
-        default=dict,
-        help_text="Structured data for templating"
-    )
-    template_name = models.CharField(
-        max_length=100,
-        blank=True, null=True
-    )
+
+    # Behavior flags
     is_silent = models.BooleanField(
         default=False,
-        help_text="Do not deliver to user, only log/store"
+        help_text="Store only — do not deliver to user.",
     )
     is_critical = models.BooleanField(
         default=False,
-        help_text="Is this a critical notification that requires immediate attention?"
+        help_text="Bypasses user preferences and DND.",
+    )
+    is_broadcast = models.BooleanField(
+        default=False,
+        help_text="True if this was generated from a broadcast.",
     )
     is_digest = models.BooleanField(
         default=False,
-        help_text="Should this be included in digest?"
+        help_text="True if this should be grouped into a digest.",
     )
     digest_group = models.CharField(
         max_length=100,
-        blank=True, null=True,
-        choices=DigestType.choices,
-        help_text="Group for digest notifications, e.g. 'daily_summary'"
-    )
-    template_version = models.CharField(
-        max_length=20,
         blank=True,
-        null=True
+        help_text="Digest group key e.g. 'daily_summary'",
     )
-    priority = models.IntegerField(
-        default=5,
-        help_text="Higher number = more urgent"
-    )
-    priority_label = models.CharField(
-        max_length=50,
-        blank=True,
-        null=True,
-        help_text="Label for the priority, e.g. 'high', 'medium', 'low'"
-    )
-    actor = models.ForeignKey(
-        User, null=True, blank=True,
-        on_delete=models.SET_NULL,
-        related_name="notifications_triggered"
-    )
-    rendered_title = models.CharField(
-        max_length=255, blank=True, null=True,
-        help_text="Rendered title for templating"
-    )
-    rendered_message = models.TextField(blank=True, null=True)
-    rendered_link = models.URLField(blank=True, null=True)
-    rendered_context = models.JSONField(
-        default=dict,
-        blank=True,
-        null=True,
-        help_text="Rendered payload for templating"
-    )
-    is_broadcast = models.BooleanField(default=False)
     test_mode = models.BooleanField(
         default=False,
-        help_text="If true, do not deliver for real."
+        help_text="If True, notification is logged but not delivered.",
     )
-    is_sent = models.BooleanField(
-        default=False,
-        help_text="Has the notification been sent?"
-    )
-    channels = ArrayField(
-        models.CharField(max_length=50),
-        default=list,
-        help_text="Channels through which the notification was sent, e.g. ['email', 'push']"
-    )
-    sent_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When the notification was sent."
-    )
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-    delivered_at = models.DateTimeField(
-        null=True,
-        blank=True,
-        help_text="When the notification was delivered."
-    )
-    delivered = models.BooleanField(
-        default=False,
-        help_text="Has the notification been delivered?"
-    )
-    delivery_status = models.CharField(
-        max_length=20,
-        choices=DeliveryStatus.choices,
-        default=DeliveryStatus.PENDING,
-        help_text="Current delivery status of the notification."
-    )
-    delivery_attempts = models.IntegerField(
-        default=0,
-        help_text="Number of attempts made to deliver the notification."
-    )
-    retry_count = models.IntegerField(
-        default=0,
-        help_text="Number of retries attempted for this notification."
-    )
-    failed_channels = models.JSONField(default=list)  # e.g., ["email", "push"]
-    metadata = models.JSONField(
-        default=dict,
-        blank=True
-    )  # optional for payload debugging
-    pinned = models.BooleanField(
-        default=False,
-        help_text="Whether the notification is pinned."
-    )
+
     expires_at = models.DateTimeField(
         null=True,
         blank=True,
-        help_text="When the notification expires and shouldn't be shown."
+        help_text="After this time the notification should not be shown.",
     )
-
-    def mark_as_read(self):
-        """
-        Mark the notification as read.
-        """
-        self.is_read = True
-        self.save()
-
-    def send(self):
-        """
-        Simulate sending the notification. Extend this for email/SMS integrations.
-        """
-        self.status = 'sent'
-        self.sent_at = now()
-        self.delivery_attempts += 1
-        self.save()
-
-    def mark_delivered(self):
-        self.delivery_status = DeliveryStatus.SENT
-        self.delivered_at = now()
-        self.save(update_fields=["delivery_status", "delivered_at"])
-
-    def record_attempt(self, success, channel, response=None):
-        NotificationLog.objects.create(
-            notification=self,
-            channel=channel,
-            success=success,
-            response=response
-        )
-        self.delivery_attempts += 1
-        self.save(update_fields=["delivery_attempts"])
+    sent_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = "Notification"
-        verbose_name_plural = "Notifications"
-        unique_together = ('website', 'user', 'type', 'title', 'message')
-        indexes = [
-            models.Index(fields=['website', 'user', 'type', 'is_read']),
-            models.Index(fields=['status']),
-            models.Index(fields=['created_at']),
-            models.Index(fields=['delivered_at']),
-            models.Index(fields=['is_digest', 'digest_group']),
-            models.Index(fields=['priority']),
-            models.Index(fields=['expires_at']),
-        ]
+        verbose_name = 'Notification'
+        verbose_name_plural = 'Notifications'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'website', 'status']),
+            models.Index(fields=['event_key', 'website']),
+            models.Index(fields=['is_digest', 'digest_group']),
+            models.Index(fields=['expires_at']),
+            models.Index(fields=['priority', 'status']),
+        ]
 
     def __str__(self):
-        return f"{self.type.capitalize()} Notification to {self.user.username}: {self.title}"
+        return f"{self.event_key} → {self.user} [{self.status}]"
 
-    # Backward-compatible helper used in various signals/tests
-    @classmethod
-    def create_notification(cls, user, message, title=None, website=None, **kwargs):
-        try:
-            if website is None:
-                from websites.models import Website
-                website = getattr(user, 'website', None) or Website.objects.filter(is_active=True).first()
-                if website is None:
-                    website = Website.objects.create(name="Test Website", domain="https://test.local", is_active=True)
-            return cls.objects.create(
-                website=website,
-                user=user,
-                title=title or "Notification",
-                message=message,
-                event=kwargs.get('event', 'generic'),
-                payload=kwargs.get('payload', {}),
-            )
-        except Exception:
-            # Never break business flow because of notification errors in tests
-            return None
+    @property
+    def is_expired(self):
+        return bool(self.expires_at and self.expires_at < timezone.now())
+
+    @property
+    def title(self):
+        """Convenience accessor for rendered title."""
+        return self.rendered.get('title', '')
+
+    @property
+    def message(self):
+        """Convenience accessor for rendered message."""
+        return self.rendered.get('message', '')
+
+    @property
+    def subject(self):
+        """Convenience accessor for rendered email subject."""
+        return self.rendered.get('subject', '')
+
+    def mark_sent(self):
+        """Mark notification as successfully sent."""
+        self.status = DeliveryStatus.SENT
+        self.sent_at = timezone.now()
+        self.save(update_fields=['status', 'sent_at', 'updated_at'])
+
+    def mark_failed(self, channel=None):
+        """Mark notification as failed, optionally recording the failed channel."""
+        if channel and channel not in self.failed_channels:
+            self.failed_channels.append(channel)
+        self.status = DeliveryStatus.FAILED
+        self.save(update_fields=['status', 'failed_channels', 'updated_at'])

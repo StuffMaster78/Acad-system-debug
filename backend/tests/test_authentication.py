@@ -3,11 +3,11 @@ Comprehensive tests for authentication endpoints.
 """
 import pytest
 from rest_framework import status
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
 from tests.factories import ClientUserFactory, WebsiteFactory
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 @pytest.mark.api

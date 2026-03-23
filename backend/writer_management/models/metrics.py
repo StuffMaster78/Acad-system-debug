@@ -1,7 +1,7 @@
 from django.db import models
 from decimal import Decimal
 from django.utils.timezone import now
-from websites.models import Website
+from websites.models.websites import Website
 from writer_management.models.profile import WriterProfile
 
 

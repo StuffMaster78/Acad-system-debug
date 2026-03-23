@@ -1,11 +1,10 @@
 from rest_framework.permissions import BasePermission
 from django.utils.timezone import now
-
-from users.models import User
+from django.conf import settings
 from authentication.constants import ROLE_HIERARCHY
 from authentication.models import AuditLog
 
-
+User = settings.AUTH_USER_MODEL
 class IsAuthenticated(BasePermission):
     """
     Custom permission to check if the user is authenticated.

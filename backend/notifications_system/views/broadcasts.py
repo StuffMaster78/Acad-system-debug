@@ -1,64 +1,85 @@
-from rest_framework import viewsets
+"""
+Broadcast notification endpoints — user-facing.
+"""
+from __future__ import annotations
+
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from notifications_system.models.broadcast_notification import (
-    BroadcastAcknowledgement, BroadcastNotification
-)
+from notifications_system.models.broadcast_notification import BroadcastNotification
 from notifications_system.serializers import BroadcastNotificationSerializer
 from notifications_system.services.broadcast_acknowledgement import (
-    BroadcastAcknowledgementService
+    BroadcastAcknowledgementService,
 )
 
 
-class BroadcastNotificationViewSet(viewsets.ReadOnlyModelViewSet):
+class BroadcastViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    Broadcast notifications are sent to many users
-    (e.g., system-wide announcements).
+    User-facing broadcast endpoints.
+    Users view active broadcasts and acknowledge them.
     """
-    serializer_class = BroadcastNotificationSerializer
     permission_classes = [IsAuthenticated]
+    serializer_class = BroadcastNotificationSerializer
 
     def get_queryset(self):
-        return BroadcastNotification.objects.filter(
-            is_active=True,
-            websites=self.request.user.website
-        ).order_by("-created_at")
-
-    @action(detail=False, methods=["get"], url_path="fetch-user-broadcasts")
-    def fetch_user_broadcasts(self, request):
-        """
-        Get all broadcasts relevant to the authenticated user.
-        """
-        website = getattr(request.user, 'active_website', None)
-        if not website:
-            return Response({"detail": "Website context missing."}, status=400)
-
-        broadcasts = BroadcastAcknowledgementService.get_user_broadcasts(
-            user=request.user,
-            website=website
+        user = self.request.user
+        website = getattr(user, 'website', None)
+        return BroadcastAcknowledgementService.get_user_broadcasts(
+            user, website
         )
-        serializer = self.get_serializer(broadcasts, many=True)
-        return Response(serializer.data)
 
-    @action(detail=True, methods=["post"], url_path="acknowledge")
+    @action(detail=True, methods=['post'])
     def acknowledge(self, request, pk=None):
-        """
-        Mark a broadcast as acknowledged by the user.
-        """
-        broadcast = self.get_object()
-        BroadcastAcknowledgement.objects.get_or_create(
+        """Acknowledge a broadcast notification."""
+        website = getattr(request.user, 'website', None)
+        try:
+            broadcast = BroadcastNotification.objects.get(
+                id=pk, website=website, is_active=True,
+            )
+        except BroadcastNotification.DoesNotExist:
+            return Response(
+                {'error': 'Broadcast not found.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        ack = BroadcastAcknowledgementService.acknowledge(
             user=request.user,
             broadcast=broadcast,
+            website=website,
+            via_channel=request.data.get('via_channel', 'in_app'),
         )
-        return Response({"detail": "Acknowledged."})
-    
+        return Response({
+            'acknowledged': True,
+            'acknowledged_at': ack.acknowledged_at.isoformat(),
+        })
 
+    @action(detail=False, methods=['get'])
+    def pending(self, request):
+        """Return broadcasts requiring acknowledgement."""
+        website = getattr(request.user, 'website', None)
+        pending = BroadcastAcknowledgementService.get_pending_acknowledgements(
+            request.user, website
+        )
+        return Response(
+            self.get_serializer(pending, many=True).data
+        )
 
-    """
-    List all broadcast notifications: GET /broadcast-notifications/
-    Retrieve a single broadcast: GET /broadcast-notifications/{id}/
-    Get all broadcasts relevant to the user: GET /broadcast-notifications/fetch-user-broadcasts/
-    Acknowledge a broadcast: POST /broadcast-notifications/{id}/acknowledge/
-    """
+    @action(detail=False, methods=['get'])
+    def blocking(self, request):
+        """
+        Return the next blocking broadcast the user must acknowledge.
+        Vue uses this to gate dashboard access.
+        Returns {blocking: false} if none pending.
+        """
+        website = getattr(request.user, 'website', None)
+        broadcast = BroadcastAcknowledgementService.require_dashboard_access(
+            request.user, website
+        )
+        if not broadcast:
+            return Response({'blocking': False})
+        return Response({
+            'blocking': True,
+            'broadcast': self.get_serializer(broadcast).data,
+        })

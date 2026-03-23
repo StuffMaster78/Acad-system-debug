@@ -3,11 +3,11 @@ Holiday Management Services
 """
 from django.utils import timezone
 from django.db.models import Q
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django_countries import countries
 from .models import SpecialDay, HolidayReminder, HolidayDiscountCampaign
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class HolidayReminderService:

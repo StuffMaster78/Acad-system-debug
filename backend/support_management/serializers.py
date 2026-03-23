@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from .models import (
     SupportProfile, SupportNotification, SupportOrderManagement, 
     SupportMessage, SupportMessageAccess, SupportGlobalAccess, 
@@ -13,7 +13,7 @@ from orders.models import Order, Dispute
 from tickets.models import Ticket
 from order_files.models import OrderFile
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 ### **1️⃣ Support Profile Serializer**

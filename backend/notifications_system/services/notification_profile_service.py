@@ -1,349 +1,305 @@
 """
-Service for managing notification preference profiles.
-Handles business logic for creating, updating, and applying notification profiles.
+notifications_system/services/notification_profile_service.py
+
+Manages notification preference profiles — creation, updating,
+applying to users, duplication, and statistics.
 """
+from __future__ import annotations
+
+import logging
+from typing import Any, Dict, List, Optional
+
+from django.conf import settings
 from django.db import transaction
-from django.utils import timezone
-from django.contrib.auth import get_user_model
-from typing import List, Dict, Optional, Set
-from websites.models import Website
 
-from notifications_system.models.notification_preferences import (
-    NotificationPreferenceProfile,
-    NotificationPreference,
-    EventNotificationPreference,
-)
-from notifications_system.enums import (
-    NotificationType,
-    EventType,
-    OrderEvent,
-    TicketEvent,
-    WalletEvent,
-    AccountEvent,
-    MessageEvent,
-    WriterEvent,
-    PayoutEvent,
-    FileEvent,
-)
-
-User = get_user_model()
+logger = logging.getLogger(__name__)
 
 
 class NotificationProfileService:
-    """Service for managing notification preference profiles."""
-    
+    """
+    Manages NotificationPreferenceProfile lifecycle and application.
+    Profiles are admin-created templates applied to users or roles.
+    """
+
     @staticmethod
     def create_profile(
         name: str,
-        description: str = "",
-        website: Optional[Website] = None,
-        default_email: bool = True,
-        default_sms: bool = False,
-        default_push: bool = False,
-        default_in_app: bool = True,
+        website,
+        description: str = '',
         email_enabled: bool = True,
-        sms_enabled: bool = False,
-        push_enabled: bool = False,
         in_app_enabled: bool = True,
         dnd_enabled: bool = False,
         dnd_start_hour: int = 22,
         dnd_end_hour: int = 6,
+        digest_enabled: bool = False,
+        digest_frequency: str = 'daily',
         is_default: bool = False,
-    ) -> NotificationPreferenceProfile:
+        created_by=None,
+    ):
         """
         Create a new notification preference profile.
-        
-        Args:
-            name: Profile name (must be unique)
-            description: Profile description
-            website: Optional website association
-            default_email: Default email setting
-            default_sms: Default SMS setting
-            default_push: Default push setting
-            default_in_app: Default in-app setting
-            email_enabled: Email enabled
-            sms_enabled: SMS enabled
-            push_enabled: Push enabled
-            in_app_enabled: In-app enabled
-            dnd_enabled: Do-not-disturb enabled
-            dnd_start_hour: DND start hour (0-23)
-            dnd_end_hour: DND end hour (0-23)
-            is_default: Whether this is the default profile
-            
+        If is_default is True, demotes any existing default for this website.
+
         Returns:
-            Created NotificationPreferenceProfile instance
+            NotificationPreferenceProfile instance
         """
-        # If setting as default, unset other defaults
-        if is_default:
-            NotificationPreferenceProfile.objects.filter(
-                is_default=True,
-                website=website
-            ).update(is_default=False)
-        
-        profile = NotificationPreferenceProfile.objects.create(
-            name=name,
-            description=description,
-            website=website,
-            default_email=default_email,
-            default_sms=default_sms,
-            default_push=default_push,
-            default_in_app=default_in_app,
-            email_enabled=email_enabled,
-            sms_enabled=sms_enabled,
-            push_enabled=push_enabled,
-            in_app_enabled=in_app_enabled,
-            dnd_enabled=dnd_enabled,
-            dnd_start_hour=dnd_start_hour,
-            dnd_end_hour=dnd_end_hour,
-            is_default=is_default,
+        from notifications_system.models.notification_preferences import (
+            NotificationPreferenceProfile,
         )
-        
-        return profile
-    
+
+        with transaction.atomic():
+            if is_default:
+                NotificationPreferenceProfile.objects.filter(
+                    website=website,
+                    is_default=True,
+                ).update(is_default=False)
+
+            return NotificationPreferenceProfile.objects.create(
+                name=name,
+                description=description,
+                website=website,
+                email_enabled=email_enabled,
+                in_app_enabled=in_app_enabled,
+                dnd_enabled=dnd_enabled,
+                dnd_start_hour=dnd_start_hour,
+                dnd_end_hour=dnd_end_hour,
+                digest_enabled=digest_enabled,
+                digest_frequency=digest_frequency,
+                is_default=is_default,
+                created_by=created_by,
+            )
+
     @staticmethod
-    def update_profile(
-        profile: NotificationPreferenceProfile,
-        **kwargs
-    ) -> NotificationPreferenceProfile:
+    def update_profile(profile, **kwargs):
         """
-        Update a notification preference profile.
-        
-        Args:
-            profile: Profile instance to update
-            **kwargs: Fields to update
-            
+        Update fields on a profile.
+        Handles default demotion if is_default is being set to True.
+
         Returns:
             Updated NotificationPreferenceProfile instance
         """
-        # If setting as default, unset other defaults
-        if kwargs.get('is_default') is True:
-            NotificationPreferenceProfile.objects.filter(
-                is_default=True,
-                website=profile.website
-            ).exclude(id=profile.id).update(is_default=False)
-        
-        for key, value in kwargs.items():
-            if hasattr(profile, key):
-                setattr(profile, key, value)
-        
-        profile.save()
-        return profile
-    
+        from notifications_system.models.notification_preferences import (
+            NotificationPreferenceProfile,
+        )
+
+        with transaction.atomic():
+            if kwargs.get('is_default') is True:
+                NotificationPreferenceProfile.objects.filter(
+                    website=profile.website,
+                    is_default=True,
+                ).exclude(pk=profile.pk).update(is_default=False)
+
+            for field, value in kwargs.items():
+                if hasattr(profile, field):
+                    setattr(profile, field, value)
+
+            profile.save()
+            return profile
+
+    @staticmethod
+    def duplicate_profile(
+        source_profile,
+        new_name: str,
+        website=None,
+    ):
+        """
+        Duplicate a profile with a new name.
+        Duplicated profile is never marked as default.
+
+        Returns:
+            New NotificationPreferenceProfile instance
+        """
+        from notifications_system.models.notification_preferences import (
+            NotificationPreferenceProfile,
+        )
+
+        return NotificationPreferenceProfile.objects.create(
+            name=new_name,
+            description=f"Copied from {source_profile.name}",
+            website=website or source_profile.website,
+            email_enabled=source_profile.email_enabled,
+            in_app_enabled=source_profile.in_app_enabled,
+            dnd_enabled=source_profile.dnd_enabled,
+            dnd_start_hour=source_profile.dnd_start_hour,
+            dnd_end_hour=source_profile.dnd_end_hour,
+            digest_enabled=source_profile.digest_enabled,
+            digest_frequency=source_profile.digest_frequency,
+            is_default=False,
+        )
+
     @staticmethod
     @transaction.atomic
     def apply_profile_to_user(
-        profile: NotificationPreferenceProfile,
-        user: User,
-        website: Optional[Website] = None,
-        override_existing: bool = False
-    ) -> Dict[str, any]:
+        profile,
+        user,
+        website=None,
+        override_existing: bool = False,
+    ) -> Dict[str, Any]:
         """
-        Apply a notification profile to a user.
-        Creates or updates user notification preferences based on the profile.
-        
+        Apply a profile to a single user.
+        Updates the user's NotificationPreference and per-event preferences.
+
         Args:
-            profile: Profile to apply
-            user: User to apply profile to
-            website: Website context (uses profile's website if not provided)
-            override_existing: Whether to override existing preferences
-            
+            profile:           Profile to apply
+            user:              User to apply to
+            website:           Website context — uses profile.website if not given
+            override_existing: If False, skips events with existing preferences
+
         Returns:
-            Dict with applied preferences count and details
+            Summary dict with counts
         """
+        from notifications_system.models.notification_preferences import (
+            NotificationPreference,
+            NotificationEventPreference,
+        )
+        from notifications_system.models.notification_event import NotificationEvent
+
+        website = website or profile.website
         if not website:
-            website = profile.website
-        
-        if not website:
-            raise ValueError("Website is required to apply profile")
-        
-        applied_count = 0
-        updated_count = 0
+            raise ValueError("Website is required to apply a profile.")
+
+        # Update or create master preference
+        pref, _ = NotificationPreference.objects.update_or_create(
+            user=user,
+            website=website,
+            defaults={
+                'profile': profile,
+                'email_enabled': profile.email_enabled,
+                'in_app_enabled': profile.in_app_enabled,
+                'dnd_enabled': profile.dnd_enabled,
+                'dnd_start_hour': profile.dnd_start_hour,
+                'dnd_end_hour': profile.dnd_end_hour,
+                'digest_enabled': profile.digest_enabled,
+                'digest_frequency': profile.digest_frequency,
+            },
+        )
+
+        # Apply to per-event preferences
+        active_events = NotificationEvent.objects.filter(is_active=True)
         created_count = 0
-        
-        # Get all available events
-        all_events = NotificationProfileService._get_all_events()
-        
-        # Apply profile settings to user preferences
-        for event_key in all_events:
-            # Determine channel settings based on profile
-            email_enabled = profile.email_enabled and profile.default_email
-            sms_enabled = profile.sms_enabled and profile.default_sms
-            push_enabled = profile.push_enabled and profile.default_push
-            in_app_enabled = profile.in_app_enabled and profile.default_in_app
-            
-            # Create or update EventNotificationPreference
-            event_pref, created = EventNotificationPreference.objects.update_or_create(
+        updated_count = 0
+        skipped_count = 0
+
+        for event in active_events:
+            event_pref, created = NotificationEventPreference.objects.get_or_create(
                 user=user,
-                event=event_key,
                 website=website,
+                event=event,
                 defaults={
-                    'email_enabled': email_enabled,
-                    'sms_enabled': sms_enabled,
-                    'push_enabled': push_enabled,
-                    'in_app_enabled': in_app_enabled,
-                    'dnd_enabled': profile.dnd_enabled,
-                    'dnd_start': profile.dnd_start_hour,
-                    'dnd_end': profile.dnd_end_hour,
-                }
+                    'email_enabled': profile.email_enabled,
+                    'in_app_enabled': profile.in_app_enabled,
+                    'is_enabled': True,
+                },
             )
-            
+
             if created:
                 created_count += 1
+            elif override_existing:
+                event_pref.email_enabled = profile.email_enabled
+                event_pref.in_app_enabled = profile.in_app_enabled
+                event_pref.save(update_fields=[
+                    'email_enabled', 'in_app_enabled', 'updated_at'
+                ])
+                updated_count += 1
             else:
-                if override_existing:
-                    updated_count += 1
-                else:
-                    continue
-            
-            applied_count += 1
-        
+                skipped_count += 1
+
+        logger.info(
+            "apply_profile_to_user: profile=%s user=%s website=%s "
+            "created=%s updated=%s skipped=%s.",
+            profile.id, user.id, website.id,
+            created_count, updated_count, skipped_count,
+        )
+
         return {
             'profile_id': profile.id,
             'profile_name': profile.name,
             'user_id': user.id,
-            'user_email': user.email,
             'website_id': website.id,
-            'total_events': len(all_events),
-            'applied_count': applied_count,
             'created_count': created_count,
             'updated_count': updated_count,
+            'skipped_count': skipped_count,
         }
-    
+
     @staticmethod
-    @transaction.atomic
     def apply_profile_to_users(
-        profile: NotificationPreferenceProfile,
+        profile,
         user_ids: List[int],
-        website: Optional[Website] = None,
-        override_existing: bool = False
-    ) -> Dict[str, any]:
+        website=None,
+        override_existing: bool = False,
+    ) -> Dict[str, Any]:
         """
-        Apply a notification profile to multiple users.
-        
-        Args:
-            profile: Profile to apply
-            user_ids: List of user IDs
-            website: Website context
-            override_existing: Whether to override existing preferences
-            
+        Apply a profile to multiple users.
+        Each user is processed independently — one failure doesn't
+        roll back others.
+
         Returns:
-            Dict with summary of applied profiles
+            Summary dict with per-user results
         """
-        users = User.objects.filter(id__in=user_ids)
+        User = settings.AUTH_USER_MODEL
+
+        users = User.objects.filter(id__in=user_ids, is_active=True)
         results = []
-        
+        failed = 0
+
         for user in users:
             try:
                 result = NotificationProfileService.apply_profile_to_user(
                     profile=profile,
                     user=user,
                     website=website,
-                    override_existing=override_existing
+                    override_existing=override_existing,
                 )
                 results.append(result)
-            except Exception as e:
+            except Exception as exc:
+                failed += 1
+                logger.error(
+                    "apply_profile_to_users failed for user=%s: %s",
+                    user.id,  # type: ignore[attr-defined]
+                    exc,
+                )
                 results.append({
-                    'user_id': user.id,
-                    'user_email': user.email,
-                    'error': str(e)
+                    'user_id': user.id,  # type: ignore[attr-defined]
+                    'error': str(exc),
                 })
-        
+
         return {
             'profile_id': profile.id,
             'profile_name': profile.name,
             'total_users': len(user_ids),
-            'successful': len([r for r in results if 'error' not in r]),
-            'failed': len([r for r in results if 'error' in r]),
+            'successful': len(results) - failed,
+            'failed': failed,
             'results': results,
         }
-    
+
     @staticmethod
-    def get_profile_statistics(profile: NotificationPreferenceProfile) -> Dict[str, any]:
+    def get_profile_statistics(profile) -> Dict[str, Any]:
         """
-        Get statistics about a notification profile.
-        
-        Args:
-            profile: Profile to get statistics for
-            
-        Returns:
-            Dict with profile statistics
+        Return statistics for a profile including user adoption count.
         """
-        # Count users with this profile applied
-        # (This would require tracking which users have which profile)
-        # For now, we'll return basic profile info
-        
+        from notifications_system.models.notification_preferences import (
+            NotificationPreference,
+        )
+
+        users_with_profile = NotificationPreference.objects.filter(
+            profile=profile,
+        ).count()
+
         return {
             'profile_id': profile.id,
             'profile_name': profile.name,
+            'website': profile.website.name if profile.website else 'Global',
             'is_default': profile.is_default,
-            'channels_enabled': {
+            'channels': {
                 'email': profile.email_enabled,
-                'sms': profile.sms_enabled,
-                'push': profile.push_enabled,
                 'in_app': profile.in_app_enabled,
             },
             'dnd_enabled': profile.dnd_enabled,
-            'dnd_hours': f"{profile.dnd_start_hour}:00 - {profile.dnd_end_hour}:00" if profile.dnd_enabled else None,
-            'website': profile.website.name if profile.website else None,
+            'dnd_hours': (
+                f"{profile.dnd_start_hour}:00 — {profile.dnd_end_hour}:00"
+                if profile.dnd_enabled else None
+            ),
+            'digest_enabled': profile.digest_enabled,
+            'digest_frequency': profile.digest_frequency,
+            'users_with_profile': users_with_profile,
         }
-    
-    @staticmethod
-    def _get_all_events() -> List[str]:
-        """
-        Get all available notification event keys.
-        
-        Returns:
-            List of event keys
-        """
-        events = []
-        
-        # Add all event types from enums
-        events.extend(OrderEvent.values)
-        events.extend(TicketEvent.values)
-        events.extend(WalletEvent.values)
-        events.extend(AccountEvent.values)
-        events.extend(MessageEvent.values)
-        events.extend(WriterEvent.values)
-        events.extend(PayoutEvent.values)
-        events.extend(FileEvent.values)
-        
-        return events
-    
-    @staticmethod
-    def duplicate_profile(
-        source_profile: NotificationPreferenceProfile,
-        new_name: str,
-        website: Optional[Website] = None
-    ) -> NotificationPreferenceProfile:
-        """
-        Duplicate a notification profile with a new name.
-        
-        Args:
-            source_profile: Profile to duplicate
-            new_name: Name for the new profile
-            website: Website for the new profile (uses source if not provided)
-            
-        Returns:
-            New NotificationPreferenceProfile instance
-        """
-        if not website:
-            website = source_profile.website
-        
-        return NotificationPreferenceProfile.objects.create(
-            name=new_name,
-            description=f"Copied from {source_profile.name}",
-            website=website,
-            default_email=source_profile.default_email,
-            default_sms=source_profile.default_sms,
-            default_push=source_profile.default_push,
-            default_in_app=source_profile.default_in_app,
-            email_enabled=source_profile.email_enabled,
-            sms_enabled=source_profile.sms_enabled,
-            push_enabled=source_profile.push_enabled,
-            in_app_enabled=source_profile.in_app_enabled,
-            dnd_enabled=source_profile.dnd_enabled,
-            dnd_start_hour=source_profile.dnd_start_hour,
-            dnd_end_hour=source_profile.dnd_end_hour,
-            is_default=False,  # Don't duplicate default status
-        )
-

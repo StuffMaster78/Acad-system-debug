@@ -3,10 +3,11 @@ Enhanced models for service pages - FAQs, Resources, CTAs, SEO.
 """
 from django.db import models
 from django.db.models import JSONField, Sum
-from websites.models import Website
+from django.conf import settings
+from websites.models.websites import Website
 from django.contrib.auth import get_user_model
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class ServicePageFAQ(models.Model):

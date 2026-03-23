@@ -2,7 +2,7 @@ from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from websites.models import Website 
+from websites.models.websites import Website 
 from writer_management.models.profile import WriterProfile
 from orders.models import Order
 

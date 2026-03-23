@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.conf import settings
 from .models import (
     Ticket, TicketMessage, TicketLog, 
     TicketStatistics, TicketAttachment
@@ -67,8 +68,7 @@ class TicketCreateSerializer(serializers.ModelSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Set queryset for created_by field
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
+        User = settings.AUTH_USER_MODEL
         request = self.context.get('request')
         
         if request and hasattr(request, 'user'):

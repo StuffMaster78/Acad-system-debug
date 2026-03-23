@@ -7,7 +7,7 @@ from django.db import transaction
 from orders.dispatcher import OrderActionDispatcher
 from orders.permissions import IsOrderOwnerOrSupport
 from orders.models import Order
-from orders.serializers import OrderSerializer
+from orders.serializers_legacy import OrderSerializer
 from orders.services.order_action_service import OrderActionService
 
 
@@ -98,7 +98,7 @@ class OrderActionView(views.APIView):
                 {
                     "status": "error",
                     "detail": reason or f"Action '{action}' is not available for order in status '{order.status}'",
-                    "order_id": order.id,
+                    "order_id": order.pk,
                     "current_status": order.status,
                     "requested_action": action,
                     "available_actions": available_action_names,
@@ -135,9 +135,9 @@ class OrderActionView(views.APIView):
                 # Build success message
                 status_changed = order.status != updated_order.status
                 if status_changed:
-                    message = f"Order #{order.id} {action_label.lower()}d successfully. Status changed from '{order.status}' to '{updated_order.status}'."
+                    message = f"Order #{order.pk} {action_label.lower()}d successfully. Status changed from '{order.status}' to '{updated_order.status}'."
                 else:
-                    message = f"Order #{order.id} {action_label.lower()}d successfully."
+                    message = f"Order #{order.pk} {action_label.lower()}d successfully."
                 
                 return Response(
                     {
@@ -145,7 +145,7 @@ class OrderActionView(views.APIView):
                         "message": message,
                         "action": action,
                         "action_label": action_label,
-                        "order_id": updated_order.id,
+                        "order_id": updated_order.pk,
                         "old_status": order.status,
                         "new_status": updated_order.status,
                         "status_changed": status_changed,
@@ -159,7 +159,7 @@ class OrderActionView(views.APIView):
                 {
                     "status": "error",
                     "detail": str(ve),
-                    "order_id": order.id,
+                    "order_id": order.pk,
                     "action": action
                 },
                 status=status.HTTP_400_BAD_REQUEST
@@ -174,7 +174,7 @@ class OrderActionView(views.APIView):
                     "status": "error",
                     "detail": "An unexpected error occurred while processing your request.",
                     "error": str(e) if request.user.role in ["admin", "superadmin"] else None,  # Only show details to admins
-                    "order_id": order.id,
+                    "order_id": order.pk,
                     "action": action
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -205,7 +205,7 @@ class OrderActionView(views.APIView):
         return Response(
             {
                 "status": "success",
-                "order_id": order.id,
+                "order_id": order.pk,
                 "current_status": order.status,
                 "available_actions": available_actions,
                 "user_role": getattr(request.user, "role", None)

@@ -5,17 +5,18 @@ Writers cannot see client payment amounts.
 """
 import logging
 from decimal import Decimal
+from typing import Optional
 from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from special_orders.models import WriterBonus
 from class_management.class_payment import ClassWriterPayment, ClassPayment
 from wallet.models import Wallet, WalletTransaction
 from websites.utils import get_current_website
 
 logger = logging.getLogger(__name__)
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class WriterPaymentAwardService:
@@ -30,8 +31,8 @@ class WriterPaymentAwardService:
         amount: Decimal,
         category: str = 'other',
         reason: str = '',
-        special_order_id: int = None,
-        class_bundle_id: int = None,
+        special_order_id: Optional[int] = None,
+        class_bundle_id: Optional[int] = None,
         add_to_wallet: bool = False,
         website=None,
         admin_user=None
@@ -82,7 +83,7 @@ class WriterPaymentAwardService:
         )
         
         result = {
-            'bonus_id': bonus.id,
+            'bonus_id': bonus.pk,
             'writer_id': writer.id,
             'writer_username': writer.username,
             'amount': float(amount),
@@ -115,7 +116,7 @@ class WriterPaymentAwardService:
     @transaction.atomic
     def award_class_payment(
         class_payment_id: int,
-        amount: Decimal = None,
+        amount: Optional[Decimal] = None,
         add_to_wallet: bool = False,
         website=None,
         admin_user=None
@@ -184,7 +185,7 @@ class WriterPaymentAwardService:
                     reason=f"Payment for Class Bundle #{class_payment.class_bundle.id}",
                     is_paid=add_to_wallet,
                 )
-                existing_payment.writer_bonus = bonus
+                existing_payment.writer_bonus = bonus  # type: ignore
                 existing_payment.save()
         else:
             # Create new payment
@@ -208,9 +209,9 @@ class WriterPaymentAwardService:
             )
         
         result = {
-            'payment_id': existing_payment.id,
-            'bonus_id': bonus.id,
-            'class_payment_id': class_payment.id,
+            'payment_id': existing_payment.pk,
+            'bonus_id': bonus.pk,
+            'class_payment_id': class_payment.pk,
             'class_bundle_id': class_payment.class_bundle.id,
             'writer_id': writer.id,
             'writer_username': writer.username,
@@ -279,7 +280,7 @@ class WriterPaymentAwardService:
         bonus.save()
         
         result = {
-            'bonus_id': bonus.id,
+            'bonus_id': bonus.pk,
             'writer_id': writer.id,
             'writer_username': writer.username,
             'amount': float(bonus.amount),

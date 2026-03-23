@@ -9,19 +9,19 @@ Usage:
 import os
 import sys
 import django
+from django.conf import settings
 
 # Setup Django
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'writing_system.settings')
 django.setup()
 
-from django.contrib.auth import get_user_model
 from orders.models import Order
 from communications.models import CommunicationThread
 from communications.services.thread_service import ThreadService
 from communications.services.communication_guard import CommunicationGuardService
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 def test_start_conversation_logic():

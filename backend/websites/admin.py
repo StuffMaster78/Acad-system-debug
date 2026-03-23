@@ -1,5 +1,9 @@
 from django.contrib import admin
-from .models import Website, WebsiteStaticPage, WebsiteSettings, WebsiteTermsAcceptance, ExternalReviewLink
+from websites.models.websites import Website
+from websites.models.website_settings import (
+    WebsiteStaticPage, WebsiteSettings,
+    WebsiteTermsAcceptance, ExternalReviewLink
+)
 from .models_integrations import WebsiteIntegrationConfig
 from django.utils import timezone
 from django.utils.text import slugify

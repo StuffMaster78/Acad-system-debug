@@ -96,9 +96,16 @@ urlpatterns = [
         name="webhook-retry"
     ),
     path("admin/webhook-logs/", WebhookDeliveryLogListView.as_view()),
-    path("admin/webhook-logs/<int:log_id>/retry/", RetryWebhookView.as_view()),
+    path(
+        "admin/webhook-logs/<int:log_id>/retry/",
+        RetryWebhookView.as_view()
+    ),
 
-    path("writer-request/preview/", WriterRequestPreviewView.as_view(), name="writer-request-preview"),
+    path(
+        "writer-request/preview/",
+        WriterRequestPreviewView.as_view(),
+        name="writer-request-preview"
+    ),
     path(
         "admin/orders/<int:pk>/editing/",
         OrderEditingAdminView.as_view(),

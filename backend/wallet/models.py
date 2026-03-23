@@ -4,7 +4,7 @@ from datetime import timedelta
 from django.utils.timezone import now
 from core.models.base import WebsiteSpecificBaseModel
 from django.conf import settings
-from websites.models import Website
+from websites.models.websites import Website
 # from client_management.models import LoyaltyPoint
 
 User = settings.AUTH_USER_MODEL 

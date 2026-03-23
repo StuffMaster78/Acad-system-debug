@@ -1,193 +1,305 @@
 # notifications_system/services/dispatcher.py
+"""
+Picks up outbox entries and dispatches per-channel deliveries.
+Called by the Celery task after NotificationService writes the outbox.
+
+Responsibilities:
+    - Check mute, DND, and cooldown via PreferenceService
+    - Create Notification record
+    - Create NotificationsUserStatus record
+    - Per channel: check preferences, resolve template,
+      render, create Delivery row, queue send task
+
+Does NOT:
+    - Write to the outbox (OutboxService)
+    - Validate input (NotificationService)
+    - Render templates directly (TemplateService)
+    - Send emails or in-app messages (backends)
+"""
 from __future__ import annotations
+
+import logging
+from typing import Any, Dict, List, Optional
+
 from django.db import transaction
 from django.utils import timezone
-from typing import Iterable, List, Optional, Tuple
-from django.conf import settings
-from django.core.cache import caches
-from django.db.models import Case, When, Value, IntegerField, Q
-from notifications_system.models.notifications_template import NotificationTemplate
-from notifications_system.models.notification_event import NotificationEvent
-from notifications_system.models.notification_preferences import UserNotificationPreference
-from notifications_system.models.delivery import Delivery
 
-from notifications_system.services.render import render_template
+from notifications_system.enums import (
+    DeliveryStatus,
+    NotificationPriority,
+    get_event_category,
+)
 
-def _respect_quiet_hours(pref: Optional[UserNotificationPreference]) -> bool:
-    # Implement TZ-aware check if you store it; allow for now.
-    return True
-
-def resolve_template(event: NotificationEvent, channel: str,
-                     website_id: Optional[int], locale: str = "en"
-                     ) -> Optional[NotificationTemplate]:
-    qs = NotificationTemplate.objects.filter(
-        event=event, channel=channel, locale=locale
-    )
-    if website_id:
-        t = qs.filter(website_id=website_id).order_by("-version").first()
-        if t:
-            return t
-    return qs.filter(website_id__isnull=True).order_by("-version").first()
-
-def should_send(user_id: Optional[int], website_id: Optional[int], channel: str) -> bool:
-    if not user_id:
-        return True
-    pref = UserNotificationPreference.objects.filter(
-        user_id=user_id, website_id=website_id, channel=channel
-    ).first()
-    if pref and not pref.enabled:
-        return False
-    return _respect_quiet_hours(pref)
-
-def queue_delivery(
-    *,
-    event_key: str,
-    website_id: Optional[int],
-    user_id: Optional[int],
-    payload: dict,
-    channels: list[str],
-    priority: str,
-    dedupe_key: str = "",
-    locale: str = "en",
-) -> list[Delivery]:
-    event = NotificationEvent.objects.filter(key=event_key, enabled=True).first()
-    if not event:
-        return []
-
-    deliveries: list[Delivery] = []
-    with transaction.atomic():
-        for ch in channels:
-            if not should_send(user_id, website_id, ch):
-                continue
-            tmpl = resolve_template(event, ch, website_id, locale)
-            if not tmpl:
-                continue
-            rendered = render_template(tmpl, payload)
-            d = Delivery.objects.create(
-                event_key=event.key,
-                website_id=website_id,
-                user_id=user_id,
-                channel=ch,
-                priority=priority or event.priority,
-                payload=payload or {},
-                rendered=rendered,
-                dedupe_key=dedupe_key,
-                status="queued",
-                queued_at=timezone.now(),
-            )
-            deliveries.append(d)
-    return deliveries
+logger = logging.getLogger(__name__)
 
 
-def _locale_chain(locale: str | None) -> List[str]:
-    """Return best-to-worst locale candidates (exact → lang → 'en')."""
-    if not locale:
-        return ["en"]
-    loc = locale.replace("_", "-")
-    parts = loc.split("-")
-    chain = [loc]
-    if len(parts) > 1:
-        chain.append(parts[0])  # language-only
-    if "en" not in chain:
-        chain.append("en")
-    return chain
-
-
-def _cache_get(key: str):
-    try:
-        cache = caches["default"]
-        return cache.get(key)
-    except Exception:
-        return None
-
-
-def _cache_set(key: str, value, timeout: int = 300):
-    try:
-        cache = caches["default"]
-        cache.set(key, value, timeout=timeout)
-    except Exception:
-        pass
-
-
-def resolve_template(
-    event: NotificationEvent | str,
-    channel: str,
-    website_id: Optional[int],
-    locale: str = "en",
-    use_cache: bool = True,
-) -> Optional[NotificationTemplate]:
-    """Pick the best template with tenant + locale fallbacks and highest version.
-
-    Selection order (highest wins):
-      1) website-specific over global
-      2) exact locale > language-only > 'en'
-      3) highest version
-
-    Args:
-        event: NotificationEvent instance or event key (str).
-        channel: Channel name (e.g., 'email', 'in_app').
-        website_id: Tenant/website id or None for global.
-        locale: Desired BCP-47-ish locale (e.g., 'sw-KE', 'en').
-        use_cache: Use Django cache if available.
-
-    Returns:
-        NotificationTemplate or None if not found.
+class NotificationDispatcher:
     """
-    # Normalize inputs
-    if isinstance(event, str):
-        ev = NotificationEvent.objects.filter(key=event, enabled=True).only("id").first()
-        if not ev:
-            return None
-        event_id = ev.id
-        event_key = event
-    else:
-        event_id = event.id
-        event_key = event.key
+    Processes an outbox entry end-to-end.
 
-    locales = _locale_chain(locale)
+    Creates the Notification record, checks preferences per channel,
+    renders templates, creates Delivery rows, and queues send tasks.
 
-    # Cache key (stable, small)
-    ck = f"notif:t:{event_key}:{channel}:{website_id or 'global'}:{'/'.join(locales)}"
-    if use_cache:
-        cached_id = _cache_get(ck)
-        if cached_id:
-            # Re-fetch by PK to return a live model instance
-            tpl = NotificationTemplate.objects.filter(pk=cached_id).first()
-            if tpl:
-                return tpl
+    Called exclusively by process_outbox_entry Celery task.
+    """
 
-    # Build query with both website and global templates
-    q = NotificationTemplate.objects.filter(
-        event_id=event_id,
-        channel=channel,
-        locale__in=locales,
-    ).filter(
-        Q(website_id=website_id) | Q(website_id__isnull=True)
-    )
+    @staticmethod
+    def dispatch(
+        *,
+        event_key: str,
+        recipient,
+        website,
+        context: Dict[str, Any],
+        channels: List[str],
+        triggered_by=None,
+        priority: str = NotificationPriority.NORMAL,
+        is_critical: bool = False,
+        is_silent: bool = False,
+        is_digest: bool = False,
+        digest_group: str = '',
+    ) -> Optional[object]:
+        """
+        Main dispatch entry point — called by process_outbox_entry task.
 
-    # Ranking:
-    # website_score: 1 for exact tenant, 0 for global
-    website_score = Case(
-        When(website_id=website_id, then=Value(1)),
-        default=Value(0),
-        output_field=IntegerField(),
-    )
+        Checks suppression conditions first — if any apply the
+        notification is not created. Otherwise creates the Notification
+        and NotificationsUserStatus records atomically, then queues
+        per-channel delivery tasks.
 
-    # locale_score: N for exact locale (highest), then language-only, then 'en'
-    # give descending weights based on position in locales list
-    # e.g., locales = ['sw-KE','sw','en'] → {'sw-KE':3,'sw':2,'en':1}
-    weights = {loc: idx + 1 for idx, loc in enumerate(reversed(locales))}
-    whens = [When(locale=l, then=Value(weights[l])) for l in locales]
-    locale_score = Case(*whens, default=Value(0), output_field=IntegerField())
+        Args:
+            event_key:    Event key e.g. 'order.completed'
+            recipient:    User receiving the notification
+            website:      Website instance for tenant scoping
+            context:      Template context variables
+            channels:     Channels resolved by NotificationService
+            triggered_by: User who caused the event — None means system
+            priority:     NotificationPriority value
+            is_critical:  If True bypasses mute, DND, and cooldown
+            is_silent:    Create record only — skip all delivery
+            is_digest:    Group into digest batch — skip immediate delivery
+            digest_group: Digest group key e.g. 'daily_summary'
 
-    # Order: website match desc, locale score desc, version desc, PK desc
-    tpl = (
-        q.annotate(_wscore=website_score, _lscore=locale_score)
-         .order_by("-_wscore", "-_lscore", "-version", "-id")
-         .first()
-    )
+        Returns:
+            Notification instance if created.
+            None if suppressed by mute, DND, or cooldown.
+        """
+        from notifications_system.services.preference_service import PreferenceService
 
-    if tpl and use_cache:
-        _cache_set(ck, tpl.pk, timeout=300)
+        # --- Suppression checks — skip if critical
+        if not is_critical:
 
-    return tpl
+            if PreferenceService.is_muted(recipient, website):
+                logger.info(
+                    "dispatch() suppressed — muted: "
+                    "user=%s event=%s.",
+                    recipient.id,
+                    event_key,
+                )
+                return None
+
+            if PreferenceService.is_in_dnd(recipient, website):
+                logger.info(
+                    "dispatch() suppressed — DND: "
+                    "user=%s event=%s.",
+                    recipient.id,
+                    event_key,
+                )
+                return None
+
+            if PreferenceService.is_on_cooldown(recipient, website, event_key):
+                logger.info(
+                    "dispatch() suppressed — cooldown: "
+                    "user=%s event=%s.",
+                    recipient.id,
+                    event_key,
+                )
+                return None
+
+        # --- Create Notification + NotificationsUserStatus atomically
+        # Both rows are created together — if either fails neither persists.
+        # The NotificationsUserStatus row is the per-user read/pin/ack state.
+        from notifications_system.models.notifications import Notification
+        from notifications_system.models.notifications_user_status import (
+            NotificationsUserStatus,
+        )
+
+        with transaction.atomic():
+            notification = Notification.objects.create(
+                user=recipient,
+                website=website,
+                event_key=event_key,
+                channels=channels,
+                payload=context,
+                actor=triggered_by,
+                priority=priority,
+                category=get_event_category(event_key),
+                is_critical=is_critical,
+                is_silent=is_silent,
+                is_digest=is_digest,
+                digest_group=digest_group,
+                status=DeliveryStatus.PENDING,
+            )
+
+            NotificationsUserStatus.objects.create(
+                user=recipient,
+                website=website,
+                notification=notification,
+                priority=priority,
+            )
+
+        logger.info(
+            "dispatch() created notification=%s event=%s "
+            "user=%s website=%s channels=%s.",
+            notification.id,
+            event_key,
+            recipient.id,
+            website.id,
+            channels,
+        )
+
+        # --- Silent — record only, no delivery
+        if is_silent:
+            logger.info(
+                "dispatch() silent: notification=%s "
+                "stored but not delivered.",
+                notification.id,
+            )
+            return notification
+
+        # --- Digest — queue for batch delivery, not immediate
+        if is_digest:
+            from notifications_system.services.digest_service import DigestService
+            DigestService.queue_digest(
+                user=recipient,
+                website=website,
+                event_key=event_key,
+                payload=context,
+                notification=notification,
+                digest_group=digest_group,
+            )
+            logger.info(
+                "dispatch() digest: notification=%s "
+                "queued for digest group=%s.",
+                notification.id,
+                digest_group,
+            )
+            return notification
+
+        # --- Per-channel delivery
+        delivered_to_any = False
+        for channel in channels:
+
+            # Check per-channel user preference
+            if not PreferenceService.should_notify(
+                recipient, website, event_key, channel
+            ):
+                logger.info(
+                    "dispatch() channel=%s skipped by preferences: "
+                    "user=%s event=%s.",
+                    channel,
+                    recipient.id,
+                    event_key,
+                )
+                continue
+
+            NotificationDispatcher._queue_channel_delivery(
+                notification=notification,
+                channel=channel,
+                context=context,
+                priority=priority,
+            )
+            delivered_to_any = True
+
+        # If every channel was suppressed by preferences
+        # mark notification as cancelled so it does not
+        # sit in PENDING forever
+        if not delivered_to_any:
+            Notification.objects.filter(id=notification.id).update(
+                status=DeliveryStatus.CANCELLED,
+            )
+            logger.info(
+                "dispatch() all channels suppressed: "
+                "notification=%s marked CANCELLED.",
+                notification.id,
+            )
+
+        return notification
+
+    @staticmethod
+    def _queue_channel_delivery(
+        *,
+        notification,
+        channel: str,
+        context: Dict[str, Any],
+        priority: str,
+    ) -> None:
+        """
+        Resolve template, render, create Delivery row, queue send task.
+
+        One call per channel per notification.
+        If the template is missing the channel is skipped and
+        logged — delivery continues on remaining channels.
+
+        Args:
+            notification: Parent Notification instance
+            channel:      Channel string e.g. 'email', 'in_app'
+            context:      Template context variables
+            priority:     Delivery priority
+        """
+        from notifications_system.models.delivery import Delivery
+        from notifications_system.services.template_service import TemplateService
+
+        # --- Resolve template
+        template = TemplateService.resolve(
+            event_key=notification.event_key,
+            channel=channel,
+            website=notification.website,
+        )
+
+        if not template:
+            logger.warning(
+                "_queue_channel_delivery() no template: "
+                "event=%s channel=%s website=%s. "
+                "Run validate_templates to find missing templates.",
+                notification.event_key,
+                channel,
+                notification.website_id,
+            )
+            return
+
+        # --- Render
+        rendered = TemplateService.render(template, context)
+
+        # --- Store rendered content on Notification for the first channel
+        # Subsequent channels write their own rendered content to
+        # their Delivery row — the Notification only needs one copy
+        # for display purposes (typically the in-app rendering)
+        if not notification.rendered:
+            notification.rendered = rendered
+            notification.save(update_fields=['rendered', 'updated_at'])
+
+        # --- Create Delivery row
+        # One row per channel — channel is a CharField not a list
+        delivery = Delivery.objects.create(
+            event_key=notification.event_key,
+            user=notification.user,
+            website=notification.website,
+            notification=notification,
+            channel=channel,              # single string — not a list
+            priority=priority,
+            payload=context,
+            rendered=rendered,
+            status=DeliveryStatus.QUEUED,
+        )
+
+        # --- Queue send task
+        from notifications_system.tasks.send import send_channel_notification
+        send_channel_notification.delay(delivery.id)
+
+        logger.info(
+            "_queue_channel_delivery() queued: "
+            "delivery=%s channel=%s notification=%s.",
+            delivery.id,
+            channel,
+            notification.id,
+        )

@@ -3,12 +3,12 @@ Approval workflow models for blog posts and service pages.
 Enables draft → review → approved → published workflow.
 """
 from django.db import models
-from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.db.models import JSONField
 from django.utils import timezone
 from django.core.validators import MaxLengthValidator
 
-User = get_user_model()
+User = settings.AUTH_USER_MODEL
 
 
 class BlogPostWorkflow(models.Model):

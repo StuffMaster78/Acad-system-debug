@@ -4,7 +4,7 @@ Open Graph, Twitter Cards, and Google visibility.
 """
 from django.db import models
 from django.db.models import JSONField
-from websites.models import Website
+from websites.models.websites import Website
 from django.utils import timezone
 
 

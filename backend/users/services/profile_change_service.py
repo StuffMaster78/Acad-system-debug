@@ -19,7 +19,7 @@ class ProfileChangeService:
     
     def __init__(self, user, website=None):
         self.user = user
-        self.website = website or get_current_website()
+        self.website = website or get_current_website
         if not self.website:
             from websites.models import Website
             self.website = Website.objects.filter(is_active=True).first()

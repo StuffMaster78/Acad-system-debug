@@ -4,8 +4,8 @@ Allows clients to save reusable order presets with default preferences.
 """
 from django.db import models
 from django.conf import settings
-from websites.models import Website
-
+from websites.models.websites import Website
+from django.utils import timezone
 
 class OrderPreset(models.Model):
     """
@@ -142,7 +142,7 @@ class OrderPreset(models.Model):
         
         # Increment usage
         self.usage_count += 1
-        self.last_used_at = models.timezone.now()
+        self.last_used_at = timezone.now()
         self.save(update_fields=['usage_count', 'last_used_at'])
         
         return draft

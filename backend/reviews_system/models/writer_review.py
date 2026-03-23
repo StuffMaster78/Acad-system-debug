@@ -1,7 +1,7 @@
 from django.db import models
 from reviews_system.models.base import ReviewBase
 from django.conf import settings
-from websites.models import Website
+from websites.models.websites import Website
 from orders.models import Order
 from writer_management.models.profile import WriterProfile
 class WriterReview(ReviewBase):

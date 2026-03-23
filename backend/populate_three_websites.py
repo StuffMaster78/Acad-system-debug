@@ -4,7 +4,7 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE','writing_system.settings')
 import django
 django.setup()
 
-from websites.models import Website
+from websites.models.websites import Website
 from order_configs.models import PaperType, FormattingandCitationStyle, Subject, AcademicLevel, TypeOfWork, EnglishType
 from order_configs.management.commands.populate_academic_settings import Command
 

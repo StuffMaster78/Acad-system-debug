@@ -7,13 +7,10 @@ from django.db import transaction
 
 from orders.utils.order_utils import get_order_by_id
 from typing import List, Dict, Any
-# from notifications_system.services.dispatcher import notify_user
 from discounts.utils import get_discount_model
 from discounts.services.discount_generator import DiscountCodeGenerator
 
 logger = logging.getLogger(__name__)
-# Ensure we have the correct model loaded
-
 
 
 class DiscountCodeService:

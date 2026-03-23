@@ -4,7 +4,7 @@ SEO Landing Pages model for custom SEO-optimized landing pages.
 from django.db import models
 from django.contrib.postgres.fields import JSONField
 from django.conf import settings
-from websites.models import Website
+from websites.models.websites import Website
 
 User = settings.AUTH_USER_MODEL
 
@@ -14,7 +14,7 @@ class SeoPage(models.Model):
     SEO-optimized landing page with block-based content.
     """
     website = models.ForeignKey(
-        Website,
+        'websites.Website',
         on_delete=models.CASCADE,
         related_name='seo_pages',
         help_text="Website this SEO page belongs to"

@@ -9,6 +9,7 @@ from django.utils import timezone
 from orders.models import Order
 from datetime import timedelta
 from django.db.models import Avg, Count
+from django.conf import settings
 
 from orders.services.archive_order_service import ArchiveOrderService
 from orders.services.auto_archive_service import AutoArchiveService
@@ -22,12 +23,14 @@ from orders.workflow.state_machine import GenericStateMachineService
 # from orders.models import OrderReview
 from orders.services.order_request_service import OrderRequestService
 from users.models import User
-from websites.models import Website
+from websites.models.websites import Website
 from audit_logging.services.audit_log_service import AuditLogEntry
 from orders.models import WriterRequest
 from audit_logging.services.audit_log_service import AuditLogService
 
 logger = logging.getLogger(__name__)
+
+User = settings.AUTH_USER_MODEL
 
 @shared_task
 def notify_writer(order_id):

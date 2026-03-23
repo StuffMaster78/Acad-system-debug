@@ -23,7 +23,8 @@ class AccountDeletionRequest(models.Model):
     
     user = models.ForeignKey(
         'users.User',
-        on_delete=models.CASCADE
+        on_delete=models.CASCADE,
+        related_name='deletion_requests'
     )
     request_time = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
@@ -57,33 +58,52 @@ class AccountDeletionRequest(models.Model):
     reason = models.TextField(null=True, blank=True)
     
     def confirm(self):
+        """Confirm the deletion request without scheduling."""
         self.status = self.CONFIRMED
         self.confirmation_time = timezone.now()
-        self.save()
+        self.save(update_fields=['status', 'confirmation_time'])
     
     def reject(self):
+        """Reject the deletion request."""
         self.status = self.REJECTED
         self.rejection_time = timezone.now()
-        self.save()
+        self.save(update_fields=['status', 'rejection_time'])
 
     def schedule_deletion(self, delay_hours=72):
+        """Confirm and schedule the user for deletion after a delay."""
         self.status = self.CONFIRMED
         self.confirmation_time = timezone.now()
         self.scheduled_deletion_time = self.confirmation_time + timezone.timedelta(hours=delay_hours)
-        self.save()
+        self.save(update_fields=['status', 'confirmation_time', 'scheduled_deletion_time'])
 
     def generate_undo_token(self):
+        """Generate a secure token allowing the user to cancel deletion."""
         import secrets
         self.undo_token = secrets.token_urlsafe(32)
         self.undo_token_expiry = timezone.now() + timezone.timedelta(hours=72)
-        self.save()
+        self.save(update_fields=['undo_token', 'undo_token_expiry'])
+
+    def is_undo_token_valid(self):
+        """Check whether the undo token is still usable."""
+        return (
+            self.undo_token is not None
+            and self.undo_token_expiry is not None
+            and timezone.now() < self.undo_token_expiry
+        )
 
     def perform_soft_delete(self):
+        """Deactivate the user account without deleting the record."""
         self.user.is_active = False
-        self.user.save()
+        self.user.save(update_fields=['is_active'])
     
     def __str__(self):
-        return f"Deletion request for {self.user.username} ({self.get_status_display()})"    
+        return f"Deletion request for {self.user.username} ({self.get_status_display()})"
+
+    class Meta:
+        ordering = ['-request_time']
+        indexes = [
+            models.Index(fields=['status', 'scheduled_deletion_time']),
+        ]  
 
 
 class DeletionRequestManager(models.Manager):

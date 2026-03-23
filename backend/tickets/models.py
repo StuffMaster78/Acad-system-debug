@@ -3,7 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from websites.models import Website
+from websites.models.websites import Website
 from tickets.utils import ticket_attachment_upload_path
 
 class Ticket(models.Model):

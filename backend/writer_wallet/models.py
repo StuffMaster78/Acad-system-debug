@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils.timezone import now
 from django.conf import settings
-from websites.models import Website
+from websites.models.websites import Website
 from orders.models import Order  # Linking orders since statuses are tracked there
 
 User = settings.AUTH_USER_MODEL 

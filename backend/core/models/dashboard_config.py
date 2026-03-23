@@ -4,7 +4,7 @@ Stores card configurations, colors, fonts, and content for role-specific dashboa
 """
 
 from django.db import models
-from websites.models import Website
+from websites.models.websites import Website
 from users.mixins import UserRole
 
 

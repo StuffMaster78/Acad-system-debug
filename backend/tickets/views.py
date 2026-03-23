@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from django.db.models import Avg, Count, F, Q
+from django.conf import settings
 from .models import (
     Ticket, TicketMessage, TicketLog, 
     TicketStatistics, TicketAttachment
@@ -14,7 +15,7 @@ from .serializers import (
     TicketAttachmentSerializer
 )
 from .permissions import IsAdminOrSupportForAttachment 
-from notifications_system.services.core import NotificationService
+from notifications_system.services.notification_service import NotificationService
 from django.utils import timezone
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import action
@@ -100,8 +101,7 @@ class TicketViewSet(viewsets.ModelViewSet):
             performed_by=request.user
         )
         # Notify all admins/support (example: all users with role 'admin' or 'support')
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
+        User = settings.AUTH_USER_MODEL
         admins = User.objects.filter(role__in=['admin', 'support', 'superadmin'])
         for admin in admins:
             if admin != request.user:
@@ -337,16 +337,16 @@ class TicketMessageViewSet(viewsets.ModelViewSet):
 
         # Legacy notification code (can be removed once fully migrated)
         # if assigned_to and assigned_to != self.request.user: ticket.created_by and ticket.created_by not in [self.request.user, assigned_to]:
-            NotificationService.send_notification(
+            NotificationService.notify(
+                event_key="tickets.message_received",
                 recipient=ticket.created_by,
-                verb="New ticket message",
-                description=f"You have a new message on your ticket '{ticket.title}'.",
-                target=ticket,
-                actor=self.request.user,
-                extra_data={
+                website=ticket.website,
+                context={
                     "ticket_id": ticket.id,
                     "message_id": message.id,
-                }
+                    "message": f"You have a new message on your ticket '{ticket.title}'.",
+                },
+                triggered_by=self.request.user
             )
 
     def get_queryset(self):

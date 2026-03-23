@@ -9,7 +9,7 @@ from django.apps import apps
 from django.conf import settings
 import secrets
 import string
-from websites.models import Website
+from websites.models.websites import Website
 try:
     # Re-export LoyaltyTransaction for tests importing from client_management.models
     from loyalty_management.models import LoyaltyTransaction as LoyaltyTransaction  # noqa: F401
